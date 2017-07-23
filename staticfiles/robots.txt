@@ -1,0 +1,4 @@
+User-Agent: *
+Disallow: /shop/basket/
+Disallow: /shop/user/
+Host: order.sewing-world.ru
