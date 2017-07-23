@@ -1,0 +1,35 @@
+
+<form id="send-order" class="form-inline jumbotron ajax{% if wrong_password %} has-error{% endif %}" action="{% url 'shop:authorize' %}" method="post" data-replace="#send-order">
+    {% csrf_token %}
+    {% if user and user.is_authenticated %}
+        {# Пользователь залогинился #}
+        <p>Добро пожаловать, {{ user.name }}!</p>
+        <input type="submit" class="btn btn-success btn-lg" value="Оформить заказ"/>
+        <p><a href="{% url 'shop:logout' %}" class="sw-small-jumbotron">Я хочу оформить заказ от другого имени</a></p>
+    {% elif shop_user %}
+        {# Пользователь с таким телефоном уже есть #}
+        {# Требуем подтверждение пароля #}
+        {% load shop_filters %}
+        <p>{{ shop_user.phone|format_phone }}</p>
+        <p><a href="{% url 'shop:unbind' %}" id="unbind-phone" class="sw-small-jumbotron">Это не мой телефон</a></p>
+        <label class="control-label lead" for="password-input">Пароль:</label>
+        <input type="password" class="form-control input-lg" name="password" id="password-input" value="" size="20"/>
+        {% if wrong_password %}
+        <span id="password-help" class="help-block">Вы ввели неправильный пароль</span>
+        {% else %}
+        <span id="password-help" class="help-block hide"></span>
+        {% endif %}
+        <p><span style="font-size:10pt;">Если Вы не знаете пароль, нажмите:</span> <a href="{% url 'shop:reset_password' %}" id="reset-password" class="ajax sw-small-jumbotron">&quot;Я не помню пароль&quot;</a></p>
+        <input type="submit" class="btn btn-success btn-lg" value="Продолжить"/>
+    {% else %}
+        {# Анонимный пользователь #}
+        <p>Для продолжения укажите номер мобильного телефона:</p>
+        <div class="input-group">
+            <span class="input-group-addon input-lg sw-phone-input">+7</span>
+            <input type="tel" class="form-control input-lg sw-phone-input" name="phone" id="phone-input" value="" size="20"
+               placeholder="(999) 111-22-33"/>
+        </div>
+        <input type="submit" id="order-submit" class="btn btn-success btn-lg" value="Оформить заказ"/>
+		<p style="font-size:8pt">Нажимая на кнопку &laquo;Оформить заказ&raquo;, вы подтверждаете согласие с условиями <a href="http://www.sewing-world.ru/oferta.html">публичной оферты</a>.</p>
+    {% endif %}
+</form>

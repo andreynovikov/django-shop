@@ -1,0 +1,8 @@
+Файл {{ file }}
+Импортировано: {{ imported }}
+Обновлено: {{ updated }}
+{% if errors %}
+Ошибки:
+{% for error in errors %}{{ error }}
+{% endfor %}
+{% endif %}

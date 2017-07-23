@@ -1,0 +1,34 @@
+{% load shop_filters %}
+{% if update or invalid %}
+<form id="update-user" class="ajax sw-update-user-form" action="{% url 'shop:update_user' %}" method="post" data-replace="#update-user">
+    {% csrf_token %}
+    {% for field in user_form %}
+        {% if field.errors %}
+            <ul class="has-error">
+            {% for error in field.errors %}
+                <li class="help-block">{{ error }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+        {{ field.label_tag }} {{ field }}
+    {% endfor %}
+    <div class="center" style="padding-top:10px;"><input type="submit" class="btn btn-success" value="Сохранить"/></div>
+</form>
+<script type="text/javascript">
+$(document).ready(function () {
+    $("#id_phone").mask("+7 (999) 999-99-99");
+});
+</script>
+{% else %}
+<div id="update-user" class="sw-user-properties">
+<div><i class="glyphicon glyphicon-user" aria-hidden="true"></i> {{ request.user.name }}</div>
+<div><i class="glyphicon glyphicon-phone" aria-hidden="true"></i> {{ request.user.phone|format_phone }}</div>
+{% if request.user.email %}
+<div><i class="glyphicon glyphicon-envelope" aria-hidden="true"></i> {{ request.user.email }}</div>
+{% endif %}
+{% if request.user.address %}
+<div><i class="glyphicon glyphicon-home" aria-hidden="true"></i> {{ request.user.address }}</div>
+{% endif %}
+<a href="{% url 'shop:update_user' %}?update" class="ajax btn btn-success" data-replace="#update-user">Изменить</a>
+</div>
+{% endif %}

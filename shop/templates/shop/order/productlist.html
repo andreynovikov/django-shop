@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Товарный чек</title>
+</head>
+<body bgcolor="#FFFFFF" text="#000000">
+<h3>Товарный чек к заказу №{{ order.id }}</h3>
+
+<p>{{ owner_info.full_name }}, ИНН: {{ owner_info.inn }}, {{ owner_info.legal_address }}</p>
+
+<table width="800">
+    <tr><td colspan=7><hr size=1></td></tr>
+    <tr><td width=10%>Код</td>
+        <td width=50%>Наименование</td>
+        <td width=10% align=right>Цена</td>
+        <td width=5% align=right>Скидка</td>
+        <td width=10% align=right>Цена со скидкой</td>
+        <td width=5% align=right><NOBR>Кол-во</NOBR></td>
+        <td width=10% align=right>Сумма</td>
+    </tr>
+
+    <tr><td colspan=7><hr size=1></td></tr>
+
+{% for item in order.items.all %}
+<tr>
+<td valign=top><font size=-1>{{ item.product.article }}</font></td>
+<td valign=top><font size=-1>{{ item.product.whatis }} {{ item.product.partnumber }} {{ item.product.title }}</font></td>
+<td valign=top align=right><font size=-1>{{ item.product_price }}</font></td>
+<td valign=top align=right><font size=-1>{{ item.discount }}</font></td>
+<td valign=top align=right><font size=-1>{{ item.cost }}</font></td>
+<td valign=top align=right><font size=-1>{{ item.quantity }}</font></td>
+<td valign=top align=right><font size=-1>{{ item.price }}</font></td>
+</tr>
+{% endfor %}
+<tr>
+<td colspan=7><hr size=1></td>
+</tr>
+<tr valign=top>
+ <td align=right colspan=5>Сумма заказа:</td><td align=right colspan=2>{{ order.products_price }}&nbsp;руб.</td>
+</tr>
+<tr valign=top>
+ <td align=right colspan=5>{{ order.get_delivery_display|capfirst }}:</td><td align=right colspan=2>{{ order.delivery_price }}&nbsp;руб.</td>
+</tr>
+<tr valign=top>
+ <td align=right colspan=5><b>Сумма к оплате:</b></td><td align=right colspan=2><b>{{ order.total }}&nbsp;руб.</b></td>
+</tr>	
+<tr><td colspan=4>Менеджер ____________________________</td></tr>
+</table>
+</body>
+</html>

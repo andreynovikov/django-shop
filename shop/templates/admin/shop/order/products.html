@@ -1,0 +1,40 @@
+{% extends 'admin/base_site.html' %}
+{% load i18n admin_urls %}
+
+{% block breadcrumbs %}
+<ul class="breadcrumb">
+  <li><a href="{% url 'admin:index' %}">{% trans 'Home' %}</a><span class="divider">»</span></li>
+  <li><a href="{% url 'admin:app_list' app_label=cl.opts.app_label %}">{{ cl.opts.app_config.verbose_name }}</a><span class="divider">»</span></li>
+  <li><a href="{% url cl.opts|admin_urlname:'changelist' %}">{{ cl.opts.verbose_name_plural|capfirst }}</a><span class="divider">»</span></li>
+  <li class="active">Товары</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<table class="table">
+<thead>
+<tr>
+<th>ID</th>
+<th>Артикул</th>
+<th>Partnumber</th>
+<th>Название</th>
+<th>Кол-во</th>
+<th>Склад</th>
+<th>Заказ</th>
+<th>Статус</th>
+</tr>
+</thead>
+{% for product in products %}
+<tr>
+<td><a href="/admin/shop/product/{{ product.product_id }}/">{{ product.product_id }}</a></td>
+<td>{{ product.article }}</td>
+<td>{{ product.partnumber }}</td>
+<td><a href="/admin/shop/product/{{ product.product_id }}/">{{ product.title }}</a></td>
+<td>{{ product.quantity }}</td>
+<td>{{ product.stock|safe }}</td>
+<td><a href="/admin/shop/order/{{ product.order_id }}/">№{{ product.order_id }}</a></td>
+<td><span style="color: {{product.order_status_color }}">{{ product.order_status_value }}</span></td>
+</tr>
+{% endfor %}
+</table>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}
+<title>Оформление заказа - Швейный Мир</title>
+{% endblock %}
+{% block content %}
+
+    {% include "shop/_update_order.html" %}
+
+{% endblock %}
+
+{% block javascript %}
+    <script type="text/javascript">
+        $(document).ready(function () {
+//            window.dataLayer = window.dataLayer || [];
+            dataLayer.push({
+              "ecommerce": {
+                "purchase": {
+                    "actionField": {
+                        "id" : "{{ order.id }}"
+                    },
+                    "products": [
+{% for item in order.items.all %}
+                        {
+                            "id": "{{ item.product.id }}",
+                            "name": "{{ item.product.title }}",
+                            "price": "{{ item.product.price }}",
+                            "quantity": "{{ item.quantity }}"
+                        },
+{% endfor %}
+                    ]
+                }
+              }
+            });
+            var CustomHandlers = function () {
+            };
+            CustomHandlers.prototype.addAjaxFlag = function (e, $el) {
+                $el.on("eldarion-ajax:modify-data", function (e, data) {
+                    if (typeof data === "object") // using FormData
+                        data.append('ajax', 1);
+                    else
+                        data = data + "&ajax=1";
+                    return data;
+                });
+            };
+            $(document).on("eldarion-ajax:begin", function(evt, $el) {
+                $("body").css("cursor", "progress");
+            });
+            $(document).on("eldarion-ajax:complete", function(evt, $el) {
+                $("body").css("cursor", "auto");
+            });
+            $(document).on("eldarion-ajax:begin", "#update-order", CustomHandlers.prototype.addAjaxFlag);
+        });
+    </script>
+{% endblock %}

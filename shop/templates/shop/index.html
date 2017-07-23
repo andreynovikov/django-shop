@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block content %}
+<ul>
+    {% for product in products %}
+        <li><a href="{% url 'shop:add' product.id %}">{{ product.title }}</a></li>
+    {% endfor %}
+</ul>
+{% endblock %}

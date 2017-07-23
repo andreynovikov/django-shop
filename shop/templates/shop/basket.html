@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}
+<title>Оформление заказа - Швейный Мир</title>
+{% endblock %}
+{% block css %}
+<style type="text/css">
+	.sw-basket-total span    { font-weight:bold; color:darkgreen; }
+	.sw-basket-product-title { font-size:1.2em; }
+	.sw-phone-input          { height:auto; color:black; }
+	.sw-phone-input:-moz-placeholder { color:#e0e0e0; }
+	.sw-phone-input::-webkit-input-placeholder { color:#e0e0e0; }
+	.sw-basket-quantity      { height:auto; text-align:center; }
+	.sw-small-jumbotron      { font-size:10pt; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% load staticfiles %}
+{% load shop_filters %}
+<h1>Оформление заказа</h1>
+{% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
+<div class="text-center">
+    {% for item in basket.items.all %}
+    <div class="sw-p-l panel panel-default sw-product-row">
+       <div class="panel-body">
+          <div class="sw-p-l-image text-center">
+             {% if item.product.image_prefix|add:'.s.jpg'|file_exists %}
+                 <img src="{{ MEDIA_URL }}{{ item.product.image_prefix }}.s.jpg"/>
+             {% else %}
+                 <img src="{% static 'i/noimage.png' %}"/>
+             {% endif %}
+          </div>
+          <div class="sw-p-l-name text-center">
+             <a href="http://www.sewing-world.ru/products/{{ item.product.code }}.html"
+                class="sw-basket-product-title">{{ item.product.title }}</a>
+          </div>
+          <div class="text-center">
+             {% if item.discount > 0 %}
+                 {{ item.product.price }}&nbsp;руб.
+                 - {{ item.discount_text }}
+                 = {{ item.cost }}&nbsp;руб.
+             {% else %}
+                 {{ item.product.price }}&nbsp;руб.
+             {% endif %}
+             <form class="update form-inline ajax" action="{% url 'shop:update' item.product.id %}" method="post">
+             {% csrf_token %}
+             <div class="input-group quantity-container">
+                <span class="input-group-btn sw-minus"><button type="button" class="btn btn-default" aria-label="-">-</button></span>
+                <input class="form-control sw-basket-quantity" type="text" name="quantity" value="{{ item.quantity }}" size="3" title="Количество"/>
+                <span class="input-group-btn sw-plus"><button  type="button" class="btn btn-default" aria-label="+">+</button></span>
+             </div>
+             </form>
+          <div>
+            <span class="sw-p-l-price"><span id="price_{{item.product.id}}">{{ item.price }}</span></span>&nbsp;руб.
+          </div>
+          <a href="{% url 'shop:delete' item.product.id %}" class="delete ajax">Удалить</a>
+       </div>
+       </div>
+    </div>
+    {% endfor %}
+
+    <p class="sw-basket-total lead">Итого, без учета стоимости доставки: <span id="total">{{ basket.total }}</span>&nbsp;руб.</p>
+
+    {% include "shop/_send_order.html" %}
+
+</div>
+{% endblock %}
+
+{% block javascript %}
+    <script type="text/javascript">
+        $(document).ready(function () {
+ //           window.dataLayer = window.dataLayer || [];
+            dataLayer.push({
+            'event': 'checkout',
+              "ecommerce": {
+                "checkout": {
+                    "actionField": {
+                        'step': 1
+                    },
+                    "products": [
+{% for item in basket.items.all %}
+                        {
+                            "id": "{{ item.product.id }}",
+                            "name": "{{ item.product.title }}",
+                            "price": "{{ item.product.price }}",
+                            "quantity": "{{ item.quantity }}"
+                        },
+{% endfor %}
+                    ]
+                }
+              }
+            });
+            var CustomHandlers = function () {
+            };
+            CustomHandlers.prototype.setQuantityWarning = function (e, $el) {
+                $el.find(".quantity-container").addClass("has-warning");
+            };
+            CustomHandlers.prototype.setQuantity = function (e, $el, data) {
+                var $in = $el.find(".sw-basket-quantity");
+                $in.val(data["quantity"]);
+                var $cn = $el.find(".quantity-container");
+                $cn.removeClass("has-warning").addClass("has-success");
+                $in.on("blur", function () {
+                    $cn.removeClass("has-success");
+                });
+            };
+            CustomHandlers.prototype.removeProduct = function (e, $el) {
+                var $row = $el.closest(".sw-product-row");
+                $row.fadeOut("normal", function() {
+                    $(this).remove();
+                });
+            };
+            CustomHandlers.prototype.addAjaxFlag = function (e, $el) {
+                $el.on("eldarion-ajax:modify-data", function (e, data) {
+                    if (typeof data === "object") // using FormData
+                        data.append("ajax", 1);
+                    else if (data != null)
+                        data = data + "&ajax=1";
+                    else
+                        data = "ajax=1";
+                    return data;
+                });
+            };
+            CustomHandlers.prototype.updateCSRF = function (e, $el) {
+                var csrf = Cookies.get("csrftoken");
+                $('input[type="hidden"][name="csrfmiddlewaretoken"]').prop("value", csrf);
+            };
+            CustomHandlers.prototype.passwordReset = function (e, $el) {
+                $("#password-help").text("Новый пароль выслан на указанный телефон");
+                $("#password-help").removeClass("hide").show();
+                $("#send-order").addClass("has-warning");
+            };
+            CustomHandlers.prototype.processError = function (e, $el, jqXHR, error, ex) {
+                // is not used anymore
+                if (jqXHR.status == 403)
+                {
+                    $("#password-help").text("Вы ввели неправильный пароль");
+                    $("#password-help").removeClass("hide").show();
+                    $el.addClass("has-error");
+                }
+            };
+            $(document).on("eldarion-ajax:begin", function(evt, $el) {
+                $("body").css("cursor", "progress");
+            });
+            $(document).on("eldarion-ajax:complete", function(evt, $el) {
+                $("body").css("cursor", "auto");
+            });
+            $(document).on("eldarion-ajax:begin",   ".ajax", CustomHandlers.prototype.addAjaxFlag);
+            $(document).on("eldarion-ajax:success", ".delete", CustomHandlers.prototype.removeProduct);
+            $(document).on("eldarion-ajax:begin",   ".update", CustomHandlers.prototype.setQuantityWarning);
+            $(document).on("eldarion-ajax:success", ".update", CustomHandlers.prototype.setQuantity);
+            $(document).on("eldarion-ajax:success", "#send-order", CustomHandlers.prototype.updateCSRF);
+            $(document).on("eldarion-ajax:error",   "#send-order", CustomHandlers.prototype.processError);
+            $(document).on("eldarion-ajax:success", "#reset-password", CustomHandlers.prototype.passwordReset);
+            $(document).on("eldarion-ajax:complete", initHandlers);
+
+            $(".sw-basket-quantity").mask("9?99999", {placeholder: ""});
+
+            $(".sw-minus").on("click", function () {
+                var $input = $(this).parent().find("input");
+                var $form  = $(this).closest("form");
+                var count = parseInt($input.val()) - 1;
+                count = count < 1 ? 1 : count;
+                $input.val(count);
+                $input.change();
+                $form.submit();
+                return false;
+            });
+
+            $(".sw-plus").on("click", function () {
+                var $input = $(this).parent().find("input");
+                var $form  = $(this).closest("form");
+                $input.val(parseInt($input.val()) + 1);
+                $input.change();
+                $form.submit();
+                return false;
+            });
+
+            initHandlers();
+        });
+
+        function initHandlers() {
+            $("#order-submit").prop("disabled", true);
+
+            $("#send-order").on("submit", function () {
+                //$.dump(this, 2);
+                return this["phone"].value.length > 0;
+            });
+
+            $("#password-input").on("paste keydown", function () {
+                $("#send-order").removeClass("has-error");
+                $("#send-order").removeClass("has-warning");
+                $("#password-help").hide();
+                $("#password-help").text("");
+            });
+
+            $("#phone-input").mask("(999) 999-99-99?9", {completed: enableSendOrder});
+        }
+
+        function enableSendOrder() {
+            $("#order-submit").prop("disabled", false);
+        }
+    </script>
+{% endblock %}

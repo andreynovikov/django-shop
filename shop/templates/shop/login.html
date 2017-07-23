@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}
+<title>Добро пожаловать - Швейный Мир</title>
+{% endblock %}
+{% block css %}
+<style type="text/css">
+	.sw-phone-input          { height:auto; }
+	.sw-small-jumbotron      { font-size:10pt; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% load staticfiles %}
+{% load shop_filters %}
+<h1>Что с моим заказом?</h1>
+{% if next %}
+    {% if user.is_authenticated %}
+    <p>У вас нет права доступа к этой странице.</p>
+    {% else %}
+    <!-- <p>Пожалуйста, авторизуйтесь, чтобы увидеть эту страницу.</p> -->
+    {% endif %}
+{% endif %}
+<form id="login-form" class="form-inline" action="{% url 'shop:login' %}" method="post">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}"/>
+    <p><label class="control-label lead" for="phone-input">Укажите номер мобильного телефона:</label>
+    <div class="input-group">
+        <span class="input-group-addon input-lg sw-phone-input">+7</span>
+        <input type="tel" class="form-control input-lg sw-phone-input" name="phone" id="phone-input" value="{{ phone }}" size="20"
+           placeholder="(999) 111-22-33"/>
+    </div></p>
+    <p><label class="control-label lead" for="password-input">Пароль (его прислали Вам по СМС после заказа):</label>
+    <div id="password-block"{% if wrong_password %} class="has-error"{% endif %}>
+        <input type="password" class="form-control input-lg" name="password" id="password-input" value="" size="20"/>
+        {% if wrong_password %}
+        <span id="password-help" class="help-block">Вы ввели неправильный пароль</span>
+        {% else %}
+        <span id="password-help" class="help-block hide"></span>
+        {% endif %}
+        <p><a href="{% url 'shop:reset_password' %}" id="reset-password" class="ajax sw-small-jumbotron">Если Вы не знаете пароль, нажмите здесь: &quot;Я не помню пароль&quot;</a></p>
+    </div></p>
+    <div>
+        <input type="submit" id="login-submit" class="btn btn-success btn-lg" value="Продолжить"/>
+    </div>
+</form>
+{% endblock %}
+
+{% block javascript %}
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var CustomHandlers = function () {
+            };
+            CustomHandlers.prototype.passwordResetBegin = function (e, $el) {
+                $el.on("eldarion-ajax:modify-data", function (e, data) {
+                    encphone = encodeURIComponent($("#phone-input").val());
+                    if (typeof data === "object") { // using FormData
+                        data.append("ajax", 1);
+                        data.append("phone", encphone);
+                    } else if (data != null)
+                        data = data + "&ajax=1&phone=" + encphone;
+                    else
+                        data = "ajax=1&phone=" + encphone;
+                    return data;
+                });
+                $el.on("eldarion-ajax:continue", function (e, data) {
+alert("cont");
+                    if ($("#phone-input").val().length === 0) {
+                        $("#password-help").text("Укажите номер телефона и нажмите \"Я не помню пароль\" ещё раз. Мы пришлем пароль по СМС.");
+                        $("#password-help").removeClass("hide").show();
+                        $("#password-block").addClass("has-warning");
+                        return false;
+                    }
+                });
+            };
+            CustomHandlers.prototype.passwordReset = function (e, $el) {
+                $("#password-help").text("Новый пароль выслан на указанный телефон");
+                $("#password-help").removeClass("hide").show();
+                $("#password-block").addClass("has-warning");
+            };
+            CustomHandlers.prototype.passwordResetError = function (e, $el) {
+                $("#password-help").text("Такого номера телефона нет в нашей базе. Укажите правильный номер и нажмите \"Я не помню пароль\" ещё раз.");
+                $("#password-help").removeClass("hide").show();
+                $("#password-block").addClass("has-warning");
+            };
+            $(document).on("eldarion-ajax:begin", function(evt, $el) {
+                $("body").css("cursor", "progress");
+            });
+            $(document).on("eldarion-ajax:complete", function(evt, $el) {
+                $("body").css("cursor", "auto");
+            });
+            $(document).on("eldarion-ajax:begin",   "#reset-password", CustomHandlers.prototype.passwordResetBegin);
+            $(document).on("eldarion-ajax:success", "#reset-password", CustomHandlers.prototype.passwordReset);
+            $(document).on("eldarion-ajax:error", "#reset-password", CustomHandlers.prototype.passwordResetError);
+
+            initHandlers();
+        });
+
+        function initHandlers() {
+            $("#password-input").on("paste keydown", function () {
+                $("#password-block").removeClass("has-error");
+                $("#password-block").removeClass("has-warning");
+                $("#password-help").hide();
+                $("#password-help").text("");
+            });
+
+            $("#phone-input").mask("(999) 999-99-99");
+        }
+    </script>
+{% endblock %}

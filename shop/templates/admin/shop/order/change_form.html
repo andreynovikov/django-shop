@@ -1,0 +1,38 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <style>
+        .grp-row .l-2c-fluid.grp-cell:not(:first-child) .c-1 {
+            min-width: 0px;
+            width: auto;
+        }
+        .controls .datetimeshortcuts .date-icon { text-indent:200%;white-space:nowrap;overflow:hidden;width:14px;height:14px;
+                            background-image:url("/static/suit/bootstrap/img/glyphicons-halflings.png");background-position:0 -96px;
+                            background-repeat:no-repeat;opacity:.75;margin:0;
+                            background-color:#F6F7F8;display:inline-block;vertical-align:middle }
+    </style>
+{% endblock %}
+
+{% block object-tools-items %}
+    {% url opts|admin_urlname:'document' original.pk 'bill'|admin_urlquote as bill_url %}
+    <li><a href="{% add_preserved_filters bill_url %}">{% trans "Счёт" %}</a></li>
+    {% url opts|admin_urlname:'document' original.pk 'billwostamp'|admin_urlquote as billwostamp_url %}
+    <li><a href="{% add_preserved_filters billwostamp_url %}">{% trans "Счёт без печати" %}</a></li>
+    {% url opts|admin_urlname:'document' original.pk 'slip'|admin_urlquote as slip_url %}
+    <li><a href="{% add_preserved_filters slip_url %}">{% trans "Накладная" %}</a></li>
+    {% url opts|admin_urlname:'document' original.pk 'slipandrules'|admin_urlquote as slipandrules_url %}
+    <li><a href="{% add_preserved_filters slipandrules_url %}">{% trans "Накладная с правилами" %}</a></li>
+    {% url opts|admin_urlname:'document' original.pk 'packing'|admin_urlquote as packing_url %}
+    <li><a href="{% add_preserved_filters packing_url %}">{% trans "Сопроводительный лист" %}</a></li>
+    {% url opts|admin_urlname:'document' original.pk 'productlist'|admin_urlquote as productlist_url %}
+    <li><a href="{% add_preserved_filters productlist_url %}">{% trans "Товарный чек" %}</a></li>
+    {% url opts|admin_urlname:'document' original.pk 'productlistandrules'|admin_urlquote as productlistandrules_url %}
+    <li><a href="{% add_preserved_filters productlistandrules_url %}">{% trans "Товарный чек для покупателя" %}</a></li>
+    {% url opts|admin_urlname:'document' original.pk 'label'|admin_urlquote as label_url %}
+    <li><a href="{% add_preserved_filters label_url %}">{% trans "Наклейка" %}</a></li>
+    {% url opts|admin_urlname:'document' original.pk 'check'|admin_urlquote as check_url %}
+    <li><a href="{% add_preserved_filters check_url %}">{% trans "Чек" %}</a></li>
+    {{ block.super }}
+{% endblock %}

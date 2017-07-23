@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Накладная</title>
+<style type="text/css">
+body     { font-size:10pt; font-family:Verdana,sans-serif; }
+td       { font-size: 10pt; }
+h2       { font-size: 8pt; }
+table    { border-collapse:collapse; width:800px; }
+.border  { border:1px solid black; }
+.bold    { font-weight:bold; }
+.small   { font-size: 7pt; }
+.left    { text-align:left;}
+.right   { text-align:right;}
+.center  { text-align:center;}
+.products td { border:1px solid black; text-align:center;}
+.products    { border:1px solid black; }
+.title td    { text-align:center; }
+.title       { width:600px; padding-left:100px; padding-top:20px; padding-bottom:20px; border-collapse:separate; }
+</style>
+</head>
+<body>
+<table>
+<tr>
+<td>
+<h2>Поставщик:</h2>
+{{ owner_info.full_name }}<br />
+{{ owner_info.legal_address }}<br />
+ИНН: {{ owner_info.inn }}, ОГРНИП: {{ owner_info.ogrn }}<br />
+р/с {{ owner_info.account_no }} в {{ owner_info.account_bank }}<br />
+к/с  {{ owner_info.cor_account }}, БИК {{ owner_info.bik }}
+<h2>Грузоотправитель:</h2>
+он же
+<h2>Плательщик:</h2>
+{% if order.is_firm %}
+{{ order.firm_name }}<br />
+{{ order.firm_address }}<br />
+{{ order.firm_details }}
+{% else %}
+{{ order.name }}<br />
+{{ order.address }}<br />
+{% endif %}
+<h2>Грузополучатель:</h2>
+он же
+</td>
+<td class="right" style="vertical-align:top;">
+<p class="small">Унифицированная форма № ТОРГ-12<br>
+Утверждена постановлением<br>
+Госкомстата России от 25.12.98 №132</p>
+<table style="width:100%;">
+<tr>
+<td colspan="2" class="right">
+Код
+</td>
+</tr>
+<tr>
+<td class="right">
+Форма по ОКУД:
+</td>
+<td class="right border">
+0330212
+</td>
+</tr>
+<tr>
+<td class="right">
+Вид деятельности по ОКПО:
+</td>
+<td class="right border">
+58501474
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+
+<table class="title">
+<tr>
+<td rowspan="2">
+<h1 style="font-size:11pt;">Товарная накладная</h1>
+</td>
+<td class="small">
+Номер документа
+</td>
+<td class="small">
+Дата составления
+</td>
+</tr>
+<tr>
+<td class="border bold">
+{{ order.id }}
+</td>
+<td class="border bold">
+{% now "j.m.Y" %}
+</td>
+</tr>
+</table>
+
+<table class="products">
+<tr>
+<td>
+№
+</td>
+<td>
+Товар
+</td>
+<td>
+Ед.<br />изм.
+</td>
+<td>
+Кол-во
+</td>
+<td>
+Цена
+</td>
+<td>
+Сумма<br />без НДС
+</td>
+<td>
+Ставка<br />НДС,%
+</td>
+<td>
+Сумма<br />НДС
+</td>
+<td>
+Сумма<br />с НДС
+</td>
+</tr>
+{% for item in order.items.all %}
+<tr>
+<td>
+{{ forloop.counter }}
+</td>
+<td style="text-align:left;">
+{{ item.product.whatis }} {{ item.product.partnumber }} {{ item.product.title }}
+</td>
+<td>
+шт.
+</td>
+<td>
+{{ item.quantity }}
+</td>
+<td>
+{{ item.cost }}
+</td>
+<td>
+{{ item.price }}
+</td>
+<td>
+0
+</td>
+<td>
+0
+</td>
+<td>
+{{ item.price }}
+</td>
+</tr>
+{% endfor %}
+<tr>
+<td colspan="2">
+Всего по накладной
+</td>
+<td>
+шт.
+</td>
+<td>
+{{ order.products_quantity }}
+</td>
+<td>
+x
+</td>
+<td>
+{{ order.products_price }}
+</td>
+<td>
+x
+</td>
+<td>
+0
+</td>
+<td>
+{{ order.products_price }}
+</td>
+</tr>
+</table>
+
+<p>Всего отпущено на сумму: {{ order.total }} руб.</p>
+{% if order.delivery_price > 0 %}
+<p>В том числе доставка: {{ order.delivery_price }} руб.</p>
+{% endif %}
+
+<table>
+<tr>
+<td>
+<p>Отпуск разрешил: _________________</p>
+<p>М.П.</p>
+</td>
+</tr>
+<tr>
+<td>
+<small>
+<p>С образцом товара (в т.ч. с техническими характеристиками, габаритами, расцветкой, комплектацией, условиями подключения и правильной эксплуатации) полностью ознакомлен.</p>
+<p>Мне понятно, что информация о правильной эксплуатации в письменном виде содержится в инструкции по использованию или на упаковке товара.</p>
+<p>Мною проверены количество товара, ассортимент и полная комплектность. Мною проверен внешний вид товара. Дефектов и повреждений не обнаружено.</p>
+<p>Я информирован:
+<ul>
+<li>О продавце и изготовителе</li>
+<li>О предприятиях сервисного обслуживания, уполномоченных на проведение гарантийного ремонта</li>
+<li>О необходимых действиях при приемке товара</li>
+<li>О возможности отказаться от приемки товара до его передачи</li>
+<li>О возможности возврата товара надлежащего качества не бывшего в употреблении (Отсутствуют признаки использования, 
+сохранен товарный вид, отсутствуют следы вскрытия товара, механические повреждения, другие дефекты. Товар в заводской упаковке
+со всеми документами, переданными в момент покупки) в течение 7 календарных дней после передачи товара. Возврат такого товара производится в магазине "Швейный Мир"
+по адресу г.Москва, Волгоградский пр-т, д.10 стр.2 с понедельника по пятницу с 10.00 до 18.00</li>
+<li>О том, что мерный товар, нитки и товары бытовой химии возврату и обмену не подлежат. Данный перечень не окончательный. Полный перечень
+установлен соответствующими постановлениями Правительства РФ.</li>
+</ul>
+</p>
+</small>
+<p>Товар получил: _________________________________</p>
+</td>
+</tr>
+</table>
+
+</body>
+</html>

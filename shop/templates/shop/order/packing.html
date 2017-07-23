@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head><title>Сопроводительный лист</title>
+<style type="text/css">
+body     { font-size:12pt; font-family:serif; }
+td       { font-size: 12pt; }
+h1       { font-size: 18pt; }
+table    { border-collapse:collapse; width:800px; }
+.border  { border:1px solid black; }
+.bold    { font-weight:bold; }
+.small   { font-size: 7pt; }
+.user    { font-size: 14pt; }
+.phone   { font-size: 18pt; }
+.products td { border:1px solid black; text-align:center; padding:5px;}
+.products    { border:1px solid black; }
+.address td { border:none;font-size:14pt; padding:5px;}
+.address    { border:none; }
+.title td    { text-align:center; }
+.title       { width:600px; padding-left:100px; padding-top:20px; padding-bottom:20px; border-collapse:separate; }
+.left    { text-align:left!important;}
+.right   { text-align:right;}
+.center  { text-align:center;}
+
+</style>
+</head>
+<body>
+
+<h1>Заказ {{ order.id }}</h1>
+
+<table class="address">
+<tr>
+<td>
+Комментарии менеджера:
+</td>
+<td>
+<i>{{ order.manager_comment }}</i><br>
+{{ order.delivery_info }}
+</td>
+</tr>
+<tr>
+<td>
+Доставка:
+</td>
+<td>
+{% if order.delivery_date %}{{ order.delivery_date }}{% endif %}<br>
+{% if order.delivery_time_from %}{{ order.delivery_time_from }}{% endif %} - {% if order.delivery_time_till %}{{ order.delivery_time_till }}{% endif %}
+</td>
+</tr>
+<tr>
+<td>
+Имя:
+</td>
+<td>
+{{ order.name }}
+</td>
+</tr>
+<tr>
+<td>
+Email:
+</td>
+<td>
+{{ order.email }}
+</td>
+</tr>
+<tr>
+<td>
+Телефон:
+</td>
+<td>
+<span class="phone">{{ order.phone }}</span>
+</td>
+</tr>
+<tr>
+<td>
+Телефон:
+</td>
+<td>
+{{ order.phone_aux }}
+</td>
+</tr>
+<tr>
+<td>
+Адрес:
+</td>
+<td>
+{{ order.address }}
+</td>
+</tr>
+<tr>
+<td>
+Комментарии покупателя:
+</td>
+<td>
+{{ order.comment }}
+</td>
+</tr>
+
+
+
+<table class="products">
+<tr>
+<td>
+№
+</td>
+<td>
+Артикул
+</td>
+<td>
+Товар
+</td>
+<td>
+Кол-во
+</td>
+<td>
+Цена
+</td>
+<td>
+Сумма
+</td>
+</tr>
+{% for item in order.items.all %}
+<tr>
+<td>
+{{ forloop.counter }}
+</td>
+<td>
+{{ item.product.article }}
+</td>
+<td class="left">
+{{ item.product.partnumber }} {{ item.product.title }} {% if item.product.warranty %}(Гарантия {{ item.product.warranty }}){% endif %}
+</td>
+<td>
+{{ item.quantity }}
+</td>
+<td>
+{{ item.cost }}
+</td>
+<td>
+{{ item.price }}
+</td>
+</tr>
+{% endfor %}
+</table>
+{% if order.delivery_price > 0 %}
+<p>Доставка: {{ order.delivery_price }} руб.</p>
+{% endif %}
+<p class="user">Всего к оплате: {{ order.total }} руб.</p>
+
+<p class="user">Оплата: {{ order.get_payment_display }}</p>
+
+{% if order.user.discount < 10 and order.total >= 30000 %}
+<p class="user">Выдать 10% карту!</p>
+{% endif %}
+
+{% if order.user.discount < 5 and order.total < 30000 and order.total >= 3000 %}
+<p class="user">Выдать 5% карту!</p>
+{% endif %}
+
+
+</body>
+</html>

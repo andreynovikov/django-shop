@@ -1,0 +1,10 @@
+<html>
+<body>
+<p><b>Здравствуйте!</b></p>
+<p>
+Ваш заказ №<b>{{ order.id }}</b> собран, подготовлен к отправке и ожидает оплаты.<br/>
+Вы можете {% if order.payment = 2 %}оплатить заказ банковской картой{% elif order.payment = 3 %}распечатать счет для оплаты{% else %}оплатить заказ{% endif %} в "личном кабинете"<br/>
+на сайте "Швейный Мир": <a href="http://order.sewing-world.ru/shop/user/orders/{{ order.id }}/">http://order.sewing-world.ru/shop/user/orders/{{ order.id }}/</a>
+</p>
+</body>
+</html>

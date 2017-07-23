@@ -1,0 +1,28 @@
+{% if updated %}
+    <h1>Спасибо за заказ!</h1>
+    <p>Регистрационный номер Вашего заказа <b>{{ order.id }}</b>.</p>
+    <p>Наш менеджер свяжется с Вами, уточнит состав заказа, согласует способ оплаты, стоимость и способ доставки, и договорится об удобном времени доставки.</p>
+    <p>Узнать о состоянии заказа Вы можете нажав на ссылку <a href="/shop/user/orders/">"Что с моим заказом"</a> вверху страницы.</p>
+{% else %}
+    <!-- {{ order.city }} -->
+    <form id="update-order" class="ajax" action="{% url 'shop:update_order' order.id %}" method="post" data-replace="#update-order">
+       <h1>Оформление заказа №{{ order.id }}</h1>
+       {% csrf_token %}
+       {% if request.session.password %}
+           <p>По СМС Вам отправлен пароль для просмотра состояния заказа: <span class="lead">{{ request.session.password }}</span></p>
+       {% else %}
+           <!-- Known user {{ user.name }} -->
+       {% endif %}
+       <label class="control-label lead" for="name-input">Фамилия Имя Отчество:</label>
+       <input type="text" name="name" class="form-control input-lg" id="name-input" value="{{ user.name|force_escape }}" size="20" autocomplete="name" /><br/>
+       <label class="control-label lead" for="email-input">E-mail для уведомлений:</label>
+       <input type="text" name="email"   class="form-control input-lg" id="email-input" value="{{ user.email|force_escape }}" size="20" autocomplete="email" /><br/>
+       <label class="control-label lead" for="address-input">Адрес доставки:</label>
+       <input type="text" name="address" class="form-control input-lg" id="address-input"
+          value="{% firstof order.address|force_escape user.address|force_escape %}" size="20" autocomplete="postal-code address-level2 street-address" /><br/>
+       <label class="control-label lead" for="comment-input">Комментарии к заказу:</label>
+       <textarea name="comment" class="form-control input-lg" id="comment-input"
+          value="{{ order.comment }}" rows="3"/></textarea><br/>
+       <input type="submit" class="btn btn-success btn-lg" value="Продолжить"/>
+    </form>
+{% endif %}
