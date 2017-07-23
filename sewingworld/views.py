@@ -10,6 +10,24 @@ def index(request):
     return render(request, 'index.html', context)
 
 
+def search_xml(request):
+    root = Category.objects.get(slug=settings.MPTT_ROOT)
+    context = {
+        'root': root,
+        'products': Product.objects.filter(enabled=True, categories__in=root.get_descendants(include_self=True))
+        }
+    return render(request, 'search.xml', context, content_type='text/xml; charset=utf-8')
+
+
+def products(request):
+    root = Category.objects.get(slug=settings.MPTT_ROOT)
+    context = {
+        'root': root,
+        'products': Product.objects.filter(enabled=True, market=True, categories__in=root.get_descendants(include_self=True))
+        }
+    return render(request, 'products.xml', context, content_type='text/xml; charset=utf-8')
+
+
 def catalog(request):
     context = {'root': Category.objects.get(slug=settings.MPTT_ROOT)}
     return render(request, 'catalog.html', context)

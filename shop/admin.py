@@ -20,8 +20,6 @@ from django.utils.formats import date_format
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 import autocomplete_light
-from ajax_select import make_ajax_form
-from ajax_select.admin import AjaxSelectAdmin
 from datetimewidget.widgets import TimeWidget
 from suit.admin import SortableModelAdmin
 from django.forms import ModelForm
@@ -707,10 +705,6 @@ class OrderAdmin(admin.ModelAdmin):
     inlines = [OrderItemInline, AddOrderItemInline]
     #raw_id_fields = ('user',)
     form = autocomplete_light.modelform_factory(Order, exclude=['created'])
-    #form = make_ajax_form(Order, {'user': 'user'})
-    #autocomplete_lookup_fields = {
-    #    'fk': ['user'],
-    #}
     formfield_overrides = {
         TextField: {'widget': forms.Textarea(attrs={'style': 'height: 4em'})},
         TimeField: {'widget': TimeWidget()},

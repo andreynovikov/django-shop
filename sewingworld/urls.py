@@ -5,7 +5,8 @@ from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 import mptt_urls
-from ajax_select import urls as ajax_select_urls
+
+import shop
 
 from . import views
 
@@ -16,10 +17,6 @@ urlpatterns = [
     url(r'^search\.xml$', views.search_xml, name='search_xml'),
     # ex: /products.xml
     url(r'^products\.xml$', views.products, name='products'),
-    # ex: /map.html
-    url(r'^map\.html$', views.map, name='map'),
-    # ex: /search.html
-    url(r'^search\.html$', views.search, name='search'),
     # ex: /catalog/
     url(r'^catalog/$', views.catalog, name='catalog'),
     # ex: /catalog/prinadlezhnosti/
@@ -33,7 +30,6 @@ urlpatterns = [
     url(r'^blog/', include('zinnia.urls')),
     url(r'^comments/', include('django_comments.urls')),
     url(r'^autocomplete/', include('autocomplete_light.urls')),
-    url(r'^admin/lookups/', include(ajax_select_urls)),
     url(r'^admin/import1c/$', shop.views.import_1c, name='import_1c'),
     url(r'^admin/', include(admin.site.urls)),
 ]
