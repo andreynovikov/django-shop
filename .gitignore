@@ -1,3 +1,5 @@
 __pycache__/
 *~
+*.pyc
+settings_local.py
 media/images/
