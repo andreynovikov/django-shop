@@ -1,6 +1,8 @@
 import re
 import datetime
+import logging
 
+from django.conf import settings
 from django.contrib.sessions.models import Session
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.contrib.sites.models import Site
@@ -16,6 +18,11 @@ from colorfield.fields import ColorField
 from mptt.models import MPTTModel, TreeForeignKey, TreeManyToManyField
 
 from model_utils import FieldTracker
+
+
+logger = logging.getLogger(__name__)
+
+WHOLESALE = getattr(settings, 'SHOP_WHOLESALE', False)
 
 
 class ShopUserManager(BaseUserManager):
@@ -118,6 +125,16 @@ class Category(MPTTModel):
     parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True)
     basset_id = models.PositiveSmallIntegerField('id в Бассет', null=True, blank=True)
     active = models.BooleanField()
+    brief = models.TextField('описание', blank=True)
+    description = models.TextField('статья', blank=True)
+    image = models.ImageField('изображение', upload_to='categories', blank=True,
+                              width_field='image_width', height_field='image_height')
+    image_width = models.IntegerField(null=True, blank=True)
+    image_height = models.IntegerField(null=True, blank=True)
+    promo_image = models.ImageField('промо изображение', upload_to='categories', blank=True,
+                              width_field='promo_image_width', height_field='promo_image_height')
+    promo_image_width = models.IntegerField(null=True, blank=True)
+    promo_image_height = models.IntegerField(null=True, blank=True)
     order = models.PositiveIntegerField()
 
     def get_active_descendants(self):
@@ -226,7 +243,8 @@ class Product(models.Model):
     code = models.CharField('идентификатор', max_length=20, db_index=True)
     article = models.CharField('код 1С', max_length=20, blank=True, db_index=True)
     partnumber = models.CharField('partnumber', max_length=200, blank=True, db_index=True)
-    enabled = models.BooleanField('включён', default=False)
+    gtin = models.BigIntegerField('GTIN', default=0, db_index=True)
+    enabled = models.BooleanField('включён', default=False, db_index=True)
     title = models.CharField('название', max_length=200)
     price = models.PositiveIntegerField('цена, руб', default=0)
     cur_price = models.PositiveIntegerField('цена, вал', default=0)
@@ -235,8 +253,9 @@ class Product(models.Model):
     ws_cur_price =  models.PositiveIntegerField('опт. цена, вал', default=0)
     ws_cur_code = models.ForeignKey(Currency, verbose_name='опт. валюта', related_name="wsprice", on_delete=models.PROTECT, default=643)
     ws_pack_only = models.BooleanField('опт. только упаковкой', default=False)
-    sp_price=models.PositiveIntegerField('Цена СП, вал', default=0)
-    sp_code = models.ForeignKey(Currency, verbose_name='СП валюта', related_name="spprice", on_delete=models.PROTECT, default=643)
+    sp_price =  models.PositiveIntegerField('цена СП, руб', default=0)
+    sp_cur_price=models.PositiveIntegerField('цена СП, вал', default=0)
+    sp_cur_code = models.ForeignKey(Currency, verbose_name='СП валюта', related_name="spprice", on_delete=models.PROTECT, default=643)
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     val_discount = models.PositiveIntegerField('скидка, руб', default=0)
     ws_pct_discount = models.PositiveSmallIntegerField('опт. скидка, %', default=0)
@@ -413,6 +432,7 @@ class Product(models.Model):
     def save(self, *args, **kwargs):
         self.price = self.cur_price * self.cur_code.rate
         self.ws_price = self.ws_cur_price * self.ws_cur_code.rate
+        self.sp_price = self.sp_cur_price * self.sp_cur_code.rate
         self.image_prefix = ''.join(['images/', self.manufacturer.code, '/', self.code])
         super(Product, self).save(*args, **kwargs)
 
@@ -547,26 +567,44 @@ class BasketItem(models.Model):
 
     @property
     def price(self):
-        return (self.product.price - self.discount) * self.quantity
+        if WHOLESALE:
+            return (self.product.ws_price - self.discount) * self.quantity
+        else:
+            return (self.product.price - self.discount) * self.quantity
 
     @property
     def cost(self):
-        return self.product.price - self.discount
+        if WHOLESALE:
+            return self.product.ws_price - self.discount
+        else:
+            return self.product.price - self.discount
 
     @property
     def pct_discount(self):
         """ Calculates maximum percent discount based on product, user and maximum discount """
-        pd = max(self.product.pct_discount, self.basket.user_discount)
-        if pd > self.product.max_discount:
-             pd = self.product.max_discount
+        if WHOLESALE:
+            pd = max(self.product.ws_pct_discount, self.basket.user_discount)
+            if pd > self.product.ws_max_discount:
+                pd = self.product.ws_max_discount
+            pdp = round(self.product.ws_price * (pd / 100))
+            if pdp < self.product.sp_price:
+                d = self.product.ws_price - self.product.sp_price
+                pd = int(d / self.product.ws_price * 100)
+        else:
+            pd = max(self.product.pct_discount, self.basket.user_discount)
+            if pd > self.product.max_discount:
+                pd = self.product.max_discount
         return pd
 
     @property
     def discount(self):
         pd = 0
         if self.pct_discount > 0:
-            pd = round(self.product.price * (self.pct_discount / 100))
-        if self.product.val_discount > pd:
+            if WHOLESALE:
+                pd = round(self.product.ws_price * (self.pct_discount / 100))
+            else:
+                pd = round(self.product.price * (self.pct_discount / 100))
+        if not WHOLESALE and self.product.val_discount > pd:
             pd = self.product.val_discount
         return pd
 
@@ -577,10 +615,13 @@ class BasketItem(models.Model):
         pdv = 0
         pdt = False
         if self.pct_discount > 0:
-            pd = round(self.product.price * (self.pct_discount / 100))
+            if WHOLESALE:
+                pd = round(self.product.ws_price * (self.pct_discount / 100))
+            else:
+                pd = round(self.product.price * (self.pct_discount / 100))
             pdv = self.pct_discount
             pdt = True
-        if self.product.val_discount > pd:
+        if not WHOLESALE and self.product.val_discount > pd:
             pd = self.product.val_discount
             pdv = self.product.val_discount
             pdt = False

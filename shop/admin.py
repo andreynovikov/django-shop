@@ -1,7 +1,6 @@
 import datetime
 
 from django import forms
-from django.core import urlresolvers
 from django.core.urlresolvers import reverse
 from django.db import connection
 from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, TimeField, DateTimeField
@@ -22,13 +21,14 @@ from django.utils.translation import ugettext, ugettext_lazy as _
 import autocomplete_light
 from datetimewidget.widgets import TimeWidget
 from suit.admin import SortableModelAdmin
-from django.forms import ModelForm
+from django.forms import ModelForm, TextInput
 from suit.widgets import AutosizedTextarea
 from mptt.admin import MPTTModelAdmin
 
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
     Currency, Country, Manufacturer, Product, Stock, Basket, BasketItem, Manager, \
     Courier, Order, OrderItem
+from shop.decorators import admin_changelist_link
 
 from django.apps import AppConfig
 
@@ -74,6 +74,14 @@ class SortableMPTTModelAdmin(MPTTModelAdmin, SortableModelAdmin):
         return response
 
 
+class CategoryForm(ModelForm):
+    class Meta:
+        widgets = {
+            'brief': AutosizedTextarea(attrs={'rows': 3,}),
+            'description': AutosizedTextarea(attrs={'rows': 3,}),
+        }
+
+
 @admin.register(Category)
 class CategoryAdmin(SortableMPTTModelAdmin):
     mptt_level_indent = 20
@@ -83,6 +91,8 @@ class CategoryAdmin(SortableMPTTModelAdmin):
     list_editable = ['active']
     list_display_links = ['name']
     sortable = 'order'
+    exclude = ('image_width', 'image_height', 'promo_image_width', 'promo_image_height')
+    form = CategoryForm
 
 
 @admin.register(Supplier)
@@ -142,6 +152,7 @@ class StockInline(admin.TabularInline):
 class ProductForm(ModelForm):
     class Meta:
         widgets = {
+            'gtin': TextInput(attrs={'size': 10}),
             'spec': AutosizedTextarea(attrs={'rows': 3,}),
             'shortdescr': AutosizedTextarea(attrs={'rows': 3,}),
             'yandexdescr': AutosizedTextarea(attrs={'rows': 3,}),
@@ -192,22 +203,28 @@ class ProductAdmin(admin.ModelAdmin):
     product_stock.allow_tags=True
     product_stock.short_description = 'склад'
 
+    @admin_changelist_link(None, 'заказы', model=Order, query_string=lambda p: 'item__product__pk={}'.format(p.pk))
+    def orders_link(self, orders):
+        return '<i class="icon-list"></i>'
+
     form = ProductForm
-    list_display = ['article', 'title', 'price', 'cur_price', 'cur_code', 'calm_forbid_price_import', 'pct_discount', 'val_discount', 'product_stock']
+    list_display = ['article', 'title', 'price', 'cur_price', 'cur_code', 'calm_forbid_price_import', 'pct_discount', 'val_discount', 'product_stock', 'orders_link']
     list_display_links = ['title']
     list_filter = ['cur_code', 'pct_discount', 'val_discount', 'categories']
     exclude = ['image_prefix']
     search_fields = ['code', 'article', 'partnumber', 'title']
-    readonly_fields = ['price']
+    readonly_fields = ['price', 'ws_price', 'sp_price']
     inlines = (StockInline,)
     fieldsets = (
         (None, {
                 'classes': ('suit-tab', 'suit-tab-general'),
-                'fields': (('code', 'article', 'partnumber'),'title','runame','whatis','categories','manufacturer',('country','developer_country'),'spec','shortdescr','yandexdescr','descr','state','complect','dealertxt',)
+                'fields': (('code', 'article', 'partnumber'),'title','runame','whatis','categories',('manufacturer','gtin'),('country','developer_country'),'spec','shortdescr','yandexdescr','descr','state','complect','dealertxt',)
         }),
         ('Деньги', {
                 'classes': ('suit-tab', 'suit-tab-general'),
-                'fields': (('cur_price', 'cur_code', 'price'), ('pct_discount', 'val_discount', 'max_discount'), ('ws_cur_price', 'ws_cur_code'), ('ws_pct_discount', 'ws_max_discount'), ('sp_price', 'sp_code'), 'consultant_delivery_price', ('forbid_price_import'))
+                'fields': (('cur_price', 'cur_code', 'price'), ('pct_discount', 'val_discount', 'max_discount'),
+                           ('ws_cur_price', 'ws_cur_code', 'ws_price'), ('ws_pct_discount', 'ws_max_discount'),
+                           ('sp_cur_price', 'sp_cur_code', 'sp_price'), 'consultant_delivery_price', ('forbid_price_import'))
         }),
         ('Маркетинг', {
                 'classes': ('suit-tab', 'suit-tab-general'),
@@ -399,7 +416,7 @@ class OrderItemInline(admin.TabularInline):
     product_code.short_description = 'код'
 
     def product_link(self, obj):
-        link=urlresolvers.reverse('admin:shop_product_change', args=[obj.product.id])
+        link=reverse('admin:shop_product_change', args=[obj.product.id])
         return '<a href="%s?_popup=1" class="related-widget-wrapper-link">%s</a>&nbsp;<i class="icon-pencil icon-alpha5"></i>' % (link, str(obj.product))
     product_link.allow_tags=True
     product_link.short_description = 'товар'
@@ -420,12 +437,17 @@ class OrderItemInline(admin.TabularInline):
         else:
             result = '<span style="color: #f00">отсутствует</span><br/>'
         cursor = connection.cursor()
-        cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
+        cursor.execute("""SELECT shop_orderitem.order_id, shop_orderitem.quantity AS quantity FROM shop_orderitem
                           INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
-                          AND shop_orderitem.product_id = %s AND shop_order.id != %s GROUP BY shop_orderitem.product_id""", (obj.product.id, obj.order.id))
+                          AND shop_orderitem.product_id = %s AND shop_order.id != %s""", (obj.product.id, obj.order.id))
         if cursor.rowcount:
-            row = cursor.fetchone()
-            result  = result + '<span style="color: #00c">Зак:&nbsp;%s</span><br/>' % floatformat(row[0])
+            ordered = 0
+            ids = [str(obj.order.id)]
+            for row in cursor:
+                ids.append(str(row[0]))
+                ordered = ordered + int(row[1])
+            url = '%s?id__in=%s&status=any' % (reverse("admin:shop_order_changelist"), ','.join(ids))
+            result = result + '<a href="%s" style="color: #00c">Зак:&nbsp;%s<br/></a>' % (url, floatformat(ordered))
         cursor.close()
         if obj.product.num_correction:
             result  = result + '<span style="color: #f00">Кор:&nbsp;%s</span><br/>' % obj.product.num_correction

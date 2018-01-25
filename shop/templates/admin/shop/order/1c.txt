@@ -4,7 +4,11 @@
        <КодФ>{{ order.seller.code }}</КодФ>
        <КодК>{{ order.buyer.code }}</КодК>
        <КодС>8af5fd51-44ee-11e7-a7d8-0cc47ac12f5b</КодС>
-       <Комментарий>Заказ {{ order.id }}</Комментарий>     
+       <Доставка>{{ order.get_delivery_display }}</Доставка>
+       <Курьер>{{ order.courier|default_if_none:"" }}</Курьер>
+       <Комментарий>Заказ {{ order.id }}</Комментарий>
+       <Город>{{ order.city }}</Город>
+       <Адрес>{{ order.address }}</Адрес>
 {% for item in order.items.all %}       <Строка>
               <Товар>{{ item.product.article }}</Товар>
               <Кол>{{ item.quantity }}</Кол>

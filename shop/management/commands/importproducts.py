@@ -48,6 +48,8 @@ class Command(BaseCommand):
             columns = (x[0] for x in cursor.description)
             row = dict(zip(columns, row))
             product, created = Product.objects.get_or_create(pk=row['id'])
+            if created:
+                product.gtin = 0
             product.code = row['code']
             product.article = row['article'] or ''
             product.partnumber = row['partnumber'] or ''

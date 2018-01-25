@@ -54,7 +54,7 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
 <div class="panel-body">
 <h2>Оплата заказа</h2>
 <dl class="deflist">
-<dt>Способ оплаты:</dt> <dd>{{ order.get_payment_display }} 
+<dt>Способ оплаты:</dt> <dd>{{ order.get_payment_display }}
 </dd>
 </dl>
 {% if not order.paid and order.payment != order.PAYMENT_CASH and order.payment != order.PAYMENT_UNKNOWN and order.payment != order.PAYMENT_COD %}
@@ -75,11 +75,10 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
   "customerContact": "{{ order.phone }}",
   "taxSystem": 2,
   "items":[{% for item in order.items.all %}
-    {"quantity": {{ item.quantity }}, "price": {"amount": {{ item.cost }}}, "tax": 1, "text": "{{ item.product.title }}"}{% if order.delivery_price > 0 or not forloop.last %},{% endif %}{% endfor %}{% if order.delivery_price > 0 %}
+    {"quantity": {{ item.quantity }}, "price": {"amount": {{ item.cost }}}, "tax": 1, "text": "{{ item.product.title|safe|escapejs }}"}{% if order.delivery_price > 0 or not forloop.last %},{% endif %}{% endfor %}{% if order.delivery_price > 0 %}
     {"quantity": 1, "price": {"amount": {{ order.delivery_price }}}, "tax": 1, "text": "Доставка"}{% endif %}
           ]
 }'/>
-
 Выберите способ оплаты:<br/>
 <div class="radio">
 <label>

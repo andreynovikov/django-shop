@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE yml_catalog SYSTEM "shops.dtd">
+<yml_catalog date="{% now 'Y-m-d H:i' %}" >
+
+<shop>
+<name>Janome.Club</name>
+<company>Фирменный магазин Janome</company>
+<url>http://www.janome.club/</url>
+
+<currencies>
+<currency  id="RUR" rate="1"/>
+<currency  id="USD" rate="CBRF"/>
+</currencies>
+
+{% load mptt_tags %}
+<categories>
+{% for node,structure in root.get_descendants|tree_info %}
+    <category id="{{ node.id }}">{{ node.name }}</category>
+{% endfor %}
+</categories>
+
+<offers>
+{% for product in products %}
+<offer id="{{ product.id }}" available="{% if product.instock > 0 %}true{% else %}false{% endif %}">
+<url>http://www.janome.club/products/{{ product.code }}.html</url>
+{% if product.discount > 0 %}
+<oldprice>{{ product.price }}</oldprice>
+{% endif %}
+<price>{{ product.cost }}</price>
+<currencyId>RUR</currencyId>
+{% for category in product.categories.all %}
+{% with category.get_ancestors|first as category_root %}
+{% if category_root == root %}
+<categoryId>{{ category.id }}</categoryId>
+{% endif %}
+{% endwith %}
+{% endfor %}
+<picture>http://www.janome.club{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</picture>
+<vendor>{{ product.manufacturer.name }}</vendor>
+<vendorCode>{{ product.partnumber }}</vendorCode>
+<name>{{ product.title }}</name>
+<description>{{ product.yandexdescr }} 
+{% if product.partnumber %}
+Partnumber: {{ product.partnumber }}
+{% endif %}
+{% if product.article %}
+Код: {{ product.article }}
+{% endif %}
+</description>
+{% if product.manufacturer_warranty > 0 %}
+<manufacturer_warranty>true</manufacturer_warranty>
+{% endif %}
+{% if product.sales_notes %}
+<sales_notes>{{ product.sales_notes }}</sales_notes>
+{% endif %}
+</offer>
+{% endfor %}
+</offers>
+
+</shop>
+</yml_catalog>

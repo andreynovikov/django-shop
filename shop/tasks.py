@@ -179,18 +179,18 @@ def import1c(file):
         next(csvfile)
         next(csvfile)
         all_products = Product.objects.all()
-        csv_fields = ('article', 'sp_price', 'sp_code', 'ws_cur_price', 'ws_cur_code', 'cur_price', 'cur_code')
+        csv_fields = ('article', 'sp_cur_price', 'sp_cur_code', 'ws_cur_price', 'ws_cur_code', 'cur_price', 'cur_code')
         records = csv.DictReader(csvfile, delimiter=';', fieldnames=csv_fields, restkey='suppliers')
         #products = {x.pk:x for x in all_products}
         for line in records:
             imported = imported + 1
             try:
                 product = Product.objects.get(article=line['article'])
-                if line['sp_code'] is not '0':
+                if line['sp_cur_code'] is not '0':
                     try:
-                        sp_price = float(line['sp_price'].replace('\xA0',''))
-                        product.sp_price = int(round(sp_price))
-                        product.sp_code = currencies.get(pk=line['sp_code'])
+                        sp_cur_price = float(line['sp_cur_price'].replace('\xA0',''))
+                        product.sp_cur_price = int(round(sp_cur_price))
+                        product.sp_cur_code = currencies.get(pk=line['sp_cur_code'])
                     except ValueError:
                         errors.append("%s: цена СП" % line['article'])
                 if line['ws_cur_code'] is not '0':
