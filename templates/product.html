@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% load shop_filters %}
+{% load mptt_tags %}
+{% load django_bootstrap_breadcrumbs %}
+{% block title %}
+<title>{{ product.title }}</title>
+{% endblock %}
+{% block breadcrumbs %}
+    {{ block.super }}
+    {% breadcrumb "К первой странице" "/" %}
+    {% breadcrumb "Каталог" "catalog" %}
+    {% if product.categories.all.first %}
+    {% for node,structure in product.categories.all.first.get_ancestors|tree_info %}
+        {% if node.is_child_node %}
+            {% breadcrumb node "category" node.get_path %}
+        {% endif %}
+    {% endfor %}
+    {% breadcrumb product.categories.all.first "category" product.categories.all.first.get_path %}
+    {% endif %}
+{% endblock %}
+{% block content %}
+<div class="product-page">
+<div itemscope itemtype="http://schema.org/Product">
+<h1 class="prodname" itemprop="name">{{ product.title }}
+<sup>
+{% if product.ishot %}
+<span class="label sw-action">Акция</span>
+{% endif %}
+{% if product.isnew %}
+<span class="label sw-new">Новинка</span>
+{% endif %}
+{% if product.recomended %}
+<span class="label sw-recomended">Рекомендуем</span>
+{% endif %}
+{% if product.utilisation %}
+<span class="label sw-action">Скидка по "Утилизации"</span>
+{% endif %}
+</sup>
+</h1>
+
+{% if product.partnumber %}
+<p>Код производителя: {{ product.partnumber }}</p>
+{% endif %}
+{% if product.runame or product.whatis %}
+<p>{{ product.whatis }} {{ product.runame }}</p>
+{% endif %}
+
+
+<div class="product-image">
+{% if product.image_prefix|add:'.jpg'|file_exists %}
+{% if product.image_prefix|add:'.b.jpg'|file_exists %}
+<div class="popup-gallery"><a href="{{ MEDIA_URL }}{{ product.image_prefix }}.b.jpg">
+{% endif %}
+<img id="{{ product.id }}" src="{{ MEDIA_URL }}{{ product.image_prefix }}.jpg" alt="{{ product.title }} {{ product.whatis }}" itemprop="image"  class="img-responsive"/>
+{% if product.image_prefix|add:'.b.jpg'|file_exists %}
+</a></div>
+{% endif %}
+{% endif %}
+</div>
+
+<div class="panel panel-default product-buyblock">
+<div class="panel-body product-buyblock-body">
+<div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+{% if product.discount > 0 %}
+<p class="oldprice">{{ product.price }}&nbsp;руб. <a href="#dialog_discount" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
+<div id="dialog_discount" class="mfp-hide white-popup-block">
+<h4>Скидка!</h4>
+<p>Базовая цена в магазинах &laquo;Швейный Мир&raquo; без учета скидок <b>{{ product.price }}&nbsp;руб.</b></p>
+<p>Скидка при покупке в интернет-магазине составляет <b>{{ product.discount }}</b></p>
+</div>
+{% endif %}
+<p class="price"><span itemprop="price">{{ product.cost }}</span>&nbsp;руб.
+
+{% if product.instock > 0 %}
+<a href="{% url 'shop:add' product.id %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
+{% else %}
+<a href="{% url 'shop:add' product.id %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a>
+{% endif %}
+
+<span itemprop="priceCurrency" style="visibility:hidden;font-size:1pt;margin:0;padding:0;width:0;height:0;line-height:0;">RUB</span>
+{% if product.deshevle == true %}
+<a href="{% url 'django.contrib.flatpages.views.flatpage' url='dialog/deshevle/' %}" class="opener-ajax deshevle">Нашли&nbsp;дешевле?</a>
+{% endif %}
+</p>
+{% if product.available %}
+<p><span class="product-nal-caption">Наличие:</span>
+{% if product.instock > 1 %}
+<span class="product-nal-true">Есть</span>
+{% endif %}
+{% if product.instock == 1 %}
+<span class="product-nal-true">Мало</span>
+{% endif %}
+{% if product.instock < 1 %}
+<span class="product-nal-false">Нет</span>
+{% endif %}
+</p>
+{% endif %}
+{% if product.state %}
+<p>{{ product.state }}</p>
+{% endif %}
+{% if sales_notes %}
+<p class="product-salesnotes">{{ sales_notes }}</p>
+{% endif %}
+
+{% if product.utilisation %}
+<p class="product-salesnotes">Участник акции <a href="/actions/utilisation.html">"Утилизация"</a>! Скидка по акции <span class="price">{{ maxdiscount }}%</span>!</p>
+{% endif %}
+{% if product.internetonly and 1 > 2 %}
+<p>Этот товар продается только в интернет-магазине. <a href="#dialog_internetonly" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
+<div id="dialog_internetonly" class="mfp-hide white-popup-block">
+<h4>Этот товар продается только в интернет-магазине!</h4>
+<p>Этот товар мы можем доставить курьером или транспортной компанией,<br>
+а также его можно получить в нашем московском магазине на &laquo;Пролетарке&raquo;,<br>
+ по адресу: Волгоградский проспект, д.10 стр.2.<br>
+ В других наших магазинах этот товар купить по цене интернет-магазина нельзя.</p>
+</div><!-- /#dialog_internetonly -->
+{% endif %}
+
+{% if product.warranty and product.price > 0 and not product.state and 1 > 2 %}
+<p>Легко вернуть в случае неисправности.
+<a href="{% url 'django.contrib.flatpages.views.flatpage' url='dialog/back/' %}" class="opener-ajax"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
+{% endif %}
+
+{% if 1 > 2 %}
+<!-- %LOOP REVERSE LoopAssociatedProducts(products,@@id@@,gift) IN prod ORDER price -->
+<!-- %IF FIRSTLOOPENTRY prod -->
+<p class="product-gift">Покупая @@name@@ в интернет-магазине, Вы получите подарок:</p>
+<div class="text-center">
+<!-- %END IF -->
+<!-- %IF EXPRESSION @@prod.enabled@@ > 0 -->
+<!--#include virtual="/products/@@prod.code@@_inc.html" -->
+<!-- %END IF -->
+<!-- %IF LASTLOOPENTRY prod -->
+</div>
+<!-- %END IF -->
+<!-- %END LOOP -->
+{% endif %}
+
+</div>
+</div>
+</div>
+
+{% if product.images %}
+<div class="popup-gallery">
+{% for image in product.images %}
+<a href="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.jpg"><img src="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.s.jpg" alt="{{ product.title }} - Фото №{{ forloop.counter }}" border="0" /></a>
+{% endfor %}
+</div>
+{% endif %}
+
+{% if product.descr %}
+<p itemprop="description">{{ product.descr|safe }}</p>
+{% endif %}
+
+
+
+<!--
+<table border="0" style="padding:2px;width:100%;">
+<tr>
+<td style="vertical-align:top;">
+<div id="price" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+<p><b class="price"><span class="price" itemprop="price">{{ product.price }}</span>&nbsp;руб.</b></p>
+<span itemprop="priceCurrency" style="visibility:hidden;">RUB</span>
+{% if product.nal %}
+<p><b>Наличие:</b> {{ product.nal }}</p>
+{% endif %}
+{% if product.price > 5000 %}
+<p><b>Доставка:</b> бесплатно по Москве в пределах МКАД и до транспортной компании.</p>
+{% endif %}
+</div>
+</td></tr></table>
+-->
+
+{% if product.warranty %}
+<h2>Характеристики {{ product.title }}:</h2>
+{% endif %}
+<dl class="product-spec">
+{% if product.fabric_verylite %}
+<dt><span>Диапазон прошиваемых материалов <a class="opener-html" href="http://www.sewing-world.ru/blog/?p=464"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>Очень легкие – {{ product.fabric_verylite }}<br>Легкие – {{ product.fabric_lite }}<br>Средние и умеренно тяжелые – {{ product.fabric_medium }}<br>Тяжелые – {{ product.fabric_hard }}<br>Трикотаж – {{ product.fabric_stretch }}</dd>
+{% endif %}
+{% if product.km_class %}
+<dt><span>Класс машины <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/km_class/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.km_class }}</dd>
+{% endif %}
+{% if product.km_font %}
+<dt><span>Количество фонтур <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/km_font/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.km_font }}</dd>
+{% endif %}
+{% if product.km_needles %}
+<dt><span>Количество игл</span></dt><dd>{{ product.km_needles }}</dd>
+{% endif %}
+{% if product.km_prog %}
+<dt><span>Способ программирования</span></dt><dd>{{ product.km_prog }}</dd>
+{% endif %}
+{% if product.km_rapport %}
+<dt><span>Раппорт программируемого рисунка</span></dt><dd>{{ product.km_rapport }}</dd>
+{% endif %}
+{% if product.sw_hoopsize %}
+<dt><span>Размер пялец <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sw_hoopsize/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sw_hoopsize }}</dd>
+{% endif %}
+{% if product.sw_datalink %}
+<dt><span>Способ связи с компьютером <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sw_datalink/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sw_datalink }}</dd>
+{% endif %}
+{% if product.sm_software %}
+<dt><span>Возможности встроенного ПО</span></dt><dd>{{ product.sm_software }}</dd>
+{% endif %}
+{% if product.sm_shuttletype %}
+<dt><span>Тип челнока <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_shuttletype/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_shuttletype }}</dd>
+{% endif %}
+{% if product.sm_stitchwidth %}
+<dt><span>Максимальная ширина строчки <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchlength/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchwidth }} мм</dd>
+{% endif %}
+{% if product.sm_stitchlenght %}
+<dt><span>Максимальная длина стежка <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchlenght/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchlenght }} мм</dd>
+{% endif %}
+{% if product.sm_maxi %}
+<dt><span>Макси-узоры <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_maxi/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_maxi }}</dd>
+{% endif %}
+{% if product.sm_stitchquantity %}
+<dt><span>Количество строчек <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchquantity/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchquantity }}</dd>
+{% endif %}
+{% if product.sm_buttonhole %}
+<dt><span>Режим вымётывания петли <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='/help/sm_buttonhole/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_buttonhole }}</dd>
+{% endif %}
+{% if product.sm_alphabet %}
+<dt><span>Алфавит <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_alphabet/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_alphabet }}</dd>
+{% endif %}
+{% if product.sm_dualtransporter %}
+<dt><span>Верхний транспортёр <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_dualtransporter/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_dualtransporter }}</dd>
+{% endif %}
+{% if product.sm_platformlenght %}
+<dt><span>Длина платформы <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_platformlenght/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_platformlenght }} см</dd>
+{% endif %}
+{% if product.sm_freearm %}
+<dt><span>Размеры рукавной платформы (длина/обхват) <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_freearm/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_freearm }} см</dd>
+{% endif %}
+{% if product.sm_feedwidth %}
+<dt><span>Ширина гребёнки транспортера <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_feedwidth/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_feedwidth }} мм</dd>
+{% endif %}
+{% if product.sm_footheight %}
+<dt><span>Высота подъема лапки (нормальная/максимальная) <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_footheight/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_footheight }}</dd>
+{% endif %}
+{% if product.sm_constant %}
+<dt><span>Электронный стабилизатор усилия прокола <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_constant/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_constant }}</dd>
+{% endif %}
+{% if product.sm_speedcontrol %}
+<dt><span>Регулятор (ограничитель) максимальной скорости <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_speedcontrol/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_speedcontrol }}</dd>
+{% endif %}
+{% if product.sm_needleupdown %}
+<dt><span>Программируемая остановка иглы в верхнем/нижнем положении <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_needleupdown/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_needleupdown }}</dd>
+{% endif %}
+{% if product.sm_threader %}
+<dt><span>Нитевдеватель <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_threader/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_threader }}</dd>
+{% endif %}
+{% if product.sm_autocutter %}
+<dt><span>Автоматическая обрезка нитей</span></dt><dd>{{ product.sm_autocutter }}</dd>
+{% endif %}
+{% if product.sm_spool %}
+<dt><span>Горизонтальное расположение катушки <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_spool/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_spool }}</dd>
+{% endif %}
+{% if product.sm_presscontrol %}
+<dt><span>Регулятор давления лапки <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_presscontrol/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_presscontrol }}</dd>
+{% endif %}
+{% if product.sm_power %}
+<dt><span>Потребляемая мощность <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_power/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_power }} Вт</dd>
+{% endif %}
+{% if product.sm_light %}
+<dt><span>Тип освещения </span></dt><dd>{{ product.sm_light }}</dd>
+{% endif %}
+{% if product.sm_organizer %}
+<dt><span>Органайзер <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_organizer/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_organizer }}</dd>
+{% endif %}
+{% if product.sm_autostop %}
+<dt><span>Автостоп при намотке нитки на шпульку <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_autostop/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_autostop }}</dd>
+{% endif %}
+{% if product.sm_ruler %}
+<dt><span>Линейка на корпусе <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_ruler/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_ruler }}</dd>
+{% endif %}
+{% if product.sm_cover %}
+<dt><span>Чехол <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_cover/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_cover }}</dd>
+{% endif %}
+{% if product.sm_display %}
+<dt><span>Дисплей</span></dt><dd>{{ product.sm_display }}</dd>
+{% endif %}
+{% if product.sm_russian %}
+<dt><span>Русское меню</span></dt><dd>{{ product.sm_russian }}</dd>
+{% endif %}
+{% if product.sm_advisor %}
+<dt><span>Швейный советник <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_advisor/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_advisor }}</dd>
+{% endif %}
+{% if product.sm_memory %}
+<dt><span>Память</span></dt><dd>{{ product.sm_memory }}</dd>
+{% endif %}
+{% if product.sm_mirror %}
+<dt><span>Зеркальное отображение образца строчки</span></dt><dd>{{ product.sm_mirror }}</dd>
+{% endif %}
+{% if product.sm_startstop %}
+<dt><span>Клавиша шитья без педали <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_startstop/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_startstop }}</dd>
+{% endif %}
+{% if product.sm_kneelift %}
+<dt><span>Коленный рычаг подъема лапки <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_kneelift/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_kneelift }}</dd>
+{% endif %}
+{% if product.sm_diffeed %}
+<dt><span>Дифференциальный транспортер ткани <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_diffeed/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_diffeed }}</dd>
+{% endif %}
+{% if product.sm_easythreading %}
+<dt><span>Облегченная заправка петлителей <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_easythreading/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_easythreading }}</dd>
+{% endif %}
+{% if product.ov_freearm %}
+<dt><span>Рукавная платформа</span></dt><dd>{{ product.ov_freearm }}</dd>
+{% endif %}
+{% if product.sm_needles %}
+<dt><span>Стандарт игл <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_needles/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_needles }}</dd>
+{% endif %}
+{% if product.enginecounid_name %}
+<dt><span>Страна разработки</span></dt><dd>{{ product.enginecounid_name }}</dd>
+{% endif %}
+{% if product.counid_name %}
+<dt><span>Страна производства</span></dt><dd>{{ product.counid_name }}</dd>
+{% endif %}
+{% if product.warranty %}
+<dt><span>Гарантия</span></dt><dd>{{ product.warranty }}</dd>
+{% endif %}
+
+{% if product.prom_transporter_type %}
+<dt><span>Тип транспортера</span></dt><dd>{{ product.prom_transporter_type }}</dd>
+{% endif %}
+{% if product.prom_shuttle_type %}
+<dt><span>Тип челнока</span></dt><dd>{{ product.prom_shuttle_type }}</dd>
+{% endif %}
+{% if product.prom_speed %}
+<dt><span>Максимальная скорость шитья</span></dt><dd>{{ product.prom_speed }}</dd>
+{% endif %}
+{% if product.prom_needle_type %}
+<dt><span>Размер и тип иглы</span></dt><dd>{{ product.prom_needle_type }}</dd>
+{% endif %}
+{% if product.prom_stitch_lenght %}
+<dt><span>Длина стежка</span></dt><dd>{{ product.prom_stitch_lenght }}</dd>
+{% endif %}
+{% if product.prom_foot_lift %}
+<dt><span>Высота подъема лапки</span></dt><dd>{{ product.prom_foot_lift }}</dd>
+{% endif %}
+{% if product.prom_fabric_type %}
+<dt><span>Тип материала</span></dt><dd>{{ product.prom_fabric_type }}</dd>
+{% endif %}
+{% if product.prom_oil_type %}
+<dt><span>Тип смазки</span></dt><dd>{{ product.prom_oil_type }}</dd>
+{% endif %}
+{% if product.weight %}
+<dt><span>Вес без упаковки</span></dt><dd>{{ product.weight }} кг</dd>
+{% endif %}
+{% if product.prom_weight %}
+<dt><span>Вес в упаковке</span></dt><dd>{{ product.prom_weight }} кг</dd>
+{% endif %}
+{% if product.prom_cutting %}
+<dt><span>Обрезка нити</span></dt><dd>{{ product.prom_cutting }}</dd>
+{% endif %}
+{% if product.prom_threads_num %}
+<dt><span>Количество нитей</span></dt><dd>{{ product.prom_threads_num }}</dd>
+{% endif %}
+{% if product.prom_power %}
+<dt><span>Мощность</span></dt><dd>{{ product.prom_power }}</dd>
+{% endif %}
+{% if product.prom_bhlenght %}
+<dt><span>Длина петли</span></dt><dd>{{ product.prom_bhlenght }}</dd>
+{% endif %}
+{% if product.prom_overstitch_lenght %}
+<dt><span>Максимальная длина обметочного стежка</span></dt><dd>{{ product.prom_overstitch_lenght }}</dd>
+{% endif %}
+{% if product.prom_overstitch_width %}
+<dt><span>Максимальная ширина обметочного стежка</span></dt><dd>{{ product.prom_overstitch_width }}</dd>
+{% endif %}
+{% if product.prom_stitch_width %}
+<dt><span>Ширина зигзагообразной строчки</span></dt><dd>{{ product.prom_stitch_width }}</dd>
+{% endif %}
+{% if product.prom_needle_width %}
+<dt><span>Расстояние между иглами</span></dt><dd>{{ product.prom_needle_width }}</dd>
+{% endif %}
+{% if product.prom_needle_num %}
+<dt><span>Количество игл</span></dt><dd>{{ product.prom_needle_num }}</dd>
+{% endif %}
+{% if product.prom_platform_type %}
+<dt><span>Тип платформы</span></dt><dd>{{ product.prom_platform_type }}</dd>
+{% endif %}
+{% if product.prom_button_diaouter %}
+<dt><span>Наружный диаметр пуговицы</span></dt><dd>{{ product.prom_button_diaouter }}</dd>
+{% endif %}
+{% if product.prom_button_diainner %}
+<dt><span>Внутренний диаметр пуговицы</span></dt><dd>{{ product.prom_button_diainner }}</dd>
+{% endif %}
+{% if product.prom_needle_height %}
+<dt><span>Ход игловодителя</span></dt><dd>{{ product.prom_needle_height }}</dd>
+{% endif %}
+{% if product.prom_stitch_type %}
+<dt><span>Тип стежка</span></dt><dd>{{ product.prom_stitch_type }}</dd>
+{% endif %}
+{% if product.prom_autothread %}
+<dt><span>Автоматический нитеотводчик</span></dt><dd>{{ product.prom_autothread }}</dd>
+{% endif %}
+</dl>
+
+{% if 'images/'|add:product.manufacturer.name|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists or product.stitches %}
+<h2>Строчки {{ product.title }}:</h2>
+
+<p>
+{% if 'images/'|add:product.manufacturer.name|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists %}
+<img src="{{ MEDIA_URL }}/images/{{ product.manufacturer.name }}/stitches/{{ product.code }}_stitches.jpg" alt="Строчки швейной машины {{ product.title }}">
+{% endif %}
+{% if product.stitches %}
+{{ product.stitches|safe }}
+{% endif %}
+</p>
+
+{% endif %}
+
+{% if product.spec %}
+<p itemprop="description">{{ product.spec|safe }}</p>
+{% endif %}
+
+{% if product.complect %}
+<h2>Комплектация</h2>
+<p>{{ product.complect|safe }}</p>
+{% endif %}
+
+</div>
+
+</div> <!--- /product-page --->
+{% endblock %}

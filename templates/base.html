@@ -4,11 +4,91 @@
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <meta name="Keywords" content="Швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов Швейный Мир, швейная, швейные, вышивальная, вышивальные, вязальная, вязальные, машинка, машина, машинки, машины, оверлок, оверлоки,  шитье, вышивка, вязание, купить, интернет, магазин, pfaff, brother, janome, bernina, husqvarna, huskystar, viking, оверлок, строчка, петля, челнок, стежок, ткань, рукав"/>
-    <meta name="Description" content="Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары"/>
+    <meta name="Description" content="Фирменный интернет-магазин швейных машин Janome"/>
 {% block title %}
 {% endblock %}
-<link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
+<link rel="stylesheet" href="{% static 'css/styles.css' %}">
+<link rel="stylesheet" href="{% static 'css/magnific-popup.css' %}">
+<link rel="stylesheet" href="{% static 'css/jquery-ui-1.10.3.custom.min.css' %}">
+
+<style type="text/css">
+body        {width: 100%;height: 100%;background-color: #FFF;background-image: url({% static 'i/bkg-fabric-texture.jpg' %}); background-repeat: no-repeat;background-attachment: fixed;}
+.mainwindow {max-width: 1000px;margin-right: auto;margin-left: auto;margin-bottom: 0px;margin-top: 0px; box-shadow: 0px 0px 3px 0px #333;background-color: #fff;font-family: Verdana, Geneva, sans-serif;font-size:11pt;}
+.content    {padding-left:15px;padding-left:10px;}
+a           {color:#006699;}
+
+#bottom-content{
+	background-color: #bccf52;
+	padding: 40px;
+}
+
+#bottom-content a{color: #cc0000;font-weight: bold;text-decoration: none;}
+#bottom-content a:visited{text-decoration:none;}
+#bottom-content a:hover{text-decoration:none;}
+
+#bottom-content p{
+	font-family: Verdana, sans-serif;
+	font-size: 12px;
+	line-height: 16px;
+	font-weight: lighter;
+	color: #333333;
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+#bottom-content ul {
+	list-style-position: outside;
+	margin-left: 20px;
+	margin-top: 10px;
+	color: #000000;
+	font-size: 12px;
+	line-height: 16px;
+	font-style: italic;
+	list-style-type: disc;
+}
+#bottom-content ol {
+	list-style-position: inherit;
+	margin-left: 40px;
+	margin-top: 10px;
+	color: #000000;
+	font-size: 12px;
+	line-height: 20px;
+	font-style: italic;
+}
+.footer   {margin-right:auto;margin-left:auto;background-color:#ee9c20;padding:20px;}
+.footer p {font-size:9pt;color:#FFF;}
+h5.bottom {
+	font-size: 12pt;
+	color: #000000;
+	line-height: 18px;
+	font-weight: normal;
+	text-shadow: 1px 1px 1px #FFF;
+	border-bottom-width: 1px;
+	border-bottom-style: dotted;
+	border-bottom-color: #FFF;
+	padding-bottom: 10px;
+	margin: 10px;
+	padding-top: 10px;
+}
+p.bottom {
+	font-size: 9pt;
+	line-height: 12px;
+	font-weight: lighter;
+	color: #333333;
+	margin: 10px;
+	padding-bottom: 10px;
+}
+
+
+.ya-page_js_yes .ya-site-form_inited_no { display: none; }
+.ya-site-form__input-text:focus,.ya-site-form__submit:focus {border-color: #d0ba65 !important;box-shadow: 0 0 10px #fc0 !important;}
+#ya-site-form0 .ya-site-form__search-input {padding-right:0 !important; }
+
+/* для подсказки */
+.opener img, .opener-ajax img, .opener-html img { opacity: 0.5; width: 14px; height: 14px; border:0; border-spacing:0; }
+.white-popup-block            {background: white;padding: 20px 30px;text-align: left;max-width: 800px;margin: 40px auto;position: relative;}
+.white-popup-block img        {margin:10px}
+.popup-gallery                { margin-top:5px; }
+</style>
 {% block css %}
 {% endblock %}
 <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -27,97 +107,122 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 '//www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','GTM-NNFBJP');</script>
 <!-- End Google Tag Manager -->
-<header>
-<div class="sw-top-navbar hidden-xs">
-  <div class="container text-center">
-    <a href="/shop/user/orders/" class="sw-top-navbar-lk">Что с моим заказом?</a>
-{% block cart_notice %}
-    <span id="cart_notice"></span>
-{% endblock %}
-  </div>
-</div>
-<div class="container-fluid sw-top-fixed-menu hidden-xs">
-</div>
+<!-- Yandex.Metrika counter -->
+<script type="text/javascript">
+(function (d, w, c) {
+    (w[c] = w[c] || []).push(function() {
+        try {
+            w.yaCounter23276014 = new Ya.Metrika({id:23276014,
+                    webvisor:true,
+                    clickmap:true,
+                    trackLinks:true,
+                    accurateTrackBounce:true});
+        } catch(e) { }
+    });
 
-<div class="container-fluid">
-<div class="row">
-<div class="col-lg-9 col-md-12 col-sm-16 col-xs-22 sw-header-left">
+    var n = d.getElementsByTagName("script")[0],
+        s = d.createElement("script"),
+        f = function () { n.parentNode.insertBefore(s, n); };
+    s.type = "text/javascript";
+    s.async = true;
+    s.src = (d.location.protocol == "https:" ? "https:" : "http:") + "//mc.yandex.ru/metrika/watch.js";
+
+    if (w.opera == "[object Opera]") {
+        d.addEventListener("DOMContentLoaded", f, false);
+    } else { f(); }
+})(document, window, "yandex_metrika_callbacks");
+</script>
+<noscript><div><img src="//mc.yandex.ru/watch/23276014" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
+<!-- /Yandex.Metrika counter -->
+
+<div class="container mainwindow">
+<div class="row" style="background:#eee;">
+
+<div class="col-md-12 sw-header-left" style="padding:0px;">
 <div class="sw-logo">
-<div  style="max-width:399px; max-height:48px;"><a href="http://www.sewing-world.ru/index.html"><img src="{% static 'i/logo.png' %}" alt="Швейный Мир - всероссийская сеть швейных супермаркетов.&#10; Швейные машинки, вышивальные и вязальные машины, оверлоки и аксессуары." class="img-responsive"></a></div>
-<p class="hidden sw-header-phone-xs">Заказ: <span>+7 495 766-56-75</span></p></div>
+<div><a href="/"><img src="{% static 'i/janomelogo.svg' %}" alt="Швейные машины Janome" class="img-responsive" style="max-width:300px; padding-top:25px;" /></a></div>
 </div>
-<div class="col-lg-15 col-md-12 col-sm-8 col-xs-2 sw-header-right">
-<div class="sw-header-shops hidden text-center"><a href="http://www.sewing-world.ru/shops.html"><img src="{% static 'i/placemark.png' %}" alt="Магазины"></a><a href="http://www.sewing-world.ru/shops.html">Адреса магазинов</a><br>Заказ: +7 495 766-56-75</div>
-<ul class="list-inline pull-right hidden sw-topmenu">
-<li><a href="http://www.sewing-world.ru/catalog/sewing_machines/index.html"><img src="{% static 'i/categories/compsewing.gif' %}" 
-alt="Швейные машины"></a></li><li><a href="http://www.sewing-world.ru/catalog/embroidery_machines/index.html"><img src="{% static 'i/categories/embroidery.gif' %}" 
-alt="Швейно-вышивальные машины"></a></li><li><a href="http://www.sewing-world.ru/catalog/sergers/index.html"><img src="{% static 'i/categories/overlock.gif' %}" 
-alt="Оверлоки, коверлоки и распошивальные машины"></a></li><li><a href="http://www.sewing-world.ru/catalog/knitting_machines/index.html"><img src="{% static 'i/categories/knitting.gif' %}" 
-alt="Вязальные машины"></a></li><li><a href="http://www.sewing-world.ru/catalog/accessories/index.html"><img src="{% static 'i/categories/accessories.gif' %}" 
-alt="Аксессуары"></a></li><li><a href="http://www.sewing-world.ru/catalog/Prom/index.html"><img src="{% static 'i/categories/prom.gif' %}" 
-alt="Промышленное оборудование"></a></li>
-</ul>
-</div>
-</div>
-<ul class="list-inline hidden sw-xsmenu">
-<li><a href="http://www.sewing-world.ru/catalog/sewing_machines/index.html">Швейные машины</a></li>
-<li><a href="http://www.sewing-world.ru/catalog/embroidery_machines/index.html">Вышивальные машины</a></li>
-<li><a href="http://www.sewing-world.ru/catalog/sergers/index.html">Оверлоки</a></li>
-<li><a href="http://www.sewing-world.ru/catalog/knitting_machines/index.html">Вязальные машины</a></li>
-<li><a href="http://www.sewing-world.ru/catalog/accessories/index.html">Аксессуары</a></li>
-<li class="visible-md-inline-block"><a href="http://www.sewing-world.ru/catalog/irons/index.html">Гладильное оборудование</a></li>
-<li class="visible-md-inline-block"><a href="http://www.sewing-world.ru/catalog/Prom/index.html">Промышленное оборудование</a></li>
-</ul>
 </div>
 
-    <div class="navbar navbar-default navbar-static-top sw-navbar" role="navigation">
-      <div class="container-fluid">
-        <div class="navbar-header  hidden">
-          <button type="button" class="navbar-toggle sw-navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-            <span class="sr-only">Меню</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <ul class="list-inline visible-xs sw-xsnavigation">
-		    <li><a href="http://www.sewing-world.ru/shops.html">Адреса магазинов</a></li>
-		    <li><a href="http://order.sewing-world.ru/shop/basket/">Корзина</a></li>
-		  </ul>
-        </div>
-		<div class="navbar-collapse collapse  hidden">
-          <ul class="nav navbar-nav navbar-left">
-            <li class="hidden-xs"><a href="http://www.sewing-world.ru/shops.html">Адреса магазинов</a></li>
-            <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Каталог <span class="caret"></span></a>
-              {# include "ssi/menu.html" #}
-            </li>
-            <li><a href="http://www.sewing-world.ru/recipes/index.html">Рецепты</a></li>
-            <li><a href="http://www.sewing-world.ru/articles/">Статьи</a></li>
-            <li><a href="http://www.sewing-world.ru/blog/">Блог</a></li>
-            <li><a href="http://www.sewing-world.ru/cgi-bin/forum.cgi">Форум</a></li>
-            <li><a href="http://www.sewing-world.ru/service.html">Сервисные центры</a></li>
-            <li><a href="http://www.sewing-world.ru/search.html">Поиск</a></li>    
-            <li><a href="http://www.sewing-world.ru/shipping.html">Доставка и оплата</a></li>
-            <li class="visible-xs"><a href="http://order.sewing-world.ru/shop/user/orders/">Личный кабинет</a></li>
-          </ul>
-        </div><!--/.nav-collapse -->
-      </div>
-    </div>
+<div class="col-md-12" style="margin-top:20px;">
+<div class="text-right pull-right" style="display:inline-block; font-size:10pt;">
+<strong>Фирменный интернет-магазин швейных машин <span style=color:darkred;>Janome</span><br>
++7 495 766-56-75</strong></div>
 
-</header>
-
-<div class="container-fluid">
-<!-- ------------------------------------------------------------------------------------------------------------ -->
-<div class="container">
-    {% block content %}
-    {% endblock %}
+<script type="text/javascript">window.ya_site_path = { serp: "//site.yandex.ru/search/site/catalog/" };</script>
+<div class="ya-site-form ya-site-form_inited_no" onclick="return {'action':'http://www.janome.club/pages/search/','arrow':false,'bg':'transparent','fontsize':'15','fg':'#000000','language':'ru','logo':'rb','publicname':'','suggest':true,'target':'_self','tld':'ru','type':2,'usebigdictionary':false,'searchid':2297065,'input_fg':'#000000','input_bg':'#FFFFFF','input_fontStyle':'normal','input_fontWeight':'normal','input_placeholder':'','input_placeholderColor':'#000000','input_borderColor':'#cbcbcb','is_catalog':true}">
+<form action="//site.yandex.ru/search/site/catalog/" method="get" target="_self" accept-charset="utf-8">
+<input type="hidden" name="searchid" value="2297065"/>
+<input type="hidden" name="l10n" value="ru"/>
+<input type="hidden" name="reqenc" value="utf-8"/>
+<input type="search" name="text" value="" style="outline: 0 !important;font-size: 15px !important;height: 32px !important;padding: 6px 10px 7px !important;border: 1px solid #ccc;border-radius: 0 !important;"/>
+<input type="submit" value="Найти" style="outline: 0 !important;font-size: 15px !important;background: #fff !important;color: #000 !important;height: 32px !important;padding: 6px 15px 7px !important;border: 1px solid #cbcbcb;margin: 0 0 0 -1px;border-radius: 0 3px 3px 0;"/>
+</form>
 </div>
+<style type="text/css">.ya-page_js_yes .ya-site-form_inited_no { display: none; }.ya-site-form__input-text:focus,.ya-site-form__submit:focus {border-color: #d0ba65 !important;box-shadow: 0 0 10px #fc0 !important;}</style>
+<script type="text/javascript">(function(w,d,c){var s=d.createElement('script'),h=d.getElementsByTagName('script')[0],e=d.documentElement;if((' '+e.className+' ').indexOf(' ya-page_js_yes ')===-1){e.className+=' ya-page_js_yes';}s.type='text/javascript';s.async=true;s.charset='utf-8';s.src=(d.location.protocol==='https:'?'https:':'http:')+'//site.yandex.net/v2.0/js/all.js';h.parentNode.insertBefore(s,h);(w[c]||(w[c]=[])).push(function(){Ya.Site.Form.init()})})(window,document,'yandex_site_callbacks');</script>
+
+<div class="text-right"><span id="cart_notice"></span></div>
+</div>
+
+</div>
+
+
+
+
+
+
+
+
+<div class="row">
+{% load django_bootstrap_breadcrumbs %}
+{% block breadcrumbs %}
+    {% clear_breadcrumbs %}
+{% endblock %}
+{% render_breadcrumbs "_breadcrumbs.html" %}
+<div class="content">
+{% block content %}
+{% endblock %}
+</div>
+<div id="bottom-content" class="container-fluid">
+<div class="col-md-8">
+<a href="{% url 'django.contrib.flatpages.views.flatpage' url='map/' %}"><img src="{% static 'i/mc15k-nav-icon-features.png' %}" alt="Наш адрес" width="145" height="100" class="icon">
+<h5 class="bottom">Наш адрес</h5>
+<p class="bottom">Наш магазин находится в Москве, рядом с метро &laquo;Пролетарская&raquo;</p></a>
+</div>
+<div class="col-md-8">
+<a href="{% url 'django.contrib.flatpages.views.flatpage' url='delivery/' %}"><img src="{% static 'i/mc15k-nav-icon-delivery.png' %}" alt="Доставка" width="145" height="100" class="icon">
+<h5 class="bottom">Доставка</h5>
+<p class="bottom">Условия доставки и оплаты товаров</p></a>
+</div>
+<div class="col-md-8">
+<a href="/shop/user/orders/"><img src="{% static 'i/cart.png' %}" alt="Доставка" width="145" height="100" class="icon">
+<h5 class="bottom">Личный кабинет</h5>
+<p class="bottom">Узнать состояние заказа</p></a>
+</div>
+</div>
+
+<div class="row footer">
+<div class="col-md-12">
+<p>Copyright (C) 2013-2017 <a href="http://www.janome.co.jp/e1.htm" style="color:#fff;">Janome</a> &amp; <a href="http://www.sewing-world.ru" style="color:#fff;">Швейный Мир</a></p>
+</div>
+<div class="col-md-12">
+<p>info@janome.club</p>
+</div>
+</div>
+
 <script src="{% static 'js/jquery-2.1.1.min.js' %}"></script>
 <script src="{% static 'js/jquery.maskedinput.min.js' %}"></script>
+<script src="{% static 'js/jquery.magnific-popup.min.js' %}"></script>
 <script src="{% static 'js/eldarion-ajax.min.js' %}"></script>
 <script src="{% static 'js/jquery.dump.js' %}"></script>
 <script src="{% static 'js/js.cookie.js' %}"></script>
 <script src="{% static 'bootstrap/js/bootstrap.min.js' %}"></script>
+<script src="{% static 'js/jquery-ui-1.10.3.custom.min.js' %}"></script>
+<script src="{% static 'js/ja-no-me.js' %}"></script>
+
+
+
 {% block javascript %}
 {% block cart_notice_output %}
 <script>
@@ -125,108 +230,11 @@ $("#cart_notice").load("/shop/basket/notice");
 </script>
 {% endblock %}
 {% endblock %}
-
-<!-- ------------------------------------------------------------------------------------------------------------ -->
-
-</div> <!-- /container-fluid -->
-
-<div class="container-fluid sw-bottom-firstline">
-</div> <!-- /sw-bottom-firstline -->
-
-
-<div class="container-fluid sw-bottom hidden">
-<div class="row">
-<div class="col-md-8">
-<table class="sw-bottom-phones">
-<tr>
-<td colspan="2"><h3>Телефоны</h3></td>
-</tr>
-<tr>
-<td class="sw-bottom-phones-left">Справочная <a href="http://www.sewing-world.ru/shops.html">розничных магазинов:</a></td>
-<td class="sw-bottom-phones-right">+7 495 744-00-87</td>
-</tr>
-<tr>
-<td class="sw-bottom-phones-left">Заказать швейную машину в Москве:</td>
-<td class="sw-bottom-phones-right">+7 495 766-56-75</td>
-</tr>
-<tr>
-<td class="sw-bottom-phones-left">Заказать в Санкт-Петербурге:</td>
-<td class="sw-bottom-phones-right">+7 812 600-23-98</td>
-</tr>
-<tr>
-<td class="sw-bottom-phones-left">Заказать в Казани:</td>
-<td class="sw-bottom-phones-right">+7 843 518-75-75</td>
-</tr>
-<tr>
-<td class="sw-bottom-phones-left">Промышленное оборудование:</td>
-<td class="sw-bottom-phones-right">+7 499 158-06-87</td>
-</tr>
-<tr>
-<td class="sw-bottom-phones-left">Оптовые продажи:</td>
-<td class="sw-bottom-phones-right">+7 495 744-00-87</td>
-</tr>
-<tr>
-<td class="sw-bottom-phones-left"><a href="http://www.sewing-world.ru/service.html">Ремонт швейных машин:</a></td>
-<td class="sw-bottom-phones-right">+7 495 718-86-02<br>+7 499 158-06-87</td>
-</tr>
-</table>
-</div>
-<div class="col-md-8 text-center small">
-<p>
-Принимаем платежи по картам<br>
-<img src="{% static 'i/mastercard.gif' %}" border="0">
-<img src="{% static 'i/visa.gif' %}" border="0"><br>
-при поддержке <a href="https://kassa.yandex.ru">Яндекс.Касса</a>
-</p>
-<p>
-<a href="https://clck.yandex.ru/redir/dtype=stred/pid=47/cid=2508/*https://market.yandex.ru/shop/4767/reviews"><img src="https://clck.yandex.ru/redir/dtype=stred/pid=47/cid=2506/*https://grade.market.yandex.ru/?id=4767&action=image&size=1" border="0" width="120" height="110" alt="Читайте отзывы покупателей и оценивайте качество магазина на Яндекс.Маркете" /></a>
-</p>
-<p>&copy;1996-2015 Торговый Дом Швейных Машин</p>
-<p><a href="mailto:info@thsm.ru">info@thsm.ru</a></p>
-</div>
-<div class="col-md-8 text-center">
-{% block vk %}
-{% endblock %}
-</div>
-
-</div>
-</div> <!-- /container-fluid -->
-{% if not debug %}
-<!-- Yandex.Metrika counter -->
+<!-- BEGIN JIVOSITE CODE {literal} 
 <script type="text/javascript">
-    (function (d, w, c) {
-        (w[c] = w[c] || []).push(function() {
-            try {
-                w.yaCounter35990 = new Ya.Metrika({
-                    id:35990,
-                    clickmap:true,
-                    trackLinks:true,
-                    accurateTrackBounce:true,
-                    webvisor:true,
-                    ecommerce:"dataLayer"
-                });
-            } catch(e) { }
-        });
-
-        var n = d.getElementsByTagName("script")[0],
-            s = d.createElement("script"),
-            f = function () { n.parentNode.insertBefore(s, n); };
-        s.type = "text/javascript";
-        s.async = true;
-        s.src = "https://mc.yandex.ru/metrika/watch.js";
-
-        if (w.opera == "[object Opera]") {
-            d.addEventListener("DOMContentLoaded", f, false);
-        } else { f(); }
-    })(document, window, "yandex_metrika_callbacks");
-</script>
-<noscript><div><img src="https://mc.yandex.ru/watch/35990" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-<!-- /Yandex.Metrika counter -->
-<!-- BEGIN JIVOSITE CODE {literal}
-<script type='text/javascript'>
-(function(){ var widget_id = '3VrfwdLMEG';
+(function(){ var widget_id = 'oFwl1meCfX';
 var s = document.createElement('script'); s.type = 'text/javascript'; s.async = true; s.src = '//code.jivosite.com/script/widget/'+widget_id; var ss = document.getElementsByTagName('script')[0]; ss.parentNode.insertBefore(s, ss);})();</script>
-{/literal} END JIVOSITE CODE -->
-{% endif %}
+ {/literal} END JIVOSITE CODE -->
+</div>
 </body>
 </html>

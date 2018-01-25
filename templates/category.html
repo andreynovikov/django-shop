@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% load mptt_tags %}
+{% load django_bootstrap_breadcrumbs %}
+{% block title %}
+<title>{{ category.name }}</title>
+{% endblock %}
+{% block breadcrumbs %}
+    {{ block.super }}
+    {% breadcrumb "К первой странице" "/" %}
+    {% breadcrumb "Каталог" "catalog" %}
+    {% for node,structure in category.get_ancestors|tree_info %}
+        {% if node.is_child_node %}
+            {% breadcrumb node "category" node.get_path %}
+        {% endif %}
+    {% endfor %}
+{% endblock %}
+{% block content %}
+<h1>{{ category.name }}</h1>
+<ul>
+{% drilldown_tree_for_node category as categories %}
+    {% for node,structure in categories|tree_info %}
+        {% if node.parent_id == category.pk  %}
+                <li class="catalog"><a href="{% url 'category' node.get_path %}">{{ node }}</a></li>
+        {% endif %}
+    {% endfor %}
+</ul>
+{% for product in products %}
+{% include "_product_info.html" %}
+{% endfor %}
+{% endblock %}
