@@ -6,35 +6,81 @@
 {% block title %}
 <title>{{ product.title }}</title>
 {% endblock %}
+{% block css %}
+<style type="text/css">
+.product-page          { max-width:1000px; margin: 0 auto; }
+.product-page h2       { font-size:1.4em; border-bottom:1px solid #e0e0e0; padding-bottom:5px; margin-top:40px; margin-bottom:20px; }
+.product-buyblock      { float:none; display:inline-block; vertical-align:top;}
+@media(max-width:768px){
+.product-buyblock      { width:100%; }
+.product-buyblock-body { max-width:320px; text-align:center;}
+.product-image         { width:100%; }
+.product-image .popup-gallery { max-width:600px; margin: 0 auto; text-align:center;}
+}
+@media(min-width:768px){
+.product-buyblock      { max-width:380px; }
+}
+.panel-body {padding:3px;padding-top:10px;}
+.product-image        { float:none; display:inline-block; vertical-align:top; }
+.product-nal-caption  { font-weight:bold; }
+.product-nal-true     { color:#4cae4c; font-weight:bold; }
+.product-nal-false    { color:#aaaaaa; font-weight:bold; }
+.product-delivery-caption { font-weight:bold; }
+.product-salesnotes, .product-gift  { color:@brand-orange; }
+.price                { font-size:1.2em; font-weight:bold; }
+.price span           { color:@brand-orange; font-size:1.4em; }
+.oldprice             { text-decoration:line-through; }
+.product-spec         { display: block; position:relative; margin:0; }
+.product-spec dt      { display: inline-block; width: 49%; margin: 0 0 7px; vertical-align: top;}
+.product-spec dd      { display: inline-block; width: 50%; margin: 0 0 7px; vertical-align: bottom; background: inherit; }
+.product-spec dt span { font-weight:normal; }
+.product-spec dt:after { position: absolute; content:"";  }
+
+.modelProperties td	{padding-right:0;padding-bottom:0;padding-left:0;vertical-align: bottom;}
+.modelProperties td.sw-label	{padding-right:10;padding-bottom:0;padding-left:0;line-height:1.2em;}
+.modelProperties span	{background-color:white;}
+
+
+/* для подсказки */
+.opener img, .opener-ajax img, .opener-html img { opacity: 0.5; width: 14px; height: 14px; border:0; border-spacing:0; }
+.white-popup-block            {background: white;padding: 20px 30px;text-align: left;max-width: 800px;margin: 40px auto;position: relative;}
+.white-popup-block img        {margin:10px}
+.popup-gallery                { margin-top:5px; }
+
+.price .sw-addProduct-sm      { margin-bottom:5px; } 
+.sw-addProduct-sm     { font-weight:bold; text-decoration:none; } 
+</style>
+{% endblock %}
+
+
+
+
+
 {% block breadcrumbs %}
     {{ block.super }}
     {% breadcrumb "К первой странице" "/" %}
     {% breadcrumb "Каталог" "catalog" %}
-    {% if product.categories.all.first %}
-    {% for node,structure in product.categories.all.first.get_ancestors|tree_info %}
+    {% if product.breadcrumbs %}
+    {% for node,structure in product.breadcrumbs|tree_info %}
         {% if node.is_child_node %}
             {% breadcrumb node "category" node.get_path %}
         {% endif %}
     {% endfor %}
-    {% breadcrumb product.categories.all.first "category" product.categories.all.first.get_path %}
     {% endif %}
 {% endblock %}
 {% block content %}
-<div class="product-page">
+<div class="products">
 <div itemscope itemtype="http://schema.org/Product">
-<h1 class="prodname" itemprop="name">{{ product.title }}
+<h1 itemprop="name">{{ product.title }}
 <sup>
 {% if product.ishot %}
-<span class="label sw-action">Акция</span>
+<span class="label label-warning">Акция</span>
 {% endif %}
 {% if product.isnew %}
-<span class="label sw-new">Новинка</span>
+<span class="label label-danger">Новинка</span>
 {% endif %}
 {% if product.recomended %}
-<span class="label sw-recomended">Рекомендуем</span>
-{% endif %}
-{% if product.utilisation %}
-<span class="label sw-action">Скидка по "Утилизации"</span>
+<span class="label label-success">Рекомендуем</span>
 {% endif %}
 </sup>
 </h1>
@@ -52,7 +98,7 @@
 {% if product.image_prefix|add:'.b.jpg'|file_exists %}
 <div class="popup-gallery"><a href="{{ MEDIA_URL }}{{ product.image_prefix }}.b.jpg">
 {% endif %}
-<img id="{{ product.id }}" src="{{ MEDIA_URL }}{{ product.image_prefix }}.jpg" alt="{{ product.title }} {{ product.whatis }}" itemprop="image"  class="img-responsive"/>
+<img  style="max-width:540px; height:auto;" id="{{ product.id }}" src="{{ MEDIA_URL }}{{ product.image_prefix }}.jpg" alt="{{ product.title }} {{ product.whatis }}" itemprop="image"  class="img-responsive"/>
 {% if product.image_prefix|add:'.b.jpg'|file_exists %}
 </a></div>
 {% endif %}
@@ -64,24 +110,18 @@
 <div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
 {% if product.discount > 0 %}
 <p class="oldprice">{{ product.price }}&nbsp;руб. <a href="#dialog_discount" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
-<div id="dialog_discount" class="mfp-hide white-popup-block">
-<h4>Скидка!</h4>
-<p>Базовая цена в магазинах &laquo;Швейный Мир&raquo; без учета скидок <b>{{ product.price }}&nbsp;руб.</b></p>
-<p>Скидка при покупке в интернет-магазине составляет <b>{{ product.discount }}</b></p>
-</div>
 {% endif %}
 <p class="price"><span itemprop="price">{{ product.cost }}</span>&nbsp;руб.
 
 {% if product.instock > 0 %}
-<a href="{% url 'shop:add' product.id %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
+<a href="{% url 'shop:add' product.id %}"
+class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
 {% else %}
-<a href="{% url 'shop:add' product.id %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a>
+<a href="{% url 'shop:add' product.id %}"
+class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a>
 {% endif %}
 
 <span itemprop="priceCurrency" style="visibility:hidden;font-size:1pt;margin:0;padding:0;width:0;height:0;line-height:0;">RUB</span>
-{% if product.deshevle == true %}
-<a href="{% url 'django.contrib.flatpages.views.flatpage' url='dialog/deshevle/' %}" class="opener-ajax deshevle">Нашли&nbsp;дешевле?</a>
-{% endif %}
 </p>
 {% if product.available %}
 <p><span class="product-nal-caption">Наличие:</span>
@@ -96,47 +136,14 @@
 {% endif %}
 </p>
 {% endif %}
-{% if product.state %}
-<p>{{ product.state }}</p>
-{% endif %}
 {% if sales_notes %}
 <p class="product-salesnotes">{{ sales_notes }}</p>
 {% endif %}
-
-{% if product.utilisation %}
-<p class="product-salesnotes">Участник акции <a href="/actions/utilisation.html">"Утилизация"</a>! Скидка по акции <span class="price">{{ maxdiscount }}%</span>!</p>
+{% if product.instock > 1 %}
+<meta name="ydWidgetData" id="e87ab1a4b521b363e68df04de4866de4" content="" data-sender_id="15938" data-weight="10" data-cost="{{ product.cost }}" data-height="27" data-length="50" data-width="40" data-city_from="Москва" data-geo_id_from="213" data-css_name="geo_tpl" data-tpl_name="geo_tpl" data-container_tag_id="b1a118f6e3252a711b9146c1d41567e5" data-resource_id="21272" data-resource_key="1780931b94c77b42c08b895fb88747d2" data-tracking_method_key="43df8cf1b0d40baaef3a3363458314f1" data-autocomplete_method_key="fd34c231b276f9bea3db9b60ac09506e"></meta><!--[if lt IE 9]><script>document.createElement("msw");</script><![endif]-->
+<script src="https://delivery.yandex.ru/widget/widgetJsLoader?dataTagID=e87ab1a4b521b363e68df04de4866de4" charset="utf-8"></script>
+<msw id="b1a118f6e3252a711b9146c1d41567e5" class="yd-widget-container"></msw>
 {% endif %}
-{% if product.internetonly and 1 > 2 %}
-<p>Этот товар продается только в интернет-магазине. <a href="#dialog_internetonly" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
-<div id="dialog_internetonly" class="mfp-hide white-popup-block">
-<h4>Этот товар продается только в интернет-магазине!</h4>
-<p>Этот товар мы можем доставить курьером или транспортной компанией,<br>
-а также его можно получить в нашем московском магазине на &laquo;Пролетарке&raquo;,<br>
- по адресу: Волгоградский проспект, д.10 стр.2.<br>
- В других наших магазинах этот товар купить по цене интернет-магазина нельзя.</p>
-</div><!-- /#dialog_internetonly -->
-{% endif %}
-
-{% if product.warranty and product.price > 0 and not product.state and 1 > 2 %}
-<p>Легко вернуть в случае неисправности.
-<a href="{% url 'django.contrib.flatpages.views.flatpage' url='dialog/back/' %}" class="opener-ajax"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
-{% endif %}
-
-{% if 1 > 2 %}
-<!-- %LOOP REVERSE LoopAssociatedProducts(products,@@id@@,gift) IN prod ORDER price -->
-<!-- %IF FIRSTLOOPENTRY prod -->
-<p class="product-gift">Покупая @@name@@ в интернет-магазине, Вы получите подарок:</p>
-<div class="text-center">
-<!-- %END IF -->
-<!-- %IF EXPRESSION @@prod.enabled@@ > 0 -->
-<!--#include virtual="/products/@@prod.code@@_inc.html" -->
-<!-- %END IF -->
-<!-- %IF LASTLOOPENTRY prod -->
-</div>
-<!-- %END IF -->
-<!-- %END LOOP -->
-{% endif %}
-
 </div>
 </div>
 </div>
@@ -154,54 +161,13 @@
 {% endif %}
 
 
-
-<!--
-<table border="0" style="padding:2px;width:100%;">
-<tr>
-<td style="vertical-align:top;">
-<div id="price" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
-<p><b class="price"><span class="price" itemprop="price">{{ product.price }}</span>&nbsp;руб.</b></p>
-<span itemprop="priceCurrency" style="visibility:hidden;">RUB</span>
-{% if product.nal %}
-<p><b>Наличие:</b> {{ product.nal }}</p>
-{% endif %}
-{% if product.price > 5000 %}
-<p><b>Доставка:</b> бесплатно по Москве в пределах МКАД и до транспортной компании.</p>
-{% endif %}
-</div>
-</td></tr></table>
--->
-
 {% if product.warranty %}
 <h2>Характеристики {{ product.title }}:</h2>
 {% endif %}
+
 <dl class="product-spec">
 {% if product.fabric_verylite %}
-<dt><span>Диапазон прошиваемых материалов <a class="opener-html" href="http://www.sewing-world.ru/blog/?p=464"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>Очень легкие – {{ product.fabric_verylite }}<br>Легкие – {{ product.fabric_lite }}<br>Средние и умеренно тяжелые – {{ product.fabric_medium }}<br>Тяжелые – {{ product.fabric_hard }}<br>Трикотаж – {{ product.fabric_stretch }}</dd>
-{% endif %}
-{% if product.km_class %}
-<dt><span>Класс машины <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/km_class/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.km_class }}</dd>
-{% endif %}
-{% if product.km_font %}
-<dt><span>Количество фонтур <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/km_font/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.km_font }}</dd>
-{% endif %}
-{% if product.km_needles %}
-<dt><span>Количество игл</span></dt><dd>{{ product.km_needles }}</dd>
-{% endif %}
-{% if product.km_prog %}
-<dt><span>Способ программирования</span></dt><dd>{{ product.km_prog }}</dd>
-{% endif %}
-{% if product.km_rapport %}
-<dt><span>Раппорт программируемого рисунка</span></dt><dd>{{ product.km_rapport }}</dd>
-{% endif %}
-{% if product.sw_hoopsize %}
-<dt><span>Размер пялец <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sw_hoopsize/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sw_hoopsize }}</dd>
-{% endif %}
-{% if product.sw_datalink %}
-<dt><span>Способ связи с компьютером <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sw_datalink/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sw_datalink }}</dd>
-{% endif %}
-{% if product.sm_software %}
-<dt><span>Возможности встроенного ПО</span></dt><dd>{{ product.sm_software }}</dd>
+<dt><span>Диапазон прошиваемых материалов</span></dt><dd>Очень легкие – {{ product.fabric_verylite }}<br>Легкие – {{ product.fabric_lite }}<br>Средние и умеренно тяжелые – {{ product.fabric_medium }}<br>Тяжелые – {{ product.fabric_hard }}<br>Трикотаж – {{ product.fabric_stretch }}</dd>
 {% endif %}
 {% if product.sm_shuttletype %}
 <dt><span>Тип челнока <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_shuttletype/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_shuttletype }}</dd>
@@ -212,9 +178,6 @@
 {% if product.sm_stitchlenght %}
 <dt><span>Максимальная длина стежка <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchlenght/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchlenght }} мм</dd>
 {% endif %}
-{% if product.sm_maxi %}
-<dt><span>Макси-узоры <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_maxi/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_maxi }}</dd>
-{% endif %}
 {% if product.sm_stitchquantity %}
 <dt><span>Количество строчек <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchquantity/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchquantity }}</dd>
 {% endif %}
@@ -223,9 +186,6 @@
 {% endif %}
 {% if product.sm_alphabet %}
 <dt><span>Алфавит <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_alphabet/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_alphabet }}</dd>
-{% endif %}
-{% if product.sm_dualtransporter %}
-<dt><span>Верхний транспортёр <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_dualtransporter/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_dualtransporter }}</dd>
 {% endif %}
 {% if product.sm_platformlenght %}
 <dt><span>Длина платформы <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_platformlenght/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_platformlenght }} см</dd>
@@ -238,9 +198,6 @@
 {% endif %}
 {% if product.sm_footheight %}
 <dt><span>Высота подъема лапки (нормальная/максимальная) <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_footheight/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_footheight }}</dd>
-{% endif %}
-{% if product.sm_constant %}
-<dt><span>Электронный стабилизатор усилия прокола <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_constant/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_constant }}</dd>
 {% endif %}
 {% if product.sm_speedcontrol %}
 <dt><span>Регулятор (ограничитель) максимальной скорости <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_speedcontrol/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_speedcontrol }}</dd>

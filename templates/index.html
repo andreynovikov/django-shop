@@ -1,39 +1,55 @@
 {% extends "base.html" %}
 {% load staticfiles %}
-
 {% block content %}
-<div style="padding-left:30px;padding-top:20px;">
-<a href="/catalog/sewing_machines/"><img src="{% static 'i/1.png' %}" alt="Электромеханические швейные машины" width="290" height="290" class="icon"></a><a href="/catalog/comp_sewing_machines/"><img src="{% static 'i/2.png' %}" alt="Компьютерные швейные машины" width="290" height="290" class="icon"></a><a href="/catalog/sewing_embroidery_machines/"><img src="{% static 'i/3.png' %}" alt="Швейно-вышивальные машины" width="290" height="290" class="icon"></a><br/>
-<a href="/catalog/overlock/"><img src="{% static 'i/4.png' %}" alt="Оверлоки, коверлоки и плоскошовные машины" width="290" height="290" class="icon"></a><a href="/catalog/accessories/"><img src="{% static 'i/5.png' %}" alt="Аксессуары для машин Janome" width="290" height="290" class="icon"></a>
+
+<div class="product_display" style="min-height:200px; height:auto;">
+<h3 class="center"><a style="text-decoration:none;" href="/catalog/electronic/">Электронные машины</a></h3>
+  <div class="thumb center" style="height:162px;">
+       <a href="/catalog/electronic/">
+       <img  style="height:160px; width:auto;" src="/media/images/Singer/Singer9960.jpg" alt="Электронные машины" />
+       </a>
+  </div>
+</div>
+<div class="product_display" style="min-height:200px; height:auto;">
+<h3 class="center"><a style="text-decoration:none;" href="/catalog/basic/">Механические машины</a></h3>
+  <div class="thumb center" style="height:162px;">
+       <a href="/catalog/basic/">
+       <img  style="height:160px; width:auto;" src="/media/images/Singer/Singer_2290.jpg" alt="Механические машины" />
+       </a>
+  </div>
+</div>
+<div class="product_display" style="min-height:200px; height:auto;">
+<h3 class="center"><a style="text-decoration:none;" href="/catalog/serger/">Оверлоки</a></h3>
+  <div class="thumb center" style="height:162px;">
+       <a href="/catalog/serger/">
+       <img  style="height:160px; width:auto;" src="/media/images/Singer/Singer_14hd854.jpg" alt="Оверлоки" />
+       </a>
+  </div>
+</div>
+<div class="product_display" style="min-height:200px; height:auto;">
+<h3 class="center"><a style="text-decoration:none;" href="/catalog/irons/">Уход за домом</a></h3>
+  <div class="thumb center" style="height:162px;">
+       <a href="/catalog/irons/">
+       <img  style="height:160px; width:auto;" src="/media/images/Singer/Singer4020.jpg" alt="Уход за домом" />
+       </a>
+  </div>
+</div>
+<div class="product_display" style="min-height:200px; height:auto;">
+<h3 class="center"><a style="text-decoration:none;" href="/catalog/Feet/">Лапки</a></h3>
+  <div class="thumb center" style="height:162px;">
+       <a href="/catalog/Feet/">
+       <img  style="height:160px; width:auto;" src="/media/categories/featured-presser_feet_pzJu4kE.png" alt="Лапки" />
+       </a>
+  </div>
+</div>
+<div class="product_display" style="min-height:200px; height:auto;">
+<h3 class="center"><a style="text-decoration:none;" href="/catalog/Accessories/">Аксессуары</a></h3>
+  <div class="thumb center" style="height:162px;">
+       <a href="/catalog/Accessories/">
+       <img  style="height:160px; width:auto;" src="/media/categories/featured-notions_rmKezuP.png" alt="Аксессуары" />
+       </a>
+  </div>
 </div>
 
-<div class="why">
-<div class="popup-gallery"><a href="{% static 'i/dealer.jpg' %}"><img src="{% static 'i/dealer.s.jpg' %}" align="right"></a></div>
-<dl>
-
-<dt>Только официальные поставки</dt>
-<dd><p>Наш магазин имеет статус официального дилера компании Janome.</p>
-<p>Покупая товары в нашем магазине, Вы можете быть уверены в их подлинности,
-высоком качестве и соответствии всем необходимым стандартам.
-По первому требованию мы готовы предоставить все имеющиеся сертификаты на наши товары.</p>
-<p>Мы действительно можем обеспечить наличие в продаже машин, заявленных на сайте.</p>
-<p>Некоторые недобросовестные магазины принимают заказы на популярные модели по низкой цене,
-а когда покупатель приходит в магазин, выясняется, что заказанная модель имеет какие-то
-недостатки и лучше выбрать другую. Под этим предлогом покупателю навязывают машину,
- уступающую выбранной по надежности, функциональности или мощности, но выгодную для продавца.</p>
-<p>У нас Вы получите заказанную машину по цене, указанной на сайте.</p></dd>
-
-<dt>Официальная гарантия</dt>
-<dd><p>Швейные машины Janome, купленные в нашем магазине, обеспечиваются гарантийным обслуживанием
-в авторизованных сервисных центрах Janome.</p>
-<p>Некоторые продавцы заявляют, что у Джаноме нет авторизованных
-сервисных центров. Это - неправда! В Москве работают два таких сервисных центра.</p>
-<p>Важными преимуществами авторизованных центров являются стабильные поставки запасных частей,
-наличие специального оборудования и уникальные мастера,
-прошедшие обучение в учебном центре Janome в Японии.</p></dd>
-
-<dt style="color:darkred;">Обязательно забронируйте машину, прежде чем приехать в магазин!</dt>
-<dd>Оставьте заказ на сайте или по телефону +7 495 766-56-75.</dd>
-</dl>
-</div>
+<br clear="all">
 {% endblock %}

@@ -19,17 +19,16 @@
         {% else %}
         <span id="password-help" class="help-block hide"></span>
         {% endif %}
-        <p><span style="font-size:10pt;">Если Вы не знаете пароль, нажмите:</span> <a href="{% url 'shop:reset_password' %}" id="reset-password" class="ajax sw-small-jumbotron">&quot;Я не помню пароль&quot;</a></p>
+        <p><a href="{% url 'shop:reset_password' %}" id="reset-password" class="ajax sw-small-jumbotron">Я не помню пароль</a></p>
         <input type="submit" class="btn btn-success btn-lg" value="Продолжить"/>
     {% else %}
         {# Анонимный пользователь #}
         <p>Для продолжения укажите номер мобильного телефона:</p>
         <div class="input-group">
             <span class="input-group-addon input-lg sw-phone-input">+7</span>
-            <input type="tel" class="form-control input-lg sw-phone-input" name="phone" id="phone-input" value="" size="20"
+            <input type="text" class="form-control input-lg sw-phone-input" name="phone" id="phone-input" value="" size="20"
                placeholder="(999) 111-22-33"/>
         </div>
         <input type="submit" id="order-submit" class="btn btn-success btn-lg" value="Оформить заказ"/>
-		<p style="font-size:8pt">Нажимая на кнопку &laquo;Оформить заказ&raquo;, вы подтверждаете согласие с условиями <a href="http://www.sewing-world.ru/oferta.html">публичной оферты</a>.</p>
     {% endif %}
 </form>

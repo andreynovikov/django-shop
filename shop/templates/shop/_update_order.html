@@ -9,7 +9,7 @@
        <h1>Оформление заказа №{{ order.id }}</h1>
        {% csrf_token %}
        {% if request.session.password %}
-           <p>По СМС Вам отправлен пароль для просмотра состояния заказа: <span class="lead">{{ request.session.password }}</span></p>
+           <p>Ваш пароль для последующих заказов: <span class="lead">{{ request.session.password }}</span></p>
        {% else %}
            <!-- Known user {{ user.name }} -->
        {% endif %}
