@@ -1,3 +1,4 @@
+from django.http import HttpResponseNotFound
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
@@ -36,13 +37,17 @@ def catalog(request):
 def category(request, path, instance):
     products = None
     if instance:
-        products = instance.products.filter(enabled=True).order_by('-price')
+        products = Product.objects.filter(enabled=True, categories__in=instance.get_descendants(include_self=True)) # .order_by('-price')
+    else:
+        return HttpResponseNotFound()
     context = {'category': instance, 'products': products}
     return render(request, 'category.html', context)
 
 
 def product(request, code):
     product = get_object_or_404(Product, code=code)
+    if not product.breadcrumbs:
+        return HttpResponseNotFound()
     product.images = []
     if default_storage.exists(product.image_prefix):
         try:

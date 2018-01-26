@@ -436,6 +436,16 @@ class Product(models.Model):
         self.image_prefix = ''.join(['images/', self.manufacturer.code, '/', self.code])
         super(Product, self).save(*args, **kwargs)
 
+    @cached_property
+    def breadcrumbs(self):
+        for category in self.categories.all():
+             ancestors = category.get_ancestors(include_self=True)
+             if ancestors[0].slug == settings.MPTT_ROOT:
+                 import sys
+                 print("%s" % (ancestors), file=sys.stderr)
+                 return ancestors
+        return None
+
     @property
     def cost(self):
         return self.price - self.discount
