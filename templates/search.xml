@@ -2,10 +2,11 @@
 <!DOCTYPE yml_catalog SYSTEM "shops.dtd">
 <yml_catalog date="{% now 'Y-m-d H:i' %}" >
 
+{% load site %}
 <shop>
-<name>Janome.Club</name>
-<company>Фирменный магазин Janome</company>
-<url>http://www.janome.club/</url>
+<name>{{ shop_info.title }}</name>
+<company>{{ shop_info.description }}</company>
+<url>{% site_url_prefix %}/</url>
 
 <currencies>
 <currency  id="RUR" rate="1"/>
@@ -22,7 +23,7 @@
 <offers>
 {% for product in products %}
 <offer id="{{ product.id }}" available="{% if product.instock > 0 %}true{% else %}false{% endif %}">
-<url>http://www.janome.club/products/{{ product.code }}.html</url>
+<url>{% site_url_prefix %}{% url 'product' product.code %}</url>
 {% if product.discount > 0 %}
 <oldprice>{{ product.price }}</oldprice>
 {% endif %}
@@ -35,7 +36,7 @@
 {% endif %}
 {% endwith %}
 {% endfor %}
-<picture>http://www.janome.club{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</picture>
+<picture>{% site_url_prefix %}{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</picture>
 <vendor>{{ product.manufacturer.name }}</vendor>
 <vendorCode>{{ product.partnumber }}</vendorCode>
 <name>{{ product.title }}</name>

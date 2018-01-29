@@ -14,6 +14,7 @@ def index(request):
 def search_xml(request):
     root = Category.objects.get(slug=settings.MPTT_ROOT)
     context = {
+        'shop_info': getattr(settings, 'SHOP_INFO', {}),
         'root': root,
         'products': Product.objects.filter(enabled=True, categories__in=root.get_descendants(include_self=True))
         }
