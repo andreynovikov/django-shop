@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load staticfiles %}
+{% load decimals %}
 {% load shop_filters %}
 {% block title %}
 <title>Заказ №{{ order.id }} - Швейный Мир</title>
@@ -165,19 +166,19 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
                 {{ item.product.title }}
             </td>
             <td>
-                {{ item.product_price }}
+                {{ item.product_price|quantize:'1' }}
             </td>
             <td>
                 {{ item.discount }}
             </td>
             <td>
-                {{ item.cost }}
+                {{ item.cost|quantize:'1' }}
             </td>
             <td>
                 {{ item.quantity }}
             </td>
             <td>
-                {{ item.price }}
+                {{ item.price|quantize:'1' }}
             </td>
         </tr>
         {% endfor %}
@@ -186,7 +187,7 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
                 Доставка ({{ order.get_delivery_display }}):
             </td>
             <td>
-                {{ order.delivery_price }}&nbsp;руб.
+                {{ order.delivery_price|quantize:'1' }}&nbsp;руб.
             </td>
         </tr>
         <tr>
@@ -194,7 +195,7 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
                 Всего к оплате:
             </td>
             <td class="lead">
-                {{ order.total }}&nbsp;руб.
+                {{ order.total|quantize:'1' }}&nbsp;руб.
             </td>
         </tr>
     </table>
