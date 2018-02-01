@@ -2,6 +2,8 @@ import re
 import datetime
 import logging
 
+from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
+
 from django.conf import settings
 from django.contrib.sessions.models import Session
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
@@ -246,18 +248,18 @@ class Product(models.Model):
     gtin = models.BigIntegerField('GTIN', default=0, db_index=True)
     enabled = models.BooleanField('включён', default=False, db_index=True)
     title = models.CharField('название', max_length=200)
-    price = models.PositiveIntegerField('цена, руб', default=0)
-    cur_price = models.PositiveIntegerField('цена, вал', default=0)
+    price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0)
+    cur_price = models.DecimalField('цена, вал', max_digits=10, decimal_places=2, default=0)
     cur_code = models.ForeignKey(Currency, verbose_name='валюта', related_name="rtprice", on_delete=models.PROTECT, default=643)
-    ws_price =  models.PositiveIntegerField('опт. цена, руб', default=0)
-    ws_cur_price =  models.PositiveIntegerField('опт. цена, вал', default=0)
+    ws_price =  models.DecimalField('опт. цена, руб', max_digits=10, decimal_places=2, default=0)
+    ws_cur_price =  models.DecimalField('опт. цена, вал', max_digits=10, decimal_places=2, default=0)
     ws_cur_code = models.ForeignKey(Currency, verbose_name='опт. валюта', related_name="wsprice", on_delete=models.PROTECT, default=643)
     ws_pack_only = models.BooleanField('опт. только упаковкой', default=False)
-    sp_price =  models.PositiveIntegerField('цена СП, руб', default=0)
-    sp_cur_price=models.PositiveIntegerField('цена СП, вал', default=0)
+    sp_price =  models.DecimalField('цена СП, руб', max_digits=10, decimal_places=2, default=0)
+    sp_cur_price=models.DecimalField('цена СП, вал', max_digits=10, decimal_places=2, default=0)
     sp_cur_code = models.ForeignKey(Currency, verbose_name='СП валюта', related_name="spprice", on_delete=models.PROTECT, default=643)
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
-    val_discount = models.PositiveIntegerField('скидка, руб', default=0)
+    val_discount = models.DecimalField('скидка, руб', max_digits=6, decimal_places=2, default=0)
     ws_pct_discount = models.PositiveSmallIntegerField('опт. скидка, %', default=0)
     max_discount = models.PositiveSmallIntegerField('макс. скидка, %', default=10)
     ws_max_discount = models.PositiveSmallIntegerField('опт. макс. скидка, %', default=10)
@@ -291,7 +293,7 @@ class Product(models.Model):
     country=models.ForeignKey(Country, verbose_name="Страна-производитель", on_delete=models.PROTECT, default=1)
     #enginecounid
     developer_country=models.ForeignKey(Country, verbose_name="Страна-разработчик", on_delete=models.PROTECT, related_name="developed_product", default=1)
-    oprice=models.PositiveIntegerField('Цена розничная', default=0)
+    oprice=models.DecimalField('Цена розничная', max_digits=10, decimal_places=2, default=0)
     #todo delete: fullprice=models.PositiveIntegerField('', default=0)
     """
     todo: delete
@@ -320,7 +322,7 @@ class Product(models.Model):
     measure=models.CharField('Единицы', max_length=10, blank=True)
     weight=models.FloatField('Вес нетто', default=0)
     delivery=models.SmallIntegerField('Доставка', default=0)
-    consultant_delivery_price=models.FloatField('Стоимость доставки с консультантом', default=0)
+    consultant_delivery_price=models.DecimalField('Стоимость доставки с консультантом', max_digits=6, decimal_places=2, default=0)
     spec=models.TextField('Подробное описание', blank=True)
     descr=models.TextField('Краткое описание', blank=True)
     state=models.TextField('Состояние', blank=True)
@@ -442,9 +444,10 @@ class Product(models.Model):
 
     @property
     def discount(self):
-        pd = 0
+        pd = Decimal(0)
         if self.pct_discount > 0:
-            pd = round(self.price * (self.pct_discount / 100))
+            price = self.price.quantize(Decimal('1'), rounding=ROUND_UP)
+            pd = (price * Decimal(self.pct_discount / 100)).quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)
         if self.val_discount > pd:
             pd = self.val_discount
         return pd
@@ -455,10 +458,11 @@ class Product(models.Model):
 
     @property
     def ws_discount(self):
-        pd = 0
+        pd = Decimal(0)
         if self.ws_pct_discount > 0:
-            pd = round(self.ws_price * (self.ws_pct_discount / 100))
-        return pd
+            return (self.ws_price * Decimal(self.ws_pct_discount / 100)).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
+        else:
+            return Decimal(0)
 
     @property
     def instock(self):
@@ -568,16 +572,16 @@ class BasketItem(models.Model):
     @property
     def price(self):
         if WHOLESALE:
-            return (self.product.ws_price - self.discount) * self.quantity
+            return (self.cost * Decimal(self.quantity)).quantize(Decimal('0.01'), rounding=ROUND_UP)
         else:
-            return (self.product.price - self.discount) * self.quantity
+            return (self.cost * Decimal(self.quantity)) #.quantize(Decimal('1'), rounding=ROUND_UP)
 
     @property
     def cost(self):
         if WHOLESALE:
             return self.product.ws_price - self.discount
         else:
-            return self.product.price - self.discount
+            return (self.product.price - self.discount).quantize(Decimal('1'), rounding=ROUND_UP)
 
     @property
     def pct_discount(self):
@@ -598,12 +602,15 @@ class BasketItem(models.Model):
 
     @property
     def discount(self):
-        pd = 0
+        pd = Decimal(0)
         if self.pct_discount > 0:
             if WHOLESALE:
-                pd = round(self.product.ws_price * (self.pct_discount / 100))
+                price = self.product.ws_price
+                qnt = Decimal('0.01')
             else:
-                pd = round(self.product.price * (self.pct_discount / 100))
+                price = self.product.price.quantize(Decimal('1'), rounding=ROUND_UP)
+                qnt = Decimal('1')
+            pd = (price * Decimal(self.pct_discount / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
         if not WHOLESALE and self.product.val_discount > pd:
             pd = self.product.val_discount
         return pd
@@ -611,14 +618,17 @@ class BasketItem(models.Model):
     @property
     def discount_text(self):
         """ Provides human readable discount string. """
-        pd = 0
+        pd = Decimal(0)
         pdv = 0
         pdt = False
         if self.pct_discount > 0:
             if WHOLESALE:
-                pd = round(self.product.ws_price * (self.pct_discount / 100))
+                price = self.product.ws_price
+                qnt = Decimal('0.01')
             else:
-                pd = round(self.product.price * (self.pct_discount / 100))
+                price = self.product.price.quantize(Decimal('1'), rounding=ROUND_UP)
+                qnt = Decimal('1')
+            pd = (price * Decimal(self.pct_discount / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
             pdv = self.pct_discount
             pdt = True
         if not WHOLESALE and self.product.val_discount > pd:
@@ -763,7 +773,7 @@ class Order(models.Model):
     manager_comment = models.TextField('комментарий менеджера', blank=True)
     # delivery
     delivery = models.SmallIntegerField('доставка', choices=DELIVERY_CHOICES, default=DELIVERY_UNKNOWN, db_index=True)
-    delivery_price = models.PositiveIntegerField('стоимость доставки', default=0)
+    delivery_price = models.DecimalField('стоимость доставки', max_digits=8, decimal_places=2, default=0)
     delivery_info = models.TextField('ТК, ТТН, курьер', blank=True)
     delivery_tracking_number = models.CharField('трек-код', max_length=30, blank=True)
     delivery_date = models.DateField('дата доставки', blank=True, null=True)
@@ -829,9 +839,13 @@ class Order(models.Model):
         order.address = user.address
         order.phone = user.phone
         order.email = user.email
+        if WHOLESALE:
+            qnt = Decimal('0.01')
+        else:
+            qnt = Decimal('1')
         for item in basket.items.all():
             order.items.create(product=item.product,
-                               product_price=item.product.price,
+                               product_price=item.product.price.quantize(qnt, rounding=ROUND_UP),
                                pct_discount=item.pct_discount,
                                val_discount=item.product.val_discount,
                                quantity=item.quantity)
@@ -848,9 +862,9 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', related_query_name='item')
     product = models.ForeignKey(Product, related_name='+', verbose_name='товар')
-    product_price = models.PositiveIntegerField('цена товара', default=0)
+    product_price = models.DecimalField('цена товара', max_digits=10, decimal_places=2, default=0)
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
-    val_discount = models.PositiveIntegerField('скидка, руб', default=0)
+    val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
     quantity = models.PositiveSmallIntegerField('количество', default=1)
 
     @property
@@ -863,27 +877,39 @@ class OrderItem(models.Model):
 
     @property
     def discount(self):
-        pd = 0
+        pd = Decimal(0)
         if self.pct_discount > 0:
-            pd = round(self.product_price * (self.pct_discount / 100))
+            price = self.product_price
+            if WHOLESALE:
+                qnt = Decimal('0.01')
+            else:
+                qnt = Decimal('1')
+            pd = (price * Decimal(self.pct_discount / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
         if self.val_discount > pd:
             pd = self.val_discount
         return pd
 
     @property
     def discount_text(self):
-        """ Provides human readable discount string """
-        pd = 0
+        """ Provides human readable discount string. """
+        pd = Decimal(0)
         pdv = 0
         pdt = False
         if self.pct_discount > 0:
-            pd = round(self.product_price * (self.pct_discount / 100))
+            price = self.product_price
+            if WHOLESALE:
+                qnt = Decimal('0.01')
+            else:
+                qnt = Decimal('1')
+            pd = (price * Decimal(self.pct_discount / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
             pdv = self.pct_discount
             pdt = True
         if self.val_discount > pd:
             pd = self.val_discount
             pdv = self.val_discount
             pdt = False
+        if pd == 0:
+            return ''
         pds = ' руб.'
         if pdt:
              pds = '%'
