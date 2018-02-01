@@ -16,6 +16,7 @@
 
 {% block content %}
 {% load staticfiles %}
+{% load decimals %}
 {% load shop_filters %}
 <h1>Оформление заказа</h1>
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
@@ -36,11 +37,11 @@
           </div>
           <div class="text-center">
              {% if item.discount > 0 %}
-                 {{ item.product.price }}&nbsp;руб.
+                 {{ item.product.price|quantize:'1' }}&nbsp;руб.
                  - {{ item.discount_text }}
                  = {{ item.cost }}&nbsp;руб.
              {% else %}
-                 {{ item.product.price }}&nbsp;руб.
+                 {{ item.product.price|quantize:'1' }}&nbsp;руб.
              {% endif %}
              <form class="update form-inline ajax" action="{% url 'shop:update' item.product.id %}" method="post">
              {% csrf_token %}
