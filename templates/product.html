@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load staticfiles %}
+{% load decimals %}
 {% load shop_filters %}
 {% load mptt_tags %}
 {% load django_bootstrap_breadcrumbs %}
@@ -63,14 +64,14 @@
 <div class="panel-body product-buyblock-body">
 <div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
 {% if product.discount > 0 %}
-<p class="oldprice">{{ product.price }}&nbsp;руб. <a href="#dialog_discount" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
+<p class="oldprice">{{ product.price|quantize:"1" }}&nbsp;руб. <a href="#dialog_discount" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
 <div id="dialog_discount" class="mfp-hide white-popup-block">
 <h4>Скидка!</h4>
-<p>Базовая цена в магазинах &laquo;Швейный Мир&raquo; без учета скидок <b>{{ product.price }}&nbsp;руб.</b></p>
-<p>Скидка при покупке в интернет-магазине составляет <b>{{ product.discount }}</b></p>
+<p>Базовая цена в магазинах &laquo;Швейный Мир&raquo; без учета скидок <b>{{ product.price|quantize:"1" }}&nbsp;руб.</b></p>
+<p>Скидка при покупке в интернет-магазине составляет <b>{{ product.discount }}&nbsp;руб.</b></p>
 </div>
 {% endif %}
-<p class="price"><span itemprop="price">{{ product.cost }}</span>&nbsp;руб.
+<p class="price"><span itemprop="price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.
 
 {% if product.instock > 0 %}
 <a href="{% url 'shop:add' product.id %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
