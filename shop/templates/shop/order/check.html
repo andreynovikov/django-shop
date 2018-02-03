@@ -10,6 +10,7 @@ body     { font-size:9pt; font-family:Verdana,sans-serif; }
 .center  { text-align:center;}
 </style>
 </head>
+{% load l10n %}
 <body>
 <div class="wrapper">
 <p class="center">ШВЕЙНЫЙ МИР</p>
@@ -21,13 +22,13 @@ body     { font-size:9pt; font-family:Verdana,sans-serif; }
 <p class="center">***************************</p>
 {% for item in order.items.all %}
 <p>{{ item.product.article }} {{ item.product.whatis }} {{ item.product.partnumber }} {{ item.product.title }}</p>
-<p class="right">{{ item.cost }}.00х{{ item.quantity }} <span style="margin-left:10mm">{{ item.price }}.00</span></p>
+<p class="right">{{ item.cost|unlocalize }}х{{ item.quantity }} <span style="margin-left:10mm">{{ item.price|unlocalize }}</span></p>
 {% endfor %}
 
-<p>Стоимость товаров: {{ order.products_price }}.00&nbsp;руб.</p>
-<p>Доставка: {{ order.delivery_price }}.00&nbsp;руб.</p>
+<p>Стоимость товаров: {{ order.products_price|unlocalize }}&nbsp;руб.</p>
+<p>Доставка: {{ order.delivery_price|unlocalize }}&nbsp;руб.</p>
 <p>Нет НДС</p>
-<p><b>ИТОГО: {{ order.total }}.00&nbsp;руб.</b></p>
+<p><b>ИТОГО: {{ order.total|unlocalize }}&nbsp;руб.</b></p>
 <p class="right">ПРОДАЖА #001/{{ order.id }}</p>
 <p class="center">{% now "H:i d.m.Y" %}</p>
 <p class="center">***************************</p>
