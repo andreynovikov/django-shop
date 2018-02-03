@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load staticfiles %}
+{% load decimals %}
 {% load shop_filters %}
 {% load mptt_tags %}
 {% load django_bootstrap_breadcrumbs %}
@@ -47,8 +48,8 @@
 .white-popup-block img        {margin:10px}
 .popup-gallery                { margin-top:5px; }
 
-.price .sw-addProduct-sm      { margin-bottom:5px; } 
-.sw-addProduct-sm     { font-weight:bold; text-decoration:none; } 
+.price .sw-addProduct-sm      { margin-bottom:5px; }
+.sw-addProduct-sm     { font-weight:bold; text-decoration:none; }
 </style>
 {% endblock %}
 
@@ -109,9 +110,9 @@
 <div class="panel-body product-buyblock-body">
 <div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
 {% if product.discount > 0 %}
-<p class="oldprice">{{ product.price }}&nbsp;руб. <a href="#dialog_discount" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
+<p class="oldprice">{{ product.price|quantize:"1" }}&nbsp;руб. <a href="#dialog_discount" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
 {% endif %}
-<p class="price"><span itemprop="price">{{ product.cost }}</span>&nbsp;руб.
+<p class="price"><span itemprop="price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.
 
 {% if product.instock > 0 %}
 <a href="{% url 'shop:add' product.id %}"

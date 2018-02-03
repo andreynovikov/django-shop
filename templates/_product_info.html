@@ -1,4 +1,5 @@
 {% load staticfiles %}
+{% load decimals %}
 {% load shop_filters %}
 <!-- product -->
 <div class="product_display" style="min-height:400px; height:auto;">
@@ -21,15 +22,12 @@
         <p>{{ product.shortdescr|safe }}</p>
         </div>
 
-      
-      
-
 {% if product.price > 0 %}
 <div class="sw-p-l-prices" style="display:block; text-align:center; width:100%">
 {% if product.discount > 0 %}
-<s>{{ product.price }}</s>&nbsp;руб.<br>
+<s>{{ product.price|quantize:"1" }}</s>&nbsp;руб.<br>
 {% endif %}
-<span class="sw-p-l-price">{{ product.cost }}</span>&nbsp;руб.
+<span class="sw-p-l-price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.
 </div>
 {% if product.instock > 1 %}
 <div class="product-nal-true" style="text-align:center; width:100%">Есть в наличии</div>
