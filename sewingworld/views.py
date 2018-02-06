@@ -1,4 +1,4 @@
-from django.http import HttpResponseNotFound
+from django.http import Http404
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
@@ -40,7 +40,7 @@ def category(request, path, instance):
     if instance:
         products = Product.objects.filter(enabled=True, categories__in=instance.get_descendants(include_self=True)) # .order_by('-price')
     else:
-        return HttpResponseNotFound()
+        raise Http404("Category does not exist")
     context = {'category': instance, 'products': products}
     return render(request, 'category.html', context)
 
@@ -48,7 +48,7 @@ def category(request, path, instance):
 def product(request, code):
     product = get_object_or_404(Product, code=code)
     if not product.breadcrumbs:
-        return HttpResponseNotFound()
+        raise Http404("Product does not exist")
     product.images = []
     if default_storage.exists(product.image_prefix):
         try:
