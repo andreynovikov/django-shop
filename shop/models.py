@@ -513,6 +513,70 @@ class Basket(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     phone = models.CharField(max_length=30, blank=True)
 
+    def product_cost(self, product):
+        if WHOLESALE:
+            return product.ws_price - self.product_discount(product)
+        else:
+            return product.price - self.product_discount(product)
+
+    def product_pct_discount(self, product):
+        """ Calculates maximum percent discount based on product, user and maximum discount """
+        if WHOLESALE:
+            pd = max(product.ws_pct_discount, self.user_discount)
+            if pd > product.ws_max_discount:
+                pd = product.ws_max_discount
+            pdp = round(product.ws_price * (pd / 100))
+            if pdp < product.sp_price:
+                d = product.ws_price - product.sp_price
+                pd = int(d / product.ws_price * 100)
+        else:
+            pd = max(product.pct_discount, self.user_discount)
+            if pd > product.max_discount:
+                pd = product.max_discount
+        return pd
+
+    def product_discount(self, product):
+        pd = Decimal(0)
+        pct = self.product_pct_discount(product)
+        if pct > 0:
+            if WHOLESALE:
+                price = product.ws_price
+                qnt = Decimal('0.01')
+            else:
+                price = product.price.quantize(Decimal('1'), rounding=ROUND_UP)
+                qnt = Decimal('1')
+            pd = (price * Decimal(pct / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
+        if not WHOLESALE and product.val_discount > pd:
+            pd = product.val_discount
+        return pd
+
+    def product_discount_text(self, product):
+        """ Provides human readable discount string. """
+        pd = Decimal(0)
+        pdv = 0
+        pdt = False
+        pct = self.product_pct_discount(product)
+        if pct > 0:
+            if WHOLESALE:
+                price = product.ws_price
+                qnt = Decimal('0.01')
+            else:
+                price = product.price.quantize(Decimal('1'), rounding=ROUND_UP)
+                qnt = Decimal('1')
+            pd = (price * Decimal(pct / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
+            pdv = pct
+            pdt = True
+        if not WHOLESALE and product.val_discount > pd:
+            pd = product.val_discount
+            pdv = product.val_discount
+            pdt = False
+        if pd == 0:
+            return ''
+        pds = ' руб.'
+        if pdt:
+             pds = '%'
+        return '%d%s' % (pdv, pds)
+
     @property
     def total(self):
         total = 0
@@ -584,63 +648,13 @@ class BasketItem(models.Model):
             return (self.product.price - self.discount).quantize(Decimal('1'), rounding=ROUND_UP)
 
     @property
-    def pct_discount(self):
-        """ Calculates maximum percent discount based on product, user and maximum discount """
-        if WHOLESALE:
-            pd = max(self.product.ws_pct_discount, self.basket.user_discount)
-            if pd > self.product.ws_max_discount:
-                pd = self.product.ws_max_discount
-            pdp = round(self.product.ws_price * (pd / 100))
-            if pdp < self.product.sp_price:
-                d = self.product.ws_price - self.product.sp_price
-                pd = int(d / self.product.ws_price * 100)
-        else:
-            pd = max(self.product.pct_discount, self.basket.user_discount)
-            if pd > self.product.max_discount:
-                pd = self.product.max_discount
-        return pd
-
-    @property
     def discount(self):
-        pd = Decimal(0)
-        if self.pct_discount > 0:
-            if WHOLESALE:
-                price = self.product.ws_price
-                qnt = Decimal('0.01')
-            else:
-                price = self.product.price.quantize(Decimal('1'), rounding=ROUND_UP)
-                qnt = Decimal('1')
-            pd = (price * Decimal(self.pct_discount / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
-        if not WHOLESALE and self.product.val_discount > pd:
-            pd = self.product.val_discount
-        return pd
+        return self.basket.product_discount(self.product)
 
     @property
     def discount_text(self):
         """ Provides human readable discount string. """
-        pd = Decimal(0)
-        pdv = 0
-        pdt = False
-        if self.pct_discount > 0:
-            if WHOLESALE:
-                price = self.product.ws_price
-                qnt = Decimal('0.01')
-            else:
-                price = self.product.price.quantize(Decimal('1'), rounding=ROUND_UP)
-                qnt = Decimal('1')
-            pd = (price * Decimal(self.pct_discount / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
-            pdv = self.pct_discount
-            pdt = True
-        if not WHOLESALE and self.product.val_discount > pd:
-            pd = self.product.val_discount
-            pdv = self.product.val_discount
-            pdt = False
-        if pd == 0:
-            return ''
-        pds = ' руб.'
-        if pdt:
-             pds = '%'
-        return '%d%s' % (pdv, pds)
+        return self.basket.product_discount_text(self.product)
 
 
 class Manager(models.Model):
@@ -844,11 +858,18 @@ class Order(models.Model):
         else:
             qnt = Decimal('1')
         for item in basket.items.all():
-            order.items.create(product=item.product,
-                               product_price=item.product.price.quantize(qnt, rounding=ROUND_UP),
-                               pct_discount=item.pct_discount,
-                               val_discount=item.product.val_discount,
-                               quantity=item.quantity)
+            # TODO Check compatibility with other shops
+            if WHOLESALE:
+                order.items.create(product=item.product,
+                                   product_price=item.product.price.quantize(qnt, rounding=ROUND_UP),
+                                   val_discount=item.discount,
+                                   quantity=item.quantity)
+            else:
+                order.items.create(product=item.product,
+                                   product_price=item.product.price.quantize(qnt, rounding=ROUND_UP),
+                                   pct_discount=item.pct_discount,
+                                   val_discount=item.product.val_discount,
+                                   quantity=item.quantity)
         return order
 
     def __str__(self):
