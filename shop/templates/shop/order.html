@@ -76,8 +76,8 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
   "customerContact": "{{ order.phone }}",
   "taxSystem": 2,
   "items":[{% for item in order.items.all %}
-    {"quantity": {{ item.quantity }}, "price": {"amount": {{ item.cost }}}, "tax": 1, "text": "{{ item.product.title|safe|escapejs }}"}{% if order.delivery_price > 0 or not forloop.last %},{% endif %}{% endfor %}{% if order.delivery_price > 0 %}
-    {"quantity": 1, "price": {"amount": {{ order.delivery_price }}}, "tax": 1, "text": "Доставка"}{% endif %}
+    {"quantity": {{ item.quantity }}, "price": {"amount": {{ item.cost|quantize:'1' }}}, "tax": 1, "text": "{{ item.product.title|safe|escapejs }}"}{% if order.delivery_price > 0 or not forloop.last %},{% endif %}{% endfor %}{% if order.delivery_price > 0 %}
+    {"quantity": 1, "price": {"amount": {{ order.delivery_price|quantize:'1' }}}, "tax": 1, "text": "Доставка"}{% endif %}
           ]
 }'/>
 Выберите способ оплаты:<br/>
