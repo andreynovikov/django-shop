@@ -1,5 +1,5 @@
 import re
-
+from math import ceil
 from random import randint
 
 from django.conf import settings
@@ -24,6 +24,8 @@ import logging
 import pprint
 
 logger = logging.getLogger(__name__)
+
+WHOLESALE = getattr(settings, 'SHOP_WHOLESALE', False)
 
 
 def ensure_session(request):
@@ -147,27 +149,31 @@ def add_to_basket(request, product_id):
         return HttpResponseRedirect(reverse('shop:basket'))
 
 
+def around(x, base=10):
+    return int(base * ceil(float(x)/base))
+
+
 @require_POST
 def update_basket(request, product_id):
     ensure_session(request)
-    s = pprint.pformat(request.POST)
-    logger.error(s)
-    basket = get_object_or_404(Basket, session_id=request.session.session_key)
-    item = None
+    product = get_object_or_404(Product, pk=product_id)
+    basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
+    quantity = 0
+    item = basket.items.get_or_create(product=product)
     try:
-        item = basket.items.get(product=product_id)
         quantity = int(request.POST.get('quantity'))
         if quantity <= 0:
             quantity = 0
-            item.delete()
-        else:
-            item.quantity = quantity
-            item.save()
-    except BasketItem.DoesNotExist:
-        quantity = 0
     except ValueError:
         quantity = item.quantity
-    basket.save()
+    if quantity == 0:
+        item.delete()
+    else:
+        if WHOLESALE and product.ws_pack_only:
+            quantity = around(quantity, product.pack_factor)
+        item.quantity = quantity
+        item.save()
+
     if basket.items.count() == 0:
         basket.delete()
     if request.POST.get('ajax'):
@@ -326,7 +332,8 @@ def logout_user(request):
         basket = None
     logout(request)
     ensure_session(request)
-    if basket:
+    # do not copy cart contents for wholesale user
+    if basket and not WHOLESALE:
         basket.update_session(request.session.session_key)
         basket.phone = ''
         basket.save()
@@ -345,6 +352,7 @@ def unbind(request):
         return JsonResponse(None, safe=False)
     else:
         return HttpResponseRedirect(reverse('shop:basket'))
+
 
 def reset_password(request):
     """
