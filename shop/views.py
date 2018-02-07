@@ -1,6 +1,7 @@
 import re
 from math import ceil
 from random import randint
+from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, HttpResponseServerError, HttpResponseNotFound
@@ -15,6 +16,7 @@ from django.core.mail import mail_admins
 from django.core.urlresolvers import reverse
 from django.forms.models import model_to_dict
 from django.core.exceptions import MultipleObjectsReturned
+from django.utils.formats import localize
 
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 from shop.models import Product, Basket, BasketItem, Order, ShopUser, ShopUserManager
@@ -159,7 +161,7 @@ def update_basket(request, product_id):
     product = get_object_or_404(Product, pk=product_id)
     basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
     quantity = 0
-    item = basket.items.get_or_create(product=product)
+    item, created = basket.items.get_or_create(product=product)
     try:
         quantity = int(request.POST.get('quantity'))
         if quantity <= 0:
@@ -177,15 +179,20 @@ def update_basket(request, product_id):
     if basket.items.count() == 0:
         basket.delete()
     if request.POST.get('ajax'):
+        if WHOLESALE:
+            qnt = Decimal('0.01')
+        else:
+            qnt = Decimal('1')
         data = {
             'quantity': quantity,
             'fragments': {
-                '#total': '<span id="total">' + '{0:.0f}'.format(basket.total) + '</span>'
+                '#total': '<span id="total">' + localize(basket.total.quantize(qnt, rounding=ROUND_HALF_EVEN)) + '</span>'
             }
         }
         if quantity > 0:
             data['fragments']['#price_' + str(item.product.id)] = \
-                '<span id="price_' + str(item.product.id) + '">' + '{0:.0f}'.format(item.price) + '</span>'
+                '<span id="price_' + str(item.product.id) + '">' + \
+                localize(item.price.quantize(qnt, rounding=ROUND_HALF_EVEN)) + '</span>'
         return JsonResponse(data)
     else:
         return HttpResponseRedirect(reverse('shop:basket'))
@@ -206,9 +213,13 @@ def delete_from_basket(request, product_id):
         basket = None
     if request.GET.get('ajax'):
         if basket:
+            if WHOLESALE:
+                qnt = Decimal('0.01')
+            else:
+                qnt = Decimal('1')
             data = {
                 'fragments': {
-                    '#total': '<span id="total">' + str(basket.total) + '</span>'
+                    '#total': '<span id="total">' + localize(basket.total.quantize(qnt, rounding=ROUND_HALF_EVEN)) + '</span>'
                 }
             }
         else:
