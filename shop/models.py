@@ -779,9 +779,9 @@ class Order(models.Model):
     delivery_date = models.DateField('дата доставки', blank=True, null=True)
     delivery_time_from = models.TimeField('от', blank=True, null=True)
     delivery_time_till = models.TimeField('до', blank=True, null=True)
-    delivery_size_length = models.SmallIntegerField('длина', default=0)
-    delivery_size_width = models.SmallIntegerField('ширина', default=0)
-    delivery_size_height = models.SmallIntegerField('высота', default=0)
+    delivery_size_length = models.PositiveSmallIntegerField('длина', default=0)
+    delivery_size_width = models.PositiveSmallIntegerField('ширина', default=0)
+    delivery_size_height = models.PositiveSmallIntegerField('высота', default=0)
     delivery_yd_order = models.CharField('ЯД заказ', max_length=20, blank=True)
     delivery_pickpoint_terminal = models.CharField('терминал', max_length=10, blank=True)
     delivery_pickpoint_service = models.CharField('тип сдачи', max_length=10, choices=PICKPOINT_SERVICES, default=PICKPOINT_SERVICE_STD)
@@ -866,6 +866,7 @@ class OrderItem(models.Model):
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
     quantity = models.PositiveSmallIntegerField('количество', default=1)
+    serial_number = models.CharField('SN', max_length=30, blank=True)
 
     @property
     def price(self):
