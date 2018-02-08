@@ -259,7 +259,7 @@ class Product(models.Model):
     sp_cur_price=models.DecimalField('цена СП, вал', max_digits=10, decimal_places=2, default=0)
     sp_cur_code = models.ForeignKey(Currency, verbose_name='СП валюта', related_name="spprice", on_delete=models.PROTECT, default=643)
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
-    val_discount = models.DecimalField('скидка, руб', max_digits=6, decimal_places=2, default=0)
+    val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
     ws_pct_discount = models.PositiveSmallIntegerField('опт. скидка, %', default=0)
     max_discount = models.PositiveSmallIntegerField('макс. скидка, %', default=10)
     ws_max_discount = models.PositiveSmallIntegerField('опт. макс. скидка, %', default=10)
