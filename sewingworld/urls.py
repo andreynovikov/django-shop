@@ -36,6 +36,7 @@ urlpatterns = [
     url(r'^admin/lookups/', include(ajax_select_urls)),
     url(r'^admin/import1c/$', shop.views.import_1c, name='import_1c'),
     url(r'^admin/', include(admin.site.urls)),
+    url(r'^admin/', include('massadmin.urls')),
 ]
 
 urlpatterns += staticfiles_urlpatterns()
