@@ -3,7 +3,8 @@ import datetime
 from django import forms
 from django.core.urlresolvers import reverse
 from django.db import connection
-from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, TimeField, DateTimeField
+from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, \
+    TimeField, DateTimeField, DecimalField
 from django.contrib import admin, messages
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin
@@ -215,6 +216,11 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ['code', 'article', 'partnumber', 'title']
     readonly_fields = ['price', 'ws_price', 'sp_price']
     inlines = (StockInline,)
+    formfield_overrides = {
+        PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
+        PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
+        DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
+    }
     fieldsets = (
         (None, {
                 'classes': ('suit-tab', 'suit-tab-general'),
@@ -475,6 +481,7 @@ class OrderItemInline(admin.TabularInline):
     formfield_overrides = {
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
+        DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
     }
 
     def has_add_permission(self, request):
@@ -492,6 +499,7 @@ class AddOrderItemInline(admin.TabularInline):
     formfield_overrides = {
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
+        DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
     }
 
     def has_change_permission(self, request, obj=None):
@@ -729,6 +737,9 @@ class OrderAdmin(admin.ModelAdmin):
     form = autocomplete_light.modelform_factory(Order, exclude=['created'])
     formfield_overrides = {
         TextField: {'widget': forms.Textarea(attrs={'style': 'height: 4em'})},
+        PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
+        PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
+        DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
         TimeField: {'widget': TimeWidget()},
     }
     actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action']
