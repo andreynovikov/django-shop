@@ -27,3 +27,7 @@ class OneSImportForm(forms.Form):
         import1c.delay(self.cleaned_data['file'])
         shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
         return 'Импорт запущен в фоновом режиме, результат придёт на адрес %s' % ', '.join(shop_settings['email_managers'])
+
+
+class WarrantyCardPrintForm(forms.Form):
+    serial_number = forms.CharField(label='Серийный номер', max_length=30, required=True)

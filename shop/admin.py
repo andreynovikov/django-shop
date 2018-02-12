@@ -12,11 +12,13 @@ from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template.loader import get_template
 from django.template.defaultfilters import floatformat
+from django.template.response import TemplateResponse
 from django.conf import settings
 from django.conf.urls import url
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.formats import date_format
+from django.utils.html import format_html
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 import autocomplete_light
@@ -29,6 +31,7 @@ from mptt.admin import MPTTModelAdmin
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
     Currency, Country, Manufacturer, Product, Stock, Basket, BasketItem, Manager, \
     Courier, Order, OrderItem
+from shop.forms import WarrantyCardPrintForm
 from shop.decorators import admin_changelist_link
 
 from django.apps import AppConfig
@@ -427,6 +430,17 @@ class OrderItemInline(admin.TabularInline):
     product_link.allow_tags=True
     product_link.short_description = 'товар'
 
+    def wc_button(self, obj):
+        serial_number = ''
+        if obj.serial_number:
+            serial_number = '<div style="font-size: 80%">{}</div>'.format(obj.serial_number)
+        return format_html(
+            '<a class="button related-widget-wrapper-link" href="{}?_popup=1"><i class="icon-print"></i></a>',
+            reverse('admin:print-warranty-card', args=[obj.order.id, obj.pk]),
+        ) + serial_number
+    wc_button.allow_tags=True
+    wc_button.short_description = 'ГТ'
+
     def product_stock(self, obj):
         result = ''
         suppliers = obj.product.stock.filter(show_in_order=True).order_by('order')
@@ -472,12 +486,12 @@ class OrderItemInline(admin.TabularInline):
 
     model = OrderItem
     extra = 0
-    fields = ['product', 'product_article', 'product_code', 'product_link', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'item_sum', 'product_stock']
+    fields = ['product', 'product_article', 'product_code', 'product_link', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'item_sum', 'product_stock', 'wc_button']
     raw_id_fields = ['product']
     #autocomplete_lookup_fields = {
     #    'fk': ['product'],
     #}
-    readonly_fields = ['product_link', 'product_article', 'product_code', 'product_stock', 'item_cost', 'item_sum']
+    readonly_fields = ['product_link', 'product_article', 'product_code', 'product_stock', 'item_cost', 'item_sum', 'wc_button']
     formfield_overrides = {
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
@@ -713,7 +727,6 @@ class OrderAdmin(admin.ModelAdmin):
     link_to_orders.allow_tags = True
     link_to_orders.short_description = 'заказы'
 
-
     list_display = ['order_name', 'name_and_skyped_phone', 'city', 'total', 'payment', 'calm_paid', 'combined_delivery',
                     'colored_status', 'combined_comments']
     readonly_fields = ['id', 'shop_name', 'total', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
@@ -762,6 +775,7 @@ class OrderAdmin(admin.ModelAdmin):
         my_urls = [
             url(r'(\d+)/document/([a-z]+)/$', self.admin_site.admin_view(self.document), name='shop_order_document'),
             url(r'products/$', self.admin_site.admin_view(self.order_product_list), name='shop_order_product_list'),
+            url(r'(\d+)/item/(\d+)/print_warranty_card/$', self.admin_site.admin_view(self.print_warranty_card), name='print-warranty-card'),
         ]
         return my_urls + urls
 
@@ -838,6 +852,43 @@ class OrderAdmin(admin.ModelAdmin):
             'cl': self,
             'opts': self.model._meta,
         })
+
+    def print_warranty_card(self, request, order_id, item_id):
+        order = self.get_object(request, order_id)
+        item = order.items.get(pk=item_id)
+        print(order.id)
+        print(item_id)
+
+        if request.method != 'POST':
+            form = WarrantyCardPrintForm({'serial_number': item.serial_number})
+            is_popup = request.GET.get('_popup', 0)
+        else:
+            form = WarrantyCardPrintForm(request.POST)
+            is_popup = request.POST.get('_popup', 0)
+            if form.is_valid():
+                try:
+                    serial_number = form.cleaned_data['serial_number']
+                    item.serial_number = serial_number
+                    item.save()
+                    context = {
+                        'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
+                        'product': item.product,
+                        'serial_number': serial_number
+                        }
+                    return TemplateResponse(request, 'shop/order/warrantycard.html', context)
+
+                except Exception as e:
+                    # If save() raised, the form will a have a non
+                    # field error containing an informative message.
+                    pass
+
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['form'] = form
+        context['is_popup'] = is_popup
+        context['title'] = "Печать гарантийного талона"
+
+        return TemplateResponse(request, 'admin/shop/order/print_warranty_card.html', context)
 
     def order_1c_action(self, request, queryset):
         if not request.user.is_staff:
