@@ -230,13 +230,13 @@ class ProductAdmin(admin.ModelAdmin):
                 'fields': (('code', 'article', 'partnumber'),'title','runame','whatis','categories',('manufacturer','gtin'),('country','developer_country'),'spec','shortdescr','yandexdescr','descr','state','complect','dealertxt',)
         }),
         ('Деньги', {
-                'classes': ('suit-tab', 'suit-tab-general'),
+                'classes': ('suit-tab', 'suit-tab-money'),
                 'fields': (('cur_price', 'cur_code', 'price'), ('pct_discount', 'val_discount', 'max_discount'),
-                           ('ws_cur_price', 'ws_cur_code', 'ws_price'), ('ws_pct_discount', 'ws_max_discount'),
+                           ('ws_cur_price', 'ws_cur_code', 'ws_price'), 'ws_pack_only', ('ws_pct_discount', 'ws_max_discount'),
                            ('sp_cur_price', 'sp_cur_code', 'sp_price'), 'consultant_delivery_price', ('forbid_price_import'))
         }),
         ('Маркетинг', {
-                'classes': ('suit-tab', 'suit-tab-general'),
+                'classes': ('suit-tab', 'suit-tab-money'),
                 'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','sales_notes','internetonly','present','delivery','firstpage',)
         }),
         ('Размеры', {
@@ -364,6 +364,7 @@ class ProductAdmin(admin.ModelAdmin):
     )
     suit_form_tabs = (
         ('general', 'Основное'),
+        ('money', 'Деньги и маркетинг'),
         ('sewingmachines', 'Швейные машины'),
         ('knittingmachines', 'Вязальные машины'),
         ('prommachines', 'Промышленные машины'),
