@@ -426,21 +426,14 @@ class OrderItemInline(admin.TabularInline):
     product_code.short_description = 'код'
 
     def product_link(self, obj):
-        link=reverse('admin:shop_product_change', args=[obj.product.id])
-        return '<a href="%s?_popup=1" class="related-widget-wrapper-link">%s</a>&nbsp;<i class="icon-pencil icon-alpha5"></i>' % (link, str(obj.product))
+        return format_html(
+            '<a href="{}?_popup=1" class="related-widget-wrapper-link">{}</a>&nbsp;<i class="icon-pencil icon-alpha5"></i>' + \
+                '<br/><a class="button related-widget-wrapper-link" href="{}?_popup=1"><i class="icon-print"></i></a>' + \
+                '&nbsp;<span style="font-size: 80%">{}</span>',
+            reverse('admin:shop_product_change', args=[obj.product.id]), str(obj.product),
+            reverse('admin:print-warranty-card', args=[obj.order.id, obj.pk]), obj.serial_number)
     product_link.allow_tags=True
     product_link.short_description = 'товар'
-
-    def wc_button(self, obj):
-        serial_number = ''
-        if obj.serial_number:
-            serial_number = '<div style="font-size: 80%">{}</div>'.format(obj.serial_number)
-        return format_html(
-            '<a class="button related-widget-wrapper-link" href="{}?_popup=1"><i class="icon-print"></i></a>',
-            reverse('admin:print-warranty-card', args=[obj.order.id, obj.pk]),
-        ) + serial_number
-    wc_button.allow_tags=True
-    wc_button.short_description = 'ГТ'
 
     def product_stock(self, obj):
         result = ''
@@ -487,12 +480,12 @@ class OrderItemInline(admin.TabularInline):
 
     model = OrderItem
     extra = 0
-    fields = ['product', 'product_article', 'product_code', 'product_link', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'item_sum', 'product_stock', 'wc_button']
+    fields = ['product', 'product_article', 'product_code', 'product_link', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'item_sum', 'product_stock']
     raw_id_fields = ['product']
     #autocomplete_lookup_fields = {
     #    'fk': ['product'],
     #}
-    readonly_fields = ['product_link', 'product_article', 'product_code', 'product_stock', 'item_cost', 'item_sum', 'wc_button']
+    readonly_fields = ['product_link', 'product_article', 'product_code', 'product_stock', 'item_cost', 'item_sum']
     formfield_overrides = {
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
