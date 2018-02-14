@@ -428,7 +428,7 @@ class OrderItemInline(admin.TabularInline):
     def product_link(self, obj):
         return format_html(
             '<a href="{}?_popup=1" class="related-widget-wrapper-link">{}</a>&nbsp;<i class="icon-pencil icon-alpha5"></i>' + \
-                '<br/><a class="button related-widget-wrapper-link" href="{}?_popup=1"><i class="icon-print"></i></a>' + \
+                ' <a class="button related-widget-wrapper-link" href="{}?_popup=1">ГТ</a>' + \
                 '&nbsp;<span style="font-size: 80%">{}</span>',
             reverse('admin:shop_product_change', args=[obj.product.id]), str(obj.product),
             reverse('admin:print-warranty-card', args=[obj.order.id, obj.pk]), obj.serial_number)
@@ -652,8 +652,8 @@ class OrderAdmin(admin.ModelAdmin):
 
     def combined_delivery(self, obj):
         datetime = ''
-        if obj.delivery_date:
-            datetime = date_format(obj.delivery_date, "SHORT_DATE_FORMAT")
+        if obj.delivery_dispatch_date:
+            datetime = date_format(obj.delivery_dispatch_date, "SHORT_DATE_FORMAT")
         if obj.delivery_time_from:
             if datetime:
                 datetime = datetime + ' '
@@ -665,7 +665,7 @@ class OrderAdmin(admin.ModelAdmin):
             courier = ': %s' % obj.courier.name
         return '%s%s<br/>%s' % (obj.get_delivery_display(), courier, datetime)
     combined_delivery.allow_tags = True
-    combined_delivery.admin_order_field = 'delivery_date'
+    combined_delivery.admin_order_field = 'delivery_dispatch_date'
     combined_delivery.short_description = 'Доставка'
 
     def name_and_skyped_phone(self, obj):
@@ -724,13 +724,13 @@ class OrderAdmin(admin.ModelAdmin):
     list_display = ['order_name', 'name_and_skyped_phone', 'city', 'total', 'payment', 'calm_paid', 'combined_delivery',
                     'colored_status', 'combined_comments']
     readonly_fields = ['id', 'shop_name', 'total', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
-    list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'manager', 'courier', 'delivery', ('delivery_date', FutureDateFieldListFilter)]
+    list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'manager', 'courier', 'delivery', ('delivery_dispatch_date', FutureDateFieldListFilter)]
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode', 'manager_comment']
     fieldsets = (
         (None, {'fields': (('status', 'payment', 'paid', 'manager', 'site'), ('delivery', 'delivery_price', 'courier'),
-                           ('delivery_date', 'delivery_time_from', 'delivery_time_till'),
-                            'delivery_tracking_number', 'delivery_info', 'manager_comment', 'total', 'id')}),
+                           'delivery_dispatch_date', 'delivery_tracking_number', 'delivery_info',
+                           ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'total', 'id')}),
         ('1С', {'fields': (('buyer', 'seller','wiring_date'),),}),
         ('Яндекс.Доставка', {'fields': ('delivery_yd_order',)}),
         ('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
@@ -866,6 +866,7 @@ class OrderAdmin(admin.ModelAdmin):
                     item.save()
                     context = {
                         'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
+                        'order': order,
                         'product': item.product,
                         'serial_number': serial_number
                         }
