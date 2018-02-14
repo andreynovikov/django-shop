@@ -30,4 +30,4 @@ class OneSImportForm(forms.Form):
 
 
 class WarrantyCardPrintForm(forms.Form):
-    serial_number = forms.CharField(label='Серийный номер', max_length=30, required=True)
+    serial_number = forms.CharField(label='Серийный номер', max_length=30, required=False)

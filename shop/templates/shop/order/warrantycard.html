@@ -1,6 +1,7 @@
 {% if product.manufacturer.code == 'Pfaff' %}
 {% include "shop/warrantycards/pfaff.html" %}
-{% elif False %}
+{% elif product.manufacturer.code == 'Husqvarna' %}
+{% include "shop/warrantycards/husqvarna.html" %}
 {% else %}
 <!DOCTYPE html>
 <html>
@@ -33,7 +34,7 @@ body     { font-size:9pt; font-family:Verdana,sans-serif; }
 </tr>
 <tr>
 <td>Дата продажи</td>
-<td>&laquo;_____&raquo;___________ 20___</td>
+<td>{% if order.delivery_handing_date %}{{ order.delivery_handing_date }}{% else %}&laquo;_____&raquo;___________ 20___{% endif %}</td>
 <td>Продавец</td>
 <td>___________</td>
 </tr>
