@@ -29,9 +29,9 @@ from suit.widgets import AutosizedTextarea
 from mptt.admin import MPTTModelAdmin
 
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
-    Currency, Country, Manufacturer, Product, Stock, Basket, BasketItem, Manager, \
-    Courier, Order, OrderItem
-from shop.forms import WarrantyCardPrintForm
+    Currency, Country, Region, City, Store, Manufacturer, Product, Stock, \
+    Basket, BasketItem, Manager, Courier, Order, OrderItem
+from shop.forms import WarrantyCardPrintForm, OrderAdminForm
 from shop.decorators import admin_changelist_link
 
 from django.apps import AppConfig
@@ -122,6 +122,33 @@ class CountryAdmin(admin.ModelAdmin):
     list_filter = ['enabled']
     search_fields = ['name']
     ordering = ['name']
+
+
+@admin.register(Region)
+class RegionAdmin(admin.ModelAdmin):
+    list_display = ['id', 'country', 'name']
+    list_display_links = ['name']
+    list_filter = ['country']
+    search_fields = ['name']
+    ordering = ['name']
+
+
+@admin.register(City)
+class CityAdmin(admin.ModelAdmin):
+    list_display = ['country', 'region', 'name', 'ename', 'code', 'latitude', 'longitude']
+    list_display_links = ['name']
+    list_filter = ['country', 'region']
+    search_fields = ['name']
+    ordering = ['name']
+
+
+@admin.register(Store)
+class StoreAdmin(admin.ModelAdmin):
+    list_display = ['city', 'address', 'name', 'enabled', 'latitude', 'longitude']
+    list_display_links = ['address', 'name']
+    list_filter = ['city', 'enabled']
+    search_fields = ['name']
+    ordering = ['city', 'address']
 
 
 @admin.register(Manufacturer)
@@ -730,7 +757,7 @@ class OrderAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {'fields': (('status', 'payment', 'paid', 'manager', 'site'), ('delivery', 'delivery_price', 'courier'),
                            'delivery_dispatch_date', 'delivery_tracking_number', 'delivery_info',
-                           ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'total', 'id')}),
+                           ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'store', 'total', 'id')}),
         ('1С', {'fields': (('buyer', 'seller','wiring_date'),),}),
         ('Яндекс.Доставка', {'fields': ('delivery_yd_order',)}),
         ('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
@@ -741,7 +768,8 @@ class OrderAdmin(admin.ModelAdmin):
     )
     inlines = [OrderItemInline, AddOrderItemInline]
     #raw_id_fields = ('user',)
-    form = autocomplete_light.modelform_factory(Order, exclude=['created'])
+    #form = autocomplete_light.modelform_factory(Order, exclude=['created'])
+    form = OrderAdminForm
     formfield_overrides = {
         TextField: {'widget': forms.Textarea(attrs={'style': 'height: 4em'})},
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
