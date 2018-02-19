@@ -86,6 +86,11 @@ def view_basket_extnotice(request):
     context = {
         'basket': basket
     }
+    product_id = request.GET.get('product', None)
+    if product_id and basket.items.count() > 4:
+        context['collapse'] = True
+        context['added_product'] = int(product_id)
+        context['other_count'] = basket.items.count() -1
     return render(request, 'shop/extnotice.html', context)
 
 def view_basket(request):
