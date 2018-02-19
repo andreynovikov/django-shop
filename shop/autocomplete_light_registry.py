@@ -1,5 +1,5 @@
 import autocomplete_light.shortcuts as al
-from .models import ShopUser, Product
+from .models import ShopUser, Product, Store
 
 # This will generate a PersonAutocomplete class
 al.register(ShopUser,
@@ -27,6 +27,17 @@ al.register(Product,
   search_fields=['article', 'code', 'partnumber', 'title'],
   attrs={
         'placeholder': 'Товар?',
+        'data-autocomplete-minimum-characters': 2,
+    },
+    widget_attrs={
+        'data-widget-maximum-values': 8,
+    },
+)
+
+al.register(Store,
+  search_fields=['address', 'city__name'],
+  attrs={
+        'placeholder': 'Магазин?',
         'data-autocomplete-minimum-characters': 2,
     },
     widget_attrs={

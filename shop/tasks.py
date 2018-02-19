@@ -87,12 +87,15 @@ def notify_user_order_collected(order_id):
 @shared_task
 def notify_user_order_delivered_shop(order_id):
     order = Order.objects.get(id=order_id)
+    city = order.store.city.name
+    address = order.store.address
+    name = order.store.name
     sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
     sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
     client = sms_uslugi.Client(sms_login, sms_password)
-    client.send(order.phone, "Ваш заказ доставлен в магазин Швейный Мир по адресу Волгоградский пр-т," \
-                             " д.10 стр.2. Для получения заказа обратитесь в кассу и назовите номер" \
-                             " заказа %s." % order_id)
+    client.send(order.phone, "Ваш заказ доставлен в магазин \"%s\" по адресу %s, %s." \
+                             " Для получения заказа обратитесь в кассу и назовите номер" \
+                             " заказа %s." % (name, city, address, order_id))
 
 
 @shared_task
