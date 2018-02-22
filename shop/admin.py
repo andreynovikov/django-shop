@@ -147,7 +147,7 @@ class StoreAdmin(admin.ModelAdmin):
     list_display = ['city', 'address', 'name', 'enabled', 'latitude', 'longitude']
     list_display_links = ['address', 'name']
     list_filter = ['city', 'enabled']
-    search_fields = ['name']
+    search_fields = ['name', 'address', 'address2']
     ordering = ['city', 'address']
 
 
