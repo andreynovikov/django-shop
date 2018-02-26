@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import sys
 import csv
+from collections import defaultdict
 
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.mail import send_mail
@@ -169,12 +170,26 @@ def notify_manager(order_id):
 
 @shared_task(time_limit=1200)
 def import1c(file):
+    frozen_orders = Order.objects.filter(status=Order.STATUS_FROZEN)
+    frozen_products = defaultdict(list)
+    if frozen_orders.exists():
+        for order in frozen_orders:
+            for item in order.items.all():
+                quantity = item.product.num_correction
+                stock = Stock.objects.filter(product=item.product)
+                if stock.exists():
+                    for s in stock:
+                        quantity = quantity + s.quantity
+                if quantity <= 0:
+                    frozen_products[item.product].append(order)
+
     import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
     filepath = import_dir + '/' + file
 
     imported = 0
     updated = 0
     errors = []
+    orders = set()
 
     suppliers = Supplier.objects.all().order_by('order')
     currencies = Currency.objects.all()
@@ -224,6 +239,8 @@ def import1c(file):
                     except IndexError:
                         errors.append("%s: неправильное количество складов" % line['article'])
                 #products[product.id].imported = True
+                if product in frozen_products.keys() and product.instock > 0:
+                    orders.update(frozen_products[product])
                 updated = updated + 1
             except MultipleObjectsReturned:
                 errors.append("%s: артикль не уникален" % line['article'])
@@ -240,8 +257,8 @@ def import1c(file):
 
     shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
-                                 {'file': file, 'imported': imported, 'updated': updated, 'errors': errors})
-
+                                 {'file': file, 'imported': imported, 'updated': updated, 'errors': errors,
+                                  'orders': orders, 'opts': Order._meta})
     send_mail(
         'Импорт 1С из %s' % file,
         msg_plain,
