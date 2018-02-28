@@ -19,7 +19,7 @@ def order_saved(sender, **kwargs):
             if order.payment == Order.PAYMENT_CARD or order.payment == Order.PAYMENT_TRANSFER:
                 notify_user_order_collected.delay(order.id)
 
-        if order.status == Order.STATUS_DELIVERED_SHOP:
+        if order.status == Order.STATUS_DELIVERED_SHOP and order.store:
             notify_user_order_delivered_shop.delay(order.id)
 
         if order.status == Order.STATUS_DELIVERED:

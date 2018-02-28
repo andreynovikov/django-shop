@@ -1,0 +1,44 @@
+{% if product.manufacturer.code == 'Pfaff' %}
+{% include "shop/warrantycards/pfaff.html" %}
+{% elif product.manufacturer.code == 'Husqvarna' %}
+{% include "shop/warrantycards/husqvarna.html" %}
+{% else %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+<style type="text/css">
+body     { font-size:9pt; font-family:Verdana,sans-serif; }
+.wrapper { width:200mm; max-width:200mm;}
+.left    { text-align:left;}
+.right   { text-align:right;}
+.center  { text-align:center;}
+.otmetki td { border:1px solid black}
+</style>
+</head>
+<body>
+<h1>ГАРАНТИЙНАЯ КАРТОЧКА</h1>
+<table style="width:100%">
+<tr>
+<td>Модель</td>
+<td><b>{{ product.title }}</b></td>
+<td>Серийный номер</td>
+<td><b>{{ serial_number }}</b></td>
+</tr>
+<tr>
+<td>Торговая организация</td>
+<td colspan="3"><br>{{ owner_info.name }}<br>
+{{ owner_info.full_name }}<br>
+ИНН {{ owner_info.inn }}<br>
+{{ owner_info.phone }}<br>&nbsp;</td>
+</tr>
+<tr>
+<td>Дата продажи</td>
+<td>{% if order.delivery_handing_date %}{{ order.delivery_handing_date }}{% else %}&laquo;_____&raquo;___________ 20___{% endif %}</td>
+<td>Продавец</td>
+<td>___________</td>
+</tr>
+</table>
+</body>
+</html>
+{% endif %}

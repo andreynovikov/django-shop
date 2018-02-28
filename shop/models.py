@@ -193,6 +193,79 @@ class Country(models.Model):
         return self.name
 
 
+class Region(models.Model):
+    name = models.CharField('название', max_length=100)
+    country = models.ForeignKey(Country, verbose_name='страна', on_delete=models.PROTECT)
+
+    class Meta:
+        verbose_name = 'регион'
+        verbose_name_plural = 'регионы'
+
+    @staticmethod
+    def autocomplete_search_fields():
+        return ['name__icontains']
+
+    def __str__(self):
+        return str(self.country) + ', ' + self.name
+
+
+class City(models.Model):
+    country = models.ForeignKey(Country, verbose_name='страна', on_delete=models.PROTECT)
+    region = models.ForeignKey(Region, verbose_name='регион', blank=True, null=True, on_delete=models.PROTECT)
+    name = models.CharField('название', max_length=100)
+    ename = models.CharField('англ. название', max_length=100, blank=True)
+    latitude = models.FloatField('широта', default=0, blank=True, null=True)
+    longitude = models.FloatField('долгота', default=0, blank=True, null=True)
+    code = models.CharField('код', max_length=20, blank=True)
+
+    class Meta:
+        verbose_name = 'город'
+        verbose_name_plural = 'города'
+        ordering = ('country', 'name')
+
+    @staticmethod
+    def autocomplete_search_fields():
+        return ['name__icontains']
+
+    def __str__(self):
+        return str(self.country) + ', ' + self.name
+
+
+class Store(models.Model):
+    city = models.ForeignKey(City, verbose_name='город', on_delete=models.PROTECT)
+    address = models.CharField('адрес', max_length=255)
+    phone = models.CharField('телефон', max_length=100, blank=True)
+    name = models.CharField('название', max_length=100)
+    enabled = models.BooleanField('включён', default=True)
+    description = models.TextField('описание', blank=True)
+    latitude = models.FloatField('широта', default=0, blank=True, null=True)
+    longitude = models.FloatField('долгота', default=0, blank=True, null=True)
+    postcode = models.CharField('индекс', max_length=20, blank=True)
+    address2 = models.CharField('адрес', max_length=255, blank=True)
+    phone2 = models.CharField('телефон', max_length=100, blank=True)
+    url = models.CharField('сайт', max_length=100, blank=True)
+    email = models.CharField('эл.адрес', max_length=100, blank=True)
+    hours = models.CharField('раб.часы', max_length=100, blank=True)
+    logo = models.CharField('логотип', max_length=30, blank=True)
+    payment_cash = models.BooleanField('наличные', default=False)
+    payment_visa = models.BooleanField('visa', default=False)
+    payment_master = models.BooleanField('mastercard', default=False)
+    payment_mir = models.BooleanField('мир', default=False)
+    payment_credit = models.BooleanField('кредит', default=False)
+
+    class Meta:
+        verbose_name = 'магазин'
+        verbose_name_plural = 'магазины'
+        ordering = ('city', 'address')
+
+    @staticmethod
+    def autocomplete_search_fields():
+        return ['name__icontains', 'address__icontains', 'city__name__icontains']
+
+    def __str__(self):
+        return str(self.city) + ', ' + self.address
+
+
 class Manufacturer(models.Model):
     code = models.CharField('код', max_length=30)
     name = models.CharField('название', max_length=150)
@@ -259,7 +332,7 @@ class Product(models.Model):
     sp_cur_price=models.DecimalField('цена СП, вал', max_digits=10, decimal_places=2, default=0)
     sp_cur_code = models.ForeignKey(Currency, verbose_name='СП валюта', related_name="spprice", on_delete=models.PROTECT, default=643)
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
-    val_discount = models.DecimalField('скидка, руб', max_digits=6, decimal_places=2, default=0)
+    val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
     ws_pct_discount = models.PositiveSmallIntegerField('опт. скидка, %', default=0)
     max_discount = models.PositiveSmallIntegerField('макс. скидка, %', default=10)
     ws_max_discount = models.PositiveSmallIntegerField('опт. макс. скидка, %', default=10)
@@ -513,6 +586,70 @@ class Basket(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     phone = models.CharField(max_length=30, blank=True)
 
+    def product_cost(self, product):
+        if WHOLESALE:
+            return product.ws_price - self.product_discount(product)
+        else:
+            return product.price - self.product_discount(product)
+
+    def product_pct_discount(self, product):
+        """ Calculates maximum percent discount based on product, user and maximum discount """
+        if WHOLESALE:
+            pd = max(product.ws_pct_discount, self.user_discount)
+            if pd > product.ws_max_discount:
+                pd = product.ws_max_discount
+            pdp = round(product.ws_price * (pd / 100))
+            if pdp < product.sp_price:
+                d = product.ws_price - product.sp_price
+                pd = int(d / product.ws_price * 100)
+        else:
+            pd = max(product.pct_discount, self.user_discount)
+            if pd > product.max_discount:
+                pd = product.max_discount
+        return pd
+
+    def product_discount(self, product):
+        pd = Decimal(0)
+        pct = self.product_pct_discount(product)
+        if pct > 0:
+            if WHOLESALE:
+                price = product.ws_price
+                qnt = Decimal('0.01')
+            else:
+                price = product.price.quantize(Decimal('1'), rounding=ROUND_UP)
+                qnt = Decimal('1')
+            pd = (price * Decimal(pct / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
+        if not WHOLESALE and product.val_discount > pd:
+            pd = product.val_discount
+        return pd
+
+    def product_discount_text(self, product):
+        """ Provides human readable discount string. """
+        pd = Decimal(0)
+        pdv = 0
+        pdt = False
+        pct = self.product_pct_discount(product)
+        if pct > 0:
+            if WHOLESALE:
+                price = product.ws_price
+                qnt = Decimal('0.01')
+            else:
+                price = product.price.quantize(Decimal('1'), rounding=ROUND_UP)
+                qnt = Decimal('1')
+            pd = (price * Decimal(pct / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
+            pdv = pct
+            pdt = True
+        if not WHOLESALE and product.val_discount > pd:
+            pd = product.val_discount
+            pdv = product.val_discount
+            pdt = False
+        if pd == 0:
+            return ''
+        pds = ' руб.'
+        if pdt:
+             pds = '%'
+        return '%d%s' % (pdv, pds)
+
     @property
     def total(self):
         total = 0
@@ -584,63 +721,13 @@ class BasketItem(models.Model):
             return (self.product.price - self.discount).quantize(Decimal('1'), rounding=ROUND_UP)
 
     @property
-    def pct_discount(self):
-        """ Calculates maximum percent discount based on product, user and maximum discount """
-        if WHOLESALE:
-            pd = max(self.product.ws_pct_discount, self.basket.user_discount)
-            if pd > self.product.ws_max_discount:
-                pd = self.product.ws_max_discount
-            pdp = round(self.product.ws_price * (pd / 100))
-            if pdp < self.product.sp_price:
-                d = self.product.ws_price - self.product.sp_price
-                pd = int(d / self.product.ws_price * 100)
-        else:
-            pd = max(self.product.pct_discount, self.basket.user_discount)
-            if pd > self.product.max_discount:
-                pd = self.product.max_discount
-        return pd
-
-    @property
     def discount(self):
-        pd = Decimal(0)
-        if self.pct_discount > 0:
-            if WHOLESALE:
-                price = self.product.ws_price
-                qnt = Decimal('0.01')
-            else:
-                price = self.product.price.quantize(Decimal('1'), rounding=ROUND_UP)
-                qnt = Decimal('1')
-            pd = (price * Decimal(self.pct_discount / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
-        if not WHOLESALE and self.product.val_discount > pd:
-            pd = self.product.val_discount
-        return pd
+        return self.basket.product_discount(self.product)
 
     @property
     def discount_text(self):
         """ Provides human readable discount string. """
-        pd = Decimal(0)
-        pdv = 0
-        pdt = False
-        if self.pct_discount > 0:
-            if WHOLESALE:
-                price = self.product.ws_price
-                qnt = Decimal('0.01')
-            else:
-                price = self.product.price.quantize(Decimal('1'), rounding=ROUND_UP)
-                qnt = Decimal('1')
-            pd = (price * Decimal(self.pct_discount / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
-            pdv = self.pct_discount
-            pdt = True
-        if not WHOLESALE and self.product.val_discount > pd:
-            pd = self.product.val_discount
-            pdv = self.product.val_discount
-            pdt = False
-        if pd == 0:
-            return ''
-        pds = ' руб.'
-        if pdt:
-             pds = '%'
-        return '%d%s' % (pdv, pds)
+        return self.basket.product_discount_text(self.product)
 
 
 class Manager(models.Model):
@@ -776,12 +863,13 @@ class Order(models.Model):
     delivery_price = models.DecimalField('стоимость доставки', max_digits=8, decimal_places=2, default=0)
     delivery_info = models.TextField('ТК, ТТН, курьер', blank=True)
     delivery_tracking_number = models.CharField('трек-код', max_length=30, blank=True)
-    delivery_date = models.DateField('дата доставки', blank=True, null=True)
+    delivery_dispatch_date = models.DateField('дата отправки', blank=True, null=True)
+    delivery_handing_date = models.DateField('дата получения', blank=True, null=True)
     delivery_time_from = models.TimeField('от', blank=True, null=True)
     delivery_time_till = models.TimeField('до', blank=True, null=True)
-    delivery_size_length = models.SmallIntegerField('длина', default=0)
-    delivery_size_width = models.SmallIntegerField('ширина', default=0)
-    delivery_size_height = models.SmallIntegerField('высота', default=0)
+    delivery_size_length = models.PositiveSmallIntegerField('длина', default=0)
+    delivery_size_width = models.PositiveSmallIntegerField('ширина', default=0)
+    delivery_size_height = models.PositiveSmallIntegerField('высота', default=0)
     delivery_yd_order = models.CharField('ЯД заказ', max_length=20, blank=True)
     delivery_pickpoint_terminal = models.CharField('терминал', max_length=10, blank=True)
     delivery_pickpoint_service = models.CharField('тип сдачи', max_length=10, choices=PICKPOINT_SERVICES, default=PICKPOINT_SERVICE_STD)
@@ -790,6 +878,7 @@ class Order(models.Model):
     seller = models.ForeignKey(Contractor, verbose_name='продавец 1С', related_name='продавец', blank=True, null=True)
     wiring_date = models.DateField('дата проводки', blank=True, null=True)
     courier = models.ForeignKey(Courier, verbose_name='курьер', blank=True, null=True)
+    store = models.ForeignKey(Store, verbose_name='магазин самовывоза', blank=True, null=True, on_delete=models.PROTECT)
     # user
     user = models.ForeignKey(ShopUser, verbose_name='покупатель')
     name = models.CharField('имя', max_length=100, blank=True)
@@ -844,11 +933,18 @@ class Order(models.Model):
         else:
             qnt = Decimal('1')
         for item in basket.items.all():
-            order.items.create(product=item.product,
-                               product_price=item.product.price.quantize(qnt, rounding=ROUND_UP),
-                               pct_discount=item.pct_discount,
-                               val_discount=item.product.val_discount,
-                               quantity=item.quantity)
+            # TODO Check compatibility with other shops
+            if WHOLESALE:
+                order.items.create(product=item.product,
+                                   product_price=item.product.price.quantize(qnt, rounding=ROUND_UP),
+                                   val_discount=item.discount,
+                                   quantity=item.quantity)
+            else:
+                order.items.create(product=item.product,
+                                   product_price=item.product.price.quantize(qnt, rounding=ROUND_UP),
+                                   pct_discount=basket.product_pct_discount(item.product),
+                                   val_discount=item.product.val_discount,
+                                   quantity=item.quantity)
         return order
 
     def __str__(self):
@@ -866,6 +962,7 @@ class OrderItem(models.Model):
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
     quantity = models.PositiveSmallIntegerField('количество', default=1)
+    serial_number = models.CharField('SN', max_length=30, blank=True)
 
     @property
     def price(self):
