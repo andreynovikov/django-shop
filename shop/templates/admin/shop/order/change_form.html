@@ -12,29 +12,42 @@
                             background-image:url("/static/suit/bootstrap/img/glyphicons-halflings.png");background-position:0 -96px;
                             background-repeat:no-repeat;opacity:.75;margin:0;
                             background-color:#F6F7F8;display:inline-block;vertical-align:middle }
+        .inner-right-column i { float: left; }
+        .inner-right-column a span { display:block; overflow:hidden; }
     </style>
 {% endblock %}
 
 {% block object-tools-items %}
     {% url opts|admin_urlname:'document' original.pk 'bill'|admin_urlquote as bill_url %}
-    <li><a href="{% add_preserved_filters bill_url %}">{% trans "Счёт" %}</a></li>
+    <li><a href="{% add_preserved_filters bill_url %}"><i class="icon-book icon-alpha75"></i>
+            <span>{% trans "Счёт" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'billwostamp'|admin_urlquote as billwostamp_url %}
-    <li><a href="{% add_preserved_filters billwostamp_url %}">{% trans "Счёт без печати" %}</a></li>
+    <li><a href="{% add_preserved_filters billwostamp_url %}"><i class="icon-book icon-alpha75"></i>
+            <span>{% trans "Счёт без печати" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'slip'|admin_urlquote as slip_url %}
-    <li><a href="{% add_preserved_filters slip_url %}">{% trans "Накладная" %}</a></li>
+    <li><a href="{% add_preserved_filters slip_url %}"><i class="icon-book icon-alpha75"></i>
+            <span>{% trans "Накладная" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'slipandrules'|admin_urlquote as slipandrules_url %}
-    <li><a href="{% add_preserved_filters slipandrules_url %}">{% trans "Накладная с правилами" %}</a></li>
+    <li><a href="{% add_preserved_filters slipandrules_url %}"><i class="icon-book icon-alpha75"></i>
+            <span>{% trans "Накладная с правилами" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'packing'|admin_urlquote as packing_url %}
-    <li><a href="{% add_preserved_filters packing_url %}">{% trans "Сопроводительный лист" %}</a></li>
+    <li><a href="{% add_preserved_filters packing_url %}"><i class="icon-book icon-alpha75"></i>
+            <span>{% trans "Сопроводительный лист" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'productlist'|admin_urlquote as productlist_url %}
-    <li><a href="{% add_preserved_filters productlist_url %}">{% trans "Товарный чек" %}</a></li>
+    <li><a href="{% add_preserved_filters productlist_url %}"><i class="icon-book icon-alpha75"></i>
+            <span>{% trans "Товарный чек" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'productlistandrules'|admin_urlquote as productlistandrules_url %}
-    <li><a href="{% add_preserved_filters productlistandrules_url %}">{% trans "Товарный чек для покупателя" %}</a></li>
+    <li><a href="{% add_preserved_filters productlistandrules_url %}"><i class="icon-book icon-alpha75"></i>
+            <span>{% trans "Товарный чек для покупателя" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'label'|admin_urlquote as label_url %}
-    <li><a href="{% add_preserved_filters label_url %}">{% trans "Наклейка" %}</a></li>
+    <li><a href="{% add_preserved_filters label_url %}"><i class="icon-book icon-alpha75"></i>
+            <span>{% trans "Наклейка" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'check'|admin_urlquote as check_url %}
-    <li><a href="{% add_preserved_filters check_url %}">{% trans "Чек" %}</a></li>
-    {% url opts|admin_urlname:'document' original.pk 'warrantycard'|admin_urlquote as warrantycard_url %}
-    <li><a href="{% add_preserved_filters warrantycard_url %}">{% trans "Гарантийный талон" %}</a></li>
+    <li><a href="{% add_preserved_filters check_url %}"><i class="icon-book icon-alpha75"></i>
+            <span>{% trans "Чек" %}</span></a></li>
+    {% url opts|admin_urlname:'combine' original.pk|admin_urlquote as combine_url %}
+    <li><a href="{% add_preserved_filters combine_url %}?_popup=1" class="related-widget-wrapper-link">
+            <i class="icon-resize-small icon-alpha75"></i>
+            <span>{% trans "Объединение заказов" %}</span></a></li>
     {{ block.super }}
 {% endblock %}
