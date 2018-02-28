@@ -91,6 +91,21 @@
                 }
               }
             });
+
+            var createTimeout = function(timeoutHandler, delay) {
+                var timeoutId;
+                timeoutId = setTimeout(timeoutHandler, delay);
+                return {
+                    cancel: function() {
+                        clearTimeout(timeoutId);
+                    },
+                    trigger: function() {
+                        clearTimeout(timeoutId);
+                        return timeoutHandler();
+                    }
+                };
+            };
+
             var CustomHandlers = function () {
             };
             CustomHandlers.prototype.setQuantityWarning = function (e, $el) {
@@ -155,7 +170,29 @@
             $(document).on("eldarion-ajax:success", "#reset-password", CustomHandlers.prototype.passwordReset);
             $(document).on("eldarion-ajax:complete", initHandlers);
 
+            var inputTimer;
+            var inputTimerRef;
+
             $(".sw-basket-quantity").mask("9?99999", {placeholder: ""});
+            $(".sw-basket-quantity").on( "keyup", function () {
+                var $cn = $(this).closest(".quantity-container");
+                $cn.removeClass("has-success");
+
+                if (inputTimerRef && inputTimerRef.context == $(this).context) {
+                    inputTimer.cancel();
+                    console.error('  cancel');
+                }
+                else if (inputTimer != undefined)
+                    inputTimer.trigger();
+                inputTimerRef = $(this);
+                inputTimer = createTimeout($.proxy(function() {
+                    if ($(this).val()) {
+                        console.error($(this).val());
+                        var $form = $(this).closest("form");
+                        $form.submit();
+                    }
+                }, $(this)), 1000);
+            });
 
             $(".sw-minus").on("click", function () {
                 var $input = $(this).parent().find("input");
