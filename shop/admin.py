@@ -3,7 +3,8 @@ import datetime
 from django import forms
 from django.core.urlresolvers import reverse
 from django.db import connection
-from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, TimeField, DateTimeField
+from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, \
+    TimeField, DateTimeField, DecimalField
 from django.contrib import admin, messages
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin
@@ -11,11 +12,13 @@ from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template.loader import get_template
 from django.template.defaultfilters import floatformat
+from django.template.response import TemplateResponse
 from django.conf import settings
 from django.conf.urls import url
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.formats import date_format
+from django.utils.html import format_html
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 import autocomplete_light
@@ -26,8 +29,9 @@ from suit.widgets import AutosizedTextarea
 from mptt.admin import MPTTModelAdmin
 
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
-    Currency, Country, Manufacturer, Product, Stock, Basket, BasketItem, Manager, \
-    Courier, Order, OrderItem
+    Currency, Country, Region, City, Store, Manufacturer, Product, Stock, \
+    Basket, BasketItem, Manager, Courier, Order, OrderItem
+from shop.forms import WarrantyCardPrintForm, OrderAdminForm
 from shop.decorators import admin_changelist_link
 
 from django.apps import AppConfig
@@ -118,6 +122,33 @@ class CountryAdmin(admin.ModelAdmin):
     list_filter = ['enabled']
     search_fields = ['name']
     ordering = ['name']
+
+
+@admin.register(Region)
+class RegionAdmin(admin.ModelAdmin):
+    list_display = ['id', 'country', 'name']
+    list_display_links = ['name']
+    list_filter = ['country']
+    search_fields = ['name']
+    ordering = ['name']
+
+
+@admin.register(City)
+class CityAdmin(admin.ModelAdmin):
+    list_display = ['country', 'region', 'name', 'ename', 'code', 'latitude', 'longitude']
+    list_display_links = ['name']
+    list_filter = ['country', 'region']
+    search_fields = ['name']
+    ordering = ['name']
+
+
+@admin.register(Store)
+class StoreAdmin(admin.ModelAdmin):
+    list_display = ['city', 'address', 'name', 'enabled', 'latitude', 'longitude']
+    list_display_links = ['address', 'name']
+    list_filter = ['city', 'enabled']
+    search_fields = ['name']
+    ordering = ['city', 'address']
 
 
 @admin.register(Manufacturer)
@@ -215,19 +246,24 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ['code', 'article', 'partnumber', 'title']
     readonly_fields = ['price', 'ws_price', 'sp_price']
     inlines = (StockInline,)
+    formfield_overrides = {
+        PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
+        PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
+        DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
+    }
     fieldsets = (
         (None, {
                 'classes': ('suit-tab', 'suit-tab-general'),
                 'fields': (('code', 'article', 'partnumber'),'title','runame','whatis','categories',('manufacturer','gtin'),('country','developer_country'),'spec','shortdescr','yandexdescr','descr','state','complect','dealertxt',)
         }),
         ('Деньги', {
-                'classes': ('suit-tab', 'suit-tab-general'),
+                'classes': ('suit-tab', 'suit-tab-money'),
                 'fields': (('cur_price', 'cur_code', 'price'), ('pct_discount', 'val_discount', 'max_discount'),
-                           ('ws_cur_price', 'ws_cur_code', 'ws_price'), ('ws_pct_discount', 'ws_max_discount'),
+                           ('ws_cur_price', 'ws_cur_code', 'ws_price'), 'ws_pack_only', ('ws_pct_discount', 'ws_max_discount'),
                            ('sp_cur_price', 'sp_cur_code', 'sp_price'), 'consultant_delivery_price', ('forbid_price_import'))
         }),
         ('Маркетинг', {
-                'classes': ('suit-tab', 'suit-tab-general'),
+                'classes': ('suit-tab', 'suit-tab-money'),
                 'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','sales_notes','internetonly','present','delivery','firstpage',)
         }),
         ('Размеры', {
@@ -355,6 +391,7 @@ class ProductAdmin(admin.ModelAdmin):
     )
     suit_form_tabs = (
         ('general', 'Основное'),
+        ('money', 'Деньги и маркетинг'),
         ('sewingmachines', 'Швейные машины'),
         ('knittingmachines', 'Вязальные машины'),
         ('prommachines', 'Промышленные машины'),
@@ -416,8 +453,12 @@ class OrderItemInline(admin.TabularInline):
     product_code.short_description = 'код'
 
     def product_link(self, obj):
-        link=reverse('admin:shop_product_change', args=[obj.product.id])
-        return '<a href="%s?_popup=1" class="related-widget-wrapper-link">%s</a>&nbsp;<i class="icon-pencil icon-alpha5"></i>' % (link, str(obj.product))
+        return format_html(
+            '<a href="{}?_popup=1" class="related-widget-wrapper-link">{}</a>&nbsp;<i class="icon-pencil icon-alpha5"></i>' + \
+                ' <a class="button related-widget-wrapper-link" href="{}?_popup=1">ГТ</a>' + \
+                '&nbsp;<span style="font-size: 80%">{}</span>',
+            reverse('admin:shop_product_change', args=[obj.product.id]), str(obj.product),
+            reverse('admin:print-warranty-card', args=[obj.order.id, obj.pk]), obj.serial_number)
     product_link.allow_tags=True
     product_link.short_description = 'товар'
 
@@ -475,6 +516,7 @@ class OrderItemInline(admin.TabularInline):
     formfield_overrides = {
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
+        DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
     }
 
     def has_add_permission(self, request):
@@ -492,6 +534,7 @@ class AddOrderItemInline(admin.TabularInline):
     formfield_overrides = {
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
+        DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
     }
 
     def has_change_permission(self, request, obj=None):
@@ -636,8 +679,8 @@ class OrderAdmin(admin.ModelAdmin):
 
     def combined_delivery(self, obj):
         datetime = ''
-        if obj.delivery_date:
-            datetime = date_format(obj.delivery_date, "SHORT_DATE_FORMAT")
+        if obj.delivery_dispatch_date:
+            datetime = date_format(obj.delivery_dispatch_date, "SHORT_DATE_FORMAT")
         if obj.delivery_time_from:
             if datetime:
                 datetime = datetime + ' '
@@ -649,7 +692,7 @@ class OrderAdmin(admin.ModelAdmin):
             courier = ': %s' % obj.courier.name
         return '%s%s<br/>%s' % (obj.get_delivery_display(), courier, datetime)
     combined_delivery.allow_tags = True
-    combined_delivery.admin_order_field = 'delivery_date'
+    combined_delivery.admin_order_field = 'delivery_dispatch_date'
     combined_delivery.short_description = 'Доставка'
 
     def name_and_skyped_phone(self, obj):
@@ -705,17 +748,16 @@ class OrderAdmin(admin.ModelAdmin):
     link_to_orders.allow_tags = True
     link_to_orders.short_description = 'заказы'
 
-
     list_display = ['order_name', 'name_and_skyped_phone', 'city', 'total', 'payment', 'calm_paid', 'combined_delivery',
                     'colored_status', 'combined_comments']
     readonly_fields = ['id', 'shop_name', 'total', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
-    list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'manager', 'courier', 'delivery', ('delivery_date', FutureDateFieldListFilter)]
-    search_fields = ['id', 'name', 'phone', 'email', 'address', 'city',
+    list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'manager', 'courier', 'delivery', ('delivery_dispatch_date', FutureDateFieldListFilter)]
+    search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode', 'manager_comment']
     fieldsets = (
         (None, {'fields': (('status', 'payment', 'paid', 'manager', 'site'), ('delivery', 'delivery_price', 'courier'),
-                           ('delivery_date', 'delivery_time_from', 'delivery_time_till'),
-                            'delivery_tracking_number', 'delivery_info', 'manager_comment', 'total', 'id')}),
+                           'delivery_dispatch_date', 'delivery_tracking_number', 'delivery_info',
+                           ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'store', 'total', 'id')}),
         ('1С', {'fields': (('buyer', 'seller','wiring_date'),),}),
         ('Яндекс.Доставка', {'fields': ('delivery_yd_order',)}),
         ('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
@@ -726,9 +768,13 @@ class OrderAdmin(admin.ModelAdmin):
     )
     inlines = [OrderItemInline, AddOrderItemInline]
     #raw_id_fields = ('user',)
-    form = autocomplete_light.modelform_factory(Order, exclude=['created'])
+    #form = autocomplete_light.modelform_factory(Order, exclude=['created'])
+    form = OrderAdminForm
     formfield_overrides = {
         TextField: {'widget': forms.Textarea(attrs={'style': 'height: 4em'})},
+        PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
+        PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
+        DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
         TimeField: {'widget': TimeWidget()},
     }
     actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action']
@@ -751,6 +797,7 @@ class OrderAdmin(admin.ModelAdmin):
         my_urls = [
             url(r'(\d+)/document/([a-z]+)/$', self.admin_site.admin_view(self.document), name='shop_order_document'),
             url(r'products/$', self.admin_site.admin_view(self.order_product_list), name='shop_order_product_list'),
+            url(r'(\d+)/item/(\d+)/print_warranty_card/$', self.admin_site.admin_view(self.print_warranty_card), name='print-warranty-card'),
         ]
         return my_urls + urls
 
@@ -827,6 +874,44 @@ class OrderAdmin(admin.ModelAdmin):
             'cl': self,
             'opts': self.model._meta,
         })
+
+    def print_warranty_card(self, request, order_id, item_id):
+        order = self.get_object(request, order_id)
+        item = order.items.get(pk=item_id)
+        print(order.id)
+        print(item_id)
+
+        if request.method != 'POST':
+            form = WarrantyCardPrintForm({'serial_number': item.serial_number})
+            is_popup = request.GET.get('_popup', 0)
+        else:
+            form = WarrantyCardPrintForm(request.POST)
+            is_popup = request.POST.get('_popup', 0)
+            if form.is_valid():
+                try:
+                    serial_number = form.cleaned_data['serial_number']
+                    item.serial_number = serial_number
+                    item.save()
+                    context = {
+                        'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
+                        'order': order,
+                        'product': item.product,
+                        'serial_number': serial_number
+                        }
+                    return TemplateResponse(request, 'shop/order/warrantycard.html', context)
+
+                except Exception as e:
+                    # If save() raised, the form will a have a non
+                    # field error containing an informative message.
+                    pass
+
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['form'] = form
+        context['is_popup'] = is_popup
+        context['title'] = "Печать гарантийного талона"
+
+        return TemplateResponse(request, 'admin/shop/order/print_warranty_card.html', context)
 
     def order_1c_action(self, request, queryset):
         if not request.user.is_staff:
