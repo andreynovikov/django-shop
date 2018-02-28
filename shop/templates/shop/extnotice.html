@@ -1,14 +1,17 @@
 {% load staticfiles %}
+{% load rupluralize %}
 {% if basket %}
 <p class="lead">Товар добавлен в корзину</p>
 <div class="sw-extnotice">
 <table class="table table-bordered table-condensed">
 {% for item in basket.items.all %}
+{% if not collapse or added_product == item.product.id %}
 <tr>
 <td>{{ item.product.title }}</td><td>{{ item.quantity }}&nbsp;шт. на {{ item.price }}&nbsp;руб.</td>
 </tr>
+{% endif %}
 {% endfor %}
 </table>
-<p>Всего на {{ basket.total|floatformat }}&nbsp;руб.</p>
+<p>{% if collapse %}Ещё {{ other_count }} {{ other_count|rupluralize:"позиция,позиции,позиций" }}. {% endif %}Всего на {{ basket.total|floatformat }}&nbsp;руб.</p>
 </div>
 {% endif %}

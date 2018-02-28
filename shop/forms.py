@@ -2,7 +2,9 @@ import os
 from django import forms
 from django.conf import settings
 
-from shop.models import Supplier, Product, Stock
+import autocomplete_light
+
+from shop.models import Supplier, Product, Stock, Order
 from shop.tasks import import1c
 
 
@@ -27,3 +29,19 @@ class OneSImportForm(forms.Form):
         import1c.delay(self.cleaned_data['file'])
         shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
         return 'Импорт запущен в фоновом режиме, результат придёт на адрес %s' % ', '.join(shop_settings['email_managers'])
+
+
+class WarrantyCardPrintForm(forms.Form):
+    serial_number = forms.CharField(label='Серийный номер', max_length=30, required=False)
+
+
+class OrderAdminForm(autocomplete_light.ModelForm):
+    def clean_store(self):
+        store = self.cleaned_data.get('store', None)
+        if self.cleaned_data['status'] == Order.STATUS_DELIVERED_SHOP and store is None:
+            raise forms.ValidationError("Не указан магазин доставки!")
+        return store
+
+    class Meta:
+        model = Order
+        exclude = ['created']
