@@ -942,7 +942,7 @@ class Order(models.Model):
             else:
                 order.items.create(product=item.product,
                                    product_price=item.product.price.quantize(qnt, rounding=ROUND_UP),
-                                   pct_discount=item.pct_discount,
+                                   pct_discount=basket.product_pct_discount(item.product),
                                    val_discount=item.product.val_discount,
                                    quantity=item.quantity)
         return order
