@@ -35,6 +35,10 @@ class WarrantyCardPrintForm(forms.Form):
     serial_number = forms.CharField(label='Серийный номер', max_length=30, required=False)
 
 
+class OrderCombineForm(forms.Form):
+    order_number = forms.IntegerField(label='Номер заказа', min_value=1, required=True)
+
+
 class OrderAdminForm(autocomplete_light.ModelForm):
     def clean_store(self):
         store = self.cleaned_data.get('store', None)

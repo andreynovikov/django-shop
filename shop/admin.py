@@ -31,7 +31,7 @@ from mptt.admin import MPTTModelAdmin
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
     Currency, Country, Region, City, Store, Manufacturer, Product, Stock, \
     Basket, BasketItem, Manager, Courier, Order, OrderItem
-from shop.forms import WarrantyCardPrintForm, OrderAdminForm
+from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm
 from shop.decorators import admin_changelist_link
 
 from django.apps import AppConfig
@@ -798,6 +798,7 @@ class OrderAdmin(admin.ModelAdmin):
             url(r'(\d+)/document/([a-z]+)/$', self.admin_site.admin_view(self.document), name='shop_order_document'),
             url(r'products/$', self.admin_site.admin_view(self.order_product_list), name='shop_order_product_list'),
             url(r'(\d+)/item/(\d+)/print_warranty_card/$', self.admin_site.admin_view(self.print_warranty_card), name='print-warranty-card'),
+            url(r'(\d+)/combine/$', self.admin_site.admin_view(self.combine_form), name='shop_order_combine'),
         ]
         return my_urls + urls
 
@@ -878,8 +879,6 @@ class OrderAdmin(admin.ModelAdmin):
     def print_warranty_card(self, request, order_id, item_id):
         order = self.get_object(request, order_id)
         item = order.items.get(pk=item_id)
-        print(order.id)
-        print(item_id)
 
         if request.method != 'POST':
             form = WarrantyCardPrintForm({'serial_number': item.serial_number})
@@ -912,6 +911,48 @@ class OrderAdmin(admin.ModelAdmin):
         context['title'] = "Печать гарантийного талона"
 
         return TemplateResponse(request, 'admin/shop/order/print_warranty_card.html', context)
+
+    def combine_form(self, request, id):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        order = Order.objects.get(pk=id)
+        messages = None
+        if request.method != 'POST':
+            form = OrderCombineForm()
+            is_popup = request.GET.get('_popup', 0)
+        else:
+            form = OrderCombineForm(request.POST)
+            is_popup = request.POST.get('_popup', 0)
+            if form.is_valid():
+                try:
+                    order_number = form.cleaned_data['order_number']
+                    other_order = Order.objects.get(pk=order_number)
+                    if order.user != other_order.user:
+                        form.add_error('order_number', "Разные пользователи у заказов")
+                    else:
+                        for item in other_order.items.all():
+                            item.pk = None
+                            item.order = order
+                            item.save()
+                        messages = ["Позиции добавлены, закройте окно и обновите страницу заказа"]
+                        form = OrderCombineForm()
+                    """
+                    return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
+                                        '<script type="text/javascript">opener.dismissAddRelatedObjectPopup(window, "%s", "%s");</script>'
+                                        '</body></html>' % (id, order))
+                    """
+
+                except Exception as e:
+                    form.errors['__all__'] = form.error_class([str(e)])
+
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['form'] = form
+        context['is_popup'] = is_popup
+        context['messages'] = messages
+        context['title'] = "Укажите заказ для объединения"
+
+        return TemplateResponse(request, 'admin/shop/order/combine_form.html', context)
 
     def order_1c_action(self, request, queryset):
         if not request.user.is_staff:
