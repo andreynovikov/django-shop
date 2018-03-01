@@ -751,7 +751,8 @@ class OrderAdmin(admin.ModelAdmin):
     list_display = ['order_name', 'name_and_skyped_phone', 'city', 'total', 'payment', 'calm_paid', 'combined_delivery',
                     'colored_status', 'combined_comments']
     readonly_fields = ['id', 'shop_name', 'total', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
-    list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'manager', 'courier', 'delivery', ('delivery_dispatch_date', FutureDateFieldListFilter)]
+    list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'manager', 'courier', 'delivery',
+                   ('delivery_dispatch_date', FutureDateFieldListFilter), ('delivery_handing_date', FutureDateFieldListFilter)]
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode', 'manager_comment']
     fieldsets = (
