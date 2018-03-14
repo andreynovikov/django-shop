@@ -15,9 +15,14 @@ def search_xml(request):
     context = {
         'shop_info': getattr(settings, 'SHOP_INFO', {}),
         'root': root,
-        'products': Product.objects.filter(enabled=True, categories__in=root.get_descendants(include_self=True))
+        'products': Product.objects.filter(enabled=True, categories__in=root.get_descendants(include_self=True)).distinct()
         }
     return render(request, 'search.xml', context, content_type='text/xml; charset=utf-8')
+
+
+def search(request):
+    context = {}
+    return render(request, 'search.html', context)
 
 
 def products(request, template):

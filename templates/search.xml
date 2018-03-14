@@ -13,10 +13,17 @@
 <currency  id="USD" rate="CBRF"/>
 </currencies>
 
+{% load decimals %}
 {% load mptt_tags %}
 <categories>
 {% for node,structure in root.get_descendants|tree_info %}
+{% with node.get_ancestors.first as category_root %}
+{% with node.get_ancestors.last as category_last %}
+{% if category_root == root and category_last == root %}
     <category id="{{ node.id }}">{{ node.name }}</category>
+{% endif %}
+{% endwith %}
+{% endwith %}
 {% endfor %}
 </categories>
 
@@ -25,18 +32,27 @@
 <offer id="{{ product.id }}" available="{% if product.instock > 0 %}true{% else %}false{% endif %}">
 <url>{% site_url_prefix %}{% url 'product' product.code %}</url>
 {% if product.discount > 0 %}
-<oldprice>{{ product.price }}</oldprice>
+<oldprice>{{ product.price|quantize:"1" }}</oldprice>
 {% endif %}
-<price>{{ product.cost }}</price>
+<price>{{ product.cost|quantize:"1" }}</price>
 <currencyId>RUR</currencyId>
 {% for category in product.categories.all %}
 {% with category.get_ancestors|first as category_root %}
 {% if category_root == root %}
+{% with category.get_ancestors|length as category_length %}
+{% if category_length > 1 %}
+{% with category.get_ancestors.1 as top_category %}
+<categoryId>{{ top_category.id }}</categoryId>
+{% endwith %}
+{% else %}
 <categoryId>{{ category.id }}</categoryId>
+{% endif %}
+{% endwith %}
 {% endif %}
 {% endwith %}
 {% endfor %}
 <picture>{% site_url_prefix %}{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</picture>
+<typePrefix>{{ product.whatis }}</typePrefix>
 <vendor>{{ product.manufacturer.name }}</vendor>
 <vendorCode>{{ product.partnumber }}</vendorCode>
 <name>{{ product.title }}</name>
