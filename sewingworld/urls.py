@@ -20,6 +20,8 @@ urlpatterns = [
     url(r'^products\.xml$', views.products, {'template': 'products.xml'}, name='products'),
     # ex: /google.xml
     url(r'^google\.xml$', views.products, {'template': 'google.xml'}, name='google'),
+    # ex: /search/
+    url(r'^search/$', views.search, name='search'),
     # ex: /catalog/
     url(r'^catalog/$', views.catalog, name='catalog'),
     # ex: /catalog/prinadlezhnosti/
