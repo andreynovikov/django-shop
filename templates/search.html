@@ -1,27 +1,19 @@
-<!doctype html>
+{% extends "base.html" %}
 {% load staticfiles %}
-<html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <title>Поиск</title>
-  <link href="https://netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"/>
-  <script src="https://code.jquery.com/jquery-1.10.2.js"></script>
-  <script src="https://netdna.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-  <script src="https://www.jsviews.com/download/jsrender.min.js"></script>
-  <!-- http://esimakin.github.io/twbs-pagination/ -->
-  <script src="{% static 'js/jquery.twbsPagination.min.js' %}"></script>
-
+{% block title %}
+<title>Поиск</title>
+{% endblock %}
+{% block css %}
   <style>
-    body { padding: 10px }
-    #filters { margin-left: 10px; padding: 10px; border: 1px solid #ccc; float: right }
+    .sw-header-lower-block { display: none }
+    #filters { margin: 10px 0 0 10px }
     .product { margin: 5px }
     .product::after { clear: left; display: block; height: 0; content: '' }
   </style>
-</head>
-<body>
-
-<form id="filtersForm" class="form-inline">
-<div id="filters">
+{% endblock %}
+{% block content %}
+<div id="filters" class="panel panel-default pull-right"><div class="panel-body">
+  <form id="filtersForm" class="form-inline">
     <div class="checkbox">
       <label><input autocomplete="off" name="sort" value="aprice" type="checkbox"/>
       Сортировать по цене</label>
@@ -37,13 +29,8 @@
     <div id="filterCategories">
     </div>
     <button type="submit" class="btn">Применить</button>
-</div>
-
-<div id="searchBar">
-<input type="text" name="searchText" id="searchText" size="80" class="form-control input-lg"/>
-<button type="sumbit" class="btn btn-default btn-lg">Искать</button>
-</div>
-</form>
+  </form>
+</div></div>
 
 <div id="documents"></div>
 <ul id="pages"></ul>
@@ -51,17 +38,14 @@
 {% verbatim %}
 <script id="documentTemplate" type="text/x-jsrender">
   <div class="product">
-    <div style="float: left; margin-right: 2%; margin-top: 4px">
+    <div style="float: left; margin-right: 2%; margin-top: 4px; min-width: 120px; min-height: 120px; text-align: center">
       <a href="{{:url}}"><img id="4190" src="{{:snippet}}" alt="{{:name}}"/></a>
     </div>
     <h3><a href="{{:url}}">{{:name}}</a></h3>
-    <div class="sw-p-l-prices">
-      <div><span class="sw-p-l-price">{{:price}}</span>&nbsp;руб.</div>
+    <div><span class="sw-p-l-price">{{:price}}</span>&nbsp;руб.
+      <a href="/shop/basket/add/{{:id}}/" class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{:id}}">Купить</a>
     </div>
     <div>Наличие: <span class="sw-nal">{{if available == true}}Есть{{else}}Нет{{/if}}</span></div>
-    <div class="sw-p-l-buy">
-      <a href="https://order.sewing-world.ru/shop/basket/add/{{:id}}/" class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{:id}}">Купить</a>
-    </div>
   </div>
 </div>
 </script>
@@ -72,6 +56,11 @@
   </div></div>
 </script>
 {% endverbatim %}
+{% endblock %}
+{% block javascript %}
+<script src="https://www.jsviews.com/download/jsrender.min.js"></script>
+<!-- http://esimakin.github.io/twbs-pagination/ -->
+<script src="{% static 'js/jquery.twbsPagination.min.js' %}"></script>
 <script>
 (function() {
   var yandexAPI = "https://catalogapi.site.yandex.net/v1.0";
@@ -83,7 +72,8 @@
   var $categories = $("#filterCategories");
   var $pages = $("#pages");
   var $form = $("#filtersForm");
-  var $searchText = $("#searchText");
+  var $topForm = $("#topSearchForm");
+  var $searchText = $("#topSearchText");
 
   var documentTemplate = $.templates("#documentTemplate");
   var categoryTemplate = $.templates("#categoryTemplate");
@@ -104,17 +94,39 @@
    * @param  {String} url   The URL to get the value from (optional)
    * @return {String}       The field value
    */
-  var getQueryString = function ( field, url ) {
+  var getQueryString = function(field, url) {
     var href = url ? url : window.location.href;
-    var reg = new RegExp( '[?&]' + field + '=([^&#]*)', 'i' );
+    var reg = new RegExp('[?&]' + field + '=([^&#]*)', 'i');
     var string = reg.exec(href);
     return string ? decodeURIComponent(string[1].replace(/\+/g, " ")) : null;
   };
 
-  var callSearch = function(text, page, perPage) {
+  var updateQueryString = function(queryString, key, value) {
+    if (typeof value === 'string')
+      value = value.replace(/\s/g, "+");
+    newParam = key + '=' + value;
+
+    if (queryString) {
+      var updateRegex = new RegExp('([\?&])' + key + '[^&]*');
+      var removeRegex = new RegExp('([\?&])' + key + '=[^&;]+[&;]?');
+
+      if (typeof value == 'undefined' || value == null || value == '' || value == '0') { // Remove param if value is empty
+        params = queryString.replace(removeRegex, "$1");
+        params = params.replace( /[&;]$/, "" );
+      } else if (queryString.match(updateRegex) !== null) { // If param exists already, update it
+        params = queryString.replace(updateRegex, "$1" + newParam);
+      } else { // Otherwise, add it to end of query string
+        params = queryString + '&' + newParam;
+      }
+    }
+
+    return params;
+  };
+
+  var callSearch = function(text, page, category) {
     page = page || 1;
     page--;
-    perPage = perPage || 10;
+    perPage = 10;
 
     var request = {
       apikey: apiKey,
@@ -123,22 +135,34 @@
       page: page,
       perPage: perPage
     };
-    categoryFilter = $("input[name=categoryId]:checked").val() || 0;
+
+    var queryString = window.location.search;
+    queryString = updateQueryString(queryString, "text", text);
+
+    categoryFilter = $("input[name=categoryId]:checked").val() || category || 0;
     if (categoryFilter > 0)
       request["category_id"] = categoryFilter;
+    queryString = updateQueryString(queryString, "category_id", categoryFilter);
     var priceLowFilter = Number($("input[name=priceLow]").val());
     if (priceLowFilter > 0)
       request["price_low"] = priceLowFilter;
+    queryString = updateQueryString(queryString, "price_low", priceLowFilter);
     var priceHighFilter = Number($("input[name=priceHigh]").val());
     if (priceHighFilter > 0)
       request["price_high"] = priceHighFilter;
+    queryString = updateQueryString(queryString, "price_high", priceHighFilter);
     var availableFilter = $("input[name=available]:checked").val();
     if (availableFilter)
       request["available"] = availableFilter;
+    queryString = updateQueryString(queryString, "available", availableFilter);
     var sortFilter = $("input[name=sort]:checked").val();
     if (sortFilter)
       request["how"] = sortFilter;
+    queryString = updateQueryString(queryString, "how", sortFilter);
+    if (page > 0)
+      queryString = queryString + '#' + (page + 1);
 
+    history.pushState(null, null, queryString);
     $.getJSON(yandexAPI, request).done(function(data) {
       //$result.text(JSON.stringify(data, null, '\t'));
 
@@ -160,6 +184,7 @@
         //$( "<p>" ).attr( "src", item.media.m ).appendTo( "#documents" );
 	$documents.append(documentTemplate.render(document));
       });
+      $('.addProduct').each(addProduct);
 
       $pages.twbsPagination($.extend({}, defaultOpts, {
         startPage: data.page + 1,
@@ -170,9 +195,13 @@
             callSearch(text, page);
         }
       }));
-
     });
   };
+
+  $topForm.on("submit", function() {
+     $form.submit();
+     return false;
+  });
 
   $form.on("submit", function() {
      callSearch($searchText.val());
@@ -181,12 +210,18 @@
 
   var text = getQueryString('text');
   if (text != null) {
-    console.log(text);
     $searchText.val(text);
-    callSearch(text);
+    var category = getQueryString('category_id');
+    $("input[name=priceLow]").val(getQueryString('price_low'));
+    $("input[name=priceHigh]").val(getQueryString('price_high'));
+    $("input[name=available]").prop('checked', getQueryString('available') == 'true');
+    $("input[name=sort]:checked").prop('checked', getQueryString('how') == 'aprice');
+    page = 1;
+    var hash = location.hash.substr(1);
+    if (hash > 0)
+        page = hash;
+    callSearch(text, page, category);
   }
 })();
 </script>
- 
-</body>
-</html>
+{% endblock %}
