@@ -1,0 +1,18 @@
+{% load site %}
+{% load mptt_tags %}
+{% get_categories_root as categories_root %}
+{% drilldown_tree_for_node categories_root as categories %}
+{% for category,structure in categories|tree_info %}
+    {% if category.parent_id == categories_root.pk  %}
+        {% drilldown_tree_for_node category as subcategories %}
+        <li><a href="http://www.sewing-world.ru{% url 'category' category.get_path %}index.html">{{ category.name }}</a>{% if subcategories %}
+          <ul class="sw-navbar-second">
+          {% for subcategory,substructure in subcategories|tree_info %}
+            {% if subcategory.parent_id == category.pk  %}
+              <li><a href="http://www.sewing-world.ru{% url 'category' subcategory.get_path %}index.html">{{ subcategory.name }}</a></li>
+            {% endif %}
+          {% endfor %}
+          </ul>
+        {% endif %}</li>
+    {% endif %}
+{% endfor %}

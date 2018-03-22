@@ -6,7 +6,7 @@ from shop.models import Category, Product
 
 
 def index(request):
-    context = {'root': Category.objects.get(slug=settings.MPTT_ROOT)}
+    context = {}
     return render(request, 'index.html', context)
 
 
@@ -27,7 +27,6 @@ def search(request):
 def products(request, template):
     root = Category.objects.get(slug=settings.MPTT_ROOT)
     context = {
-        'root': root,
         'products': Product.objects.filter(enabled=True, market=True, categories__in=root.get_descendants(include_self=True)).distinct()
         }
     return render(request, template, context, content_type='text/xml; charset=utf-8')
@@ -42,7 +41,10 @@ def category(request, path, instance):
     products = None
     if instance:
         products = instance.products.filter(enabled=True).order_by('-price')
-    context = {'category': instance, 'products': products}
+    context = {
+        'category': instance,
+        'products': products
+    }
     return render(request, 'category.html', context)
 
 
@@ -58,5 +60,7 @@ def product(request, code):
                         product.images.append(file[:-6])
         except NotADirectoryError:
             pass
-    context = {'product': product}
+    context = {
+        'product': product
+        }
     return render(request, 'product.html', context)
