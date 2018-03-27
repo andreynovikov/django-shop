@@ -15,14 +15,8 @@
 {% load decimals %}
 {% load mptt_tags %}
 <categories>
-{% for node,structure in root.get_descendants|tree_info %}
-{% with node.get_ancestors.first as category_root %}
-{% with node.get_ancestors.last as category_last %}
-{% if category_root == root and category_last == root %}
-    <category id="{{ node.id }}">{{ node.name }}</category>
-{% endif %}
-{% endwith %}
-{% endwith %}
+{% for child in children %}
+    <category id="{{ child.id }}">{{ child.name }}</category>
 {% endfor %}
 </categories>
 
@@ -36,19 +30,7 @@
 <price>{{ product.cost|quantize:"1" }}</price>
 <currencyId>RUR</currencyId>
 {% for category in product.categories.all %}
-{% with category.get_ancestors|first as category_root %}
-{% if category_root == root %}
-{% with category.get_ancestors|length as category_length %}
-{% if category_length > 1 %}
-{% with category.get_ancestors.1 as top_category %}
-<categoryId>{{ top_category.id }}</categoryId>
-{% endwith %}
-{% else %}
-<categoryId>{{ category.id }}</categoryId>
-{% endif %}
-{% endwith %}
-{% endif %}
-{% endwith %}
+<categoryId>{{ category_map|get_dict_item:category.pk }}</categoryId>
 {% endfor %}
 <picture>http://www.sewing-world.ru/{{ product.image_prefix }}.jpg</picture>
 <typePrefix>{{ product.whatis }}</typePrefix>
