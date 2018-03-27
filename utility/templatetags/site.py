@@ -16,3 +16,8 @@ def site_url_prefix(context):
 @register.assignment_tag
 def get_categories_root():
     return Category.objects.get(slug=settings.MPTT_ROOT)
+
+
+@register.filter
+def get_dict_item(dictionary, key):
+    return dictionary.get(key)
