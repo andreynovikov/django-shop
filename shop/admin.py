@@ -29,8 +29,8 @@ from suit.widgets import AutosizedTextarea
 from mptt.admin import MPTTModelAdmin
 
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
-    Currency, Country, Region, City, Store, Manufacturer, Product, Stock, \
-    Basket, BasketItem, Manager, Courier, Order, OrderItem
+    Currency, Country, Region, City, Store, Manufacturer, Product, ProductRelation, \
+    Stock, Basket, BasketItem, Manager, Courier, Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm
 from shop.decorators import admin_changelist_link
 
@@ -199,6 +199,17 @@ class StockInline(admin.TabularInline):
         return False
 
 
+class ProductRelationInline(admin.TabularInline):
+    model = ProductRelation
+    form = autocomplete_light.modelform_factory(ProductRelation, exclude=['fake'])
+    fk_name = 'parent_product'
+    ordering = ('kind',)
+    extra = 1
+    verbose_name = "связанный товар"
+    verbose_name_plural = "связанные товары"
+    suit_classes = 'suit-tab suit-tab-money'
+
+
 class ProductForm(ModelForm):
     class Meta:
         widgets = {
@@ -264,7 +275,7 @@ class ProductAdmin(admin.ModelAdmin):
     exclude = ['image_prefix']
     search_fields = ['code', 'article', 'partnumber', 'title']
     readonly_fields = ['price', 'ws_price', 'sp_price']
-    inlines = (StockInline,)
+    inlines = (ProductRelationInline,StockInline,)
     formfield_overrides = {
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},

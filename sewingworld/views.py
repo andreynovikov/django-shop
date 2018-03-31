@@ -2,7 +2,7 @@ from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 
-from shop.models import Category, Product
+from shop.models import Category, Product, ProductRelation
 
 
 def index(request):
@@ -69,7 +69,11 @@ def product(request, code):
                         product.images.append(file[:-6])
         except NotADirectoryError:
             pass
+    related = product.related.filter(child_products__child_product__enabled=True)
     context = {
-        'product': product
+        'product': product,
+        'accessories': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_ACCESSORY),
+        'similar': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR),
+        'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT)
         }
     return render(request, 'product.html', context)
