@@ -417,6 +417,9 @@ class Product(models.Model):
     """
     whatis=models.TextField('Что это такое', blank=True)
     whatisit=models.CharField('Что это такое, кратко', max_length=50, blank=True)
+
+    related = models.ManyToManyField('self', through='ProductRelation', symmetrical=False)
+
     fabric_verylite=models.CharField('Очень легкие ткани', max_length=50, blank=True)
     fabric_lite=models.CharField('Легкие ткани', max_length=50, blank=True)
     fabric_medium=models.CharField('Средние ткани', max_length=50, blank=True)
@@ -568,6 +571,20 @@ class Product(models.Model):
 
     def __str__(self):
         return " ".join([self.code, self.article, self.title])
+
+
+class ProductRelation(models.Model):
+    KIND_SIMILAR = 1
+    KIND_ACCESSORY = 2
+    KIND_GIFT = 3
+    RELATIONSHIP_KINDS = (
+        (KIND_SIMILAR, 'похожий'),
+        (KIND_ACCESSORY, 'аксессуар'),
+        (KIND_GIFT, 'подарок'),
+        )
+    parent_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='parent_products', verbose_name='связанный товар')
+    child_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='child_products', verbose_name='товар')
+    kind = models.SmallIntegerField('тип', choices=RELATIONSHIP_KINDS, default=KIND_SIMILAR, db_index=True)
 
 
 class Stock(models.Model):

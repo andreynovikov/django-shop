@@ -7,6 +7,15 @@
 {% block title %}
 <title>{{ product.title }}</title>
 {% endblock %}
+{% comment "Breadcrumbs not implemented" %}
+<!--#if expr="$QUERY_STRING = /^[0-9]+$/" -->
+<!--#include virtual="/navigation/navprod$QUERY_STRING.html" -->
+<!--#else -->
+<ol class="breadcrumb sw-breadcrumb">
+<li><a href="/index.html">й ОЕПБНИ ЯРПЮМХЖЕ</a></li><li><a href="/catalog/index.html">йЮРЮКНЦ</a></li>
+</ol>
+<!--#endif -->
+{% endcomment %}
 {% block breadcrumbs %}
     {{ block.super }}
     {% breadcrumb "К первой странице" "/" %}
@@ -21,6 +30,9 @@
     {% endif %}
 {% endblock %}
 {% block content %}
+<script>
+gtm_products = [];
+</script>
 <div class="product-page">
 <div itemscope itemtype="http://schema.org/Product">
 <h1 class="prodname" itemprop="name">{{ product.title }}
@@ -43,6 +55,9 @@
 {% if product.partnumber %}
 <p>Код производителя: {{ product.partnumber }}</p>
 {% endif %}
+{% if product.article %}
+<p style="color:gray;">{{ product.article }}</p>
+{% endif %}
 {% if product.runame or product.whatis %}
 <p>{{ product.whatis }} {{ product.runame }}</p>
 {% endif %}
@@ -63,6 +78,7 @@
 <div class="panel panel-default product-buyblock">
 <div class="panel-body product-buyblock-body">
 <div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+{% if product.cost > 0 %}
 {% if product.discount > 0 %}
 <p class="oldprice">{{ product.price|quantize:"1" }}&nbsp;руб. <a href="#dialog_discount" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
 <div id="dialog_discount" class="mfp-hide white-popup-block">
@@ -70,7 +86,7 @@
 <p>Базовая цена в магазинах &laquo;Швейный Мир&raquo; без учета скидок <b>{{ product.price|quantize:"1" }}&nbsp;руб.</b></p>
 <p>Скидка при покупке в интернет-магазине составляет <b>{{ product.discount }}&nbsp;руб.</b></p>
 </div>
-{% endif %}
+{% endif %}{# discount > 0 #}
 <p class="price"><span itemprop="price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.
 
 {% if product.instock > 0 %}
@@ -79,11 +95,41 @@
 <a href="{% url 'shop:add' product.id %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a>
 {% endif %}
 
+<script>
+$('#p_{{ product.id }}').click(function(){
+dataLayer.push({
+'event': 'addToCart','ecommerce': {'currencyCode': 'RUB','add': {'products': [{'name':'{{ product.partnumber}} {{ product.title }}','id':'{{ product.id }}','category':cname,'brand':'{{ product.manufacturer.code }}','price':'{{ product.cost|quantize:"1" }}','quantity': 1}]}}
+});
+});
+</script>
+<script type="text/javascript">
+var google_tag_params = {
+ecomm_prodid: '{{ product.id }}',
+ecomm_pagetype: 'product',
+ecomm_totalvalue: {{ product.cost|quantize:"1" }},
+};
+</script>
+<script type="text/javascript">
+/* <![CDATA[ */
+var google_conversion_id = 826531590;
+var google_custom_params = window.google_tag_params;
+var google_remarketing_only = true;
+/* ]]> */
+</script>
+<script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js"></script>
+<noscript>
+<div style="display:inline;">
+<img height="1" width="1" style="border-style:none;" alt="" src="//googleads.g.doubleclick.net/pagead/viewthroughconversion/826531590/?guid=ON&amp;script=0"/>
+</div>
+</noscript>
+
 <span itemprop="priceCurrency" style="visibility:hidden;font-size:1pt;margin:0;padding:0;width:0;height:0;line-height:0;">RUB</span>
 {% if product.deshevle == true %}
 <a href="{% url 'django.contrib.flatpages.views.flatpage' url='dialog/deshevle/' %}" class="opener-ajax deshevle">Нашли&nbsp;дешевле?</a>
 {% endif %}
 </p>
+{% endif %}{# cost > 0 #}
+
 {% if product.available %}
 <p><span class="product-nal-caption">Наличие:</span>
 {% if product.instock > 1 %}
@@ -107,7 +153,7 @@
 {% if product.utilisation %}
 <p class="product-salesnotes">Участник акции <a href="/actions/utilisation.html">"Утилизация"</a>! Скидка по акции <span class="price">{{ maxdiscount }}%</span>!</p>
 {% endif %}
-{% if product.internetonly and 1 > 2 %}
+{% if product.internetonly and product.available %}
 <p>Этот товар продается только в интернет-магазине. <a href="#dialog_internetonly" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
 <div id="dialog_internetonly" class="mfp-hide white-popup-block">
 <h4>Этот товар продается только в интернет-магазине!</h4>
@@ -123,21 +169,18 @@
 <a href="{% url 'django.contrib.flatpages.views.flatpage' url='dialog/back/' %}" class="opener-ajax"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
 {% endif %}
 
-{% if 1 > 2 %}
-<!-- %LOOP REVERSE LoopAssociatedProducts(products,@@id@@,gift) IN prod ORDER price -->
-<!-- %IF FIRSTLOOPENTRY prod -->
-<p class="product-gift">Покупая @@name@@ в интернет-магазине, Вы получите подарок:</p>
+{% with product as parent %}
+{% for product in gifts %}
+{% if forloop.first %}
+<p class="product-gift">Покупая {{ parent.title }} в интернет-магазине, Вы получите подарок:</p>
 <div class="text-center">
-<!-- %END IF -->
-<!-- %IF EXPRESSION @@prod.enabled@@ > 0 -->
-<!--#include virtual="/products/@@prod.code@@_inc.html" -->
-<!-- %END IF -->
-<!-- %IF LASTLOOPENTRY prod -->
-</div>
-<!-- %END IF -->
-<!-- %END LOOP -->
 {% endif %}
-
+{% include "_product_info.html" %}
+{% if forloop.last %}
+</div>
+{% endif %}
+{% endfor %}
+{% endwith %}
 </div>
 </div>
 </div>
@@ -153,25 +196,6 @@
 {% if product.descr %}
 <p itemprop="description">{{ product.descr|safe }}</p>
 {% endif %}
-
-
-
-<!--
-<table border="0" style="padding:2px;width:100%;">
-<tr>
-<td style="vertical-align:top;">
-<div id="price" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
-<p><b class="price"><span class="price" itemprop="price">{{ product.price }}</span>&nbsp;руб.</b></p>
-<span itemprop="priceCurrency" style="visibility:hidden;">RUB</span>
-{% if product.nal %}
-<p><b>Наличие:</b> {{ product.nal }}</p>
-{% endif %}
-{% if product.price > 5000 %}
-<p><b>Доставка:</b> бесплатно по Москве в пределах МКАД и до транспортной компании.</p>
-{% endif %}
-</div>
-</td></tr></table>
--->
 
 {% if product.warranty %}
 <h2>Характеристики {{ product.title }}:</h2>
@@ -312,11 +336,11 @@
 {% if product.sm_needles %}
 <dt><span>Стандарт игл <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_needles/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_needles }}</dd>
 {% endif %}
-{% if product.enginecounid_name %}
-<dt><span>Страна разработки</span></dt><dd>{{ product.enginecounid_name }}</dd>
+{% if product.developer_country and product.developer_country.enabled %}
+<dt><span>Страна разработки</span></dt><dd>{{ product.developer_country.name }}</dd>
 {% endif %}
-{% if product.counid_name %}
-<dt><span>Страна производства</span></dt><dd>{{ product.counid_name }}</dd>
+{% if product.country and product.country.enabled %}
+<dt><span>Страна производства</span></dt><dd>{{ product.country.name }}</dd>
 {% endif %}
 {% if product.warranty %}
 <dt><span>Гарантия</span></dt><dd>{{ product.warranty }}</dd>
@@ -401,16 +425,12 @@
 
 {% if 'images/'|add:product.manufacturer.name|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists or product.stitches %}
 <h2>Строчки {{ product.title }}:</h2>
-
-<p>
 {% if 'images/'|add:product.manufacturer.name|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists %}
-<img src="{{ MEDIA_URL }}/images/{{ product.manufacturer.name }}/stitches/{{ product.code }}_stitches.jpg" alt="Строчки швейной машины {{ product.title }}">
+<p><img src="{{ MEDIA_URL }}/images/{{ product.manufacturer.name }}/stitches/{{ product.code }}_stitches.jpg" alt="Строчки швейной машины {{ product.title }}"></p>
 {% endif %}
 {% if product.stitches %}
 {{ product.stitches|safe }}
 {% endif %}
-</p>
-
 {% endif %}
 
 {% if product.spec %}
@@ -420,6 +440,32 @@
 {% if product.complect %}
 <h2>Комплектация</h2>
 <p>{{ product.complect|safe }}</p>
+{% endif %}
+
+{% with product as parent %}
+{% for product in accessories %}
+{% if forloop.first %}
+<h2>Популярные аксессуары для {{ parent.title }}</h2>
+{% endif %}
+{% include "_product_info.html" %}
+<script>
+gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Сопутствующие товары','position':{{ forloop.counter }});
+</script>
+{% endfor %}
+{% for product in similar %}
+{% if forloop.first %}
+<h2>Товары похожие на {{ parent.title }}</h2>
+{% endif %}
+{% include "_product_info.html" %}
+<script>
+gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Похожие товары','position':{{ forloop.counter }});
+</script>
+{% endfor %}
+{% endwith %}
+
+{% if product.dealertxt %}
+<h2>Обратите внимание!</h2>
+<p>{{ product.dealertxt }}</p>
 {% endif %}
 
 </div>
