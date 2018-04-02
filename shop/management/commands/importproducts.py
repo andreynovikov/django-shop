@@ -50,6 +50,7 @@ class Command(BaseCommand):
             product, created = Product.objects.get_or_create(pk=row['id'])
             if created:
                 product.gtin = 0
+            product.enabled = row['enabled'] == 1
             product.code = row['code']
             product.article = row['article'] or ''
             product.partnumber = row['partnumber'] or ''
