@@ -1,32 +1,24 @@
 {% extends "base.html" %}
 {% load staticfiles %}
 {% load decimals %}
+{% load render_as_template %}
 {% load shop_filters %}
 {% load mptt_tags %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}
 <title>{{ product.title }}</title>
 {% endblock %}
-{% comment "Breadcrumbs not implemented" %}
-<!--#if expr="$QUERY_STRING = /^[0-9]+$/" -->
-<!--#include virtual="/navigation/navprod$QUERY_STRING.html" -->
-<!--#else -->
-<ol class="breadcrumb sw-breadcrumb">
-<li><a href="/index.html">й ОЕПБНИ ЯРПЮМХЖЕ</a></li><li><a href="/catalog/index.html">йЮРЮКНЦ</a></li>
-</ol>
-<!--#endif -->
-{% endcomment %}
 {% block breadcrumbs %}
     {{ block.super }}
     {% breadcrumb "К первой странице" "/" %}
     {% breadcrumb "Каталог" "catalog" %}
-    {% if product.categories.all.first %}
-    {% for node,structure in product.categories.all.first.get_ancestors|tree_info %}
+    {% if category %}
+    {% for node,structure in category.get_ancestors|tree_info %}
         {% if node.is_child_node %}
             {% breadcrumb node "category" node.get_path %}
         {% endif %}
     {% endfor %}
-    {% breadcrumb product.categories.all.first "category" product.categories.all.first.get_path %}
+    {% breadcrumb category "category" category.get_path %}
     {% endif %}
 {% endblock %}
 {% block content %}
@@ -149,10 +141,13 @@ var google_remarketing_only = true;
 {% if sales_notes %}
 <p class="product-salesnotes">{{ sales_notes }}</p>
 {% endif %}
-
+{% for action in product.get_sales_actions %}
+<p class="product-salesnotes">{% render_as_template action.brief %}</p>
+{% endfor %}
 {% if product.utilisation %}
 <p class="product-salesnotes">Участник акции <a href="/actions/utilisation.html">"Утилизация"</a>! Скидка по акции <span class="price">{{ maxdiscount }}%</span>!</p>
 {% endif %}
+
 {% if product.internetonly and product.available %}
 <p>Этот товар продается только в интернет-магазине. <a href="#dialog_internetonly" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
 <div id="dialog_internetonly" class="mfp-hide white-popup-block">

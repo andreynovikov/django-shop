@@ -69,8 +69,29 @@ def product(request, code):
                         product.images.append(file[:-6])
         except NotADirectoryError:
             pass
-    related = product.related.filter(child_products__child_product__enabled=True)
+    category = None
+    cat_id = request.GET.get('cat', None)
+    try:
+        if cat_id is not None:
+            category = Category.objects.get(pk=cat_id)
+        else:
+            cat_id = request.META['QUERY_STRING']
+            if cat_id:
+                cat_id = int(cat_id)
+                category = Category.objects.get(basset_id=cat_id)
+    except Category.DoesNotExist:
+        pass
+    except ValueError:
+        pass
+    if category is None:
+        root = Category.objects.get(slug=settings.MPTT_ROOT)
+        for instance in product.categories.all():
+            if instance.get_ancestors().all().first() == root:
+                category = instance
+                break
+
     context = {
+        'category': category,
         'product': product,
         'accessories': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_ACCESSORY),
         'similar': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR),

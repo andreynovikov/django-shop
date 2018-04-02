@@ -30,7 +30,7 @@ from mptt.admin import MPTTModelAdmin
 
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
     Currency, Country, Region, City, Store, Manufacturer, Product, ProductRelation, \
-    Stock, Basket, BasketItem, Manager, Courier, Order, OrderItem
+    SalesAction, Stock, Basket, BasketItem, Manager, Courier, Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm
 from shop.decorators import admin_changelist_link
 
@@ -168,6 +168,25 @@ class ContractorAdmin(admin.ModelAdmin):
     ordering = ['code']
 
 
+@admin.register(SalesAction)
+class SalesActionAdmin(SortableModelAdmin):
+    list_display = ['name', 'slug']
+    list_display_links = ['name']
+    search_fields = ['name','slug']
+    sortable = 'order'
+
+
+@admin.register(ProductRelation)
+class ProductRelationAdmin(admin.ModelAdmin):
+    list_display = ['parent_product', 'child_product', 'kind']
+    list_display_links = ['parent_product', 'child_product']
+    list_filter = ['kind']
+    search_fields = ['parent_product__title','parent_product__code', 'parent_product__article', 'parent_product__partnumber',
+                     'child_product__title','child_product__code', 'child_product__article', 'child_product__partnumber']
+    exclude = ['image_prefix']
+    form = autocomplete_light.modelform_factory(ProductRelation, exclude=['fake'])
+
+
 class StockInline(admin.TabularInline):
     model = Stock
     readonly_fields = ['supplier', 'quantity']
@@ -188,11 +207,13 @@ class ProductRelationInline(admin.TabularInline):
     extra = 1
     verbose_name = "связанный товар"
     verbose_name_plural = "связанные товары"
-    suit_classes = 'suit-tab suit-tab-money'
+    suit_classes = 'suit-tab suit-tab-related'
 
 
-class ProductForm(ModelForm):
+class ProductForm(autocomplete_light.ModelForm):
     class Meta:
+        model = Product
+        exclude = ['fake']
         widgets = {
             'gtin': TextInput(attrs={'size': 10}),
             'spec': AutosizedTextarea(attrs={'rows': 3,}),
@@ -265,7 +286,8 @@ class ProductAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {
                 'classes': ('suit-tab', 'suit-tab-general'),
-                'fields': (('code', 'article', 'partnumber'),'title','runame','whatis','categories',('manufacturer','gtin'),('country','developer_country'),'spec','shortdescr','yandexdescr','descr','state','complect','dealertxt',)
+                'fields': (('code', 'article', 'partnumber'),'title','runame','whatis','categories',('manufacturer','gtin'),
+                           ('country','developer_country'),'spec','shortdescr','yandexdescr','descr','state','complect','dealertxt',)
         }),
         ('Деньги', {
                 'classes': ('suit-tab', 'suit-tab-money'),
@@ -275,7 +297,8 @@ class ProductAdmin(admin.ModelAdmin):
         }),
         ('Маркетинг', {
                 'classes': ('suit-tab', 'suit-tab-money'),
-                'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','sales_notes','internetonly','present','delivery','firstpage',)
+                'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','sales_notes',
+                           'internetonly','present','delivery','firstpage','sales_actions')
         }),
         ('Размеры', {
                 'classes': ('suit-tab', 'suit-tab-general'),
@@ -407,6 +430,7 @@ class ProductAdmin(admin.ModelAdmin):
         ('knittingmachines', 'Вязальные машины'),
         ('prommachines', 'Промышленные машины'),
         ('other', 'Остальное'),
+        ('related', 'Связанные товары'),
         ('stock', 'Запасы'),
     )
 

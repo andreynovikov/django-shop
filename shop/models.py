@@ -314,6 +314,26 @@ class Contractor(models.Model):
         return self.name
 
 
+class SalesAction(models.Model):
+    name = models.CharField('название', max_length=100)
+    slug = models.CharField(max_length=100)
+    active = models.BooleanField('активная')
+    brief = models.TextField('описание', blank=True)
+    description = models.TextField('статья', blank=True)
+    image = models.ImageField('изображение', upload_to='actions', blank=True,
+                              width_field='image_width', height_field='image_height')
+    image_width = models.IntegerField(null=True, blank=True)
+    image_height = models.IntegerField(null=True, blank=True)
+    order = models.PositiveIntegerField()
+
+    class Meta:
+        verbose_name = 'акция'
+        verbose_name_plural = 'акции'
+
+    def __str__(self):
+        return self.name
+
+
 class Product(models.Model):
     code = models.CharField('идентификатор', max_length=20, db_index=True)
     article = models.CharField('код 1С', max_length=20, blank=True, db_index=True)
@@ -418,7 +438,8 @@ class Product(models.Model):
     whatis=models.TextField('Что это такое', blank=True)
     whatisit=models.CharField('Что это такое, кратко', max_length=50, blank=True)
 
-    related = models.ManyToManyField('self', through='ProductRelation', symmetrical=False)
+    sales_actions = models.ManyToManyField(SalesAction, related_name='products', related_query_name='product', verbose_name='акции', blank=True)
+    related = models.ManyToManyField('self', through='ProductRelation', symmetrical=False, blank=True)
 
     fabric_verylite=models.CharField('Очень легкие ткани', max_length=50, blank=True)
     fabric_lite=models.CharField('Легкие ткани', max_length=50, blank=True)
@@ -514,6 +535,9 @@ class Product(models.Model):
         self.image_prefix = ''.join(['images/', self.manufacturer.code, '/', self.code])
         super(Product, self).save(*args, **kwargs)
 
+    def get_sales_actions(self):
+        return self.sales_actions.filter(active=True).order_by('order')
+
     @property
     def cost(self):
         return self.price - self.discount
@@ -582,9 +606,13 @@ class ProductRelation(models.Model):
         (KIND_ACCESSORY, 'аксессуар'),
         (KIND_GIFT, 'подарок'),
         )
-    parent_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='parent_products', verbose_name='связанный товар')
-    child_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='child_products', verbose_name='товар')
+    parent_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='parent_products', verbose_name='товар')
+    child_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='child_products', verbose_name='связанный товар')
     kind = models.SmallIntegerField('тип', choices=RELATIONSHIP_KINDS, default=KIND_SIMILAR, db_index=True)
+
+    class Meta:
+        verbose_name = 'связанный товар'
+        verbose_name_plural = 'связанные товары'
 
 
 class Stock(models.Model):

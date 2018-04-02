@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
-from shop.models import Product, Manufacturer, Supplier, Country, Currency, Category
+from shop.models import Product, ProductRelation, Manufacturer, Supplier, Country, Currency, Category
 
 import pprint
 
@@ -234,5 +234,36 @@ class Command(BaseCommand):
                         continue
                 ccursor.close()
             num = num + 1
+        self.stdout.write('Successfully imported %d product(s)' % num)
+        # get product relations
+        cursor.execute('SELECT * FROM om_links')
+        num = 0
+        ProductRelation.objects.all().delete()
+        for row in cursor.fetchall():
+            columns = (x[0] for x in cursor.description)
+            row = dict(zip(columns, row))
+            if not row['n1'] == 'products' or not row['n2'] == 'products':
+                continue
+            kind = None
+            if row['type'] == 'default':
+                kind = ProductRelation.KIND_ACCESSORY
+            if row['type'] == 'illegal':
+                kind = ProductRelation.KIND_SIMILAR
+            if row['type'] == 'gift':
+                kind = ProductRelation.KIND_GIFT
+            if kind is None:
+                continue
+            try:
+                parent = Product.objects.get(pk=int(row['i1']))
+            except Product.DoesNotExist:
+                self.stdout.write("Django does not contain product with id %s" % row['i1'])
+                continue
+            try:
+                child = Product.objects.get(pk=int(row['i2']))
+            except Product.DoesNotExist:
+                self.stdout.write("Django does not contain product with id %s" % row['i2'])
+                continue
+            ProductRelation.objects.create(parent_product=parent, child_product=child,kind=kind)
+            num = num + 1
+        self.stdout.write('Successfully imported %d product relation(s)' % num)
         cursor.close()
-        self.stdout.write('Successfully imported %d products(s)' % num)
