@@ -2,6 +2,7 @@
 <!DOCTYPE yml_catalog SYSTEM "shops.dtd">
 <yml_catalog date="{% now 'Y-m-d H:i' %}" >
 
+{% load site %}
 <shop>
 <name>Швейный Мир</name>
 <company>Швейный Мир</company>
@@ -13,7 +14,6 @@
 </currencies>
 
 {% load decimals %}
-{% load mptt_tags %}
 <categories>
 {% for child in children %}
     <category id="{{ child.id }}">{{ child.name }}</category>
@@ -30,7 +30,11 @@
 <price>{{ product.cost|quantize:"1" }}</price>
 <currencyId>RUR</currencyId>
 {% for category in product.categories.all %}
-<categoryId>{{ category_map|get_dict_item:category.pk }}</categoryId>
+{% with top_category=category_map|get_dict_item:category.pk %}
+{% if top_category %}
+<categoryId>{{ top_category }}</categoryId>
+{% endif %}
+{% endwith %}
 {% endfor %}
 <picture>http://www.sewing-world.ru/{{ product.image_prefix }}.jpg</picture>
 <typePrefix>{{ product.whatis }}</typePrefix>

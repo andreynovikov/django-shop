@@ -12,6 +12,7 @@
   </style>
 {% endblock %}
 {% block content %}
+<h1>Поиск</h1>
 <div id="filters" class="panel panel-default pull-right"><div class="panel-body">
   <form id="filtersForm" class="form-inline">
     <div class="checkbox">
@@ -42,10 +43,11 @@
       <a href="{{:url}}"><img id="4190" src="{{:snippet}}" alt="{{:name}}"/></a>
     </div>
     <h3><a href="{{:url}}">{{:name}}</a></h3>
-    <div><span class="sw-p-l-price">{{:price}}</span>&nbsp;руб.
+    {{if available == true}}<div><span class="sw-p-l-price">{{:price}}</span>&nbsp;руб.
       <a href="/shop/basket/add/{{:id}}/" class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{:id}}">Купить</a>
-    </div>
+    </div>{{/if}}
     <div>Наличие: <span class="sw-nal">{{if available == true}}Есть{{else}}Нет{{/if}}</span></div>
+    <div>{{:description}}</div>
   </div>
 </div>
 </script>
@@ -182,6 +184,7 @@
       $documents.empty();
       $.each(data.documents, function(i, document) {
         //$( "<p>" ).attr( "src", item.media.m ).appendTo( "#documents" );
+        document["snippet"] = document["snippet"].replace(/^http:\/\//i, 'https://');
 	$documents.append(documentTemplate.render(document));
       });
       $('.addProduct').each(addProduct);
