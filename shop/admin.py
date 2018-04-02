@@ -98,6 +98,25 @@ class CategoryAdmin(SortableMPTTModelAdmin):
     exclude = ('image_width', 'image_height', 'promo_image_width', 'promo_image_height')
     form = CategoryForm
 
+    def is_bulk_edit(self, request):
+        changelist_url = 'admin:%(app_label)s_%(model_name)s_changelist' % {
+            'app_label': self.model._meta.app_label,
+            'model_name': self.model._meta.model_name,
+        }
+        return (request.path == reverse(changelist_url) and
+                request.method == 'POST' and '_save' in request.POST)
+
+    def save_model(self, request, obj, form, change):
+        super(SortableMPTTModelAdmin, self).save_model(request, obj, form, change)
+        if not self.is_bulk_edit(request):
+            self.model.objects.rebuild()
+
+    def changelist_view(self, request, extra_context=None):
+        response = super(SortableMPTTModelAdmin, self).changelist_view(request, extra_context)
+        if self.is_bulk_edit(request):
+            self.model.objects.rebuild()
+        return response
+
 
 @admin.register(Supplier)
 class SupplierAdmin(SortableModelAdmin):
@@ -757,12 +776,12 @@ class OrderAdmin(admin.ModelAdmin):
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode', 'manager_comment']
     fieldsets = (
         (None, {'fields': (('status', 'payment', 'paid', 'manager', 'site'), ('delivery', 'delivery_price', 'courier'),
-                           'delivery_dispatch_date', 'delivery_tracking_number', 'delivery_info',
+                           'delivery_dispatch_date', ('delivery_tracking_number', 'delivery_yd_order'), 'delivery_info',
                            ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'store', 'total', 'id')}),
         ('1С', {'fields': (('buyer', 'seller','wiring_date'),),}),
-        ('Яндекс.Доставка', {'fields': ('delivery_yd_order',)}),
-        ('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
-                                  ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
+        #('Яндекс.Доставка', {'fields': ('delivery_yd_order',)}),
+        #('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
+        #                          ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
         ('Покупатель', {'fields': (('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux'),
                                     'email', 'postcode', 'city', 'address', 'comment',
                                    ('firm_name', 'is_firm'), 'firm_address', 'firm_details',)}),
