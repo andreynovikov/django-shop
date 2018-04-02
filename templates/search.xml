@@ -14,7 +14,6 @@
 </currencies>
 
 {% load decimals %}
-{% load mptt_tags %}
 <categories>
 {% for child in children %}
     <category id="{{ child.id }}">{{ child.name }}</category>
@@ -31,7 +30,11 @@
 <price>{{ product.cost|quantize:"1" }}</price>
 <currencyId>RUR</currencyId>
 {% for category in product.categories.all %}
-<categoryId>{{ category_map|get_dict_item:category.pk }}</categoryId>
+{% with top_category=category_map|get_dict_item:category.pk %}
+{% if top_category %}
+<categoryId>{{ top_category }}</categoryId>
+{% endif %}
+{% endwith %}
 {% endfor %}
 <picture>{% site_url_prefix %}{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</picture>
 <typePrefix>{{ product.whatis }}</typePrefix>
