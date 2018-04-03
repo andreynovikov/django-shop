@@ -2,7 +2,7 @@ from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 
-from shop.models import Category, Product, ProductRelation
+from shop.models import Category, Product, ProductRelation, SalesAction
 
 
 def index(request):
@@ -39,6 +39,22 @@ def products(request, template):
         'products': Product.objects.filter(enabled=True, market=True, categories__in=root.get_descendants(include_self=True)).distinct()
         }
     return render(request, template, context, content_type='text/xml; charset=utf-8')
+
+
+def sales_actions(request):
+    context = {'actions': SalesAction.objects.filter(active=True).order_by('order')}
+    return render(request, 'sales_actions.html', context)
+
+
+def sales_action(request, slug):
+    action = get_object_or_404(SalesAction, slug=slug)
+    context = {'action': action}
+    products = action.products.filter(enabled=True).order_by('-price')
+    context = {
+        'action': action,
+        'products': products
+    }
+    return render(request, 'sales_action.html', context)
 
 
 def catalog(request):

@@ -28,6 +28,10 @@ urlpatterns = [
     url(r'^catalog/(?P<path>.*)', mptt_urls.view(model='shop.models.Category', view='sewingworld.views.category', slug_field='slug', root=settings.MPTT_ROOT), name='category'),
     # ex: /products/JanomeEQ60.html
     url(r'^products/(?P<code>[-\.\w]+)\.html$', views.product, name='product'),
+    # ex: /actions/
+    url(r'^actions/$', views.sales_actions, name='sales_actions'),
+    # ex: /actions/trade-in/
+    url(r'^actions/(?P<slug>[-\.\w]+)/$', views.sales_action, name='sales_action'),
     # /pages/*
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*
