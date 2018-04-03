@@ -31,7 +31,8 @@ from mptt.admin import MPTTModelAdmin
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
     Currency, Country, Region, City, Store, Manufacturer, Product, ProductRelation, \
     SalesAction, Stock, Basket, BasketItem, Manager, Courier, Order, OrderItem
-from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm
+from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
+    OrderDiscountForm
 from shop.decorators import admin_changelist_link
 
 from django.apps import AppConfig
@@ -854,6 +855,7 @@ class OrderAdmin(admin.ModelAdmin):
             url(r'products/$', self.admin_site.admin_view(self.order_product_list), name='shop_order_product_list'),
             url(r'(\d+)/item/(\d+)/print_warranty_card/$', self.admin_site.admin_view(self.print_warranty_card), name='print-warranty-card'),
             url(r'(\d+)/combine/$', self.admin_site.admin_view(self.combine_form), name='shop_order_combine'),
+            url(r'(\d+)/discount/$', self.admin_site.admin_view(self.discount_form), name='shop_order_discount'),
         ]
         return my_urls + urls
 
@@ -1012,6 +1014,47 @@ class OrderAdmin(admin.ModelAdmin):
         context['title'] = "Укажите заказ для объединения"
 
         return TemplateResponse(request, 'admin/shop/order/combine_form.html', context)
+
+    def discount_form(self, request, id):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        order = Order.objects.get(pk=id)
+        messages = None
+        if request.method != 'POST':
+            form = OrderDiscountForm()
+            is_popup = request.GET.get('_popup', 0)
+        else:
+            form = OrderDiscountForm(request.POST)
+            is_popup = request.POST.get('_popup', 0)
+            if form.is_valid():
+                try:
+                    discount = int(form.cleaned_data['discount'])
+                    for item in order.items.all():
+                        if discount > item.pct_discount:
+                            if discount <= item.product.max_discount:
+                                item.pct_discount = discount
+                            else:
+                                item.pct_discount = item.product.max_discount
+                            item.save()
+                    messages = ["Скидка применена, закройте окно и обновите страницу заказа"]
+                    form = OrderDiscountForm()
+                    """
+                    return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
+                                        '<script type="text/javascript">opener.dismissAddRelatedObjectPopup(window, "%s", "%s");</script>'
+                                        '</body></html>' % (id, order))
+                    """
+
+                except Exception as e:
+                    form.errors['__all__'] = form.error_class([str(e)])
+
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['form'] = form
+        context['is_popup'] = is_popup
+        context['messages'] = messages
+        context['title'] = "Укажите скидку"
+
+        return TemplateResponse(request, 'admin/shop/order/discount_form.html', context)
 
     def order_1c_action(self, request, queryset):
         if not request.user.is_staff:

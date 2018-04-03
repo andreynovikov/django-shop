@@ -49,5 +49,9 @@
     <li><a href="{% add_preserved_filters combine_url %}?_popup=1" class="related-widget-wrapper-link">
             <i class="icon-resize-small icon-alpha75"></i>
             <span>{% trans "Объединение заказов" %}</span></a></li>
+    {% url opts|admin_urlname:'discount' original.pk|admin_urlquote as discount_url %}
+    <li><a href="{% add_preserved_filters discount_url %}?_popup=1" class="related-widget-wrapper-link">
+            <i class="icon-forward icon-alpha75"></i>
+            <span>{% trans "Скидка" %}</span></a></li>
     {{ block.super }}
 {% endblock %}
