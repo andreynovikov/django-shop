@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load django_bootstrap_breadcrumbs %}
+{% block title %}
+<title>Все акции</title>
+{% endblock %}
+{% block breadcrumbs %}
+    {{ block.super }}
+    {% breadcrumb "К первой странице" "/" %}
+{% endblock %}
+{% block content %}
+<h1>Акции сети магазинов "Швейный Мир"</h1>
+{% for action in actions %}
+<h2>{{ action.name }}</h2>
+<p><a href="{% url 'sales_action' action.slug %}"><img style="display:block; max-width:100%" src="{{ action.image.url }}" width="{{ action.image.width }}" height="{{ action.image.height }}"/></a></p>
+{% endfor %}
+{% endblock %}
