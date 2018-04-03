@@ -187,12 +187,21 @@ class ContractorAdmin(admin.ModelAdmin):
     ordering = ['code']
 
 
+class SalesActionAdminForm(ModelForm):
+    class Meta:
+        widgets = {
+            'brief': AutosizedTextarea(attrs={'rows': 3, 'style': 'width: 95%; max-height: 500px'}),
+            'description': AutosizedTextarea(attrs={'rows': 10, 'style': 'width: 95%; max-height: 500px'}),
+        }
+
+
 @admin.register(SalesAction)
 class SalesActionAdmin(SortableModelAdmin):
-    list_display = ['name', 'slug']
+    list_display = ['name', 'slug', 'active']
     list_display_links = ['name']
     search_fields = ['name','slug']
     sortable = 'order'
+    form = SalesActionAdminForm
 
 
 @admin.register(ProductRelation)
