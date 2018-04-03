@@ -355,6 +355,8 @@ class Product(models.Model):
     val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
     ws_pct_discount = models.PositiveSmallIntegerField('опт. скидка, %', default=0)
     max_discount = models.PositiveSmallIntegerField('макс. скидка, %', default=10)
+    #todo: not used in logic, only in templates
+    max_val_discount = models.DecimalField('макс. скидка, руб', max_digits=10, decimal_places=2, null=True)
     ws_max_discount = models.PositiveSmallIntegerField('опт. макс. скидка, %', default=10)
     image_prefix = models.CharField('префикс изображения', max_length=200)
     categories = TreeManyToManyField('shop.Category', related_name='products',
