@@ -814,7 +814,7 @@ class OrderAdmin(admin.ModelAdmin):
 
     list_display = ['order_name', 'name_and_skyped_phone', 'city', 'total', 'payment', 'calm_paid', 'combined_delivery',
                     'colored_status', 'combined_comments']
-    readonly_fields = ['id', 'shop_name', 'total', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
+    readonly_fields = ['id', 'shop_name', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
     list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'manager', 'courier', 'delivery',
                    ('delivery_dispatch_date', FutureDateFieldListFilter), ('delivery_handing_date', FutureDateFieldListFilter)]
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment',
@@ -822,7 +822,8 @@ class OrderAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {'fields': (('status', 'payment', 'paid', 'manager', 'site'), ('delivery', 'delivery_price', 'courier'),
                            'delivery_dispatch_date', ('delivery_tracking_number', 'delivery_yd_order'), 'delivery_info',
-                           ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'store', 'total', 'id')}),
+                           ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'store',
+                           'products_price', 'total', 'id')}),
         ('1С', {'fields': (('buyer', 'seller','wiring_date'),),}),
         #('Яндекс.Доставка', {'fields': ('delivery_yd_order',)}),
         #('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),

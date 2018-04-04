@@ -135,13 +135,16 @@ td.field-price, td.field-cur_price, td.field-pct_discount, td.field-val_discount
         var Phone = $( "#id_phone" ).val();
         $( "label[for='id_phone']" ).html("<a href=\"skype:"+Phone+"?call\">Телефон:</a>");
         var Delivery_Price = $( "input[name='delivery_price']" ).val();
+        var Products_Price = $( "div.field-products_price > div > div > span.readonly" ).html();
         var Total = $( "div.field-total > div > div > span.readonly" ).html();
         var Number = $( "div.field-id > div > div.controls > span.readonly" ).html();
+        $( "div.field-products_price" ).css("display","none");
         $( "div.field-total" ).css("display","none");
         $( "div.field-id" ).css("display","none");
         $("#items-group" ).after("<div style=\"text-align:right;\" class=\"lead\">Итого: " + Total + "</div>");
-        $(".save-box" ).before("<div style=\"text-align:center;\" class=\"lead\">Заказ " + Number + "</div>");
         $("#items-group" ).after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Доставка: " + Delivery_Price + "</div>");
+        $("#items-group" ).after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Всего: " + Products_Price + "</div>");
+        $(".save-box" ).before("<div style=\"text-align:center;\" class=\"lead\">Заказ " + Number + "</div>");
     }
   });
 })(jQuery);
