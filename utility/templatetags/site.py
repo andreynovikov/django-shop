@@ -8,3 +8,8 @@ register = template.Library()
 @register.simple_tag(takes_context=True)
 def site_url_prefix(context):
     return '%s://%s' % (context['request'].scheme, Site.objects.get_current().domain)
+
+
+@register.filter
+def get_dict_item(dictionary, key):
+    return dictionary.get(key)

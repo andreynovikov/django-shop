@@ -22,8 +22,17 @@ def search_xml(request):
 
 def products(request, template):
     root = Category.objects.get(slug=settings.MPTT_ROOT)
+    children = root.get_children()
+    categories = {}
+    for child in children:
+        categories[child.pk] = child.pk;
+        descendants = child.get_descendants()
+        for descendant in descendants:
+            categories[descendant.pk] = child.pk;
     context = {
         'root': root,
+        'children': children,
+        'category_map': categories,
         'products': Product.objects.filter(enabled=True, market=True, categories__in=root.get_descendants(include_self=True)).distinct()
         }
     return render(request, template, context, content_type='text/xml; charset=utf-8')
