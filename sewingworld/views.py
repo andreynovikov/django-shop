@@ -1,3 +1,4 @@
+from django.http import Http404
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
@@ -53,6 +54,8 @@ def category(request, path, instance):
 
 def product(request, code):
     product = get_object_or_404(Product, code=code)
+    if not product.breadcrumbs:
+        raise Http404("Product does not exist")
     product.images = []
     if default_storage.exists(product.image_prefix):
         try:
