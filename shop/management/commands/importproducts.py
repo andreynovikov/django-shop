@@ -235,8 +235,9 @@ class Command(BaseCommand):
                     if crow[0] not in missing_cats:
                         self.stdout.write("Django does not contain category with basset id %d" % crow[0])
                         missing_cats.add(crow[0])
-            if categories:
-                product.categories.remove(*categories)
+            for category in categories:
+                if category.basset_id:
+                    product.categories.remove(category)
             ccursor.close()
             num = num + 1
         self.stdout.write('Successfully imported %d product(s)' % num)
