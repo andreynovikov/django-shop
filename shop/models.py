@@ -241,8 +241,8 @@ class Store(models.Model):
     latitude = models.FloatField('широта', default=0, blank=True, null=True)
     longitude = models.FloatField('долгота', default=0, blank=True, null=True)
     postcode = models.CharField('индекс', max_length=20, blank=True)
-    address2 = models.CharField('адрес', max_length=255, blank=True)
-    phone2 = models.CharField('телефон', max_length=100, blank=True)
+    address2 = models.CharField('доп.адрес', max_length=255, blank=True)
+    phone2 = models.CharField('доп.телефон', max_length=100, blank=True)
     url = models.CharField('сайт', max_length=100, blank=True)
     email = models.CharField('эл.адрес', max_length=100, blank=True)
     hours = models.CharField('раб.часы', max_length=100, blank=True)
@@ -439,6 +439,7 @@ class Product(models.Model):
     """
     whatis=models.TextField('Что это такое', blank=True)
     whatisit=models.CharField('Что это такое, кратко', max_length=50, blank=True)
+    variations = models.CharField('вариации', max_length=255, blank=True)
 
     sales_actions = models.ManyToManyField(SalesAction, related_name='products', related_query_name='product', verbose_name='акции', blank=True)
     related = models.ManyToManyField('self', through='ProductRelation', symmetrical=False, blank=True)
