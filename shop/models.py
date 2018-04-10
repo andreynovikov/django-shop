@@ -560,6 +560,14 @@ class Product(models.Model):
         self.ws_price = ws_price
         self.sp_price = sp_price
 
+    @cached_property
+    def breadcrumbs(self):
+        for category in self.categories.all():
+             ancestors = category.get_ancestors(include_self=True)
+             if ancestors[0].slug == settings.MPTT_ROOT:
+                 return ancestors
+        return None
+
     @property
     def cost(self):
         return self.price - self.discount
