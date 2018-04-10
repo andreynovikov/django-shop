@@ -541,6 +541,14 @@ class Product(models.Model):
     def get_sales_actions(self):
         return self.sales_actions.filter(active=True).order_by('order')
 
+    @cached_property
+    def breadcrumbs(self):
+        for category in self.categories.all():
+             ancestors = category.get_ancestors(include_self=True)
+             if ancestors[0].slug == settings.MPTT_ROOT:
+                 return ancestors
+        return None
+
     @property
     def cost(self):
         return self.price - self.discount
