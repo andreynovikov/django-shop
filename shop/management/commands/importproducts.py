@@ -4,6 +4,7 @@ from shop.models import Product, ProductRelation, Manufacturer, Supplier, Countr
 
 import pprint
 
+
 class Command(BaseCommand):
     help = 'Imports products from basset'
 
@@ -131,6 +132,8 @@ class Command(BaseCommand):
             product.dealertxt = row['dealertxt'] or ''
             #product.num = row['num'] or 0
             #boleroid=integer not null default 0
+            product.variations = row['variations'] or ''
+            product.variations = product.variations.replace('index.html','')
             product.shortdescr = row['shortdescr'] or ''
             product.yandexdescr = row['yandexdescr'] or ''
             #onum=models.SmallIntegerField('Заказано у поставщика', default=0)

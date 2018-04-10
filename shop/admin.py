@@ -316,7 +316,7 @@ class ProductAdmin(admin.ModelAdmin):
         (None, {
                 'classes': ('suit-tab', 'suit-tab-general'),
                 'fields': (('code', 'article', 'partnumber'),'title','runame','whatis','categories',('manufacturer','gtin'),
-                           ('country','developer_country'),'spec','shortdescr','yandexdescr','descr','state','complect','dealertxt',)
+                           ('country','developer_country'),'variations','spec','shortdescr','yandexdescr','descr','state','complect','dealertxt',)
         }),
         ('Деньги', {
                 'classes': ('suit-tab', 'suit-tab-money'),
