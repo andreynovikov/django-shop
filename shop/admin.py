@@ -173,7 +173,7 @@ class StoreAdmin(admin.ModelAdmin):
 
 @admin.register(Manufacturer)
 class ManufacturerAdmin(admin.ModelAdmin):
-    list_display = ['id', 'code', 'name', 'machinemaker', 'accessorymaker']
+    list_display = ['id', 'code', 'name', 'machinemaker', 'accessorymaker','logo']
     list_display_links = ['name']
     list_filter = ['machinemaker', 'accessorymaker']
     search_fields = ['code', 'name']
