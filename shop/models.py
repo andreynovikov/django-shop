@@ -145,6 +145,10 @@ class Category(MPTTModel):
     def get_absolute_url(self):
         return reverse('category', kwargs={'path': self.get_path()})
 
+    #def save(self, *args, **kwargs):
+    #    super(Category, self).save(*args, **kwargs)
+    #    Category.objects.rebuild()
+
     def __str__(self):
         return self.name
 
