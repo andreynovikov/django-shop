@@ -32,8 +32,9 @@ from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contracto
     Currency, Country, Region, City, Store, Manufacturer, Product, ProductRelation, \
     SalesAction, Stock, Basket, BasketItem, Manager, Courier, Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
-    OrderDiscountForm
+    OrderDiscountForm, SendSmsForm
 from shop.decorators import admin_changelist_link
+from shop.tasks import send_message
 
 from django.apps import AppConfig
 
@@ -866,6 +867,7 @@ class OrderAdmin(admin.ModelAdmin):
             url(r'(\d+)/item/(\d+)/print_warranty_card/$', self.admin_site.admin_view(self.print_warranty_card), name='print-warranty-card'),
             url(r'(\d+)/combine/$', self.admin_site.admin_view(self.combine_form), name='shop_order_combine'),
             url(r'(\d+)/discount/$', self.admin_site.admin_view(self.discount_form), name='shop_order_discount'),
+            url(r'sms/(\+\d+)/$', self.admin_site.admin_view(self.send_sms_form), name='shop_order_send_sms'),
         ]
         return my_urls + urls
 
@@ -1065,6 +1067,36 @@ class OrderAdmin(admin.ModelAdmin):
         context['title'] = "Укажите скидку"
 
         return TemplateResponse(request, 'admin/shop/order/discount_form.html', context)
+
+    def send_sms_form(self, request, phone):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        messages = None
+        if request.method != 'POST':
+            form = SendSmsForm()
+            is_popup = request.GET.get('_popup', 0)
+        else:
+            form = SendSmsForm(request.POST)
+            is_popup = request.POST.get('_popup', 0)
+            if form.is_valid():
+                try:
+                    message = form.cleaned_data['message']
+                    if message:
+                        send_message.delay(phone, message)
+                    messages = ["Сообщение отправлено, закройте окно"]
+                    form = SendSmsForm()
+                except Exception as e:
+                    form.errors['__all__'] = form.error_class([str(e)])
+
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['form'] = form
+        context['is_popup'] = is_popup
+        context['messages'] = messages
+        context['title'] = "Укажите текст сообщения для %s" % str(phone)
+        context['action'] = "Отправить"
+
+        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
 
     def order_1c_action(self, request, queryset):
         if not request.user.is_staff:
