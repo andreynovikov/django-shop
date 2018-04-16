@@ -270,4 +270,21 @@ class Command(BaseCommand):
             ProductRelation.objects.create(parent_product=parent, child_product=child,kind=kind)
             num = num + 1
         self.stdout.write('Successfully imported %d product relation(s)' % num)
+        # get basset-related categories
+        num = 0
+        categories = Category.objects.exclude(basset_id__isnull=True)
+        for category in categories:
+            cursor.execute('SELECT * FROM categories WHERE id = %d' % category.basset_id)
+            columns = (x[0] for x in cursor.description)
+            row = cursor.fetchone()
+            if row is None:
+                self.stdout.write("Basset does not contain category with id %d" % category.basset_id)
+                continue
+            row = dict(zip(columns, row))
+            if row['descr']:
+                category.description = row['descr']
+                category.save()
+            num = num + 1
+        self.stdout.write('Successfully updated %d categories' % num)
+
         cursor.close()
