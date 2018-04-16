@@ -5,6 +5,7 @@ from django.conf import settings
 import autocomplete_light
 
 from shop.models import Supplier, Product, Stock, Order
+from shop.widgets import PhoneWidget
 from shop.tasks import import1c
 
 
@@ -43,6 +44,10 @@ class OrderDiscountForm(forms.Form):
     discount = forms.IntegerField(label='Скидка', min_value=0, required=True)
 
 
+class SendSmsForm(forms.Form):
+    message = forms.CharField(label='Сообщение', max_length=160, required=True)
+
+
 class OrderAdminForm(autocomplete_light.ModelForm):
     def clean_store(self):
         store = self.cleaned_data.get('store', None)
@@ -53,3 +58,7 @@ class OrderAdminForm(autocomplete_light.ModelForm):
     class Meta:
         model = Order
         exclude = ['created']
+        widgets = {
+            'phone': PhoneWidget(),
+            'phone_aux': PhoneWidget(),
+            }

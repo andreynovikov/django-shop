@@ -17,6 +17,15 @@ from shop.models import Supplier, Currency, Product, Stock, Order
 
 
 @shared_task
+def send_message(phone, message):
+    #smsru_key = getattr(settings, 'SMSRU_KEY', None)
+    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
+    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
+    client = sms_uslugi.Client(sms_login, sms_password)
+    client.send(phone, message)
+
+
+@shared_task
 def send_password(phone, password):
     #smsru_key = getattr(settings, 'SMSRU_KEY', None)
     sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
