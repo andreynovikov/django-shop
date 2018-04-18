@@ -25,6 +25,7 @@
 <script>
 gtm_products = [];
 </script>
+<div class="container">
 <div class="product-page">
 <div itemscope itemtype="http://schema.org/Product">
 <h1 class="prodname" itemprop="name">{{ product.title }}
@@ -44,9 +45,17 @@ gtm_products = [];
 </sup>
 </h1>
 
+{% if product.manufacturer %}
+{% if product.manufacturer.logo %}
+<img class="pull-left" src="{{ product.manufacturer.logo.url }}" width="{{ product.manufacturer.logo_width }}" height="{{ product.manufacturer.logo_height }}"/>
+{% else %}
+<p>{{ product.manufacturer.name }}</p>
+{% endif %}
+{% endif %}
 {% if product.partnumber %}
 <p>Код производителя: {{ product.partnumber }}</p>
 {% endif %}
+<div class="clearfix"></div>
 {% if product.article %}
 <p style="color:gray;">{{ product.article }}</p>
 {% endif %}
@@ -82,38 +91,10 @@ gtm_products = [];
 <p class="price"><span itemprop="price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.
 
 {% if product.instock > 0 %}
-<a href="{% url 'shop:add' product.id %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
+<a href="https://order.sewing-world.ru{% url 'shop:add' product.id %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
 {% else %}
-<a href="{% url 'shop:add' product.id %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a>
+<a href="https://order.sewing-world.ru{% url 'shop:add' product.id %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a>
 {% endif %}
-
-<script>
-$('#p_{{ product.id }}').click(function(){
-dataLayer.push({
-'event': 'addToCart','ecommerce': {'currencyCode': 'RUB','add': {'products': [{'name':'{{ product.partnumber}} {{ product.title }}','id':'{{ product.id }}','category':cname,'brand':'{{ product.manufacturer.code }}','price':'{{ product.cost|quantize:"1" }}','quantity': 1}]}}
-});
-});
-</script>
-<script type="text/javascript">
-var google_tag_params = {
-ecomm_prodid: '{{ product.id }}',
-ecomm_pagetype: 'product',
-ecomm_totalvalue: {{ product.cost|quantize:"1" }},
-};
-</script>
-<script type="text/javascript">
-/* <![CDATA[ */
-var google_conversion_id = 826531590;
-var google_custom_params = window.google_tag_params;
-var google_remarketing_only = true;
-/* ]]> */
-</script>
-<script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js"></script>
-<noscript>
-<div style="display:inline;">
-<img height="1" width="1" style="border-style:none;" alt="" src="//googleads.g.doubleclick.net/pagead/viewthroughconversion/826531590/?guid=ON&amp;script=0"/>
-</div>
-</noscript>
 
 <span itemprop="priceCurrency" style="visibility:hidden;font-size:1pt;margin:0;padding:0;width:0;height:0;line-height:0;">RUB</span>
 {% if product.deshevle == true %}
@@ -122,7 +103,6 @@ var google_remarketing_only = true;
 </p>
 {% endif %}{# cost > 0 #}
 
-{% if product.available %}
 <p><span class="product-nal-caption">Наличие:</span>
 {% if product.instock > 1 %}
 <span class="product-nal-true">Есть</span>
@@ -134,12 +114,11 @@ var google_remarketing_only = true;
 <span class="product-nal-false">Нет</span>
 {% endif %}
 </p>
-{% endif %}
 {% if product.state %}
 <p>{{ product.state }}</p>
 {% endif %}
-{% if sales_notes %}
-<p class="product-salesnotes">{{ sales_notes }}</p>
+{% if product.sales_notes %}
+<p class="product-salesnotes">{{ product.sales_notes }}</p>
 {% endif %}
 {% for action in product.get_sales_actions %}
 <p class="product-salesnotes">{% render_as_template action.brief %}</p>
@@ -148,7 +127,7 @@ var google_remarketing_only = true;
 <p class="product-salesnotes">Участник акции <a href="/actions/utilisation.html">"Утилизация"</a>! Скидка по акции <span class="price">{{ maxdiscount }}%</span>!</p>
 {% endif %}
 
-{% if product.internetonly and product.available %}
+{% if product.internetonly and product.instock > 0 %}
 <p>Этот товар продается только в интернет-магазине. <a href="#dialog_internetonly" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
 <div id="dialog_internetonly" class="mfp-hide white-popup-block">
 <h4>Этот товар продается только в интернет-магазине!</h4>
@@ -444,7 +423,7 @@ var google_remarketing_only = true;
 {% endif %}
 {% include "_product_info.html" %}
 <script>
-gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Сопутствующие товары','position':{{ forloop.counter }});
+gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Сопутствующие товары','position':{{ forloop.counter }}});
 </script>
 {% endfor %}
 {% for product in similar %}
@@ -453,7 +432,7 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 {% endif %}
 {% include "_product_info.html" %}
 <script>
-gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Похожие товары','position':{{ forloop.counter }});
+gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Похожие товары','position':{{ forloop.counter }}});
 </script>
 {% endfor %}
 {% endwith %}
@@ -464,6 +443,39 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 {% endif %}
 
 </div>
-
 </div> <!--- /product-page --->
+
+<noscript>
+<div style="display:inline;">
+<img height="1" width="1" style="border-style:none;" alt="" src="//googleads.g.doubleclick.net/pagead/viewthroughconversion/826531590/?guid=ON&amp;script=0"/>
+</div>
+</noscript>
+</div>
+{% endblock %}
+{% block javascript %}
+<script>
+$(document).ready(function() {
+  var cname = $('#cname').html();
+  dataLayer.push({'ecommerce':{'currencyCode':'RUB','impressions':gtm_products,'detail':{'products': [{'id':'{{ product.id }}','name':'{{ product.partnumber }} {{ product.title }}','category':cname,'brand':'{{ product.manufacturer.code }}','price':'{{ product.cost }}'}]}
+  }});
+});
+
+$('#p_{{ product.id }}').click(function(){
+  dataLayer.push({'event': 'addToCart','ecommerce': {'currencyCode': 'RUB','add': {'products': [{'name':'{{ product.partnumber}} {{ product.title }}','id':'{{ product.id }}','category':cname,'brand':'{{ product.manufacturer.code }}','price':'{{ product.cost|quantize:"1" }}','quantity': 1}]}}
+  });
+});
+
+var google_tag_params = {
+ecomm_prodid: '{{ product.id }}',
+ecomm_pagetype: 'product',
+ecomm_totalvalue: {{ product.cost|quantize:"1" }},
+};
+
+/* <![CDATA[ */
+var google_conversion_id = 826531590;
+var google_custom_params = window.google_tag_params;
+var google_remarketing_only = true;
+/* ]]> */
+</script>
+<script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js"></script>
 {% endblock %}
