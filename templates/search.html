@@ -7,8 +7,6 @@
   <style>
     .sw-header-lower-block { display: none }
     #filters { margin: 10px 0 0 10px }
-    .product { margin: 5px }
-    .product::after { clear: left; display: block; height: 0; content: '' }
   </style>
 {% endblock %}
 {% block content %}
@@ -38,16 +36,32 @@
 
 {% verbatim %}
 <script id="documentTemplate" type="text/x-jsrender">
-  <div class="product">
-    <div style="float: left; margin-right: 2%; margin-top: 4px; min-width: 120px; min-height: 120px; text-align: center">
-      <a href="{{:url}}"><img id="4190" src="{{:snippet}}" alt="{{:name}}"/></a>
+<div class="sw-p-l panel panel-default">
+  <div class="panel-body">
+    <div class="sw-p-l-image text-center">{{if snippet}}<a href="{{:url}}"><img src="{{:snippet}}" alt="{{:name}}"/></a>{{/if}}</div>
+    <div class="sw-p-l-name">
+      <h3 class="sw-p-l-name-h"><a href="{{:url}}">{{:name}}</a></h3>
+      <div class="sw-p-l-brif">
+      {{:description}}
+      </div>
     </div>
-    <h3><a href="{{:url}}">{{:name}}</a></h3>
-    {{if available == true}}<div><span class="sw-p-l-price">{{:price}}</span>&nbsp;руб.
-      <a href="/shop/basket/add/{{:id}}/" class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{:id}}">Купить</a>
-    </div>{{/if}}
-    <div>Наличие: <span class="sw-nal">{{if available == true}}Есть{{else}}Нет{{/if}}</span></div>
-    <div>{{:description}}</div>
+    <div class="sw-p-l-prices" style="display:block; text-align:center; width:100%">
+      <span class="sw-p-l-price">{{:price}}</span>&nbsp;руб.
+    </div>
+    {{if available == true}}
+    <div class="product-nal-true" style="text-align:center; width:100%">В наличии</div>
+    {{else}}
+    <div class="product-nal-false" style="text-align:center; width:100%">Закончились</div>
+    {{/if}}
+    <div class="sw-p-l-buy" style="display:block; text-align:center; width:100%">
+      {{if available == true}}
+      <a href="/shop/basket/add/{{:id}}/"
+      class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{:id}}">Купить</a>
+      {{else}}
+      <a href="/shop/basket/add/{{:id}}/"
+      class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{:id}}">Сообщить о поступлении</a>
+      {{/if}}
+    </div>
   </div>
 </div>
 </script>
@@ -60,7 +74,7 @@
 {% endverbatim %}
 {% endblock %}
 {% block javascript %}
-<script src="https://www.jsviews.com/download/jsrender.min.js"></script>
+<script src="{% static 'js/jsrender.min.js' %}"></script>
 <!-- http://esimakin.github.io/twbs-pagination/ -->
 <script src="{% static 'js/jquery.twbsPagination.min.js' %}"></script>
 <script>
@@ -165,7 +179,8 @@
       queryString = queryString + '#' + (page + 1);
 
     history.pushState(null, null, queryString);
-    $.getJSON(yandexAPI, request).done(function(data) {
+    //$.getJSON(yandexAPI, request).done(function(data) {
+    $.ajax({dataType: "json", url: yandexAPI, data: request}).done(function(data) {
       //$result.text(JSON.stringify(data, null, '\t'));
 
       $categories.empty();
