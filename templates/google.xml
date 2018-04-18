@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
 <channel>
-{% load mptt_tags %}
 <title>Швейный Мир</title>
 <link>http://www.sewing-world.ru</link>
 {% for product in products %}
