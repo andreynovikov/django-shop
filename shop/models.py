@@ -275,8 +275,7 @@ class Manufacturer(models.Model):
     name = models.CharField('название', max_length=150)
     machinemaker = models.BooleanField('машины делает', default=False)
     accessorymaker = models.BooleanField('аксессуары делает', default=False)
-    logo = models.ImageField('логотип', upload_to='logos', blank=True,
-                              width_field='logo_width', height_field='logo_height')
+    logo = models.FileField('логотип', upload_to='logos', blank=True)
     logo_width = models.IntegerField(null=True, blank=True)
     logo_height = models.IntegerField(null=True, blank=True)
 
