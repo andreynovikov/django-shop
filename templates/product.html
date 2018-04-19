@@ -28,6 +28,9 @@ gtm_products = [];
 <div class="container">
 <div class="product-page">
 <div itemscope itemtype="http://schema.org/Product">
+<div class="container-fluid">
+<div class="row">
+<div class="col-md-20">
 <h1 class="prodname" itemprop="name">{{ product.title }}
 <sup>
 {% if product.ishot %}
@@ -44,21 +47,27 @@ gtm_products = [];
 {% endif %}
 </sup>
 </h1>
-
+</div>
+<div class="col-md-4">
+<div class="pull-right">
 {% if product.manufacturer %}
 {% if product.manufacturer.logo %}
-<img class="pull-left" src="{{ product.manufacturer.logo.url }}" width="{{ product.manufacturer.logo_width }}" height="{{ product.manufacturer.logo_height }}"/>
+<img class="hidden-xs hidden-sm" alt="{{ product.manufacturer.name }}" src="{{ product.manufacturer.logo.url }}" width="{{ product.manufacturer.logo_width }}" height="{{ product.manufacturer.logo_height }}"/>
+<p class="hidden-md hidden-lg">Производитель: <strong>{{ product.manufacturer.name }}</strong></p>
 {% else %}
-<p>{{ product.manufacturer.name }}</p>
+<p><strong>{{ product.manufacturer.name }}</strong></p>
 {% endif %}
 {% endif %}
 {% if product.partnumber %}
-<p>Код производителя: {{ product.partnumber }}</p>
+<p class="hidden-xs hidden-sm">Артикул:<br>{{ product.partnumber }}</p>
+<p class="hidden-md hidden-lg">Артикул: {{ product.partnumber }}</p>
 {% endif %}
+</div>
+</div>
+</div>
+</div>
+
 <div class="clearfix"></div>
-{% if product.article %}
-<p style="color:gray;">{{ product.article }}</p>
-{% endif %}
 {% if product.runame or product.whatis %}
 <p>{{ product.whatis }} {{ product.runame }}</p>
 {% endif %}
@@ -155,9 +164,13 @@ gtm_products = [];
 {% endif %}
 {% endfor %}
 {% endwith %}
+{% if product.article %}
+<div style="color:#888888;"><small>Код товара: {{ product.article }}</small></div>
+{% endif %}
 </div>
 </div>
 </div>
+
 
 {% if product.images %}
 <div class="popup-gallery">
