@@ -46,7 +46,7 @@ al.register(SalesAction,
 )
 
 al.register(Store,
-  search_fields=['address', 'city__name'],
+  search_fields=['address', 'address2', 'city__name'],
   attrs={
         'placeholder': 'Магазин?',
         'data-autocomplete-minimum-characters': 2,

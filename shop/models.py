@@ -145,6 +145,10 @@ class Category(MPTTModel):
     def get_absolute_url(self):
         return reverse('category', kwargs={'path': self.get_path()})
 
+    #def save(self, *args, **kwargs):
+    #    super(Category, self).save(*args, **kwargs)
+    #    Category.objects.rebuild()
+
     def __str__(self):
         return self.name
 
@@ -321,6 +325,7 @@ class SalesAction(models.Model):
     name = models.CharField('название', max_length=100)
     slug = models.CharField(max_length=100)
     active = models.BooleanField('активная')
+    show_products = models.BooleanField('показывать список товаров', default=True)
     brief = models.TextField('описание', blank=True)
     description = models.TextField('статья', blank=True)
     image = models.ImageField('изображение', upload_to='actions', blank=True,
@@ -359,7 +364,7 @@ class Product(models.Model):
     ws_pct_discount = models.PositiveSmallIntegerField('опт. скидка, %', default=0)
     max_discount = models.PositiveSmallIntegerField('макс. скидка, %', default=10)
     #todo: not used in logic, only in templates
-    max_val_discount = models.DecimalField('макс. скидка, руб', max_digits=10, decimal_places=2, null=True)
+    max_val_discount = models.DecimalField('макс. скидка, руб', max_digits=10, decimal_places=2, null=True, blank=True)
     ws_max_discount = models.PositiveSmallIntegerField('опт. макс. скидка, %', default=10)
     image_prefix = models.CharField('префикс изображения', max_length=200)
     categories = TreeManyToManyField('shop.Category', related_name='products',
@@ -543,6 +548,14 @@ class Product(models.Model):
 
     def get_sales_actions(self):
         return self.sales_actions.filter(active=True).order_by('order')
+
+    @cached_property
+    def breadcrumbs(self):
+        for category in self.categories.all():
+             ancestors = category.get_ancestors(include_self=True)
+             if ancestors[0].slug == settings.MPTT_ROOT:
+                 return ancestors
+        return None
 
     @property
     def cost(self):

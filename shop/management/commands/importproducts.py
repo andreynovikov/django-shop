@@ -224,19 +224,24 @@ class Command(BaseCommand):
             product.prom_stitch_type = row['prom_stitch_type'] or ''
             product.prom_autothread = row['prom_autothread'] or ''
             product.save()
-            if not product.categories.all():
-                ccursor = connection.cursor()
-                ccursor.execute("select cid from sj_cats where sid = %s and tab = 'products'", [row['id']])
-                for crow in ccursor.fetchall():
-                    try:
-                        category = Category.objects.get(basset_id=crow[0])
+            categories = list(product.categories.all())
+            ccursor = connection.cursor()
+            ccursor.execute("select cid from sj_cats where sid = %s and tab = 'products'", [row['id']])
+            for crow in ccursor.fetchall():
+                try:
+                    category = Category.objects.get(basset_id=crow[0])
+                    if category in categories:
+                        categories.remove(category)
+                    else:
                         product.categories.add(category)
-                    except Category.DoesNotExist:
-                        if crow[0] not in missing_cats:
-                            self.stdout.write("Django does not contain category with basset id %d" % crow[0])
-                            missing_cats.add(crow[0])
-                        continue
-                ccursor.close()
+                except Category.DoesNotExist:
+                    if crow[0] not in missing_cats:
+                        self.stdout.write("Django does not contain category with basset id %d" % crow[0])
+                        missing_cats.add(crow[0])
+            for category in categories:
+                if category.basset_id:
+                    product.categories.remove(category)
+            ccursor.close()
             num = num + 1
         self.stdout.write('Successfully imported %d product(s)' % num)
         # get product relations

@@ -4,7 +4,7 @@
             {% ifnotequal forloop.counter breadcrumbs_total %}
                 <a href="{{ url }}">{{ label|safe }}</a>
             {% else %}
-                <b><a href="{{ url }}" id="cname">{{ label|safe }}</a></b>
+                <a href="{{ url }}" id="cname">{{ label|safe }}</a>
             {% endifnotequal %}
             {% if not forloop.last %}
                 <!-- <span class="divider">/</span> -->

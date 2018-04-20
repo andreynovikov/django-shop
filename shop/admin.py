@@ -94,7 +94,7 @@ class CategoryAdmin(SortableMPTTModelAdmin):
     search_fields = ('name','slug')
     prepopulated_fields = {'slug': ('name',)}
     list_display = ('name', 'slug', 'basset_id', 'active')
-    list_editable = ['active']
+    #list_editable = ['active']
     list_display_links = ['name']
     sortable = 'order'
     exclude = ('image_width', 'image_height', 'promo_image_width', 'promo_image_height')
@@ -168,7 +168,7 @@ class StoreAdmin(admin.ModelAdmin):
     list_display = ['city', 'address', 'name', 'enabled', 'latitude', 'longitude']
     list_display_links = ['address', 'name']
     list_filter = ['city', 'enabled']
-    search_fields = ['name']
+    search_fields = ['name', 'address', 'address2']
     ordering = ['city', 'address']
 
 
@@ -189,12 +189,21 @@ class ContractorAdmin(admin.ModelAdmin):
     ordering = ['code']
 
 
+class SalesActionAdminForm(ModelForm):
+    class Meta:
+        widgets = {
+            'brief': AutosizedTextarea(attrs={'rows': 3, 'style': 'width: 95%; max-height: 500px'}),
+            'description': AutosizedTextarea(attrs={'rows': 10, 'style': 'width: 95%; max-height: 500px'}),
+        }
+
+
 @admin.register(SalesAction)
 class SalesActionAdmin(SortableModelAdmin):
-    list_display = ['name', 'slug']
+    list_display = ['name', 'slug', 'active']
     list_display_links = ['name']
     search_fields = ['name','slug']
     sortable = 'order'
+    form = SalesActionAdminForm
 
 
 @admin.register(ProductRelation)
