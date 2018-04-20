@@ -25,7 +25,20 @@
         {% endif %}
     {% endfor %}
 </ul>
+{% if category.description %}
+<div class="sw-productsearch panel panel-default">
+<div class="recipedescr">{{ category.description|safe }}</div>
+</div>
+{% endif %}
+
+<script>
+gtm_products = [];
+</script>
+
 {% for product in products %}
 {% include "_product_info.html" %}
+<script>
+gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Каталог','position':{{ forloop.counter }}});
+</script>
 {% endfor %}
 {% endblock %}
