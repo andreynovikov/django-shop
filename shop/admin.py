@@ -28,6 +28,7 @@ from django.forms import ModelForm, TextInput
 from suit.widgets import AutosizedTextarea
 from mptt.admin import MPTTModelAdmin
 
+from utility.admin import get_sites
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
     Currency, Country, Region, City, Store, Manufacturer, Product, ProductRelation, \
     SalesAction, Stock, Basket, BasketItem, Manager, Courier, Order, OrderItem
@@ -199,7 +200,7 @@ class SalesActionAdminForm(ModelForm):
 
 @admin.register(SalesAction)
 class SalesActionAdmin(SortableModelAdmin):
-    list_display = ['name', 'slug', 'active']
+    list_display = ['name', 'slug', get_sites, 'active']
     list_display_links = ['name']
     search_fields = ['name','slug']
     sortable = 'order'
