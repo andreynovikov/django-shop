@@ -15,6 +15,8 @@ from django.utils.formats import date_format
 from django.utils.functional import cached_property
 from django.core.urlresolvers import reverse
 
+
+
 from colorfield.fields import ColorField
 
 from mptt.models import MPTTModel, TreeForeignKey, TreeManyToManyField
@@ -324,8 +326,10 @@ class Contractor(models.Model):
 class SalesAction(models.Model):
     name = models.CharField('название', max_length=100)
     slug = models.CharField(max_length=100)
+    sites = models.ManyToManyField(Site, verbose_name='сайты')
     active = models.BooleanField('активная')
     show_products = models.BooleanField('показывать список товаров', default=True)
+    notice = models.CharField('уведомление', max_length=50, blank=True)
     brief = models.TextField('описание', blank=True)
     description = models.TextField('статья', blank=True)
     image = models.ImageField('изображение', upload_to='actions', blank=True,
@@ -547,7 +551,7 @@ class Product(models.Model):
         super(Product, self).save(*args, **kwargs)
 
     def get_sales_actions(self):
-        return self.sales_actions.filter(active=True).order_by('order')
+        return self.sales_actions.filter(active=True, sites=Site.objects.get_current()).order_by('order')
 
     @cached_property
     def breadcrumbs(self):
