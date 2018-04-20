@@ -1,6 +1,8 @@
+from django.http import Http404
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
+from django.contrib.sites.models import Site
 
 from shop.models import Category, Product, ProductRelation, SalesAction
 
@@ -42,12 +44,14 @@ def products(request, template):
 
 
 def sales_actions(request):
-    context = {'actions': SalesAction.objects.filter(active=True).order_by('order')}
+    context = {'actions': SalesAction.objects.filter(active=True, sites=Site.objects.get_current()).order_by('order')}
     return render(request, 'sales_actions.html', context)
 
 
 def sales_action(request, slug):
     action = get_object_or_404(SalesAction, slug=slug)
+    if not Site.objects.get_current().salesaction_set.filter(slug=slug).exists():
+        raise Http404("Sales action does not exist")
     context = {'action': action}
     products = action.products.filter(enabled=True).order_by('-price')
     context = {
