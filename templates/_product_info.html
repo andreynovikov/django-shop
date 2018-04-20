@@ -12,14 +12,12 @@
 {% endif %}
 {% if product.image_prefix|add:'.s.jpg'|file_exists %}
 <img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" />
-{% else %}
-<img src="{% static 'i/0.svg' %}" alt="{{ product.whatis }} {{ product.title }}" />
 {% endif %}
 </a>
 </div>
 <div class="sw-p-l-name">
 <div class="sw-p-l-action">
-{% if product.ishot %}
+{% if product.sales_notes %}
 <span class="label sw-action">Акция</span>
 {% endif %}
 {% if product.isnew %}
@@ -28,9 +26,11 @@
 {% if product.recomended %}
 <span class="label sw-recomended">Рекомендуем</span>
 {% endif %}
-{% if product.utilisation %}
-<span class="label sw-action">Скидка по "Утилизации"</span>
+{% for action in product.get_sales_actions %}
+{% if action.notice %}
+<span class="label sw-action">{{ action.notice }}</p>
 {% endif %}
+{% endfor %}
 </div>
 <h3 class="sw-p-l-name-h">
 {% if product.variations %}
@@ -51,22 +51,14 @@
 </div>
 </div>
 {% if product.price > 0 %}
-<div class="sw-p-l-prices" style="display:block; text-align:center; width:100%">
+<div class="sw-p-l-prices">
 {% if product.discount > 0 %}
-<s class="sw-p-l-oldprice">{{ product.price|quantize:"1" }}</s>&nbsp;руб.
+<div><s class="sw-p-l-oldprice">{{ product.price|quantize:"1" }}</s>&nbsp;руб.</div>
 {% endif %}
-<span class="sw-p-l-price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.
+<div><span class="sw-p-l-price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.</div>
 </div>
-{% if product.instock > 1 %}
-<div class="product-nal-true" style="text-align:center; width:100%">В наличии</div>
-{% endif %}
-{% if product.instock == 1 %}
-<div class="product-nal-true" style="text-align:center; width:100%">Мало</div>
-{% endif %}
-{% if product.instock < 1 %}
-<div class="product-nal-false" style="text-align:center; width:100%">Закончились</div>
-{% endif %}
-<div class="sw-p-l-buy" style="display:block; text-align:center; width:100%">
+
+<div class="sw-p-l-buy">
 {% if product.variations %}
 <a href="{{ product.variations }}" class="btn btn-xs btn-success sw-addProduct-sm" role="button">Выбрать</a>
 {% else %}
@@ -77,18 +69,24 @@ class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{
 <a href="{% url 'shop:add' product.id %}"
 class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a>
 {% endif %}
-
 {% endif %}
-
 </div>
+
 {% endif %}
 
 {% if product.sales_notes %}
 <div class="sw-p-salesnotes text-center">{{ product.sales_notes }}</div>
 {% endif %}
 
-{% if product.nal %}
-<p class="text-center">Наличие: <span class="sw-nal">{{ product.nal }}</span></p>
+{% if product.instock > 0 and not product.variations %}
+<p class="text-center">Наличие: <span class="sw-nal">
+{% if product.instock > 1 %}
+есть
+{% endif %}
+{% if product.instock == 1 %}
+мало
+{% endif %}
+</span></p>
 {% endif %}
 
 </div>
