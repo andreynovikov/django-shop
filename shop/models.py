@@ -272,6 +272,27 @@ class Store(models.Model):
         return str(self.city) + ', ' + self.address
 
 
+class ServiceCenter(models.Model):
+    city = models.ForeignKey(City, verbose_name='город', on_delete=models.PROTECT)
+    address = models.CharField('адрес', max_length=255)
+    phone = models.CharField('телефон', max_length=100, blank=True)
+    enabled = models.BooleanField('включён', default=True)
+    latitude = models.FloatField('широта', default=0, blank=True, null=True)
+    longitude = models.FloatField('долгота', default=0, blank=True, null=True)
+
+    class Meta:
+        verbose_name = 'сервис-центр'
+        verbose_name_plural = 'сервис-центры'
+        ordering = ('city', 'address')
+
+    @staticmethod
+    def autocomplete_search_fields():
+        return ['address__icontains', 'city__name__icontains']
+
+    def __str__(self):
+        return str(self.city) + ', ' + self.address
+
+
 class Manufacturer(models.Model):
     code = models.CharField('код', max_length=30)
     name = models.CharField('название', max_length=150)
