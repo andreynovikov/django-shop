@@ -30,8 +30,9 @@ from mptt.admin import MPTTModelAdmin
 
 from utility.admin import get_sites
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
-    Currency, Country, Region, City, Store, Manufacturer, Product, ProductRelation, \
-    SalesAction, Stock, Basket, BasketItem, Manager, Courier, Order, OrderItem
+    Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, \
+    Product, ProductRelation, SalesAction, Stock, Basket, BasketItem, Manager, Courier, \
+    Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
     OrderDiscountForm, SendSmsForm
 from shop.decorators import admin_changelist_link
@@ -170,6 +171,15 @@ class StoreAdmin(admin.ModelAdmin):
     list_display_links = ['address', 'name']
     list_filter = ['city', 'enabled']
     search_fields = ['name', 'address', 'address2']
+    ordering = ['city', 'address']
+
+
+@admin.register(ServiceCenter)
+class ServiceCenterAdmin(admin.ModelAdmin):
+    list_display = ['city', 'address', 'enabled', 'latitude', 'longitude']
+    list_display_links = ['address']
+    list_filter = ['city', 'enabled']
+    search_fields = ['address', 'city__name']
     ordering = ['city', 'address']
 
 
