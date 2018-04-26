@@ -160,6 +160,15 @@ class StoreAdmin(admin.ModelAdmin):
     ordering = ['city', 'address']
 
 
+@admin.register(ServiceCenter)
+class ServiceCenterAdmin(admin.ModelAdmin):
+    list_display = ['city', 'address', 'enabled', 'latitude', 'longitude']
+    list_display_links = ['address']
+    list_filter = ['city', 'enabled']
+    search_fields = ['address', 'city__name']
+    ordering = ['city', 'address']
+
+
 @admin.register(Manufacturer)
 class ManufacturerAdmin(admin.ModelAdmin):
     list_display = ['id', 'code', 'name', 'machinemaker', 'accessorymaker']
