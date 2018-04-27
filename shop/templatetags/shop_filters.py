@@ -1,7 +1,7 @@
 from django import template
 from django.template.defaultfilters import stringfilter
 from django.utils.safestring import mark_safe
-#from django.contrib.staticfiles import finders
+from django.contrib.staticfiles import finders
 from django.core.files.storage import default_storage
 
 from shop.models import ShopUserManager
@@ -19,4 +19,7 @@ def format_phone(value):
 @register.filter
 def file_exists(filepath):
     return default_storage.exists(filepath)
-    #return finders.find(filepath)
+
+@register.filter
+def static_file_exists(filepath):
+    return finders.find(filepath) is not None
