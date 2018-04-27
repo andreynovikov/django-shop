@@ -3,12 +3,18 @@ from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
+from django.views.decorators.cache import cache_page
 
-from shop.models import Category, Product, ProductRelation, SalesAction
+from shop.models import Category, Product, ProductRelation, SalesAction, City, Store, ServiceCenter
 
 
 def index(request):
-    context = {}
+    context = {
+        'actions': SalesAction.objects.filter(active=True, sites=Site.objects.get_current()).order_by('order'),
+        'gift_products': Product.objects.filter(enabled=True, show_on_sw=True, gift=True).order_by('-price')[:25],
+        'recomended_products': Product.objects.filter(enabled=True, show_on_sw=True, recomended=True).order_by('-price')[:25],
+        'first_page_products': Product.objects.filter(enabled=True, show_on_sw=True, firstpage=True).order_by('-price')[:25]
+        }
     return render(request, 'index.html', context)
 
 
@@ -52,13 +58,80 @@ def sales_action(request, slug):
     action = get_object_or_404(SalesAction, slug=slug)
     if not Site.objects.get_current().salesaction_set.filter(slug=slug).exists():
         raise Http404("Sales action does not exist")
-    context = {'action': action}
     products = action.products.filter(enabled=True).order_by('-price')
     context = {
         'action': action,
         'products': products
     }
     return render(request, 'sales_action.html', context)
+
+
+def stores(request):
+    stores = Store.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+    store_groups = []
+    cur_country = None
+    cur_country_index = -1
+    cur_city = None
+    cur_city_index = -1
+    for store in stores:
+        if cur_country != store.city.country:
+            store_groups.append({'country': store.city.country, 'cities': []})
+            cur_country = store.city.country
+            cur_country_index += 1
+            cur_city = None
+            cur_city_index = -1
+        if cur_city != store.city:
+            store_groups[cur_country_index]['cities'].append({'city': store.city, 'stores': []})
+            cur_city = store.city
+            cur_city_index += 1
+        store_groups[cur_country_index]['cities'][cur_city_index]['stores'].append(store)
+
+    context = {
+        'stores': stores,
+        'store_groups': store_groups,
+        }
+    city = settings.SHOP_SETTINGS.get('city_id')
+    if city:
+        context['city'] = City.objects.get(pk=city)
+
+    return render(request, 'stores.html', context)
+
+
+def store(request, id):
+    store = get_object_or_404(Store, pk=id)
+    context = {'store': store}
+    return render(request, 'store.html', context)
+
+
+def service(request):
+    services = ServiceCenter.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+    service_groups = []
+    cur_country = None
+    cur_country_index = -1
+    cur_city = None
+    cur_city_index = -1
+    for service in services:
+        if cur_country != service.city.country:
+            service_groups.append({'country': service.city.country, 'cities': []})
+            cur_country = service.city.country
+            cur_country_index += 1
+            cur_city = None
+            cur_city_index = -1
+        if cur_city != service.city:
+            service_groups[cur_country_index]['cities'].append({'city': service.city, 'services': []})
+            cur_city = service.city
+            cur_city_index += 1
+        service_groups[cur_country_index]['cities'][cur_city_index]['services'].append(service)
+
+    context = {
+        'services': services,
+        'service_groups': service_groups,
+        }
+    city = settings.SHOP_SETTINGS.get('city_id')
+    if city:
+        context['city'] = City.objects.get(pk=city)
+
+    return render(request, 'service.html', context)
 
 
 def catalog(request):
@@ -68,17 +141,28 @@ def catalog(request):
 
 def category(request, path, instance):
     products = None
+    gtm_list = None
     if instance:
-        products = instance.products.filter(enabled=True).order_by('-price')
+        products = instance.products.filter(enabled=True, show_on_sw=True).order_by('-price')
+        if products.count() < 1:
+            products = Product.objects.filter(enabled=True, show_on_sw=True, recomended=True, categories__in=instance.get_descendants()).distinct()
+            gtm_list = "Рекомендуем в каталоге"
+        else:
+            gtm_list = "Каталог"
+
     context = {
         'category': instance,
-        'products': products
+        'products': products,
+        'gtm_list': gtm_list
     }
     return render(request, 'category.html', context)
 
 
+@cache_page(60 * 30)
 def product(request, code):
     product = get_object_or_404(Product, code=code)
+    if not product.breadcrumbs:
+        raise Http404("Product does not exist")
     product.images = []
     if default_storage.exists(product.image_prefix):
         try:
@@ -104,11 +188,7 @@ def product(request, code):
     except ValueError:
         pass
     if category is None:
-        root = Category.objects.get(slug=settings.MPTT_ROOT)
-        for instance in product.categories.all():
-            if instance.get_ancestors().all().first() == root:
-                category = instance
-                break
+        category = product.breadcrumbs.last()
 
     context = {
         'category': category,

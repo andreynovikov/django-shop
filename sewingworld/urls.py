@@ -31,6 +31,12 @@ urlpatterns = [
     url(r'^actions/$', views.sales_actions, name='sales_actions'),
     # ex: /actions/trade-in/
     url(r'^actions/(?P<slug>[-\.\w]+)/$', views.sales_action, name='sales_action'),
+    # ex: /stores/
+    url(r'^stores/$', views.stores, name='stores'),
+    # ex: /stores/1/
+    url(r'^stores/(?P<id>\d+)/$', views.store, name='store'),
+    # ex: /service/
+    url(r'^service/$', views.service, name='service'),
     # /pages/*
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*
