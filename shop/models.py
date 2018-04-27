@@ -374,7 +374,9 @@ class Product(models.Model):
     gtin = models.BigIntegerField('GTIN', default=0, db_index=True)
     enabled = models.BooleanField('включён', default=False, db_index=True)
     title = models.CharField('название', max_length=200)
-    price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0)
+    price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0, db_column=settings.SHOP_PRICE_DB_COLUMN)
+    if settings.SHOP_PRICE_DB_COLUMN == 'price':
+        spb_price = models.DecimalField('цена СПб, руб', max_digits=10, decimal_places=2, default=0)
     cur_price = models.DecimalField('цена, вал', max_digits=10, decimal_places=2, default=0)
     cur_code = models.ForeignKey(Currency, verbose_name='валюта', related_name="rtprice", on_delete=models.PROTECT, default=643)
     ws_price =  models.DecimalField('опт. цена, руб', max_digits=10, decimal_places=2, default=0)
@@ -395,6 +397,8 @@ class Product(models.Model):
     categories = TreeManyToManyField('shop.Category', related_name='products',
                                      related_query_name='product', verbose_name='категории', blank=True)
     forbid_price_import = models.BooleanField('не импортировать цену', default=False)
+    if settings.SHOP_PRICE_DB_COLUMN == 'price':
+        forbid_spb_price_import = models.BooleanField('не импортировать цену СПб', default=False)
     #number_inet = models.DecimalField('наличие в интернет-магазине', max_digits=10, decimal_places=2, default=0)
     #number_prol = models.DecimalField('наличие на пролетарке', max_digits=10, decimal_places=2, default=0)
     warranty = models.CharField('гарантия', max_length=20, blank=True)
@@ -565,7 +569,10 @@ class Product(models.Model):
         verbose_name_plural = 'товары'
 
     def save(self, *args, **kwargs):
-        self.price = self.cur_price * self.cur_code.rate
+        if settings.SHOP_PRICE_DB_COLUMN == 'price':
+            self.price = self.cur_price * self.cur_code.rate
+            if self.spb_price == 0 or not self.forbid_spb_price_import:
+                self.spb_price = self.price
         self.ws_price = self.ws_cur_price * self.ws_cur_code.rate
         self.sp_price = self.sp_cur_price * self.sp_cur_code.rate
         self.image_prefix = ''.join(['images/', self.manufacturer.code, '/', self.code])
