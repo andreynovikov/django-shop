@@ -315,9 +315,19 @@ class Manufacturer(models.Model):
 
 
 class Supplier(models.Model):
+    COUNT_STOCK = 1
+    COUNT_DEFER = 2
+    COUNT_NONE = 99
+    COUNT_CHOICES = (
+        (COUNT_NONE, 'не учитывать'),
+        (COUNT_STOCK, 'наличие'),
+        (COUNT_DEFER, 'под заказ'),
+    )
     code = models.CharField('код', max_length=10)
     name = models.CharField('название', max_length=100)
     show_in_order = models.BooleanField('показывать в заказе', default=False, db_index=True)
+    count_in_stock = models.SmallIntegerField('учитывать в наличии', choices=COUNT_CHOICES, default=COUNT_NONE)
+    spb_count_in_stock = models.SmallIntegerField('учитывать в наличии СПб', choices=COUNT_CHOICES, default=COUNT_NONE)
     order = models.PositiveIntegerField()
 
     class Meta:
@@ -461,7 +471,9 @@ class Product(models.Model):
     stitches=models.TextField('Строчки', blank=True)
     complect=models.TextField('Комплектация', blank=True)
     dealertxt=models.TextField('Текст про официального дилера', blank=True)
-    num=models.SmallIntegerField('В наличии', default=-1)
+    num=models.SmallIntegerField('в наличии', default=-1, db_column=settings.SHOP_STOCK_DB_COLUMN)
+    if settings.SHOP_STOCK_DB_COLUMN == 'num':
+        spb_num = models.SmallIntegerField('в наличии СПб', default=-1)
     num_correction=models.SmallIntegerField('Корректировка наличия', default=0)
     stock=models.ManyToManyField(Supplier, through='Stock')
     pack_factor=models.SmallIntegerField('Количество в упаковке', default=1)
@@ -621,20 +633,29 @@ class Product(models.Model):
             return self.num
 
         self.num = 0
-        suppliers = self.stock.filter(show_in_order=True)
+        if settings.SHOP_STOCK_DB_COLUMN == 'spb_num':
+            suppliers = self.stock.filter(spb_count_in_stock=Supplier.COUNT_STOCK)
+            site_addon = '= 6'
+        else:
+            suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
+            site_addon = '<> 6'
         if suppliers.exists():
             for supplier in suppliers:
                 stock = Stock.objects.get(product=self, supplier=supplier)
-                self.num = self.num + stock.quantity
-        cursor = connection.cursor()
-        cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
-                          INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
-                          AND shop_orderitem.product_id = %s GROUP BY shop_orderitem.product_id""", (self.id,))
-        if cursor.rowcount:
-            row = cursor.fetchone()
-            self.num = self.num - float(row[0])
-        cursor.close()
-        self.num = self.num + self.num_correction
+                self.num = self.num + stock.quantity + stock.correction
+
+        if self.num > 0:
+            cursor = connection.cursor()
+            cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
+                              INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
+                              AND shop_orderitem.product_id = %s GROUP BY shop_orderitem.product_id AND shop_order.site_id """ + site_addon,
+                           (self.id,))
+            if cursor.rowcount:
+                row = cursor.fetchone()
+                self.num = self.num - float(row[0])
+            cursor.close()
+            if self.num < 0:
+                self.num = 0
 
         super(Product, self).save()
 
@@ -668,8 +689,9 @@ class ProductRelation(models.Model):
 
 class Stock(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='item')
-    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, verbose_name='поставщик')
     quantity = models.FloatField('кол-во', default=0)
+    correction = models.FloatField('корректировка', default=0)
 
     class Meta:
         verbose_name = 'запас'
