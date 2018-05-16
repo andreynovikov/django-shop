@@ -110,7 +110,7 @@ class CategoryAdmin(SortableMPTTModelAdmin):
 
 @admin.register(Supplier)
 class SupplierAdmin(SortableModelAdmin):
-    list_display = ['id', 'code', 'name', 'show_in_order']
+    list_display = ['id', 'code', 'name', 'show_in_order', 'count_in_stock', 'spb_count_in_stock']
     list_display_links = ['name']
     search_fields = ['code', 'name']
     sortable = 'order'
@@ -177,8 +177,36 @@ class ContractorAdmin(admin.ModelAdmin):
     ordering = ['code']
 
 
+class SalesActionAdminForm(ModelForm):
+    class Meta:
+        widgets = {
+            'brief': AutosizedTextarea(attrs={'rows': 3, 'style': 'width: 95%; max-height: 500px'}),
+            'description': AutosizedTextarea(attrs={'rows': 10, 'style': 'width: 95%; max-height: 500px'}),
+        }
+
+
+@admin.register(SalesAction)
+class SalesActionAdmin(SortableModelAdmin):
+    list_display = ['name', 'slug', get_sites, 'active']
+    list_display_links = ['name']
+    search_fields = ['name','slug']
+    sortable = 'order'
+    form = SalesActionAdminForm
+
+
+@admin.register(ProductRelation)
+class ProductRelationAdmin(admin.ModelAdmin):
+    list_display = ['parent_product', 'child_product', 'kind']
+    list_display_links = ['parent_product', 'child_product']
+    list_filter = ['kind']
+    search_fields = ['parent_product__title','parent_product__code', 'parent_product__article', 'parent_product__partnumber',
+                     'child_product__title','child_product__code', 'child_product__article', 'child_product__partnumber']
+    form = autocomplete_light.modelform_factory(ProductRelation, exclude=['fake'])
+
+
 class StockInline(admin.TabularInline):
     model = Stock
+    fields = ['supplier', 'quantity', 'correction']
     readonly_fields = ['supplier', 'quantity']
     suit_classes = 'suit-tab suit-tab-stock'
 
@@ -290,8 +318,15 @@ class ProductAdmin(ImportExportModelAdmin):
     def orders_link(self, orders):
         return '<i class="icon-list"></i>'
 
+
+    def product_link(self, obj):
+        url = reverse('product', args=[obj.code])
+        return '<a href="%s" target="_blank"><i class="icon-share"></i></a>' % url
+    product_link.allow_tags = True
+    product_link.short_description = 'описание'
+
     form = ProductForm
-    list_display = ['article', 'title', 'price', 'cur_price', 'cur_code', 'calm_forbid_price_import', 'pct_discount', 'val_discount', 'product_stock', 'orders_link']
+    list_display = ['article', 'title', 'price', 'cur_price', 'cur_code', 'calm_forbid_price_import', 'pct_discount', 'val_discount', 'product_stock', 'orders_link', 'product_link']
     list_display_links = ['title']
     list_filter = ['cur_code', 'pct_discount', 'val_discount', 'categories']
     exclude = ['image_prefix']

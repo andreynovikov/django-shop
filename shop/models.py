@@ -196,9 +196,19 @@ class Manufacturer(models.Model):
 
 
 class Supplier(models.Model):
+    COUNT_STOCK = 1
+    COUNT_DEFER = 2
+    COUNT_NONE = 99
+    COUNT_CHOICES = (
+        (COUNT_NONE, 'не учитывать'),
+        (COUNT_STOCK, 'наличие'),
+        (COUNT_DEFER, 'под заказ'),
+    )
     code = models.CharField('код', max_length=10)
     name = models.CharField('название', max_length=100)
     show_in_order = models.BooleanField('показывать в заказе', default=False, db_index=True)
+    count_in_stock = models.SmallIntegerField('учитывать в наличии', choices=COUNT_CHOICES, default=COUNT_NONE)
+    spb_count_in_stock = models.SmallIntegerField('учитывать в наличии СПб', choices=COUNT_CHOICES, default=COUNT_NONE)
     order = models.PositiveIntegerField()
 
     class Meta:
@@ -561,8 +571,9 @@ class ProductSet(models.Model):
 
 class Stock(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='item')
-    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, verbose_name='поставщик')
     quantity = models.FloatField('кол-во', default=0)
+    correction = models.FloatField('корректировка', default=0)
 
     class Meta:
         verbose_name = 'запас'
