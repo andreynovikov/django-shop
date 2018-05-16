@@ -235,19 +235,26 @@ def import1c(file):
                             product.cur_price = int(round(price))
                     except ValueError:
                         errors.append("%s: розничная цена" % line['article'])
-                product.stock.clear()
-                product.num = -1
+                #product.stock.clear()
                 product.save()
                 for idx, quantity in enumerate(line['suppliers']):
                     try:
                         quantity = float(quantity.replace('\xA0','').replace(',','.'))
-                        s = Stock(product=product, supplier=suppliers[idx], quantity=quantity)
-                        s.save()
+                        #s = Stock(product=product, supplier=suppliers[idx], quantity=quantity)
+                        #s.save()
+                        s, created = Stock.objects.update_or_create(
+                            product=product, supplier=suppliers[idx],
+                            defaults={'quantity': quantity})
+                        if s.quantity == 0.0 and s.correction == 0.0:
+                            s.delete()
                     except ValueError:
                         errors.append("%s: состояние складa" % line['article'])
                     except IndexError:
                         errors.append("%s: неправильное количество складов" % line['article'])
                 #products[product.id].imported = True
+                product.num = -1
+                product.spb_num = -1
+                product.save()
                 if product in frozen_products.keys() and product.instock > 0:
                     orders.update(frozen_products[product])
                 updated = updated + 1
@@ -257,12 +264,6 @@ def import1c(file):
             except ObjectDoesNotExist:
                 #errors.append("%s: товар отсутсвует" % line['article'])
                 next
-
-        #for pk, product in products.items():
-        #    if not hasattr(product, 'imported'):
-                #product.number_inet = -1000
-                #product.save()
-                #reset = reset + 1
 
     shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
     msg_plain = render_to_string('mail/shop/import1c_result.txt',

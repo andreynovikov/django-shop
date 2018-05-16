@@ -124,7 +124,7 @@ class CategoryAdmin(SortableMPTTModelAdmin):
 
 @admin.register(Supplier)
 class SupplierAdmin(SortableModelAdmin):
-    list_display = ['id', 'code', 'name', 'show_in_order']
+    list_display = ['id', 'code', 'name', 'show_in_order', 'count_in_stock', 'spb_count_in_stock']
     list_display_links = ['name']
     search_fields = ['code', 'name']
     sortable = 'order'
@@ -224,12 +224,12 @@ class ProductRelationAdmin(admin.ModelAdmin):
     list_filter = ['kind']
     search_fields = ['parent_product__title','parent_product__code', 'parent_product__article', 'parent_product__partnumber',
                      'child_product__title','child_product__code', 'child_product__article', 'child_product__partnumber']
-    exclude = ['image_prefix']
     form = autocomplete_light.modelform_factory(ProductRelation, exclude=['fake'])
 
 
 class StockInline(admin.TabularInline):
     model = Stock
+    fields = ['supplier', 'quantity', 'correction']
     readonly_fields = ['supplier', 'quantity']
     suit_classes = 'suit-tab suit-tab-stock'
 
@@ -285,11 +285,17 @@ class ProductAdmin(admin.ModelAdmin):
             for supplier in suppliers:
                 stock = Stock.objects.get(product=obj, supplier=supplier)
                 result = result + ('%s:&nbsp;' % supplier.code)
-                if stock.quantity == 0:
+                if stock.quantity == 0.0:
                     result = result + '<span style="color: #c00">'
                 result = result + ('%s' % floatformat(stock.quantity))
-                if stock.quantity == 0:
+                if stock.quantity == 0.0:
                     result = result + '</span>'
+                if stock.correction != 0.0:
+                    if stock.correction > 0.0:
+                        result = result + '<span style="color: #090">+'
+                    else:
+                        result = result + '<span style="color: #c00">'
+                    result = result + ('%s</span>' % floatformat(stock.correction))
                 result = result + '<br/>'
         else:
             result = '<span style="color: #f00">отсутствует</span><br/>'
@@ -311,8 +317,15 @@ class ProductAdmin(admin.ModelAdmin):
     def orders_link(self, orders):
         return '<i class="icon-list"></i>'
 
+
+    def product_link(self, obj):
+        url = reverse('product', args=[obj.code])
+        return '<a href="%s" target="_blank"><i class="icon-share"></i></a>' % url
+    product_link.allow_tags = True
+    product_link.short_description = 'описание'
+
     form = ProductForm
-    list_display = ['article', 'title', 'price', 'cur_price', 'cur_code', 'calm_forbid_price_import', 'pct_discount', 'val_discount', 'product_stock', 'orders_link']
+    list_display = ['article', 'title', 'price', 'cur_price', 'cur_code', 'calm_forbid_price_import', 'pct_discount', 'val_discount', 'product_stock', 'orders_link', 'product_link']
     list_display_links = ['title']
     list_filter = ['cur_code', 'pct_discount', 'val_discount', 'categories']
     exclude = ['image_prefix']
@@ -476,6 +489,11 @@ class ProductAdmin(admin.ModelAdmin):
         ('stock', 'Запасы'),
     )
 
+    def save_model(self, request, obj, form, change):
+        obj.num = -1
+        obj.spb_num = -1
+        super().save_model(request, obj, form, change)
+
 
 class BasketItemInline(admin.TabularInline):
     model = BasketItem
@@ -551,6 +569,12 @@ class OrderItemInline(admin.TabularInline):
                 result = result + ('%s' % floatformat(stock.quantity))
                 if stock.quantity == 0:
                     result = result + '</span>'
+                if stock.correction != 0.0:
+                    if stock.correction > 0.0:
+                        result = result + '<span style="color: #090">+'
+                    else:
+                        result = result + '<span style="color: #c00">'
+                    result = result + ('%s</span>' % floatformat(stock.correction))
                 result = result + '<br/>'
         else:
             result = '<span style="color: #f00">отсутствует</span><br/>'
