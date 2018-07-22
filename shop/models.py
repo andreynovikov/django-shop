@@ -139,6 +139,7 @@ class Category(MPTTModel):
                               width_field='promo_image_width', height_field='promo_image_height')
     promo_image_width = models.IntegerField(null=True, blank=True)
     promo_image_height = models.IntegerField(null=True, blank=True)
+    ya_active = models.BooleanField('выдавать в Яндекс.Маркет', default=True)
     order = models.PositiveIntegerField()
 
     def get_active_descendants(self):
@@ -423,9 +424,13 @@ class Product(models.Model):
     available=models.CharField('Наличие', max_length=255, blank=True)
     bid=models.CharField('Ставка маркета для основной выдачи', max_length=10, blank=True)
     cbid=models.CharField('Ставка маркета для карточки модели', max_length=10, blank=True)
-    show_on_sw=models.BooleanField('Показать на основной витрине', default=True)
+    show_on_sw=models.BooleanField('витрина', default=True, db_index=True, db_column=settings.SHOP_SHOW_DB_COLUMN)
+    if settings.SHOP_SHOW_DB_COLUMN == 'show_on_sw':
+        spb_show_in_catalog = models.BooleanField('витрина СПб', default=True, db_index=True)
     gift=models.BooleanField('Годится в подарок', default=False)
-    market=models.BooleanField('Выгружать в маркет', default=False)
+    market=models.BooleanField('маркет', default=False, db_index=True, db_column=settings.SHOP_MARKET_DB_COLUMN)
+    if settings.SHOP_MARKET_DB_COLUMN == 'market':
+        spb_market=models.BooleanField('маркет СПб', default=False, db_index=True)
     #todo refactor: nabor=models.BooleanField('Набор', default=False)
     #manid
     manufacturer=models.ForeignKey(Manufacturer, verbose_name="Производитель", on_delete=models.PROTECT, default=49)
@@ -474,6 +479,7 @@ class Product(models.Model):
     num=models.SmallIntegerField('в наличии', default=-1, db_column=settings.SHOP_STOCK_DB_COLUMN)
     if settings.SHOP_STOCK_DB_COLUMN == 'num':
         spb_num = models.SmallIntegerField('в наличии СПб', default=-1)
+        ws_num = models.SmallIntegerField('в наличии Опт', default=-1)
     num_correction=models.SmallIntegerField('Корректировка наличия', default=0)
     stock=models.ManyToManyField(Supplier, through='Stock')
     pack_factor=models.SmallIntegerField('Количество в упаковке', default=1)
@@ -648,8 +654,8 @@ class Product(models.Model):
             cursor = connection.cursor()
             cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
                               INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
-                              AND shop_orderitem.product_id = %s GROUP BY shop_orderitem.product_id AND shop_order.site_id """ + site_addon,
-                           (self.id,))
+                              AND shop_order.site_id """ + site_addon + """ AND shop_orderitem.product_id = %s GROUP BY
+                              shop_orderitem.product_id""", (self.id,))
             if cursor.rowcount:
                 row = cursor.fetchone()
                 self.num = self.num - float(row[0])
