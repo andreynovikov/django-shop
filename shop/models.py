@@ -129,6 +129,7 @@ class Category(MPTTModel):
     parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True)
     basset_id = models.PositiveSmallIntegerField('id в Бассет', null=True, blank=True)
     active = models.BooleanField()
+    filters = models.CharField('фильтры', max_length=255, blank=True)
     brief = models.TextField('описание', blank=True)
     description = models.TextField('статья', blank=True)
     image = models.ImageField('изображение', upload_to='categories', blank=True,

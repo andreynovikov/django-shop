@@ -18,6 +18,11 @@ def get_categories_root():
     return Category.objects.get(slug=settings.MPTT_ROOT)
 
 
+@register.assignment_tag
+def get_class_name(ref):
+    return ref.__class__.__name__
+
+
 @register.filter
 def get_dict_item(dictionary, key):
     return dictionary.get(key)
