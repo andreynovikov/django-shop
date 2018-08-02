@@ -5,7 +5,7 @@ from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
 from django.views.decorators.cache import cache_page
 
-from shop.models import Category, Product, ProductRelation, SalesAction, City, Store, ServiceCenter
+from shop.models import Category, Product, ProductRelation, Manufacturer, SalesAction, City, Store, ServiceCenter
 
 
 def index(request):
@@ -43,8 +43,30 @@ def search(request):
 
 def products(request, template):
     root = Category.objects.get(slug=settings.MPTT_ROOT)
+    children = root.get_children().filter(ya_active=True)
+    categories = {}
+    for child in children:
+        if not child.ya_active:
+            continue
+        categories[child.pk] = child.pk;
+        descendants = child.get_descendants()
+        for descendant in descendants:
+            categories[descendant.pk] = child.pk;
+    filters = {
+        'enabled': True,
+        'market': True,
+        'categories__in': root.get_descendants(include_self=True)
+        }
+    if template == 'prym.xml':
+        try:
+            filters['manufacturer'] = Manufacturer.objects.get(code='Prym')
+        except Manufacturer.DoesNotExist:
+            pass
     context = {
-        'products': Product.objects.filter(enabled=True, market=True, categories__in=root.get_descendants(include_self=True)).distinct()
+        'root': root,
+        'children': children,
+        'category_map': categories,
+        'products': Product.objects.filter(**filters).distinct()
         }
     return render(request, template, context, content_type='text/xml; charset=utf-8')
 
@@ -198,3 +220,12 @@ def product(request, code):
         'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT)
         }
     return render(request, 'product.html', context)
+
+
+@cache_page(60 * 10)
+def product_info(request, code):
+    product = get_object_or_404(Product, code=code)
+    context = {
+        'product': product,
+        }
+    return render(request, '_product_info.html', context)
