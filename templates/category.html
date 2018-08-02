@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load staticfiles %}
+{% load site %}
 {% load mptt_tags %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}
@@ -25,9 +26,49 @@
         {% endif %}
     {% endfor %}
 </ul>
-{% if category.description and not '/cgi-bin/search.cgi' in category.description %}
+
+{% if category.description or product_filter %}
 <div class="sw-productsearch panel panel-default">
+{% if category.description %}
 <div class="recipedescr">{{ category.description|safe }}</div>
+{% endif %}
+{% if product_filter %}
+<form method="get" class="searchform">
+  {% load widget_tweaks %}
+
+  {{ product_filter.form.non_field_errors }}
+
+  {% for hidden_field in product_filter.form.hidden_fields %}
+    {{ hidden_field.errors }}
+    {{ hidden_field }}
+  {% endfor %}
+
+  <div class="sw-leftright">
+  {% for field in product_filter.form.visible_fields %}
+  {% if field.name == 'enabled' %}
+  </div>
+  <div class="sw-leftright">
+  {% else %}
+  <p>
+    {{ field.label_tag }}
+    {{ field.errors }}
+    {# field is BoundField, field.field is field itself #}
+    {% get_class_name field.field as class %}
+    {% if class == 'RangeField' or class == 'DecimalField' %}
+    {% render_field field class="slider_input ajaxclick" size="6" autocomplete="off" %}
+    {% else %}
+    {% render_field field class="ajaxclick" %}
+    {% endif %}
+    {{ field.help_text }}
+  </p>
+  {% endif %}
+  {% endfor %}
+  </div>
+  <div class="searchform-submit">
+    <button class="btn btn-info sw-searchform-submit" type="submit">Показать</button>
+  </div>
+</form>
+{% endif %}
 </div>
 {% endif %}
 

@@ -6,6 +6,7 @@ from django.contrib.sites.models import Site
 from django.views.decorators.cache import cache_page
 
 from shop.models import Category, Product, ProductRelation, Manufacturer, SalesAction, City, Store, ServiceCenter
+from shop.filters import get_product_filter
 
 
 def index(request):
@@ -172,8 +173,15 @@ def category(request, path, instance):
         else:
             gtm_list = "Каталог"
 
+    product_filter = None
+    if instance.filters:
+        fields = instance.filters.split(',')
+        product_filter = get_product_filter(request.GET, queryset=products, fields=fields, request=request)
+        products = product_filter.qs
+
     context = {
         'category': instance,
+        'product_filter': product_filter,
         'products': products,
         'gtm_list': gtm_list
     }
