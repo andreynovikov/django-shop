@@ -245,7 +245,7 @@ class Product(models.Model):
     code = models.CharField('идентификатор', max_length=20, db_index=True)
     article = models.CharField('код 1С', max_length=20, blank=True, db_index=True)
     partnumber = models.CharField('partnumber', max_length=200, blank=True, db_index=True)
-    gtin = models.CharField('GTIN', max_length=17, default='', db_index=True)
+    gtin = models.CharField('GTIN', max_length=17, blank=True, db_index=True)
     enabled = models.BooleanField('включён', default=False, db_index=True)
     title = models.CharField('название', max_length=200)
     price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0)

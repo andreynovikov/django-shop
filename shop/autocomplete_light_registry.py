@@ -24,7 +24,7 @@ al.register(ShopUser,
 )
 
 al.register(Product,
-  search_fields=['article', 'code', 'partnumber', 'title'],
+  search_fields=['article', 'code', 'partnumber', 'gtin', 'title'],
   attrs={
         'placeholder': 'Товар?',
         'data-autocomplete-minimum-characters': 2,
