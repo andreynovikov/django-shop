@@ -224,7 +224,7 @@ def import1c(file):
                     try:
                         ws_cur_price = float(line['ws_cur_price'].replace('\xA0',''))
                         if ws_cur_price > 0:
-                            product.ws_cur_price = int(round(ws_cur_price))
+                            product.ws_cur_price = ws_cur_price
                         product.ws_cur_code = currencies.get(pk=line['ws_cur_code'])
                     except ValueError:
                         errors.append("%s: оптовая цена" % line['article'])
