@@ -11,7 +11,7 @@
 {% block content %}
 <div class="product-page">
 <h1>{{ action.name }}</h1>
-<p><img style="display:block; max-width:100%" src="{{ action.image.url }}" width="{{ action.image.width }}" height="{{ action.image.height }}"/></p>
+<p><img style="display:block" class="img-responsive" src="{{ action.image.url }}" width="{{ action.image.width }}" height="{{ action.image.height }}"/></p>
 {{ action.description|safe }}
 {% if products and action.show_products %}
 {% for product in products %}

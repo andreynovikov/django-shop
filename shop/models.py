@@ -361,6 +361,7 @@ class SalesAction(models.Model):
     slug = models.CharField(max_length=100)
     sites = models.ManyToManyField(Site, verbose_name='сайты')
     active = models.BooleanField('активная')
+    show_in_list = models.BooleanField('показывать в списке', default=True)
     show_products = models.BooleanField('показывать список товаров', default=True)
     notice = models.CharField('уведомление', max_length=50, blank=True)
     brief = models.TextField('описание', blank=True)

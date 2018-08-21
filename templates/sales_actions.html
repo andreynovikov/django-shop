@@ -13,7 +13,7 @@
 <h1>Акции сети магазинов "Швейный Мир"</h1>
 {% for action in actions %}
 <h2>{{ action.name }}</h2>
-<p><a href="{% url 'sales_action' action.slug %}"><img style="display:block; max-width:100%" src="{{ action.image.url }}" width="{{ action.image.width }}" height="{{ action.image.height }}"/></a></p>
+<p><a href="{% url 'sales_action' action.slug %}"><img style="display:block;" class="img-responsive" src="{{ action.image.url }}" width="{{ action.image.width }}" height="{{ action.image.height }}"/></a></p>
 {% endfor %}
 </div>
 </div>

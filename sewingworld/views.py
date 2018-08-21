@@ -73,7 +73,7 @@ def products(request, template):
 
 
 def sales_actions(request):
-    context = {'actions': SalesAction.objects.filter(active=True, sites=Site.objects.get_current()).order_by('order')}
+    context = {'actions': SalesAction.objects.filter(active=True, show_in_list=True, sites=Site.objects.get_current()).order_by('order')}
     return render(request, 'sales_actions.html', context)
 
 
@@ -160,6 +160,10 @@ def service(request):
 def catalog(request):
     context = {'root': Category.objects.get(slug=settings.MPTT_ROOT)}
     return render(request, 'catalog.html', context)
+
+
+def catalog_menu(request):
+    return render(request, '_catalog.html', {})
 
 
 def category(request, path, instance):

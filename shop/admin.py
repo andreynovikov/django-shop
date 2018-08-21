@@ -212,7 +212,7 @@ class SalesActionAdminForm(ModelForm):
 
 @admin.register(SalesAction)
 class SalesActionAdmin(SortableModelAdmin):
-    list_display = ['name', 'slug', get_sites, 'active']
+    list_display = ['name', 'slug', get_sites, 'active', 'show_in_list']
     list_display_links = ['name']
     search_fields = ['name','slug']
     sortable = 'order'
