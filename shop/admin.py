@@ -4,7 +4,7 @@ from django import forms
 from django.core.urlresolvers import reverse
 from django.db import connection
 from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, \
-    TimeField, DateTimeField, DecimalField
+    TimeField, DateTimeField, DecimalField, FloatField
 from django.contrib import admin, messages
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin
@@ -27,6 +27,8 @@ from suit.admin import SortableModelAdmin
 from django.forms import ModelForm, TextInput
 from suit.widgets import AutosizedTextarea
 from mptt.admin import MPTTModelAdmin
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin
 
 from utility.admin import get_sites
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
@@ -232,11 +234,28 @@ class StockInline(admin.TabularInline):
     fields = ['supplier', 'quantity', 'correction']
     readonly_fields = ['supplier', 'quantity']
     suit_classes = 'suit-tab suit-tab-stock'
+    formfield_overrides = {
+        FloatField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
+    }
 
     def has_add_permission(self, request):
         return False
 
     def has_delete_permission(self, request, obj=None):
+        return False
+
+
+class AddStockInline(admin.TabularInline):
+    model = Stock
+    extra = 0
+    #form = autocomplete_light.modelform_factory(OrderItem, exclude=['fake'])
+    fields = ['supplier', 'quantity', 'correction']
+    suit_classes = 'suit-tab suit-tab-stock'
+    formfield_overrides = {
+        FloatField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
+    }
+
+    def has_change_permission(self, request, obj=None):
         return False
 
 
@@ -267,8 +286,14 @@ class ProductForm(autocomplete_light.ModelForm):
         }
 
 
+class ProductResource(resources.ModelResource):
+    class Meta:
+        model = Product
+        exclude = ('categories',)
+
+
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
+class ProductAdmin(ImportExportModelAdmin): #admin.ModelAdmin):
     def calm_forbid_price_import(self, obj):
         if obj.forbid_price_import:
             return '<span style="color: red">&#10004;</span>'
@@ -313,6 +338,7 @@ class ProductAdmin(admin.ModelAdmin):
     product_stock.allow_tags=True
     product_stock.short_description = 'склад'
 
+
     @admin_changelist_link(None, 'заказы', model=Order, query_string=lambda p: 'item__product__pk={}'.format(p.pk))
     def orders_link(self, orders):
         return '<i class="icon-list"></i>'
@@ -325,13 +351,18 @@ class ProductAdmin(admin.ModelAdmin):
     product_link.short_description = 'описание'
 
     form = ProductForm
-    list_display = ['article', 'title', 'price', 'cur_price', 'cur_code', 'calm_forbid_price_import', 'pct_discount', 'val_discount', 'product_stock', 'orders_link', 'product_link']
+    resource_class = ProductResource
+    list_display = ['id', 'code', 'partnumber', 'article', 'title', 'price', 'cur_price', 'cur_code', 'calm_forbid_price_import',
+                    'pct_discount', 'val_discount', 'enabled', 'show_on_sw', 'market', 'spb_market', 'product_stock',
+                    'orders_link', 'product_link']
     list_display_links = ['title']
-    list_filter = ['cur_code', 'pct_discount', 'val_discount', 'categories']
+    list_editable = ['enabled', 'show_on_sw', 'market', 'spb_market']
+    list_filter = ['cur_code', 'pct_discount', 'val_discount', 'categories', 'enabled', 'isnew', 'recomended', 'show_on_sw', 'market']
     exclude = ['image_prefix']
     search_fields = ['code', 'article', 'partnumber', 'title']
     readonly_fields = ['price', 'ws_price', 'sp_price']
-    inlines = (ProductRelationInline,StockInline,)
+    save_as = True
+    inlines = (ProductRelationInline,StockInline,AddStockInline,)
     formfield_overrides = {
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
@@ -345,15 +376,18 @@ class ProductAdmin(admin.ModelAdmin):
         }),
         ('Деньги', {
                 'classes': ('suit-tab', 'suit-tab-money'),
-                'fields': (('cur_price', 'cur_code', 'price'), 'spb_price', ('pct_discount', 'val_discount', 'max_discount', 'max_val_discount'),
+                'fields': (('cur_price', 'cur_code', 'price'), ('pct_discount', 'val_discount', 'max_discount', 'max_val_discount'),
                            ('ws_cur_price', 'ws_cur_code', 'ws_price'), 'ws_pack_only', ('ws_pct_discount', 'ws_max_discount'),
-                           ('sp_cur_price', 'sp_cur_code', 'sp_price'), 'consultant_delivery_price',
-                           ('forbid_price_import', 'forbid_spb_price_import'))
+                           ('sp_cur_price', 'sp_cur_code', 'sp_price'), 'consultant_delivery_price', 'forbid_price_import')
         }),
         ('Маркетинг', {
                 'classes': ('suit-tab', 'suit-tab-money'),
                 'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','sales_notes',
                            'internetonly','present','delivery','firstpage','sales_actions')
+        }),
+        ('С.Петербург', {
+                'classes': ('suit-tab', 'suit-tab-money'),
+                'fields': ('spb_price', 'forbid_spb_price_import', 'spb_show_in_catalog', 'spb_market')
         }),
         ('Размеры', {
                 'classes': ('suit-tab', 'suit-tab-general'),
@@ -767,7 +801,11 @@ class OrderAdmin(admin.ModelAdmin):
         manager = ''
         if obj.manager:
             manager = ' style="color: %s"' % obj.manager.color
-        return '<b%s>%s</b><br/><span style="white-space:nowrap">%s</span>' % (manager, obj.id, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
+        shop_code = getattr(settings, 'SHOP_ORDER_CODES', {}).get(obj.site.domain, '?')
+        if shop_code:
+            shop_code = shop_code + '-'
+        return '<b%s>%s%s</b><br/><span style="white-space:nowrap">%s</span>' % \
+            (manager, shop_code, obj.id, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
     order_name.allow_tags = True
     order_name.admin_order_field = 'id'
     order_name.short_description = 'заказ'
@@ -852,7 +890,7 @@ class OrderAdmin(admin.ModelAdmin):
     list_display = ['order_name', 'name_and_skyped_phone', 'city', 'total', 'payment', 'calm_paid', 'combined_delivery',
                     'colored_status', 'combined_comments']
     readonly_fields = ['id', 'shop_name', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
-    list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'manager', 'courier', 'delivery',
+    list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'site', 'manager', 'courier', 'delivery',
                    ('delivery_dispatch_date', FutureDateFieldListFilter), ('delivery_handing_date', FutureDateFieldListFilter)]
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode', 'manager_comment']
