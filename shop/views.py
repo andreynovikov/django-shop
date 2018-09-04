@@ -1,3 +1,5 @@
+import re
+
 from random import randint
 
 from django.conf import settings
@@ -130,6 +132,10 @@ def add_to_basket(request, product_id):
     if not created:
         item.quantity += 1
     item.save()
+    utm_source = request.GET.get('utm_source', None)
+    if utm_source:
+        basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source) # ASCII only regex
+        basket.save()
     # as soon as user starts gethering new basket "forget" last order
     try:
         del request.session['last_order']
