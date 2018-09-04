@@ -356,6 +356,22 @@ class Contractor(models.Model):
         return self.name
 
 
+class Advert(models.Model):
+    name = models.CharField('название', max_length=100)
+    place = models.CharField('место', max_length=100)
+    sites = models.ManyToManyField(Site, verbose_name='сайты')
+    active = models.BooleanField('активная')
+    content = models.TextField('содержимое')
+    order = models.PositiveIntegerField()
+
+    class Meta:
+        verbose_name = 'реклама'
+        verbose_name_plural = 'рекламы'
+
+    def __str__(self):
+        return self.name
+
+
 class SalesAction(models.Model):
     name = models.CharField('название', max_length=100)
     slug = models.CharField(max_length=100)

@@ -32,7 +32,7 @@ from import_export.admin import ImportExportModelAdmin
 
 from utility.admin import get_sites
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
-    Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, \
+    Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, Advert, \
     Product, ProductRelation, SalesAction, Stock, Basket, BasketItem, Manager, Courier, \
     Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
@@ -200,6 +200,23 @@ class ContractorAdmin(admin.ModelAdmin):
     list_display_links = ['name']
     search_fields = ['name']
     ordering = ['code']
+
+
+class AdvertAdminForm(ModelForm):
+    class Meta:
+        widgets = {
+            'content': AutosizedTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'}),
+        }
+
+
+@admin.register(Advert)
+class AdvertAdmin(SortableModelAdmin):
+    list_display = ['name', 'place', get_sites, 'active']
+    list_display_links = ['name']
+    search_fields = ['name']
+    list_filter = ['active']
+    sortable = 'order'
+    form = AdvertAdminForm
 
 
 class SalesActionAdminForm(ModelForm):
