@@ -512,6 +512,7 @@ class Basket(models.Model):
     session = models.ForeignKey(Session, null=True, on_delete=models.SET_NULL)
     created = models.DateTimeField(auto_now_add=True)
     phone = models.CharField(max_length=30, blank=True)
+    utm_source = models.CharField(max_length=20, blank=True)
 
     def product_cost(self, product):
         if WHOLESALE:
@@ -804,6 +805,8 @@ class Order(models.Model):
     seller = models.ForeignKey(Contractor, verbose_name='продавец 1С', related_name='продавец', blank=True, null=True)
     wiring_date = models.DateField('дата проводки', blank=True, null=True)
     courier = models.ForeignKey(Courier, verbose_name='курьер', blank=True, null=True)
+    store = models.ForeignKey(Store, verbose_name='магазин самовывоза', blank=True, null=True, on_delete=models.PROTECT)
+    utm_source = models.CharField(max_length=20, blank=True)
     # user
     user = models.ForeignKey(ShopUser, verbose_name='покупатель')
     name = models.CharField('имя', max_length=100, blank=True)
@@ -847,6 +850,9 @@ class Order(models.Model):
         uid = session_data.get('_auth_user_id')
         user = ShopUser.objects.get(id=uid)
         order = Order.objects.create(user=user, site=Site.objects.get_current())
+        order.utm_source = basket.utm_source
+        if order.utm_source == 'yamarket':
+            order.site = Site.objects.get(domain='market.yandex.ru')
         order.name = user.name
         order.postcode = user.postcode
         order.city = user.city
