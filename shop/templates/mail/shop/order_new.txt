@@ -4,7 +4,7 @@
 и предложит удобное время доставки.
 
 Следить за обработкой заказа и видеть его состояние Вы можете в "Личном кабинете": 
-http://order.sewing-world.ru/shop/user/orders/{{ order.id }}/
+https://www.sewing-world.ru/shop/user/orders/{{ order.id }}/
 
 О важных изменениях в заказе мы оповестим Вас по СМС и e-mail.
 

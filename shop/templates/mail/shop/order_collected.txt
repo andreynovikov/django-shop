@@ -2,4 +2,4 @@
 
 Ваш заказ №{{ order.id }} собран, подготовлен к отправке и ожидает оплаты.
 Вы можете {% if order.payment = 2 %}оплатить заказ банковской картой{% elif order.payment = 3 %}распечатать счет для оплаты{% else %}оплатить заказ{% endif %} в "личном кабинете"
-на сайте "Швейный Мир": http://order.sewing-world.ru/shop/user/orders/{{ order.id }}/
+на сайте "Швейный Мир": https://www.sewing-world.ru/shop/user/orders/{{ order.id }}/
