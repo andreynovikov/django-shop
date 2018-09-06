@@ -5,6 +5,7 @@ from django.conf import settings
 import autocomplete_light
 
 from shop.models import Supplier, Product, Stock, Order
+from shop.widgets import PhoneWidget, TagAutoComplete
 from shop.tasks import import1c
 
 
@@ -36,11 +37,27 @@ class WarrantyCardPrintForm(forms.Form):
 
 
 class OrderAdminForm(autocomplete_light.ModelForm):
+    user_tags = forms.CharField(label='Теги', max_length=50, required=False)
+
+    def __init__(self, *args, **kwargs):
+        super(OrderAdminForm, self).__init__(*args, **kwargs)
+        try:
+            instance = kwargs['instance']
+            self.fields['user_tags'].initial = instance.user.tags
+            self.fields['user_tags'].widget = TagAutoComplete()
+        except (KeyError, AttributeError):
+            pass
+
     def clean_store(self):
         store = self.cleaned_data.get('store', None)
         if self.cleaned_data['status'] == Order.STATUS_DELIVERED_SHOP and store is None:
             raise forms.ValidationError("Не указан магазин доставки!")
         return store
+
+    def save(self, commit=True):
+        self.instance.user.tags = self.cleaned_data['user_tags']
+        self.instance.user.save()
+        return super(OrderAdminForm, self).save(commit=commit)
 
     class Meta:
         model = Order

@@ -19,6 +19,8 @@ from colorfield.fields import ColorField
 
 from mptt.models import MPTTModel, TreeForeignKey, TreeManyToManyField
 
+from tagging.fields import TagField
+
 from model_utils import FieldTracker
 
 
@@ -71,6 +73,7 @@ class ShopUser(AbstractBaseUser):
     is_admin = models.BooleanField('админ', default=False)
     is_staff = models.BooleanField('сотрудник', default=False)
     is_wholesale = models.BooleanField('оптовик', default=False)
+    tags = TagField('теги')
 
     objects = ShopUserManager()
 

@@ -27,11 +27,18 @@ from suit.admin import SortableModelAdmin
 from django.forms import ModelForm, TextInput
 from suit.widgets import AutosizedTextarea
 from mptt.admin import MPTTModelAdmin
+from tagging.models import Tag, TaggedItem
+
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin, ExportMixin
 
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
-    Currency, Country, Region, City, Store, Manufacturer, Product, Stock, \
-    Basket, BasketItem, Manager, Courier, Order, OrderItem
-from shop.forms import WarrantyCardPrintForm, OrderAdminForm
+    Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, Advert, \
+    Product, ProductRelation, SalesAction, Stock, Basket, BasketItem, Manager, Courier, \
+    Order, OrderItem
+from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
+    OrderDiscountForm, SendSmsForm, ProductAdminForm
+from shop.widgets import TagAutoComplete
 from shop.decorators import admin_changelist_link
 
 from django.apps import AppConfig
@@ -195,7 +202,7 @@ class ProductForm(ModelForm):
 
 
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
+class ProductAdmin(ImportExportModelAdmin):
     def calm_forbid_price_import(self, obj):
         if obj.forbid_price_import:
             return '<span style="color: red">&#10004;</span>'
@@ -754,21 +761,7 @@ class OrderAdmin(admin.ModelAdmin):
     list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'manager', 'courier', 'delivery', ('delivery_dispatch_date', FutureDateFieldListFilter)]
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode', 'manager_comment']
-    fieldsets = (
-        (None, {'fields': (('status', 'payment', 'paid', 'manager', 'site'), ('delivery', 'delivery_price', 'courier'),
-                           'delivery_dispatch_date', 'delivery_tracking_number', 'delivery_info',
-                           ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'store', 'total', 'id')}),
-        ('1С', {'fields': (('buyer', 'seller','wiring_date'),),}),
-        ('Яндекс.Доставка', {'fields': ('delivery_yd_order',)}),
-        ('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
-                                  ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
-        ('Покупатель', {'fields': (('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux'),
-                                    'email', 'postcode', 'city', 'address', 'comment',
-                                   ('firm_name', 'is_firm'), 'firm_address', 'firm_details',)}),
-    )
     inlines = [OrderItemInline, AddOrderItemInline]
-    #raw_id_fields = ('user',)
-    #form = autocomplete_light.modelform_factory(Order, exclude=['created'])
     form = OrderAdminForm
     formfield_overrides = {
         TextField: {'widget': forms.Textarea(attrs={'style': 'height: 4em'})},
@@ -780,6 +773,25 @@ class OrderAdmin(admin.ModelAdmin):
     actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action']
     save_as = True
     list_per_page = 50
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = (
+            (None, {'fields': (('status', 'payment', 'paid', 'manager', 'site'), ('delivery', 'delivery_price', 'courier'),
+                               'delivery_dispatch_date', ('delivery_tracking_number', 'delivery_yd_order'), 'delivery_info',
+                               ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'store',
+                               'products_price', 'total', 'id')}),
+            ('1С', {'fields': (('buyer', 'seller','wiring_date'),),}),
+            #('Яндекс.Доставка', {'fields': ('delivery_yd_order',)}),
+            #('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
+            #                          ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
+            ('Покупатель', {'fields': [('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux'),
+                                       'email', 'postcode', 'city', 'address', 'comment', ('firm_name', 'is_firm')]}),
+            )
+        if obj.is_firm:
+            fieldsets[2][1]['fields'].extend(('firm_address', 'firm_details'))
+        fieldsets[2][1]['fields'].append('user_tags')
+        return fieldsets
+
 
     def changelist_view(self, request, extra_context=None):
         if not request.user.is_staff:
@@ -996,6 +1008,9 @@ class UserChangeForm(forms.ModelForm):
     class Meta:
         model = ShopUser
         fields = '__all__'
+        widgets = {
+            'tags': TagAutoComplete(),
+            }
 
     def clean_password(self):
         # Regardless of what the user provides, return the initial value.
@@ -1004,7 +1019,32 @@ class UserChangeForm(forms.ModelForm):
         return self.initial["password"]
 
 
-class ShopUserAdmin(UserAdmin):
+class TagListFilter(admin.SimpleListFilter):
+    """
+    Filter records by tags for the current model only. Tags are sorted alphabetically by name.
+    """
+    title = _('tags')
+    parameter_name = 'tag'
+
+    def lookups(self, request, model_admin):
+        model_tags = [tag.name for tag in Tag.objects.usage_for_model(model_admin.model)]
+        model_tags.sort()
+        return tuple([(tag, tag) for tag in model_tags])
+
+    def queryset(self, request, queryset):
+        if self.value() is not None:
+            #return ShopUser.tagged.with_all(self.value(), queryset)
+            return TaggedItem.objects.get_by_model(queryset, self.value())
+
+
+class ShopUserResource(resources.ModelResource):
+    class Meta:
+        model = ShopUser
+        import_id_fields = ['phone']
+        exclude = ('id', 'password', 'is_active', 'is_wholesale', 'is_staff', 'is_admin', 'tags')
+
+
+class ShopUserAdmin(ExportMixin, UserAdmin):
     # The forms to add and change user instances
     form = UserChangeForm
     add_form = UserCreationForm
@@ -1012,12 +1052,12 @@ class ShopUserAdmin(UserAdmin):
     # The fields to be used in displaying the User model.
     # These override the definitions on the base UserAdmin
     # that reference specific fields on auth.User.
-    list_display = ('phone', 'name', 'email', 'discount', 'is_wholesale', 'is_admin')
-    list_filter = ('is_wholesale', 'is_admin', 'discount')
+    list_display = ('phone', 'name', 'email', 'discount', 'tags', 'is_wholesale', 'is_admin')
+    list_filter = ('is_wholesale', 'is_admin', 'discount', TagListFilter)
     fieldsets = (
         (None, {'fields': ('phone', 'password')}),
         ('Personal info', {'fields': ('name', 'email', 'postcode', 'city', 'address')}),
-        ('Marketing', {'fields': ('discount',)}),
+        ('Marketing', {'fields': ('discount','tags')}),
         ('Permissions', {'fields': ('is_active', 'is_wholesale', 'is_staff', 'is_admin',)}),
         ('Important dates', {'fields': ('last_login',)}),
     )
@@ -1028,11 +1068,12 @@ class ShopUserAdmin(UserAdmin):
             'fields': ('phone', 'name', 'password1', 'password2')}
         ),
     )
-    search_fields = ('phone', 'name', 'email')
+    search_fields = ('phone', 'name', 'email', 'tags')
     ordering = ('phone', 'name')
     filter_horizontal = ()
     #change_list_template = 'admin/change_list_filter_sidebar.html'
     #change_list_filter_template = 'admin/filter_listing.html'
+    resource_class = ShopUserResource
 
 
 # Now register the new UserAdmin...
