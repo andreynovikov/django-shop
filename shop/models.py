@@ -356,11 +356,28 @@ class Contractor(models.Model):
         return self.name
 
 
+class Advert(models.Model):
+    name = models.CharField('название', max_length=100)
+    place = models.CharField('место', max_length=100)
+    sites = models.ManyToManyField(Site, verbose_name='сайты')
+    active = models.BooleanField('активная')
+    content = models.TextField('содержимое')
+    order = models.PositiveIntegerField()
+
+    class Meta:
+        verbose_name = 'реклама'
+        verbose_name_plural = 'рекламы'
+
+    def __str__(self):
+        return self.name
+
+
 class SalesAction(models.Model):
     name = models.CharField('название', max_length=100)
     slug = models.CharField(max_length=100)
     sites = models.ManyToManyField(Site, verbose_name='сайты')
     active = models.BooleanField('активная')
+    show_in_list = models.BooleanField('показывать в списке', default=True)
     show_products = models.BooleanField('показывать список товаров', default=True)
     notice = models.CharField('уведомление', max_length=50, blank=True)
     brief = models.TextField('описание', blank=True)
@@ -380,10 +397,10 @@ class SalesAction(models.Model):
 
 
 class Product(models.Model):
-    code = models.CharField('идентификатор', max_length=20, db_index=True)
+    code = models.CharField('идентификатор', max_length=20, unique=True, db_index=True)
     article = models.CharField('код 1С', max_length=20, blank=True, db_index=True)
     partnumber = models.CharField('partnumber', max_length=200, blank=True, db_index=True)
-    gtin = models.CharField('GTIN', max_length=17, default='', db_index=True)
+    gtin = models.CharField('GTIN', max_length=17, blank=True, db_index=True)
     enabled = models.BooleanField('включён', default=False, db_index=True)
     title = models.CharField('название', max_length=200)
     price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0, db_column=settings.SHOP_PRICE_DB_COLUMN)

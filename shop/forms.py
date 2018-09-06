@@ -1,5 +1,7 @@
 import os
+import re
 from django import forms
+from suit.widgets import AutosizedTextarea
 from django.conf import settings
 
 import autocomplete_light
@@ -46,6 +48,29 @@ class OrderDiscountForm(forms.Form):
 
 class SendSmsForm(forms.Form):
     message = forms.CharField(label='Сообщение', max_length=160, required=True)
+
+
+class ProductAdminForm(autocomplete_light.ModelForm):
+    class Meta:
+        model = Product
+        exclude = ['fake']
+        widgets = {
+            'gtin': forms.TextInput(attrs={'size': 10}),
+            'spec': AutosizedTextarea(attrs={'rows': 3,}),
+            'shortdescr': AutosizedTextarea(attrs={'rows': 3,}),
+            'yandexdescr': AutosizedTextarea(attrs={'rows': 3,}),
+            'descr': AutosizedTextarea(attrs={'rows': 3,}),
+            'state': AutosizedTextarea(attrs={'rows': 2,}),
+            'complect': AutosizedTextarea(attrs={'rows': 3,}),
+            'dealertxt': AutosizedTextarea(attrs={'rows': 2,})
+        }
+
+    def clean(self):
+        code = self.cleaned_data.get('code')
+        reg = re.compile('^[-\.\w]+$')
+        if not reg.match(code):
+            raise forms.ValidationError("Код товара содержит недопустимые символы")
+        return self.cleaned_data
 
 
 class OrderAdminForm(autocomplete_light.ModelForm):

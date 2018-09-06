@@ -5,13 +5,18 @@ from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
 from django.views.decorators.cache import cache_page
 
-from shop.models import Category, Product, ProductRelation, SalesAction, City, Store, ServiceCenter
+from shop.models import Category, Product, ProductRelation, Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
 from shop.filters import get_product_filter
 
 
+@cache_page(60 * 30)
 def index(request):
+    site = Site.objects.get_current()
     context = {
-        'actions': SalesAction.objects.filter(active=True, sites=Site.objects.get_current()).order_by('order'),
+        'top_adverts': Advert.objects.filter(active=True, place='index_top', sites=site).order_by('order'),
+        'middle_adverts': Advert.objects.filter(active=True, place='index_middle', sites=site).order_by('order'),
+        'bottom_adverts': Advert.objects.filter(active=True, place='index_bottom', sites=site).order_by('order'),
+        'actions': SalesAction.objects.filter(active=True, sites=site).order_by('order'),
         'gift_products': Product.objects.filter(enabled=True, show_on_sw=True, gift=True).order_by('-price')[:25],
         'recomended_products': Product.objects.filter(enabled=True, show_on_sw=True, recomended=True).order_by('-price')[:25],
         'first_page_products': Product.objects.filter(enabled=True, show_on_sw=True, firstpage=True).order_by('-price')[:25]
@@ -32,7 +37,7 @@ def search_xml(request):
         'root': root,
         'children': children,
         'category_map': categories,
-        'products': Product.objects.filter(enabled=True, categories__in=root.get_descendants(include_self=True)).distinct()
+        'products': Product.objects.filter(enabled=True, variations__exact='', categories__in=root.get_descendants(include_self=True)).distinct()
         }
     return render(request, 'search.xml', context, content_type='text/xml; charset=utf-8')
 
@@ -44,14 +49,36 @@ def search(request):
 
 def products(request, template):
     root = Category.objects.get(slug=settings.MPTT_ROOT)
+    children = root.get_children().filter(ya_active=True)
+    categories = {}
+    for child in children:
+        if not child.ya_active:
+            continue
+        categories[child.pk] = child.pk;
+        descendants = child.get_descendants()
+        for descendant in descendants:
+            categories[descendant.pk] = child.pk;
+    filters = {
+        'enabled': True,
+        'market': True,
+        'categories__in': root.get_descendants(include_self=True)
+        }
+    if template == 'prym.xml':
+        try:
+            filters['manufacturer'] = Manufacturer.objects.get(code='Prym')
+        except Manufacturer.DoesNotExist:
+            pass
     context = {
-        'products': Product.objects.filter(enabled=True, market=True, categories__in=root.get_descendants(include_self=True)).distinct()
+        'root': root,
+        'children': children,
+        'category_map': categories,
+        'products': Product.objects.filter(**filters).distinct()
         }
     return render(request, template, context, content_type='text/xml; charset=utf-8')
 
 
 def sales_actions(request):
-    context = {'actions': SalesAction.objects.filter(active=True, sites=Site.objects.get_current()).order_by('order')}
+    context = {'actions': SalesAction.objects.filter(active=True, show_in_list=True, sites=Site.objects.get_current()).order_by('order')}
     return render(request, 'sales_actions.html', context)
 
 
@@ -143,13 +170,14 @@ def catalog(request):
 def category(request, path, instance):
     products = None
     gtm_list = None
-    if instance:
-        products = instance.products.filter(enabled=True, show_on_sw=True).order_by('-price')
-        if products.count() < 1:
-            products = Product.objects.filter(enabled=True, show_on_sw=True, recomended=True, categories__in=instance.get_descendants()).distinct()
-            gtm_list = "Рекомендуем в каталоге"
-        else:
-            gtm_list = "Каталог"
+    if not instance:
+        raise Http404("Category does not exist")
+    products = instance.products.filter(enabled=True, show_on_sw=True).order_by('-price')
+    if products.count() < 1:
+        products = Product.objects.filter(enabled=True, show_on_sw=True, recomended=True, categories__in=instance.get_descendants()).distinct()
+        gtm_list = "Рекомендуем в каталоге"
+    else:
+        gtm_list = "Каталог"
 
     product_filter = None
     if instance.filters:
@@ -203,6 +231,7 @@ def product(request, code):
         'product': product,
         'accessories': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_ACCESSORY),
         'similar': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR),
-        'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT)
+        'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT),
+        'utm_source': request.GET.get('utm_source', None)
         }
     return render(request, 'product.html', context)

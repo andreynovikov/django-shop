@@ -1,10 +1,12 @@
 {% extends "shop/base.html" %}
-{% block title %}
-<title>Оформление заказа - Швейный Мир</title>
-{% endblock %}
+{% block title %}Оформление заказа{% endblock %}
 {% block content %}
 
     {% include "shop/_update_order.html" %}
+
+    {% if order.utm_source == 'prym' %}
+    <img src="https://www.commerce-connector.com/tracking/tracking.gif?shop=paZM4JcIWcRrHfkIwFQTCT2GzbBTVN1K{% for item in order.items.all %}&ean[{{ forloop.counter0 }}]={{ item.product.gtin }}&sale[{{ forloop.counter0 }}]={{ item.quantity }}{% endfor %}" width="1" height="1" border="0" />
+    {% endif %}
 
 {% endblock %}
 
@@ -31,6 +33,7 @@
                 }
               }
             });
+
             var CustomHandlers = function () {
             };
             CustomHandlers.prototype.addAjaxFlag = function (e, $el) {

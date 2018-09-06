@@ -18,6 +18,9 @@
 {% endblock %}
 
 {% block object-tools-items %}
+    {% url opts|admin_urlname:'document' original.pk 'stock'|admin_urlquote as stock_url %}
+    <li><a href="{% add_preserved_filters stock_url %}"><i class="icon-book icon-alpha75"></i>
+            <span>{% trans "Задание на отбор" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'bill'|admin_urlquote as bill_url %}
     <li><a href="{% add_preserved_filters bill_url %}"><i class="icon-book icon-alpha75"></i>
             <span>{% trans "Счёт" %}</span></a></li>

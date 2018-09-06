@@ -1,15 +1,25 @@
 {% extends "seo.html" %}
 {% load staticfiles %}
+{% block meta-keywords %}Швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов Швейный Мир, швейная, швейные, вышивальная, вышивальные, вязальная, вязальные, машинка, машина, машинки, машины, оверлок, оверлоки,  шитье, вышивка, вязание, купить, интернет, магазин, pfaff, brother, janome, bernina, husqvarna, huskystar, viking, оверлок, строчка, петля, челнок, стежок, ткань, рукав{% endblock %}
+{% block meta-description %}Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары{% endblock %}
+
 {% block css_wrapper %}
 <style>
   .ui-autocomplete { z-index: 2000 }
-  .ui-autocomplete-loading {
-    background: white url("{% static '/i/ui-anim_basic_16x16.gif' %}") right center no-repeat;
-  }
+  .ui-autocomplete-loading { background: white url("{% static '/i/ui-anim_basic_16x16.gif' %}") right center no-repeat; }
+
+  /* SHOULD BE ADDED IN LESS FILE */
+  .sw-navbar .dropdown-menu li li { list-style:none; margin-right:5px; }
+  .sw-navbar .dropdown-menu li li a { font-weight:normal; }
+  .sw-navbar .dropdown-menu li li:hover { background:#eeeeee; }
+
+  .catalog > li > a { font-weight:bold; }
+  .catalog ul { padding-left:7px }
+  .catalog li li { list-style:none; padding-left:7px; }
 </style>
 {% block css %}
-{% endblock %}
-{% endblock %}
+{% endblock css %}
+{% endblock css_wrapper %}
 {% block body_header %}
 <div class="container-fluid">
 <div class="row">
@@ -17,27 +27,28 @@
 <div class="col-md-9 sw-header-left">
 <div class="sw-logo">
 
-<a href="http://www.sewing-world.ru/index.html">
+<a href="http://www.sewing-world.ru/">
 
 <div><img src="{% static '/i/logo.svg' %}" class="img-responsive" alt="Швейный Мир - всероссийская сеть швейных супермаркетов.&#10; Швейные машинки, вышивальные и вязальные машины, оверлоки и аксессуары."></div>
 
 </a>
 
-<p class="hidden-xs"><a href="http://www.sewing-world.ru/shops.html">Больше 100 магазинов швейных машин и товаров для рукоделия</a></p>
+<p class="hidden-xs"><a href="/stores/">Больше 100 магазинов швейных машин и товаров для рукоделия</a></p>
 </div>
 </div>
 
 <div class="col-md-10" style="margin-top:20px;">
 
-<div class="" style="font-weight:bold; display:inline-block; font-size:11pt;"><a href="http://www.sewing-world.ru/shops.html" class="hidden-xs"><img src="{% static '/i/placemark.svg' %}" alt="Магазины" height="33"></a> <a href="http://www.sewing-world.ru/shops.html">Адреса магазинов</a></div>
+<!-- <div class="" style="font-weight:bold; display:inline-block; font-size:11pt;"><a href="/stores/" class="hidden-xs"><img src="{% static '/i/placemark.svg' %}" alt="Магазины" height="33"></a> <a href="/stores/">Адреса магазинов</a></div> -->
 
 {% block search_form %}
 <form id="topSearchForm" action="/search/" class="form-inline">
-<input type="search" name="text" id="topSearchText" autocomplete="off" class="form-control input-sm" style="width: 80%; height:22pt"/>
+<input type="search" name="text"  placeholder="Поиск товара" id="topSearchText" autocomplete="off" class="form-control input-sm" style="width: 80%; height:22pt"/>
 <input type="submit" value="Найти" class="btn btn-sm btn-warning" style="font-weight:700" />
 </form>
 {% endblock %}
-<div class="" style="font-weight:bold"><!-- <img src="/i/phone.svg" alt="Телефон" height="33" class="hidden-xs"> --><small style="font-weight:normal;">Розничные магазины:</small> +7&nbsp;495&nbsp;744-00-87 <small style="font-weight:normal;">Интернет-магазин:</small> +7&nbsp;495&nbsp;766-56-75</div>
+<div class="" style="font-weight:bold; display:inline-block;"><small style="font-weight:normal;">Розничные магазины:</small> +7&nbsp;495&nbsp;744-00-87 <small style="font-weight:normal;">Интернет-магазин:</small> +7&nbsp;495&nbsp;766-56-75</div>
+<div class="" style="font-weight:bold; display:inline-block;"><a href="/stores/" class="hidden-xs"><img src="{% static '/i/placemark.svg' %}" alt="Магазины" height="33"></a> <a href="/stores/">Адреса магазинов</a></div>
 </div>
 
 <div class="col-md-5" style="margin-top:20px; margin-bottom:5px;">
@@ -56,26 +67,26 @@
             <span class="icon-bar"></span>
           </button>
           <ul class="list-inline visible-xs sw-xsnavigation">
-                  <li><a href="http://order.sewing-world.ru/shop/user/orders/">Что с моим заказом?</a></li>
+                  <li><a href="/shop/user/orders/">Что с моим заказом?</a></li>
                     </ul>
         </div>
         <div class="navbar-collapse collapse  text-center">
           <ul class="nav navbar-nav navbar-left">
-            <li class="hidden-xs"><a href="http://www.sewing-world.ru/shops.html">Адреса магазинов</a></li>
+            <li class="hidden-xs"><a href="/stores/">Адреса магазинов</a></li>
             <li class="dropdown hidden-xs">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown">Каталог <span class="caret"></span></a>
               <ul class="dropdown-menu" role="menu">
                 {% include "_catalog.html" %}
               </ul>
             </li>
-            <li class="visible-xs"><a href="http://www.sewing-world.ru/catalog/index.html">Каталог товаров</a></li>
-            <li><a href="http://www.sewing-world.ru/recipes/index.html">Рецепты</a></li>
-            <li><a href="http://www.sewing-world.ru/articles/">Статьи</a></li>
-<!--            <li><a href="/blog/">Блог</a></li>
-            <li><a href="/cgi-bin/forum.cgi">Форум</a></li> -->
-            <li><a href="http://www.sewing-world.ru/service.html">Сервисные центры</a></li>
-            <li><a href="http://www.sewing-world.ru/shipping.html">Доставка и оплата</a></li>
-            <li class="hidden-xs"><a href="http://order.sewing-world.ru/shop/user/orders/">Что с моим заказом?</a></li>
+            <li class="visible-xs"><a href="/catalog/">Каталог товаров</a></li>
+<!--            <li><a href="/recipes/index.html">Рецепты</a></li> -->
+            <li><a href="/pages/articles/">Статьи</a></li>
+            <li><a href="/blog/">Блог</a></li>
+<!--            <li><a href="/cgi-bin/forum.cgi">Форум</a></li> -->
+            <li><a href="/service/">Сервисные центры</a></li>
+            <li><a href="/pages/delivery/">Доставка и оплата</a></li>
+            <li class="hidden-xs"><a href="/shop/user/orders/">Что с моим заказом?</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -84,15 +95,15 @@
 <div class="sw-header-lower-block" style="background:#fffaee;margin-bottom:10px;padding-bottom:4px;">
 <div class="center-block row hidden-xs" style="max-width:1200px;">
 
-<div class="col-sm-3 text-center"><a href="http://www.sewing-world.ru/actions/all_actions.html"><img src="{% static '/i/categories/gifts.svg' %}" alt="Акции" height="75" width="75"><br>Акции</a></div>
-<div class="col-sm-3 text-center"><a href="http://www.sewing-world.ru/catalog/promo/index.html"><img src="{% static '/i/categories/sale.svg' %}" alt="Специальные предложения" height="75" width="75"><br>Специальные предложения</a></div>
-<div class="col-sm-3 text-center"><a href="http://www.sewing-world.ru/catalog/sewing_machines/index.html"><img src="{% static '/i/categories/compsewing.svg' %}" alt="Швейные машины" height="75" width="75"><br>Швейные машины</a></div>
-<div class="col-sm-3 text-center"><a href="http://www.sewing-world.ru/catalog/embroidery_machines/index.html"><img src="{% static '/i/categories/embroidery.svg' %}" alt="Швейно-вышивальные машины" height="75" width="94"><br>Вышивальные машины</a></div>
-<div class="col-sm-3 text-center"><a href="http://www.sewing-world.ru/catalog/sergers/index.html"><img src="{% static '/i/categories/overlock.svg' %}" alt="Оверлоки, коверлоки и распошивальные машины" height="75" width="75"><br>Оверлоки и коверлоки</a></div>
-<div class="col-sm-3 text-center"><a href="http://www.sewing-world.ru/catalog/knitting_machines/index.html"><img src="{% static '/i/categories/knitting.svg' %}" alt="Вязальные машины" height="75" width="94"><br>Вязальные машины</a></div>
-<div class="col-sm-3 text-center"><a href="http://www.sewing-world.ru/catalog/accessories/index.html"><img src="{% static '/i/categories/accessories.svg' %}" alt="Аксессуары" height="75" width="75"><br>Аксессуары</a></div>
-{#<div class="col-sm-3 text-center"><a href="http://www.sewing-world.ru/catalog/irons/index.html"><img src="{% static '/i/categories/irons.svg' %}" alt="Гладильное оборудование" height="75" width="94"><br>Гладильное оборудование</a></div>#}
-<div class="col-sm-3 text-center"><a href="http://www.sewing-world.ru/catalog/Prom/index.html"><img src="{% static '/i/categories/prom.svg' %}" alt="Промышленное оборудование" height="75" width="94"><br>Промышленное оборудование</a></div>
+<div class="col-sm-3 text-center"><a href="/actions/"><img src="{% static '/i/categories/gifts.svg' %}" alt="Акции" height="75" width="75"><br>Акции</a></div>
+<div class="col-sm-3 text-center"><a href="/catalog/promo/"><img src="{% static '/i/categories/sale.svg' %}" alt="Специальные предложения" height="75" width="75"><br>Специальные предложения</a></div>
+<div class="col-sm-3 text-center"><a href="/catalog/sewing_machines/"><img src="{% static '/i/categories/compsewing.svg' %}" alt="Швейные машины" height="75" width="75"><br>Швейные машины</a></div>
+<div class="col-sm-3 text-center"><a href="/catalog/embroidery_machines/"><img src="{% static '/i/categories/embroidery.svg' %}" alt="Швейно-вышивальные машины" height="75" width="94"><br>Вышивальные машины</a></div>
+<div class="col-sm-3 text-center"><a href="/catalog/sergers/"><img src="{% static '/i/categories/overlock.svg' %}" alt="Оверлоки, коверлоки и распошивальные машины" height="75" width="75"><br>Оверлоки и коверлоки</a></div>
+<div class="col-sm-3 text-center"><a href="/catalog/knitting_machines/"><img src="{% static '/i/categories/knitting.svg' %}" alt="Вязальные машины" height="75" width="94"><br>Вязальные машины</a></div>
+<div class="col-sm-3 text-center"><a href="/catalog/accessories/"><img src="{% static '/i/categories/accessories.svg' %}" alt="Аксессуары" height="75" width="75"><br>Аксессуары</a></div>
+{#<div class="col-sm-3 text-center"><a href="/catalog/irons/"><img src="{% static '/i/categories/irons.svg' %}" alt="Гладильное оборудование" height="75" width="94"><br>Гладильное оборудование</a></div>#}
+<div class="col-sm-3 text-center"><a href="/catalog/Prom/"><img src="{% static '/i/categories/prom.svg' %}" alt="Промышленное оборудование" height="75" width="94"><br>Промышленное оборудование</a></div>
 </div>
 </div>
 {% endblock %}
@@ -160,7 +171,7 @@
 <td colspan="2"><h3>Телефоны</h3></td>
 </tr>
 <tr>
-<td class="sw-bottom-phones-left">Справочная <a href="http://www.sewing-world.ru/shops.html">розничных магазинов:</a></td>
+<td class="sw-bottom-phones-left">Справочная <a href="/stores/">розничных магазинов:</a></td>
 <td class="sw-bottom-phones-right">+7 495 744-00-87</td>
 </tr>
 <tr>
@@ -184,7 +195,7 @@
 <td class="sw-bottom-phones-right">+7 495 744-00-87</td>
 </tr>
 <tr>
-<td class="sw-bottom-phones-left"><a href="http://www.sewing-world.ru/service.html">Ремонт швейных машин:</a></td>
+<td class="sw-bottom-phones-left"><a href="/service/">Ремонт швейных машин:</a></td>
 <td class="sw-bottom-phones-right">+7 495 718-86-02<br>+7 499 158-06-87</td>
 </tr>
 </table>
