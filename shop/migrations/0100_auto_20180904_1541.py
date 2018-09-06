@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('shop', '0096_category_filters'),
+        ('shop', '0099_advert'),
     ]
 
     operations = [
