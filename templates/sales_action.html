@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% load django_bootstrap_breadcrumbs %}
-{% block title %}
-<title>{{ action.name }}</title>
-{% endblock %}
+{% block title %}{{ action.name }}{% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
     {% breadcrumb "К первой странице" "/" %}

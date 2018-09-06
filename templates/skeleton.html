@@ -4,10 +4,11 @@
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <meta name="Keywords" content="Швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов Швейный Мир, швейная, швейные, вышивальная, вышивальные, вязальная, вязальные, машинка, машина, машинки, машины, оверлок, оверлоки,  шитье, вышивка, вязание, купить, интернет, магазин, pfaff, brother, janome, bernina, husqvarna, huskystar, viking, оверлок, строчка, петля, челнок, стежок, ткань, рукав"/>
-    <meta name="Description" content="Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары"/>
-{% block title %}
-{% endblock %}
+    <meta name="description" content="{% block meta-description %}{% endblock meta-description %}{% block meta-description-page %}{% endblock meta-description-page %}" />
+    <meta name="keywords" content="{% block meta-keywords %}{% endblock meta-keywords %}" />
+    {% block meta %}{% endblock meta %}
+    <title>{% block title %}{% endblock title %}{% block title-page %}{% endblock title-page %} - Швейный Мир</title>
+    {% block link %}{% endblock link %}
 <link rel="stylesheet" href="{% static 'css/jquery-ui-1.10.3.custom.min.css' %}"/>
 <link rel="stylesheet" href="{% static 'css/magnific-popup.css' %}">
 <link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
@@ -34,7 +35,6 @@
 <script src="{% static 'js/jquery-ui-1.10.3.custom.min.js' %}"></script>
 <script src="{% static 'js/jquery.maskedinput.min.js' %}"></script>
 <script src="{% static 'js/jquery.magnific-popup.min.js' %}"></script>
-<script src="{% static 'js/eldarion-ajax.min.js' %}"></script>
 <script src="{% static 'js/jquery.dump.js' %}"></script>
 <script src="{% static 'js/js.cookie.js' %}"></script>
 <script src="{% static 'bootstrap/js/bootstrap.min.js' %}"></script>

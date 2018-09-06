@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% load django_bootstrap_breadcrumbs %}
-{% block title %}
-<title>Все акции</title>
-{% endblock %}
+{% block title %}Все акции{% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
     {% breadcrumb "К первой странице" "/" %}
