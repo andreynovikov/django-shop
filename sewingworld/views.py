@@ -5,13 +5,18 @@ from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
 from django.views.decorators.cache import cache_page
 
-from shop.models import Category, Product, ProductRelation, Manufacturer, SalesAction, City, Store, ServiceCenter
+from shop.models import Category, Product, ProductRelation, Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
 from shop.filters import get_product_filter
 
 
+@cache_page(60 * 30)
 def index(request):
+    site = Site.objects.get_current()
     context = {
-        'actions': SalesAction.objects.filter(active=True, sites=Site.objects.get_current()).order_by('order'),
+        'top_adverts': Advert.objects.filter(active=True, place='index_top', sites=site).order_by('order'),
+        'middle_adverts': Advert.objects.filter(active=True, place='index_middle', sites=site).order_by('order'),
+        'bottom_adverts': Advert.objects.filter(active=True, place='index_bottom', sites=site).order_by('order'),
+        'actions': SalesAction.objects.filter(active=True, sites=site).order_by('order'),
         'gift_products': Product.objects.filter(enabled=True, show_on_sw=True, gift=True).order_by('-price')[:25],
         'recomended_products': Product.objects.filter(enabled=True, show_on_sw=True, recomended=True).order_by('-price')[:25],
         'first_page_products': Product.objects.filter(enabled=True, show_on_sw=True, firstpage=True).order_by('-price')[:25]
@@ -32,7 +37,7 @@ def search_xml(request):
         'root': root,
         'children': children,
         'category_map': categories,
-        'products': Product.objects.filter(enabled=True, categories__in=root.get_descendants(include_self=True)).distinct()
+        'products': Product.objects.filter(enabled=True, variations__exact='', categories__in=root.get_descendants(include_self=True)).distinct()
         }
     return render(request, 'search.xml', context, content_type='text/xml; charset=utf-8')
 
@@ -162,20 +167,17 @@ def catalog(request):
     return render(request, 'catalog.html', context)
 
 
-def catalog_menu(request):
-    return render(request, '_catalog.html', {})
-
-
 def category(request, path, instance):
     products = None
     gtm_list = None
-    if instance:
-        products = instance.products.filter(enabled=True, show_on_sw=True).order_by('-price')
-        if products.count() < 1:
-            products = Product.objects.filter(enabled=True, show_on_sw=True, recomended=True, categories__in=instance.get_descendants()).distinct()
-            gtm_list = "Рекомендуем в каталоге"
-        else:
-            gtm_list = "Каталог"
+    if not instance:
+        raise Http404("Category does not exist")
+    products = instance.products.filter(enabled=True, show_on_sw=True).order_by('-price')
+    if products.count() < 1:
+        products = Product.objects.filter(enabled=True, show_on_sw=True, recomended=True, categories__in=instance.get_descendants()).distinct()
+        gtm_list = "Рекомендуем в каталоге"
+    else:
+        gtm_list = "Каталог"
 
     product_filter = None
     if instance.filters:
@@ -229,15 +231,7 @@ def product(request, code):
         'product': product,
         'accessories': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_ACCESSORY),
         'similar': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR),
-        'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT)
+        'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT),
+        'utm_source': request.GET.get('utm_source', None)
         }
     return render(request, 'product.html', context)
-
-
-@cache_page(60 * 10)
-def product_info(request, code):
-    product = get_object_or_404(Product, code=code)
-    context = {
-        'product': product,
-        }
-    return render(request, '_product_info.html', context)
