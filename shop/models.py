@@ -242,7 +242,7 @@ class Contractor(models.Model):
 
 
 class Product(models.Model):
-    code = models.CharField('идентификатор', max_length=20, db_index=True)
+    code = models.CharField('идентификатор', max_length=20, unique=True, db_index=True)
     article = models.CharField('код 1С', max_length=20, blank=True, db_index=True)
     partnumber = models.CharField('partnumber', max_length=200, blank=True, db_index=True)
     gtin = models.CharField('GTIN', max_length=17, blank=True, db_index=True)
