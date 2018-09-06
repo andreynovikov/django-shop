@@ -24,7 +24,6 @@ from django.utils.translation import ugettext, ugettext_lazy as _
 import autocomplete_light
 from datetimewidget.widgets import TimeWidget
 from suit.admin import SortableModelAdmin
-from django.forms import ModelForm, TextInput
 from suit.widgets import AutosizedTextarea
 from mptt.admin import MPTTModelAdmin
 from import_export import resources
@@ -36,7 +35,7 @@ from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contracto
     Product, ProductRelation, SalesAction, Stock, Basket, BasketItem, Manager, Courier, \
     Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
-    OrderDiscountForm, SendSmsForm
+    OrderDiscountForm, SendSmsForm, ProductAdminForm
 from shop.decorators import admin_changelist_link
 from shop.tasks import send_message
 
@@ -84,7 +83,7 @@ class SortableMPTTModelAdmin(MPTTModelAdmin, SortableModelAdmin):
         return response
 
 
-class CategoryForm(ModelForm):
+class CategoryForm(forms.ModelForm):
     class Meta:
         widgets = {
             'brief': AutosizedTextarea(attrs={'rows': 3,}),
@@ -202,7 +201,7 @@ class ContractorAdmin(admin.ModelAdmin):
     ordering = ['code']
 
 
-class AdvertAdminForm(ModelForm):
+class AdvertAdminForm(forms.ModelForm):
     class Meta:
         widgets = {
             'content': AutosizedTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'}),
@@ -219,7 +218,7 @@ class AdvertAdmin(SortableModelAdmin):
     form = AdvertAdminForm
 
 
-class SalesActionAdminForm(ModelForm):
+class SalesActionAdminForm(forms.ModelForm):
     class Meta:
         widgets = {
             'brief': AutosizedTextarea(attrs={'rows': 3, 'style': 'width: 95%; max-height: 500px'}),
@@ -287,22 +286,6 @@ class ProductRelationInline(admin.TabularInline):
     suit_classes = 'suit-tab suit-tab-related'
 
 
-class ProductForm(autocomplete_light.ModelForm):
-    class Meta:
-        model = Product
-        exclude = ['fake']
-        widgets = {
-            'gtin': TextInput(attrs={'size': 10}),
-            'spec': AutosizedTextarea(attrs={'rows': 3,}),
-            'shortdescr': AutosizedTextarea(attrs={'rows': 3,}),
-            'yandexdescr': AutosizedTextarea(attrs={'rows': 3,}),
-            'descr': AutosizedTextarea(attrs={'rows': 3,}),
-            'state': AutosizedTextarea(attrs={'rows': 2,}),
-            'complect': AutosizedTextarea(attrs={'rows': 3,}),
-            'dealertxt': AutosizedTextarea(attrs={'rows': 2,})
-        }
-
-
 class ProductResource(resources.ModelResource):
     class Meta:
         model = Product
@@ -367,7 +350,7 @@ class ProductAdmin(ImportExportModelAdmin): #admin.ModelAdmin):
     product_link.allow_tags = True
     product_link.short_description = 'описание'
 
-    form = ProductForm
+    form = ProductAdminForm
     resource_class = ProductResource
     list_display = ['id', 'code', 'partnumber', 'article', 'title', 'price', 'cur_price', 'cur_code', 'calm_forbid_price_import',
                     'pct_discount', 'val_discount', 'enabled', 'show_on_sw', 'market', 'spb_market', 'product_stock',
