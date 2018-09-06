@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import sys
 import csv
 from collections import defaultdict
+from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.mail import send_mail
@@ -224,7 +225,7 @@ def import1c(file):
                     try:
                         ws_cur_price = float(line['ws_cur_price'].replace('\xA0',''))
                         if ws_cur_price > 0:
-                            product.ws_cur_price = ws_cur_price
+                            product.ws_cur_price = Decimal(ws_cur_price).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
                         product.ws_cur_code = currencies.get(pk=line['ws_cur_code'])
                     except ValueError:
                         errors.append("%s: оптовая цена" % line['article'])
