@@ -3,9 +3,12 @@
 {% load site %}
 {% load mptt_tags %}
 {% load django_bootstrap_breadcrumbs %}
-{% block title %}
-<title>{{ category.name }}</title>
+{% block css %}
+<style>
+.catalog .category { font-weight: bold }
+</style>
 {% endblock %}
+{% block title %}{{ category.name }}{% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
     {% breadcrumb "К первой странице" "index" %}
@@ -19,12 +22,9 @@
 {% block content %}
 <h1>{{ category.name }}</h1>
 <ul class="catalog">
-{% drilldown_tree_for_node category as categories %}
-    {% for node,structure in categories|tree_info %}
-        {% if node.parent_id == category.pk  %}
-                <li class="catalog"><a href="{% url 'category' node.get_path %}">{{ node }}</a></li>
-        {% endif %}
-    {% endfor %}
+{% for child in category.get_children|filter_qs:"active" %}
+    <li class="category"><a href="{% url 'category' child.get_path %}">{{ child }}</a></li>
+{% endfor %}
 </ul>
 
 {% if category.description or product_filter %}

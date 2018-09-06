@@ -1,10 +1,9 @@
 {% load cache %}
 {% cache 600 navbar_catalog %}
 {% load site %}
-{% load mptt_tags %}
 {% get_categories_root as categories_root %}
-{% for category,structure in categories_root.get_children|tree_info %}
-  <li><a href="{% url 'category' category.get_path %}">{{ category.name }}</a>{% for subcategory,substructure in category.get_children|tree_info %}
+{% for category in categories_root.get_children|filter_qs:"active" %}
+  <li><a href="{% url 'category' category.get_path %}">{{ category.name }}</a>{% for subcategory in category.get_children|filter_qs:"active" %}
     {% if forloop.first %}<ul>{% endif %}
       <li><a href="{% url 'category' subcategory.get_path %}">{{ subcategory.name }}</a></li>
     {% if forloop.last %}</ul>{% endif %}
