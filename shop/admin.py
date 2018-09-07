@@ -27,6 +27,7 @@ from suit.admin import SortableModelAdmin
 from suit.widgets import AutosizedTextarea
 from mptt.admin import MPTTModelAdmin
 from tagging.models import Tag, TaggedItem
+from tagging.utils import parse_tag_input, edit_string_for_tags
 
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin, ExportMixin
@@ -37,7 +38,7 @@ from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contracto
     Product, ProductRelation, SalesAction, Stock, Basket, BasketItem, Manager, Courier, \
     Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
-    OrderDiscountForm, SendSmsForm, ProductAdminForm
+    OrderDiscountForm, SendSmsForm, SelectTagForm, ProductAdminForm
 from shop.widgets import TagAutoComplete
 from shop.decorators import admin_changelist_link
 from shop.tasks import send_message
@@ -906,7 +907,7 @@ class OrderAdmin(admin.ModelAdmin):
         DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
         TimeField: {'widget': TimeWidget()},
     }
-    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action']
+    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_set_user_tag_action']
     save_as = True
     list_per_page = 50
 
@@ -1105,8 +1106,9 @@ class OrderAdmin(admin.ModelAdmin):
         context['is_popup'] = is_popup
         context['messages'] = messages
         context['title'] = "Укажите заказ для объединения"
+        context['action_title'] = "Объеденить"
 
-        return TemplateResponse(request, 'admin/shop/order/combine_form.html', context)
+        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
 
     def discount_form(self, request, id):
         if not request.user.is_staff:
@@ -1146,8 +1148,9 @@ class OrderAdmin(admin.ModelAdmin):
         context['is_popup'] = is_popup
         context['messages'] = messages
         context['title'] = "Укажите скидку"
+        context['action_title'] = "Применить"
 
-        return TemplateResponse(request, 'admin/shop/order/discount_form.html', context)
+        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
 
     def send_sms_form(self, request, phone):
         if not request.user.is_staff:
@@ -1175,7 +1178,7 @@ class OrderAdmin(admin.ModelAdmin):
         context['is_popup'] = is_popup
         context['messages'] = messages
         context['title'] = "Укажите текст сообщения для %s" % str(phone)
-        context['action'] = "Отправить"
+        context['action_title'] = "Отправить"
 
         return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
 
@@ -1215,6 +1218,49 @@ class OrderAdmin(admin.ModelAdmin):
             response['Content-Disposition'] = 'attachment; filename=PickPoint-{0}.xml'.format(datetime.date.today().isoformat())
             return response
     order_pickpoint_action.short_description = "Выгрузка в ПикПоинт"
+
+    def order_set_user_tag_action(self, request, queryset):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        if 'set_user_tag' in request.POST:
+            tags = parse_tag_input(request.POST.get('tags'))
+            for order in queryset:
+                user_tags = order.user.tags.split(',')
+                merged = list(set(tags + user_tags))
+                order.user.tags = ','.join(merged)
+                order.user.save()
+            self.message_user(request, "Добавлен тег {} пользователям".format(queryset.count()))
+            return HttpResponseRedirect(request.get_full_path())
+
+        messages = None
+        form = SelectTagForm(model=ShopUser)
+        """
+            if form.is_valid():
+                try:
+                    message = form.cleaned_data['message']
+                    if message:
+                        send_message.delay(phone, message)
+                    messages = ["Сообщение отправлено, закройте окно"]
+                    form = SendSmsForm()
+                except Exception as e:
+                    form.errors['__all__'] = form.error_class([str(e)])
+        """
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['form'] = form
+        context['queryset'] = queryset
+        context['is_popup'] = 0
+        context['messages'] = messages
+        context['title'] = "Укажите один или несколько тегов"
+        context['action'] = 'order_set_user_tag_action'
+        context['action_name'] = 'set_user_tag'
+        context['action_title'] = "Добавить"
+
+        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+
+
+        return render(request, 'admin/order_intermediate.html', context={'orders':queryset})
+    order_set_user_tag_action.short_description = "Добавить тег покупателю"
 
     def get_actions(self, request):
         actions = super(OrderAdmin, self).get_actions(request)

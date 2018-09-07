@@ -117,9 +117,12 @@ class TagAutoComplete(widgets.AdminTextInputWidget):
         TagAutoComplete's Media.
         """
         def static(path):
-            return staticfiles_storage.url(
-                'zinnia/admin/select2/%s' % path)
+            return staticfiles_storage.url('zinnia/admin/select2/%s' % path)
+
         return Media(
-            css={'all': (static('css/select2.css'),)},
-            js=(static('js/select2.js'),)
+            css = {'all': (static('css/select2.css'),)},
+            js = (
+                'admin/js/jquery.init.js',
+                static('js/select2.js'),
+                )
         )
