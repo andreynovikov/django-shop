@@ -79,13 +79,18 @@ class TagAutoComplete(widgets.AdminTextInputWidget):
     Tag widget with autocompletion based on select2.
     """
 
+    def __init__(self, *args, **kwargs):
+        self.model = kwargs.pop('model', None)
+        super(TagAutoComplete, self).__init__(*args, **kwargs)
+
     def get_tags(self):
         """
         Returns the list of tags to auto-complete.
         """
-        return [tag.name for tag in
-                Tag.objects.all()]
-        #        Tag.objects.usage_for_model(Entry)]
+        if self.model is None:
+            return [tag.name for tag in Tag.objects.all()]
+        else:
+            return [tag.name for tag in Tag.objects.usage_for_model(self.model)]
 
     def render(self, name, value, attrs=None, renderer=None):
         """
