@@ -923,7 +923,7 @@ class OrderAdmin(admin.ModelAdmin):
             ('Покупатель', {'fields': [('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux'),
                                        'email', 'postcode', 'city', 'address', 'comment', ('firm_name', 'is_firm')]}),
             )
-        if obj.is_firm:
+        if obj is None or obj.is_firm:
             fieldsets[2][1]['fields'].extend(('firm_address', 'firm_details'))
         fieldsets[2][1]['fields'].append('user_tags')
         return fieldsets
