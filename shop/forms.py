@@ -81,7 +81,7 @@ class OrderAdminForm(autocomplete_light.ModelForm):
         try:
             instance = kwargs['instance']
             self.fields['user_tags'].initial = instance.user.tags
-            self.fields['user_tags'].widget = TagAutoComplete()
+            self.fields['user_tags'].widget = TagAutoComplete(model=type(instance.user))
         except (KeyError, AttributeError):
             pass
 

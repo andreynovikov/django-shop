@@ -1263,7 +1263,7 @@ class UserChangeForm(forms.ModelForm):
         model = ShopUser
         fields = '__all__'
         widgets = {
-            'tags': TagAutoComplete(),
+            'tags': TagAutoComplete(model=ShopUser),
             }
 
     def clean_password(self):
