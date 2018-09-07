@@ -50,6 +50,15 @@ class SendSmsForm(forms.Form):
     message = forms.CharField(label='Сообщение', max_length=160, required=True)
 
 
+class SelectTagForm(forms.Form):
+    tags = forms.CharField(label='Теги', max_length=50, required=True)
+
+    def __init__(self, *args, **kwargs):
+        model = kwargs.pop('model', None)
+        super(SelectTagForm, self).__init__(*args, **kwargs)
+        self.fields['tags'].widget = TagAutoComplete(model=model)
+
+
 class ProductAdminForm(autocomplete_light.ModelForm):
     class Meta:
         model = Product
