@@ -6,7 +6,7 @@ from django.conf import settings
 
 import autocomplete_light
 
-from shop.models import Supplier, Product, Stock, Order
+from shop.models import Supplier, Product, Stock, Order, ShopUser
 from shop.widgets import PhoneWidget, TagAutoComplete
 from shop.tasks import import1c
 
@@ -71,7 +71,8 @@ class ProductAdminForm(autocomplete_light.ModelForm):
             'descr': AutosizedTextarea(attrs={'rows': 3,}),
             'state': AutosizedTextarea(attrs={'rows': 2,}),
             'complect': AutosizedTextarea(attrs={'rows': 3,}),
-            'dealertxt': AutosizedTextarea(attrs={'rows': 2,})
+            'dealertxt': AutosizedTextarea(attrs={'rows': 2,}),
+            'tags': TagAutoComplete(model=ShopUser)
         }
 
     def clean(self):
