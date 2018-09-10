@@ -28,6 +28,7 @@ from django.forms import ModelForm, TextInput
 from suit.widgets import AutosizedTextarea
 from mptt.admin import MPTTModelAdmin
 from tagging.models import Tag, TaggedItem
+from tagging.utils import parse_tag_input
 
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin, ExportMixin
@@ -250,7 +251,7 @@ class ProductAdmin(ImportExportModelAdmin):
     list_display_links = ['title']
     list_filter = ['cur_code', 'pct_discount', 'val_discount', 'categories']
     exclude = ['image_prefix']
-    search_fields = ['code', 'article', 'partnumber', 'title']
+    search_fields = ['code', 'article', 'partnumber', 'title', 'tags']
     readonly_fields = ['price', 'ws_price', 'sp_price']
     inlines = (StockInline,)
     formfield_overrides = {
@@ -271,7 +272,12 @@ class ProductAdmin(ImportExportModelAdmin):
         }),
         ('Маркетинг', {
                 'classes': ('suit-tab', 'suit-tab-money'),
-                'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','sales_notes','internetonly','present','delivery','firstpage',)
+                'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','sales_notes',
+                           'internetonly','present','delivery','firstpage','sales_actions','tags')
+        }),
+        ('С.Петербург', {
+                'classes': ('suit-tab', 'suit-tab-money'),
+                'fields': ('spb_price', 'forbid_spb_price_import', 'spb_show_in_catalog', 'spb_market')
         }),
         ('Размеры', {
                 'classes': ('suit-tab', 'suit-tab-general'),
@@ -961,6 +967,46 @@ class OrderAdmin(admin.ModelAdmin):
             response['Content-Disposition'] = 'attachment; filename=PickPoint-{0}.xml'.format(datetime.date.today().isoformat())
             return response
     order_pickpoint_action.short_description = "Выгрузка в ПикПоинт"
+
+    def order_set_user_tag_action(self, request, queryset):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        if 'set_user_tag' in request.POST:
+            tags = parse_tag_input(request.POST.get('tags'))
+            for order in queryset:
+                order.append_user_tags(tags)
+            self.message_user(request, "Добавлен тег {} пользователям".format(queryset.count()))
+            return HttpResponseRedirect(request.get_full_path())
+
+        messages = None
+        form = SelectTagForm(model=ShopUser)
+        """
+            if form.is_valid():
+                try:
+                    message = form.cleaned_data['message']
+                    if message:
+                        send_message.delay(phone, message)
+                    messages = ["Сообщение отправлено, закройте окно"]
+                    form = SendSmsForm()
+                except Exception as e:
+                    form.errors['__all__'] = form.error_class([str(e)])
+        """
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['form'] = form
+        context['queryset'] = queryset
+        context['is_popup'] = 0
+        context['messages'] = messages
+        context['title'] = "Укажите один или несколько тегов"
+        context['action'] = 'order_set_user_tag_action'
+        context['action_name'] = 'set_user_tag'
+        context['action_title'] = "Добавить"
+
+        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+
+
+        return render(request, 'admin/order_intermediate.html', context={'orders':queryset})
+    order_set_user_tag_action.short_description = "Добавить тег покупателю"
 
     def get_actions(self, request):
         actions = super(OrderAdmin, self).get_actions(request)

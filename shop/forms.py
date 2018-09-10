@@ -4,7 +4,7 @@ from django.conf import settings
 
 import autocomplete_light
 
-from shop.models import Supplier, Product, Stock, Order
+from shop.models import Supplier, Product, Stock, Order, ShopUser
 from shop.widgets import PhoneWidget, TagAutoComplete
 from shop.tasks import import1c
 
@@ -34,6 +34,51 @@ class OneSImportForm(forms.Form):
 
 class WarrantyCardPrintForm(forms.Form):
     serial_number = forms.CharField(label='Серийный номер', max_length=30, required=False)
+
+
+class OrderCombineForm(forms.Form):
+    order_number = forms.IntegerField(label='Номер заказа', min_value=1, required=True)
+
+
+class OrderDiscountForm(forms.Form):
+    discount = forms.IntegerField(label='Скидка', min_value=0, required=True)
+
+
+class SendSmsForm(forms.Form):
+    message = forms.CharField(label='Сообщение', max_length=160, required=True)
+
+
+class SelectTagForm(forms.Form):
+    tags = forms.CharField(label='Теги', max_length=50, required=True)
+
+    def __init__(self, *args, **kwargs):
+        model = kwargs.pop('model', None)
+        super(SelectTagForm, self).__init__(*args, **kwargs)
+        self.fields['tags'].widget = TagAutoComplete(model=model)
+
+
+class ProductAdminForm(autocomplete_light.ModelForm):
+    class Meta:
+        model = Product
+        exclude = ['fake']
+        widgets = {
+            'gtin': forms.TextInput(attrs={'size': 10}),
+            'spec': AutosizedTextarea(attrs={'rows': 3,}),
+            'shortdescr': AutosizedTextarea(attrs={'rows': 3,}),
+            'yandexdescr': AutosizedTextarea(attrs={'rows': 3,}),
+            'descr': AutosizedTextarea(attrs={'rows': 3,}),
+            'state': AutosizedTextarea(attrs={'rows': 2,}),
+            'complect': AutosizedTextarea(attrs={'rows': 3,}),
+            'dealertxt': AutosizedTextarea(attrs={'rows': 2,}),
+            'tags': TagAutoComplete(model=ShopUser)
+        }
+
+    def clean(self):
+        code = self.cleaned_data.get('code')
+        reg = re.compile('^[-\.\w]+$')
+        if not reg.match(code):
+            raise forms.ValidationError("Код товара содержит недопустимые символы")
+        return self.cleaned_data
 
 
 class OrderAdminForm(autocomplete_light.ModelForm):
