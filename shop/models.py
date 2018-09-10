@@ -427,6 +427,7 @@ class Product(models.Model):
     image_prefix = models.CharField('префикс изображения', max_length=200)
     categories = TreeManyToManyField('shop.Category', related_name='products',
                                      related_query_name='product', verbose_name='категории', blank=True)
+    tags = TagField('теги')
     forbid_price_import = models.BooleanField('не импортировать цену', default=False)
     if settings.SHOP_PRICE_DB_COLUMN == 'price':
         forbid_spb_price_import = models.BooleanField('не импортировать цену СПб', default=False)
@@ -1095,6 +1096,12 @@ class Order(models.Model):
                                    val_discount=item.product.val_discount,
                                    quantity=item.quantity)
         return order
+
+    def append_user_tags(self, tags):
+        user_tags = self.user.tags.split(',')
+        merged = list(set(tags + user_tags))
+        self.user.tags = ','.join(merged)
+        self.user.save()
 
     def __str__(self):
         return "%s от %s" % (self.id, date_format(timezone.localtime(self.created), "DATETIME_FORMAT"))

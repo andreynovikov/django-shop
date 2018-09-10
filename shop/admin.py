@@ -27,7 +27,7 @@ from suit.admin import SortableModelAdmin
 from suit.widgets import AutosizedTextarea
 from mptt.admin import MPTTModelAdmin
 from tagging.models import Tag, TaggedItem
-from tagging.utils import parse_tag_input, edit_string_for_tags
+from tagging.utils import parse_tag_input
 
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin, ExportMixin
@@ -363,7 +363,7 @@ class ProductAdmin(ImportExportModelAdmin):
     list_editable = ['enabled', 'show_on_sw', 'market', 'spb_market']
     list_filter = ['cur_code', 'pct_discount', 'val_discount', 'categories', 'enabled', 'isnew', 'recomended', 'show_on_sw', 'market']
     exclude = ['image_prefix']
-    search_fields = ['code', 'article', 'partnumber', 'title']
+    search_fields = ['code', 'article', 'partnumber', 'title', 'tags']
     readonly_fields = ['price', 'ws_price', 'sp_price']
     save_as = True
     inlines = (ProductRelationInline,StockInline,AddStockInline,)
@@ -387,7 +387,7 @@ class ProductAdmin(ImportExportModelAdmin):
         ('Маркетинг', {
                 'classes': ('suit-tab', 'suit-tab-money'),
                 'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','sales_notes',
-                           'internetonly','present','delivery','firstpage','sales_actions')
+                           'internetonly','present','delivery','firstpage','sales_actions','tags')
         }),
         ('С.Петербург', {
                 'classes': ('suit-tab', 'suit-tab-money'),
@@ -1225,10 +1225,7 @@ class OrderAdmin(admin.ModelAdmin):
         if 'set_user_tag' in request.POST:
             tags = parse_tag_input(request.POST.get('tags'))
             for order in queryset:
-                user_tags = order.user.tags.split(',')
-                merged = list(set(tags + user_tags))
-                order.user.tags = ','.join(merged)
-                order.user.save()
+                order.append_user_tags(tags)
             self.message_user(request, "Добавлен тег {} пользователям".format(queryset.count()))
             return HttpResponseRedirect(request.get_full_path())
 
