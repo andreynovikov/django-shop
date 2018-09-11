@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% load staticfiles %}
+{% load cache %}
 {% block title %}Швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов{% endblock %}
 {% block content %}
+{% cache 1800 index %}
 <div class="row">
 <div class="col-md-7">
 <h2>Каталог</h2>
@@ -145,4 +147,5 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 <script>
 dataLayer.push({'ecommerce':{'currencyCode':'RUB','impressions':gtm_products}});
 </script>
-{% endblock %}
+{% endcache %}
+{% endblock content %}

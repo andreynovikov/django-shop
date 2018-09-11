@@ -1,5 +1,6 @@
 {% extends "seo.html" %}
 {% load staticfiles %}
+{% load shop_tags %}
 {% block meta-keywords %}Швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов Швейный Мир, швейная, швейные, вышивальная, вышивальные, вязальная, вязальные, машинка, машина, машинки, машины, оверлок, оверлоки,  шитье, вышивка, вязание, купить, интернет, магазин, pfaff, brother, janome, bernina, husqvarna, huskystar, viking, оверлок, строчка, петля, челнок, стежок, ткань, рукав{% endblock %}
 {% block meta-description %}Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары{% endblock %}
 
@@ -86,7 +87,11 @@
 <!--            <li><a href="/cgi-bin/forum.cgi">Форум</a></li> -->
             <li><a href="/service/">Сервисные центры</a></li>
             <li><a href="/pages/delivery/">Доставка и оплата</a></li>
-            <li class="hidden-xs"><a href="/shop/user/orders/">Что с моим заказом?</a></li>
+            <li class="hidden-xs"><a href="{% url 'shop:user_orders' %}">Что с моим заказом?</a></li>
+            {% get_unpaid_order as order %}
+            {% if order %}
+            <li class="hidden-xs"><a href="{% url 'shop:order' order.id %}">Оплатить заказ</a></li>
+            {% endif %}
           </ul>
         </div><!--/.nav-collapse -->
       </div>
