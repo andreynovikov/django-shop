@@ -3,13 +3,11 @@ from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
-from django.views.decorators.cache import cache_page
 
 from shop.models import Category, Product, ProductRelation, Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
 from shop.filters import get_product_filter
 
 
-@cache_page(60 * 30)
 def index(request):
     site = Site.objects.get_current()
     context = {
@@ -194,7 +192,6 @@ def category(request, path, instance):
     return render(request, 'category.html', context)
 
 
-@cache_page(60 * 30)
 def product(request, code):
     product = get_object_or_404(Product, code=code)
     if not product.breadcrumbs:

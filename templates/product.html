@@ -4,6 +4,7 @@
 {% load render_as_template %}
 {% load shop_filters %}
 {% load mptt_tags %}
+{% load cache %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}{{ product.title }}{% endblock %}
 {% block breadcrumbs %}
@@ -20,6 +21,7 @@
     {% endif %}
 {% endblock %}
 {% block content %}
+{% cache 1800 product product.id %}
 <script>
 gtm_products = [];
 </script>
@@ -461,7 +463,8 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 </div>
 </noscript>
 </div>
-{% endblock %}
+{% endcache %}
+{% endblock content %}
 {% block javascript %}
 <script>
 $(document).ready(function() {
@@ -488,4 +491,4 @@ var google_remarketing_only = true;
 /* ]]> */
 </script>
 <script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js"></script>
-{% endblock %}
+{% endblock javascript %}
