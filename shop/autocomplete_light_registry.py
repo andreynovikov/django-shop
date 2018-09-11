@@ -1,5 +1,5 @@
 import autocomplete_light.shortcuts as al
-from .models import ShopUser, Product, SalesAction, Store
+from .models import ShopUser, Category, Product, SalesAction, Store
 
 # This will generate a PersonAutocomplete class
 al.register(ShopUser,
@@ -23,6 +23,18 @@ al.register(ShopUser,
     },
 )
 
+
+class CategoryAutocomplete(al.AutocompleteModelBase):
+    search_fields = ['name','^slug']
+    model = Category
+    order_by = 'order'
+    
+    def choice_label(self, choice):
+        return '/'.join([x['name'] for x in choice.get_ancestors(include_self=True).values()])
+
+al.register(CategoryAutocomplete)
+
+
 al.register(Product,
   search_fields=['article', 'code', 'partnumber', 'gtin', 'title'],
   attrs={
@@ -34,6 +46,7 @@ al.register(Product,
     },
 )
 
+
 al.register(SalesAction,
   search_fields=['name', 'slug'],
   attrs={
@@ -44,6 +57,7 @@ al.register(SalesAction,
         'data-widget-maximum-values': 8,
     },
 )
+
 
 al.register(Store,
   search_fields=['address', 'address2', 'city__name'],
