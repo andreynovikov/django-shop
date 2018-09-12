@@ -78,9 +78,10 @@ class ProductAdminForm(autocomplete_light.ModelForm):
     def clean(self):
         code = self.cleaned_data.get('code')
         reg = re.compile('^[-\.\w]+$')
-        if not reg.match(code):
-            raise forms.ValidationError("Код товара содержит недопустимые символы")
-        return self.cleaned_data
+        if reg.match(code):
+            return super().clean()
+        else:
+            self.add_error('code', forms.ValidationError("Код товара содержит недопустимые символы"))
 
 
 class OrderAdminForm(autocomplete_light.ModelForm):
