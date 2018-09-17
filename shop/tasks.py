@@ -176,11 +176,11 @@ def import1c(file):
     if frozen_orders.exists():
         for order in frozen_orders:
             for item in order.items.all():
-                quantity = item.product.num_correction
+                quantity = 0
                 stock = Stock.objects.filter(product=item.product)
                 if stock.exists():
                     for s in stock:
-                        quantity = quantity + s.quantity
+                        quantity = quantity + s.quantity + s.correction
                 if quantity <= 0:
                     frozen_products[item.product].append(order)
 

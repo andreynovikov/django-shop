@@ -333,8 +333,10 @@ class Product(models.Model):
     stitches=models.TextField('Строчки', blank=True)
     complect=models.TextField('Комплектация', blank=True)
     dealertxt=models.TextField('Текст про официального дилера', blank=True)
-    num=models.SmallIntegerField('В наличии', default=-1)
-    num_correction=models.SmallIntegerField('Корректировка наличия', default=0)
+    num=models.SmallIntegerField('в наличии', default=-1, db_column=settings.SHOP_STOCK_DB_COLUMN)
+    if settings.SHOP_STOCK_DB_COLUMN == 'num':
+        spb_num = models.SmallIntegerField('в наличии СПб', default=-1)
+        ws_num = models.SmallIntegerField('в наличии Опт', default=-1)
     stock=models.ManyToManyField(Supplier, through='Stock')
     pack_factor=models.SmallIntegerField('Количество в упаковке', default=1)
     #todo delete: boleroid=integer not null default 0
@@ -348,6 +350,13 @@ class Product(models.Model):
     """
     whatis=models.TextField('Что это такое', blank=True)
     whatisit=models.CharField('Что это такое, кратко', max_length=50, blank=True)
+    variations = models.CharField('вариации', max_length=255, blank=True)
+
+    sales_actions = models.ManyToManyField(SalesAction, related_name='products', related_query_name='product', verbose_name='акции', blank=True)
+    related = models.ManyToManyField('self', through='ProductRelation', symmetrical=False, blank=True)
+    constituents = models.ManyToManyField('self', through='ProductSet', related_name='+', symmetrical=False, blank=True)
+    recalculate_price = models.BooleanField('пересчитывать цену', default=True)
+
     fabric_verylite=models.CharField('Очень легкие ткани', max_length=50, blank=True)
     fabric_lite=models.CharField('Легкие ткани', max_length=50, blank=True)
     fabric_medium=models.CharField('Средние ткани', max_length=50, blank=True)
@@ -436,11 +445,56 @@ class Product(models.Model):
         verbose_name_plural = 'товары'
 
     def save(self, *args, **kwargs):
-        self.price = self.cur_price * self.cur_code.rate
-        self.ws_price = self.ws_cur_price * self.ws_cur_code.rate
-        self.sp_price = self.sp_cur_price * self.sp_cur_code.rate
+        if self.constituents.count() == 0 or not self.recalculate_price:
+            if settings.SHOP_PRICE_DB_COLUMN == 'price':
+                self.price = self.cur_price * self.cur_code.rate
+                if self.spb_price == 0 or not self.forbid_spb_price_import:
+                    self.spb_price = self.price
+            self.ws_price = self.ws_cur_price * self.ws_cur_code.rate
+            self.sp_price = self.sp_cur_price * self.sp_cur_code.rate
+        else:
+            self.update_set_price()
         self.image_prefix = ''.join(['images/', self.manufacturer.code, '/', self.code])
         super(Product, self).save(*args, **kwargs)
+        if settings.SHOP_PRICE_DB_COLUMN == 'price':
+            self.update_sets()
+
+    def update_sets(self):
+        product_sets = ProductSet.objects.filter(constituent=self)
+        for product_set in product_sets:
+            updated = False
+            if self.num < 0:
+                product_set.declaration.num = -1
+                product_set.declaration.spb_num = -1
+                updated = True
+            if product_set.declaration.recalculate_price:
+                product_set.declaration.update_set_price()
+                updated = True
+            if updated:
+                product_set.declaration.save()
+
+    def update_set_price(self):
+        price = Decimal('0')
+        ws_price = Decimal('0')
+        sp_price = Decimal('0')
+        constituents = ProductSet.objects.filter(declaration=self)
+        for item in constituents:
+            item_price = item.constituent.price
+            item_ws_price = item.constituent.ws_price
+            item_sp_price = item.constituent.sp_price
+            if item.discount > 0:
+                discount = Decimal((100 - item.discount) / 100)
+                item_price = (item_price * discount).quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)
+                item_ws_price = (item_ws_price * discount).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
+                item_sp_price = (item_sp_price * discount).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
+            price = price + item_price
+            ws_price = ws_price + item_ws_price
+            sp_price = sp_price + item_sp_price
+
+        self.price = price
+        self.spb_price = price
+        self.ws_price = ws_price
+        self.sp_price = sp_price
 
     @property
     def cost(self):
@@ -473,24 +527,39 @@ class Product(models.Model):
         if self.num >= 0:
             return self.num
 
-        self.num = 0
-        suppliers = self.stock.filter(show_in_order=True)
-        if suppliers.exists():
-            for supplier in suppliers:
-                stock = Stock.objects.get(product=self, supplier=supplier)
-                self.num = self.num + stock.quantity
-        cursor = connection.cursor()
-        cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
-                          INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
-                          AND shop_orderitem.product_id = %s GROUP BY shop_orderitem.product_id""", (self.id,))
-        if cursor.rowcount:
-            row = cursor.fetchone()
-            self.num = self.num - float(row[0])
-        cursor.close()
-        self.num = self.num + self.num_correction
+        if self.constituents.count() == 0:
+            self.num = 0
+            if settings.SHOP_STOCK_DB_COLUMN == 'spb_num':
+                suppliers = self.stock.filter(spb_count_in_stock=Supplier.COUNT_STOCK)
+                site_addon = '= 6'
+            else:
+                suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
+                site_addon = '<> 6'
+            if suppliers.exists():
+                for supplier in suppliers:
+                    stock = Stock.objects.get(product=self, supplier=supplier)
+                    self.num = self.num + stock.quantity + stock.correction
+
+            if self.num > 0:
+                cursor = connection.cursor()
+                cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
+                              INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
+                              AND shop_order.site_id """ + site_addon + """ AND shop_orderitem.product_id = %s GROUP BY
+                              shop_orderitem.product_id""", (self.id,))
+                if cursor.rowcount:
+                    row = cursor.fetchone()
+                    self.num = self.num - float(row[0])
+                cursor.close()
+                if self.num < 0:
+                    self.num = 0
+        else:
+            self.num = 32767
+            for constituent in self.constituents.all():
+                num = constituent.instock
+                if num < self.num:
+                    self.num = num
 
         super(Product, self).save()
-
         return self.num
 
     @staticmethod
@@ -499,6 +568,34 @@ class Product(models.Model):
 
     def __str__(self):
         return " ".join([self.code, self.article, self.title])
+
+
+class ProductRelation(models.Model):
+    KIND_SIMILAR = 1
+    KIND_ACCESSORY = 2
+    KIND_GIFT = 3
+    RELATIONSHIP_KINDS = (
+        (KIND_SIMILAR, 'похожий'),
+        (KIND_ACCESSORY, 'аксессуар'),
+        (KIND_GIFT, 'подарок'),
+        )
+    parent_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='parent_products', verbose_name='товар')
+    child_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='child_products', verbose_name='связанный товар')
+    kind = models.SmallIntegerField('тип', choices=RELATIONSHIP_KINDS, default=KIND_SIMILAR, db_index=True)
+
+    class Meta:
+        verbose_name = 'связанный товар'
+        verbose_name_plural = 'связанные товары'
+
+
+class ProductSet(models.Model):
+    declaration = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='set_constituents', verbose_name='определение')
+    constituent = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='set_declarations', verbose_name='составляющая')
+    discount = models.PositiveSmallIntegerField('скидка, %', default=0)
+
+    class Meta:
+        verbose_name = 'комплект'
+        verbose_name_plural = 'комплекты'
 
 
 class Stock(models.Model):
@@ -863,23 +960,65 @@ class Order(models.Model):
         order.address = user.address
         order.phone = user.phone
         order.email = user.email
+
         if WHOLESALE:
             qnt = Decimal('0.01')
         else:
             qnt = Decimal('1')
+
+        # добавляем в заказ все элементы корзины
         for item in basket.items.all():
-            # TODO Check compatibility with other shops
+            # если это опт, то указываем только рублёвую скидку, высчитанную корзиной
             if WHOLESALE:
-                order.items.create(product=item.product,
-                                   product_price=item.product.price.quantize(qnt, rounding=ROUND_UP),
-                                   val_discount=item.discount,
-                                   quantity=item.quantity)
+                pct_discount = 0
+                val_discount = item.discount
+            # иначе считаем отдельно скидку в процентах и копируем текущую рублёвую скидку товара
             else:
+                pct_discount = basket.product_pct_discount(item.product)
+                val_discount = item.product.val_discount
+            # если это обычный товар, добавляем его в заказ
+            if item.product.constituents.count() == 0:
                 order.items.create(product=item.product,
                                    product_price=item.product.price.quantize(qnt, rounding=ROUND_UP),
-                                   pct_discount=item.pct_discount,
-                                   val_discount=item.product.val_discount,
+                                   pct_discount=pct_discount,
+                                   val_discount=val_discount,
                                    quantity=item.quantity)
+            # если это комплект, то добавляем элементы комплекта отдельно
+            else:
+                full_discount = val_discount
+                discount_remainder = full_discount
+                if not item.product.recalculate_price:
+                    full_price = item.product.price.quantize(qnt, rounding=ROUND_UP)
+                    price_remainder = full_price
+                constituents = ProductSet.objects.filter(declaration=item.product)
+                last = len(constituents) - 1
+                for idx, itm in enumerate(constituents):
+                    proportion = Decimal(itm.constituent.price / item.product.price)
+                    # если комплект динамически пересчитывает цену, то указываем цену элемента
+                    if item.product.recalculate_price:
+                        item_price = (itm.constituent.price * Decimal((100 - itm.discount) / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
+                    # иначе разбиваем цену комплекта на части пропорционально ценам элементов
+                    elif idx < last:
+                        item_price = (itm.constituent.price * proportion).quantize(qnt, rounding=ROUND_HALF_EVEN)
+                        price_remainder = price_remainder - item_price
+                    else:
+                        item_price = price_remainder
+                    # рублёвую скидку в любом случае разбиваем на части пропорционально ценам элементов
+                    if idx < last:
+                        val_discount = (full_discount * proportion).quantize(qnt, rounding=ROUND_HALF_EVEN)
+                        discount_remainder = discount_remainder - val_discount
+                    else:
+                        val_discount = discount_remainder
+                    i = order.items.create(product=itm.constituent,
+                                           product_price=item_price,
+                                           pct_discount=pct_discount,
+                                           val_discount=val_discount,
+                                           quantity=item.quantity)
+                    # в данный момент, если цена позиции равна нулю, то она принудительно устанавливается в цену товара
+                    # todo: можно перенести эту логику в admin, и тогда можно будет избавиться от двойного сохранения
+                    if not item_price:
+                        i.product_price = item_price
+                        i.save()
         return order
 
     def append_user_tags(self, tags):
