@@ -1,4 +1,5 @@
 import re
+
 from math import ceil
 from random import randint
 from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
