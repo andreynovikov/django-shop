@@ -35,8 +35,8 @@ from import_export.admin import ImportExportModelAdmin, ExportMixin
 from utility.admin import get_sites
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
     Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, Advert, \
-    Product, ProductRelation, SalesAction, Stock, Basket, BasketItem, Manager, Courier, \
-    Order, OrderItem
+    Product, ProductRelation, ProductSet, SalesAction, Stock, Basket, BasketItem, Manager, \
+    Courier, Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
     OrderDiscountForm, SendSmsForm, SelectTagForm, ProductAdminForm
 from shop.widgets import TagAutoComplete
@@ -279,6 +279,17 @@ class AddStockInline(admin.TabularInline):
         return False
 
 
+class ProductSetInline(admin.TabularInline):
+    model = ProductSet
+    form = autocomplete_light.modelform_factory(ProductSet, exclude=['fake'])
+    fk_name = 'declaration'
+    ordering = ('constituent__title',)
+    extra = 1
+    verbose_name = "составляющая"
+    verbose_name_plural = "составляющие"
+    suit_classes = 'suit-tab suit-tab-set'
+
+
 class ProductRelationInline(admin.TabularInline):
     model = ProductRelation
     form = autocomplete_light.modelform_factory(ProductRelation, exclude=['fake'])
@@ -309,25 +320,28 @@ class ProductAdmin(ImportExportModelAdmin):
 
     def product_stock(self, obj):
         result = ''
-        suppliers = obj.stock.filter(show_in_order=True).order_by('order')
-        if suppliers.exists():
-            for supplier in suppliers:
-                stock = Stock.objects.get(product=obj, supplier=supplier)
-                result = result + ('%s:&nbsp;' % supplier.code)
-                if stock.quantity == 0.0:
-                    result = result + '<span style="color: #c00">'
-                result = result + ('%s' % floatformat(stock.quantity))
-                if stock.quantity == 0.0:
-                    result = result + '</span>'
-                if stock.correction != 0.0:
-                    if stock.correction > 0.0:
-                        result = result + '<span style="color: #090">+'
-                    else:
+        if obj.constituents.count() == 0:
+            suppliers = obj.stock.filter(show_in_order=True).order_by('order')
+            if suppliers.exists():
+                for supplier in suppliers:
+                    stock = Stock.objects.get(product=obj, supplier=supplier)
+                    result = result + ('%s:&nbsp;' % supplier.code)
+                    if stock.quantity == 0.0:
                         result = result + '<span style="color: #c00">'
-                    result = result + ('%s</span>' % floatformat(stock.correction))
-                result = result + '<br/>'
+                    result = result + ('%s' % floatformat(stock.quantity))
+                    if stock.quantity == 0.0:
+                        result = result + '</span>'
+                    if stock.correction != 0.0:
+                        if stock.correction > 0.0:
+                            result = result + '<span style="color: #090">+'
+                        else:
+                            result = result + '<span style="color: #c00">'
+                        result = result + ('%s</span>' % floatformat(stock.correction))
+                    result = result + '<br/>'
+            else:
+                result = '<span style="color: #f00">отсутствует</span><br/>'
         else:
-            result = '<span style="color: #f00">отсутствует</span><br/>'
+            result = floatformat(obj.instock)
         #cursor = connection.cursor()
         #cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
         #                  INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
@@ -336,8 +350,6 @@ class ProductAdmin(ImportExportModelAdmin):
         #    row = cursor.fetchone()
         #    result  = result + '<span style="color: #00c">Зак:&nbsp;%s</span><br/>' % floatformat(row[0])
         #cursor.close()
-        if obj.num_correction:
-            result  = result + '<span style="color: #f00">Кор:&nbsp;%s</span><br/>' % obj.num_correction
         return result
     product_stock.allow_tags=True
     product_stock.short_description = 'склад'
@@ -366,7 +378,7 @@ class ProductAdmin(ImportExportModelAdmin):
     search_fields = ['code', 'article', 'partnumber', 'title', 'tags']
     readonly_fields = ['price', 'ws_price', 'sp_price']
     save_as = True
-    inlines = (ProductRelationInline,StockInline,AddStockInline,)
+    inlines = (ProductSetInline,ProductRelationInline,StockInline,AddStockInline,)
     formfield_overrides = {
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
@@ -474,10 +486,11 @@ class ProductAdmin(ImportExportModelAdmin):
                     'swcode',
                     'oprice',
                     'coupon',
-                    'not_for_sale','absent',
+                    'not_for_sale',
+                    'absent',
                     'suspend',
                     'opinion',
-                    'num',('bid','cbid'),
+                    ('bid','cbid'),
                     'whatisit',
                 )
         }),
@@ -509,10 +522,10 @@ class ProductAdmin(ImportExportModelAdmin):
                     'prom_autothread'
                 )
         }),
-        ('Разное', {
-                'classes': ('suit-tab', 'suit-tab-stock'),
+        ('Комплект', {
+                'classes': ('suit-tab', 'suit-tab-set'),
                 'fields': (
-                    'num_correction',
+                    'recalculate_price',
                 )
         }),
     )
@@ -523,10 +536,12 @@ class ProductAdmin(ImportExportModelAdmin):
         ('knittingmachines', 'Вязальные машины'),
         ('prommachines', 'Промышленные машины'),
         ('other', 'Остальное'),
+        ('set', 'Комплект'),
         ('related', 'Связанные товары'),
         ('stock', 'Запасы'),
     )
 
+    # сбрасываем кеш наличия при сохранении
     def save_model(self, request, obj, form, change):
         obj.num = -1
         obj.spb_num = -1
@@ -597,40 +612,41 @@ class OrderItemInline(admin.TabularInline):
 
     def product_stock(self, obj):
         result = ''
-        suppliers = obj.product.stock.filter(show_in_order=True).order_by('order')
-        if suppliers.exists():
-            for supplier in suppliers:
-                stock = Stock.objects.get(product=obj.product, supplier=supplier)
-                result = result + ('%s:&nbsp;' % supplier.code)
-                if stock.quantity == 0:
-                    result = result + '<span style="color: #c00">'
-                result = result + ('%s' % floatformat(stock.quantity))
-                if stock.quantity == 0:
-                    result = result + '</span>'
-                if stock.correction != 0.0:
-                    if stock.correction > 0.0:
-                        result = result + '<span style="color: #090">+'
-                    else:
+        if obj.product.constituents.count() == 0:
+            suppliers = obj.product.stock.filter(show_in_order=True).order_by('order')
+            if suppliers.exists():
+                for supplier in suppliers:
+                    stock = Stock.objects.get(product=obj.product, supplier=supplier)
+                    result = result + ('%s:&nbsp;' % supplier.code)
+                    if stock.quantity == 0:
                         result = result + '<span style="color: #c00">'
-                    result = result + ('%s</span>' % floatformat(stock.correction))
-                result = result + '<br/>'
+                    result = result + ('%s' % floatformat(stock.quantity))
+                    if stock.quantity == 0:
+                        result = result + '</span>'
+                    if stock.correction != 0.0:
+                        if stock.correction > 0.0:
+                            result = result + '<span style="color: #090">+'
+                        else:
+                            result = result + '<span style="color: #c00">'
+                        result = result + ('%s</span>' % floatformat(stock.correction))
+                    result = result + '<br/>'
+            else:
+                result = '<span style="color: #f00">отсутствует</span><br/>'
+            cursor = connection.cursor()
+            cursor.execute("""SELECT shop_orderitem.order_id, shop_orderitem.quantity AS quantity FROM shop_orderitem
+                              INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
+                              AND shop_orderitem.product_id = %s AND shop_order.id != %s""", (obj.product.id, obj.order.id))
+            if cursor.rowcount:
+                ordered = 0
+                ids = [str(obj.order.id)]
+                for row in cursor:
+                    ids.append(str(row[0]))
+                    ordered = ordered + int(row[1])
+                url = '%s?id__in=%s&status=any' % (reverse("admin:shop_order_changelist"), ','.join(ids))
+                result = result + '<a href="%s" style="color: #00c">Зак:&nbsp;%s<br/></a>' % (url, floatformat(ordered))
+            cursor.close()
         else:
-            result = '<span style="color: #f00">отсутствует</span><br/>'
-        cursor = connection.cursor()
-        cursor.execute("""SELECT shop_orderitem.order_id, shop_orderitem.quantity AS quantity FROM shop_orderitem
-                          INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
-                          AND shop_orderitem.product_id = %s AND shop_order.id != %s""", (obj.product.id, obj.order.id))
-        if cursor.rowcount:
-            ordered = 0
-            ids = [str(obj.order.id)]
-            for row in cursor:
-                ids.append(str(row[0]))
-                ordered = ordered + int(row[1])
-            url = '%s?id__in=%s&status=any' % (reverse("admin:shop_order_changelist"), ','.join(ids))
-            result = result + '<a href="%s" style="color: #00c">Зак:&nbsp;%s<br/></a>' % (url, floatformat(ordered))
-        cursor.close()
-        if obj.product.num_correction:
-            result  = result + '<span style="color: #f00">Кор:&nbsp;%s</span><br/>' % obj.product.num_correction
+            result = floatformat(obj.product.instock)
         return result
     product_stock.allow_tags=True
     product_stock.short_description = 'склад'
