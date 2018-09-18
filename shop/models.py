@@ -445,7 +445,7 @@ class Product(models.Model):
         verbose_name_plural = 'товары'
 
     def save(self, *args, **kwargs):
-        if self.constituents.count() == 0 or not self.recalculate_price:
+        if self.pk is None or self.constituents.count() == 0 or not self.recalculate_price:
             if settings.SHOP_PRICE_DB_COLUMN == 'price':
                 self.price = self.cur_price * self.cur_code.rate
                 if self.spb_price == 0 or not self.forbid_spb_price_import:
