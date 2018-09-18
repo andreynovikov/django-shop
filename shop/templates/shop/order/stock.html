@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head><title>Задание на отбор</title>
+<style type="text/css">
+body     { font-size:12pt; font-family:serif; }
+td       { font-size: 12pt; }
+h1       { font-size: 18pt; }
+table    { border-collapse:collapse; width:800px; }
+.border  { border:1px solid black; }
+.bold    { font-weight:bold; }
+.small   { font-size: 7pt; }
+.user    { font-size: 14pt; }
+.products td { border:1px solid black; text-align:center; padding:5px;}
+.products    { border:1px solid black; }
+.address td { border:none;font-size:14pt; padding:5px;}
+.address    { border:none; padding-bottom:20px; }
+.title td    { text-align:center; }
+.title       { width:600px; padding-left:100px; padding-top:20px; padding-bottom:20px; border-collapse:separate; }
+.left    { text-align:left!important;}
+.right   { text-align:right;}
+.center  { text-align:center;}
+
+</style>
+</head>
+<body>
+
+<h1>Заказ {{ order.id }}</h1>
+
+<table class="address">
+<tr>
+<td>
+Комментарии менеджера:
+</td>
+<td>
+<i>{{ order.manager_comment }}</i><br>
+{{ order.delivery_info }}
+</td>
+</tr>
+</table>
+
+<table class="products">
+<tr>
+<td>
+№
+</td>
+<td>
+P/N
+</td>
+<td>
+Товар
+</td>
+<td>
+Кол-во
+</td>
+</tr>
+{% for item in order.items.all|dictsort:"product.partnumber" %}
+<tr>
+<td>
+{{ forloop.counter }}
+</td>
+<td class="left">
+{{ item.product.partnumber }}
+</td>
+<td class="left">
+{{ item.product.article }} {{ item.product.title }}
+</td>
+<td>
+{{ item.quantity }}
+</td>
+</tr>
+{% endfor %}
+</table>
+
+</body>
+</html>

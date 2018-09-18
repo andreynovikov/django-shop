@@ -14,14 +14,28 @@
 <table class="table">
 <thead>
 <tr>
-<th>ID</th>
-<th>Артикул</th>
-<th>Partnumber</th>
-<th>Название</th>
-<th>Кол-во</th>
+<th><a href="?orders={{orders}}&o=1">ID</a>
+{% if o == '1' %}<i class="icon-chevron-down icon-alpha75"></i>{% endif %}
+</th>
+<th><a href="?orders={{orders}}&o=2">Артикул</a>
+{% if o == '2' %}<i class="icon-chevron-down icon-alpha75"></i>{% endif %}
+</th>
+<th><a href="?orders={{orders}}&o=3">Partnumber</a>
+{% if o == '3' %}<i class="icon-chevron-down icon-alpha75"></i>{% endif %}
+</th>
+<th><a href="?orders={{orders}}&o=4">Название</a>
+{% if o == '4' %}<i class="icon-chevron-down icon-alpha75"></i>{% endif %}
+</th>
+<th><a href="?orders={{orders}}&o=7">Кол-во</a>
+{% if o == '7' %}<i class="icon-chevron-down icon-alpha75"></i>{% endif %}
+</th>
 <th>Склад</th>
-<th>Заказ</th>
-<th>Статус</th>
+<th><a href="?orders={{orders}}&o=5">Заказ</a>
+{% if o == '5' %}<i class="icon-chevron-down icon-alpha75"></i>{% endif %}
+</th>
+<th><a href="?orders={{orders}}&o=6">Статус</a>
+{% if o == '6' %}<i class="icon-chevron-down icon-alpha75"></i>{% endif %}
+</th>
 </tr>
 </thead>
 {% for product in products %}

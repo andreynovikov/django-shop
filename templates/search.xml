@@ -13,10 +13,10 @@
 <currency  id="USD" rate="CBRF"/>
 </currencies>
 
-{% load mptt_tags %}
+{% load decimals %}
 <categories>
-{% for node,structure in root.get_descendants|tree_info %}
-    <category id="{{ node.id }}">{{ node.name }}</category>
+{% for child in children %}
+    <category id="{{ child.id }}">{{ child.name }}</category>
 {% endfor %}
 </categories>
 
@@ -25,18 +25,19 @@
 <offer id="{{ product.id }}" available="{% if product.instock > 0 %}true{% else %}false{% endif %}">
 <url>{% site_url_prefix %}{% url 'product' product.code %}</url>
 {% if product.discount > 0 %}
-<oldprice>{{ product.price }}</oldprice>
+<oldprice>{{ product.price|quantize:"1" }}</oldprice>
 {% endif %}
-<price>{{ product.cost }}</price>
+<price>{{ product.cost|quantize:"1" }}</price>
 <currencyId>RUR</currencyId>
 {% for category in product.categories.all %}
-{% with category.get_ancestors|first as category_root %}
-{% if category_root == root %}
-<categoryId>{{ category.id }}</categoryId>
+{% with top_category=category_map|get_dict_item:category.pk %}
+{% if top_category %}
+<categoryId>{{ top_category }}</categoryId>
 {% endif %}
 {% endwith %}
 {% endfor %}
 <picture>{% site_url_prefix %}{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</picture>
+<typePrefix>{{ product.whatis }}</typePrefix>
 <vendor>{{ product.manufacturer.name }}</vendor>
 <vendorCode>{{ product.partnumber }}</vendorCode>
 <name>{{ product.title }}</name>

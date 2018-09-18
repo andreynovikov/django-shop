@@ -3,7 +3,7 @@
 Обновлено: {{ updated }}
 {% if orders %}{% load admin_urls %}
 Замороженные заказы:
-{% for order in orders %}{{ order }} https://order.sewing-world.ru{% url opts|admin_urlname:'change' order.pk %}
+{% for order in orders %}{{ order }} https://www.sewing-world.ru{% url opts|admin_urlname:'change' order.pk %}
 {% endfor %}
 {% endif %}{% if errors %}
 Ошибки:

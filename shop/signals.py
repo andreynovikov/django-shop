@@ -1,6 +1,8 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from tagging.utils import parse_tag_input
+
 from shop.models import Order
 from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, notify_user_order_delivered, notify_user_order_done
 
@@ -12,9 +14,16 @@ def order_saved(sender, **kwargs):
 
     for item in order.items.all():
         item.product.num = -1
+        item.product.spb_num = -1
         item.product.save()
 
     if order.tracker.has_changed('status'):
+        if order.status == Order.STATUS_ACCEPTED:
+            for item in order.items.all():
+                if item.product.tags:
+                    tags = parse_tag_input(item.product.tags)
+                    order.append_user_tags(tags)                    
+
         if order.status == Order.STATUS_COLLECTED:
             if order.payment == Order.PAYMENT_CARD or order.payment == Order.PAYMENT_TRANSFER:
                 notify_user_order_collected.delay(order.id)

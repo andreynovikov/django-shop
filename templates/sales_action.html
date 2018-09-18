@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load django_bootstrap_breadcrumbs %}
+{% block title %}{{ action.name }}{% endblock %}
+{% block breadcrumbs %}
+    {{ block.super }}
+    {% breadcrumb "К первой странице" "/" %}
+    {% breadcrumb "Все акции" "sales_actions" %}
+{% endblock %}
+{% block content %}
+<div class="product-page">
+<h1>{{ action.name }}</h1>
+<p><img style="display:block" class="img-responsive" src="{{ action.image.url }}" width="{{ action.image.width }}" height="{{ action.image.height }}"/></p>
+{{ action.description|safe }}
+{% if products and action.show_products %}
+{% for product in products %}
+{% include "_product_info.html" %}
+{% endfor %}
+{% endif %}
+</div>
+{% endblock %}
