@@ -857,7 +857,7 @@ class Basket(models.Model):
 
     @property
     def total(self):
-        total = 0
+        total = Decimal('0')
         for item in self.items.all():
             total += item.price
         return total
