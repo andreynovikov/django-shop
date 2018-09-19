@@ -474,6 +474,7 @@ class Product(models.Model):
     absent=models.BooleanField('Нет в продаже', default=False)
     #todo add: ishot=models.BooleanField('', default=False)
     #todo delete: newyear=models.BooleanField('', default=False)
+    credit_allowed=models.BooleanField('можно в кредит', default=False)
     internetonly=models.BooleanField('Только в интернет-магазине', default=False)
     present=models.CharField('Подарок к этому товару', max_length=255, blank=True)
     #sale
@@ -966,6 +967,7 @@ class Order(models.Model):
     PAYMENT_TRANSFER = 3
     PAYMENT_COD = 4
     PAYMENT_POS = 5
+    PAYMENT_CREDIT = 6
     PAYMENT_UNKNOWN = 99
     PAYMENT_CHOICES = (
         (PAYMENT_UNKNOWN, 'уточняется'),
@@ -974,6 +976,7 @@ class Order(models.Model):
         (PAYMENT_TRANSFER, 'банковский перевод'),
         (PAYMENT_COD, 'наложенный платёж'),
         (PAYMENT_POS, 'платёжный терминал'),
+        (PAYMENT_CREDIT, 'кредит'),
     )
     DELIVERY_COURIER = 1
     DELIVERY_CONSULTANT = 2

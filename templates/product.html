@@ -106,10 +106,13 @@ gtm_products = [];
 {% endif %}
 
 <span itemprop="priceCurrency" style="visibility:hidden;font-size:1pt;margin:0;padding:0;width:0;height:0;line-height:0;">RUB</span>
-{% if product.deshevle == true %}
+{% if product.deshevle %}
 <a href="{% url 'django.contrib.flatpages.views.flatpage' url='dialog/deshevle/' %}" class="opener-ajax deshevle">Нашли&nbsp;дешевле?</a>
 {% endif %}
 </p>
+{% if product.credit_allowed and product.instock > 0 %}
+<div id="yandex-credit" style="margin: -7pt 0 7pt"></div>
+{% endif %}
 {% endif %}{# cost > 0 #}
 
 <p><span class="product-nal-caption">Наличие:</span>
@@ -466,11 +469,18 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 {% endcache %}
 {% endblock content %}
 {% block javascript %}
+{% if product.credit_allowed and product.instock > 0 %}
+<script src="https://static.yandex.net/kassa/pay-in-parts/ui/v1"></script>
+{% endif %}
 <script>
 $(document).ready(function() {
   var cname = $('#cname').html();
   dataLayer.push({'ecommerce':{'currencyCode':'RUB','impressions':gtm_products,'detail':{'products': [{'id':'{{ product.id }}','name':'{{ product.partnumber }} {{ product.title }}','category':cname,'brand':'{{ product.manufacturer.code }}','price':'{{ product.cost }}'}]}
   }});
+{% if product.credit_allowed and product.instock > 0 %}
+  const $checkoutCreditUI = YandexCheckoutCreditUI({ shopId: '42873', sum: '{{ product.cost|quantize:"1" }}' });
+  const checkoutCreditText = $checkoutCreditUI({ type: 'info', domSelector: '#yandex-credit' });
+{% endif %}
 });
 
 $('#p_{{ product.id }}').click(function(){

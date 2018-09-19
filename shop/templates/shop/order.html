@@ -33,6 +33,7 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
 <dt>Статус:</dt>
 <dd>{{ order.get_status_display }}{% if order.payment != order.PAYMENT_CASH %} <br>
 {{ order.paid|yesno:"оплачен," }}{% endif %}</dd>
+{% if order.delivery == order.DELIVERY_YANDEX and order.status == order.STATUS_DELIVERED_STORE or order.delivery_tracking_number or order.delivery_info or order.delivery_dispatch_date or order.delivery_time_from or order.delivery_time_till %}
 <dt>Информация о доставке:</dt>
 {% if order.delivery == order.DELIVERY_YANDEX and order.status == order.STATUS_DELIVERED_STORE %}
 <dd style="width: 0px">
@@ -45,6 +46,7 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
 {% if order.delivery_dispatch_date %}{{ order.delivery_dispatch_date }}{% endif %}
 {% if order.delivery_time_from %} с {{ order.delivery_time_from }}{% endif %}
 {% if order.delivery_time_till %} до {{ order.delivery_time_till }}{% endif %}</dd>
+{% endif %}
 </dl>
 </div>
 </div>
@@ -56,9 +58,9 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
 <dt>Способ оплаты:</dt> <dd>{{ order.get_payment_display }}
 </dd>
 </dl>
-{% if not order.paid and order.payment != order.PAYMENT_CASH and order.payment != order.PAYMENT_UNKNOWN and order.payment != order.PAYMENT_COD %}
+{% if not order.paid %}
 {% if order.status == order.STATUS_COLLECTED %}
-{% if order.payment == order.PAYMENT_CARD %}
+{% if order.payment == order.PAYMENT_CARD or order.payment == order.PAYMENT_CREDIT %}
 <form name="ShopForm" method="post" action="https://money.yandex.ru/eshop.xml">
 <input type="hidden" name="scid" value="29182"/>
 <input type="hidden" name="ShopID" value="42873"/>
@@ -78,6 +80,7 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
     {"quantity": 1, "price": {"amount": {{ order.delivery_price|quantize:'1' }}}, "tax": 1, "text": "Доставка"}{% endif %}
           ]
 }'/>
+{% if order.payment == order.PAYMENT_CARD %}
 Выберите способ оплаты:<br/>
 <div class="radio">
 <label>
@@ -92,16 +95,22 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
 </label>
 </div>
 <input type="submit" class="btn btn-success" value="Оплатить заказ"/>
+{% elif order.payment == order.PAYMENT_CREDIT %}
+<input name="paymentType" value="CR" type="hidden"/>
+<input type="submit" class="btn btn-success" value="Оформить кредит"/>
+{% endif %}
 </form>
 {% elif order.payment == order.PAYMENT_TRANSFER %}
 <a href="{% url 'shop:order_document' order.id 'bill' %}">Скачать счёт для оплаты в любом банке</a>
 {% endif %}
-{% else %}
+{% else %}{# not collected #}
+{% if order.payment == order.PAYMENT_CARD or order.payment == order.PAYMENT_CREDIT or order.payment == order.PAYMENT_TRANSFER %}
 <p style="color:#2c8e2c;">Возможность оплатить заказ онлайн или распечатать счет появится тут после согласования и завершения комплектования заказа.</p>
 <p style="color:#2c8e2c;">Вы получите сообщение об этом.</p>
 <p style="color:#2c8e2c;">Пожалуйста, посетите эту страницу позже.</p>
 {% endif %}
-{% endif %}
+{% endif %}{# collected #}
+{% endif %}{# not paid #}
 </div>
 </div>
 <div class="sw-p-l panel panel-default widepan">
