@@ -37,6 +37,8 @@ class view():
             for candidate in candidates:
                 # here we compare each candidate's path to the path passed to this view
                 if candidate.get_path() == path:
+                    if self.root and self.root != getattr(candidate.get_family()[0], self.slug_field):
+                        continue
                     instance = candidate
                     break
 
