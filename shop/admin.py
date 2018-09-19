@@ -398,7 +398,7 @@ class ProductAdmin(ImportExportModelAdmin):
         }),
         ('Маркетинг', {
                 'classes': ('suit-tab', 'suit-tab-money'),
-                'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','sales_notes',
+                'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','credit_allowed','sales_notes',
                            'internetonly','present','delivery','firstpage','sales_actions','tags')
         }),
         ('С.Петербург', {
@@ -953,9 +953,29 @@ class OrderAdmin(admin.ModelAdmin):
     link_to_orders.allow_tags = True
     link_to_orders.short_description = 'заказы'
 
+    def credit_notice(self, obj):
+        credit_allowed = False
+        for item in obj.items.all():
+            credit_allowed = credit_allowed or item.product.credit_allowed
+        if credit_allowed:
+            return '''
+                   <div id="yandex-credit"></div>
+                   <script src="https://static.yandex.net/kassa/pay-in-parts/ui/v1"></script>
+                   <script>
+                   $(document).ready(function() {
+                     const $checkoutCreditUI = YandexCheckoutCreditUI({ shopId: '42873', sum: '%d' });
+                     const checkoutCreditText = $checkoutCreditUI({ type: 'info', domSelector: '#yandex-credit' });
+                   });
+                   </script>
+                   ''' % obj.total
+        else:
+            return 'нет'
+    credit_notice.allow_tags = True
+    credit_notice.short_description = 'кредит'
+
     list_display = ['order_name', 'name_and_skyped_phone', 'city', 'total', 'payment', 'calm_paid', 'combined_delivery',
                     'colored_status', 'combined_comments']
-    readonly_fields = ['id', 'shop_name', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
+    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
     list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'site', 'manager', 'courier', OrderDeliveryListFilter,
                    ('delivery_dispatch_date', FutureDateFieldListFilter), ('delivery_handing_date', FutureDateFieldListFilter)]
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment',
@@ -975,7 +995,7 @@ class OrderAdmin(admin.ModelAdmin):
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = (
-            (None, {'fields': (('status', 'payment', 'paid', 'manager', 'site'), ('delivery', 'delivery_price', 'courier'),
+            (None, {'fields': (('status', 'payment', 'paid', 'manager', 'site', 'credit_notice'), ('delivery', 'delivery_price', 'courier'),
                                'delivery_dispatch_date', ('delivery_tracking_number', 'delivery_yd_order'), 'delivery_info',
                                ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'store',
                                'products_price', 'total', 'id')}),
