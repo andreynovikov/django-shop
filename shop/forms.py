@@ -60,7 +60,7 @@ class SelectTagForm(forms.Form):
 
 
 class SelectSupplierForm(forms.Form):
-    supplier = forms.ModelChoiceField(label='поставщик', queryset=Supplier.objects.order_by('order'), required=True, empty_label=None)
+    supplier = forms.ModelChoiceField(label='Поставщик', queryset=Supplier.objects.order_by('order'), required=True, empty_label=None)
 
 
 class ProductAdminForm(autocomplete_light.ModelForm):

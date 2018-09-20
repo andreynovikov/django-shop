@@ -1343,7 +1343,7 @@ class OrderAdmin(admin.ModelAdmin):
             cursor.close()
             inner_cursor.close()
             if not products:
-                self.message_user(request, "Нет товаров для отгрузки с этого склада", level=messages.WARNING)
+                self.message_user(request, "Нет товаров для отгрузки у этого поставщика", level=messages.WARNING)
                 return
             else:
                 import io
@@ -1370,7 +1370,7 @@ class OrderAdmin(admin.ModelAdmin):
         context['form'] = form
         context['queryset'] = queryset
         context['is_popup'] = 0
-        context['title'] = "Выберите склад"
+        context['title'] = "Выберите поставщика"
         context['action'] = 'order_stock_action'
         context['action_name'] = 'show_stock'
         context['action_title'] = "Сформировать выгрузку"
