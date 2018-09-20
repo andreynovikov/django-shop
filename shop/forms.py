@@ -59,6 +59,10 @@ class SelectTagForm(forms.Form):
         self.fields['tags'].widget = TagAutoComplete(model=model)
 
 
+class SelectSupplierForm(forms.Form):
+    supplier = forms.ModelChoiceField(label='поставщик', queryset=Supplier.objects.order_by('order'), required=True, empty_label=None)
+
+
 class ProductAdminForm(autocomplete_light.ModelForm):
     class Meta:
         model = Product
