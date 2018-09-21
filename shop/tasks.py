@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import sys
 import csv
+import datetime
+import logging
 from collections import defaultdict
 from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
@@ -14,8 +16,10 @@ from celery import shared_task
 
 from sewingworld import sms_uslugi
 
-from shop.models import Supplier, Currency, Product, Stock, Order
+from shop.models import Supplier, Currency, Product, Stock, Basket, Order
 
+
+log = logging.getLogger('shop')
 
 @shared_task
 def send_message(phone, message):
@@ -276,3 +280,13 @@ def import1c(file):
         shop_settings['email_from'],
         shop_settings['email_managers'],
     )
+
+
+@shared_task
+def remove_outdated_baskets():
+    threshold = datetime.datetime.now() - datetime.timedelta(days=90)
+    baskets = Basket.objects.filter(created__lt=threshold)
+    num = len(baskets)
+    for basket in baskets.all():
+        basket.delete()
+    log.info('Deleted %d baskets' % num)
