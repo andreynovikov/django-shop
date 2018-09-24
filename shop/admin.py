@@ -1,10 +1,12 @@
 import datetime
 
+from decimal import Decimal, ROUND_UP
+
 from django import forms
 from django.core.urlresolvers import reverse
 from django.db import connection
 from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, \
-    TimeField, DateTimeField, DecimalField
+    TimeField, DateTimeField, DecimalField, FloatField
 from django.contrib import admin, messages
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin
@@ -19,22 +21,28 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.utils.formats import date_format
 from django.utils.html import format_html
+from django.utils.http import urlquote
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 import autocomplete_light
 from datetimewidget.widgets import TimeWidget
 from suit.admin import SortableModelAdmin
-from django.forms import ModelForm, TextInput
 from suit.widgets import AutosizedTextarea
 from mptt.admin import MPTTModelAdmin
+from tagging.models import Tag, TaggedItem
+from tagging.utils import parse_tag_input
+
+from import_export import resources
+from import_export.admin import ImportExportModelAdmin, ExportMixin
 
 from utility.admin import get_sites
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
-    Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, \
-    Product, ProductRelation, SalesAction, Stock, Basket, BasketItem, Manager, Courier, \
-    Order, OrderItem
+    Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, Advert, \
+    Product, ProductRelation, ProductSet, SalesAction, Stock, Basket, BasketItem, Manager, \
+    Courier, Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
-    OrderDiscountForm, SendSmsForm
+    OrderDiscountForm, SendSmsForm, SelectTagForm, SelectSupplierForm, ProductAdminForm
+from shop.widgets import TagAutoComplete
 from shop.decorators import admin_changelist_link
 from shop.tasks import send_message
 
@@ -82,7 +90,7 @@ class SortableMPTTModelAdmin(MPTTModelAdmin, SortableModelAdmin):
         return response
 
 
-class CategoryForm(ModelForm):
+class CategoryForm(forms.ModelForm):
     class Meta:
         widgets = {
             'brief': AutosizedTextarea(attrs={'rows': 3,}),
@@ -200,7 +208,24 @@ class ContractorAdmin(admin.ModelAdmin):
     ordering = ['code']
 
 
-class SalesActionAdminForm(ModelForm):
+class AdvertAdminForm(forms.ModelForm):
+    class Meta:
+        widgets = {
+            'content': AutosizedTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'}),
+        }
+
+
+@admin.register(Advert)
+class AdvertAdmin(SortableModelAdmin):
+    list_display = ['name', 'place', get_sites, 'active']
+    list_display_links = ['name']
+    search_fields = ['name']
+    list_filter = ['active']
+    sortable = 'order'
+    form = AdvertAdminForm
+
+
+class SalesActionAdminForm(forms.ModelForm):
     class Meta:
         widgets = {
             'brief': AutosizedTextarea(attrs={'rows': 3, 'style': 'width: 95%; max-height: 500px'}),
@@ -210,7 +235,7 @@ class SalesActionAdminForm(ModelForm):
 
 @admin.register(SalesAction)
 class SalesActionAdmin(SortableModelAdmin):
-    list_display = ['name', 'slug', get_sites, 'active']
+    list_display = ['name', 'slug', get_sites, 'active', 'show_in_list']
     list_display_links = ['name']
     search_fields = ['name','slug']
     sortable = 'order'
@@ -232,12 +257,40 @@ class StockInline(admin.TabularInline):
     fields = ['supplier', 'quantity', 'correction']
     readonly_fields = ['supplier', 'quantity']
     suit_classes = 'suit-tab suit-tab-stock'
+    formfield_overrides = {
+        FloatField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
+    }
 
     def has_add_permission(self, request):
         return False
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+class AddStockInline(admin.TabularInline):
+    model = Stock
+    extra = 0
+    #form = autocomplete_light.modelform_factory(OrderItem, exclude=['fake'])
+    fields = ['supplier', 'quantity', 'correction']
+    suit_classes = 'suit-tab suit-tab-stock'
+    formfield_overrides = {
+        FloatField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
+    }
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+class ProductSetInline(admin.TabularInline):
+    model = ProductSet
+    form = autocomplete_light.modelform_factory(ProductSet, exclude=['fake'])
+    fk_name = 'declaration'
+    ordering = ('constituent__title',)
+    extra = 1
+    verbose_name = "составляющая"
+    verbose_name_plural = "составляющие"
+    suit_classes = 'suit-tab suit-tab-set'
 
 
 class ProductRelationInline(admin.TabularInline):
@@ -251,24 +304,14 @@ class ProductRelationInline(admin.TabularInline):
     suit_classes = 'suit-tab suit-tab-related'
 
 
-class ProductForm(autocomplete_light.ModelForm):
+class ProductResource(resources.ModelResource):
     class Meta:
         model = Product
-        exclude = ['fake']
-        widgets = {
-            'gtin': TextInput(attrs={'size': 10}),
-            'spec': AutosizedTextarea(attrs={'rows': 3,}),
-            'shortdescr': AutosizedTextarea(attrs={'rows': 3,}),
-            'yandexdescr': AutosizedTextarea(attrs={'rows': 3,}),
-            'descr': AutosizedTextarea(attrs={'rows': 3,}),
-            'state': AutosizedTextarea(attrs={'rows': 2,}),
-            'complect': AutosizedTextarea(attrs={'rows': 3,}),
-            'dealertxt': AutosizedTextarea(attrs={'rows': 2,})
-        }
+        exclude = ('categories',)
 
 
 @admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
+class ProductAdmin(ImportExportModelAdmin):
     def calm_forbid_price_import(self, obj):
         if obj.forbid_price_import:
             return '<span style="color: red">&#10004;</span>'
@@ -280,25 +323,28 @@ class ProductAdmin(admin.ModelAdmin):
 
     def product_stock(self, obj):
         result = ''
-        suppliers = obj.stock.filter(show_in_order=True).order_by('order')
-        if suppliers.exists():
-            for supplier in suppliers:
-                stock = Stock.objects.get(product=obj, supplier=supplier)
-                result = result + ('%s:&nbsp;' % supplier.code)
-                if stock.quantity == 0.0:
-                    result = result + '<span style="color: #c00">'
-                result = result + ('%s' % floatformat(stock.quantity))
-                if stock.quantity == 0.0:
-                    result = result + '</span>'
-                if stock.correction != 0.0:
-                    if stock.correction > 0.0:
-                        result = result + '<span style="color: #090">+'
-                    else:
+        if obj.constituents.count() == 0:
+            suppliers = obj.stock.filter(show_in_order=True).order_by('order')
+            if suppliers.exists():
+                for supplier in suppliers:
+                    stock = Stock.objects.get(product=obj, supplier=supplier)
+                    result = result + ('%s:&nbsp;' % supplier.code)
+                    if stock.quantity == 0.0:
                         result = result + '<span style="color: #c00">'
-                    result = result + ('%s</span>' % floatformat(stock.correction))
-                result = result + '<br/>'
+                    result = result + ('%s' % floatformat(stock.quantity))
+                    if stock.quantity == 0.0:
+                        result = result + '</span>'
+                    if stock.correction != 0.0:
+                        if stock.correction > 0.0:
+                            result = result + '<span style="color: #090">+'
+                        else:
+                            result = result + '<span style="color: #c00">'
+                        result = result + ('%s</span>' % floatformat(stock.correction))
+                    result = result + '<br/>'
+            else:
+                result = '<span style="color: #f00">отсутствует</span><br/>'
         else:
-            result = '<span style="color: #f00">отсутствует</span><br/>'
+            result = floatformat(obj.instock)
         #cursor = connection.cursor()
         #cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
         #                  INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
@@ -307,11 +353,10 @@ class ProductAdmin(admin.ModelAdmin):
         #    row = cursor.fetchone()
         #    result  = result + '<span style="color: #00c">Зак:&nbsp;%s</span><br/>' % floatformat(row[0])
         #cursor.close()
-        if obj.num_correction:
-            result  = result + '<span style="color: #f00">Кор:&nbsp;%s</span><br/>' % obj.num_correction
         return result
     product_stock.allow_tags=True
     product_stock.short_description = 'склад'
+
 
     @admin_changelist_link(None, 'заказы', model=Order, query_string=lambda p: 'item__product__pk={}'.format(p.pk))
     def orders_link(self, orders):
@@ -324,14 +369,19 @@ class ProductAdmin(admin.ModelAdmin):
     product_link.allow_tags = True
     product_link.short_description = 'описание'
 
-    form = ProductForm
-    list_display = ['article', 'title', 'price', 'cur_price', 'cur_code', 'calm_forbid_price_import', 'pct_discount', 'val_discount', 'product_stock', 'orders_link', 'product_link']
+    form = ProductAdminForm
+    resource_class = ProductResource
+    list_display = ['id', 'code', 'partnumber', 'article', 'title', 'price', 'cur_price', 'cur_code', 'calm_forbid_price_import',
+                    'pct_discount', 'val_discount', 'enabled', 'show_on_sw', 'market', 'spb_market', 'product_stock',
+                    'orders_link', 'product_link']
     list_display_links = ['title']
-    list_filter = ['cur_code', 'pct_discount', 'val_discount', 'categories']
+    list_editable = ['enabled', 'show_on_sw', 'market', 'spb_market']
+    list_filter = ['cur_code', 'pct_discount', 'val_discount', 'categories', 'enabled', 'isnew', 'recomended', 'show_on_sw', 'market']
     exclude = ['image_prefix']
-    search_fields = ['code', 'article', 'partnumber', 'title']
+    search_fields = ['code', 'article', 'partnumber', 'title', 'tags']
     readonly_fields = ['price', 'ws_price', 'sp_price']
-    inlines = (ProductRelationInline,StockInline,)
+    save_as = True
+    inlines = (ProductSetInline,ProductRelationInline,StockInline,AddStockInline,)
     formfield_overrides = {
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
@@ -347,13 +397,16 @@ class ProductAdmin(admin.ModelAdmin):
                 'classes': ('suit-tab', 'suit-tab-money'),
                 'fields': (('cur_price', 'cur_code', 'price'), 'spb_price', ('pct_discount', 'val_discount', 'max_discount', 'max_val_discount'),
                            ('ws_cur_price', 'ws_cur_code', 'ws_price'), 'ws_pack_only', ('ws_pct_discount', 'ws_max_discount'),
-                           ('sp_cur_price', 'sp_cur_code', 'sp_price'), 'consultant_delivery_price',
-                           ('forbid_price_import', 'forbid_spb_price_import'))
+                           ('sp_cur_price', 'sp_cur_code', 'sp_price'), 'consultant_delivery_price', 'forbid_price_import')
         }),
         ('Маркетинг', {
                 'classes': ('suit-tab', 'suit-tab-money'),
-                'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','sales_notes',
-                           'internetonly','present','delivery','firstpage','sales_actions')
+                'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','credit_allowed','sales_notes',
+                           'internetonly','present','delivery','firstpage','sales_actions','tags')
+        }),
+        ('С.Петербург', {
+                'classes': ('suit-tab', 'suit-tab-money'),
+                'fields': ('spb_price', 'forbid_spb_price_import', 'spb_show_in_catalog', 'spb_market')
         }),
         ('Размеры', {
                 'classes': ('suit-tab', 'suit-tab-general'),
@@ -436,10 +489,11 @@ class ProductAdmin(admin.ModelAdmin):
                     'swcode',
                     'oprice',
                     'coupon',
-                    'not_for_sale','absent',
+                    'not_for_sale',
+                    'absent',
                     'suspend',
                     'opinion',
-                    'num',('bid','cbid'),
+                    ('bid','cbid'),
                     'whatisit',
                 )
         }),
@@ -471,10 +525,10 @@ class ProductAdmin(admin.ModelAdmin):
                     'prom_autothread'
                 )
         }),
-        ('Разное', {
-                'classes': ('suit-tab', 'suit-tab-stock'),
+        ('Комплект', {
+                'classes': ('suit-tab', 'suit-tab-set'),
                 'fields': (
-                    'num_correction',
+                    'recalculate_price',
                 )
         }),
     )
@@ -485,10 +539,12 @@ class ProductAdmin(admin.ModelAdmin):
         ('knittingmachines', 'Вязальные машины'),
         ('prommachines', 'Промышленные машины'),
         ('other', 'Остальное'),
+        ('set', 'Комплект'),
         ('related', 'Связанные товары'),
         ('stock', 'Запасы'),
     )
 
+    # сбрасываем кеш наличия при сохранении
     def save_model(self, request, obj, form, change):
         obj.num = -1
         obj.spb_num = -1
@@ -559,40 +615,41 @@ class OrderItemInline(admin.TabularInline):
 
     def product_stock(self, obj):
         result = ''
-        suppliers = obj.product.stock.filter(show_in_order=True).order_by('order')
-        if suppliers.exists():
-            for supplier in suppliers:
-                stock = Stock.objects.get(product=obj.product, supplier=supplier)
-                result = result + ('%s:&nbsp;' % supplier.code)
-                if stock.quantity == 0:
-                    result = result + '<span style="color: #c00">'
-                result = result + ('%s' % floatformat(stock.quantity))
-                if stock.quantity == 0:
-                    result = result + '</span>'
-                if stock.correction != 0.0:
-                    if stock.correction > 0.0:
-                        result = result + '<span style="color: #090">+'
-                    else:
+        if obj.product.constituents.count() == 0:
+            suppliers = obj.product.stock.filter(show_in_order=True).order_by('order')
+            if suppliers.exists():
+                for supplier in suppliers:
+                    stock = Stock.objects.get(product=obj.product, supplier=supplier)
+                    result = result + ('%s:&nbsp;' % supplier.code)
+                    if stock.quantity == 0:
                         result = result + '<span style="color: #c00">'
-                    result = result + ('%s</span>' % floatformat(stock.correction))
-                result = result + '<br/>'
+                    result = result + ('%s' % floatformat(stock.quantity))
+                    if stock.quantity == 0:
+                        result = result + '</span>'
+                    if stock.correction != 0.0:
+                        if stock.correction > 0.0:
+                            result = result + '<span style="color: #090">+'
+                        else:
+                            result = result + '<span style="color: #c00">'
+                        result = result + ('%s</span>' % floatformat(stock.correction))
+                    result = result + '<br/>'
+            else:
+                result = '<span style="color: #f00">отсутствует</span><br/>'
+            cursor = connection.cursor()
+            cursor.execute("""SELECT shop_orderitem.order_id, shop_orderitem.quantity AS quantity FROM shop_orderitem
+                              INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
+                              AND shop_orderitem.product_id = %s AND shop_order.id != %s""", (obj.product.id, obj.order.id))
+            if cursor.rowcount:
+                ordered = 0
+                ids = [str(obj.order.id)]
+                for row in cursor:
+                    ids.append(str(row[0]))
+                    ordered = ordered + int(row[1])
+                url = '%s?id__in=%s&status=any' % (reverse("admin:shop_order_changelist"), ','.join(ids))
+                result = result + '<a href="%s" style="color: #00c">Зак:&nbsp;%s<br/></a>' % (url, floatformat(ordered))
+            cursor.close()
         else:
-            result = '<span style="color: #f00">отсутствует</span><br/>'
-        cursor = connection.cursor()
-        cursor.execute("""SELECT shop_orderitem.order_id, shop_orderitem.quantity AS quantity FROM shop_orderitem
-                          INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
-                          AND shop_orderitem.product_id = %s AND shop_order.id != %s""", (obj.product.id, obj.order.id))
-        if cursor.rowcount:
-            ordered = 0
-            ids = [str(obj.order.id)]
-            for row in cursor:
-                ids.append(str(row[0]))
-                ordered = ordered + int(row[1])
-            url = '%s?id__in=%s&status=any' % (reverse("admin:shop_order_changelist"), ','.join(ids))
-            result = result + '<a href="%s" style="color: #00c">Зак:&nbsp;%s<br/></a>' % (url, floatformat(ordered))
-        cursor.close()
-        if obj.product.num_correction:
-            result  = result + '<span style="color: #f00">Кор:&nbsp;%s</span><br/>' % obj.product.num_correction
+            result = floatformat(obj.product.instock)
         return result
     product_stock.allow_tags=True
     product_stock.short_description = 'склад'
@@ -688,6 +745,52 @@ class OrderStatusListFilter(admin.SimpleListFilter):
             return queryset.filter(status__in=[Order.STATUS_NEW, Order.STATUS_ACCEPTED, Order.STATUS_COLLECTING, Order.STATUS_COLLECTED, Order.STATUS_SENT, Order.STATUS_DELIVERED_SHOP, Order.STATUS_CONSULTATION, Order.STATUS_PROBLEM, Order.STATUS_SERVICE])
 
 
+class OrderDeliveryListFilter(admin.SimpleListFilter):
+    title = _('доставка')
+
+    parameter_name = 'delivery'
+
+    def lookups(self, request, model_admin):
+        """
+        Returns a list of tuples. The first element in each
+        tuple is the coded value for the option that will
+        appear in the URL query. The second element is the
+        human-readable name for the option that will appear
+        in the right sidebar.
+        """
+        choices = (
+            ('all', _('All')),
+            (-Order.DELIVERY_YANDEX, _('кроме Яндекс.Доставки')),
+        )
+        choices += Order.DELIVERY_CHOICES
+        return choices
+
+    def choices(self, cl):
+        for lookup, title in self.lookup_choices:
+            yield {
+                'selected': str(self.value()) == str(lookup),
+                'query_string': cl.get_query_string({
+                    self.parameter_name: lookup,
+                }, []),
+                'display': title[0].upper() + title[1:],
+            }
+
+    def queryset(self, request, queryset):
+        """
+        Returns the filtered queryset based on the value
+        provided in the query string and retrievable via
+        `self.value()`.
+        """
+        if self.value() == 'all':
+            return None
+        if self.value():
+            value = int(self.value())
+            if value < 0:
+                return queryset.exclude(delivery__exact=(-value))
+            else:
+                return queryset.filter(delivery__exact=value)
+
+
 class FutureDateFieldListFilter(admin.FieldListFilter):
     def __init__(self, field, request, params, model, model_admin, field_path):
         self.field_generic = '%s__' % field_path
@@ -767,7 +870,11 @@ class OrderAdmin(admin.ModelAdmin):
         manager = ''
         if obj.manager:
             manager = ' style="color: %s"' % obj.manager.color
-        return '<b%s>%s</b><br/><span style="white-space:nowrap">%s</span>' % (manager, obj.id, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
+        shop_code = getattr(settings, 'SHOP_ORDER_CODES', {}).get(obj.site.domain, '?')
+        if shop_code:
+            shop_code = shop_code + '-'
+        return '<b%s>%s%s</b><br/><span style="white-space:nowrap">%s</span>' % \
+            (manager, shop_code, obj.id, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
     order_name.allow_tags = True
     order_name.admin_order_field = 'id'
     order_name.short_description = 'заказ'
@@ -849,29 +956,34 @@ class OrderAdmin(admin.ModelAdmin):
     link_to_orders.allow_tags = True
     link_to_orders.short_description = 'заказы'
 
+    def credit_notice(self, obj):
+        credit_allowed = False
+        for item in obj.items.all():
+            credit_allowed = credit_allowed or item.product.credit_allowed
+        if credit_allowed:
+            return '''
+                   <div id="yandex-credit"></div>
+                   <script src="https://static.yandex.net/kassa/pay-in-parts/ui/v1"></script>
+                   <script>
+                   $(document).ready(function() {
+                     const $checkoutCreditUI = YandexCheckoutCreditUI({ shopId: '42873', sum: '%d' });
+                     const checkoutCreditText = $checkoutCreditUI({ type: 'info', domSelector: '#yandex-credit' });
+                   });
+                   </script>
+                   ''' % obj.total
+        else:
+            return 'нет'
+    credit_notice.allow_tags = True
+    credit_notice.short_description = 'кредит'
+
     list_display = ['order_name', 'name_and_skyped_phone', 'city', 'total', 'payment', 'calm_paid', 'combined_delivery',
                     'colored_status', 'combined_comments']
-    readonly_fields = ['id', 'shop_name', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
-    list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'manager', 'courier', 'delivery',
+    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
+    list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'site', 'manager', 'courier', OrderDeliveryListFilter,
                    ('delivery_dispatch_date', FutureDateFieldListFilter), ('delivery_handing_date', FutureDateFieldListFilter)]
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode', 'manager_comment']
-    fieldsets = (
-        (None, {'fields': (('status', 'payment', 'paid', 'manager', 'site'), ('delivery', 'delivery_price', 'courier'),
-                           'delivery_dispatch_date', ('delivery_tracking_number', 'delivery_yd_order'), 'delivery_info',
-                           ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'store',
-                           'products_price', 'total', 'id')}),
-        ('1С', {'fields': (('buyer', 'seller','wiring_date'),),}),
-        #('Яндекс.Доставка', {'fields': ('delivery_yd_order',)}),
-        #('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
-        #                          ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
-        ('Покупатель', {'fields': (('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux'),
-                                    'email', 'postcode', 'city', 'address', 'comment',
-                                   ('firm_name', 'is_firm'), 'firm_address', 'firm_details',)}),
-    )
     inlines = [OrderItemInline, AddOrderItemInline]
-    #raw_id_fields = ('user',)
-    #form = autocomplete_light.modelform_factory(Order, exclude=['created'])
     form = OrderAdminForm
     formfield_overrides = {
         TextField: {'widget': forms.Textarea(attrs={'style': 'height: 4em'})},
@@ -880,9 +992,28 @@ class OrderAdmin(admin.ModelAdmin):
         DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
         TimeField: {'widget': TimeWidget()},
     }
-    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action']
+    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_stock_action', 'order_set_user_tag_action']
     save_as = True
     list_per_page = 50
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = (
+            (None, {'fields': (('status', 'payment', 'paid', 'manager', 'site', 'credit_notice'), ('delivery', 'delivery_price', 'courier'),
+                               'delivery_dispatch_date', ('delivery_tracking_number', 'delivery_yd_order'), 'delivery_info',
+                               ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'store',
+                               'products_price', 'total', 'id')}),
+            ('1С', {'fields': (('buyer', 'seller','wiring_date'),),}),
+            #('Яндекс.Доставка', {'fields': ('delivery_yd_order',)}),
+            #('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
+            #                          ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
+            ('Покупатель', {'fields': [('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux'),
+                                       'email', 'postcode', 'city', 'address', 'comment', ('firm_name', 'is_firm')]}),
+            )
+        if obj is None or obj.is_firm:
+            fieldsets[2][1]['fields'].extend(('firm_address', 'firm_details'))
+        fieldsets[2][1]['fields'].append('user_tags')
+        return fieldsets
+
 
     def changelist_view(self, request, extra_context=None):
         if not request.user.is_staff:
@@ -1060,8 +1191,9 @@ class OrderAdmin(admin.ModelAdmin):
         context['is_popup'] = is_popup
         context['messages'] = messages
         context['title'] = "Укажите заказ для объединения"
+        context['action_title'] = "Объеденить"
 
-        return TemplateResponse(request, 'admin/shop/order/combine_form.html', context)
+        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
 
     def discount_form(self, request, id):
         if not request.user.is_staff:
@@ -1101,8 +1233,9 @@ class OrderAdmin(admin.ModelAdmin):
         context['is_popup'] = is_popup
         context['messages'] = messages
         context['title'] = "Укажите скидку"
+        context['action_title'] = "Применить"
 
-        return TemplateResponse(request, 'admin/shop/order/discount_form.html', context)
+        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
 
     def send_sms_form(self, request, phone):
         if not request.user.is_staff:
@@ -1130,7 +1263,7 @@ class OrderAdmin(admin.ModelAdmin):
         context['is_popup'] = is_popup
         context['messages'] = messages
         context['title'] = "Укажите текст сообщения для %s" % str(phone)
-        context['action'] = "Отправить"
+        context['action_title'] = "Отправить"
 
         return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
 
@@ -1170,6 +1303,118 @@ class OrderAdmin(admin.ModelAdmin):
             response['Content-Disposition'] = 'attachment; filename=PickPoint-{0}.xml'.format(datetime.date.today().isoformat())
             return response
     order_pickpoint_action.short_description = "Выгрузка в ПикПоинт"
+
+    def order_stock_action(self, request, queryset):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        if 'show_stock' in request.POST:
+            supplier_ur = Supplier.objects.get(code='Ур')
+            supplier = Supplier.objects.get(pk=request.POST.get('supplier'))
+            selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
+            cursor = connection.cursor()
+            inner_cursor = connection.cursor()
+            cursor.execute("""SELECT shop_product.id AS product_id, shop_product.article,
+                              SUM(shop_orderitem.quantity) AS quantity
+                              FROM shop_product
+                              INNER JOIN shop_orderitem ON (shop_product.id = shop_orderitem.product_id)
+                              INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id)
+                              WHERE shop_order.id IN (""" + ','.join(selected) + """)
+                              GROUP BY shop_product.id ORDER BY shop_product.article""")
+            products = []
+            for row in cursor.fetchall():
+                columns = (x[0] for x in cursor.description)
+                product = dict(zip(columns, row))
+                stock = ''
+                inner_cursor.execute("""SELECT supplier_id, quantity, correction FROM shop_stock
+                                        LEFT JOIN shop_supplier ON (shop_supplier.id = supplier_id)
+                                        WHERE product_id = %s AND supplier_id IN (%s, %s)
+                                        ORDER BY shop_supplier.order""", (product['product_id'], supplier_ur.id, supplier.id))
+                quantity = float(product['quantity'])
+                stock = 0
+                if inner_cursor.rowcount:
+                    for row in inner_cursor.fetchall():
+                        if row[0] == supplier_ur.id:
+                            quantity = quantity - row[1] - row[2]
+                        if row[0] == supplier.id:
+                            stock = row[1] + row[2]
+                if quantity > 0 and stock > 0:
+                    product['stock'] = Decimal(quantity).quantize(Decimal('1'), rounding=ROUND_UP)
+                    products.append(product)
+            cursor.close()
+            inner_cursor.close()
+            if not products:
+                self.message_user(request, "Нет товаров для отгрузки у этого поставщика", level=messages.WARNING)
+                return
+            else:
+                import io
+                import xlsxwriter
+
+                output = io.BytesIO()
+                workbook = xlsxwriter.Workbook(output)
+                sheet = workbook.add_worksheet(supplier.name)
+                for idx, product in enumerate(products):
+                    sheet.write(idx, 0, product['article'])
+                    sheet.write(idx, 1, product['stock'])
+                workbook.close()
+
+                response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                response['Content-Disposition'] = 'attachment; filename={0}-{2}.xlsx; filename*=UTF-8\'\'{1}-{2}.xlsx'.format(
+                    'stock',
+                    urlquote(supplier.code),
+                    datetime.date.today().isoformat())
+                return response
+
+        form = SelectSupplierForm(initial = {'supplier': Supplier.objects.get(code='С3').pk})
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['form'] = form
+        context['queryset'] = queryset
+        context['is_popup'] = 0
+        context['title'] = "Выберите поставщика"
+        context['action'] = 'order_stock_action'
+        context['action_name'] = 'show_stock'
+        context['action_title'] = "Сформировать выгрузку"
+
+        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+
+    order_stock_action.short_description = "Выгрузка поставщику"
+
+    def order_set_user_tag_action(self, request, queryset):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        if 'set_user_tag' in request.POST:
+            tags = parse_tag_input(request.POST.get('tags'))
+            for order in queryset:
+                order.append_user_tags(tags)
+            self.message_user(request, "Добавлен тег {} пользователям".format(queryset.count()))
+            return HttpResponseRedirect(request.get_full_path())
+
+        messages = None
+        form = SelectTagForm(model=ShopUser)
+        """
+            if form.is_valid():
+                try:
+                    message = form.cleaned_data['message']
+                    if message:
+                        send_message.delay(phone, message)
+                    messages = ["Сообщение отправлено, закройте окно"]
+                    form = SendSmsForm()
+                except Exception as e:
+                    form.errors['__all__'] = form.error_class([str(e)])
+        """
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['form'] = form
+        context['queryset'] = queryset
+        context['is_popup'] = 0
+        context['messages'] = messages
+        context['title'] = "Укажите один или несколько тегов"
+        context['action'] = 'order_set_user_tag_action'
+        context['action_name'] = 'set_user_tag'
+        context['action_title'] = "Добавить"
+
+        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+    order_set_user_tag_action.short_description = "Добавить тег покупателю"
 
     def get_actions(self, request):
         actions = super(OrderAdmin, self).get_actions(request)
@@ -1217,6 +1462,9 @@ class UserChangeForm(forms.ModelForm):
     class Meta:
         model = ShopUser
         fields = '__all__'
+        widgets = {
+            'tags': TagAutoComplete(model=ShopUser),
+            }
 
     def clean_password(self):
         # Regardless of what the user provides, return the initial value.
@@ -1225,7 +1473,32 @@ class UserChangeForm(forms.ModelForm):
         return self.initial["password"]
 
 
-class ShopUserAdmin(UserAdmin):
+class TagListFilter(admin.SimpleListFilter):
+    """
+    Filter records by tags for the current model only. Tags are sorted alphabetically by name.
+    """
+    title = _('tags')
+    parameter_name = 'tag'
+
+    def lookups(self, request, model_admin):
+        model_tags = [tag.name for tag in Tag.objects.usage_for_model(model_admin.model)]
+        model_tags.sort()
+        return tuple([(tag, tag) for tag in model_tags])
+
+    def queryset(self, request, queryset):
+        if self.value() is not None:
+            #return ShopUser.tagged.with_all(self.value(), queryset)
+            return TaggedItem.objects.get_by_model(queryset, self.value())
+
+
+class ShopUserResource(resources.ModelResource):
+    class Meta:
+        model = ShopUser
+        import_id_fields = ['phone']
+        exclude = ('id', 'password', 'is_active', 'is_wholesale', 'is_staff', 'is_admin', 'tags')
+
+
+class ShopUserAdmin(ExportMixin, UserAdmin):
     # The forms to add and change user instances
     form = UserChangeForm
     add_form = UserCreationForm
@@ -1233,12 +1506,12 @@ class ShopUserAdmin(UserAdmin):
     # The fields to be used in displaying the User model.
     # These override the definitions on the base UserAdmin
     # that reference specific fields on auth.User.
-    list_display = ('phone', 'name', 'email', 'discount', 'is_wholesale', 'is_admin')
-    list_filter = ('is_wholesale', 'is_admin', 'discount')
+    list_display = ('phone', 'name', 'email', 'discount', 'tags', 'is_wholesale', 'is_admin')
+    list_filter = ('is_wholesale', 'is_admin', 'discount', TagListFilter)
     fieldsets = (
         (None, {'fields': ('phone', 'password')}),
         ('Personal info', {'fields': ('name', 'email', 'postcode', 'city', 'address')}),
-        ('Marketing', {'fields': ('discount',)}),
+        ('Marketing', {'fields': ('discount','tags')}),
         ('Permissions', {'fields': ('is_active', 'is_wholesale', 'is_staff', 'is_admin',)}),
         ('Important dates', {'fields': ('last_login',)}),
     )
@@ -1249,11 +1522,12 @@ class ShopUserAdmin(UserAdmin):
             'fields': ('phone', 'name', 'password1', 'password2')}
         ),
     )
-    search_fields = ('phone', 'name', 'email')
+    search_fields = ('phone', 'name', 'email', 'tags')
     ordering = ('phone', 'name')
     filter_horizontal = ()
     #change_list_template = 'admin/change_list_filter_sidebar.html'
     #change_list_filter_template = 'admin/filter_listing.html'
+    resource_class = ShopUserResource
 
 
 # Now register the new UserAdmin...

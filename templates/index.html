@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% load cache %}
+{% block title %}Швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов{% endblock %}
+{% block content %}
+{% cache 1800 index %}
+<div class="row">
+<div class="col-md-7">
+<h2>Каталог</h2>
+<ul class="catalog">
+  {% include "_catalog.html" %}
+</ul>
+</div>
+<div class="col-md-17">
+
+{% if top_adverts %}
+<div id="top_slides" class="carousel slide" data-ride="carousel" data-interval="6000">
+  <!-- Indicators -->
+  <ol class="carousel-indicators sw-carousel-indicators">
+  {% for advert in top_adverts %}
+    <li data-target="#top_slides" data-slide-to="{{ forloop.counter0 }}"{% if forloop.first %} class="active"{% endif %}></li>
+  {% endfor %}
+  </ol>
+
+  <!-- Wrapper for slides -->
+  <div class="carousel-inner" role="listbox">
+  {% for advert in top_adverts %}
+    <div class="item{% if forloop.first %} active{% endif %}">
+      {{ advert.content|safe }}
+    </div>
+  {% endfor %}
+  </div>
+
+  <!-- Controls -->
+  <a class="left carousel-control" href="#top_slides" role="button" data-slide="prev">
+    <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+    <span class="sr-only">Предыдущий</span>
+  </a>
+  <a class="right carousel-control" href="#top_slides" role="button" data-slide="next">
+    <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+    <span class="sr-only">Следующий</span>
+  </a>
+</div>
+{% endif %}
+
+<script>
+gtm_products = [];
+</script>
+
+<h2>Идеи для подарков</h2>
+{% for product in gift_products %}
+{% include "_product_info.html" %}
+<script>
+gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Первая страница акции','position':{{ forloop.counter }}});
+</script>
+{% endfor %}
+
+{% if middle_adverts %}
+<div id="middle_slides" class="carousel slide" data-ride="carousel" data-interval="6000">
+  <!-- Indicators -->
+  <ol class="carousel-indicators sw-carousel-indicators">
+  {% for advert in middle_adverts %}
+    <li data-target="#middle_slides" data-slide-to="{{ forloop.counter0 }}"{% if forloop.first %} class="active"{% endif %}></li>
+  {% endfor %}
+  </ol>
+
+  <!-- Wrapper for slides -->
+  <div class="carousel-inner" role="listbox">
+  {% for advert in middle_adverts %}
+    <div class="item{% if forloop.first %} active{% endif %}">
+      {{ advert.content|safe }}
+    </div>
+  {% endfor %}
+  </div>
+
+  <!-- Controls -->
+  <a class="left carousel-control" href="#middle_slides" role="button" data-slide="prev">
+    <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+    <span class="sr-only">Предыдущий</span>
+  </a>
+  <a class="right carousel-control" href="#middle_slides" role="button" data-slide="next">
+    <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+    <span class="sr-only">Следующий</span>
+  </a>
+</div>
+{% endif %}
+
+<h2><a href="/catalog/promo/">Специальные предложения!</a></h2>
+{% for product in recomended_products %}
+{% include "_product_info.html" %}
+<script>
+gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Первая страница акции','position':{{ forloop.counter }}});
+</script>
+{% endfor %}
+
+{% if bottom_adverts %}
+<div id="bottom_slides" class="carousel slide" data-ride="carousel" data-interval="6000">
+  <!-- Indicators -->
+  <ol class="carousel-indicators sw-carousel-indicators">
+  {% for advert in bottom_adverts %}
+    <li data-target="#bottom_slides" data-slide-to="{{ forloop.counter0 }}"{% if forloop.first %} class="active"{% endif %}></li>
+  {% endfor %}
+  </ol>
+
+  <!-- Wrapper for slides -->
+  <div class="carousel-inner" role="listbox">
+  {% for advert in bottom_adverts %}
+    <div class="item{% if forloop.first %} active{% endif %}">
+      {{ advert.content|safe }}
+    </div>
+  {% endfor %}
+  </div>
+
+  <!-- Controls -->
+  <a class="left carousel-control" href="#bottom_slides" role="button" data-slide="prev">
+    <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+    <span class="sr-only">Предыдущий</span>
+  </a>
+  <a class="right carousel-control" href="#bottom_slides" role="button" data-slide="next">
+    <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+    <span class="sr-only">Следующий</span>
+  </a>
+</div>
+{% endif %}
+
+<h2><a href="/catalog/New/">Новинки</a></h2>
+{% for product in first_page_products %}
+{% include "_product_info.html" %}
+<script>
+gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Первая страница акции','position':{{ forloop.counter }}});
+</script>
+{% endfor %}
+
+<br style="clear: left"/>
+<h2>Учебный центр "Радость рукоделия"</h2>
+<p><img src="http://www.sewing-world.ru/images/Husqvarna/HusqvarnaDesignerSE.s.jpg" align="left" border="0" hspace="2" vspace="2">
+<a href="http://www.raruk.ru">Учебный центр "Радость рукоделия"</a> приглашает на курсы:<br>
+- вышивальные программы Pfaff и Husqvarna<br>
+- технология машинной вышивки на швейно-вышивальных машинах<br>
+- пэчворк<br>
+- текстильные сумки<br>
+- куклы "Тильда" и многое другое<br clear="all"></p>
+
+</div>
+</div>
+
+<script>
+dataLayer.push({'ecommerce':{'currencyCode':'RUB','impressions':gtm_products}});
+</script>
+{% endcache %}
+{% endblock content %}

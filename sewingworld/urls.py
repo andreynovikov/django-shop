@@ -19,6 +19,8 @@ urlpatterns = [
     url(r'^products\.xml$', views.products, {'template': 'products.xml'}, name='products'),
     # ex: /google.xml
     url(r'^google\.xml$', views.products, {'template': 'google.xml'}, name='google'),
+    # ex: /cc-prym.xml
+    url(r'^cc-prym\.xml$', views.products, {'template': 'prym.xml'}, name='cc-prym'),
     # ex: /search/
     url(r'^search/$', views.search, name='search'),
     # ex: /catalog/

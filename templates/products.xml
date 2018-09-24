@@ -20,8 +20,6 @@
 {% endfor %}
 </categories>
 
-
-
 <offers>
 {% for product in products %}
 <offer id="{{ product.id }}" type="vendor.model" {% if product.instock > 0 %}available="true"{% else %}available="false"{% endif %}>

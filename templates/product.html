@@ -4,10 +4,9 @@
 {% load render_as_template %}
 {% load shop_filters %}
 {% load mptt_tags %}
+{% load cache %}
 {% load django_bootstrap_breadcrumbs %}
-{% block title %}
-<title>{{ product.title }}</title>
-{% endblock %}
+{% block title %}{{ product.title }}{% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
     {% breadcrumb "К первой странице" "/" %}
@@ -22,12 +21,16 @@
     {% endif %}
 {% endblock %}
 {% block content %}
+{% cache 1800 product product.id %}
 <script>
 gtm_products = [];
 </script>
 <div class="container">
 <div class="product-page">
 <div itemscope itemtype="http://schema.org/Product">
+<div class="container-fluid">
+<div class="row">
+<div class="col-md-20">
 <h1 class="prodname" itemprop="name">{{ product.title }}
 <sup>
 {% if product.ishot %}
@@ -44,21 +47,27 @@ gtm_products = [];
 {% endif %}
 </sup>
 </h1>
-
+</div>
+<div class="col-md-4">
+<div class="pull-right">
 {% if product.manufacturer %}
 {% if product.manufacturer.logo %}
-<img class="pull-left" src="{{ product.manufacturer.logo.url }}" width="{{ product.manufacturer.logo_width }}" height="{{ product.manufacturer.logo_height }}"/>
+<img class="hidden-xs hidden-sm" alt="{{ product.manufacturer.name }}" src="{{ product.manufacturer.logo.url }}" width="{{ product.manufacturer.logo_width }}" height="{{ product.manufacturer.logo_height }}"/>
+<p class="hidden-md hidden-lg">Производитель: <strong>{{ product.manufacturer.name }}</strong></p>
 {% else %}
-<p>{{ product.manufacturer.name }}</p>
+<p><strong>{{ product.manufacturer.name }}</strong></p>
 {% endif %}
 {% endif %}
 {% if product.partnumber %}
-<p>Код производителя: {{ product.partnumber }}</p>
+<p class="hidden-xs hidden-sm">Артикул: {{ product.partnumber }}</p>
+<p class="hidden-md hidden-lg">Артикул: {{ product.partnumber }}</p>
 {% endif %}
+</div>
+</div>
+</div>
+</div>
+
 <div class="clearfix"></div>
-{% if product.article %}
-<p style="color:gray;">{{ product.article }}</p>
-{% endif %}
 {% if product.runame or product.whatis %}
 <p>{{ product.whatis }} {{ product.runame }}</p>
 {% endif %}
@@ -76,6 +85,7 @@ gtm_products = [];
 {% endif %}
 </div>
 
+{% if product.enabled %}
 <div class="panel panel-default product-buyblock">
 <div class="panel-body product-buyblock-body">
 <div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
@@ -89,18 +99,20 @@ gtm_products = [];
 </div>
 {% endif %}{# discount > 0 #}
 <p class="price"><span itemprop="price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.
-
 {% if product.instock > 0 %}
-<a href="{% url 'shop:add' product.id %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
+<a href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
 {% else %}
-<a href="{% url 'shop:add' product.id %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a>
+<a href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a>
 {% endif %}
 
 <span itemprop="priceCurrency" style="visibility:hidden;font-size:1pt;margin:0;padding:0;width:0;height:0;line-height:0;">RUB</span>
-{% if product.deshevle == true %}
+{% if product.deshevle %}
 <a href="{% url 'django.contrib.flatpages.views.flatpage' url='dialog/deshevle/' %}" class="opener-ajax deshevle">Нашли&nbsp;дешевле?</a>
 {% endif %}
 </p>
+{% if product.credit_allowed and product.instock > 0 %}
+<div id="yandex-credit" style="margin: -7pt 0 7pt"></div>
+{% endif %}
 {% endif %}{# cost > 0 #}
 
 <p><span class="product-nal-caption">Наличие:</span>
@@ -155,9 +167,13 @@ gtm_products = [];
 {% endif %}
 {% endfor %}
 {% endwith %}
+{% if product.article %}
+<div style="color:#888888;"><small>Код товара: {{ product.article }}</small></div>
+{% endif %}
 </div>
 </div>
 </div>
+{% endif %}
 
 {% if product.images %}
 <div class="popup-gallery">
@@ -167,8 +183,39 @@ gtm_products = [];
 </div>
 {% endif %}
 
+{% if product.constituents.count %}
+<h2>Состав комплекта:</h2>
+<table style="margin-bottom: 10pt">
+{% with product as parent %}
+{% for product in parent.constituents.all %}
+<tr><td>{% if product.image_prefix|add:'.s.jpg'|file_exists %}
+<img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" />
+{% endif %}</td>
+<td style="padding-left: 6pt">
+<h3 class="sw-p-l-name-h">
+{% if product.variations %}
+<a href="{{ product.variations }}">
+{% else %}
+<a href="{% url 'product' product.code %}">
+{% endif %}
+{{ product.title }}</a></h3>
+<div class="sw-p-l-brif">
+{{ product.shortdescr|safe }}
+</div>
+</td></tr>
+<script>
+gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Состав комплекта','position':{{ forloop.counter }}});
+</script>
+{% endfor %}
+{% endwith %}
+</table>
+{% endif %}
+
 {% if product.descr %}
 <p itemprop="description">{{ product.descr|safe }}</p>
+{% endif %}
+{% if product.spec %}
+<p>{{ product.spec|safe }}</p>
 {% endif %}
 
 {% if product.warranty %}
@@ -400,15 +447,11 @@ gtm_products = [];
 {% if 'images/'|add:product.manufacturer.name|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists or product.stitches %}
 <h2>Строчки {{ product.title }}:</h2>
 {% if 'images/'|add:product.manufacturer.name|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists %}
-<p><img src="{{ MEDIA_URL }}/images/{{ product.manufacturer.name }}/stitches/{{ product.code }}_stitches.jpg" alt="Строчки швейной машины {{ product.title }}"></p>
+<p><img src="{{ MEDIA_URL }}/images/{{ product.manufacturer.name }}/stitches/{{ product.code }}_stitches.jpg" alt="Строчки швейной машины {{ product.title }}" class="img-responsive"></p>
 {% endif %}
 {% if product.stitches %}
 {{ product.stitches|safe }}
 {% endif %}
-{% endif %}
-
-{% if product.spec %}
-<p itemprop="description">{{ product.spec|safe }}</p>
 {% endif %}
 
 {% if product.complect %}
@@ -451,13 +494,21 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 </div>
 </noscript>
 </div>
-{% endblock %}
+{% endcache %}
+{% endblock content %}
 {% block javascript %}
+{% if product.credit_allowed and product.instock > 0 %}
+<script src="https://static.yandex.net/kassa/pay-in-parts/ui/v1"></script>
+{% endif %}
 <script>
 $(document).ready(function() {
   var cname = $('#cname').html();
   dataLayer.push({'ecommerce':{'currencyCode':'RUB','impressions':gtm_products,'detail':{'products': [{'id':'{{ product.id }}','name':'{{ product.partnumber }} {{ product.title }}','category':cname,'brand':'{{ product.manufacturer.code }}','price':'{{ product.cost }}'}]}
   }});
+{% if product.credit_allowed and product.instock > 0 %}
+  const $checkoutCreditUI = YandexCheckoutCreditUI({ shopId: '42873', sum: '{{ product.cost|quantize:"1" }}' });
+  const checkoutCreditText = $checkoutCreditUI({ type: 'info', domSelector: '#yandex-credit' });
+{% endif %}
 });
 
 $('#p_{{ product.id }}').click(function(){
@@ -478,4 +529,4 @@ var google_remarketing_only = true;
 /* ]]> */
 </script>
 <script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js"></script>
-{% endblock %}
+{% endblock javascript %}

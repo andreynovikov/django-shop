@@ -1,4 +1,8 @@
+import re
+
+from math import ceil
 from random import randint
+from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, HttpResponseServerError, HttpResponseNotFound
@@ -13,6 +17,7 @@ from django.core.mail import mail_admins
 from django.core.urlresolvers import reverse
 from django.forms.models import model_to_dict
 from django.core.exceptions import MultipleObjectsReturned
+from django.utils.formats import localize
 
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 from shop.models import Product, Basket, BasketItem, Order, ShopUser, ShopUserManager
@@ -22,6 +27,8 @@ import logging
 import pprint
 
 logger = logging.getLogger(__name__)
+
+WHOLESALE = getattr(settings, 'SHOP_WHOLESALE', False)
 
 
 def ensure_session(request):
@@ -130,6 +137,10 @@ def add_to_basket(request, product_id):
     if not created:
         item.quantity += 1
     item.save()
+    utm_source = request.GET.get('utm_source', None)
+    if utm_source:
+        basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source) # ASCII only regex
+        basket.save()
     # as soon as user starts gethering new basket "forget" last order
     try:
         del request.session['last_order']
@@ -141,39 +152,48 @@ def add_to_basket(request, product_id):
         return HttpResponseRedirect(reverse('shop:basket'))
 
 
+def around(x, base=10):
+    return int(base * ceil(float(x)/base))
+
+
 @require_POST
 def update_basket(request, product_id):
     ensure_session(request)
-    s = pprint.pformat(request.POST)
-    logger.error(s)
-    basket = get_object_or_404(Basket, session_id=request.session.session_key)
-    item = None
+    product = get_object_or_404(Product, pk=product_id)
+    basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
+    quantity = 0
+    item, created = basket.items.get_or_create(product=product)
     try:
-        item = basket.items.get(product=product_id)
         quantity = int(request.POST.get('quantity'))
         if quantity <= 0:
             quantity = 0
-            item.delete()
-        else:
-            item.quantity = quantity
-            item.save()
-    except BasketItem.DoesNotExist:
-        quantity = 0
     except ValueError:
         quantity = item.quantity
-    basket.save()
+    if quantity == 0:
+        item.delete()
+    else:
+        if WHOLESALE and product.ws_pack_only:
+            quantity = around(quantity, product.pack_factor)
+        item.quantity = quantity
+        item.save()
+
     if basket.items.count() == 0:
         basket.delete()
     if request.POST.get('ajax'):
+        if WHOLESALE:
+            qnt = Decimal('0.01')
+        else:
+            qnt = Decimal('1')
         data = {
             'quantity': quantity,
             'fragments': {
-                '#total': '<span id="total">' + '{0:.0f}'.format(basket.total) + '</span>'
+                '#total': '<span id="total">' + localize(basket.total.quantize(qnt, rounding=ROUND_HALF_EVEN)) + '</span>'
             }
         }
         if quantity > 0:
             data['fragments']['#price_' + str(item.product.id)] = \
-                '<span id="price_' + str(item.product.id) + '">' + '{0:.0f}'.format(item.price) + '</span>'
+                '<span id="price_' + str(item.product.id) + '">' + \
+                localize(item.price.quantize(qnt, rounding=ROUND_HALF_EVEN)) + '</span>'
         return JsonResponse(data)
     else:
         return HttpResponseRedirect(reverse('shop:basket'))
@@ -194,9 +214,13 @@ def delete_from_basket(request, product_id):
         basket = None
     if request.GET.get('ajax'):
         if basket:
+            if WHOLESALE:
+                qnt = Decimal('0.01')
+            else:
+                qnt = Decimal('1')
             data = {
                 'fragments': {
-                    '#total': '<span id="total">' + str(basket.total) + '</span>'
+                    '#total': '<span id="total">' + localize(basket.total.quantize(qnt, rounding=ROUND_HALF_EVEN)) + '</span>'
                 }
             }
         else:
@@ -320,7 +344,8 @@ def logout_user(request):
         basket = None
     logout(request)
     ensure_session(request)
-    if basket:
+    # do not copy cart contents for wholesale user
+    if basket and not WHOLESALE:
         basket.update_session(request.session.session_key)
         basket.phone = ''
         basket.save()
@@ -339,6 +364,7 @@ def unbind(request):
         return JsonResponse(None, safe=False)
     else:
         return HttpResponseRedirect(reverse('shop:basket'))
+
 
 def reset_password(request):
     """

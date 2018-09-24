@@ -1,11 +1,13 @@
 {% extends "seo.html" %}
 {% load staticfiles %}
+{% load shop_tags %}
+{% block meta-keywords %}Швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов Швейный Мир, швейная, швейные, вышивальная, вышивальные, вязальная, вязальные, машинка, машина, машинки, машины, оверлок, оверлоки,  шитье, вышивка, вязание, купить, интернет, магазин, pfaff, brother, janome, bernina, husqvarna, huskystar, viking, оверлок, строчка, петля, челнок, стежок, ткань, рукав{% endblock %}
+{% block meta-description %}Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары{% endblock %}
+
 {% block css_wrapper %}
 <style>
   .ui-autocomplete { z-index: 2000 }
-  .ui-autocomplete-loading {
-    background: white url("{% static '/i/ui-anim_basic_16x16.gif' %}") right center no-repeat;
-  }
+  .ui-autocomplete-loading { background: white url("{% static '/i/ui-anim_basic_16x16.gif' %}") right center no-repeat; }
 
   /* SHOULD BE ADDED IN LESS FILE */
   .sw-navbar .dropdown-menu li li { list-style:none; margin-right:5px; }
@@ -19,8 +21,8 @@
 <meta name="yandex-verification" content="54fc37eb003d8618" />
 <meta name="google-site-verification" content="HVT2yGaI68QX1ZwiLnTV6rVQiAZCCfg7Qfj5HuEP9bE" />
 {% block css %}
-{% endblock %}
-{% endblock %}
+{% endblock css %}
+{% endblock css_wrapper %}
 {% block body_header %}
 <div class="container-fluid">
 <div class="row">
@@ -73,8 +75,15 @@
               </ul>
             </li>
             <li class="visible-xs"><a href="{% url 'catalog' %}">Каталог товаров</a></li>
+            <li><a href="/pages/articles/">Статьи</a></li>
+            <li><a href="/blog/">Блог</a></li>
+            <li><a href="/service/">Сервисные центры</a></li>
             <li><a href="/pages/delivery/">Доставка и оплата</a></li>
             <li class="hidden-xs"><a href="{% url 'shop:user_orders' %}">Что с моим заказом?</a></li>
+            {% get_unpaid_order as order %}
+            {% if order %}
+            <li class="hidden-xs"><a href="{% url 'shop:order' order.id %}">Оплатить заказ</a></li>
+            {% endif %}
           </ul>
         </div><!--/.nav-collapse -->
       </div>

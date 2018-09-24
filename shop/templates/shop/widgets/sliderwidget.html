@@ -1,0 +1,21 @@
+{% include 'django/forms/widgets/text.html' %}
+<div id="slider-{{ widget.attrs.id }}"></div>
+<script>
+document.addEventListener("DOMContentLoaded", function(event) {
+  $( "#slider-{{ widget.attrs.id }}" ).slider({
+    range: "min",
+    min: {{ widget.attrs.min_value }},
+    max: {{ widget.attrs.max_value }},
+    step: {{ widget.attrs.step }},
+{% if widget.value %}
+    value: {{ widget.value }},
+{% else %}
+    value: {{ widget.attrs.min_value }},
+{% endif %}
+    slide: function( event, ui ) {
+      $( "#{{ widget.attrs.id }}" ).val( ui.value );
+    }
+  });
+  $( "#{{ widget.attrs.id }}" ).val( $( "#slider-{{ widget.attrs.id }}" ).slider( "value" ) );
+});
+</script>

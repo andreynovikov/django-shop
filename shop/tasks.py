@@ -2,7 +2,10 @@ from __future__ import absolute_import
 
 import sys
 import csv
+import datetime
+import logging
 from collections import defaultdict
+from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.mail import send_mail
@@ -14,8 +17,10 @@ from celery import shared_task
 
 from sewingworld import sms_uslugi
 
-from shop.models import Supplier, Currency, Product, Stock, Order
+from shop.models import Supplier, Currency, Product, Stock, Basket, Order
 
+
+log = logging.getLogger('shop')
 
 @shared_task
 def send_message(phone, message):
@@ -185,11 +190,11 @@ def import1c(file):
     if frozen_orders.exists():
         for order in frozen_orders:
             for item in order.items.all():
-                quantity = item.product.num_correction
+                quantity = 0
                 stock = Stock.objects.filter(product=item.product)
                 if stock.exists():
                     for s in stock:
-                        quantity = quantity + s.quantity
+                        quantity = quantity + s.quantity + s.correction
                 if quantity <= 0:
                     frozen_products[item.product].append(order)
 
@@ -225,7 +230,7 @@ def import1c(file):
                     try:
                         ws_cur_price = float(line['ws_cur_price'].replace('\xA0',''))
                         if ws_cur_price > 0:
-                            product.ws_cur_price = int(round(ws_cur_price))
+                            product.ws_cur_price = Decimal(ws_cur_price).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
                         product.ws_cur_code = currencies.get(pk=line['ws_cur_code'])
                     except ValueError:
                         errors.append("%s: оптовая цена" % line['article'])
@@ -276,3 +281,13 @@ def import1c(file):
         shop_settings['email_from'],
         shop_settings['email_managers'],
     )
+
+
+@shared_task
+def remove_outdated_baskets():
+    threshold = datetime.datetime.now() - datetime.timedelta(days=90)
+    baskets = Basket.objects.filter(created__lt=threshold)
+    num = len(baskets)
+    for basket in baskets.all():
+        basket.delete()
+    log.info('Deleted %d baskets' % num)

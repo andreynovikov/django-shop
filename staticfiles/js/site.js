@@ -1,3 +1,43 @@
+/**
+ * Get the value of a querystring
+ * @param  {String} field The field to get the value of
+ * @param  {String} url   The URL to get the value from (optional)
+ * @return {String}       The field value
+ */
+var getQueryString = function(field, url) {
+  var href = url ? url : window.location.href;
+  var reg = new RegExp('[?&]' + field + '=([^&#]*)', 'i');
+  var string = reg.exec(href);
+  return string ? decodeURIComponent(string[1].replace(/\+/g, " ")) : null;
+};
+
+var updateQueryString = function(queryString, key, value) {
+  if (typeof value === 'string')
+    value = value.replace(/\s/g, "+");
+  newParam = key + '=' + value;
+
+  if (queryString) {
+    var updateRegex = new RegExp('([\?&])' + key + '[^&]*');
+    var removeRegex = new RegExp('([\?&])' + key + '=[^&;]+[&;]?');
+
+    if (typeof value == 'undefined' || value == null || value == '' || value == '0') { // Remove param if value is empty
+      params = queryString.replace(removeRegex, "$1");
+      params = params.replace( /[&;]$/, "" );
+    } else if (queryString.match(updateRegex) !== null) { // If param exists already, update it
+      params = queryString.replace(updateRegex, "$1" + newParam);
+    } else { // Otherwise, add it to end of query string
+      params = queryString;
+        if (queryString.indexOf('?') == -1)
+            params += '?';
+        else
+            params += '&';
+      params += newParam;
+    }
+  }
+
+  return params;
+};
+
 function reloadNotice() {
     $("#cart_notice").load("/shop/basket/notice/", function() {
     });
@@ -13,10 +53,7 @@ function addProduct() {
     $(this).click(function(){
         $.ajax({
             type: "GET",
-            url: "/shop/basket/add/" + productID + "/?silent=1",
-            xhrFields: {
-                withCredentials: true
-            },
+            url: updateQueryString(this.href, "silent", "1"),
             success: function(theResponse) {
                 reloadNotice();
                 loadExtNotice(productID);

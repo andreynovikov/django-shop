@@ -16,10 +16,11 @@ from django.utils.functional import cached_property
 from django.core.urlresolvers import reverse
 
 
-
 from colorfield.fields import ColorField
 
 from mptt.models import MPTTModel, TreeForeignKey, TreeManyToManyField
+
+from tagging.fields import TagField
 
 from model_utils import FieldTracker
 
@@ -73,6 +74,7 @@ class ShopUser(AbstractBaseUser):
     is_admin = models.BooleanField('админ', default=False)
     is_staff = models.BooleanField('сотрудник', default=False)
     is_wholesale = models.BooleanField('оптовик', default=False)
+    tags = TagField('теги')
 
     objects = ShopUserManager()
 
@@ -129,6 +131,7 @@ class Category(MPTTModel):
     parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True)
     basset_id = models.PositiveSmallIntegerField('id в Бассет', null=True, blank=True)
     active = models.BooleanField()
+    filters = models.CharField('фильтры', max_length=255, blank=True)
     brief = models.TextField('описание', blank=True)
     description = models.TextField('статья', blank=True)
     image = models.ImageField('изображение', upload_to='categories', blank=True,
@@ -139,6 +142,7 @@ class Category(MPTTModel):
                               width_field='promo_image_width', height_field='promo_image_height')
     promo_image_width = models.IntegerField(null=True, blank=True)
     promo_image_height = models.IntegerField(null=True, blank=True)
+    ya_active = models.BooleanField('выдавать в Яндекс.Маркет', default=True)
     order = models.PositiveIntegerField()
 
     def get_active_descendants(self):
@@ -354,11 +358,28 @@ class Contractor(models.Model):
         return self.name
 
 
+class Advert(models.Model):
+    name = models.CharField('название', max_length=100)
+    place = models.CharField('место', max_length=100)
+    sites = models.ManyToManyField(Site, verbose_name='сайты')
+    active = models.BooleanField('активная')
+    content = models.TextField('содержимое')
+    order = models.PositiveIntegerField()
+
+    class Meta:
+        verbose_name = 'реклама'
+        verbose_name_plural = 'рекламы'
+
+    def __str__(self):
+        return self.name
+
+
 class SalesAction(models.Model):
     name = models.CharField('название', max_length=100)
     slug = models.CharField(max_length=100)
     sites = models.ManyToManyField(Site, verbose_name='сайты')
     active = models.BooleanField('активная')
+    show_in_list = models.BooleanField('показывать в списке', default=True)
     show_products = models.BooleanField('показывать список товаров', default=True)
     notice = models.CharField('уведомление', max_length=50, blank=True)
     brief = models.TextField('описание', blank=True)
@@ -378,10 +399,10 @@ class SalesAction(models.Model):
 
 
 class Product(models.Model):
-    code = models.CharField('идентификатор', max_length=20, db_index=True)
+    code = models.CharField('идентификатор', max_length=20, unique=True, db_index=True)
     article = models.CharField('код 1С', max_length=20, blank=True, db_index=True)
     partnumber = models.CharField('partnumber', max_length=200, blank=True, db_index=True)
-    gtin = models.CharField('GTIN', max_length=17, default='', db_index=True)
+    gtin = models.CharField('GTIN', max_length=17, blank=True, db_index=True)
     enabled = models.BooleanField('включён', default=False, db_index=True)
     title = models.CharField('название', max_length=200)
     price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0, db_column=settings.SHOP_PRICE_DB_COLUMN)
@@ -406,6 +427,7 @@ class Product(models.Model):
     image_prefix = models.CharField('префикс изображения', max_length=200)
     categories = TreeManyToManyField('shop.Category', related_name='products',
                                      related_query_name='product', verbose_name='категории', blank=True)
+    tags = TagField('теги')
     forbid_price_import = models.BooleanField('не импортировать цену', default=False)
     if settings.SHOP_PRICE_DB_COLUMN == 'price':
         forbid_spb_price_import = models.BooleanField('не импортировать цену СПб', default=False)
@@ -423,9 +445,13 @@ class Product(models.Model):
     available=models.CharField('Наличие', max_length=255, blank=True)
     bid=models.CharField('Ставка маркета для основной выдачи', max_length=10, blank=True)
     cbid=models.CharField('Ставка маркета для карточки модели', max_length=10, blank=True)
-    show_on_sw=models.BooleanField('Показать на основной витрине', default=True)
+    show_on_sw=models.BooleanField('витрина', default=True, db_index=True, db_column=settings.SHOP_SHOW_DB_COLUMN)
+    if settings.SHOP_SHOW_DB_COLUMN == 'show_on_sw':
+        spb_show_in_catalog = models.BooleanField('витрина СПб', default=True, db_index=True)
     gift=models.BooleanField('Годится в подарок', default=False)
-    market=models.BooleanField('Выгружать в маркет', default=False)
+    market=models.BooleanField('маркет', default=False, db_index=True, db_column=settings.SHOP_MARKET_DB_COLUMN)
+    if settings.SHOP_MARKET_DB_COLUMN == 'market':
+        spb_market=models.BooleanField('маркет СПб', default=False, db_index=True)
     #todo refactor: nabor=models.BooleanField('Набор', default=False)
     #manid
     manufacturer=models.ForeignKey(Manufacturer, verbose_name="Производитель", on_delete=models.PROTECT, default=49)
@@ -448,6 +474,7 @@ class Product(models.Model):
     absent=models.BooleanField('Нет в продаже', default=False)
     #todo add: ishot=models.BooleanField('', default=False)
     #todo delete: newyear=models.BooleanField('', default=False)
+    credit_allowed=models.BooleanField('можно в кредит', default=False)
     internetonly=models.BooleanField('Только в интернет-магазине', default=False)
     present=models.CharField('Подарок к этому товару', max_length=255, blank=True)
     #sale
@@ -474,7 +501,7 @@ class Product(models.Model):
     num=models.SmallIntegerField('в наличии', default=-1, db_column=settings.SHOP_STOCK_DB_COLUMN)
     if settings.SHOP_STOCK_DB_COLUMN == 'num':
         spb_num = models.SmallIntegerField('в наличии СПб', default=-1)
-    num_correction=models.SmallIntegerField('Корректировка наличия', default=0)
+        ws_num = models.SmallIntegerField('в наличии Опт', default=-1)
     stock=models.ManyToManyField(Supplier, through='Stock')
     pack_factor=models.SmallIntegerField('Количество в упаковке', default=1)
     #todo delete: boleroid=integer not null default 0
@@ -492,6 +519,8 @@ class Product(models.Model):
 
     sales_actions = models.ManyToManyField(SalesAction, related_name='products', related_query_name='product', verbose_name='акции', blank=True)
     related = models.ManyToManyField('self', through='ProductRelation', symmetrical=False, blank=True)
+    constituents = models.ManyToManyField('self', through='ProductSet', related_name='+', symmetrical=False, blank=True)
+    recalculate_price = models.BooleanField('пересчитывать цену', default=True)
 
     fabric_verylite=models.CharField('Очень легкие ткани', max_length=50, blank=True)
     fabric_lite=models.CharField('Легкие ткани', max_length=50, blank=True)
@@ -581,14 +610,56 @@ class Product(models.Model):
         verbose_name_plural = 'товары'
 
     def save(self, *args, **kwargs):
-        if settings.SHOP_PRICE_DB_COLUMN == 'price':
-            self.price = self.cur_price * self.cur_code.rate
-            if self.spb_price == 0 or not self.forbid_spb_price_import:
-                self.spb_price = self.price
-        self.ws_price = self.ws_cur_price * self.ws_cur_code.rate
-        self.sp_price = self.sp_cur_price * self.sp_cur_code.rate
+        if self.pk is None or self.constituents.count() == 0 or not self.recalculate_price:
+            if settings.SHOP_PRICE_DB_COLUMN == 'price':
+                self.price = self.cur_price * self.cur_code.rate
+                if self.spb_price == 0 or not self.forbid_spb_price_import:
+                    self.spb_price = self.price
+            self.ws_price = self.ws_cur_price * self.ws_cur_code.rate
+            self.sp_price = self.sp_cur_price * self.sp_cur_code.rate
+        else:
+            self.update_set_price()
         self.image_prefix = ''.join(['images/', self.manufacturer.code, '/', self.code])
         super(Product, self).save(*args, **kwargs)
+        if settings.SHOP_PRICE_DB_COLUMN == 'price':
+            self.update_sets()
+
+    def update_sets(self):
+        product_sets = ProductSet.objects.filter(constituent=self)
+        for product_set in product_sets:
+            updated = False
+            if self.num < 0:
+                product_set.declaration.num = -1
+                product_set.declaration.spb_num = -1
+                updated = True
+            if product_set.declaration.recalculate_price:
+                product_set.declaration.update_set_price()
+                updated = True
+            if updated:
+                product_set.declaration.save()
+
+    def update_set_price(self):
+        price = Decimal('0')
+        ws_price = Decimal('0')
+        sp_price = Decimal('0')
+        constituents = ProductSet.objects.filter(declaration=self)
+        for item in constituents:
+            item_price = item.constituent.price
+            item_ws_price = item.constituent.ws_price
+            item_sp_price = item.constituent.sp_price
+            if item.discount > 0:
+                discount = Decimal((100 - item.discount) / 100)
+                item_price = (item_price * discount).quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)
+                item_ws_price = (item_ws_price * discount).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
+                item_sp_price = (item_sp_price * discount).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
+            price = price + item_price
+            ws_price = ws_price + item_ws_price
+            sp_price = sp_price + item_sp_price
+
+        self.price = price
+        self.spb_price = price
+        self.ws_price = ws_price
+        self.sp_price = sp_price
 
     def get_sales_actions(self):
         return self.sales_actions.filter(active=True, sites=Site.objects.get_current()).order_by('order')
@@ -632,33 +703,39 @@ class Product(models.Model):
         if self.num >= 0:
             return self.num
 
-        self.num = 0
-        if settings.SHOP_STOCK_DB_COLUMN == 'spb_num':
-            suppliers = self.stock.filter(spb_count_in_stock=Supplier.COUNT_STOCK)
-            site_addon = '= 6'
-        else:
-            suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
-            site_addon = '<> 6'
-        if suppliers.exists():
-            for supplier in suppliers:
-                stock = Stock.objects.get(product=self, supplier=supplier)
-                self.num = self.num + stock.quantity + stock.correction
+        if self.constituents.count() == 0:
+            self.num = 0
+            if settings.SHOP_STOCK_DB_COLUMN == 'spb_num':
+                suppliers = self.stock.filter(spb_count_in_stock=Supplier.COUNT_STOCK)
+                site_addon = '= 6'
+            else:
+                suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
+                site_addon = '<> 6'
+            if suppliers.exists():
+                for supplier in suppliers:
+                    stock = Stock.objects.get(product=self, supplier=supplier)
+                    self.num = self.num + stock.quantity + stock.correction
 
-        if self.num > 0:
-            cursor = connection.cursor()
-            cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
+            if self.num > 0:
+                cursor = connection.cursor()
+                cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
                               INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
-                              AND shop_orderitem.product_id = %s GROUP BY shop_orderitem.product_id AND shop_order.site_id """ + site_addon,
-                           (self.id,))
-            if cursor.rowcount:
-                row = cursor.fetchone()
-                self.num = self.num - float(row[0])
-            cursor.close()
-            if self.num < 0:
-                self.num = 0
+                              AND shop_order.site_id """ + site_addon + """ AND shop_orderitem.product_id = %s GROUP BY
+                              shop_orderitem.product_id""", (self.id,))
+                if cursor.rowcount:
+                    row = cursor.fetchone()
+                    self.num = self.num - float(row[0])
+                cursor.close()
+                if self.num < 0:
+                    self.num = 0
+        else:
+            self.num = 32767
+            for constituent in self.constituents.all():
+                num = constituent.instock
+                if num < self.num:
+                    self.num = num
 
         super(Product, self).save()
-
         return self.num
 
     @staticmethod
@@ -687,6 +764,16 @@ class ProductRelation(models.Model):
         verbose_name_plural = 'связанные товары'
 
 
+class ProductSet(models.Model):
+    declaration = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='set_constituents', verbose_name='определение')
+    constituent = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='set_declarations', verbose_name='составляющая')
+    discount = models.PositiveSmallIntegerField('скидка, %', default=0)
+
+    class Meta:
+        verbose_name = 'комплект'
+        verbose_name_plural = 'комплекты'
+
+
 class Stock(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='item')
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, verbose_name='поставщик')
@@ -703,10 +790,75 @@ class Basket(models.Model):
     session = models.ForeignKey(Session, null=True, on_delete=models.SET_NULL)
     created = models.DateTimeField(auto_now_add=True)
     phone = models.CharField(max_length=30, blank=True)
+    utm_source = models.CharField(max_length=20, blank=True)
+
+    def product_cost(self, product):
+        if WHOLESALE:
+            return product.ws_price - self.product_discount(product)
+        else:
+            return product.price - self.product_discount(product)
+
+    def product_pct_discount(self, product):
+        """ Calculates maximum percent discount based on product, user and maximum discount """
+        if WHOLESALE:
+            pd = max(product.ws_pct_discount, self.user_discount)
+            if pd > product.ws_max_discount:
+                pd = product.ws_max_discount
+            pdp = round(product.ws_price * (pd / 100))
+            if pdp < product.sp_price:
+                d = product.ws_price - product.sp_price
+                pd = int(d / product.ws_price * 100)
+        else:
+            pd = max(product.pct_discount, self.user_discount)
+            if pd > product.max_discount:
+                pd = product.max_discount
+        return pd
+
+    def product_discount(self, product):
+        pd = Decimal(0)
+        pct = self.product_pct_discount(product)
+        if pct > 0:
+            if WHOLESALE:
+                price = product.ws_price
+                qnt = Decimal('0.01')
+            else:
+                price = product.price.quantize(Decimal('1'), rounding=ROUND_UP)
+                qnt = Decimal('1')
+            pd = (price * Decimal(pct / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
+        if not WHOLESALE and product.val_discount > pd:
+            pd = product.val_discount
+        return pd
+
+    def product_discount_text(self, product):
+        """ Provides human readable discount string. """
+        pd = Decimal(0)
+        pdv = 0
+        pdt = False
+        pct = self.product_pct_discount(product)
+        if pct > 0:
+            if WHOLESALE:
+                price = product.ws_price
+                qnt = Decimal('0.01')
+            else:
+                price = product.price.quantize(Decimal('1'), rounding=ROUND_UP)
+                qnt = Decimal('1')
+            pd = (price * Decimal(pct / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
+            pdv = pct
+            pdt = True
+        if not WHOLESALE and product.val_discount > pd:
+            pd = product.val_discount
+            pdv = product.val_discount
+            pdt = False
+        if pd == 0:
+            return ''
+        pds = ' руб.'
+        if pdt:
+             pds = '%'
+        return '%d%s' % (pdv, pds)
 
     @property
     def total(self):
-        total = 0
+        total = Decimal('0')
         for item in self.items.all():
             total += item.price
         return total
@@ -775,63 +927,13 @@ class BasketItem(models.Model):
             return (self.product.price - self.discount).quantize(Decimal('1'), rounding=ROUND_UP)
 
     @property
-    def pct_discount(self):
-        """ Calculates maximum percent discount based on product, user and maximum discount """
-        if WHOLESALE:
-            pd = max(self.product.ws_pct_discount, self.basket.user_discount)
-            if pd > self.product.ws_max_discount:
-                pd = self.product.ws_max_discount
-            pdp = round(self.product.ws_price * (pd / 100))
-            if pdp < self.product.sp_price:
-                d = self.product.ws_price - self.product.sp_price
-                pd = int(d / self.product.ws_price * 100)
-        else:
-            pd = max(self.product.pct_discount, self.basket.user_discount)
-            if pd > self.product.max_discount:
-                pd = self.product.max_discount
-        return pd
-
-    @property
     def discount(self):
-        pd = Decimal(0)
-        if self.pct_discount > 0:
-            if WHOLESALE:
-                price = self.product.ws_price
-                qnt = Decimal('0.01')
-            else:
-                price = self.product.price.quantize(Decimal('1'), rounding=ROUND_UP)
-                qnt = Decimal('1')
-            pd = (price * Decimal(self.pct_discount / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
-        if not WHOLESALE and self.product.val_discount > pd:
-            pd = self.product.val_discount
-        return pd
+        return self.basket.product_discount(self.product)
 
     @property
     def discount_text(self):
         """ Provides human readable discount string. """
-        pd = Decimal(0)
-        pdv = 0
-        pdt = False
-        if self.pct_discount > 0:
-            if WHOLESALE:
-                price = self.product.ws_price
-                qnt = Decimal('0.01')
-            else:
-                price = self.product.price.quantize(Decimal('1'), rounding=ROUND_UP)
-                qnt = Decimal('1')
-            pd = (price * Decimal(self.pct_discount / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
-            pdv = self.pct_discount
-            pdt = True
-        if not WHOLESALE and self.product.val_discount > pd:
-            pd = self.product.val_discount
-            pdv = self.product.val_discount
-            pdt = False
-        if pd == 0:
-            return ''
-        pds = ' руб.'
-        if pdt:
-             pds = '%'
-        return '%d%s' % (pdv, pds)
+        return self.basket.product_discount_text(self.product)
 
 
 class Manager(models.Model):
@@ -865,6 +967,7 @@ class Order(models.Model):
     PAYMENT_TRANSFER = 3
     PAYMENT_COD = 4
     PAYMENT_POS = 5
+    PAYMENT_CREDIT = 6
     PAYMENT_UNKNOWN = 99
     PAYMENT_CHOICES = (
         (PAYMENT_UNKNOWN, 'уточняется'),
@@ -873,6 +976,7 @@ class Order(models.Model):
         (PAYMENT_TRANSFER, 'банковский перевод'),
         (PAYMENT_COD, 'наложенный платёж'),
         (PAYMENT_POS, 'платёжный терминал'),
+        (PAYMENT_CREDIT, 'кредит'),
     )
     DELIVERY_COURIER = 1
     DELIVERY_CONSULTANT = 2
@@ -983,6 +1087,7 @@ class Order(models.Model):
     wiring_date = models.DateField('дата проводки', blank=True, null=True)
     courier = models.ForeignKey(Courier, verbose_name='курьер', blank=True, null=True)
     store = models.ForeignKey(Store, verbose_name='магазин самовывоза', blank=True, null=True, on_delete=models.PROTECT)
+    utm_source = models.CharField(max_length=20, blank=True)
     # user
     user = models.ForeignKey(ShopUser, verbose_name='покупатель')
     name = models.CharField('имя', max_length=100, blank=True)
@@ -1026,23 +1131,81 @@ class Order(models.Model):
         uid = session_data.get('_auth_user_id')
         user = ShopUser.objects.get(id=uid)
         order = Order.objects.create(user=user, site=Site.objects.get_current())
+        order.utm_source = basket.utm_source
+        if order.utm_source == 'yamarket':
+            order.site = Site.objects.get(domain='market.yandex.ru')
         order.name = user.name
         order.postcode = user.postcode
         order.city = user.city
         order.address = user.address
         order.phone = user.phone
         order.email = user.email
+
         if WHOLESALE:
             qnt = Decimal('0.01')
         else:
             qnt = Decimal('1')
+
+        # добавляем в заказ все элементы корзины
         for item in basket.items.all():
-            order.items.create(product=item.product,
-                               product_price=item.product.price.quantize(qnt, rounding=ROUND_UP),
-                               pct_discount=item.pct_discount,
-                               val_discount=item.product.val_discount,
-                               quantity=item.quantity)
+            # если это опт, то указываем только рублёвую скидку, высчитанную корзиной
+            if WHOLESALE:
+                pct_discount = 0
+                val_discount = item.discount
+            # иначе считаем отдельно скидку в процентах и копируем текущую рублёвую скидку товара
+            else:
+                pct_discount = basket.product_pct_discount(item.product)
+                val_discount = item.product.val_discount
+            # если это обычный товар, добавляем его в заказ
+            if item.product.constituents.count() == 0:
+                order.items.create(product=item.product,
+                                   product_price=item.product.price.quantize(qnt, rounding=ROUND_UP),
+                                   pct_discount=pct_discount,
+                                   val_discount=val_discount,
+                                   quantity=item.quantity)
+            # если это комплект, то добавляем элементы комплекта отдельно
+            else:
+                full_discount = val_discount
+                discount_remainder = full_discount
+                if not item.product.recalculate_price:
+                    full_price = item.product.price.quantize(qnt, rounding=ROUND_UP)
+                    price_remainder = full_price
+                constituents = ProductSet.objects.filter(declaration=item.product)
+                last = len(constituents) - 1
+                for idx, itm in enumerate(constituents):
+                    proportion = Decimal(itm.constituent.price / item.product.price)
+                    # если комплект динамически пересчитывает цену, то указываем цену элемента
+                    if item.product.recalculate_price:
+                        item_price = (itm.constituent.price * Decimal((100 - itm.discount) / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
+                    # иначе разбиваем цену комплекта на части пропорционально ценам элементов
+                    elif idx < last:
+                        item_price = (itm.constituent.price * proportion).quantize(qnt, rounding=ROUND_HALF_EVEN)
+                        price_remainder = price_remainder - item_price
+                    else:
+                        item_price = price_remainder
+                    # рублёвую скидку в любом случае разбиваем на части пропорционально ценам элементов
+                    if idx < last:
+                        val_discount = (full_discount * proportion).quantize(qnt, rounding=ROUND_HALF_EVEN)
+                        discount_remainder = discount_remainder - val_discount
+                    else:
+                        val_discount = discount_remainder
+                    i = order.items.create(product=itm.constituent,
+                                           product_price=item_price,
+                                           pct_discount=pct_discount,
+                                           val_discount=val_discount,
+                                           quantity=item.quantity)
+                    # в данный момент, если цена позиции равна нулю, то она принудительно устанавливается в цену товара
+                    # todo: можно перенести эту логику в admin, и тогда можно будет избавиться от двойного сохранения
+                    if not item_price:
+                        i.product_price = item_price
+                        i.save()
         return order
+
+    def append_user_tags(self, tags):
+        user_tags = self.user.tags.split(',')
+        merged = list(set(tags + user_tags))
+        self.user.tags = ','.join(merged)
+        self.user.save()
 
     def __str__(self):
         return "%s от %s" % (self.id, date_format(timezone.localtime(self.created), "DATETIME_FORMAT"))

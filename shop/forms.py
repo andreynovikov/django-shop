@@ -1,11 +1,13 @@
 import os
+import re
 from django import forms
+from suit.widgets import AutosizedTextarea
 from django.conf import settings
 
 import autocomplete_light
 
-from shop.models import Supplier, Product, Stock, Order
-from shop.widgets import PhoneWidget
+from shop.models import Supplier, Product, Stock, Order, ShopUser
+from shop.widgets import PhoneWidget, TagAutoComplete
 from shop.tasks import import1c
 
 
@@ -48,12 +50,66 @@ class SendSmsForm(forms.Form):
     message = forms.CharField(label='Сообщение', max_length=160, required=True)
 
 
+class SelectTagForm(forms.Form):
+    tags = forms.CharField(label='Теги', max_length=50, required=True)
+
+    def __init__(self, *args, **kwargs):
+        model = kwargs.pop('model', None)
+        super(SelectTagForm, self).__init__(*args, **kwargs)
+        self.fields['tags'].widget = TagAutoComplete(model=model)
+
+
+class SelectSupplierForm(forms.Form):
+    supplier = forms.ModelChoiceField(label='Поставщик', queryset=Supplier.objects.order_by('order'), required=True, empty_label=None)
+
+
+class ProductAdminForm(autocomplete_light.ModelForm):
+    class Meta:
+        model = Product
+        exclude = ['fake']
+        widgets = {
+            'gtin': forms.TextInput(attrs={'size': 10}),
+            'spec': AutosizedTextarea(attrs={'rows': 3,}),
+            'shortdescr': AutosizedTextarea(attrs={'rows': 3,}),
+            'yandexdescr': AutosizedTextarea(attrs={'rows': 3,}),
+            'descr': AutosizedTextarea(attrs={'rows': 3,}),
+            'state': AutosizedTextarea(attrs={'rows': 2,}),
+            'complect': AutosizedTextarea(attrs={'rows': 3,}),
+            'dealertxt': AutosizedTextarea(attrs={'rows': 2,}),
+            'tags': TagAutoComplete(model=ShopUser)
+        }
+
+    def clean(self):
+        code = self.cleaned_data.get('code')
+        reg = re.compile('^[-\.\w]+$')
+        if reg.match(code):
+            return super().clean()
+        else:
+            self.add_error('code', forms.ValidationError("Код товара содержит недопустимые символы"))
+
+
 class OrderAdminForm(autocomplete_light.ModelForm):
+    user_tags = forms.CharField(label='Теги', max_length=50, required=False)
+
+    def __init__(self, *args, **kwargs):
+        super(OrderAdminForm, self).__init__(*args, **kwargs)
+        try:
+            instance = kwargs['instance']
+            self.fields['user_tags'].initial = instance.user.tags
+            self.fields['user_tags'].widget = TagAutoComplete(model=type(instance.user))
+        except (KeyError, AttributeError):
+            pass
+
     def clean_store(self):
         store = self.cleaned_data.get('store', None)
         if self.cleaned_data['status'] == Order.STATUS_DELIVERED_SHOP and store is None:
             raise forms.ValidationError("Не указан магазин доставки!")
         return store
+
+    def save(self, commit=True):
+        self.instance.user.tags = self.cleaned_data['user_tags']
+        self.instance.user.save()
+        return super(OrderAdminForm, self).save(commit=commit)
 
     class Meta:
         model = Order

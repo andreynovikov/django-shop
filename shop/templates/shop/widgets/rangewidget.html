@@ -1,0 +1,23 @@
+{% for widget in widget.subwidgets %}
+{% if forloop.first %}от{% endif %}
+{% include widget.template_name %}
+{% if forloop.first %}до{% endif %}
+{% endfor %}
+<div id="slider-range-{{ widget.attrs.id }}"></div>
+<script>
+document.addEventListener("DOMContentLoaded", function(event) {
+  $( "#slider-range-{{ widget.attrs.id }}" ).slider({
+    range: true,
+    min: {{ widget.attrs.min_value }},
+    max: {{ widget.attrs.max_value }},
+    step: {{ widget.attrs.step }},
+    values: {{ widget.value }},
+    slide: function( event, ui ) {
+      $( "#{{widget.subwidgets.0.attrs.id}}" ).val( ui.values[ 0 ] );
+      $( "#{{widget.subwidgets.1.attrs.id}}" ).val( ui.values[ 1 ] );
+    }
+  });
+  $( "#{{widget.subwidgets.0.attrs.id}}" ).val( $( "#slider-range-{{ widget.attrs.id }}" ).slider( "values", 0 ) );
+  $( "#{{widget.subwidgets.1.attrs.id}}" ).val( $( "#slider-range-{{ widget.attrs.id }}" ).slider( "values", 1 ) );
+});
+</script>

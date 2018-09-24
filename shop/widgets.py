@@ -1,8 +1,16 @@
 import uuid
 
+import json
+
 from django.core.urlresolvers import reverse
+from django.contrib.admin import widgets
+from django.contrib.staticfiles.storage import staticfiles_storage
+from django.forms import Media
 from django.forms.widgets import TextInput
 from django.utils.safestring import mark_safe
+
+from tagging.models import Tag
+
 
 BOOTSTRAP_INPUT_TEMPLATE = {
     2: """
@@ -61,4 +69,60 @@ class PhoneWidget(TextInput):
                     glyphicon=self.glyphicon,
                     popup=reverse('admin:shop_order_send_sms', args=['+0'])
                     )
+        )
+
+
+"""Widgets from Zinnia admin"""
+
+class TagAutoComplete(widgets.AdminTextInputWidget):
+    """
+    Tag widget with autocompletion based on select2.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.model = kwargs.pop('model', None)
+        super(TagAutoComplete, self).__init__(*args, **kwargs)
+
+    def get_tags(self):
+        """
+        Returns the list of tags to auto-complete.
+        """
+        if self.model is None:
+            return [tag.name for tag in Tag.objects.all()]
+        else:
+            return [tag.name for tag in Tag.objects.usage_for_model(self.model)]
+
+    def render(self, name, value, attrs=None, renderer=None):
+        """
+        Render the default widget and initialize select2.
+        """
+        output = [super(TagAutoComplete, self).render(name, value, attrs)]
+        output.append('<script type="text/javascript">')
+        output.append('(function($) {')
+        output.append('  $(document).ready(function() {')
+        output.append('    $("#id_%s").select2({' % name)
+        output.append('       width: "element",')
+        output.append('       maximumInputLength: 50,')
+        output.append('       tokenSeparators: [",", " "],')
+        output.append('       tags: %s' % json.dumps(self.get_tags()))
+        output.append('     });')
+        output.append('    });')
+        output.append('}(django.jQuery));')
+        output.append('</script>')
+        return mark_safe('\n'.join(output))
+
+    @property
+    def media(self):
+        """
+        TagAutoComplete's Media.
+        """
+        def static(path):
+            return staticfiles_storage.url('zinnia/admin/select2/%s' % path)
+
+        return Media(
+            css = {'all': (static('css/select2.css'),)},
+            js = (
+                'admin/js/jquery.init.js',
+                static('js/select2.js'),
+                )
         )
