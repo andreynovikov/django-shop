@@ -1,9 +1,5 @@
 function reloadNotice() {
     $("#cart_notice").load("/shop/basket/notice/", function() {
-       //$("#cart_notice a").each(function(index) {
-        //    var href = $(this).attr("href")
-        //    $(this).attr('href', "https://order.sewing-world.ru" + href);
-        //});
     });
 }
 
@@ -17,8 +13,10 @@ function addProduct() {
     $(this).click(function(){
         $.ajax({
             type: "GET",
-            //url: "https://order.sewing-world.ru/shop/basket/add/" + productID + "/?silent=1",
             url: "/shop/basket/add/" + productID + "/?silent=1",
+            xhrFields: {
+                withCredentials: true
+            },
             success: function(theResponse) {
                 reloadNotice();
                 loadExtNotice(productID);
