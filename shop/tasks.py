@@ -6,6 +6,7 @@ from collections import defaultdict
 
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.mail import send_mail
+from django.contrib.sites.models import Site
 from django.conf import settings
 from django.template.loader import render_to_string
 
@@ -169,7 +170,7 @@ def notify_manager(order_id):
     msg_html = render_to_string('mail/shop/order_manager.html', {'order': order})
 
     send_mail(
-        'Новый заказ №%s' % order_id,
+        'Новый заказ №%s (%s)' % (order_id, Site.objects.get_current()),
         msg_plain,
         shop_settings['email_from'],
         shop_settings['email_managers'],
