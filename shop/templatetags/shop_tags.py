@@ -17,6 +17,6 @@ def get_unpaid_order(context):
         orders = Order.objects.order_by('-id').filter(user=context.request.user.id)
         for order in orders:
             if order.status == Order.STATUS_COLLECTED and not order.paid and \
-                    (order.payment == Order.PAYMENT_CARD or order.payment == Order.PAYMENT_TRANSFER):
+                    (order.payment in [Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_CREDIT]):
                 return order
     return None
