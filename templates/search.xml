@@ -3,6 +3,7 @@
 <yml_catalog date="{% now 'Y-m-d H:i' %}" >
 
 {% load site %}
+{% load decimals %}
 <shop>
 <name>{{ shop_info.title }}</name>
 <company>{{ shop_info.description }}</company>

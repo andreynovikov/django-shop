@@ -177,13 +177,13 @@ class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ produ
 <dt><span>Максимальная ширина строчки <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchlength/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchwidth }} мм</dd>
 {% endif %}
 {% if product.sm_stitchlenght %}
-<dt><span>Максимальная длина стежка <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchlenght/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchlenght }} мм</dd>
+<dt><span>Максимальная длина стежка <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchlength/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchlenght }} мм</dd>
 {% endif %}
 {% if product.sm_stitchquantity %}
 <dt><span>Количество строчек <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchquantity/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchquantity }}</dd>
 {% endif %}
 {% if product.sm_buttonhole %}
-<dt><span>Режим вымётывания петли <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='/help/sm_buttonhole/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_buttonhole }}</dd>
+<dt><span>Режим вымётывания петли <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_buttonhole/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_buttonhole }}</dd>
 {% endif %}
 {% if product.sm_alphabet %}
 <dt><span>Алфавит <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_alphabet/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_alphabet }}</dd>

@@ -213,10 +213,36 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 {% endblock %}
 </div> <!-- #main -->
 <footer>
+<!--
                 <div class="navigation small-nodisplay">
-                    <a href="/catalog/">Продукция</a><!--&nbsp;&nbsp;|&nbsp;&nbsp;<a href="/pages/support/">Поддержка</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="/pages/history/">О компании</a>-->&nbsp;&nbsp;|&nbsp;&nbsp;<a href="/pages/delivery/">Доставка и оплата</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="/pages/where-to-buy/">Где купить</a>
-                </div> <!-- .navigation -->
-                <div class="secondaryNavigation">
+                    <a href="/catalog/">Продукция</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="/pages/delivery/">Доставка и оплата</a>&nbsp;&nbsp;|&nbsp;&nbsp;<a href="/pages/where-to-buy/">Где купить</a>
+                </div>
+-->                
+                
+                <div class="secondaryNavigation" style="margin-top:10px;">
+
+              
+<form method="POST" action="https://cp.unisender.com/ru/subscribe?hash=6ag87sp95se3dnxjfcqpuuzuecea35ueiscjkuqxbo9kgbqc8oy3y" name="subscribtion_form">
+<div style="font-size:11pt; font-weight:bold; margin-bottom:6px; color:white;">Оставьте свой e-mail и узнайте первыми о скидках и новинках:</div>
+    <div class="subscribe-form-item subscribe-form-item--input-email" style="margin-bottom:6px;">
+        <label class="subscribe-form-item__label subscribe-form-item__label--input-email subscribe-form-item__label--required" style="color:white;">E-mail</label>
+        <input class="subscribe-form-item__control subscribe-form-item__control--input-email" type="text" name="email" value="" style="max-width:300px; width:100%">
+    </div>
+    <div class="subscribe-form-item subscribe-form-agreement-with-terms" style="margin-bottom:6px;">
+        <input class="subscribe-form-item__control subscribe-form-agreement-with-terms--checkbox" type="checkbox">
+        <span class="subscribe-form-agreement-with-terms--text">
+                                       <span style="font-size: 12px;  color:white;">Я согласен с политикой конфиденциальности</span>
+        </span>
+    </div>
+    <div class="subscribe-form-item subscribe-form-item--btn-submit" style="margin-bottom:6px;">
+        <input class="subscribe-form-item__btn subscribe-form-item__btn--btn-submit btn btn-warning" type="submit" value="Подписаться">
+    </div>
+    <input type="hidden" name="charset" value="UTF-8">
+    <input type="hidden" name="default_list_id" value="15181421">
+    <input type="hidden" name="overwrite" value="2">
+    <input type="hidden" name="is_v5" value="1">
+</form>
+                
                 <a href="http://www.singer.com">&copy;2004-2018 Singer Sourcing Limited LLC</a> | <a href="http://www.sewing-world.ru">Представитель в России - "Швейный Мир"</a> | <!-- <a href="{% url 'django.contrib.flatpages.views.flatpage' url='oferta.html' %}">Условия публичной оферты</a> --> <a href="mailto:info@singer.ru">info@singer.ru</a>
 </footer>
 <script src="{% static 'js/jquery-2.1.1.min.js' %}"></script>
@@ -228,7 +254,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <script src="{% static 'bootstrap/js/bootstrap.min.js' %}"></script>
 <script src="{% static 'js/jquery-ui-1.10.3.custom.min.js' %}"></script>
 <script src="{% static 'js/singer.js' %}"></script>
-
+<!--Start of UniSender PopUp Form script-->
+  <script type="text/javascript" src="//popup-static.unisender.com/service/loader.js?c=5709" id="unisender-popup-forms"></script>
+<!--End of UniSender PopUp Form script-->
 
 {% block javascript %}
 {% block cart_notice_output %}
