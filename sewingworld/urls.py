@@ -16,12 +16,14 @@ urlpatterns = [
     url(r'^products\.xml$', views.products, {'template': 'products.xml'}, name='products'),
     # ex: /google.xml
     url(r'^google\.xml$', views.products, {'template': 'google.xml'}, name='google'),
+    # ex: /search/
+    url(r'^search/$', views.search, name='search'),
     # ex: /catalog/
     url(r'^catalog/$', views.catalog, name='catalog'),
     # ex: /catalog/prinadlezhnosti/
     url(r'^catalog/(?P<path>.*)', mptt_urls.view(model='shop.models.Category', view='sewingworld.views.category', slug_field='slug', root=settings.MPTT_ROOT), name='category'),
     # ex: /products/JanomeEQ60.html
-    url(r'^products/(?P<code>[-\w]+)\.html$', views.product, name='product'),
+    url(r'^products/(?P<code>[-\.\w]+)\.html$', views.product, name='product'),
     # /pages/*
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*

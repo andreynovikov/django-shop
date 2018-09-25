@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% load staticfiles %}
 {% load decimals %}
+{% load render_as_template %}
 {% load shop_filters %}
 {% load mptt_tags %}
+{% load cache %}
 {% load django_bootstrap_breadcrumbs %}
-{% block title %}
-<title>{{ product.title }}</title>
-{% endblock %}
+{% block title %}{{ product.title }}{% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
     {% breadcrumb "К первой странице" "/" %}
@@ -311,11 +311,11 @@
 {% if product.sm_needles %}
 <dt><span>Стандарт игл <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_needles/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_needles }}</dd>
 {% endif %}
-{% if product.enginecounid_name %}
-<dt><span>Страна разработки</span></dt><dd>{{ product.enginecounid_name }}</dd>
+{% if product.developer_country and product.developer_country.enabled %}
+<dt><span>Страна разработки</span></dt><dd>{{ product.developer_country.name }}</dd>
 {% endif %}
-{% if product.counid_name %}
-<dt><span>Страна производства</span></dt><dd>{{ product.counid_name }}</dd>
+{% if product.country and product.country.enabled %}
+<dt><span>Страна производства</span></dt><dd>{{ product.country.name }}</dd>
 {% endif %}
 {% if product.warranty %}
 <dt><span>Гарантия</span></dt><dd>{{ product.warranty }}</dd>

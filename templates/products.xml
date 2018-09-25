@@ -4,9 +4,9 @@
 
 {% load site %}
 <shop>
-<name>Janome.Club</name>
-<company>Фирменный магазин Janome</company>
-<url>http://www.janome.club/</url>
+<name>Швейный Мир</name>
+<company>Швейный Мир</company>
+<url>http://www.sewing-world.ru/</url>
 
 <currencies>
 <currency  id="RUR" rate="1"/>
@@ -20,8 +20,6 @@
 {% endfor %}
 </categories>
 
-<deliveryIncluded/>
-
 <offers>
 {% for product in products %}
 <offer id="{{ product.id }}" type="vendor.model" {% if product.instock > 0 %}available="true"{% else %}available="false"{% endif %}>
@@ -31,18 +29,30 @@
 {% for category in product.categories.all %}
 {% with top_category=category_map|get_dict_item:category.pk %}
 {% if top_category %}
-<categoryId>{{ top_category }}</categoryId>
+    <categoryId>{{ top_category }}</categoryId>
 {% endif %}
 {% endwith %}
 {% endfor %}
-    <picture>http://www.janome.club{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</picture>
+    <picture>http://www.sewing-world.ru/{{ product.image_prefix }}.jpg</picture>
     <vendor>{{ product.manufacturer.name }}</vendor>
     <model>{{ product.title }}</model>
+    {% if product.whatis %}
+    <typePrefix>{{ product.whatis }}</typePrefix>
+    {% endif %}
+    {% if product.gtin %}
+    <barcode>{{ product.gtin }}</barcode>
+    {% endif %}
+    {% if product.partnumber %}
+    <vendorCode>{{ product.partnumber }}</vendorCode>
+    {% endif %}
     <description>{{ product.whatis|safe }} {{ product.yandexdescr|safe }} {{ product.descr|striptags }}</description>
     {% if product.sales_notes %}
     <sales_notes>{{ product.sales_notes }}</sales_notes>
     {% else %}
     <sales_notes>Оплата при получении или картой на сайте</sales_notes>
+    {% endif %}
+    {% if product.manufacturer_warranty %}
+ 	<manufacturer_warranty>true</manufacturer_warranty>
     {% endif %}
 </offer>
 {% endfor %}

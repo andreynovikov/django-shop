@@ -31,10 +31,12 @@
   </h3>
   {% get_categories %}
 </aside>
+{% comment "disabled" %}
 <aside id="widget-calendar" class="widget">
   <h3>{% trans "Calendar" %}</h3>
   {% get_calendar_entries %}
 </aside>
+{% endcomment %}
 <aside id="widget-tags" class="widget">
   <h3>
     <a href="{% url 'zinnia:tag_list' %}">{% trans "Tags" %}</a>

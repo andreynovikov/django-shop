@@ -2,7 +2,10 @@ from __future__ import absolute_import
 
 import sys
 import csv
+import datetime
+import logging
 from collections import defaultdict
+from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.mail import send_mail
@@ -13,7 +16,18 @@ from celery import shared_task
 
 from sewingworld import sms_uslugi
 
-from shop.models import Supplier, Currency, Product, Stock, Order
+from shop.models import Supplier, Currency, Product, Stock, Basket, Order
+
+
+log = logging.getLogger('shop')
+
+@shared_task
+def send_message(phone, message):
+    #smsru_key = getattr(settings, 'SMSRU_KEY', None)
+    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
+    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
+    client = sms_uslugi.Client(sms_login, sms_password)
+    client.send(phone, message)
 
 
 @shared_task
@@ -175,11 +189,11 @@ def import1c(file):
     if frozen_orders.exists():
         for order in frozen_orders:
             for item in order.items.all():
-                quantity = item.product.num_correction
+                quantity = 0
                 stock = Stock.objects.filter(product=item.product)
                 if stock.exists():
                     for s in stock:
-                        quantity = quantity + s.quantity
+                        quantity = quantity + s.quantity + s.correction
                 if quantity <= 0:
                     frozen_products[item.product].append(order)
 
@@ -215,7 +229,7 @@ def import1c(file):
                     try:
                         ws_cur_price = float(line['ws_cur_price'].replace('\xA0',''))
                         if ws_cur_price > 0:
-                            product.ws_cur_price = int(round(ws_cur_price))
+                            product.ws_cur_price = Decimal(ws_cur_price).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
                         product.ws_cur_code = currencies.get(pk=line['ws_cur_code'])
                     except ValueError:
                         errors.append("%s: оптовая цена" % line['article'])
@@ -226,19 +240,26 @@ def import1c(file):
                             product.cur_price = int(round(price))
                     except ValueError:
                         errors.append("%s: розничная цена" % line['article'])
-                product.stock.clear()
-                product.num = -1
+                #product.stock.clear()
                 product.save()
                 for idx, quantity in enumerate(line['suppliers']):
                     try:
                         quantity = float(quantity.replace('\xA0','').replace(',','.'))
-                        s = Stock(product=product, supplier=suppliers[idx], quantity=quantity)
-                        s.save()
+                        #s = Stock(product=product, supplier=suppliers[idx], quantity=quantity)
+                        #s.save()
+                        s, created = Stock.objects.update_or_create(
+                            product=product, supplier=suppliers[idx],
+                            defaults={'quantity': quantity})
+                        if s.quantity == 0.0 and s.correction == 0.0:
+                            s.delete()
                     except ValueError:
                         errors.append("%s: состояние складa" % line['article'])
                     except IndexError:
                         errors.append("%s: неправильное количество складов" % line['article'])
                 #products[product.id].imported = True
+                product.num = -1
+                product.spb_num = -1
+                product.save()
                 if product in frozen_products.keys() and product.instock > 0:
                     orders.update(frozen_products[product])
                 updated = updated + 1
@@ -248,12 +269,6 @@ def import1c(file):
             except ObjectDoesNotExist:
                 #errors.append("%s: товар отсутсвует" % line['article'])
                 next
-
-        #for pk, product in products.items():
-        #    if not hasattr(product, 'imported'):
-                #product.number_inet = -1000
-                #product.save()
-                #reset = reset + 1
 
     shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
@@ -265,3 +280,13 @@ def import1c(file):
         shop_settings['email_from'],
         shop_settings['email_managers'],
     )
+
+
+@shared_task
+def remove_outdated_baskets():
+    threshold = datetime.datetime.now() - datetime.timedelta(days=90)
+    baskets = Basket.objects.filter(created__lt=threshold)
+    num = len(baskets)
+    for basket in baskets.all():
+        basket.delete()
+    log.info('Deleted %d baskets' % num)

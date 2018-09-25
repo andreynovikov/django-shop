@@ -13,15 +13,15 @@ class Command(BaseCommand):
         num = 0
         with open(file, 'rU') as f:
             for line in f:
-                article, gtin_str = line.split('\t')
-                gtin = int(gtin_str)
-                self.stdout.write(str(gtin))
+                article, gtin = line.split('\t')
+                gtin_num = int(gtin)
+                self.stdout.write(gtin)
                 try:
                     product = Product.objects.get(article=article)
                 except Product.DoesNotExist:
                     continue
                 self.stdout.write(str(product))
-                if product.gtin < gtin:
+                if not product.gtin or int(product.gtin) < gtin_num:
                     product.gtin = gtin
                 product.save()
                 num = num + 1
