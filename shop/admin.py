@@ -1,5 +1,7 @@
 import datetime
 
+from decimal import Decimal, ROUND_UP
+
 from django import forms
 from django.core.urlresolvers import reverse
 from django.db import connection
@@ -19,6 +21,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.utils.formats import date_format
 from django.utils.html import format_html
+from django.utils.http import urlquote
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 import autocomplete_light
@@ -38,7 +41,7 @@ from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contracto
     Product, ProductRelation, ProductSet, SalesAction, Stock, Basket, BasketItem, Manager, \
     Courier, Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
-    OrderDiscountForm, SendSmsForm, SelectTagForm, ProductAdminForm
+    OrderDiscountForm, SendSmsForm, SelectTagForm, SelectSupplierForm, ProductAdminForm
 from shop.widgets import TagAutoComplete
 from shop.decorators import admin_changelist_link
 from shop.tasks import send_message
@@ -398,7 +401,7 @@ class ProductAdmin(ImportExportModelAdmin):
         }),
         ('Маркетинг', {
                 'classes': ('suit-tab', 'suit-tab-money'),
-                'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','sales_notes',
+                'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','credit_allowed','sales_notes',
                            'internetonly','present','delivery','firstpage','sales_actions','tags')
         }),
         ('С.Петербург', {
@@ -953,9 +956,29 @@ class OrderAdmin(admin.ModelAdmin):
     link_to_orders.allow_tags = True
     link_to_orders.short_description = 'заказы'
 
+    def credit_notice(self, obj):
+        credit_allowed = False
+        for item in obj.items.all():
+            credit_allowed = credit_allowed or item.product.credit_allowed
+        if credit_allowed:
+            return '''
+                   <div id="yandex-credit"></div>
+                   <script src="https://static.yandex.net/kassa/pay-in-parts/ui/v1"></script>
+                   <script>
+                   $(document).ready(function() {
+                     const $checkoutCreditUI = YandexCheckoutCreditUI({ shopId: '42873', sum: '%d' });
+                     const checkoutCreditText = $checkoutCreditUI({ type: 'info', domSelector: '#yandex-credit' });
+                   });
+                   </script>
+                   ''' % obj.total
+        else:
+            return 'нет'
+    credit_notice.allow_tags = True
+    credit_notice.short_description = 'кредит'
+
     list_display = ['order_name', 'name_and_skyped_phone', 'city', 'total', 'payment', 'calm_paid', 'combined_delivery',
                     'colored_status', 'combined_comments']
-    readonly_fields = ['id', 'shop_name', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
+    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
     list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'site', 'manager', 'courier', OrderDeliveryListFilter,
                    ('delivery_dispatch_date', FutureDateFieldListFilter), ('delivery_handing_date', FutureDateFieldListFilter)]
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment',
@@ -969,13 +992,13 @@ class OrderAdmin(admin.ModelAdmin):
         DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
         TimeField: {'widget': TimeWidget()},
     }
-    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_set_user_tag_action']
+    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_stock_action', 'order_set_user_tag_action']
     save_as = True
     list_per_page = 50
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = (
-            (None, {'fields': (('status', 'payment', 'paid', 'manager', 'site'), ('delivery', 'delivery_price', 'courier'),
+            (None, {'fields': (('status', 'payment', 'paid', 'manager', 'site', 'credit_notice'), ('delivery', 'delivery_price', 'courier'),
                                'delivery_dispatch_date', ('delivery_tracking_number', 'delivery_yd_order'), 'delivery_info',
                                ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'store',
                                'products_price', 'total', 'id')}),
@@ -1281,6 +1304,81 @@ class OrderAdmin(admin.ModelAdmin):
             return response
     order_pickpoint_action.short_description = "Выгрузка в ПикПоинт"
 
+    def order_stock_action(self, request, queryset):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        if 'show_stock' in request.POST:
+            supplier_ur = Supplier.objects.get(code='Ур')
+            supplier = Supplier.objects.get(pk=request.POST.get('supplier'))
+            selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
+            cursor = connection.cursor()
+            inner_cursor = connection.cursor()
+            cursor.execute("""SELECT shop_product.id AS product_id, shop_product.article,
+                              SUM(shop_orderitem.quantity) AS quantity
+                              FROM shop_product
+                              INNER JOIN shop_orderitem ON (shop_product.id = shop_orderitem.product_id)
+                              INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id)
+                              WHERE shop_order.id IN (""" + ','.join(selected) + """)
+                              GROUP BY shop_product.id ORDER BY shop_product.article""")
+            products = []
+            for row in cursor.fetchall():
+                columns = (x[0] for x in cursor.description)
+                product = dict(zip(columns, row))
+                stock = ''
+                inner_cursor.execute("""SELECT supplier_id, quantity, correction FROM shop_stock
+                                        LEFT JOIN shop_supplier ON (shop_supplier.id = supplier_id)
+                                        WHERE product_id = %s AND supplier_id IN (%s, %s)
+                                        ORDER BY shop_supplier.order""", (product['product_id'], supplier_ur.id, supplier.id))
+                quantity = float(product['quantity'])
+                stock = 0
+                if inner_cursor.rowcount:
+                    for row in inner_cursor.fetchall():
+                        if row[0] == supplier_ur.id:
+                            quantity = quantity - row[1] - row[2]
+                        if row[0] == supplier.id:
+                            stock = row[1] + row[2]
+                if quantity > 0 and stock > 0:
+                    product['stock'] = Decimal(quantity).quantize(Decimal('1'), rounding=ROUND_UP)
+                    products.append(product)
+            cursor.close()
+            inner_cursor.close()
+            if not products:
+                self.message_user(request, "Нет товаров для отгрузки у этого поставщика", level=messages.WARNING)
+                return
+            else:
+                import io
+                import xlsxwriter
+
+                output = io.BytesIO()
+                workbook = xlsxwriter.Workbook(output)
+                sheet = workbook.add_worksheet(supplier.name)
+                for idx, product in enumerate(products):
+                    sheet.write(idx, 0, product['article'])
+                    sheet.write(idx, 1, product['stock'])
+                workbook.close()
+
+                response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                response['Content-Disposition'] = 'attachment; filename={0}-{2}.xlsx; filename*=UTF-8\'\'{1}-{2}.xlsx'.format(
+                    'stock',
+                    urlquote(supplier.code),
+                    datetime.date.today().isoformat())
+                return response
+
+        form = SelectSupplierForm(initial = {'supplier': Supplier.objects.get(code='С3').pk})
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['form'] = form
+        context['queryset'] = queryset
+        context['is_popup'] = 0
+        context['title'] = "Выберите поставщика"
+        context['action'] = 'order_stock_action'
+        context['action_name'] = 'show_stock'
+        context['action_title'] = "Сформировать выгрузку"
+
+        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+
+    order_stock_action.short_description = "Выгрузка поставщику"
+
     def order_set_user_tag_action(self, request, queryset):
         if not request.user.is_staff:
             raise PermissionDenied
@@ -1316,9 +1414,6 @@ class OrderAdmin(admin.ModelAdmin):
         context['action_title'] = "Добавить"
 
         return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
-
-
-        return render(request, 'admin/order_intermediate.html', context={'orders':queryset})
     order_set_user_tag_action.short_description = "Добавить тег покупателю"
 
     def get_actions(self, request):
