@@ -11,13 +11,12 @@
     {{ block.super }}
     {% breadcrumb "К первой странице" "/" %}
     {% breadcrumb "Каталог" "catalog" %}
-    {% if product.categories.all.first %}
-    {% for node,structure in product.categories.all.first.get_ancestors|tree_info %}
+    {% if product.breadcrumbs %}
+    {% for node,structure in product.breadcrumbs|tree_info %}
         {% if node.is_child_node %}
             {% breadcrumb node "category" node.get_path %}
         {% endif %}
     {% endfor %}
-    {% breadcrumb product.categories.all.first "category" product.categories.all.first.get_path %}
     {% endif %}
 {% endblock %}
 {% block content %}
@@ -211,7 +210,7 @@
 <dt><span>Максимальная ширина строчки <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchlength/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchwidth }} мм</dd>
 {% endif %}
 {% if product.sm_stitchlenght %}
-<dt><span>Максимальная длина стежка <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchlenght/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchlenght }} мм</dd>
+<dt><span>Максимальная длина стежка <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchlength/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchlenght }} мм</dd>
 {% endif %}
 {% if product.sm_maxi %}
 <dt><span>Макси-узоры <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_maxi/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_maxi }}</dd>
@@ -220,7 +219,7 @@
 <dt><span>Количество строчек <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchquantity/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchquantity }}</dd>
 {% endif %}
 {% if product.sm_buttonhole %}
-<dt><span>Режим вымётывания петли <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='/help/sm_buttonhole/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_buttonhole }}</dd>
+<dt><span>Режим вымётывания петли <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_buttonhole/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_buttonhole }}</dd>
 {% endif %}
 {% if product.sm_alphabet %}
 <dt><span>Алфавит <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_alphabet/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_alphabet }}</dd>
