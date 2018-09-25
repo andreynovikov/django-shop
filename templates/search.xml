@@ -36,8 +36,6 @@
 <categoryId>{{ top_category }}</categoryId>
 {% endif %}
 {% endwith %}
-{% endif %}
-{% endwith %}
 {% endfor %}
 <picture>{% site_url_prefix %}{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</picture>
 <typePrefix>{{ product.whatis }}</typePrefix>
