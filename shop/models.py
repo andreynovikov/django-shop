@@ -6,7 +6,7 @@ from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
 from django.conf import settings
 from django.contrib.sessions.models import Session
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.contrib.sites.models import Site
 from django.db import connection, models
 from django.db.models.signals import pre_save, post_save
@@ -43,7 +43,7 @@ class ShopUserManager(BaseUserManager):
 
     def create_superuser(self, phone, password):
         user = self.create_user(phone, password=password,)
-        user.is_admin = True
+        user.is_superuser = True
         user.save(using=self._db)
         return user
 
@@ -62,16 +62,15 @@ class ShopUserManager(BaseUserManager):
         return "{0} ({1}) {2}-{3}-{4}".format(*m.groups())
 
 
-class ShopUser(AbstractBaseUser):
-    phone = models.CharField(max_length=30, unique=True)
-    name = models.CharField(max_length=100, blank=True)
-    email = models.EmailField(blank=True)
+class ShopUser(AbstractBaseUser, PermissionsMixin):
+    phone = models.CharField('телефон', max_length=30, unique=True)
+    name = models.CharField('имя', max_length=100, blank=True)
+    email = models.EmailField('эл.почта', blank=True)
     postcode = models.CharField('индекс', max_length=10, blank=True)
-    city = models.CharField(max_length=255, blank=True)
-    address = models.CharField(max_length=255, blank=True)
+    city = models.CharField('город', max_length=255, blank=True)
+    address = models.CharField('адрес', max_length=255, blank=True)
     discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     is_active = models.BooleanField('активный', default=True)
-    is_admin = models.BooleanField('админ', default=False)
     is_staff = models.BooleanField('сотрудник', default=False)
     is_wholesale = models.BooleanField('оптовик', default=False)
     tags = TagField('теги')
@@ -103,26 +102,6 @@ class ShopUser(AbstractBaseUser):
             return "%s (%s)" % (self.name, self.phone)
         else:
             return self.phone
-
-    def has_perm(self, perm, obj=None):
-        #if self.is_active and self.is_superuser:
-        #    return True
-        if perm == 'wholesale':
-            return self.is_wholesale
-        return True
-
-    def has_perms(self, perm_list, obj=None):
-        return all(self.has_perm(perm, obj) for perm in perm_list)
-
-    @staticmethod
-    def has_module_perms(app_label):
-        # Does the user have permissions to view the app `app_label`?
-        # Simplest possible answer: Yes, always
-        return True
-
-    @property
-    def is_superuser(self):
-        return self.is_admin
 
 
 class Category(MPTTModel):
@@ -1223,6 +1202,9 @@ class Order(models.Model):
     class Meta:
         verbose_name = 'заказ'
         verbose_name_plural = 'заказы'
+        permissions = (
+            ('change_order_spb', "Может редактировать заказы СПб"),
+        )
 
 
 class OrderItem(models.Model):
