@@ -44,6 +44,7 @@ class ShopUserManager(BaseUserManager):
     def create_superuser(self, phone, password):
         user = self.create_user(phone, password=password,)
         user.is_superuser = True
+        user.is_staff = True
         user.save(using=self._db)
         return user
 
@@ -72,7 +73,6 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
     discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     is_active = models.BooleanField('активный', default=True)
     is_staff = models.BooleanField('сотрудник', default=False)
-    is_wholesale = models.BooleanField('оптовик', default=False)
     tags = TagField('теги')
 
     objects = ShopUserManager()
@@ -83,6 +83,9 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
     class Meta:
         verbose_name = 'пользователь'
         verbose_name_plural = 'пользователи'
+        permissions = (
+            ('wholesale', "Может покупать оптом"),
+        )
 
     @staticmethod
     def autocomplete_search_fields():
