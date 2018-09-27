@@ -1157,7 +1157,7 @@ class ShopUserResource(resources.ModelResource):
     class Meta:
         model = ShopUser
         import_id_fields = ['phone']
-        exclude = ('id', 'password', 'is_active', 'is_wholesale', 'is_staff', 'is_superuser', 'tags')
+        exclude = ('id', 'password', 'groups', 'is_active', 'is_staff', 'is_superuser', 'tags')
 
 
 class ShopUserAdmin(ExportMixin, UserAdmin):
@@ -1168,8 +1168,8 @@ class ShopUserAdmin(ExportMixin, UserAdmin):
     # The fields to be used in displaying the User model.
     # These override the definitions on the base UserAdmin
     # that reference specific fields on auth.User.
-    list_display = ('phone', 'name', 'email', 'discount', 'tags', 'is_wholesale', 'is_staff', 'is_superuser')
-    list_filter = ('discount', TagListFilter, 'groups', 'is_wholesale', 'is_staff', 'is_superuser')
+    list_display = ('phone', 'name', 'email', 'discount', 'tags', 'is_staff', 'is_superuser')
+    list_filter = ('discount', TagListFilter, 'groups', 'is_staff', 'is_superuser')
     # add_fieldsets is not a standard ModelAdmin attribute. UserAdmin
     # overrides get_fieldsets to use this attribute when creating a user.
     add_fieldsets = (
@@ -1196,7 +1196,7 @@ class ShopUserAdmin(ExportMixin, UserAdmin):
         #if obj is None or obj.is_firm:
         #    fieldsets[2][1]['fields'].extend(('firm_address', 'firm_details'))
         if request.user.is_superuser:
-            fieldsets.append(('Permissions', {'fields': ('is_active', 'is_wholesale', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}))
+            fieldsets.append(('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}))
         return fieldsets
 
 
