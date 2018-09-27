@@ -722,7 +722,8 @@ class Product(models.Model):
         return ['title__icontains', 'code__icontains', 'article__icontains', 'partnumber__icontains']
 
     def __str__(self):
-        return " ".join([self.code, self.article, self.title])
+        #return " ".join([self.partnumber, self.title])
+        return self.title
 
 
 class ProductRelation(models.Model):

@@ -596,12 +596,17 @@ class OrderItemInline(admin.TabularInline):
     def product_article(self, obj):
         return obj.product.article
     product_article.admin_order_field = 'product__article'
-    product_article.short_description = 'артикул'
+    product_article.short_description = 'код 1С'
 
     def product_code(self, obj):
         return obj.product.code
     product_code.admin_order_field = 'product__code'
-    product_code.short_description = 'код'
+    product_code.short_description = 'идентификатор'
+
+    def product_partnumber(self, obj):
+        return obj.product.partnumber
+    product_partnumber.admin_order_field = 'product__partnumber'
+    product_partnumber.short_description = 'partnumber'
 
     def product_link(self, obj):
         return format_html(
@@ -665,12 +670,12 @@ class OrderItemInline(admin.TabularInline):
 
     model = OrderItem
     extra = 0
-    fields = ['product', 'product_article', 'product_code', 'product_link', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'item_sum', 'product_stock']
+    fields = ['product', 'product_article', 'product_partnumber', 'product_link', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'item_sum', 'product_stock']
     raw_id_fields = ['product']
     #autocomplete_lookup_fields = {
     #    'fk': ['product'],
     #}
-    readonly_fields = ['product_link', 'product_article', 'product_code', 'product_stock', 'item_cost', 'item_sum']
+    readonly_fields = ['product_link', 'product_article', 'product_code', 'product_partnumber', 'product_stock', 'item_cost', 'item_sum']
     formfield_overrides = {
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
@@ -1021,7 +1026,7 @@ class OrderAdmin(admin.ModelAdmin):
         return qs
 
     def get_readonly_fields(self, request, obj=None):
-        if not request.user.is_superuser:
+        if obj and not request.user.is_superuser:
             return self.readonly_fields + ['site']
         return self.readonly_fields
 
