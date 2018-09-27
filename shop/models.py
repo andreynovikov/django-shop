@@ -783,7 +783,7 @@ class Basket(models.Model):
             pd = max(product.ws_pct_discount, self.user_discount)
             if pd > product.ws_max_discount:
                 pd = product.ws_max_discount
-            pdp = round(product.ws_price * (pd / 100))
+            pdp = round(product.ws_price * Decimal(pd / 100))
             if pdp < product.sp_price:
                 d = product.ws_price - product.sp_price
                 pd = int(d / product.ws_price * 100)
