@@ -550,6 +550,15 @@ class ProductAdmin(ImportExportModelAdmin):
         obj.spb_num = -1
         super().save_model(request, obj, form, change)
 
+    def save_related(self, request, form, formsets, change):
+        # this is a hack to avoid stock saving for duplicated products (gives error if stock correction is not zero)
+        if '_saveasnew' in request.POST:
+            to_remove = [i for i, formset in enumerate(formsets) if isinstance(formset.empty_form.instance, Stock)]
+            for index in reversed(to_remove):
+                # start at the end to avoid recomputing offsets
+                del formsets[index]
+        super().save_related(request, form, formsets, change)
+
 
 class BasketItemInline(admin.TabularInline):
     model = BasketItem
