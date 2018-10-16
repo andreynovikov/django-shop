@@ -82,7 +82,8 @@ class ProductAdminForm(autocomplete_light.ModelForm):
     def clean(self):
         code = self.cleaned_data.get('code')
         reg = re.compile('^[-\.\w]+$')
-        if reg.match(code):
+        # test for code presence is required for mass edit 
+        if not code or reg.match(code):
             return super().clean()
         else:
             self.add_error('code', forms.ValidationError("Код товара содержит недопустимые символы"))
