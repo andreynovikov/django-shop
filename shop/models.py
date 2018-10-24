@@ -426,6 +426,9 @@ class Product(models.Model):
         verbose_name = 'товар'
         verbose_name_plural = 'товары'
 
+    def get_absolute_url(self):
+        return reverse('product', args=[str(self.code)])
+
     def save(self, *args, **kwargs):
         if self.pk is None or self.constituents.count() == 0 or not self.recalculate_price:
             if settings.SHOP_PRICE_DB_COLUMN == 'price':
