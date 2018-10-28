@@ -38,7 +38,8 @@ from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contracto
     Product, ProductRelation, ProductSet, SalesAction, Stock, Basket, BasketItem, Manager, \
     Courier, Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
-    OrderDiscountForm, SendSmsForm, ProductAdminForm
+    OrderDiscountForm, SendSmsForm, SelectTagForm, SelectSupplierForm, ProductAdminForm, \
+    OrderItemInlineAdminForm
 from shop.widgets import TagAutoComplete
 from shop.decorators import admin_changelist_link
 
@@ -573,24 +574,15 @@ class OrderItemInline(admin.TabularInline):
         return obj.cost
     item_cost.short_description = 'стоимость'
 
-    def item_sum(self, obj):
-        sum=obj.quantity*obj.cost
-        return sum
-    item_sum.short_description = 'сумма'
-
     model = OrderItem
+    form = OrderItemInlineAdminForm
     extra = 0
-    fields = ['product', 'product_article', 'product_code', 'product_link', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'item_sum', 'product_stock']
+    fields = ['product', 'product_article', 'product_code', 'product_link', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'total', 'product_stock']
     raw_id_fields = ['product']
     #autocomplete_lookup_fields = {
     #    'fk': ['product'],
     #}
-    readonly_fields = ['product_link', 'product_article', 'product_code', 'product_stock', 'item_cost', 'item_sum']
-    formfield_overrides = {
-        PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
-        PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
-        DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
-    }
+    readonly_fields = ['product_link', 'product_article', 'product_code', 'product_stock', 'item_cost']
 
     def has_add_permission(self, request):
         return False
