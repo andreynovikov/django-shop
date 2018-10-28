@@ -6,8 +6,8 @@ from django.conf import settings
 
 import autocomplete_light
 
-from shop.models import Supplier, Product, Stock, Order, ShopUser
-from shop.widgets import PhoneWidget, TagAutoComplete
+from shop.models import Supplier, Product, Stock, Order, OrderItem, ShopUser
+from shop.widgets import PhoneWidget, TagAutoComplete, DisablePluralText, OrderItemTotalText
 from shop.tasks import import1c
 
 
@@ -82,11 +82,27 @@ class ProductAdminForm(autocomplete_light.ModelForm):
     def clean(self):
         code = self.cleaned_data.get('code')
         reg = re.compile('^[-\.\w]+$')
-        # test for code presence is required for mass edit 
+        # test for code presence is required for mass edit
         if not code or reg.match(code):
             return super().clean()
         else:
             self.add_error('code', forms.ValidationError("Код товара содержит недопустимые символы"))
+
+
+class OrderItemInlineAdminForm(forms.ModelForm):
+    class Meta:
+        model = OrderItem
+        exclude = ['fake']
+        widgets = {
+            'pct_discount': forms.TextInput(attrs={'style': 'width: 3em'}),
+            }
+
+    def __init__(self, *args, **kwargs):
+        super(OrderItemInlineAdminForm, self).__init__(*args, **kwargs)
+        self.fields['product_price'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 6em'})
+        self.fields['val_discount'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 4em'})
+        self.fields['quantity'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 3em'})
+        self.fields['total'].widget = OrderItemTotalText(self.instance, attrs={'style': 'width: 6em'})
 
 
 class OrderAdminForm(autocomplete_light.ModelForm):

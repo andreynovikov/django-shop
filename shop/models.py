@@ -2,7 +2,7 @@ import re
 import datetime
 import logging
 
-from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
+from decimal import Decimal, ROUND_UP, ROUND_DOWN, ROUND_HALF_EVEN
 
 from django.conf import settings
 from django.contrib.sessions.models import Session
@@ -637,9 +637,9 @@ class Product(models.Model):
                 item_price = (item_price * discount).quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)
                 item_ws_price = (item_ws_price * discount).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
                 item_sp_price = (item_sp_price * discount).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
-            price = price + item_price
-            ws_price = ws_price + item_ws_price
-            sp_price = sp_price + item_sp_price
+            price = price + item_price * item.quantity
+            ws_price = ws_price + item_ws_price * item.quantity
+            sp_price = sp_price + item_sp_price * item.quantity
 
         self.price = price
         self.spb_price = price
@@ -752,6 +752,7 @@ class ProductRelation(models.Model):
 class ProductSet(models.Model):
     declaration = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='set_constituents', verbose_name='определение')
     constituent = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='set_declarations', verbose_name='составляющая')
+    quantity = models.PositiveSmallIntegerField('кол-во', default=1)
     discount = models.PositiveSmallIntegerField('скидка, %', default=0)
 
     class Meta:
@@ -1158,27 +1159,40 @@ class Order(models.Model):
                 constituents = ProductSet.objects.filter(declaration=item.product)
                 last = len(constituents) - 1
                 for idx, itm in enumerate(constituents):
+                    item_price = 0
+                    item_total = 0
                     proportion = Decimal(itm.constituent.price / item.product.price)
                     # если комплект динамически пересчитывает цену, то указываем цену элемента
                     if item.product.recalculate_price:
                         item_price = (itm.constituent.price * Decimal((100 - itm.discount) / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
+                        if itm.quantity > 1:
+                            item_total = item_price * itm.quantity
                     # иначе разбиваем цену комплекта на части пропорционально ценам элементов
                     elif idx < last:
                         item_price = (itm.constituent.price * proportion).quantize(qnt, rounding=ROUND_HALF_EVEN)
-                        price_remainder = price_remainder - item_price
+                        price_remainder = price_remainder - item_price * itm.quantity
+                        if itm.quantity > 1:
+                            item_total = item_price * itm.quantity
                     else:
-                        item_price = price_remainder
+                        item_price = price_remainder / itm.quantity
+                        if itm.quantity > 1:
+                            item_total = price_remainder
                     # рублёвую скидку в любом случае разбиваем на части пропорционально ценам элементов
                     if idx < last:
-                        val_discount = (full_discount * proportion).quantize(qnt, rounding=ROUND_HALF_EVEN)
-                        discount_remainder = discount_remainder - val_discount
+                        if itm.quantity > 1:
+                            val_discount = (full_discount * proportion * itm.quantity).quantize(qnt, rounding=ROUND_DOWN)
+                            discount_remainder = discount_remainder - val_discount
+                        else:
+                            val_discount = (full_discount * proportion).quantize(qnt, rounding=ROUND_HALF_EVEN)
+                            discount_remainder = discount_remainder - val_discount
                     else:
                         val_discount = discount_remainder
                     i = order.items.create(product=itm.constituent,
                                            product_price=item_price,
                                            pct_discount=pct_discount,
                                            val_discount=val_discount,
-                                           quantity=item.quantity)
+                                           quantity=item.quantity * itm.quantity,
+                                           total=item_total)
                     # в данный момент, если цена позиции равна нулю, то она принудительно устанавливается в цену товара
                     # todo: можно перенести эту логику в admin, и тогда можно будет избавиться от двойного сохранения
                     if not item_price:
@@ -1210,11 +1224,25 @@ class OrderItem(models.Model):
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
     quantity = models.PositiveSmallIntegerField('количество', default=1)
+    total = models.DecimalField('сумма', max_digits=10, decimal_places=2, default=0)
     serial_number = models.CharField('SN', max_length=30, blank=True)
 
     @property
     def price(self):
-        return (self.product_price - self.discount) * self.quantity
+        if self.total > 0:
+            price = self.total
+            pd = Decimal(0)
+            if self.pct_discount > 0:
+                if WHOLESALE:
+                    qnt = Decimal('0.01')
+                else:
+                    qnt = Decimal('1')
+                pd = (price * Decimal(self.pct_discount / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
+            if self.val_discount > pd:
+                pd = self.val_discount
+            return price - pd
+        else:
+            return (self.product_price - self.discount) * self.quantity
 
     @property
     def cost(self):
