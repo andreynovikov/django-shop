@@ -4,7 +4,7 @@ from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
 
-from shop.models import Category, Product, ProductRelation, Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
+from shop.models import Category, Product, ProductRelation, ProductSet, Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
 from shop.filters import get_product_filter
 
 
@@ -223,9 +223,15 @@ def product(request, code):
     if category is None:
         category = product.breadcrumbs.last()
 
+    if not product.hide_contents:
+        constituents = ProductSet.objects.filter(declaration=product)
+    else:
+        constituents = None
+
     context = {
         'category': category,
         'product': product,
+        'constituents': constituents,
         'accessories': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_ACCESSORY),
         'similar': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR),
         'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT),
