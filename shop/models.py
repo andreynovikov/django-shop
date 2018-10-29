@@ -338,6 +338,7 @@ class Product(models.Model):
     related = models.ManyToManyField('self', through='ProductRelation', symmetrical=False, blank=True)
     constituents = models.ManyToManyField('self', through='ProductSet', related_name='+', symmetrical=False, blank=True)
     recalculate_price = models.BooleanField('пересчитывать цену', default=True)
+    hide_contents = models.BooleanField('скрыть содержимое', default=False)
 
     fabric_verylite=models.CharField('Очень легкие ткани', max_length=50, blank=True)
     fabric_lite=models.CharField('Легкие ткани', max_length=50, blank=True)

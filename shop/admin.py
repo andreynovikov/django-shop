@@ -445,6 +445,7 @@ class ProductAdmin(ImportExportModelAdmin):
                 'classes': ('suit-tab', 'suit-tab-set'),
                 'fields': (
                     'recalculate_price',
+                    'hide_contents',
                 )
         }),
     )
