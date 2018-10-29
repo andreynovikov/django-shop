@@ -194,7 +194,7 @@ def category(request, path, instance):
 
 def product(request, code):
     product = get_object_or_404(Product, code=code)
-    if not product.breadcrumbs:
+    if product.categories.exists() and not product.breadcrumbs:
         raise Http404("Product does not exist")
     product.images = []
     if default_storage.exists(product.image_prefix):
@@ -220,8 +220,12 @@ def product(request, code):
         pass
     except ValueError:
         pass
-    if category is None:
+    if category is None and product.breadcrumbs:
         category = product.breadcrumbs.last()
+
+    # temporary
+    if not product.categories.exists():
+        product.enabled = False
 
     context = {
         'category': category,
