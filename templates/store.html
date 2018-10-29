@@ -16,6 +16,9 @@
 <p>Продажа швейных машин, оверлоков, вязальных машин и аксессуаров для рукоделия в г. {{ store.city.name }}.</p>
 <ul>
 <li>{{ store.address }} {{ store.address2 }}</li>
+{% if store.hours %}
+<li>{{ store.hours}}</li>
+{% endif %}
 <li>{{ store.phone }}</li>
 {% if store.phone2 %}
 <li>{{ store.phone2 }}</li>
@@ -47,7 +50,7 @@ $(document).ready(function() {
       .add(new ymaps.control.MiniMap({type: 'yandex#publicMap'}));
     myMap.geoObjects.add(new ymaps.Placemark(coords, {
         balloonContentHeader: '{% if store.logo and 'i/shoplogos/marks/'|add:store.logo|add:'.png'|static_file_exists %}<img src="{% static 'i/shoplogos/marks/'|add:store.logo|add:'.png' %}"/>{% else %}<img src="{% static 'i/shoplogos/marks/other.png' %}" />{% endif %}{{ store.name|escapejs }}',
-        balloonContent: '{{ store.address|escapejs }}{% if store.address2 %}<br/>{{ store.address2|escapejs }}{% endif %}<br/>{{ store.phone|escapejs }}{% if store.phone2 %}<br/>{{ store.phone2|escapejs }}{% endif %}{% if store.url %}<br/><a href="{{ store.url }}">{{ store.url }}</a>{% endif %}',
+        balloonContent: '{{ store.address|escapejs }}{% if store.address2 %}<br/>{{ store.address2|escapejs }}{% endif %}<br/>{% if store.hours %}{{ store.hours|escapejs }}<br/>{% endif %}{{ store.phone|escapejs }}{% if store.phone2 %}<br/>{{ store.phone2|escapejs }}{% endif %}{% if store.url %}<br/><a href="{{ store.url }}">{{ store.url }}</a>{% endif %}',
         balloonContentFooter: '{% if store.logo != 'sewingworld' %}<small>*магазин-партнер.<br>Рекламные акции Швейного Мира<br>могут не действовать в этом магазине</small>{% endif %}'
       },
       {

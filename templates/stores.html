@@ -74,6 +74,9 @@
 <span class="shop-city" itemprop="addressLocality">{{ store.city.name }}</span>
 <span class="shop-country" itemprop="addressCountry">{{ store.city.country.name }}</span>
 </div>
+{% if store.hours %}
+<span class="shop-hours">{{ store.hours}}</span><br>
+{% endif %}
 <span class="shop-phone" itemprop="telephone">{{ store.phone }}</span> <span class="shop-phone2">{{ store.phone2 }}</span><br>
 {% if store.url %}
 <span class="shop-homepage"><a href="{{ store.url }}">{{ store.url }}</a></span><br>
@@ -131,7 +134,7 @@ $(document).ready(function() {
   {% if store.latitude and store.longitude %}
     myMap.geoObjects.add(new ymaps.Placemark([{{ store.latitude|unlocalize }}, {{ store.longitude|unlocalize }}], {
         balloonContentHeader: '{% if store.logo and 'i/shoplogos/marks/'|add:store.logo|add:'.png'|static_file_exists %}<img src="{% static 'i/shoplogos/marks/'|add:store.logo|add:'.png' %}"/>{% else %}<img src="{% static 'i/shoplogos/marks/other.png' %}" />{% endif %}<a href="{% url 'store' store.id %}">{{ store.name|escapejs }}</a>',
-        balloonContent: '{{ store.address|escapejs }}{% if store.address2 %}<br/>{{ store.address2|escapejs }}{% endif %}<br/>{{ store.phone|escapejs }}{% if store.phone2 %}<br/>{{ store.phone2|escapejs }}{% endif %}{% if store.url %}<br/><a href="{{ store.url }}">{{ store.url }}</a>{% endif %}',
+        balloonContent: '{{ store.address|escapejs }}{% if store.address2 %}<br/>{{ store.address2|escapejs }}{% endif %}<br/>{% if store.hours %}{{ store.hours|escapejs }}<br/>{% endif %}{{ store.phone|escapejs }}{% if store.phone2 %}<br/>{{ store.phone2|escapejs }}{% endif %}{% if store.url %}<br/><a href="{{ store.url }}">{{ store.url }}</a>{% endif %}',
         balloonContentFooter: '{% if store.logo != 'sewingworld' %}<small>*магазин-партнер.<br>Рекламные акции Швейного Мира<br>могут не действовать в этом магазине</small>{% endif %}'
       },
       {
