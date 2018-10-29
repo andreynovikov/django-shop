@@ -84,10 +84,10 @@ gtm_products = [];
 {% endif %}
 {% endif %}
 </div>
-
-{% if product.enabled %}
+{% endcache %}
 <div class="panel panel-default product-buyblock">
 <div class="panel-body product-buyblock-body">
+{% if product.enabled %}
 <div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
 {% if product.cost > 0 %}
 {% if product.discount > 0 %}
@@ -171,10 +171,12 @@ gtm_products = [];
 <div style="color:#888888;"><small>Код товара: {{ product.article }}</small></div>
 {% endif %}
 </div>
+{% else %}
+<span class="product-nal-false">Товар снят с продажи</span>
+{% endif %}{# enabled #}
 </div>
 </div>
-{% endif %}
-
+{% cache 3600 product_description product.id %}
 {% if product.images %}
 <div class="popup-gallery">
 {% for image in product.images %}
