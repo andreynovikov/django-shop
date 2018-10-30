@@ -3,7 +3,7 @@
     {% csrf_token %}
     {% if user and user.is_authenticated %}
         {# Пользователь залогинился #}
-        <p>Добро пожаловать, {{ user.name }}!</p>
+        <p>Добро пожаловать, {{ user.name|default:"уважаемый покупатель" }}!</p>
         <input type="submit" class="btn btn-success btn-lg" value="Оформить заказ"/>
         <p><a href="{% url 'shop:logout' %}" class="sw-small-jumbotron">Я хочу оформить заказ от другого имени</a></p>
     {% elif shop_user %}
@@ -17,17 +17,16 @@
         {% if wrong_password %}
         <span id="password-help" class="help-block">Вы ввели неправильный пароль</span>
         {% else %}
-        <span id="password-help" class="help-block hide"></span>
+        <span id="password-help" class="help-block">Пароль выслан на указанный телефон по смс</span>
         {% endif %}
-        <p><a href="{% url 'shop:reset_password' %}" id="reset-password" class="ajax sw-small-jumbotron">Я не помню пароль</a></p>
-        <input type="submit" class="btn btn-success btn-lg" value="Продолжить"/>
+        <p><a href="{% url 'shop:reset_password' %}" id="reset-password" class="ajax sw-small-jumbotron hide">Прислать пароль повторно</a></p>
+        <input type="submit" id="order-submit" class="btn btn-success btn-lg" value="Продолжить"/>
     {% else %}
         {# Анонимный пользователь #}
         <p>Для продолжения укажите номер мобильного телефона:</p>
-        <div class="input-group">
+        <div id="phone-block" class="input-group">
             <span class="input-group-addon input-lg sw-phone-input">+7</span>
-            <input type="text" class="form-control input-lg sw-phone-input" name="phone" id="phone-input" value="" size="20"
-               placeholder="(999) 111-22-33"/>
+            <input type="tel" class="form-control input-lg sw-phone-input" name="phone" id="phone-input" value="" size="20" placeholder="(999) 111-22-33"/>
         </div>
         <input type="submit" id="order-submit" class="btn btn-success btn-lg" value="Оформить заказ"/>
     {% endif %}

@@ -261,21 +261,27 @@ def authorize(request):
         basket.phone = norm_phone
         basket.save()
         user, created = ShopUser.objects.get_or_create(phone=norm_phone)
-        if not created:
-            """ Such user exists, request password """
-            data = {
-                'shop_user': user,
-            }
-        else:
-            """ Generate simple password for new user """
+        if not user.is_staff:
+            """ Generate new password for user """
             password = randint(1000, 9999)
-            request.session['password'] = password
             user.set_password(password)
             user.save()
+        if created:
             """ Login new user """
             user = authenticate(username=norm_phone, password=password)
             login(request, user)
             basket.update_session(request.session.session_key)
+            request.session['password'] = password
+        else:
+            """ User exists, request password """
+            if not user.is_staff:
+                try:
+                    send_password.delay(norm_phone, password)
+                except Exception as e:
+                    mail_admins('Task error', 'Failed to send password: %s' % e, message, fail_silently=True)
+            data = {
+                'shop_user': user,
+            }
 
     if request.user.is_authenticated() and not data:
         if request.POST.get('ajax'):
@@ -321,11 +327,39 @@ def login_user(request):
                     return HttpResponseRedirect(next_url)
                 else:
                     return HttpResponseRedirect(settings.LOGIN_REDIRECT_URL)
-        context = {
-            'phone': phone,
-            'next': next_url,
-            'wrong_password': True
-        }
+            try:
+                user = ShopUser.objects.get(phone=norm_phone)
+            except ShopUser.DoesNotExist:
+                user = None
+            context = {
+                'phone': phone,
+                'shop_user': user,
+                'next': next_url,
+                'wrong_password': True
+            }
+        elif norm_phone:
+            try:
+                user = ShopUser.objects.get(phone=norm_phone)
+                if not user.is_staff:
+                    """ Generate new password for user """
+                    password = randint(1000, 9999)
+                    user.set_password(password)
+                    user.save()
+                    try:
+                        send_password.delay(norm_phone, password)
+                    except Exception as e:
+                        mail_admins('Task error', 'Failed to send password: %s' % e, message, fail_silently=True)
+                context = {
+                    'phone': phone,
+                    'shop_user': user,
+                    'next': next_url
+                }
+            except ShopUser.DoesNotExist:
+                context = {
+                    'phone': phone,
+                    'next': next_url,
+                    'error': 'Пользователь с таким телефоном не зарегистрирован'
+                }
     else:
         context = {
             'next': request.GET.get('next')
