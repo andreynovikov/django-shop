@@ -185,27 +185,37 @@ gtm_products = [];
 </div>
 {% endif %}
 
+<!-- constituents -->
 {% if constituents %}
 <h2>Состав комплекта:</h2>
-<table style="margin-bottom: 10pt">
 {% for item in constituents %}
 {% with item.constituent as product %}
-<tr><td>{% if product.image_prefix|add:'.s.jpg'|file_exists %}
+<div class="sw-p-l panel panel-default">
+<div class="panel-body">
+<div class="sw-p-l-image text-center">
+<a href="{% url 'product' product.code %}">
+{% if product.image_prefix|add:'.s.jpg'|file_exists %}
 <img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" />
-{% endif %}</td>
-<td style="padding-left: 6pt">
-<h3 class="sw-p-l-name-h"><a href="{% url 'product' product.code %}">{{ product.title }}</a>{% if item.quantity > 1 %} ({{ item.quantity }} шт.){% endif %}</h3>
+{% endif %}
+</a>
+</div>
+<div class="sw-p-l-name">
+<div class="sw-p-l-action">
+</div>
+<h3 class="sw-p-l-name-h">
+<a href="{% url 'product' product.code %}">{{ product.title }}</a>{% if item.quantity > 1 %} ({{ item.quantity }} шт.){% endif %}</h3>
+<p>
+<a href="{% url 'product' product.code %}">{{ product.whatis }} {{ product.partnumber }}</a></p>
 <div class="sw-p-l-brif">
 {{ product.shortdescr|safe }}
 </div>
-</td></tr>
-<script>
-gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Состав комплекта','position':{{ forloop.counter }}});
-</script>
+</div>
+</div>
+</div>
 {% endwith %}
 {% endfor %}
-</table>
 {% endif %}
+<!-- /constituents -->
 
 {% if product.descr %}
 <p itemprop="description">{{ product.descr|safe }}</p>
