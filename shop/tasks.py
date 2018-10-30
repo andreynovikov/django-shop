@@ -38,7 +38,7 @@ def send_password(phone, password):
     sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
     sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
     client = sms_uslugi.Client(sms_login, sms_password)
-    client.send(phone, "%s" % password)
+    client.send(phone, "Пароль для доступа на сайт: %s" % password)
 
 
 @shared_task
@@ -49,7 +49,7 @@ def notify_user_order_new_sms(order_id, password):
     client = sms_uslugi.Client(sms_login, sms_password)
     password_text = ""
     if password:
-        password_text = " Пароль %s" % password
+        password_text = " Пароль: %s" % password
     client.send(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s %s" \
                     % (order_id, Site.objects.get_current().domain, reverse('shop:user_orders'), password_text))
 
