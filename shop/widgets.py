@@ -2,12 +2,14 @@ import uuid
 
 import json
 
+from django import forms
 from django.core.urlresolvers import reverse
 from django.contrib.admin import widgets
 from django.contrib.staticfiles.storage import staticfiles_storage
-from django.forms import Media
+from django.forms.utils import flatatt
 from django.forms.widgets import TextInput
 from django.utils.safestring import mark_safe
+from django.utils.encoding import force_text
 
 from tagging.models import Tag
 
@@ -119,10 +121,44 @@ class TagAutoComplete(widgets.AdminTextInputWidget):
         def static(path):
             return staticfiles_storage.url('zinnia/admin/select2/%s' % path)
 
-        return Media(
+        return forms.Media(
             css = {'all': (static('css/select2.css'),)},
             js = (
                 'admin/js/jquery.init.js',
                 static('js/select2.js'),
                 )
         )
+
+class DisablePluralText(forms.TextInput):
+    def __init__(self, obj, attrs=None):
+        self.object = obj
+        super().__init__(attrs)
+
+    def render(self, name, value, attrs=None):
+        if value is None:
+            value = ''
+        final_attrs = self.build_attrs(attrs, extra_attrs={'type': self.input_type, 'name': name, **self.attrs})
+        if value != '':
+            final_attrs['value'] = force_text(self._format_value(value))
+        if self.object.total > 0:
+            return mark_safe('<input{0} readonly="readonly" />'.format(flatatt(final_attrs)))
+        else:
+            return mark_safe('<input{0} />'.format(flatatt(final_attrs)))
+
+
+class OrderItemTotalText(forms.TextInput):
+    def __init__(self, obj, attrs=None):
+        self.object = obj
+        super().__init__(attrs)
+
+    def render(self, name, value, attrs=None):
+        if value is None:
+            value = ''
+        final_attrs = self.build_attrs(attrs, extra_attrs={'type': self.input_type, 'name': name, **self.attrs})
+        if value != '':
+            final_attrs['value'] = force_text(self._format_value(value))
+        if self.object.total > 0:
+            return mark_safe('<input{0} />'.format(flatatt(final_attrs)))
+        else:
+            final_attrs['type'] = 'hidden'
+            return mark_safe('<input{0} />{1}'.format(flatatt(final_attrs), self.object.quantity * self.object.cost))

@@ -58,9 +58,10 @@
 {% endif %}
 {% endif %}
 </div>
-
+{% endcache %}
 <div class="panel panel-default product-buyblock">
 <div class="panel-body product-buyblock-body">
+{% if product.enabled %}
 <div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
 {% if product.discount > 0 %}
 <p class="oldprice">{{ product.price|quantize:"1" }}&nbsp;руб. <a href="#dialog_discount" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
@@ -138,15 +139,40 @@
 {% endif %}
 
 </div>
+{% else %}
+<span class="product-nal-false">Товар снят с продажи</span>
+{% endif %}{# enabled #}
 </div>
 </div>
-
+{% cache 3600 product_description product.id %}
 {% if product.images %}
 <div class="popup-gallery">
 {% for image in product.images %}
 <a href="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.jpg"><img src="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.s.jpg" alt="{{ product.title }} - Фото №{{ forloop.counter }}" border="0" /></a>
 {% endfor %}
 </div>
+{% endif %}
+
+{% if constituents %}
+<h2>Состав комплекта:</h2>
+<table style="margin-bottom: 10pt">
+{% for item in constituents %}
+{% with item.constituent as product %}
+<tr><td>{% if product.image_prefix|add:'.s.jpg'|file_exists %}
+<img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" />
+{% endif %}</td>
+<td style="padding-left: 6pt">
+<h3 class="sw-p-l-name-h"><a href="{% url 'product' product.code %}">{{ product.title }}</a>{% if item.quantity > 1 %} ({{ item.quantity }} шт.){% endif %}</h3>
+<div class="sw-p-l-brif">
+{{ product.shortdescr|safe }}
+</div>
+</td></tr>
+<script>
+gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Состав комплекта','position':{{ forloop.counter }}});
+</script>
+{% endwith %}
+{% endfor %}
+</table>
 {% endif %}
 
 {% if product.descr %}

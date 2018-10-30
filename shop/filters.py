@@ -27,7 +27,7 @@ class ShopBooleanWidget(forms.CheckboxInput):
 
 
 def num(s):
-    if s is None:
+    if s is None or s == '':
         return None
     try:
         return int(s)
