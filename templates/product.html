@@ -4,7 +4,6 @@
 {% load render_as_template %}
 {% load shop_filters %}
 {% load mptt_tags %}
-{% load cache %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}{{ product.title }}{% endblock %}
 {% block breadcrumbs %}
@@ -58,7 +57,7 @@
 {% endif %}
 {% endif %}
 </div>
-{% endcache %}
+
 <div class="panel panel-default product-buyblock">
 <div class="panel-body product-buyblock-body">
 {% if product.enabled %}
@@ -144,7 +143,7 @@
 {% endif %}{# enabled #}
 </div>
 </div>
-{% cache 3600 product_description product.id %}
+
 {% if product.images %}
 <div class="popup-gallery">
 {% for image in product.images %}
