@@ -12,6 +12,8 @@ from django.core.mail import send_mail
 from django.contrib.sites.models import Site
 from django.conf import settings
 from django.template.loader import render_to_string
+from django.core.urlresolvers import reverse
+from django.contrib.sites.models import Site
 
 from celery import shared_task
 
@@ -49,7 +51,8 @@ def notify_user_order_new_sms(order_id, password):
     password_text = ""
     if password:
         password_text = " Пароль %s" % password
-    client.send(order.phone, "Состояние заказа №%s можно узнать в личном кабинете.%s" % (order_id, password_text))
+    client.send(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s %s" \
+                    % (order_id, Site.objects.get_current().domain, reverse('shop:user_orders'), password_text))
 
 
 @shared_task
@@ -79,8 +82,8 @@ def notify_user_order_collected(order_id):
     sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
     sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
     client = sms_uslugi.Client(sms_login, sms_password)
-    client.send(order.phone, "Заказ №%s собран и ожидает оплаты. Нажмите ссылку \"Что с моим заказом?\"" \
-                             " на сайте магазина \"Швейный Мир\", чтобы оплатить заказ." % order_id)
+    client.send(order.phone, "Заказ №%s собран и ожидает оплаты. Перейдите по ссылке, чтобы оплатить заказ: https://%s%s" \
+                    % (order_id, Site.objects.get_current().domain, reverse('shop:order', args=[order_id])))
 
     if order.email:
         shop_settings = getattr(settings, 'SHOP_SETTINGS', {})

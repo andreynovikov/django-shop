@@ -41,7 +41,8 @@ from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contracto
     Product, ProductRelation, ProductSet, SalesAction, Stock, Basket, BasketItem, Manager, \
     Courier, Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
-    OrderDiscountForm, SendSmsForm, SelectTagForm, SelectSupplierForm, ProductAdminForm
+    OrderDiscountForm, SendSmsForm, SelectTagForm, SelectSupplierForm, ProductAdminForm, \
+    OrderItemInlineAdminForm
 from shop.widgets import TagAutoComplete
 from shop.decorators import admin_changelist_link
 from shop.tasks import send_message
@@ -529,6 +530,7 @@ class ProductAdmin(ImportExportModelAdmin):
                 'classes': ('suit-tab', 'suit-tab-set'),
                 'fields': (
                     'recalculate_price',
+                    'hide_contents',
                 )
         }),
     )
@@ -549,6 +551,15 @@ class ProductAdmin(ImportExportModelAdmin):
         obj.num = -1
         obj.spb_num = -1
         super().save_model(request, obj, form, change)
+
+    def save_related(self, request, form, formsets, change):
+        # this is a hack to avoid stock saving for duplicated products (gives error if stock correction is not zero)
+        if '_saveasnew' in request.POST:
+            to_remove = [i for i, formset in enumerate(formsets) if isinstance(formset.empty_form.instance, Stock)]
+            for index in reversed(to_remove):
+                # start at the end to avoid recomputing offsets
+                del formsets[index]
+        super().save_related(request, form, formsets, change)
 
 
 class BasketItemInline(admin.TabularInline):
@@ -593,15 +604,11 @@ class CourierAdmin(admin.ModelAdmin):
 
 
 class OrderItemInline(admin.TabularInline):
-    def product_article(self, obj):
-        return obj.product.article
-    product_article.admin_order_field = 'product__article'
-    product_article.short_description = 'артикул'
-
-    def product_code(self, obj):
-        return obj.product.code
-    product_code.admin_order_field = 'product__code'
-    product_code.short_description = 'код'
+    def product_codes(self, obj):
+        return '<br/>'.join([obj.product.code, obj.product.article, obj.product.partnumber])
+    product_codes.admin_order_field = 'product__code'
+    product_codes.allow_tags=True
+    product_codes.short_description = 'Ид/1С/PN'
 
     def product_link(self, obj):
         return format_html(
@@ -658,24 +665,15 @@ class OrderItemInline(admin.TabularInline):
         return obj.cost
     item_cost.short_description = 'стоимость'
 
-    def item_sum(self, obj):
-        sum=obj.quantity*obj.cost
-        return sum
-    item_sum.short_description = 'сумма'
-
     model = OrderItem
+    form = OrderItemInlineAdminForm
     extra = 0
-    fields = ['product', 'product_article', 'product_code', 'product_link', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'item_sum', 'product_stock']
+    fields = ['product', 'product_codes', 'product_link', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'total', 'product_stock']
     raw_id_fields = ['product']
     #autocomplete_lookup_fields = {
     #    'fk': ['product'],
     #}
-    readonly_fields = ['product_link', 'product_article', 'product_code', 'product_stock', 'item_cost', 'item_sum']
-    formfield_overrides = {
-        PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
-        PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
-        DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
-    }
+    readonly_fields = ['product_link', 'product_codes', 'product_stock', 'item_cost']
 
     def has_add_permission(self, request):
         return False
@@ -1021,7 +1019,7 @@ class OrderAdmin(admin.ModelAdmin):
         return qs
 
     def get_readonly_fields(self, request, obj=None):
-        if not request.user.is_superuser:
+        if obj and not request.user.is_superuser:
             return self.readonly_fields + ['site']
         return self.readonly_fields
 

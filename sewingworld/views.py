@@ -4,7 +4,7 @@ from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
 
-from shop.models import Category, Product, ProductRelation, Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
+from shop.models import Category, Product, ProductRelation, ProductSet, Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
 from shop.filters import get_product_filter
 
 
@@ -195,7 +195,7 @@ def category(request, path, instance):
 @cache_page(60 * 30)
 def product(request, code):
     product = get_object_or_404(Product, code=code)
-    if not product.breadcrumbs:
+    if product.categories.exists() and not product.breadcrumbs:
         raise Http404("Product does not exist")
     product.images = []
     if default_storage.exists(product.image_prefix):
@@ -221,12 +221,22 @@ def product(request, code):
         pass
     except ValueError:
         pass
-    if category is None:
+    if category is None and product.breadcrumbs:
         category = product.breadcrumbs.last()
+
+    # temporary
+    if not product.categories.exists():
+        product.enabled = False
+
+    if not product.hide_contents:
+        constituents = ProductSet.objects.filter(declaration=product)
+    else:
+        constituents = None
 
     context = {
         'category': category,
         'product': product,
+        'constituents': constituents,
         'accessories': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_ACCESSORY),
         'similar': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR),
         'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT),

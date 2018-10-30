@@ -16,7 +16,19 @@
 </form>
 <script type="text/javascript">
 $(document).ready(function () {
-    $("#id_phone").mask("+7 (999) 999-99-99");
+    $("#id_phone").inputmask({
+        mask: ["(999) 999-99-99", "* (999) 999-99-99"],
+        definitions: {
+            "*": { validator: "[78]" }
+        },
+        onBeforePaste: function(pastedValue, opts) {
+            return pastedValue.replace("+7", "");
+        },
+        onBeforeMask: function(value, opts) {
+            return value.replace("+7", "");
+        },
+        keepStatic: true
+    });
 });
 </script>
 {% else %}

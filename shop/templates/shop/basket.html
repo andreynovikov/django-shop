@@ -142,7 +142,9 @@
             CustomHandlers.prototype.passwordReset = function (e, $el) {
                 $("#password-help").text("Новый пароль выслан на указанный телефон");
                 $("#password-help").removeClass("hide").show();
+                $("#reset-password").addClass("hide").hide();
                 $("#send-order").addClass("has-warning");
+                delayShowPasswordReset();
             };
             CustomHandlers.prototype.processError = function (e, $el, jqXHR, error, ex) {
                 // is not used anymore
@@ -171,7 +173,7 @@
             var inputTimer;
             var inputTimerRef;
 
-            $(".sw-basket-quantity").mask("9?99999", {placeholder: ""});
+            $(".sw-basket-quantity").inputmask({mask: "9", repeat: 4, placeholder: ""});
             $(".sw-basket-quantity").on( "keyup", function () {
                 var $cn = $(this).closest(".quantity-container");
                 $cn.removeClass("has-success");
@@ -219,22 +221,58 @@
             $("#order-submit").prop("disabled", true);
 
             $("#send-order").on("submit", function () {
-                //$.dump(this, 2);
-                return this["phone"].value.length > 0;
+                 var complete = $("#phone-input").inputmask("isComplete");
+                 if (!complete)
+                     $("#phone-block").addClass("has-error");
+                 return complete;
             });
 
+            $("#password-input").inputmask({
+                mask: ["9999", "*{5,30}"],
+                placeholder: "",
+                oncomplete: function() {
+                    $("#order-submit").prop("disabled", false);
+                }
+            });
             $("#password-input").on("paste keydown", function () {
                 $("#send-order").removeClass("has-error");
                 $("#send-order").removeClass("has-warning");
                 $("#password-help").hide();
                 $("#password-help").text("");
             });
+            $("#password-input").focus();
 
-            $("#phone-input").mask("(999) 999-99-99?9", {completed: enableSendOrder});
+            // https://github.com/RobinHerbots/Inputmask
+            $("#phone-input").inputmask({
+                mask: ["(999) 999-99-99", "* (999) 999-99-99"],
+                definitions: {
+                    "*": { validator: "[78]" }
+                },
+                onBeforePaste: function(pastedValue, opts) {
+                    return pastedValue.replace("+7", "");
+                },
+                onBeforeMask: function(value, opts) {
+                    return value.replace("+7", "");
+                },
+                oncomplete: function() {
+                    $("#phone-block").removeClass("has-error");
+                    var value = this.inputmask.unmaskedvalue();
+                    if (value.length > 10) {
+                        value = value.substr(1);
+                        this.inputmask.setValue(value);
+                    }
+                    $("#order-submit").prop("disabled", false);
+                },
+                keepStatic: true
+            });
+
+            delayShowPasswordReset();
         }
 
-        function enableSendOrder() {
-            $("#order-submit").prop("disabled", false);
+        function delayShowPasswordReset() {
+            setTimeout(function() {
+                $("#reset-password").removeClass("hide").show();
+            }, 5000);
         }
     </script>
     <script type="text/javascript">
