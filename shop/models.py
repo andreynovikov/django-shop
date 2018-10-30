@@ -1168,17 +1168,17 @@ class Order(models.Model):
                     if item.product.recalculate_price:
                         item_price = (itm.constituent.price * Decimal((100 - itm.discount) / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
                         if itm.quantity > 1:
-                            item_total = item_price * itm.quantity
+                            item_total = item_price * itm.quantity * item.quantity
                     # иначе разбиваем цену комплекта на части пропорционально ценам элементов
                     elif idx < last:
                         item_price = (itm.constituent.price * proportion).quantize(qnt, rounding=ROUND_HALF_EVEN)
                         price_remainder = price_remainder - item_price * itm.quantity
                         if itm.quantity > 1:
-                            item_total = item_price * itm.quantity
+                            item_total = item_price * itm.quantity * item.quantity
                     else:
                         item_price = price_remainder / itm.quantity
                         if itm.quantity > 1:
-                            item_total = price_remainder
+                            item_total = price_remainder * item.quantity
                     # рублёвую скидку в любом случае разбиваем на части пропорционально ценам элементов
                     if idx < last:
                         if itm.quantity > 1:
