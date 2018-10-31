@@ -156,9 +156,11 @@
       }
     });
   });
+  {% block cart_notice %}
   $(document).ready(function() {
     reloadNotice();
   });
+  {% endblock %}
 </script>
 {% block javascript %}
 {% endblock %}
