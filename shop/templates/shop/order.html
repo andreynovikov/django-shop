@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load staticfiles %}
 {% load decimals %}
+{% load site %}
 {% load shop_filters %}
 {% block title %}
 <title>Заказ №{{ order.id }} - Швейный Мир</title>
@@ -73,7 +74,7 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
 <input type="hidden" name="CustEMail" value="{{ order.email }}"/>
 <input type="hidden" name="CustAddr" value="{{ order.address }}"/>
 <input type="hidden" name="cps_email" value="{{ order.email }}"/>
-<input type="hidden" name="shopSuccessURL" value="http://www.sewing-world.ru/orderdone.html"/>
+<input type="hidden" name="shopSuccessURL" value="{% site_url_prefix %}/pages/orderdone/"/>
 <input type="hidden" name="ym_merchant_receipt" value='{
   "customerContact": "{{ order.phone }}",
   "taxSystem": 2,
