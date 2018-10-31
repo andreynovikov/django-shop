@@ -100,8 +100,8 @@ class CategoryAdmin(SortableMPTTModelAdmin):
     mptt_level_indent = 20
     search_fields = ('name','slug')
     prepopulated_fields = {'slug': ('name',)}
-    list_display = ('name', 'slug', 'basset_id', 'active')
-    list_editable = ['active']
+    list_display = ('name', 'slug', 'active')
+    #list_editable = ['active']
     list_display_links = ['name']
     sortable = 'order'
     exclude = ('image_width', 'image_height', 'promo_image_width', 'promo_image_height')
