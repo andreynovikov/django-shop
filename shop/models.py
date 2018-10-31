@@ -111,7 +111,6 @@ class Category(MPTTModel):
     name = models.CharField(max_length=100)
     slug = models.CharField(max_length=100)
     parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True)
-    basset_id = models.PositiveSmallIntegerField('id в Бассет', null=True, blank=True)
     active = models.BooleanField()
     filters = models.CharField('фильтры', max_length=255, blank=True)
     brief = models.TextField('описание', blank=True)
@@ -413,17 +412,13 @@ class Product(models.Model):
     forbid_price_import = models.BooleanField('не импортировать цену', default=False)
     if settings.SHOP_PRICE_DB_COLUMN == 'price':
         forbid_spb_price_import = models.BooleanField('не импортировать цену СПб', default=False)
-    #number_inet = models.DecimalField('наличие в интернет-магазине', max_digits=10, decimal_places=2, default=0)
-    #number_prol = models.DecimalField('наличие на пролетарке', max_digits=10, decimal_places=2, default=0)
     warranty = models.CharField('гарантия', max_length=20, blank=True)
     extended_warranty = models.CharField('расширенная гарантия', max_length=20, blank=True)
     manufacturer_warranty = models.BooleanField('официальная гарантия', default=False)
 
     swcode=models.CharField('Код товара в ШМ', max_length=20, blank=True)
-    #todo delete: sname=varchar(250) not null
     runame=models.CharField('Русское название', max_length=200, blank=True)
     sales_notes=models.CharField('Yandex.Market Sales Notes', max_length=50, blank=True)
-    #nal
     available=models.CharField('Наличие', max_length=255, blank=True)
     bid=models.CharField('Ставка маркета для основной выдачи', max_length=10, blank=True)
     cbid=models.CharField('Ставка маркета для карточки модели', max_length=10, blank=True)
@@ -434,41 +429,22 @@ class Product(models.Model):
     market=models.BooleanField('маркет', default=False, db_index=True, db_column=settings.SHOP_MARKET_DB_COLUMN)
     if settings.SHOP_MARKET_DB_COLUMN == 'market':
         spb_market=models.BooleanField('маркет СПб', default=False, db_index=True)
-    #todo refactor: nabor=models.BooleanField('Набор', default=False)
-    #manid
     manufacturer=models.ForeignKey(Manufacturer, verbose_name="Производитель", on_delete=models.PROTECT, default=49)
-    #supid
-    #supplier=models.ForeignKey(Supplier, verbose_name="Поставщик", on_delete=models.PROTECT, default=4)
-    #counid
     country=models.ForeignKey(Country, verbose_name="Страна-производитель", on_delete=models.PROTECT, default=1)
-    #enginecounid
     developer_country=models.ForeignKey(Country, verbose_name="Страна-разработчик", on_delete=models.PROTECT, related_name="developed_product", default=1)
     oprice=models.DecimalField('Цена розничная', max_digits=10, decimal_places=2, default=0)
-    #todo delete: fullprice=models.PositiveIntegerField('', default=0)
-    """
-    todo: delete
-    tax=integer not null default 0 references taxes(id)
-    """
     isnew=models.BooleanField('Новинка', default=False)
     deshevle=models.BooleanField('Нашли дешевле', default=False)
     recomended=models.BooleanField('Рекомендуем', default=False)
-    #off
     absent=models.BooleanField('Нет в продаже', default=False)
-    #todo add: ishot=models.BooleanField('', default=False)
-    #todo delete: newyear=models.BooleanField('', default=False)
     credit_allowed=models.BooleanField('можно в кредит', default=False)
     internetonly=models.BooleanField('Только в интернет-магазине', default=False)
     present=models.CharField('Подарок к этому товару', max_length=255, blank=True)
-    #sale
     coupon=models.BooleanField('Предлагать купон', default=False)
-    #notsale
     not_for_sale=models.BooleanField('Не показывать кнопку заказа', default=False)
-    #todo delete: nodiscount=bool default 0
     firstpage=models.BooleanField('Показать на первой странице', default=False)
     suspend=models.BooleanField('Готовится к выпуску', default=False)
-    #image=varchar(50)
     opinion=models.CharField('Ссылка на обсуждение модели', max_length=255, blank=True)
-    #measures
     dimensions=models.CharField('Размеры', max_length=255, blank=True)
     measure=models.CharField('Единицы', max_length=10, blank=True)
     weight=models.FloatField('Вес нетто', default=0)
@@ -486,15 +462,8 @@ class Product(models.Model):
         ws_num = models.SmallIntegerField('в наличии Опт', default=-1)
     stock=models.ManyToManyField(Supplier, through='Stock')
     pack_factor=models.SmallIntegerField('Количество в упаковке', default=1)
-    #todo delete: boleroid=integer not null default 0
     shortdescr=models.TextField('Характеристика', blank=True)
     yandexdescr=models.TextField('Описание для Яндекс.Маркет', blank=True)
-    #todo delete: onum=models.SmallIntegerField('Заказано у поставщика', default=0)
-    #todo delete: plimit=models.SmallIntegerField('Мин. запас', default=0)
-    """
-    todo: delete
-    mark=integer default 0 references mark(id)
-    """
     whatis=models.TextField('Что это такое', blank=True)
     whatisit=models.CharField('Что это такое, кратко', max_length=50, blank=True)
     variations = models.CharField('вариации', max_length=255, blank=True)
