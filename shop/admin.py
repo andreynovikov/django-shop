@@ -29,6 +29,7 @@ from datetimewidget.widgets import TimeWidget
 from suit.admin import SortableModelAdmin
 from suit.widgets import AutosizedTextarea
 from mptt.admin import MPTTModelAdmin
+from lock_tokens.admin import LockableModelAdmin
 from tagging.models import Tag, TaggedItem
 from tagging.utils import parse_tag_input
 
@@ -863,7 +864,7 @@ class FutureDateFieldListFilter(admin.FieldListFilter):
 
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(LockableModelAdmin):
     def order_name(self, obj):
         manager = ''
         if obj.manager:
