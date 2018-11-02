@@ -215,18 +215,13 @@ def product(request, code):
             pass
     category = None
     cat_id = request.GET.get('cat', None)
-    try:
-        if cat_id is not None:
+    if cat_id is not None:
+        try:
             category = Category.objects.get(pk=cat_id)
-        else:
-            cat_id = request.META['QUERY_STRING']
-            if cat_id:
-                cat_id = int(cat_id)
-                category = Category.objects.get(basset_id=cat_id)
-    except Category.DoesNotExist:
-        pass
-    except ValueError:
-        pass
+        except Category.DoesNotExist:
+            pass
+        except ValueError:
+            pass
     if category is None and product.breadcrumbs:
         category = product.breadcrumbs.last()
 
