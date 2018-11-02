@@ -48,6 +48,7 @@ urlpatterns = [
     url(r'^comments/', include('django_comments.urls')),
     url(r'^autocomplete/', include('autocomplete_light.urls')),
     url(r'^admin/lookups/', include(ajax_select_urls)),
+    url(r'^lock_tokens/', include('lock_tokens.urls', namespace='lock-tokens')),
     url(r'^admin/import1c/$', shop.views.import_1c, name='import_1c'),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^admin/', include('massadmin.urls')),

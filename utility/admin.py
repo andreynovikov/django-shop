@@ -38,3 +38,8 @@ class SWFlatPageAdmin(FlatPageAdmin):
 # Re-register FlatPageAdmin
 admin.site.unregister(FlatPage)
 admin.site.register(FlatPage, SWFlatPageAdmin)
+
+from lock_tokens.admin import LockTokenAdmin
+from lock_tokens.models import LockToken
+
+admin.site.register(LockToken, LockTokenAdmin)
