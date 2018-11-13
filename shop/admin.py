@@ -389,6 +389,10 @@ class ProductAdmin(ImportExportModelAdmin):
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
         DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
     }
+    spb_fieldset = ('С.Петербург', {
+            'classes': ('suit-tab', 'suit-tab-money'),
+            'fields': ('spb_price', 'forbid_spb_price_import', 'spb_show_in_catalog', 'spb_market')
+        })
     fieldsets = (
         (None, {
                 'classes': ('suit-tab', 'suit-tab-general'),
@@ -406,10 +410,7 @@ class ProductAdmin(ImportExportModelAdmin):
                 'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','credit_allowed','sales_notes',
                            'internetonly','present','delivery','firstpage','sales_actions','tags')
         }),
-        ('С.Петербург', {
-                'classes': ('suit-tab', 'suit-tab-money'),
-                'fields': ('spb_price', 'forbid_spb_price_import', 'spb_show_in_catalog', 'spb_market')
-        }),
+        spb_fieldset,
         ('Размеры', {
                 'classes': ('suit-tab', 'suit-tab-general'),
                 'fields': ('dimensions','measure','weight','prom_weight',)
@@ -547,6 +548,18 @@ class ProductAdmin(ImportExportModelAdmin):
         ('stock', 'Запасы'),
     )
 
+    def get_fieldsets(self, request, obj=None):
+        if not request.user.is_superuser and request.user.has_perm('shop.change_order_spb'):
+            self.spb_fieldset[1].pop('classes', None)
+            return (self.spb_fieldset,)
+        else:
+            return super().get_fieldsets(request, obj=obj)
+
+    def get_formsets_with_inlines(self, request, obj=None):
+        for inline in self.get_inline_instances(request, obj):
+            if request.user.is_superuser or not request.user.has_perm('shop.change_order_spb'):
+                yield inline.get_formset(request, obj), inline
+ 
     # сбрасываем кеш наличия при сохранении
     def save_model(self, request, obj, form, change):
         obj.num = -1
