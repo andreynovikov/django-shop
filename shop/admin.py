@@ -996,6 +996,7 @@ class OrderAdmin(LockableModelAdmin):
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode', 'manager_comment']
     inlines = [OrderItemInline, AddOrderItemInline]
+    change_form_template = 'admin/shop/order/change_form.html' # we do not need this by default but lockable model overrides it
     form = OrderAdminForm
     formfield_overrides = {
         TextField: {'widget': forms.Textarea(attrs={'style': 'height: 4em'})},

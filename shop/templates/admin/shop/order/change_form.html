@@ -1,5 +1,5 @@
 {% extends "admin/change_form.html" %}
-{% load i18n admin_urls %}
+{% load i18n admin_urls admin_modify lock_tokens_tags %}
 
 {% block extrastyle %}
     {{ block.super }}
@@ -12,6 +12,15 @@
         .inner-right-column a span { display:block; overflow:hidden; }
     </style>
 {% endblock %}
+
+{% block content %}
+    {{ block.super }}
+    {% if lock_token %}
+        {% admin_lock_handler opts.app_label opts.model_name original.id lock_token %}
+    {% endif %}
+{% endblock %}
+{% block submit_buttons_top %}{% if lock_token %}{% submit_row %}{% endif %}{% endblock %}
+{% block submit_buttons_bottom %}{% if lock_token %}{% submit_row %}{% endif %}{% endblock %}
 
 {% block object-tools-items %}
     {% url opts|admin_urlname:'document' original.pk 'stock'|admin_urlquote as stock_url %}
