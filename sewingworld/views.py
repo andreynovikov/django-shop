@@ -167,8 +167,20 @@ def catalog(request):
 
 def category(request, path, instance):
     products = None
-    if instance:
-        products = Product.objects.filter(enabled=True, categories__in=instance.get_descendants(include_self=True)) # .order_by('-price')
+    gtm_list = None
+    if not instance:
+        raise Http404("Category does not exist")
+    filters = {
+        'enabled': True,
+        'show_on_sw': True
+        }
+    order = instance.product_order.split(',')
+    products = instance.products.filter(**filters).order_by(*order)
+    if products.count() < 1:
+        filters['recomended'] = True
+        filters['categories__in'] = instance.get_descendants()
+        products = Product.objects.filter(**filters).order_by(*order).distinct()
+        gtm_list = "Рекомендуем в каталоге"
     else:
         raise Http404("Category does not exist")
     context = {'category': instance, 'products': products}
