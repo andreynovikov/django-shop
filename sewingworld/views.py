@@ -192,7 +192,6 @@ def category(request, path, instance):
     return render(request, 'category.html', context)
 
 
-@cache_page(60 * 30)
 def product(request, code):
     product = get_object_or_404(Product, code=code)
     if product.categories.exists() and not product.breadcrumbs:
@@ -239,7 +238,7 @@ def product(request, code):
         'constituents': constituents,
         'accessories': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_ACCESSORY),
         'similar': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR),
-        'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT),
-        'utm_source': request.GET.get('utm_source', None)
+        'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT)
+        #'utm_source': request.GET.get('utm_source', None)
         }
     return render(request, 'product.html', context)
