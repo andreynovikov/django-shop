@@ -37,7 +37,8 @@ def catalog(request):
 def category(request, path, instance):
     products = None
     if instance:
-        products = instance.products.filter(enabled=True).order_by('-price')
+        order = instance.product_order.split(',')
+        products = instance.products.filter(enabled=True).order_by(*order)
     context = {'category': instance, 'products': products}
     return render(request, 'category.html', context)
 
