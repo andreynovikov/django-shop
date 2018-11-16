@@ -687,8 +687,10 @@ class Product(models.Model):
                     self.num = 0
         else:
             self.num = 32767
-            for constituent in self.constituents.all():
-                num = constituent.instock
+            for item in ProductSet.objects.filter(declaration=self):
+                num = item.constituent.instock
+                if item.quantity > 1:
+                    num = int(num / item.quantity)
                 if num < self.num:
                     self.num = num
 
