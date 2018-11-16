@@ -487,6 +487,7 @@ class ProductAdmin(ImportExportModelAdmin):
         ('Остальное', {
                 'classes': ('suit-tab', 'suit-tab-other'),
                 'fields': (
+                    'order',
                     'swcode',
                     'oprice',
                     'coupon',
