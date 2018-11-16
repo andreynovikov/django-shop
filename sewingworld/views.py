@@ -10,15 +10,7 @@ from shop.filters import get_product_filter
 
 def index(request):
     site = Site.objects.get_current()
-    context = {
-        'top_adverts': Advert.objects.filter(active=True, place='index_top', sites=site).order_by('order'),
-        'middle_adverts': Advert.objects.filter(active=True, place='index_middle', sites=site).order_by('order'),
-        'bottom_adverts': Advert.objects.filter(active=True, place='index_bottom', sites=site).order_by('order'),
-        'actions': SalesAction.objects.filter(active=True, sites=site).order_by('order'),
-        'gift_products': Product.objects.filter(enabled=True, show_on_sw=True, gift=True).order_by('-price')[:25],
-        'recomended_products': Product.objects.filter(enabled=True, show_on_sw=True, recomended=True).order_by('-price')[:25],
-        'first_page_products': Product.objects.filter(enabled=True, show_on_sw=True, firstpage=True).order_by('-price')[:25]
-        }
+    context = {}
     return render(request, 'index.html', context)
 
 
@@ -167,11 +159,28 @@ def catalog(request):
 
 def category(request, path, instance):
     products = None
-    if instance:
-        products = Product.objects.filter(enabled=True, categories__in=instance.get_descendants(include_self=True)) # .order_by('-price')
-    else:
+    gtm_list = None
+    if not instance:
         raise Http404("Category does not exist")
-    context = {'category': instance, 'products': products}
+    products = instance.products.filter(enabled=True).order_by('-price')
+    if products.count() < 1:
+        products = Product.objects.filter(enabled=True, recomended=True, categories__in=instance.get_descendants()).distinct()
+        gtm_list = "Рекомендуем в каталоге"
+    else:
+        gtm_list = "Каталог"
+
+    product_filter = None
+    if instance.filters:
+        fields = instance.filters.split(',')
+        product_filter = get_product_filter(request.GET, queryset=products, fields=fields, request=request)
+        products = product_filter.qs
+
+    context = {
+        'category': instance,
+        'product_filter': product_filter,
+        'products': products,
+        'gtm_list': gtm_list
+    }
     return render(request, 'category.html', context)
 
 
