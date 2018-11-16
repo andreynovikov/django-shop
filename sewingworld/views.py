@@ -170,9 +170,16 @@ def category(request, path, instance):
     gtm_list = None
     if not instance:
         raise Http404("Category does not exist")
-    products = instance.products.filter(enabled=True, show_on_sw=True).order_by('-price')
+    filters = {
+        'enabled': True,
+        'show_on_sw': True
+        }
+    order = instance.product_order.split(',')
+    products = instance.products.filter(**filters).order_by(*order)
     if products.count() < 1:
-        products = Product.objects.filter(enabled=True, show_on_sw=True, recomended=True, categories__in=instance.get_descendants()).distinct()
+        filters['recomended'] = True
+        filters['categories__in'] = instance.get_descendants()
+        products = Product.objects.filter(**filters).order_by(*order).distinct()
         gtm_list = "Рекомендуем в каталоге"
     else:
         gtm_list = "Каталог"

@@ -123,6 +123,7 @@ class Category(MPTTModel):
                               width_field='promo_image_width', height_field='promo_image_height')
     promo_image_width = models.IntegerField(null=True, blank=True)
     promo_image_height = models.IntegerField(null=True, blank=True)
+    product_order = models.CharField('поле сортировки товаров', max_length=50, default='-price')
     ya_active = models.BooleanField('выдавать в Яндекс.Маркет', default=True)
     order = models.PositiveIntegerField()
 
@@ -444,6 +445,7 @@ class Product(models.Model):
     not_for_sale=models.BooleanField('Не показывать кнопку заказа', default=False)
     firstpage=models.BooleanField('Показать на первой странице', default=False)
     suspend=models.BooleanField('Готовится к выпуску', default=False)
+    order = models.IntegerField('позиция сортировки', default=0, db_index=True)
     opinion=models.CharField('Ссылка на обсуждение модели', max_length=255, blank=True)
     dimensions=models.CharField('Размеры', max_length=255, blank=True)
     measure=models.CharField('Единицы', max_length=10, blank=True)
