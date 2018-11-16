@@ -164,7 +164,6 @@ def category(request, path, instance):
         raise Http404("Category does not exist")
     filters = {
         'enabled': True,
-        'show_on_sw': True
         }
     order = instance.product_order.split(',')
     products = instance.products.filter(**filters).order_by(*order)
