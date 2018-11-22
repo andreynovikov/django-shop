@@ -1,0 +1,22 @@
+{% load i18n %}
+
+        {% for n in notifications %}
+            <div class="row">
+                {% url "spirit:user:detail" pk=n.comment.user.pk slug=n.comment.user.st.slug as url_profile %}
+                {% url "spirit:comment:find" pk=n.comment.pk as url_topic %}
+
+                {% if n.is_comment %}
+                    {% blocktrans trimmed with username=n.comment.user.username topic_title=n.topic.title %}Пользователь {{ username }} прокомментировал тему <a href="{{ url_topic }}">{{ topic_title }}</a>{% endblocktrans %}
+                {% elif n.is_mention %}
+                    {% blocktrans trimmed with username=n.comment.user.username topic_title=n.topic.title %}Пользователь {{ username }} упомянул вас в теме <a href="{{ url_topic }}">{{ topic_title }}</a>{% endblocktrans %}
+                {% else %}
+                    Unknown action
+                {% endif %}
+
+                {% if not n.is_read %}
+                    <span class="row-unread">{% trans "unread" %}</span>
+                {% endif %}
+            </div>
+        {% empty %}
+            <p>{% trans "There are no notifications, yet" %}</p>
+        {% endfor %}

@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load spirit_tags i18n %}
+{% load static from staticfiles %}
+{% block javascript %}
+    <script src="{% static "spirit/scripts/all.min.js" %}"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        stModules.tab(document.querySelectorAll('.js-tab'));
+        stModules.postify(document.querySelectorAll('.js-post'), {
+            csrfToken: "{{ csrf_token }}"
+        });
+        stModules.messages(document.querySelectorAll('.js-messages'));
+        {% if user.is_authenticated %}
+            stModules.notification(document.querySelectorAll('.js-tab-notification'), {
+                notificationUrl: "{% url "spirit:topic:notification:index-ajax" %}",
+                notificationListUrl: "{% url "spirit:topic:notification:index-unread" %}",
+                mentionTxt: "{% trans "{user} has mention you on {topic}" %}",
+                commentTxt: "{% trans "{user} has commented on {topic}" %}",
+                showAll: "{% trans "Show all" %}",
+                empty: "{% trans "No new notifications, yet" %}",
+                unread: "{% trans "unread" %}"
+            });
+        {% endif %}
+        var buttons = document.getElementsByClassName('button');
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].classList.add('btn');
+            buttons[i].classList.add('btn-sm');
+            buttons[i].classList.add('btn-default');
+        }
+        buttons = document.getElementsByClassName('reply-button');
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].classList.add('btn');
+            buttons[i].classList.add('btn-sm');
+            buttons[i].classList.add('btn-success');
+        }
+        buttons = document.getElementsByClassName('is-undo');
+        for (var i = 0; i < buttons.length; i++) {
+            buttons[i].classList.add('btn');
+            buttons[i].classList.add('btn-sm');
+            buttons[i].classList.add('btn-warning');
+        }
+    });
+    </script>
+{% endblock javascript %}
+{% block css %}
+    <link rel="stylesheet" href="{% static "spirit/stylesheets/vendors/font-awesome.min.css" %}">
+    <link rel="stylesheet" href="{% static "spirit/stylesheets/vendors/textcomplete.css" %}">
+    <link rel="stylesheet" href="{% static "spirit/stylesheets/styles.css" %}">
+
+    <!--[if (lt IE 9) & (!IEMobile)]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/selectivizr/1.0.2/selectivizr-min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.6/html5shiv.min.js"></script>
+    <![endif]-->
+{% endblock css %}
+{% block content_wrapper %}
+    <div class="container-fluid spirit">
+    <div class="js-tabs-container">
+        {% if user.is_authenticated %}
+            {% has_topic_notifications user as has_notifications %}
+
+            <ul class="header-tabs">
+                <li><a class="header-tab-link js-tab" href="{% url "spirit:search:search" %}" data-related=".js-search-content"><i class="fa fa-search"></i></a></li><!--
+             --><li><a class="header-tab-link js-tab-notification{% if has_notifications %} is-highlighted{% endif %}" href="{% url "spirit:topic:notification:index" %}" data-related=".js-notifications-content"><i class="fa fa-bell"></i></a></li><!--
+             --><li><a class="header-tab-link js-tab" href="{% url "spirit:user:menu" %}" data-related=".js-user-content">{{ user }} <i class="fa fa-chevron-down"></i></a></li>
+            </ul>
+
+            <div class="header-tabs-content">
+
+                <div class="header-tab-content js-tab-content js-user-content">
+                    <nav class="header-nav">
+                        <ul class="menu">
+                            <li><a class="menu-link" href="{% url "spirit:user:detail" pk=user.pk slug=user.st.slug %}">{% trans "Profile" %}</a></li>
+                            <li><a class="menu-link" href="{% url "spirit:topic:index-active" %}">{% trans "Topics" %}</a></li>
+                            <li><a class="menu-link" href="{% url "spirit:topic:unread:index" %}">{% trans "Unread topics" %}</a></li>
+                            {#<li><a class="menu-link" href="{% url "spirit:topic:private:index" %}">{% trans "Private topics" %}</a></li>#}
+
+                            {% if user.st.is_administrator %}
+                                <li><a class="menu-link" href="{% url "spirit:admin:index" %}">{% trans "Admin" %}</a></li>
+                            {% endif %}
+
+                            <li><a class="menu-link js-post" href="{% url 'shop:logout' %}?next={% firstof request.get_full_path|urlencode '/' %}">{% trans "Log out" %}</a></li>
+                        </ul>
+                    </nav>
+                </div>
+
+                <div class="header-tab-content js-tab-content js-notifications-content"></div>
+
+                <div class="header-tab-content js-tab-content js-search-content">
+                    {% render_search_form %}
+                </div>
+
+            </div>
+        {% else %}
+            <a class="header-link" href="{% url 'shop:login' %}?next={% firstof request.get_full_path|urlencode '/' %}">{% trans "Log in" %}</a>
+        {% endif %}
+    </div>
+    {% render_messages messages %}
+    {% block content %}{% endblock %}
+    </div>
+{% endblock content_wrapper %}
