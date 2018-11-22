@@ -6,6 +6,7 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from ajax_select import urls as ajax_select_urls
 
 import mptt_urls
+import spirit.urls
 
 import shop
 
@@ -46,6 +47,7 @@ urlpatterns = [
     url(r'^shop/', include('shop.urls', namespace='shop')),
     url(r'^blog/', include('zinnia.urls')),
     url(r'^comments/', include('django_comments.urls')),
+    url(r'^forum/', include(spirit.urls)),
     url(r'^autocomplete/', include('autocomplete_light.urls')),
     url(r'^admin/lookups/', include(ajax_select_urls)),
     url(r'^lock_tokens/', include('lock_tokens.urls', namespace='lock-tokens')),

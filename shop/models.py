@@ -59,8 +59,17 @@ class ShopUserManager(BaseUserManager):
     def format_phone(phone):
         m = re.match(r"(\+7)(\d{3})(\d{3})(\d{2})(\d{2})", phone)
         if not m:
-            return phone
+            m = re.match(r"(\+7)(\d{3})(\d.{2})(.{2})(\d{2})", phone)
+            if not m:
+                return phone
         return "{0} ({1}) {2}-{3}-{4}".format(*m.groups())
+
+
+class AliasField(models.Field):
+    def contribute_to_class(self, cls, name, private_only=False):
+        ''' virtual_only is deprecated in favor of private_only '''
+        super(AliasField, self).contribute_to_class(cls, name, private_only=True)
+        setattr(cls, name, self)
 
 
 class ShopUser(AbstractBaseUser, PermissionsMixin):
@@ -73,7 +82,11 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
     discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     is_active = models.BooleanField('активный', default=True)
     is_staff = models.BooleanField('сотрудник', default=False)
+    date_joined = models.DateTimeField('дата регистрации', default=timezone.now)
     tags = TagField('теги')
+    username = AliasField(db_column='phone')
+    first_name = AliasField(db_column='name')
+    last_name = AliasField(db_column='name')
 
     objects = ShopUserManager()
 
@@ -95,7 +108,13 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
         return self.name or self.phone
 
     def get_full_name(self):
-        return self.get_short_name()
+        return self.name or ShopUserManager.format_phone(self.phone[:-6] + '****' + self.phone[-2:])
+
+    def __getattribute__(self, name):
+        if name == 'username':
+            return self.name or ShopUserManager.format_phone(self.phone[:-6] + '****' + self.phone[-2:])
+        else:
+            return super().__getattribute__(name)
 
     def __str__(self):
         return self.get_short_name()
