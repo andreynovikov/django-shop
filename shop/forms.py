@@ -106,14 +106,14 @@ class OrderItemInlineAdminForm(forms.ModelForm):
 
 
 class OrderAdminForm(autocomplete_light.ModelForm):
-    user_tags = forms.CharField(label='Теги', max_length=50, required=False)
+    user_tags = forms.CharField(label='Теги', max_length=getattr(settings, 'MAX_TAG_LENGTH', 50), required=False)
 
     def __init__(self, *args, **kwargs):
         super(OrderAdminForm, self).__init__(*args, **kwargs)
         try:
             instance = kwargs['instance']
             self.fields['user_tags'].initial = instance.user.tags
-            self.fields['user_tags'].widget = TagAutoComplete(model=type(instance.user))
+            self.fields['user_tags'].widget = TagAutoComplete(model=type(instance.user), attrs=self.fields['user_tags'].widget.attrs)
         except (KeyError, AttributeError):
             pass
 
