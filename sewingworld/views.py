@@ -173,12 +173,6 @@ def category(request, path, instance):
         products = Product.objects.filter(**filters).order_by(*order).distinct()
         gtm_list = "Рекомендуем в каталоге"
     else:
-        raise Http404("Category does not exist")
-    products = instance.products.filter(enabled=True).order_by('-price')
-    if products.count() < 1:
-        products = Product.objects.filter(enabled=True, recomended=True, categories__in=instance.get_descendants()).distinct()
-        gtm_list = "Рекомендуем в каталоге"
-    else:
         gtm_list = "Каталог"
 
     product_filter = None
