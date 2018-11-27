@@ -19,8 +19,8 @@
         {% admin_lock_handler opts.app_label opts.model_name original.id lock_token %}
     {% endif %}
 {% endblock %}
-{% block submit_buttons_top %}{% if lock_token %}{% submit_row %}{% endif %}{% endblock %}
-{% block submit_buttons_bottom %}{% if lock_token %}{% submit_row %}{% endif %}{% endblock %}
+{% block submit_buttons_top %}{% if not original.pk or lock_token %}{% submit_row %}{% endif %}{% endblock %}
+{% block submit_buttons_bottom %}{% if not original.pk or lock_token %}{% submit_row %}{% endif %}{% endblock %}
 
 {% block object-tools-items %}
     {% url opts|admin_urlname:'document' original.pk 'stock'|admin_urlquote as stock_url %}
