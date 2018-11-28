@@ -25,7 +25,7 @@ urlpatterns = [
     url(r'^basket/delete/(?P<product_id>\d+)/$', views.delete_from_basket, name='delete'),
     # ex: /shop/basket/unbind/
     url(r'^basket/unbind/$', views.unbind, name='unbind'),
-    # ex: /shop/basket/register/
+    # ex: /shop/basket/authorize/
     url(r'^basket/authorize/$', views.authorize, name='authorize'),
     # ex: /shop/order/confirm/
     url(r'^order/confirm/$', views.confirm_order, name='confirm'),
@@ -33,6 +33,8 @@ urlpatterns = [
     url(r'^order/confirm/(?P<order_id>\d+)/$', views.confirm_order, name='confirm'),
     # ex: /shop/order/update/
     url(r'^order/update/(?P<order_id>\d+)/$', views.update_order, name='update_order'),
+    # ex: /shop/user/register/
+    url(r'^user/register/$', views.register_user, name='register'),
     # ex: /shop/user/login/
     url(r'^user/login/$', views.login_user, name='login'),
     # ex: /shop/user/logout/
