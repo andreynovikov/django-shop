@@ -3,6 +3,7 @@ import re
 from math import ceil
 from random import randint
 from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, HttpResponseServerError, HttpResponseNotFound
@@ -17,6 +18,7 @@ from django.core.mail import mail_admins
 from django.core.urlresolvers import reverse
 from django.forms.models import model_to_dict
 from django.core.exceptions import MultipleObjectsReturned
+from django.db import IntegrityError
 from django.utils.formats import localize
 
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
@@ -300,68 +302,135 @@ def authorize(request):
             return HttpResponseRedirect(reverse('shop:basket'))
 
 
+def register_user(request):
+    if request.method == 'POST':
+        phone = request.POST.get('phone')
+        norm_phone = ShopUserManager.normalize_phone(phone)
+        next_url = request.POST.get('next')
+        if norm_phone:
+            try:
+                user = ShopUser.objects.get(phone=norm_phone)
+                context = {
+                    'phone': phone,
+                    'email': request.POST.get('email'),
+                    'name': request.POST.get('name'),
+                    'username': request.POST.get('username'),
+                    'next': next_url,
+                    'error': 'Пользователь с таким телефоном уже зарегистрирован'
+                }
+            except ShopUser.DoesNotExist:
+                # create user, it will be authorized later by login
+                try:
+                    user = ShopUser(phone=norm_phone)
+                    user.email = request.POST.get('email')
+                    user.name = request.POST.get('name')
+                    user.username = request.POST.get('username')
+                    user.save()
+                    params = {
+                        'phone': norm_phone,
+                        'next': next_url,
+                        'reg': 1
+                    }
+                    return HttpResponseRedirect(reverse('shop:login') + '?' + urlencode(params))
+                except IntegrityError:
+                    context = {
+                        'phone': phone,
+                        'email': request.POST.get('email'),
+                        'name': request.POST.get('name'),
+                        'username': request.POST.get('username'),
+                        'next': next_url,
+                        'error': 'Пользователь с таким именем уже зарегистрирован'
+                    }
+    else:
+        context = {
+            'next': request.GET.get('next')
+        }
+    return render(request, 'shop/register.html', context)
+
+
 def login_user(request):
     """
     Login user preserving his basket
     """
+    norm_phone = None
+    password = None
+    reg = None
+
     if request.method == 'POST':
+        phone = request.POST.get('phone')
+        password = request.POST.get('password')
+        next_url = request.POST.get('next')
+        reg = request.POST.get('reg')
+    else:
+        phone = request.GET.get('phone')
+        next_url = request.GET.get('next')
+        reg = request.GET.get('reg')
+
+    if phone:
+        norm_phone = ShopUserManager.normalize_phone(phone)
+
+    if norm_phone and password:
         try:
             basket = Basket.objects.get(session_id=request.session.session_key)
         except MultipleObjectsReturned:
             basket = None
         except Basket.DoesNotExist:
             basket = None
-        phone = request.POST.get('phone')
-        norm_phone = ShopUserManager.normalize_phone(phone)
-        password = request.POST.get('password')
-        next_url = request.POST.get('next')
-        if norm_phone and password:
-            user = authenticate(username=norm_phone, password=password)
-            if user and user.is_active:
-                login(request, user)
-                if basket:
-                    basket.update_session(request.session.session_key)
-                    basket.phone = user.phone
-                    basket.save()
-                if next_url:
-                    return HttpResponseRedirect(next_url)
-                else:
-                    return HttpResponseRedirect(settings.LOGIN_REDIRECT_URL)
-            try:
-                user = ShopUser.objects.get(phone=norm_phone)
-            except ShopUser.DoesNotExist:
-                user = None
+        user = authenticate(username=norm_phone, password=password)
+        if user and user.is_active:
+            permanent_password = request.POST.get('permanent_password')
+            if permanent_password:
+                user.set_password(permanent_password)
+                user.permanent_password = True
+                user.save()
+            login(request, user)
+            if basket:
+                basket.update_session(request.session.session_key)
+                basket.phone = user.phone
+                basket.save()
+            if next_url:
+                return HttpResponseRedirect(next_url)
+            else:
+                return HttpResponseRedirect(settings.LOGIN_REDIRECT_URL)
+        try:
+            user = ShopUser.objects.get(phone=norm_phone)
+        except ShopUser.DoesNotExist:
+            user = None
+        context = {
+            'phone': phone,
+            'shop_user': user,
+            'next': next_url,
+            'reg': reg,
+            'wrong_password': True
+        }
+    elif norm_phone:
+        try:
+            user = ShopUser.objects.get(phone=norm_phone)
+            if not user.permanent_password and not user.is_staff:
+                """ Generate new password for user """
+                password = randint(1000, 9999)
+                user.set_password(password)
+                user.save()
+                try:
+                    send_password.delay(norm_phone, password)
+                except Exception as e:
+                    mail_admins('Task error', 'Failed to send password: %s' % e, message, fail_silently=True)
             context = {
                 'phone': phone,
                 'shop_user': user,
-                'next': next_url,
-                'wrong_password': True
+                'reg': reg,
+                'next': next_url
             }
-        elif norm_phone:
-            try:
-                user = ShopUser.objects.get(phone=norm_phone)
-                if not user.is_staff:
-                    """ Generate new password for user """
-                    password = randint(1000, 9999)
-                    user.set_password(password)
-                    user.save()
-                    try:
-                        send_password.delay(norm_phone, password)
-                    except Exception as e:
-                        mail_admins('Task error', 'Failed to send password: %s' % e, message, fail_silently=True)
-                context = {
-                    'phone': phone,
-                    'shop_user': user,
-                    'next': next_url
-                }
-            except ShopUser.DoesNotExist:
-                context = {
-                    'phone': phone,
-                    'next': next_url,
-                    'error': 'Пользователь с таким телефоном не зарегистрирован'
-                }
+        except ShopUser.DoesNotExist:
+            context = {
+                'phone': phone,
+                'next': next_url,
+                'reg': reg,
+                'error': 'Пользователь с таким телефоном не зарегистрирован'
+            }
     else:
         context = {
+            'reg': reg,
             'next': request.GET.get('next')
         }
     return render(request, 'shop/login.html', context)
@@ -419,6 +488,7 @@ def reset_password(request):
         except ShopUser.DoesNotExist:
             return HttpResponseNotFound()
         user.set_password(password)
+        user.permanent_password = False
         user.save()
         try:
             send_password.delay(phone, password)
