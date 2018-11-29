@@ -1545,6 +1545,7 @@ class ShopUserAdmin(ExportMixin, UserAdmin):
     #change_list_template = 'admin/change_list_filter_sidebar.html'
     #change_list_filter_template = 'admin/filter_listing.html'
     resource_class = ShopUserResource
+    change_form_template = 'loginas/change_form.html'
 
     def get_fieldsets(self, request, obj=None):
         if not obj:
