@@ -594,7 +594,7 @@ def update_order(request, order_id):
 @login_required
 def orders(request):
     orders = Order.objects.order_by('-id').filter(user=request.user.id)
-    form = UserForm(initial=model_to_dict(request.user))
+    form = UserForm(user=request.user)
     context = {
         'orders': orders,
         'user_form': form
@@ -630,15 +630,16 @@ def order_document(request, order_id, template_name):
 def update_user(request):
     user = request.user
     if request.method == 'POST':
-        form = UserForm(request.POST)
+        form = UserForm(request.POST, user=user)
         if form.is_valid():
             user.name = form.cleaned_data['name']
             user.phone = ShopUserManager.normalize_phone(form.cleaned_data['phone'])
             user.email = form.cleaned_data['email']
             user.address = form.cleaned_data['address']
+            user.username = form.cleaned_data['username']
             user.save()
     else:
-        form = UserForm(initial=model_to_dict(user))
+        form = UserForm(user=user)
 
     context = {
        'user_form': form,
