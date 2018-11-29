@@ -134,7 +134,7 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
 
 class Category(MPTTModel):
     name = models.CharField(max_length=100)
-    slug = models.CharField(max_length=100)
+    slug = models.CharField(max_length=100, db_index=True)
     parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True)
     active = models.BooleanField()
     filters = models.CharField('фильтры', max_length=255, blank=True)
@@ -367,9 +367,9 @@ class Contractor(models.Model):
 
 class Advert(models.Model):
     name = models.CharField('название', max_length=100)
-    place = models.CharField('место', max_length=100)
-    sites = models.ManyToManyField(Site, verbose_name='сайты')
-    active = models.BooleanField('активная')
+    place = models.CharField('место', max_length=100, db_index=True)
+    sites = models.ManyToManyField(Site, verbose_name='сайты', db_index=True)
+    active = models.BooleanField('активная', db_index=True)
     content = models.TextField('содержимое')
     order = models.PositiveIntegerField()
 
@@ -383,8 +383,8 @@ class Advert(models.Model):
 
 class SalesAction(models.Model):
     name = models.CharField('название', max_length=100)
-    slug = models.CharField(max_length=100)
-    sites = models.ManyToManyField(Site, verbose_name='сайты')
+    slug = models.CharField(max_length=100, db_index=True)
+    sites = models.ManyToManyField(Site, verbose_name='сайты', db_index=True)
     active = models.BooleanField('активная')
     show_in_list = models.BooleanField('показывать в списке', default=True)
     show_products = models.BooleanField('показывать список товаров', default=True)
