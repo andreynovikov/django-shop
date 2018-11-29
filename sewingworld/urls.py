@@ -54,6 +54,7 @@ urlpatterns = [
     url(r'^admin/import1c/$', shop.views.import_1c, name='import_1c'),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^admin/', include('massadmin.urls')),
+    url(r'^admin/', include('loginas.urls')),
 ]
 
 urlpatterns += staticfiles_urlpatterns()
