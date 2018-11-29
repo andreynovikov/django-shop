@@ -1,16 +1,19 @@
+{% load widget_tweaks %}
 {% load shop_filters %}
 {% if update or invalid %}
 <form id="update-user" class="ajax sw-update-user-form" action="{% url 'shop:update_user' %}" method="post" data-replace="#update-user">
     {% csrf_token %}
     {% for field in user_form %}
+        <div class="has-feedback{% if field.errors %} has-error{% endif %}">
+        {{ field|add_label_class:"control-label" }}
+        {% render_field field class="form-control" %}
         {% if field.errors %}
-            <ul class="has-error">
             {% for error in field.errors %}
-                <li class="help-block">{{ error }}</li>
+                <span class="help-block">{{ error }}</span>
             {% endfor %}
-            </ul>
         {% endif %}
-        {{ field.label_tag }} {{ field }}
+        </div>
+        <span class="help-block">{{ field.help_text }}</span>
     {% endfor %}
     <div class="center" style="padding-top:10px;"><input type="submit" class="btn btn-success" value="Сохранить"/></div>
 </form>
