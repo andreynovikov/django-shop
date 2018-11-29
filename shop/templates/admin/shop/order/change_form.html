@@ -8,10 +8,6 @@
             min-width: 0px;
             width: auto;
         }
-        .controls .datetimeshortcuts .date-icon { text-indent:200%;white-space:nowrap;overflow:hidden;width:14px;height:14px;
-                            background-image:url("/static/suit/bootstrap/img/glyphicons-halflings.png");background-position:0 -96px;
-                            background-repeat:no-repeat;opacity:.75;margin:0;
-                            background-color:#F6F7F8;display:inline-block;vertical-align:middle }
         .inner-right-column i { float: left; }
         .inner-right-column a span { display:block; overflow:hidden; }
     </style>
@@ -23,8 +19,8 @@
         {% admin_lock_handler opts.app_label opts.model_name original.id lock_token %}
     {% endif %}
 {% endblock %}
-{% block submit_buttons_top %}{% if lock_token %}{% submit_row %}{% endif %}{% endblock %}
-{% block submit_buttons_bottom %}{% if lock_token %}{% submit_row %}{% endif %}{% endblock %}
+{% block submit_buttons_top %}{% if not original.pk or lock_token %}{% submit_row %}{% endif %}{% endblock %}
+{% block submit_buttons_bottom %}{% if not original.pk or lock_token %}{% submit_row %}{% endif %}{% endblock %}
 
 {% block object-tools-items %}
     {% url opts|admin_urlname:'document' original.pk 'stock'|admin_urlquote as stock_url %}

@@ -230,7 +230,7 @@ def product(request, code):
         product.enabled = False
 
     if not product.hide_contents:
-        constituents = ProductSet.objects.filter(declaration=product)
+        constituents = ProductSet.objects.filter(declaration=product).order_by('-constituent__price')
     else:
         constituents = None
 

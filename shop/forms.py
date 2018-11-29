@@ -13,7 +13,7 @@ from shop.tasks import import1c
 
 
 class UserForm(forms.Form):
-    name = forms.CharField(label='Имя', max_length=100, error_messages={'required': 'Укажите ваше имя'})
+    name = forms.CharField(label='Имя', max_length=100, required=False, error_messages={'required': 'Укажите ваше имя'})
     phone = forms.CharField(label='Телефон', max_length=30, help_text='Мы принимаем только мобильные телефоны')
     email = forms.EmailField(label='Эл.почта', required=False)
     address = forms.CharField(label='Адрес', max_length=255, required=False)
