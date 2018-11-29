@@ -636,7 +636,7 @@ def update_user(request):
             user.phone = ShopUserManager.normalize_phone(form.cleaned_data['phone'])
             user.email = form.cleaned_data['email']
             user.address = form.cleaned_data['address']
-            user.username = form.cleaned_data['username']
+            #user.username = form.cleaned_data['username']
             user.save()
     else:
         form = UserForm(user=user)

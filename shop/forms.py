@@ -17,7 +17,7 @@ class UserForm(forms.Form):
     phone = forms.CharField(label='Телефон', max_length=30, help_text='Мы принимаем только мобильные телефоны')
     email = forms.EmailField(label='Эл.почта', required=False)
     address = forms.CharField(label='Адрес', max_length=255, required=False)
-    username = forms.CharField(label='Псевдоним', max_length=100, required=False, help_text='Отображается в форуме')
+    #username = forms.CharField(label='Псевдоним', max_length=100, required=False, help_text='Отображается в форуме')
 
     def __init__(self, *args, **kwargs):
         self.instance = kwargs.pop('user', None)
