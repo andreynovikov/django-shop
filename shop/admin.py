@@ -28,7 +28,7 @@ import autocomplete_light
 from datetimewidget.widgets import TimeWidget
 from suit.admin import SortableModelAdmin
 from suit.widgets import AutosizedTextarea
-from mptt.admin import MPTTModelAdmin
+from mptt.admin import DraggableMPTTAdmin
 from lock_tokens.admin import LockableModelAdmin
 from tagging.models import Tag, TaggedItem
 from tagging.utils import parse_tag_input
@@ -51,47 +51,6 @@ from shop.tasks import send_message
 from django.apps import AppConfig
 
 
-class SortableMPTTModelAdmin(MPTTModelAdmin, SortableModelAdmin):
-    def __init__(self, *args, **kwargs):
-        super(SortableMPTTModelAdmin, self).__init__(*args, **kwargs)
-        mptt_opts = self.model._mptt_meta
-        # NOTE: use mptt default ordering
-        self.ordering = (mptt_opts.tree_id_attr, mptt_opts.left_attr)
-        if self.list_display and self.sortable not in self.list_display:
-            self.list_display = list(self.list_display) + [self.sortable]
-
-        self.list_editable = self.list_editable or []
-        if self.sortable not in self.list_editable:
-            self.list_editable = list(self.list_editable) + [self.sortable]
-
-        self.exclude = self.exclude or []
-        if self.sortable not in self.exclude:
-            self.exclude = list(self.exclude) + [self.sortable]
-
-    # NOTE: return default admin ChangeList
-    def get_changelist(self, request, **kwargs):
-        return admin.views.main.ChangeList
-
-    def is_bulk_edit(self, request):
-        changelist_url = 'admin:%(app_label)s_%(model_name)s_changelist' % {
-            'app_label': self.model._meta.app_label,
-            'model_name': self.model._meta.model_name,
-        }
-        return (request.path == reverse(changelist_url) and
-                request.method == 'POST' and '_save' in request.POST)
-
-    def save_model(self, request, obj, form, change):
-        super(SortableMPTTModelAdmin, self).save_model(request, obj, form, change)
-        if not self.is_bulk_edit(request):
-            self.model.objects.rebuild()
-
-    def changelist_view(self, request, extra_context=None):
-        response = super(SortableMPTTModelAdmin, self).changelist_view(request, extra_context)
-        if self.is_bulk_edit(request):
-            self.model.objects.rebuild()
-        return response
-
-
 class CategoryForm(forms.ModelForm):
     class Meta:
         widgets = {
@@ -101,35 +60,16 @@ class CategoryForm(forms.ModelForm):
 
 
 @admin.register(Category)
-class CategoryAdmin(SortableMPTTModelAdmin):
-    mptt_level_indent = 20
+class CategoryAdmin(DraggableMPTTAdmin):
+    #mptt_level_indent = 20
     search_fields = ('name','slug')
     prepopulated_fields = {'slug': ('name',)}
-    list_display = ('name', 'slug', 'active')
+    list_display = ('tree_actions', 'indented_title', 'name', 'slug', 'active')
     #list_editable = ['active']
     list_display_links = ['name']
     sortable = 'order'
     exclude = ('image_width', 'image_height', 'promo_image_width', 'promo_image_height')
     form = CategoryForm
-
-    def is_bulk_edit(self, request):
-        changelist_url = 'admin:%(app_label)s_%(model_name)s_changelist' % {
-            'app_label': self.model._meta.app_label,
-            'model_name': self.model._meta.model_name,
-        }
-        return (request.path == reverse(changelist_url) and
-                request.method == 'POST' and '_save' in request.POST)
-
-    def save_model(self, request, obj, form, change):
-        super(SortableMPTTModelAdmin, self).save_model(request, obj, form, change)
-        if not self.is_bulk_edit(request):
-            self.model.objects.rebuild()
-
-    def changelist_view(self, request, extra_context=None):
-        response = super(SortableMPTTModelAdmin, self).changelist_view(request, extra_context)
-        if self.is_bulk_edit(request):
-            self.model.objects.rebuild()
-        return response
 
 
 @admin.register(Supplier)
