@@ -28,6 +28,7 @@ import autocomplete_light
 from datetimewidget.widgets import TimeWidget
 from suit.admin import SortableModelAdmin
 from suit.widgets import AutosizedTextarea
+from daterangefilter.filters import DateRangeFilter
 from mptt.admin import DraggableMPTTAdmin
 from lock_tokens.admin import LockableModelAdmin
 from tagging.models import Tag, TaggedItem
@@ -933,7 +934,7 @@ class OrderAdmin(LockableModelAdmin):
                     'colored_status', 'combined_comments']
     readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
     list_filter = [OrderStatusListFilter, 'created', 'payment', 'paid', 'site', 'manager', 'courier', OrderDeliveryListFilter,
-                   ('delivery_dispatch_date', FutureDateFieldListFilter), ('delivery_handing_date', FutureDateFieldListFilter)]
+                   ('delivery_dispatch_date', DateRangeFilter), ('delivery_handing_date', FutureDateFieldListFilter)]
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode', 'manager_comment']
     inlines = [OrderItemInline, AddOrderItemInline]
