@@ -22,6 +22,7 @@ from django.utils import timezone
 from django.utils.formats import date_format
 from django.utils.html import format_html
 from django.utils.http import urlquote
+from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 import autocomplete_light
@@ -50,6 +51,47 @@ from shop.decorators import admin_changelist_link
 from shop.tasks import send_message
 
 from django.apps import AppConfig
+
+
+def product_stock_view(product, order=None):
+    result = ''
+    if product.constituents.count() == 0:
+        suppliers = product.stock.filter(show_in_order=True).order_by('order')
+        if suppliers.exists():
+            for supplier in suppliers:
+                stock = Stock.objects.get(product=product, supplier=supplier)
+                result = result + ('%s:&nbsp;' % supplier.code)
+                if stock.quantity == 0:
+                    result = result + '<span style="color: #c00">'
+                result = result + ('%s' % floatformat(stock.quantity))
+                if stock.quantity == 0:
+                    result = result + '</span>'
+                if stock.correction != 0.0:
+                    if stock.correction > 0.0:
+                        result = result + '<span style="color: #090">+'
+                    else:
+                        result = result + '<span style="color: #c00">'
+                    result = result + ('%s</span>' % floatformat(stock.correction))
+                result = result + '<br/>'
+        else:
+            result = '<span style="color: #f00">отсутствует</span><br/>'
+        if order:
+            cursor = connection.cursor()
+            cursor.execute("""SELECT shop_orderitem.order_id, shop_orderitem.quantity AS quantity FROM shop_orderitem
+                              INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
+                              AND shop_orderitem.product_id = %s AND shop_order.id != %s""", (product.id, order.id))
+            if cursor.rowcount:
+                ordered = 0
+                ids = [str(order.id)]
+                for row in cursor:
+                    ids.append(str(row[0]))
+                    ordered = ordered + int(row[1])
+                url = '%s?id__in=%s&status=any' % (reverse("admin:shop_order_changelist"), ','.join(ids))
+                result = result + '<a href="%s" style="color: #00c">Зак:&nbsp;%s<br/></a>' % (url, floatformat(ordered))
+            cursor.close()
+    else:
+        result = floatformat(product.instock)
+    return mark_safe(result)
 
 
 class CategoryForm(forms.ModelForm):
@@ -265,46 +307,12 @@ class ProductAdmin(ImportExportModelAdmin):
     calm_forbid_price_import.short_description = 'ос. цена'
 
     def product_stock(self, obj):
-        result = ''
-        if obj.constituents.count() == 0:
-            suppliers = obj.stock.filter(show_in_order=True).order_by('order')
-            if suppliers.exists():
-                for supplier in suppliers:
-                    stock = Stock.objects.get(product=obj, supplier=supplier)
-                    result = result + ('%s:&nbsp;' % supplier.code)
-                    if stock.quantity == 0.0:
-                        result = result + '<span style="color: #c00">'
-                    result = result + ('%s' % floatformat(stock.quantity))
-                    if stock.quantity == 0.0:
-                        result = result + '</span>'
-                    if stock.correction != 0.0:
-                        if stock.correction > 0.0:
-                            result = result + '<span style="color: #090">+'
-                        else:
-                            result = result + '<span style="color: #c00">'
-                        result = result + ('%s</span>' % floatformat(stock.correction))
-                    result = result + '<br/>'
-            else:
-                result = '<span style="color: #f00">отсутствует</span><br/>'
-        else:
-            result = floatformat(obj.instock)
-        #cursor = connection.cursor()
-        #cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
-        #                  INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
-        #                  AND shop_orderitem.product_id = %s GROUP BY shop_orderitem.product_id""", (obj.id,))
-        #if cursor.rowcount:
-        #    row = cursor.fetchone()
-        #    result  = result + '<span style="color: #00c">Зак:&nbsp;%s</span><br/>' % floatformat(row[0])
-        #cursor.close()
-        return result
-    product_stock.allow_tags=True
+        return product_stock_view(obj)
     product_stock.short_description = 'склад'
-
 
     @admin_changelist_link(None, 'заказы', model=Order, query_string=lambda p: 'item__product__pk={}'.format(p.pk))
     def orders_link(self, orders):
         return '<i class="icon-list"></i>'
-
 
     def product_link(self, obj):
         url = reverse('product', args=[obj.code])
@@ -577,44 +585,7 @@ class OrderItemInline(admin.TabularInline):
     product_link.short_description = 'товар'
 
     def product_stock(self, obj):
-        result = ''
-        if obj.product.constituents.count() == 0:
-            suppliers = obj.product.stock.filter(show_in_order=True).order_by('order')
-            if suppliers.exists():
-                for supplier in suppliers:
-                    stock = Stock.objects.get(product=obj.product, supplier=supplier)
-                    result = result + ('%s:&nbsp;' % supplier.code)
-                    if stock.quantity == 0:
-                        result = result + '<span style="color: #c00">'
-                    result = result + ('%s' % floatformat(stock.quantity))
-                    if stock.quantity == 0:
-                        result = result + '</span>'
-                    if stock.correction != 0.0:
-                        if stock.correction > 0.0:
-                            result = result + '<span style="color: #090">+'
-                        else:
-                            result = result + '<span style="color: #c00">'
-                        result = result + ('%s</span>' % floatformat(stock.correction))
-                    result = result + '<br/>'
-            else:
-                result = '<span style="color: #f00">отсутствует</span><br/>'
-            cursor = connection.cursor()
-            cursor.execute("""SELECT shop_orderitem.order_id, shop_orderitem.quantity AS quantity FROM shop_orderitem
-                              INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
-                              AND shop_orderitem.product_id = %s AND shop_order.id != %s""", (obj.product.id, obj.order.id))
-            if cursor.rowcount:
-                ordered = 0
-                ids = [str(obj.order.id)]
-                for row in cursor:
-                    ids.append(str(row[0]))
-                    ordered = ordered + int(row[1])
-                url = '%s?id__in=%s&status=any' % (reverse("admin:shop_order_changelist"), ','.join(ids))
-                result = result + '<a href="%s" style="color: #00c">Зак:&nbsp;%s<br/></a>' % (url, floatformat(ordered))
-            cursor.close()
-        else:
-            result = floatformat(obj.product.instock)
-        return result
-    product_stock.allow_tags=True
+        return product_stock_view(obj.product, obj.order)
     product_stock.short_description = 'склад'
 
     def item_cost(self, obj):
