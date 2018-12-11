@@ -48,6 +48,7 @@ urlpatterns = [
     url(r'^blog/', include('zinnia.urls')),
     url(r'^comments/', include('django_comments.urls')),
     url(r'^forum/', include(spirit.urls)),
+    url(r'^oldforum/', include('forum.urls')),
     url(r'^autocomplete/', include('autocomplete_light.urls')),
     url(r'^admin/lookups/', include(ajax_select_urls)),
     url(r'^lock_tokens/', include('lock_tokens.urls', namespace='lock-tokens')),
