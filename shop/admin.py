@@ -327,7 +327,7 @@ class ProductAdmin(ImportExportModelAdmin):
                     'orders_link', 'product_link']
     list_display_links = ['title']
     list_editable = ['enabled', 'show_on_sw', 'market', 'spb_market']
-    list_filter = ['cur_code', 'pct_discount', 'val_discount', 'categories', 'enabled', 'isnew', 'recomended', 'show_on_sw', 'market']
+    list_filter = ['cur_code', 'pct_discount', 'val_discount', 'categories', 'manufacturer', 'enabled', 'isnew', 'recomended', 'show_on_sw', 'market']
     exclude = ['image_prefix']
     search_fields = ['code', 'article', 'partnumber', 'title', 'tags']
     readonly_fields = ['price', 'ws_price', 'sp_price']
