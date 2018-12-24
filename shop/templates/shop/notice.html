@@ -1,6 +1,6 @@
 {% load staticfiles %}
 {% if basket %}
-<span id="cartinfo"><a href="{% url 'shop:basket' %}"><img src="{% static 'i/cart.svg' %}" alt="Корзина" height="33">Товаров в корзине <span class="sw-top-navbar-numbers" style="font-weight:bold;color:#204070;font-size:12pt;">{{ basket.quantity }}</span> на <span class="sw-top-navbar-numbers" style="font-weight:bold;color:#204070;font-size:12pt;">{{ basket.total|floatformat }}</span>&nbsp;руб</a></span> <a class="btn btn-success btn-xs" style="visibility: visible;" href="{% url 'shop:basket' %}" role="button" id="topbasketbutton">Оформить заказ</a>
+<span id="cartinfo"><a href="{% url 'shop:basket' %}"><img src="{% static 'i/cart.svg' %}" alt="Корзина" height="24">Товаров в корзине <span class="sw-top-navbar-numbers" style="font-weight:bold;color:#204070;font-size:12pt;">{{ basket.quantity }}</span> на <span class="sw-top-navbar-numbers" style="font-weight:bold;color:#204070;font-size:12pt;">{{ basket.total|floatformat }}</span>&nbsp;руб</a></span> <a class="btn btn-success btn-xs" style="visibility: visible;" href="{% url 'shop:basket' %}" role="button" id="topbasketbutton">Оформить заказ</a>
 {% else %}
-<span id="cartinfo"><img src="{% static 'i/cart.svg' %}" alt="Корзина" height="33">Корзина пуста</span>
+<span id="cartinfo"><img src="{% static 'i/cart.svg' %}" alt="Корзина" height="24">Корзина пуста</span>
 {% endif %}

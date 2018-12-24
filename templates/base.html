@@ -17,6 +17,8 @@
   .catalog > li > a { font-weight:bold; }
   .catalog ul { padding-left:7px }
   .catalog li li { list-style:none; padding-left:7px; }
+
+  #profile-block, #orderpaymentbutton, #cartholder { margin-bottom: 5px; }
 </style>
 {% block css %}
 {% endblock css %}
@@ -53,7 +55,36 @@
 </div>
 
 <div class="col-md-5" style="margin-top:20px; margin-bottom:5px;">
-<div class="text-right"><span id="cart_notice"></span></div>
+<div id="profile-block" class="dropdown text-right">
+    <img src="{% static 'i/user.svg' %}" alt="Профиль" height="24">
+    <span>{% block user_profile_links %}{% endblock %}</span><a href="#" class="dropdown-toggle" data-toggle="dropdown">Мой профиль <span class="caret"></span></a>
+    <ul class="dropdown-menu dropdown-menu-right" role="menu" style="z-index: 1001">
+        {% if user.is_authenticated %}
+        <li><a href="{% url 'shop:user_orders' %}">Кабинет покупателя</a></li>
+        <li role="separator" class="divider"></li>
+        <li><a href="{% url "spirit:user:detail" pk=user.pk slug=user.st.slug %}">Профиль форума</a></li>
+        <li><a href="{% url "spirit:topic:index-active" %}">Темы</a></li>
+        <li><a href="{% url "spirit:topic:unread:index" %}">Непрочитанные темы</a></li>
+        {#<li><a href="{% url "spirit:topic:private:index" %}">Личные сообщения</a></li>#}
+        {% if user.st.is_administrator %}
+        <li role="separator" class="divider"></li>
+        <li><a href="{% url "spirit:admin:index" %}">Админ форума</a></li>
+        {% endif %}
+        <li role="separator" class="divider"></li>
+        <li><a href="{% url 'shop:logout' %}?next={% firstof request.get_full_path|urlencode '/' %}">Выйти</a></li>
+        {% else %}
+        <li><a href="{% url 'shop:login' %}?next={% firstof request.get_full_path|urlencode '/' %}">Войти</li>
+        {% endif %}
+    </ul>
+</div>
+{% block cart_notice %}
+{% load render_view %}
+<div class="text-right" id="cartholder"><span id="cart_notice">{% view "shop.views.view_basket_notice" %}</span></div>
+{% endblock %}
+{% get_unpaid_order as order %}
+{% if order %}
+<div class="text-right"><a class="btn btn-success btn-xs" style="visibility: visible;" href="{% url 'shop:order' order.id %}" role="button" id="orderpaymentbutton">Оплатить заказ</a></div>
+{% endif %}
 </div>
 </div>
 </div>
@@ -85,13 +116,10 @@
             <li><a href="/pages/articles/">Статьи</a></li>
             <li><a href="/blog/">Блог</a></li>
 <!--            <li><a href="/cgi-bin/forum.cgi">Форум</a></li> -->
+            <li><a href="{% url "spirit:topic:index-active" %}">Форум</a></li>
             <li><a href="/service/">Сервисные центры</a></li>
             <li><a href="/pages/delivery/">Доставка и оплата</a></li>
             <li class="hidden-xs"><a href="{% url 'shop:user_orders' %}">Что с моим заказом?</a></li>
-            {% get_unpaid_order as order %}
-            {% if order %}
-            <li class="hidden-xs"><a href="{% url 'shop:order' order.id %}">Оплатить заказ</a></li>
-            {% endif %}
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -156,11 +184,6 @@
       }
     });
   });
-  {% block cart_notice %}
-  $(document).ready(function() {
-    reloadNotice();
-  });
-  {% endblock %}
 </script>
 {% block javascript %}
 {% endblock %}
