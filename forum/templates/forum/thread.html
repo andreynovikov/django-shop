@@ -11,7 +11,9 @@
 {% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
-    {% breadcrumb "К первой странице" "/" %}
+    {% breadcrumb "К первой странице" "index" %}
+    {% breadcrumb "Архив форума" "forum:index" %}
+    {% breadcrumb thread.topic.title "forum:topic" thread.topic.pk %}
 {% endblock %}
 {% block content %}
 <div class="container">
