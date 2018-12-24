@@ -1,0 +1,22 @@
+{% extends "spirit/_base.html" %}
+
+{% load spirit_tags i18n %}
+{% load django_bootstrap_breadcrumbs %}
+
+{% block title %}{% trans "Latest active topics" %}{% endblock %}
+
+{% block breadcrumbs %}
+    {{ block.super }}
+    {% breadcrumb "К первой странице" "index" %}
+{% endblock %}
+
+{% block content %}
+    <h1>Форум</h1>
+
+    {% include "spirit/topic/_top_bar.html" with category=None categories=categories %}
+
+    {% include "spirit/topic/_render_list.html" %}
+
+    {% render_paginator topics %}
+
+{% endblock %}
