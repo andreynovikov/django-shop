@@ -1,9 +1,10 @@
 from django.conf import settings
 from django.conf.urls import include, url
 from django.conf.urls.static import static
+from django.urls import path
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from ajax_select import urls as ajax_select_urls
+#from ajax_select import urls as ajax_select_urls
 
 import mptt_urls
 import spirit.urls
@@ -49,12 +50,13 @@ urlpatterns = [
     url(r'^comments/', include('django_comments.urls')),
     url(r'^forum/', include(spirit.urls)),
     url(r'^oldforum/', include('forum.urls')),
-    url(r'^autocomplete/', include('autocomplete_light.urls')),
-    url(r'^admin/lookups/', include(ajax_select_urls)),
+    #url(r'^autocomplete/', include('autocomplete_light.urls')),
+    #url(r'^admin/lookups/', include(ajax_select_urls)),
     url(r'^lock_tokens/', include('lock_tokens.urls', namespace='lock-tokens')),
     url(r'^admin/import1c/$', shop.views.import_1c, name='import_1c'),
-    url(r'^admin/', include(admin.site.urls)),
-    url(r'^admin/', include('massadmin.urls')),
+    path('admin/', admin.site.urls),
+    #url(r'^admin/', include(admin.site.urls)),
+    #url(r'^admin/', include('massadmin.urls')),
     url(r'^admin/', include('loginas.urls')),
 ]
 
@@ -62,5 +64,5 @@ urlpatterns += staticfiles_urlpatterns()
 
 if settings.DEBUG:
     import debug_toolbar
-    urlpatterns += [ url(r'^__debug__/', include(debug_toolbar.urls)) ]
+    urlpatterns += [ path('__debug__/', include(debug_toolbar.urls)) ]
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

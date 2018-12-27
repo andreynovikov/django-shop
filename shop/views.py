@@ -15,7 +15,7 @@ from django_ipgeobase.models import IPGeoBase
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 from django.core.mail import mail_admins
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.forms.models import model_to_dict
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import IntegrityError

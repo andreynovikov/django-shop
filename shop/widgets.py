@@ -3,13 +3,15 @@ import uuid
 import json
 
 from django import forms
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.admin import widgets
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.forms.utils import flatatt
-from django.forms.widgets import TextInput
+from django.forms.widgets import Widget, TextInput
 from django.utils.safestring import mark_safe
 from django.utils.encoding import force_text
+from django.utils.translation import get_language
+from django.conf import settings
 
 from tagging.models import Tag
 
@@ -56,9 +58,9 @@ class PhoneWidget(TextInput):
 
         super(PhoneWidget, self).__init__(attrs)
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         final_attrs = self.build_attrs(attrs)
-        rendered_widget = super(PhoneWidget, self).render(name, value, final_attrs)
+        rendered_widget = super(PhoneWidget, self).render(name, value, final_attrs, renderer)
 
         # Use provided id or generate hex to avoid collisions in document
         id = final_attrs.get('id', uuid.uuid4().hex)
@@ -74,16 +76,13 @@ class PhoneWidget(TextInput):
         )
 
 
-"""Widgets from Zinnia admin"""
-
 class TagAutoComplete(widgets.AdminTextInputWidget):
     """
     Tag widget with autocompletion based on select2.
     """
-
     def __init__(self, *args, **kwargs):
         self.model = kwargs.pop('model', None)
-        super(TagAutoComplete, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def get_tags(self):
         """
@@ -97,27 +96,61 @@ class TagAutoComplete(widgets.AdminTextInputWidget):
     def render(self, name, value, attrs=None, renderer=None):
         """
         Render the default widget and initialize select2.
+        https://jsfiddle.net/lingceng/h5baz3bo/13/
         """
         output = [super(TagAutoComplete, self).render(name, value, attrs)]
-        output.append('<script type="text/javascript">')
-        output.append('(function($) {')
-        output.append('  $(document).ready(function() {')
-        output.append('    $("#id_%s").select2({' % name)
-        output.append('       width: "element",')
-        output.append('       maximumInputLength: %s,' % self.attrs.get('maxlength', '50'))
-        output.append('       tokenSeparators: [",", "|"],')
-        output.append('       tags: %s' % json.dumps(self.get_tags()))
-        output.append('     });')
-        output.append('    });')
-        output.append('}(django.jQuery));')
-        output.append('</script>')
+        output.append('''
+            <script type="text/javascript">
+            (function($) {{
+                function select2InputTags(queryStr) {{
+                    var $input = $(queryStr);
+                    var $select = $('<select class="'+ $input.attr('class') + '" multiple="multiple"><select>');
+                    if ($input.val() != "") {{
+                        $input.val().split(',').forEach(function(item) {{
+                            $select.append('<option value="' + item + '" selected="selected">' + item + '</option>');
+                        }});
+                    }}
+                    $select.insertAfter($input);
+                    $input.hide();
+                    $select.change(function() {{
+                        $input.val($select.val().join(","));
+                    }});
+                    return $select;
+                }}
+
+                $(document).ready(function() {{
+                    select2InputTags("#id_{0}").select2({{
+                        width: "element",
+                        maximumInputLength: {1},
+                        tokenSeparators: [",", "|"],
+                        multiple: "multiple",
+                        tags: true,
+                        data: {2}
+                    }});
+                }});
+            }}(django.jQuery));
+            </script>'''.format(name, self.attrs.get('maxlength', '50'), json.dumps(self.get_tags())))
         return mark_safe('\n'.join(output))
 
     @property
     def media(self):
-        """
-        TagAutoComplete's Media.
-        """
+        extra = '' if settings.DEBUG else '.min'
+        return forms.Media(
+            js=(
+                'admin/js/vendor/jquery/jquery%s.js' % extra,
+                'admin/js/vendor/select2/select2.full%s.js' % extra,
+            ),
+            css={
+                'screen': (
+                    'admin/css/vendor/select2/select2%s.css' % extra,
+                    #'admin/css/autocomplete.css',
+                ),
+            },
+        )
+
+    """
+    @property
+    def media(self):
         def static(path):
             return staticfiles_storage.url('zinnia/admin/select2/%s' % path)
 
@@ -128,6 +161,28 @@ class TagAutoComplete(widgets.AdminTextInputWidget):
                 static('js/select2.js'),
                 )
         )
+    """
+
+
+class StockInlineForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['supplier'].widget = ReadOnlyInput(self.instance.supplier)
+            self.fields['quantity'].widget = ReadOnlyInput(self.instance.quantity)
+
+
+class ReadOnlyInput(Widget):
+    def __init__(self, value, attrs=None):
+        self.value = value
+        super().__init__(attrs)
+
+    def render(self, name, value, attrs=None, renderer=None):
+        if value is None:
+            value = ''
+        final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
+        return mark_safe('<input{} />{}'.format(flatatt(final_attrs), self.value))
+
 
 class DisablePluralText(forms.TextInput):
     def __init__(self, obj, attrs=None):
