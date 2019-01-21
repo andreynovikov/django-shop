@@ -51,6 +51,7 @@ def products(request, template):
     filters = {
         'enabled': True,
         'market': True,
+        'num__gt': 0,
         'categories__in': root.get_descendants(include_self=True)
         }
     if template == 'prym.xml':
