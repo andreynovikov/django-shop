@@ -2,33 +2,60 @@
 {% load decimals %}
 {% load shop_filters %}
 <!-- product -->
-<div class="product_display" style="min-height:400px; height:auto;">
-{% if product.isnew %}
-  <div class="product_icon product_icon-new"></div>
+<div class="sw-p-l panel panel-default">
+<div class="panel-body">
+<div class="sw-p-l-image text-center">
+{% if product.variations %}
+<a href="{{ product.variations }}">
+{% else %}
+<a href="{% url 'product' product.code %}">
 {% endif %}
-  <div class="thumb center" style="height:162px;">
-       <a href="{% url 'product' product.code %}">
-       {% if product.image_prefix|add:'.s.jpg'|file_exists %}
-       <img  style="height:160px; width:auto;" src="{{ MEDIA_URL }}{{ product.image_prefix }}.jpg" alt="{{ product.title }} {{ product.whatis }}" />
-       {% else %}
-       <img style="height:160px; width:auto;" src="{% static 'i/0.svg' %}" alt="{{ product.whatis }} {{ product.title }}" />
-       {% endif %}
-       </a>
-    </div>
-        <p class="title"><a href="{% url 'product' product.code %}">{{ product.title }}</a></p>
-
-        <div class="description">
-        <p>{{ product.whatis }} {{ product.partnumber }}</p>
-        <p>{{ product.shortdescr|safe }}</p>
-        </div>
-
+{% if product.image_prefix|add:'.s.jpg'|file_exists %}
+<img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" />
+{% endif %}
+</a>
+</div>
+<div class="sw-p-l-name">
+<div class="sw-p-l-action">
+{% if product.isnew %}
+<span class="label sw-new">Новинка</span>
+{% endif %}
+{% if product.recomended %}
+<span class="label sw-recomended">Рекомендуем</span>
+{% endif %}
+{% for action in product.get_sales_actions %}
+{% if action.notice %}
+<span class="label sw-action">{{ action.notice }}</p>
+{% endif %}
+{% endfor %}
+</div>
+<h3 class="sw-p-l-name-h">
+{% if product.variations %}
+<a href="{{ product.variations }}">
+{% else %}
+<a href="{% url 'product' product.code %}">
+{% endif %}
+{{ product.title }}</a></h3>
+<p>
+{% if product.variations %}
+<a href="{{ product.variations }}">
+{% else %}
+<a href="{% url 'product' product.code %}">
+{% endif %}
+{{ product.whatis }} {{ product.partnumber }}</a></p>
+<div class="sw-p-l-brif">
+{{ product.shortdescr|safe }}
+</div>
+</div>
 {% if product.price > 0 %}
 <div class="sw-p-l-prices" style="display:block; text-align:center; width:100%">
 {% if product.discount > 0 %}
-<s>{{ product.price|quantize:"1" }}</s>&nbsp;руб.<br>
+<div><s class="sw-p-l-oldprice">{{ product.price|quantize:"1" }}</s>&nbsp;руб.</div>
 {% endif %}
-<span class="sw-p-l-price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.
+<div><span class="sw-p-l-price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.</div>
 </div>
+
+{% if product.instock > 0 and not product.variations %}
 {% if product.instock > 1 %}
 <div class="product-nal-true" style="text-align:center; width:100%">Есть в наличии</div>
 {% endif %}
@@ -38,17 +65,22 @@
 {% if product.instock < 1 %}
 <div class="product-nal-false" style="text-align:center; width:100%">Закончились</div>
 {% endif %}
-<div class="sw-p-l-buy" style="display:block; text-align:center; width:100%">
-{% if product.instock > 0 %}
-<a href="{% url 'shop:add' product.id %}"
-class="addProduct btn btn-xs btn-danger sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
-{% else %}
-<a href="{% url 'shop:add' product.id %}"
-class="addProduct btn btn-xs btn-danger sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a>
 {% endif %}
 
-
+<div class="sw-p-l-buy" style="display:block; text-align:center; width:100%">
+{% if product.variations %}
+<a href="{{ product.variations }}" class="btn btn-xs btn-success sw-addProduct-sm" role="button">Выбрать</a>
+{% else %}
+{% if product.instock > 0 %}
+<a href="{% url 'shop:add' product.id %}"
+class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
+{% else %}
+<a href="{% url 'shop:add' product.id %}"
+class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a>
+{% endif %}
+{% endif %}
 </div>
+
 {% endif %}
 
 {% if product.sales_notes %}
@@ -56,5 +88,6 @@ class="addProduct btn btn-xs btn-danger sw-addProduct-sm" role="button" id="p_{{
 {% endif %}
 
 
+</div>
 </div>
 <!-- /product -->
