@@ -3,7 +3,7 @@
 {% load mptt_tags %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}
-<title>{{ category.name }}</title>
+{{ category.name }}
 {% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}

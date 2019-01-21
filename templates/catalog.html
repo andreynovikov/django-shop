@@ -3,10 +3,10 @@
 {% load mptt_tags %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}
-<title>Продукция</title>
+Каталог товаров ДорТак
 {% endblock %}
 {% block content %}
-<h1>Продукция</h1>
+<h1>Каталог товаров Dor Tak</h1>
 {% for node,structure in root.get_descendants|tree_info %}
     {% if structure.new_level %}<ul><li>{% else %}</li><li>{% endif %}
         <a href="{{ node.get_absolute_url }}">{{ node.name }}</a>
