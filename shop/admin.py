@@ -576,9 +576,11 @@ class OrderItemInline(admin.TabularInline):
 
     def product_link(self, obj):
         return format_html(
-            '<a href="{}?_popup=1" class="related-widget-wrapper-link">{}</a>&nbsp;<i class="icon-pencil icon-alpha5"></i>' + \
+            '<a href="{}" target="_blank"><i class="icon-share" style="margin-top: -2px"></i></a>' + \
+                '&nbsp;<a href="{}?_popup=1" class="related-widget-wrapper-link">{}</a>&nbsp;<i class="icon-pencil icon-alpha5"></i>' + \
                 ' <a class="button related-widget-wrapper-link" href="{}?_popup=1">ГТ</a>' + \
                 '&nbsp;<span style="font-size: 80%">{}</span>',
+            obj.product.get_absolute_url(),
             reverse('admin:shop_product_change', args=[obj.product.id]), str(obj.product),
             reverse('admin:print-warranty-card', args=[obj.order.id, obj.pk]), obj.serial_number)
     product_link.allow_tags=True
