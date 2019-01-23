@@ -20,13 +20,11 @@ from django.conf.urls import url
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.formats import date_format
-from django.utils.html import format_html
 from django.utils.http import urlquote
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext, ugettext_lazy as _
 
 #import autocomplete_light
-from datetimewidget.widgets import TimeWidget
 #from suit.widgets import AutosizedTextarea
 from daterangefilter.filters import FutureDateRangeFilter, PastDateRangeFilter
 from adminsortable2.admin import SortableAdminMixin
@@ -265,7 +263,7 @@ class ProductSetInline(admin.TabularInline):
     fk_name = 'declaration'
     ordering = ('constituent__title',)
     autocomplete_fields = ('constituent',)
-    extra = 1
+    extra = 0
     verbose_name = "составляющая"
     verbose_name_plural = "составляющие"
     suit_classes = 'suit-tab suit-tab-set'
@@ -276,7 +274,7 @@ class ProductRelationInline(admin.TabularInline):
     fk_name = 'parent_product'
     ordering = ('kind',)
     autocomplete_fields = ('child_product',)
-    extra = 1
+    extra = 0
     verbose_name = "связанный товар"
     verbose_name_plural = "связанные товары"
     classes = ['collapse']
@@ -293,7 +291,10 @@ class ProductResource(resources.ModelResource):
 class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     @mark_safe
     def product_codes(self, obj):
-        return '<br/>'.join([obj.code, obj.article, obj.partnumber])
+        code = obj.code or '--'
+        article = obj.article or '--'
+        partnumber = obj.partnumber or '--'
+        return '<br/>'.join([code, article, partnumber])
     product_codes.admin_order_field = 'product__code'
     product_codes.short_description = 'Ид/1С/PN'
 
@@ -568,19 +569,12 @@ class CourierAdmin(admin.ModelAdmin):
 class OrderItemInline(admin.TabularInline):
     @mark_safe
     def product_codes(self, obj):
-        return '<br/>'.join([obj.product.code, obj.product.article, obj.product.partnumber])
+        code = obj.product.code or '--'
+        article = obj.product.article or '--'
+        partnumber = obj.product.partnumber or '--'
+        return '<br/>'.join([code, article, partnumber])
     product_codes.admin_order_field = 'product__code'
     product_codes.short_description = 'Ид/1С/PN'
-
-    @mark_safe
-    def product_link(self, obj):
-        return format_html(
-            '<a href="{}?_popup=1" class="related-widget-wrapper-link">{}</a>&nbsp;<i class="icon-pencil icon-alpha5"></i>' + \
-                ' <a class="button related-widget-wrapper-link" href="{}?_popup=1">ГТ</a>' + \
-                '&nbsp;<span style="font-size: 80%">{}</span>',
-            reverse('admin:shop_product_change', args=[obj.product.id]), str(obj.product),
-            reverse('admin:print-warranty-card', args=[obj.order.id, obj.pk]), obj.serial_number)
-    product_link.short_description = 'товар'
 
     def product_stock(self, obj):
         return product_stock_view(obj.product, obj.order)
@@ -593,33 +587,10 @@ class OrderItemInline(admin.TabularInline):
     model = OrderItem
     form = OrderItemInlineAdminForm
     extra = 0
-    fields = ['product', 'product_codes', 'product_link', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'total', 'product_stock']
-    raw_id_fields = ['product']
-    #autocomplete_lookup_fields = {
-    #    'fk': ['product'],
-    #}
-    readonly_fields = ['product_link', 'product_codes', 'product_stock', 'item_cost']
+    fields = ['product_codes', 'product', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'total', 'product_stock']
+    autocomplete_fields = ('product',)
+    readonly_fields = ['product_codes', 'product_stock', 'item_cost']
 
-    def has_add_permission(self, request):
-        return False
-
-
-class AddOrderItemInline(admin.TabularInline):
-    model = OrderItem
-    extra = 0
-    #raw_id_fields = ['product']
-    #autocomplete_lookup_fields = {
-    #    'fk': ['product'],
-    #}
-    #form = autocomplete_light.modelform_factory(OrderItem, exclude=['fake'])
-    formfield_overrides = {
-        PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
-        PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
-        DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
-    }
-
-    def has_change_permission(self, request, obj=None):
-        return False
 
 class OrderStatusListFilter(admin.SimpleListFilter):
     title = _('статус')
@@ -789,7 +760,7 @@ class FutureDateFieldListFilter(admin.FieldListFilter):
 
 
 @admin.register(Order)
-class OrderAdmin(LockableModelAdmin):
+class OrderAdmin(admin.ModelAdmin):#LockableModelAdmin):
     @mark_safe
     def order_name(self, obj):
         manager = ''
@@ -861,7 +832,7 @@ class OrderAdmin(LockableModelAdmin):
 
     @mark_safe
     def link_to_user(self, obj):
-        inconsistency = ''
+        inconsistency = '-'
         if obj.name != obj.user.name or obj.phone != obj.user.phone or \
            obj.email != obj.user.email or obj.postcode != obj.user.postcode or \
            obj.address != obj.user.address:
@@ -871,12 +842,12 @@ class OrderAdmin(LockableModelAdmin):
 
     @mark_safe
     def link_to_orders(self, obj):
-        orders = Order.objects.filter(user=obj.user.id).exclude(pk=obj.id)
+        orders = Order.objects.filter(user=obj.user.id).exclude(pk=obj.id).values_list('id', flat=True)
         if not orders:
             return '<span>нет</span>'
         else:
-            url = '%s?user__exact=%s&status=any' % (reverse("admin:shop_order_changelist"), obj.user.id)
-            return '<span><a href="%s">%d</a></span>' % (url, orders.count())
+            url = '%s?pk__in=%s&status=all' % (reverse("admin:shop_order_changelist"), ','.join(map(lambda x: str(x), list(orders))))
+            return '<span><a href="%s">%s</a></span>' % (url, orders.count())
     link_to_orders.short_description = 'заказы'
 
     @mark_safe
@@ -906,18 +877,19 @@ class OrderAdmin(LockableModelAdmin):
                    ('delivery_dispatch_date', FutureDateRangeFilter), ('delivery_handing_date', FutureDateRangeFilter)]
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode', 'manager_comment']
-    inlines = [OrderItemInline, AddOrderItemInline]
+    inlines = [OrderItemInline] #, AddOrderItemInline]
     change_form_template = 'admin/shop/order/change_form.html' # we do not need this by default but lockable model overrides it
     form = OrderAdminForm
+    autocomplete_fields = ('store','user')
     formfield_overrides = {
-        TextField: {'widget': forms.Textarea(attrs={'style': 'height: 4em'})},
+        TextField: {'widget': forms.Textarea(attrs={'style': 'width: 60%; height: 4em'})},
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
         DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
-        TimeField: {'widget': TimeWidget()},
     }
     actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_stock_action', 'order_set_user_tag_action']
     save_as = True
+    save_on_top = True
     list_per_page = 50
 
     def get_fieldsets(self, request, obj=None):
@@ -930,13 +902,18 @@ class OrderAdmin(LockableModelAdmin):
             #('Яндекс.Доставка', {'fields': ('delivery_yd_order',)}),
             #('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
             #                          ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
-            ('Покупатель', {'fields': [('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux'),
-                                       'email', 'postcode', 'city', 'address', 'comment', ('firm_name', 'is_firm')]}),
+            ('Покупатель', {'fields': [('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux', 'email'),
+                                       ('postcode', 'city', 'address'), 'comment', ('firm_name', 'is_firm')]}),
             )
         if obj is None or obj.is_firm:
             fieldsets[2][1]['fields'].extend(('firm_address', 'firm_details'))
         fieldsets[2][1]['fields'].append('user_tags')
         return fieldsets
+
+    def lookup_allowed(self, lookup, value):
+        if lookup == 'item__product__pk':
+            return True
+        return super().lookup_allowed(lookup, value)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

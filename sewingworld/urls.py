@@ -4,7 +4,6 @@ from django.conf.urls.static import static
 from django.urls import path
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-#from ajax_select import urls as ajax_select_urls
 
 import mptt_urls
 import spirit.urls
@@ -50,10 +49,7 @@ urlpatterns = [
     url(r'^comments/', include('django_comments.urls')),
     url(r'^forum/', include(spirit.urls)),
     url(r'^oldforum/', include('forum.urls')),
-    #url(r'^autocomplete/', include('autocomplete_light.urls')),
-    #url(r'^admin/lookups/', include(ajax_select_urls)),
     url(r'^lock_tokens/', include('lock_tokens.urls', namespace='lock-tokens')),
-    url(r'^admin/import1c/$', shop.views.import_1c, name='import_1c'),
     path('admin/', admin.site.urls),
     #url(r'^admin/', include(admin.site.urls)),
     #url(r'^admin/', include('massadmin.urls')),

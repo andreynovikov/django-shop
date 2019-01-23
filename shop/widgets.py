@@ -11,6 +11,7 @@ from django.forms.widgets import Widget, TextInput
 from django.utils.safestring import mark_safe
 from django.utils.encoding import force_text
 from django.utils.translation import get_language
+from django.utils.html import format_html
 from django.conf import settings
 
 from tagging.models import Tag
@@ -18,18 +19,18 @@ from tagging.models import Tag
 
 BOOTSTRAP_INPUT_TEMPLATE = {
     2: """
-       <div id="%(id)s_wrapper" class="input-append">
-           %(rendered_widget)s
-           <a class="button add-on related-widget-wrapper-link" href="%(popup)s?_popup=1"><i class="icon-%(glyphicon)s"></i></a>
-       </div>
+       %(rendered_widget)s
+       <a id="%(id)s_link" class="button related-widget-wrapper-link" style="display: inline-block" href="%(popup)s?_popup=1"><i class="fas fa-%(glyphicon)s"></i></a>
        <script>
-           $( "#%(id)s_wrapper a" ).click(function() {
-               var phone = $( "#%(id)s" ).val();
-               if (! /^\+\d+$/.test(phone))
-                   return false;
-               var href = $(this).attr("href");
-               $(this).attr("href", href.replace(/\+\d+/, phone));
-           });
+           (function($) {
+               $("#%(id)s_link").click(function() {
+                   var phone = $( "#%(id)s" ).val();
+                   if (! /^\+\d+$/.test(phone))
+                       return false;
+                   var href = $(this).attr("href");
+                   $(this).attr("href", href.replace(/\+\d+/, phone));
+               });
+           }(django.jQuery));
        </script>
        """,
     3: """
@@ -98,7 +99,7 @@ class TagAutoComplete(widgets.AdminTextInputWidget):
         Render the default widget and initialize select2.
         https://jsfiddle.net/lingceng/h5baz3bo/13/
         """
-        output = [super(TagAutoComplete, self).render(name, value, attrs)]
+        output = [super(TagAutoComplete, self).render(name, value, attrs, renderer)]
         output.append('''
             <script type="text/javascript">
             (function($) {{
@@ -184,17 +185,33 @@ class ReadOnlyInput(Widget):
         return mark_safe('<input{} />{}'.format(flatatt(final_attrs), self.value))
 
 
+class OrderItemProductLink(Widget):
+    def __init__(self, obj, attrs=None):
+        self.object = obj
+        super().__init__(attrs)
+
+    def render(self, name, value, attrs=None, renderer=None):
+        final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
+        return format_html(
+            '<p><a href="{}" target="_blank" style="margin-right: 8px"><i class="fas fa-external-link-alt"></i></a>' + \
+            '<input{} /><a href="{}?_popup=1" class="related-widget-wrapper-link">{}&nbsp;<i class="fas fa-edit" title="Изменить"></i></a>' + \
+                ' <a class="related-widget-wrapper-link" href="{}?_popup=1" title="Гарантийный талон"><i class="fas fa-envelope-open-text"></i></a>' + \
+                '&nbsp;<span class="tiny">{}</span></p>', self.object.product.get_absolute_url(), flatatt(final_attrs),
+            reverse('admin:shop_product_change', args=[self.object.product.id]), str(self.object.product),
+            reverse('admin:print-warranty-card', args=[self.object.order.id, self.object.pk]), self.object.serial_number)
+
+
 class DisablePluralText(forms.TextInput):
     def __init__(self, obj, attrs=None):
         self.object = obj
         super().__init__(attrs)
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         if value is None:
             value = ''
         final_attrs = self.build_attrs(attrs, extra_attrs={'type': self.input_type, 'name': name, **self.attrs})
         if value != '':
-            final_attrs['value'] = force_text(self._format_value(value))
+            final_attrs['value'] = force_text(self.format_value(value))
         if self.object.total > 0:
             return mark_safe('<input{0} readonly="readonly" />'.format(flatatt(final_attrs)))
         else:
@@ -206,14 +223,14 @@ class OrderItemTotalText(forms.TextInput):
         self.object = obj
         super().__init__(attrs)
 
-    def render(self, name, value, attrs=None):
+    def render(self, name, value, attrs=None, renderer=None):
         if value is None:
             value = ''
         final_attrs = self.build_attrs(attrs, extra_attrs={'type': self.input_type, 'name': name, **self.attrs})
         if value != '':
-            final_attrs['value'] = force_text(self._format_value(value))
+            final_attrs['value'] = force_text(self.format_value(value))
         if self.object.total > 0:
             return mark_safe('<input{0} />'.format(flatatt(final_attrs)))
         else:
             final_attrs['type'] = 'hidden'
-            return mark_safe('<input{0} />{1}'.format(flatatt(final_attrs), self.object.quantity * self.object.cost))
+            return mark_safe('<p><input{0} />{1}<span style="color: grey">\u20BD</span></p>'.format(flatatt(final_attrs), self.object.quantity * self.object.cost))

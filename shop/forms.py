@@ -8,7 +8,8 @@ from django.conf import settings
 #import autocomplete_light
 
 from shop.models import Supplier, Product, Stock, Order, OrderItem, ShopUser
-from shop.widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText
+from shop.widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
+    OrderItemProductLink
 from shop.tasks import import1c
 
 
@@ -40,7 +41,8 @@ class OneSImportForm(forms.Form):
         import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
         files = [(f, f) for f in filter(lambda x: x.endswith('.txt'), os.listdir(import_dir))]
         self.fields['file'].choices = files
-        self.fields['file'].initial=files[0]
+        if len(files):
+            self.fields['file'].initial = files[0]
 
     def save(self):
         import1c.delay(self.cleaned_data['file'])
@@ -134,7 +136,9 @@ class OrderItemInlineAdminForm(forms.ModelForm):
             }
 
     def __init__(self, *args, **kwargs):
-        super(OrderItemInlineAdminForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['product'].widget = OrderItemProductLink(self.instance)
         self.fields['product_price'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 6em'})
         self.fields['val_discount'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 4em'})
         self.fields['quantity'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 3em'})
