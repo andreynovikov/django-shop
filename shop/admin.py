@@ -446,6 +446,7 @@ class ProductAdmin(ImportExportModelAdmin):
                     'absent',
                     'suspend',
                     'opinion',
+                    'allow_reviews',
                     ('bid','cbid'),
                     'whatisit',
                 )

@@ -36,3 +36,8 @@ def filter_qs(queryset, field):
 @register.filter
 def get_dict_item(dictionary, key):
     return dictionary.get(key)
+
+
+@register.filter
+def get_list_item(dictionary, idx):
+    return dictionary[idx]

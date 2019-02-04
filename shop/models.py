@@ -481,6 +481,7 @@ class Product(models.Model):
     suspend=models.BooleanField('Готовится к выпуску', default=False)
     order = models.IntegerField('позиция сортировки', default=0, db_index=True)
     opinion=models.CharField('Ссылка на обсуждение модели', max_length=255, blank=True)
+    allow_reviews=models.BooleanField('Разрешить обзоры', default=True)
     dimensions=models.CharField('Размеры', max_length=255, blank=True)
     measure=models.CharField('Единицы', max_length=10, blank=True)
     weight=models.FloatField('Вес нетто', default=0)
