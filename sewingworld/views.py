@@ -2,6 +2,7 @@ from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse, J
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.files.storage import default_storage
+from django.contrib.auth.decorators import login_required
 from django.contrib.sites.models import Site
 from django.template import loader
 from django.utils.text import capfirst
@@ -322,3 +323,14 @@ def compare_notice(request):
         'count': count,
     }
     return render(request, 'compare_notice.html', context)
+
+
+@login_required
+def review_product(request, code):
+    product = get_object_or_404(Product, code=code)
+    if product.categories.exists() and not product.breadcrumbs:
+        raise Http404("Product does not exist")
+    context = {
+        'target': product,
+    }
+    return render(request, 'reviews/post.html', context)

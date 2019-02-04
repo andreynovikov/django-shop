@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Редактирование отзыва{% endblock %}
+{% block css %}
+<style>
+form label[for="id_comment"] {
+  display: block;
+}
+form textarea#id_comment {
+  min-width: 50%;
+  max-width: 100%;
+}
+</style>
+{% endblock %}
+{% block content %}
+<h1>Отзыв о товаре {{ target }}</h1>
+{% if form %}
+{% include 'reviews/form.html' %}
+{% else %}
+{% load reviews %}
+{% render_review_form for target %}
+{% endif %}
+{% endblock %}
+{% block javascript %}
+<script>
+var btns = document.getElementsByClassName('submit-post');
+for (var i = 0; i < btns.length; ++i) {
+  btns[i].classList.add('btn');
+  btns[i].classList.add('btn-default');
+}
+</script>
+{% endblock %}

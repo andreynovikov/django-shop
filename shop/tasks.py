@@ -14,6 +14,10 @@ from celery import shared_task
 
 from djconfig import config, reload_maybe
 
+import reviews
+
+from sewingworld import sms_uslugi, smsru
+
 from sewingworld.models import SiteProfile
 from sewingworld.sms import send_sms
 
@@ -204,18 +208,16 @@ def notify_manager(order_id):
     )
 
 
-class fragile(object):
-    class Break(Exception):
-        """Break out of the with statement"""
+@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
+def notify_review_posted(review_id):
+    review = reviews.get_model().objects.get(id=review_id)
 
-    def __init__(self, value):
-        self.value = value
+    shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+    msg_plain = render_to_string('mail/reviews/review_posted.txt', {'review': review})
 
-    def __enter__(self):
-        return self.value.__enter__()
-
-    def __exit__(self, etype, value, traceback):
-        error = self.value.__exit__(etype, value, traceback)
-        if etype == self.Break:
-            return True
-        return error
+    send_mail(
+        'Новый обзор для %s' % review.content_object,
+        msg_plain,
+        shop_settings['email_from'],
+        [manager_tuple[1] for manager_tuple in settings.MANAGERS]
+    )

@@ -5,8 +5,18 @@
 {% load render_as_template %}
 {% load shop_filters %}
 {% load mptt_tags %}
+{% load reviews %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}{{ product.title }}{% endblock %}
+{% block css %}
+<link rel="stylesheet" href="{% static 'reviews/css/reviews.css' %}"/>
+<link rel="stylesheet" href="{% static 'reviews/css/star-rating.css' %}"/>
+<style>
+.pull-right .gl-star-rating-stars > span {
+  width: 18px; height: 18px; background-size: 18px; margin: 0 0 0 0;
+}
+</style>
+{% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
     {% breadcrumb "К первой странице" "/" %}

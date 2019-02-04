@@ -27,6 +27,8 @@ urlpatterns = [
     url(r'^catalog/(?P<path>.*)', mptt_urls.view(model='shop.models.Category', view='sewingworld.views.category', slug_field='slug', root=settings.MPTT_ROOT), name='category'),
     # ex: /products/JanomeEQ60.html
     url(r'^products/(?P<code>[-\.\w]+)\.html$', views.product, name='product'),
+    # ex: /products/JanomeEQ60/review
+    url(r'^products/(?P<code>[-\.\w]+)/review/$', views.review_product, name='review_product'),
     # ex: /products/JanomeEQ60/compare/
     url(r'^products/(?P<code>[-\.\w]+)/compare/$', views.compare_product, name='compare_product'),
     # ex: /products/JanomeEQ60/uncompare/
@@ -43,6 +45,7 @@ urlpatterns = [
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*
     url(r'^shop/', include('shop.urls', namespace='shop')),
+    url(r'^reviews/', include('reviews.urls')),
 ]
 
 urlpatterns += staticfiles_urlpatterns()
