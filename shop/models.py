@@ -281,6 +281,9 @@ class Store(models.Model):
     def autocomplete_search_fields():
         return ['name__icontains', 'address__icontains', 'city__name__icontains']
 
+    def get_absolute_url(self):
+        return reverse('store', args=[str(self.pk)])
+
     def __str__(self):
         return str(self.city) + ', ' + self.address
 
@@ -403,6 +406,9 @@ class SalesAction(models.Model):
     class Meta:
         verbose_name = 'акция'
         verbose_name_plural = 'акции'
+
+    def get_absolute_url(self):
+        return reverse('sales_action', args=[self.slug])
 
     def __str__(self):
         return self.name

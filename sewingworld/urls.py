@@ -2,19 +2,38 @@ from django.conf import settings
 from django.conf.urls import include, url
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.contrib.sitemaps.views import sitemap
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 #from ajax_select import urls as ajax_select_urls
 
 import mptt_urls
 import spirit.urls
+from zinnia.sitemaps import EntrySitemap
+from forum.sitemaps import ThreadSitemap
 
 import shop
 
 from . import views
+from .sitemaps import StaticViewSitemap, ProductSitemap, CategorySitemap, SalesActionSitemap, StoreSitemap, FlatPageSitemap
+
+
+sitemaps = {
+    'static': StaticViewSitemap,
+    'products': ProductSitemap,
+    'categories': CategorySitemap,
+    'sales actions': SalesActionSitemap,
+    'stores': StoreSitemap,
+    'pages': FlatPageSitemap,
+    'blog': EntrySitemap,
+    'threads': ThreadSitemap
+}
+
 
 urlpatterns = [
     # ex: /
     url(r'^$', views.index, name='index'),
+    # ex: /sitemap.xml
+    url(r'^sitemap\.xml$', sitemap, {'sitemaps' : sitemaps}, name='sitemap'),
     # ex: /search.xml
     url(r'^search\.xml$', views.search_xml, name='search_xml'),
     # ex: /products.xml
