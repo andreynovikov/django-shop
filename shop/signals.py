@@ -3,8 +3,12 @@ from django.dispatch import receiver
 
 from tagging.utils import parse_tag_input
 
+from reviews import get_model
+from reviews.signals import review_was_posted
+
 from shop.models import Order
-from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, notify_user_order_delivered, notify_user_order_done
+from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, \
+    notify_user_order_delivered, notify_user_order_done, notify_review_posted
 
 
 @receiver(post_save, sender=Order, dispatch_uid='order_saved_receiver')
@@ -22,7 +26,7 @@ def order_saved(sender, **kwargs):
             for item in order.items.all():
                 if item.product.tags:
                     tags = parse_tag_input(item.product.tags)
-                    order.append_user_tags(tags)                    
+                    order.append_user_tags(tags)
 
         if order.status == Order.STATUS_COLLECTED:
             if order.payment == Order.PAYMENT_CARD or order.payment == Order.PAYMENT_TRANSFER:
@@ -46,3 +50,8 @@ def order_saved(sender, **kwargs):
                 notify_user_order_done.delay(order.id)
 
         print(order.tracker.changed())
+
+
+@receiver(review_was_posted, sender=get_model(), dispatch_uid='review_posted_receiver')
+def review_posted(sender, review, request, **kwargs):
+    notify_review_posted.delay(review.id)

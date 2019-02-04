@@ -50,6 +50,8 @@ urlpatterns = [
     url(r'^catalog/(?P<path>.*)', mptt_urls.view(model='shop.models.Category', view='sewingworld.views.category', slug_field='slug', root=settings.MPTT_ROOT), name='category'),
     # ex: /products/JanomeEQ60.html
     url(r'^products/(?P<code>[-\.\w]+)\.html$', views.product, name='product'),
+    # ex: /products/JanomeEQ60/review
+    url(r'^products/(?P<code>[-\.\w]+)/review/$', views.review_product, name='review_product'),
     # ex: /actions/
     url(r'^actions/$', views.sales_actions, name='sales_actions'),
     # ex: /actions/trade-in/
@@ -67,6 +69,7 @@ urlpatterns = [
     url(r'^blog/', include('zinnia.urls')),
     url(r'^comments/', include('django_comments.urls')),
     url(r'^forum/', include(spirit.urls)),
+    url(r'^reviews/', include('reviews.urls')),
     url(r'^oldforum/', include('forum.urls', namespace='forum')),
     url(r'^autocomplete/', include('autocomplete_light.urls')),
     url(r'^admin/lookups/', include(ajax_select_urls)),

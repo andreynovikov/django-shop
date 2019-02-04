@@ -16,6 +16,8 @@ from django.contrib.sites.models import Site
 
 from celery import shared_task
 
+import reviews
+
 from sewingworld import sms_uslugi, smsru
 
 from shop.models import Supplier, Currency, Product, Stock, Basket, Order
@@ -194,6 +196,21 @@ def notify_manager(order_id):
         shop_settings['email_from'],
         shop_settings['email_managers'],
         html_message=msg_html,
+    )
+
+
+@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
+def notify_review_posted(review_id):
+    review = reviews.get_model().objects.get(id=review_id)
+
+    shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+    msg_plain = render_to_string('mail/reviews/review_posted.txt', {'review': review})
+
+    send_mail(
+        'Новый обзор для %s' % review.content_object,
+        msg_plain,
+        shop_settings['email_from'],
+        [manager_tuple[1] for manager_tuple in settings.MANAGERS]
     )
 
 
