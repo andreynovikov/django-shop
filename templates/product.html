@@ -246,7 +246,7 @@ gtm_products = [];
 {% endif %}
 <dl class="product-spec">
 {% if product.fabric_verylite %}
-<dt><span>Диапазон прошиваемых материалов <a class="opener-html" href="http://www.sewing-world.ru/blog/?p=464"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>Очень легкие – {{ product.fabric_verylite }}<br>Легкие – {{ product.fabric_lite }}<br>Средние и умеренно тяжелые – {{ product.fabric_medium }}<br>Тяжелые – {{ product.fabric_hard }}<br>Трикотаж – {{ product.fabric_stretch }}</dd>
+<dt><span>Диапазон прошиваемых материалов <a class="opener-html" href="/blog/?p=464"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>Очень легкие – {{ product.fabric_verylite }}<br>Легкие – {{ product.fabric_lite }}<br>Средние и умеренно тяжелые – {{ product.fabric_medium }}<br>Тяжелые – {{ product.fabric_hard }}<br>Трикотаж – {{ product.fabric_stretch }}</dd>
 {% endif %}
 {% if product.km_class %}
 <dt><span>Класс машины <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/km_class/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.km_class }}</dd>

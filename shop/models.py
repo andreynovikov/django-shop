@@ -321,6 +321,7 @@ class Manufacturer(models.Model):
     class Meta:
         verbose_name = 'производитель'
         verbose_name_plural = 'производители'
+        ordering = ['name']
 
     @staticmethod
     def autocomplete_search_fields():

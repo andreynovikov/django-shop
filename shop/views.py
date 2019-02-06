@@ -333,6 +333,7 @@ def register_user(request):
                     }
                     return HttpResponseRedirect(reverse('shop:login') + '?' + urlencode(params))
                 except IntegrityError:
+                    logger.exception("An error occurred")
                     context = {
                         'phone': phone,
                         'email': request.POST.get('email'),

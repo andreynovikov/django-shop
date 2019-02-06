@@ -10,7 +10,7 @@ def index(request):
 
 def topic(request, id):
     topic = get_object_or_404(Topic, pk=id)
-    context = {'topic': topic, 'threads': Thread.objects.filter(topic=topic.id, enabled=True).order_by('mtime')}
+    context = {'topic': topic, 'threads': Thread.objects.filter(topic=topic.id, enabled=True).order_by('-mtime')}
     return render(request, 'forum/topic.html', context)
 
 
