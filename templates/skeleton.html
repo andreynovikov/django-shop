@@ -12,7 +12,22 @@
     {% block link %}{% endblock link %}
 <link rel="stylesheet" href="{% static 'css/jquery-ui-1.10.3.custom.min.css' %}"/>
 <link rel="stylesheet" href="{% static 'css/magnific-popup.css' %}">
+<link rel="stylesheet" href="{% static 'reviews/css/reviews.css' %}"/>
+<link rel="stylesheet" href="{% static 'reviews/css/star-rating.css' %}"/>
 <link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
+<style>
+.sw-p-l-rating {
+  text-align: right;
+  padding-right: 65px;
+}
+.sw-p-l-rating > .gl-star-rating-stars {
+  position: absolute;
+  z-index: 1;
+}
+.sw-p-l-rating > .gl-star-rating-stars > span {
+  width: 12px; height: 12px; background-size: 12px; margin: 0 1px 0 0;
+}
+</style>
 {% block css_wrapper %}
 {% endblock %}
 <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
