@@ -50,7 +50,14 @@
       {% render_rating_value review.rating %}
       {% with review.rating|add:"-1" as idx %}
         {% with rating_choices|get_list_item:idx as choice %}
-          <span class="rating-text">{{ choice.1 }}</span>
+          <span class="rating-text">{{ choice.1 }}
+            {% if review.weight > 1 and review.weight < 10 %}
+              &mdash; отзыв покупателя
+            {% endif %}
+            {% if review.weight > 10 %}
+              &mdash; отзыв эксперта
+            {% endif %}
+          </span>
         {% endwith %}
       {% endwith %}
       </span>

@@ -10,13 +10,11 @@
 {% block title %}{{ product.title }}{% endblock %}
 {% block link %}
 {% if request.META.QUERY_STRING %}<link rel="canonical" href="https://www.sewing-world.ru{% url 'product' product.code %}" />{% endif %}
-<link rel="stylesheet" href="{% static 'reviews/css/reviews.css' %}"/>
-<link rel="stylesheet" href="{% static 'reviews/css/star-rating.css' %}"/>
 {% endblock link %}
 {% block css %}
 <style>
 .pull-right .gl-star-rating-stars > span {
-  width: 18px; height: 18px; background-size: 18px; margin: 0 0 0 0;
+  width: 18px; height: 18px; background-size: 18px;
 }
 </style>
 {% endblock %}
