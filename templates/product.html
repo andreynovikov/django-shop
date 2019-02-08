@@ -4,9 +4,20 @@
 {% load render_as_template %}
 {% load shop_filters %}
 {% load mptt_tags %}
+{% load reviews %}
 {% load cache %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}{{ product.title }}{% endblock %}
+{% block link %}
+{% if request.META.QUERY_STRING %}<link rel="canonical" href="https://www.sewing-world.ru{% url 'product' product.code %}" />{% endif %}
+{% endblock link %}
+{% block css %}
+<style>
+.pull-right .gl-star-rating-stars > span {
+  width: 18px; height: 18px; background-size: 18px;
+}
+</style>
+{% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
     {% breadcrumb "К первой странице" "/" %}
@@ -61,6 +72,10 @@ gtm_products = [];
 {% if product.partnumber %}
 <p class="hidden-xs hidden-sm">Артикул: {{ product.partnumber }}</p>
 <p class="hidden-md hidden-lg">Артикул: {{ product.partnumber }}</p>
+{% endif %}
+{% get_rating for product as product_rating %}
+{% if product_rating %}
+{% render_rating for product %}
 {% endif %}
 </div>
 </div>
@@ -229,7 +244,7 @@ gtm_products = [];
 {% endif %}
 <dl class="product-spec">
 {% if product.fabric_verylite %}
-<dt><span>Диапазон прошиваемых материалов <a class="opener-html" href="http://www.sewing-world.ru/blog/?p=464"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>Очень легкие – {{ product.fabric_verylite }}<br>Легкие – {{ product.fabric_lite }}<br>Средние и умеренно тяжелые – {{ product.fabric_medium }}<br>Тяжелые – {{ product.fabric_hard }}<br>Трикотаж – {{ product.fabric_stretch }}</dd>
+<dt><span>Диапазон прошиваемых материалов <a class="opener-html" href="/blog/?p=464"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>Очень легкие – {{ product.fabric_verylite }}<br>Легкие – {{ product.fabric_lite }}<br>Средние и умеренно тяжелые – {{ product.fabric_medium }}<br>Тяжелые – {{ product.fabric_hard }}<br>Трикотаж – {{ product.fabric_stretch }}</dd>
 {% endif %}
 {% if product.km_class %}
 <dt><span>Класс машины <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/km_class/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.km_class }}</dd>
@@ -490,6 +505,33 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 <h2>Обратите внимание!</h2>
 <p>{{ product.dealertxt }}</p>
 {% endif %}
+{% endcache %}
+
+{% if product.allow_reviews %}
+  {% get_review_count for product as review_count %}
+  {% if review_count %}
+    <h2>Отзывы о товаре {{ product.title }}</h2>
+    {% render_review_list for product %}
+  {% else %}
+    <h2>Опубликуйте ваш отзыв</h2>
+  {% endif %}
+  {% if request.user.is_authenticated %}
+    {% get_review_by_user for product as user_review %}
+    {% if user_review %}
+      <p>Вы уже оставляли отзыв о данном товаре.
+         {% if not user_review.is_public %}Если вы его не видите, он может быть отклонён или ещё проверяться модератором.{% endif %}
+         Вы можете <a href="{% url 'review_product' product.code %}">изменить свой отзыв</a> в любой момент.</p>
+    {% else %}
+      {% if review_count %}
+      <p>Вы тоже можете <a href="{% url 'review_product' product.code %}">оставить свой отзыв</a> о данном товаре.</p>
+      {% else %}
+      <p>Вы можете быть первым, <a href="{% url 'review_product' product.code %}">кто опубликует отзыв</a> об этом товаре.</p>
+      {% endif %}
+    {% endif %}
+  {% else %}
+    <p>Отзывы о товаре могут оставлять только <a href="{% url 'shop:login' %}?next={% url 'review_product' product.code %}">зарегистрированные</a> покупатели.</p>
+  {% endif %}
+{% endif %}
 
 </div>
 </div> <!--- /product-page --->
@@ -500,7 +542,6 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 </div>
 </noscript>
 </div>
-{% endcache %}
 {% endblock content %}
 {% block javascript %}
 {% if product.credit_allowed and product.instock > 0 %}

@@ -17,6 +17,8 @@
   .catalog > li > a { font-weight:bold; }
   .catalog ul { padding-left:7px }
   .catalog li li { list-style:none; padding-left:7px; }
+
+  #profile-block, #orderpaymentbutton, #cartholder { margin-bottom: 5px; }
 </style>
 {% block css %}
 {% endblock css %}
@@ -28,10 +30,8 @@
 <div class="col-md-9 sw-header-left">
 <div class="sw-logo">
 
-<a href="http://www.sewing-world.ru/">
-
+<a href="/">
 <div><img src="{% static '/i/logo.svg' %}" class="img-responsive" alt="Швейный Мир - всероссийская сеть швейных супермаркетов.&#10; Швейные машинки, вышивальные и вязальные машины, оверлоки и аксессуары."></div>
-
 </a>
 
 <p class="hidden-xs"><a href="/stores/">Больше 100 магазинов швейных машин и товаров для рукоделия</a></p>
@@ -40,20 +40,46 @@
 
 <div class="col-md-10" style="margin-top:20px;">
 
-<!-- <div class="" style="font-weight:bold; display:inline-block; font-size:11pt;"><a href="/stores/" class="hidden-xs"><img src="{% static '/i/placemark.svg' %}" alt="Магазины" height="33"></a> <a href="/stores/">Адреса магазинов</a></div> -->
-
 {% block search_form %}
 <form id="topSearchForm" action="/search/" class="form-inline">
 <input type="search" name="text"  placeholder="Поиск товара" id="topSearchText" autocomplete="off" class="form-control input-sm" style="width: 80%; height:22pt"/>
 <input type="submit" value="Найти" class="btn btn-sm btn-warning" style="font-weight:700" />
 </form>
 {% endblock %}
+<div class="" style="font-weight:bold; display:inline-block;"><a href="/stores/" class="hidden-xs"><img src="{% static '/i/placemark.svg' %}" alt="Магазины" height="15"></a> <a href="/stores/">Адреса магазинов</a></div>
 <div class="" style="font-weight:bold; display:inline-block;"><small style="font-weight:normal;">Розничные магазины:</small> +7&nbsp;495&nbsp;744-00-87 <small style="font-weight:normal;">Интернет-магазин:</small> +7&nbsp;495&nbsp;766-56-75</div>
-<div class="" style="font-weight:bold; display:inline-block;"><a href="/stores/" class="hidden-xs"><img src="{% static '/i/placemark.svg' %}" alt="Магазины" height="33"></a> <a href="/stores/">Адреса магазинов</a></div>
 </div>
 
 <div class="col-md-5" style="margin-top:20px; margin-bottom:5px;">
-<div class="text-right"><span id="cart_notice"></span></div>
+<div id="profile-block" class="dropdown text-right">
+    <img src="{% static 'i/user.svg' %}" alt="Профиль" height="24">
+    <span>{% block user_profile_links %}{% endblock %}</span><a href="#" class="dropdown-toggle" data-toggle="dropdown">Мой профиль <span class="caret"></span></a>
+    <ul class="dropdown-menu dropdown-menu-right" role="menu" style="z-index: 1001">
+        {% if user.is_authenticated %}
+        <li><a href="{% url 'shop:user_orders' %}">Кабинет покупателя</a></li>
+        <li role="separator" class="divider"></li>
+        <li><a href="{% url "spirit:user:detail" pk=user.pk slug=user.st.slug %}">Профиль форума</a></li>
+        <li><a href="{% url "spirit:topic:unread:index" %}">Непрочитанные темы</a></li>
+        {#<li><a href="{% url "spirit:topic:private:index" %}">Личные сообщения</a></li>#}
+        {% if user.st.is_administrator %}
+        <li role="separator" class="divider"></li>
+        <li><a href="{% url "spirit:admin:index" %}">Админ форума</a></li>
+        {% endif %}
+        <li role="separator" class="divider"></li>
+        <li><a href="{% url 'shop:logout' %}?next={% firstof request.get_full_path|urlencode '/' %}">Выйти</a></li>
+        {% else %}
+        <li><a href="{% url 'shop:login' %}?next={% firstof request.get_full_path|urlencode '/' %}">Войти</li>
+        {% endif %}
+    </ul>
+</div>
+{% block cart_notice %}
+{% load render_view %}
+<div class="text-right" id="cartholder"><span id="cart_notice">{% view "shop.views.view_basket_notice" %}</span></div>
+{% endblock %}
+{% get_unpaid_order as order %}
+{% if order %}
+<div class="text-right"><a class="btn btn-success btn-xs" style="visibility: visible;" href="{% url 'shop:order' order.id %}" role="button" id="orderpaymentbutton">Оплатить заказ</a></div>
+{% endif %}
 </div>
 </div>
 </div>
@@ -85,13 +111,10 @@
             <li><a href="/pages/articles/">Статьи</a></li>
             <li><a href="/blog/">Блог</a></li>
 <!--            <li><a href="/cgi-bin/forum.cgi">Форум</a></li> -->
+            <li><a href="{% url "spirit:topic:index-active" %}">Форум</a></li>
             <li><a href="/service/">Сервисные центры</a></li>
             <li><a href="/pages/delivery/">Доставка и оплата</a></li>
             <li class="hidden-xs"><a href="{% url 'shop:user_orders' %}">Что с моим заказом?</a></li>
-            {% get_unpaid_order as order %}
-            {% if order %}
-            <li class="hidden-xs"><a href="{% url 'shop:order' order.id %}">Оплатить заказ</a></li>
-            {% endif %}
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -108,12 +131,13 @@
 <div class="col-sm-3 text-center"><a href="/catalog/knitting_machines/"><img src="{% static '/i/categories/knitting.svg' %}" alt="Вязальные машины" height="75" width="94"><br>Вязальные машины</a></div>
 <div class="col-sm-3 text-center"><a href="/catalog/accessories/"><img src="{% static '/i/categories/accessories.svg' %}" alt="Аксессуары" height="75" width="75"><br>Аксессуары</a></div>
 {#<div class="col-sm-3 text-center"><a href="/catalog/irons/"><img src="{% static '/i/categories/irons.svg' %}" alt="Гладильное оборудование" height="75" width="94"><br>Гладильное оборудование</a></div>#}
-<div class="col-sm-3 text-center"><a href="/catalog/Prom/"><img src="{% static '/i/categories/prom.svg' %}" alt="Промышленное оборудование" height="75" width="94"><br>Промышленное оборудование</a></div>
+{#<div class="col-sm-3 text-center"><a href="/catalog/Prom/"><img src="{% static '/i/categories/prom.svg' %}" alt="Промышленное оборудование" height="75" width="94"><br>Промышленное оборудование</a></div>#}
 </div>
 </div>
 {% endblock %}
 {% block content_wrapper %}
 <div class="container-fluid">
+{# <div class="center-block"><p  class="text-center" style="color:red; font-weight:bold;">Уважаемые покупатели!<br> Заказы, сделанные в праздничные дни, будут обработаны 3-4 января.<br>Розничные магазины не работают 1 и 2 января.<br> С Новым Годом!</p></div> #}
 <!-- ------------------------------------------------------------------------------------------------------------ -->
 {% load django_bootstrap_breadcrumbs %}
 {% block breadcrumbs %}
@@ -156,11 +180,6 @@
       }
     });
   });
-  {% block cart_notice %}
-  $(document).ready(function() {
-    reloadNotice();
-  });
-  {% endblock %}
 </script>
 {% block javascript %}
 {% endblock %}
@@ -187,7 +206,7 @@
 </tr>
 <tr>
 <td class="sw-bottom-phones-left">Заказать в Санкт-Петербурге:</td>
-<td class="sw-bottom-phones-right">+7 812 600-23-98</td>
+<td class="sw-bottom-phones-right">+7 812 536-22-92</td>
 </tr>
 <tr>
 <td class="sw-bottom-phones-left">Заказать в Казани:</td>

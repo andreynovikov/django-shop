@@ -59,6 +59,7 @@ def products(request, template):
     filters = {
         'enabled': True,
         'market': True,
+        'num__gt': 0,
         'categories__in': root.get_descendants(include_self=True)
         }
     if template == 'prym.xml':
@@ -244,3 +245,14 @@ def product(request, code):
         'utm_source': request.GET.get('utm_source', None)
         }
     return render(request, 'product.html', context)
+
+
+def review_product(request, code):
+    product = get_object_or_404(Product, code=code)
+    if product.categories.exists() and not product.breadcrumbs:
+        raise Http404("Product does not exist")
+
+    context = {
+        'target': product,
+        }
+    return render(request, 'reviews/post.html', context)

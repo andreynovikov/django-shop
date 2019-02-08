@@ -8,6 +8,8 @@ from spirit.user.models import UserProfile
 from spirit.topic.models import Topic
 from spirit.comment.flag.models import CommentFlag
 
+from shop.models import Product
+
 
 class DjConfig(Config):
     class Meta:
@@ -164,3 +166,63 @@ class Opinion(models.Model):
         ordering = ['pk']
         verbose_name = 'old opinion'
         verbose_name_plural = 'old opinions'
+
+
+class Order(models.Model):
+    id = models.IntegerField(primary_key=True)
+    uid = models.ForeignKey(BassetUser, db_column='uid', on_delete=models.CASCADE)
+    otime = models.IntegerField()
+    delivery = models.CharField(max_length=30)
+    payment = models.CharField(max_length=30)
+    ccode = models.CharField(max_length=3)
+    addon = models.FloatField()
+    tax = models.FloatField()
+    psum = models.FloatField()
+    stat = models.IntegerField()
+    udata = models.TextField()
+    src = models.CharField(max_length=120, blank=True, null=True)
+    comment = models.TextField(blank=True, null=True)
+    name = models.CharField(max_length=4, blank=True, null=True)
+    shop_name = models.CharField(max_length=100, blank=True, null=True)
+    deliveryinfo = models.TextField(blank=True, null=True)
+    refusereason = models.TextField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'orders'
+        verbose_name = 'basset order'
+        verbose_name_plural = 'basset orders'
+
+    def __str__(self):
+        return str(self.id)
+
+
+class OrderItem(models.Model):
+    orid = models.ForeignKey(Order, db_column='orid', primary_key=True, on_delete=models.CASCADE, related_name='item')
+    pid = models.ForeignKey(Product, db_column='pid')
+    pq = models.IntegerField()
+    pprice = models.FloatField()
+    pccode = models.CharField(max_length=3)
+    ptax = models.FloatField()
+    pdiscount = models.FloatField()
+    partner = models.CharField(max_length=20, blank=True, null=True)
+    pway = models.IntegerField(blank=True, null=True)
+    prate = models.FloatField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'orderdata'
+        unique_together = (('orid', 'pid'),)
+
+
+class OrderStatus(models.Model):
+    id = models.IntegerField(primary_key=True)
+    name = models.CharField(max_length=50)
+    aname = models.CharField(max_length=50)
+    extern = models.IntegerField()
+    color = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'orderstatlist'
+        ordering = ['pk']

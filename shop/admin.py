@@ -336,7 +336,8 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     list_display_links = ['title']
     list_editable = ['enabled', 'show_on_sw', 'market', 'spb_market']
     list_filter = ['cur_code', ('pct_discount', DropdownFilter), ('val_discount', DropdownFilter),
-                   ('categories', RelatedDropdownFilter), 'enabled', 'isnew', 'recomended', 'show_on_sw', 'market']
+                   ('categories', RelatedDropdownFilter), 'manufacturer', 'enabled', 'isnew', 'recomended',
+                   'show_on_sw', 'market']
     exclude = ['image_prefix']
     search_fields = ['code', 'article', 'partnumber', 'title', 'tags']
     readonly_fields = ['price', 'ws_price', 'sp_price']
@@ -458,6 +459,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
                     'absent',
                     'suspend',
                     'opinion',
+                    'allow_reviews',
                     ('bid','cbid'),
                     'whatisit',
                 )

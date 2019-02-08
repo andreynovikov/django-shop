@@ -6,12 +6,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <meta name="description" content="{% block meta-description %}{% endblock meta-description %}{% block meta-description-page %}{% endblock meta-description-page %}" />
     <meta name="keywords" content="{% block meta-keywords %}{% endblock meta-keywords %}" />
+    <meta name="google-site-verification" content="HVT2yGaI68QX1ZwiLnTV6rVQiAZCCfg7Qfj5HuEP9bE" />
     {% block meta %}{% endblock meta %}
     <title>{% block title %}{% endblock title %}{% block title-page %}{% endblock title-page %} - Швейный Мир</title>
     {% block link %}{% endblock link %}
 <link rel="stylesheet" href="{% static 'css/jquery-ui-1.10.3.custom.min.css' %}"/>
 <link rel="stylesheet" href="{% static 'css/magnific-popup.css' %}">
+<link rel="stylesheet" href="{% static 'reviews/css/reviews.css' %}"/>
+<link rel="stylesheet" href="{% static 'reviews/css/star-rating.css' %}"/>
 <link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
+<style>
+.sw-p-l-rating {
+  text-align: right;
+  padding-right: 65px;
+}
+.sw-p-l-rating > .gl-star-rating-stars {
+  position: absolute;
+  z-index: 1;
+}
+.sw-p-l-rating > .gl-star-rating-stars > span {
+  width: 12px; height: 12px; background-size: 12px; margin: 0 1px 0 0;
+}
+</style>
 {% block css_wrapper %}
 {% endblock %}
 <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->

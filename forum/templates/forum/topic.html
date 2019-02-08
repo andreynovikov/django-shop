@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load django_bootstrap_breadcrumbs %}
-{% block title %}{{ thread.title }}{% endblock %}
+{% block title %}{{ topic.title }}{% endblock %}
 {% block css %}
 <style>
 .comments { margin-bottom: 32px; }
@@ -11,20 +11,19 @@
 {% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
-    {% breadcrumb "К первой странице" "/" %}
+    {% breadcrumb "К первой странице" "index" %}
+    {% breadcrumb "Форум" "spirit:topic:index-active" %}
+    {% breadcrumb "Архив" "forum:index" %}
 {% endblock %}
 {% block content %}
 <div class="container">
-<h1>{{ thread.title }}</h1>
+<h1>{{ topic.title }}</h1>
 
-<div class="comments">
-{% for opinion in opinions %}
-    <div class="comment">
-        <div class="comment-date">{{ opinion.post|date:"j b Y" }}</div>
-        <div class="comment-text">{{ opinion.text|safe }}</div>
-    </div>
+<ul>
+{% for thread in threads %}
+    <li><a href="{% url 'forum:thread' thread.id %}">{{ thread.title }}</a> &mdash; {{ thread.mtime|date:"SHORT_DATE_FORMAT" }}</li>
 {% endfor %}
-</div>
+</ul>
 
 </div>
 {% endblock %}

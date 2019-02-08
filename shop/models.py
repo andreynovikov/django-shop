@@ -292,6 +292,9 @@ class Store(models.Model):
     def autocomplete_search_fields():
         return ['name__icontains', 'address__icontains', 'city__name__icontains']
 
+    def get_absolute_url(self):
+        return reverse('store', args=[str(self.pk)])
+
     def __str__(self):
         return str(self.city) + ', ' + self.address
 
@@ -329,6 +332,7 @@ class Manufacturer(models.Model):
     class Meta:
         verbose_name = 'производитель'
         verbose_name_plural = 'производители'
+        ordering = ['name']
 
     @staticmethod
     def autocomplete_search_fields():
@@ -417,6 +421,9 @@ class SalesAction(models.Model):
         verbose_name_plural = 'акции'
         ordering = ['order']
 
+    def get_absolute_url(self):
+        return reverse('sales_action', args=[self.slug])
+
     def __str__(self):
         return self.name
 
@@ -488,6 +495,7 @@ class Product(models.Model):
     suspend=models.BooleanField('Готовится к выпуску', default=False)
     order = models.IntegerField('позиция сортировки', default=0, db_index=True)
     opinion=models.CharField('Ссылка на обсуждение модели', max_length=255, blank=True)
+    allow_reviews=models.BooleanField('Разрешить обзоры', default=True)
     dimensions=models.CharField('Размеры', max_length=255, blank=True)
     measure=models.CharField('Единицы', max_length=10, blank=True)
     weight=models.FloatField('Вес нетто', default=0)

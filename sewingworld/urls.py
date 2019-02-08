@@ -3,19 +3,38 @@ from django.conf.urls import include, url
 from django.conf.urls.static import static
 from django.urls import path
 from django.contrib import admin
+from django.contrib.sitemaps.views import sitemap
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 import mptt_urls
 import spirit.urls
+from zinnia.sitemaps import EntrySitemap
+from forum.sitemaps import ThreadSitemap
 
 import shop
 
 from . import views
+from .sitemaps import StaticViewSitemap, ProductSitemap, CategorySitemap, SalesActionSitemap, StoreSitemap, FlatPageSitemap
+
+
+sitemaps = {
+    'static': StaticViewSitemap,
+    'products': ProductSitemap,
+    'categories': CategorySitemap,
+    'sales actions': SalesActionSitemap,
+    'stores': StoreSitemap,
+    'pages': FlatPageSitemap,
+    'blog': EntrySitemap,
+    'threads': ThreadSitemap
+}
+
 
 
 urlpatterns = [
     # ex: /
     url(r'^$', views.index, name='index'),
+    # ex: /sitemap.xml
+    url(r'^sitemap\.xml$', sitemap, {'sitemaps' : sitemaps}, name='sitemap'),
     # ex: /search.xml
     url(r'^search\.xml$', views.search_xml, name='search_xml'),
     # ex: /products.xml
@@ -32,6 +51,8 @@ urlpatterns = [
     url(r'^catalog/(?P<path>.*)', mptt_urls.view(model='shop.models.Category', view='sewingworld.views.category', slug_field='slug', root=settings.MPTT_ROOT), name='category'),
     # ex: /products/JanomeEQ60.html
     url(r'^products/(?P<code>[-\.\w]+)\.html$', views.product, name='product'),
+    # ex: /products/JanomeEQ60/review
+    url(r'^products/(?P<code>[-\.\w]+)/review/$', views.review_product, name='review_product'),
     # ex: /actions/
     url(r'^actions/$', views.sales_actions, name='sales_actions'),
     # ex: /actions/trade-in/
@@ -49,6 +70,7 @@ urlpatterns = [
     url(r'^blog/', include('zinnia.urls')),
     url(r'^comments/', include('django_comments.urls')),
     url(r'^forum/', include(spirit.urls)),
+    url(r'^reviews/', include('reviews.urls')),
     url(r'^oldforum/', include('forum.urls')),
     url(r'^lock_tokens/', include('lock_tokens.urls', namespace='lock-tokens')),
     path('admin/', admin.site.urls),
