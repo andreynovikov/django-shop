@@ -12,6 +12,7 @@ import shop
 
 from . import views
 
+
 urlpatterns = [
     # ex: /
     url(r'^$', views.index, name='index'),
@@ -51,8 +52,7 @@ urlpatterns = [
     url(r'^oldforum/', include('forum.urls')),
     url(r'^lock_tokens/', include('lock_tokens.urls', namespace='lock-tokens')),
     path('admin/', admin.site.urls),
-    #url(r'^admin/', include(admin.site.urls)),
-    #url(r'^admin/', include('massadmin.urls')),
+    url(r'^admin/', include('massadmin.urls')),
     url(r'^admin/', include('loginas.urls')),
 ]
 

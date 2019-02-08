@@ -10,7 +10,7 @@ class SWAdminSite(admin.AdminSite):
 
     def get_urls(self):
         urls = super().get_urls()
-        urls =[
+        urls = [
             path('goto_order/', self.admin_view(views.goto_order), name='goto_order'),
             path('import1c/', views.import_1c, name='import_1c')
         ] + urls
