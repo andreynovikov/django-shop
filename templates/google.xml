@@ -1,15 +1,16 @@
 <?xml version="1.0"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+{% load site %}
 <channel>
 <title>Швейный Мир</title>
-<link>https://www.sewing-world.ru</link>
+<link>{% site_url_prefix %}</link>
 {% for product in products %}
 <item>
 <g:id>{{ product.id }}</g:id>
 <title>{{ product.title }}</title>
 <g:description>{{ product.whatis|safe }} {{ product.yandexdescr|safe }} {{ product.descr|striptags }}</g:description>
-<link>https://www.sewing-world.ru/products/{{ product.code }}.html?utm_source=merchant&amp;utm_term={{ product.id }}</link>
-<g:image_link>https://www.sewing-world.ru{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</g:image_link>
+<link>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=merchant&amp;utm_term={{ product.id }}</link>
+<g:image_link>{% site_url_prefix %}{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</g:image_link>
 {% if product.instock > 0 %}
 <g:availability>in stock</g:availability>
 {% else %}
