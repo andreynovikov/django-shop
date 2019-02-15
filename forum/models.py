@@ -199,7 +199,7 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     orid = models.ForeignKey(Order, db_column='orid', primary_key=True, on_delete=models.CASCADE, related_name='item')
-    pid = models.ForeignKey(Product, db_column='pid')
+    pid = models.ForeignKey(Product, db_column='pid', on_delete=models.PROTECT)
     pq = models.IntegerField()
     pprice = models.FloatField()
     pccode = models.CharField(max_length=3)
