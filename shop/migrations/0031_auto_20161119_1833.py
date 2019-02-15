@@ -25,12 +25,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='stock',
             name='product',
-            field=models.ForeignKey(to='shop.Product', related_name='item'),
+            field=models.ForeignKey(to='shop.Product', related_name='item', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='stock',
             name='supplier',
-            field=models.ForeignKey(to='shop.Supplier'),
+            field=models.ForeignKey(to='shop.Supplier', on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name='product',

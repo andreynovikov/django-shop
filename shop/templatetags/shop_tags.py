@@ -7,13 +7,13 @@ from shop.models import Order
 register = template.Library()
 
 
-@register.assignment_tag(takes_context=True)
+@register.simple_tag(takes_context=True)
 def get_unpaid_order(context):
     """
     Находит последний собранный и неоплаченный заказ, который можно
     оплатить онлайн.
     """
-    if context.request.user.is_authenticated():
+    if hasattr(context, 'request') and context.request.user.is_authenticated:
         orders = Order.objects.order_by('-id').filter(user=context.request.user.id)
         for order in orders:
             if order.status == Order.STATUS_COLLECTED and not order.paid and \

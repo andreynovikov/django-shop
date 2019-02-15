@@ -11,7 +11,7 @@ from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib.sites.models import Site
 
 from celery import shared_task

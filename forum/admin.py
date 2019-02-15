@@ -2,7 +2,7 @@ from datetime import datetime
 
 from django import forms
 from django.db.models import F
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.contrib import admin
 
 from import_export import resources

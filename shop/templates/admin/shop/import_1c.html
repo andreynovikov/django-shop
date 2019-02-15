@@ -1,18 +1,15 @@
-{% extends 'admin/base_site.html' %}
+{% extends 'admin/base.html' %}
 {% load i18n admin_urls %}
-
-{% block title %}
-Импорт 1С {{ block.super }}
-{% endblock %}
 {% block content %}
 {% if result %}
 {{ result }}
 {% endif %}
 {% if form %}
-<form action="{% url url_name %}" method="post" enctype="multipart/form-data">
+<form action="{% url 'admin:import_1c' %}" method="post" enctype="multipart/form-data">
     {% csrf_token %}
+    {% if is_popup %}<input type="hidden" name="_popup" value="1" />{% endif %}
     {{ form }}
-    <div class="actions" style="margin-top: 18px"><input class="btn btn-success" type="submit" value="Импортировать" /></div>
+    <div class="actions" style="margin-top: 18px"><input class="default" type="submit" value="Импортировать" /></div>
 </form>
 {% endif %}
 {% endblock %}
