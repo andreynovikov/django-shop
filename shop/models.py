@@ -15,6 +15,7 @@ from django.utils.formats import date_format
 from django.utils.functional import cached_property
 from django.core.urlresolvers import reverse
 
+
 from colorfield.fields import ColorField
 
 from mptt.models import MPTTModel, TreeForeignKey, TreeManyToManyField
@@ -111,6 +112,7 @@ class Category(MPTTModel):
     slug = models.CharField(max_length=100)
     parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True)
     active = models.BooleanField()
+    filters = models.CharField('фильтры', max_length=255, blank=True)
     brief = models.TextField('описание', blank=True)
     description = models.TextField('статья', blank=True)
     image = models.ImageField('изображение', upload_to='categories', blank=True,
@@ -130,6 +132,10 @@ class Category(MPTTModel):
 
     def get_absolute_url(self):
         return reverse('category', kwargs={'path': self.get_path()})
+
+    #def save(self, *args, **kwargs):
+    #    super(Category, self).save(*args, **kwargs)
+    #    Category.objects.rebuild()
 
     def __str__(self):
         return self.name
@@ -227,8 +233,8 @@ class Store(models.Model):
     latitude = models.FloatField('широта', default=0, blank=True, null=True)
     longitude = models.FloatField('долгота', default=0, blank=True, null=True)
     postcode = models.CharField('индекс', max_length=20, blank=True)
-    address2 = models.CharField('адрес', max_length=255, blank=True)
-    phone2 = models.CharField('телефон', max_length=100, blank=True)
+    address2 = models.CharField('доп.адрес', max_length=255, blank=True)
+    phone2 = models.CharField('доп.телефон', max_length=100, blank=True)
     url = models.CharField('сайт', max_length=100, blank=True)
     email = models.CharField('эл.адрес', max_length=100, blank=True)
     hours = models.CharField('раб.часы', max_length=100, blank=True)
@@ -278,6 +284,9 @@ class Manufacturer(models.Model):
     name = models.CharField('название', max_length=150)
     machinemaker = models.BooleanField('машины делает', default=False)
     accessorymaker = models.BooleanField('аксессуары делает', default=False)
+    logo = models.FileField('логотип', upload_to='logos', blank=True)
+    logo_width = models.IntegerField(null=True, blank=True)
+    logo_height = models.IntegerField(null=True, blank=True)
 
     class Meta:
         verbose_name = 'производитель'
@@ -331,6 +340,46 @@ class Contractor(models.Model):
         return self.name
 
 
+class Advert(models.Model):
+    name = models.CharField('название', max_length=100)
+    place = models.CharField('место', max_length=100)
+    sites = models.ManyToManyField(Site, verbose_name='сайты')
+    active = models.BooleanField('активная')
+    content = models.TextField('содержимое')
+    order = models.PositiveIntegerField()
+
+    class Meta:
+        verbose_name = 'реклама'
+        verbose_name_plural = 'рекламы'
+
+    def __str__(self):
+        return self.name
+
+
+class SalesAction(models.Model):
+    name = models.CharField('название', max_length=100)
+    slug = models.CharField(max_length=100)
+    sites = models.ManyToManyField(Site, verbose_name='сайты')
+    active = models.BooleanField('активная')
+    show_in_list = models.BooleanField('показывать в списке', default=True)
+    show_products = models.BooleanField('показывать список товаров', default=True)
+    notice = models.CharField('уведомление', max_length=50, blank=True)
+    brief = models.TextField('описание', blank=True)
+    description = models.TextField('статья', blank=True)
+    image = models.ImageField('изображение', upload_to='actions', blank=True,
+                              width_field='image_width', height_field='image_height')
+    image_width = models.IntegerField(null=True, blank=True)
+    image_height = models.IntegerField(null=True, blank=True)
+    order = models.PositiveIntegerField()
+
+    class Meta:
+        verbose_name = 'акция'
+        verbose_name_plural = 'акции'
+
+    def __str__(self):
+        return self.name
+
+
 class Product(models.Model):
     code = models.CharField('идентификатор', max_length=20, unique=True, db_index=True)
     article = models.CharField('код 1С', max_length=20, blank=True, db_index=True)
@@ -338,7 +387,9 @@ class Product(models.Model):
     gtin = models.CharField('GTIN', max_length=17, blank=True, db_index=True)
     enabled = models.BooleanField('включён', default=False, db_index=True)
     title = models.CharField('название', max_length=200)
-    price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0)
+    price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0, db_column=settings.SHOP_PRICE_DB_COLUMN)
+    if settings.SHOP_PRICE_DB_COLUMN == 'price':
+        spb_price = models.DecimalField('цена СПб, руб', max_digits=10, decimal_places=2, default=0)
     cur_price = models.DecimalField('цена, вал', max_digits=10, decimal_places=2, default=0)
     cur_code = models.ForeignKey(Currency, verbose_name='валюта', related_name="rtprice", on_delete=models.PROTECT, default=643)
     ws_price =  models.DecimalField('опт. цена, руб', max_digits=10, decimal_places=2, default=0)
@@ -349,9 +400,11 @@ class Product(models.Model):
     sp_cur_price=models.DecimalField('цена СП, вал', max_digits=10, decimal_places=2, default=0)
     sp_cur_code = models.ForeignKey(Currency, verbose_name='СП валюта', related_name="spprice", on_delete=models.PROTECT, default=643)
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
-    val_discount = models.DecimalField('скидка, руб', max_digits=6, decimal_places=2, default=0)
+    val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
     ws_pct_discount = models.PositiveSmallIntegerField('опт. скидка, %', default=0)
     max_discount = models.PositiveSmallIntegerField('макс. скидка, %', default=10)
+    #todo: not used in logic, only in templates
+    max_val_discount = models.DecimalField('макс. скидка, руб', max_digits=10, decimal_places=2, null=True, blank=True)
     ws_max_discount = models.PositiveSmallIntegerField('опт. макс. скидка, %', default=10)
     image_prefix = models.CharField('префикс изображения', max_length=200)
     categories = TreeManyToManyField('shop.Category', related_name='products',
@@ -370,7 +423,9 @@ class Product(models.Model):
     available=models.CharField('Наличие', max_length=255, blank=True)
     bid=models.CharField('Ставка маркета для основной выдачи', max_length=10, blank=True)
     cbid=models.CharField('Ставка маркета для карточки модели', max_length=10, blank=True)
-    show_on_sw=models.BooleanField('Показать на основной витрине', default=True)
+    show_on_sw=models.BooleanField('витрина', default=True, db_index=True, db_column=settings.SHOP_SHOW_DB_COLUMN)
+    if settings.SHOP_SHOW_DB_COLUMN == 'show_on_sw':
+        spb_show_in_catalog = models.BooleanField('витрина СПб', default=True, db_index=True)
     gift=models.BooleanField('Годится в подарок', default=False)
     market=models.BooleanField('маркет', default=False, db_index=True, db_column=settings.SHOP_MARKET_DB_COLUMN)
     if settings.SHOP_MARKET_DB_COLUMN == 'market':
@@ -419,7 +474,7 @@ class Product(models.Model):
     related = models.ManyToManyField('self', through='ProductRelation', symmetrical=False, blank=True)
     constituents = models.ManyToManyField('self', through='ProductSet', related_name='+', symmetrical=False, blank=True)
     recalculate_price = models.BooleanField('пересчитывать цену', default=True)
-    hide_contents = models.BooleanField('скрыть содержимое', default=False)
+    hide_contents = models.BooleanField('скрыть содержимое', default=True)
 
     fabric_verylite=models.CharField('Очень легкие ткани', max_length=50, blank=True)
     fabric_lite=models.CharField('Легкие ткани', max_length=50, blank=True)
@@ -563,6 +618,9 @@ class Product(models.Model):
         self.ws_price = ws_price
         self.sp_price = sp_price
 
+    def get_sales_actions(self):
+        return self.sales_actions.filter(active=True, sites=Site.objects.get_current()).order_by('order')
+
     @cached_property
     def breadcrumbs(self):
         for category in self.categories.all():
@@ -629,8 +687,10 @@ class Product(models.Model):
                     self.num = 0
         else:
             self.num = 32767
-            for constituent in self.constituents.all():
-                num = constituent.instock
+            for item in ProductSet.objects.filter(declaration=self):
+                num = item.constituent.instock
+                if item.quantity > 1:
+                    num = int(num / item.quantity)
                 if num < self.num:
                     self.num = num
 
@@ -642,7 +702,8 @@ class Product(models.Model):
         return ['title__icontains', 'code__icontains', 'article__icontains', 'partnumber__icontains']
 
     def __str__(self):
-        return " ".join([self.code, self.article, self.title])
+        #return " ".join([self.partnumber, self.title])
+        return self.title
 
 
 class ProductRelation(models.Model):
@@ -867,6 +928,7 @@ class Order(models.Model):
     PAYMENT_TRANSFER = 3
     PAYMENT_COD = 4
     PAYMENT_POS = 5
+    PAYMENT_CREDIT = 6
     PAYMENT_UNKNOWN = 99
     PAYMENT_CHOICES = (
         (PAYMENT_UNKNOWN, 'уточняется'),
@@ -875,6 +937,7 @@ class Order(models.Model):
         (PAYMENT_TRANSFER, 'банковский перевод'),
         (PAYMENT_COD, 'наложенный платёж'),
         (PAYMENT_POS, 'платёжный терминал'),
+        (PAYMENT_CREDIT, 'кредит'),
     )
     DELIVERY_COURIER = 1
     DELIVERY_CONSULTANT = 2

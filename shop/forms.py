@@ -1,5 +1,7 @@
 import os
+import re
 from django import forms
+from suit.widgets import AutosizedTextarea
 from django.conf import settings
 
 import autocomplete_light
@@ -57,6 +59,10 @@ class SelectTagForm(forms.Form):
         self.fields['tags'].widget = TagAutoComplete(model=model)
 
 
+class SelectSupplierForm(forms.Form):
+    supplier = forms.ModelChoiceField(label='Поставщик', queryset=Supplier.objects.order_by('order'), required=True, empty_label=None)
+
+
 class ProductAdminForm(autocomplete_light.ModelForm):
     class Meta:
         model = Product
@@ -107,7 +113,7 @@ class OrderAdminForm(autocomplete_light.ModelForm):
         try:
             instance = kwargs['instance']
             self.fields['user_tags'].initial = instance.user.tags
-            self.fields['user_tags'].widget = TagAutoComplete()
+            self.fields['user_tags'].widget = TagAutoComplete(model=type(instance.user))
         except (KeyError, AttributeError):
             pass
 
@@ -125,3 +131,7 @@ class OrderAdminForm(autocomplete_light.ModelForm):
     class Meta:
         model = Order
         exclude = ['created']
+        widgets = {
+            'phone': PhoneWidget(),
+            'phone_aux': PhoneWidget(),
+            }
