@@ -314,6 +314,7 @@ class Supplier(models.Model):
     show_in_order = models.BooleanField('показывать в заказе', default=False, db_index=True)
     count_in_stock = models.SmallIntegerField('учитывать в наличии', choices=COUNT_CHOICES, default=COUNT_NONE)
     spb_count_in_stock = models.SmallIntegerField('учитывать в наличии СПб', choices=COUNT_CHOICES, default=COUNT_NONE)
+    ws_count_in_stock = models.SmallIntegerField('учитывать в наличии Опт', choices=COUNT_CHOICES, default=COUNT_NONE)
     order = models.PositiveIntegerField()
 
     class Meta:
@@ -588,6 +589,7 @@ class Product(models.Model):
             if self.num < 0:
                 product_set.declaration.num = -1
                 product_set.declaration.spb_num = -1
+                product_set.declaration.ws_num = -1
                 updated = True
             if product_set.declaration.recalculate_price:
                 product_set.declaration.update_set_price()
@@ -665,6 +667,9 @@ class Product(models.Model):
             if settings.SHOP_STOCK_DB_COLUMN == 'spb_num':
                 suppliers = self.stock.filter(spb_count_in_stock=Supplier.COUNT_STOCK)
                 site_addon = '= 6'
+            elif settings.SHOP_STOCK_DB_COLUMN == 'ws_num':
+                suppliers = self.stock.filter(ws_count_in_stock=Supplier.COUNT_STOCK)
+                site_addon = '<> 6'
             else:
                 suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
                 site_addon = '<> 6'
@@ -672,6 +677,12 @@ class Product(models.Model):
                 for supplier in suppliers:
                     stock = Stock.objects.get(product=self, supplier=supplier)
                     self.num = self.num + stock.quantity + stock.correction
+
+            # reserve 2 items for retail
+            if self.num > 0 and settings.SHOP_STOCK_DB_COLUMN == 'ws_num':
+                self.num = self.num - 2
+                if self.num < 0:
+                    self.num = 0
 
             if self.num > 0:
                 cursor = connection.cursor()
