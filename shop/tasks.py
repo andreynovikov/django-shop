@@ -291,6 +291,7 @@ def import1c(file):
                 #products[product.id].imported = True
                 product.num = -1
                 product.spb_num = -1
+                product.ws_num = -1
                 product.save()
                 if product in frozen_products.keys() and product.instock > 0:
                     orders.update(frozen_products[product])
