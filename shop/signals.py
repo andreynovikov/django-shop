@@ -16,6 +16,7 @@ def order_saved(sender, **kwargs):
     for item in order.items.all():
         item.product.num = -1
         item.product.spb_num = -1
+        item.product.ws_num = -1
         item.product.save()
 
     if order.tracker.has_changed('status'):
