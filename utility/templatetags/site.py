@@ -1,5 +1,8 @@
+from django.conf import settings
 from django import template
 from django.contrib.sites.models import Site
+
+from shop.models import Category
 
 
 register = template.Library()

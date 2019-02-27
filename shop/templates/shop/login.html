@@ -12,10 +12,10 @@
 {% block content %}
 {% load staticfiles %}
 {% load shop_filters %}
-<h1>Что с моим заказом?</h1>
+<h1>Вход для оптовых покупателей</h1>
 {% if next %}
     {% if user.is_authenticated %}
-    <p>У вас нет права доступа к этой странице.</p>
+    <div class="alert alert-danger" role="alert">У вас нет права доступа к этой странице. Чтобы получить к ней доступ, авторизуйтесь.</div>
     {% else %}
     <!-- <p>Пожалуйста, авторизуйтесь, чтобы увидеть эту страницу.</p> -->
     {% endif %}
@@ -23,13 +23,13 @@
 <form id="login-form" class="form-inline" action="{% url 'shop:login' %}" method="post">
     {% csrf_token %}
     <input type="hidden" name="next" value="{{ next }}"/>
-    <p><label class="control-label lead" for="phone-input">Укажите номер мобильного телефона:</label>
+    <p><label class="control-label lead" for="phone-input">Номер мобильного телефона:</label>
     <div class="input-group">
         <span class="input-group-addon input-lg sw-phone-input">+7</span>
-        <input type="tel" class="form-control input-lg sw-phone-input" name="phone" id="phone-input" value="{{ phone }}" size="20"
+        <input type="text" class="form-control input-lg sw-phone-input" name="phone" id="phone-input" value="{{ phone }}" size="20"
            placeholder="(999) 111-22-33"/>
     </div></p>
-    <p><label class="control-label lead" for="password-input">Пароль (его прислали Вам по СМС после заказа):</label>
+    <p><label class="control-label lead" for="password-input">Пароль:</label>
     <div id="password-block"{% if wrong_password %} class="has-error"{% endif %}>
         <input type="password" class="form-control input-lg" name="password" id="password-input" value="" size="20"/>
         {% if wrong_password %}

@@ -13,50 +13,38 @@
 	.sw-small-jumbotron      { font-size:10pt; }
 </style>
 {% endblock %}
-
+{% block cart_notice_output %}
+{% endblock %}
 {% block content %}
 {% load staticfiles %}
-{% load decimals %}
 {% load shop_filters %}
 <h1>Оформление заказа</h1>
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
-<div class="text-center">
+<div>
     {% for item in basket.items.all %}
-    <div class="sw-p-l panel panel-default sw-product-row">
-       <div class="panel-body">
-          <div class="sw-p-l-image text-center">
-             {% if item.product.image_prefix|add:'.s.jpg'|file_exists %}
-                 <img src="{{ MEDIA_URL }}{{ item.product.image_prefix }}.s.jpg"/>
-             {% else %}
-                 <img src="{% static 'i/noimage.png' %}"/>
-             {% endif %}
-          </div>
-          <div class="sw-p-l-name text-center">
-             <a href="http://www.sewing-world.ru/products/{{ item.product.code }}.html"
-                class="sw-basket-product-title">{{ item.product.title }}</a>
-          </div>
-          <div class="text-center">
+    <div class="row sw-product-row">
+          <div class="sw-p-l-name col-md-4">{{ item.product.title }}{% if item.product.pack_factor != 1 %}
+<div class="small">Упаковка: {{ item.product.pack_factor }}{% if item.product.ws_pack_only %} (продажа только упаковками){% endif %}</div>
+{% endif %}</div>
+          <div class="text-right col-md-3">
              {% if item.discount > 0 %}
-                 {{ item.product.price|quantize:'1' }}&nbsp;руб.
+                 {{ item.product.ws_price }}&nbsp;руб.
                  - {{ item.discount_text }}
                  = {{ item.cost }}&nbsp;руб.
              {% else %}
-                 {{ item.product.price|quantize:'1' }}&nbsp;руб.
+                 {{ item.product.ws_price }}&nbsp;руб.
              {% endif %}
-             <form class="update form-inline ajax" action="{% url 'shop:update' item.product.id %}" method="post">
+          </div>
+             <form class="col-md-2 update form-inline ajax" action="{% url 'shop:update' item.product.id %}" method="post">
              {% csrf_token %}
              <div class="input-group quantity-container">
-                <span class="input-group-btn sw-minus"><button type="button" class="btn btn-default" aria-label="-">-</button></span>
                 <input class="form-control sw-basket-quantity" type="text" name="quantity" value="{{ item.quantity }}" size="3" title="Количество"/>
-                <span class="input-group-btn sw-plus"><button  type="button" class="btn btn-default" aria-label="+">+</button></span>
+                <span class="input-group-btn sw-delete"><a href="{% url 'shop:delete' item.product.id %}" class="btn btn-warning delete ajax" role="button"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></a></span>
              </div>
              </form>
-          <div>
-            <span class="sw-p-l-price"><span id="price_{{item.product.id}}">{{ item.price }}</span></span>&nbsp;руб.
-          </div>
-          <a href="{% url 'shop:delete' item.product.id %}" class="delete ajax">Удалить</a>
-       </div>
-       </div>
+             <div class="text-right col-md-1">
+                 <span id="price_{{ item.product.id }}">{{ item.price }}</span>&nbsp;руб.
+             </div>
     </div>
     {% endfor %}
 
@@ -70,27 +58,6 @@
 {% block javascript %}
     <script type="text/javascript">
         $(document).ready(function () {
- //           window.dataLayer = window.dataLayer || [];
-            dataLayer.push({
-            'event': 'checkout',
-              "ecommerce": {
-                "checkout": {
-                    "actionField": {
-                        'step': 1
-                    },
-                    "products": [
-{% for item in basket.items.all %}
-                        {
-                            "id": "{{ item.product.id }}",
-                            "name": "{{ item.product.title }}",
-                            "price": "{{ item.product.price }}",
-                            "quantity": "{{ item.quantity }}"
-                        },
-{% endfor %}
-                    ]
-                }
-              }
-            });
             var CustomHandlers = function () {
             };
             CustomHandlers.prototype.setQuantityWarning = function (e, $el) {
@@ -157,26 +124,6 @@
 
             $(".sw-basket-quantity").mask("9?99999", {placeholder: ""});
 
-            $(".sw-minus").on("click", function () {
-                var $input = $(this).parent().find("input");
-                var $form  = $(this).closest("form");
-                var count = parseInt($input.val()) - 1;
-                count = count < 1 ? 1 : count;
-                $input.val(count);
-                $input.change();
-                $form.submit();
-                return false;
-            });
-
-            $(".sw-plus").on("click", function () {
-                var $input = $(this).parent().find("input");
-                var $form  = $(this).closest("form");
-                $input.val(parseInt($input.val()) + 1);
-                $input.change();
-                $form.submit();
-                return false;
-            });
-
             initHandlers();
         });
 
@@ -202,29 +149,4 @@
             $("#order-submit").prop("disabled", false);
         }
     </script>
-    <script type="text/javascript">
-var google_tag_params = {
-ecomm_prodid: [
-{% for item in basket.items.all %}
-{{ item.product.id }}
-{% if not forloop.last %},{% endif %}
-{% endfor %}],
-ecomm_pagetype: 'cart',
-ecomm_totalvalue: {{ basket.total }},
-};
-</script>
-<script type="text/javascript">
-/* <![CDATA[ */
-var google_conversion_id = 826531590;
-var google_custom_params = window.google_tag_params;
-var google_remarketing_only = true;
-/* ]]> */
-</script>
-<script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js">
-</script>
-<noscript>
-<div style="display:inline;">
-<img height="1" width="1" style="border-style:none;" alt="" src="//googleads.g.doubleclick.net/pagead/viewthroughconversion/826531590/?guid=ON&amp;script=0"/>
-</div>
-</noscript>
 {% endblock %}

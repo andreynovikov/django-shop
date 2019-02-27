@@ -1,4 +1,5 @@
 import os
+import re
 from django import forms
 from django.forms.models import model_to_dict
 #from suit.widgets import AutosizedTextarea
@@ -157,3 +158,7 @@ class OrderAdminForm(forms.ModelForm): #autocomplete_light.ModelForm):
     class Meta:
         model = Order
         exclude = ['created']
+        widgets = {
+            'phone': PhoneWidget(),
+            'phone_aux': PhoneWidget(),
+            }
