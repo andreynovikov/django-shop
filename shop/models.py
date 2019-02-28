@@ -786,6 +786,7 @@ class Stock(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, verbose_name='поставщик')
     quantity = models.FloatField('кол-во', default=0)
     correction = models.FloatField('корректировка', default=0)
+    reason = models.CharField('причина', max_length=100, blank=True)
 
     class Meta:
         verbose_name = 'запас'
