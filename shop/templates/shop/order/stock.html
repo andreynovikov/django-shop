@@ -1,24 +1,24 @@
+{% load shop_admin %}
 <!DOCTYPE html>
 <html>
 <head><title>Задание на отбор</title>
 <style type="text/css">
-body     { font-size:12pt; font-family:serif; }
-td       { font-size: 12pt; }
+body     { font-size:12pt; font-family:sans-serif; }
+th, td   { font-size: 12pt; }
+th       { white-space: nowrap; }
 h1       { font-size: 18pt; }
 table    { border-collapse:collapse; width:800px; }
 .border  { border:1px solid black; }
 .bold    { font-weight:bold; }
 .small   { font-size: 7pt; }
 .user    { font-size: 14pt; }
-.products td { border:1px solid black; text-align:center; padding:5px;}
+.products td, .products th { border:1px solid black; text-align:center; padding:5px;}
 .products    { border:1px solid black; }
-.address td { border:none;font-size:14pt; padding:5px;}
-.address    { border:none; padding-bottom:20px; }
-.title td    { text-align:center; }
-.title       { width:600px; padding-left:100px; padding-top:20px; padding-bottom:20px; border-collapse:separate; }
+.address td { border:none; font-size:14pt; padding:5px;}
+.address    { border:none; margin-bottom:20px; }
 .left    { text-align:left!important;}
-.right   { text-align:right;}
-.center  { text-align:center;}
+.right   { text-align:right!important;}
+.center  { text-align:center!important;}
 
 </style>
 </head>
@@ -40,18 +40,24 @@ table    { border-collapse:collapse; width:800px; }
 
 <table class="products">
 <tr>
-<td>
+<th>
 №
-</td>
-<td>
+</th>
+<th>
 P/N
-</td>
-<td>
+</th>
+<th>
 Товар
-</td>
-<td>
+</th>
+<th>
+Склад
+</th>
+<th>
 Кол-во
-</td>
+</th>
+<th>
+Стоимость
+</th>
 </tr>
 {% for item in order.items.all|dictsort:"product.partnumber" %}
 <tr>
@@ -65,10 +71,32 @@ P/N
 {{ item.product.article }} {{ item.product.title }}
 </td>
 <td>
+{% product_stock item.product order %}
+</td>
+<td>
 {{ item.quantity }}
+</td>
+<td class="right">
+{{ item.cost }}
 </td>
 </tr>
 {% endfor %}
+<tr>
+<td colspan="5" class="right">
+Доставка:
+</td>
+<td class="right">
+{{ order.delivery_price }}
+</td>
+</tr>
+<tr>
+<td colspan="5" class="right">
+Всего:
+</td>
+<td class="right">
+{{ order.total }}
+</td>
+</tr>
 </table>
 
 </body>

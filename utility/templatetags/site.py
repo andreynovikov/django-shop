@@ -14,12 +14,15 @@ def site_url_prefix(context):
     return '%s://%s' % (context['request'].scheme, Site.objects.get_current().domain)
 
 
-@register.assignment_tag
+@register.simple_tag
 def get_categories_root():
-    return Category.objects.get(slug=settings.MPTT_ROOT)
+    try:
+        return Category.objects.get(slug=settings.MPTT_ROOT)
+    except Category.DoesNotExist:
+        return None
 
 
-@register.assignment_tag
+@register.simple_tag
 def get_class_name(ref):
     return ref.__class__.__name__
 
@@ -36,3 +39,8 @@ def filter_qs(queryset, field):
 @register.filter
 def get_dict_item(dictionary, key):
     return dictionary.get(key)
+
+
+@register.filter
+def get_list_item(dictionary, idx):
+    return dictionary[idx]
