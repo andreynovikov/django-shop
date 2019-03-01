@@ -13,7 +13,7 @@ from django.db.models.signals import pre_save, post_save
 from django.utils import timezone
 from django.utils.formats import date_format
 from django.utils.functional import cached_property
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 
 from colorfield.fields import ColorField
@@ -59,7 +59,9 @@ class ShopUserManager(BaseUserManager):
     def format_phone(phone):
         m = re.match(r"(\+7)(\d{3})(\d{3})(\d{2})(\d{2})", phone)
         if not m:
-            return phone
+            m = re.match(r"(\+7)(\d{3})(\d.{2})(.{2})(\d{2})", phone)
+            if not m:
+                return phone
         return "{0} ({1}) {2}-{3}-{4}".format(*m.groups())
 
 
@@ -135,7 +137,7 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
 class Category(MPTTModel):
     name = models.CharField(max_length=100)
     slug = models.CharField(max_length=100, db_index=True)
-    parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True)
+    parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True, on_delete=models.PROTECT)
     active = models.BooleanField()
     filters = models.CharField('фильтры', max_length=255, blank=True)
     brief = models.TextField('описание', blank=True)
@@ -158,12 +160,23 @@ class Category(MPTTModel):
     def get_absolute_url(self):
         return reverse('category', kwargs={'path': self.get_path()})
 
-    #def save(self, *args, **kwargs):
-    #    super(Category, self).save(*args, **kwargs)
-    #    Category.objects.rebuild()
-
     def __str__(self):
-        return self.name
+        #return self.name
+        show_path = False
+        import traceback
+        tb = traceback.extract_stack(limit=6)
+        for line in tb:
+            if self.id == 15:
+                import sys
+                print('{}: {}'.format(line.filename, line.name), file=sys.stderr)
+            if line.name == 'field_choices' and line.filename.endswith('contrib/admin/filters.py'):
+                show_path = True
+            if line.name == 'get' and line.filename.endswith('contrib/admin/views/autocomplete.py'):
+                show_path = True
+        if show_path:
+            return '/'.join([x['name'] for x in self.get_ancestors(include_self=True).values()])
+        else:
+            return self.name
 
     class Meta:
         verbose_name = "категория"
@@ -279,6 +292,9 @@ class Store(models.Model):
     def autocomplete_search_fields():
         return ['name__icontains', 'address__icontains', 'city__name__icontains']
 
+    def get_absolute_url(self):
+        return reverse('store', args=[str(self.pk)])
+
     def __str__(self):
         return str(self.city) + ', ' + self.address
 
@@ -316,6 +332,7 @@ class Manufacturer(models.Model):
     class Meta:
         verbose_name = 'производитель'
         verbose_name_plural = 'производители'
+        ordering = ['name']
 
     @staticmethod
     def autocomplete_search_fields():
@@ -344,6 +361,7 @@ class Supplier(models.Model):
     class Meta:
         verbose_name = 'поставщик'
         verbose_name_plural = 'поставщики'
+        ordering = ['order']
 
     @staticmethod
     def autocomplete_search_fields():
@@ -376,6 +394,7 @@ class Advert(models.Model):
     class Meta:
         verbose_name = 'реклама'
         verbose_name_plural = 'рекламы'
+        ordering = ['order']
 
     def __str__(self):
         return self.name
@@ -400,6 +419,10 @@ class SalesAction(models.Model):
     class Meta:
         verbose_name = 'акция'
         verbose_name_plural = 'акции'
+        ordering = ['order']
+
+    def get_absolute_url(self):
+        return reverse('sales_action', args=[self.slug])
 
     def __str__(self):
         return self.name
@@ -472,6 +495,7 @@ class Product(models.Model):
     suspend=models.BooleanField('Готовится к выпуску', default=False)
     order = models.IntegerField('позиция сортировки', default=0, db_index=True)
     opinion=models.CharField('Ссылка на обсуждение модели', max_length=255, blank=True)
+    allow_reviews=models.BooleanField('Разрешить обзоры', default=True)
     dimensions=models.CharField('Размеры', max_length=255, blank=True)
     measure=models.CharField('Единицы', max_length=10, blank=True)
     weight=models.FloatField('Вес нетто', default=0)
@@ -722,8 +746,10 @@ class Product(models.Model):
                     self.num = 0
         else:
             self.num = 32767
-            for constituent in self.constituents.all():
-                num = constituent.instock
+            for item in ProductSet.objects.filter(declaration=self):
+                num = item.constituent.instock
+                if item.quantity > 1:
+                    num = int(num / item.quantity)
                 if num < self.num:
                     self.num = num
 
@@ -902,8 +928,8 @@ class Basket(models.Model):
 
 
 class BasketItem(models.Model):
-    basket = models.ForeignKey(Basket, related_name='items', related_query_name='item')
-    product = models.ForeignKey(Product, related_name='+')
+    basket = models.ForeignKey(Basket, related_name='items', related_query_name='item', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, related_name='+', on_delete=models.PROTECT)
     quantity = models.PositiveSmallIntegerField(default=1)
 
     @property
@@ -1055,10 +1081,10 @@ class Order(models.Model):
     # order
     comment = models.TextField('комментарий', blank=True)
     shop_name = models.CharField('магазин', max_length=20, blank=True)
-    site = models.ForeignKey(Site, verbose_name='сайт')
+    site = models.ForeignKey(Site, verbose_name='сайт', on_delete=models.PROTECT)
     payment = models.SmallIntegerField('оплата', choices=PAYMENT_CHOICES, default=PAYMENT_UNKNOWN)
     paid = models.BooleanField('оплачен', default=False)
-    manager = models.ForeignKey(Manager, verbose_name='менеджер', blank=True, null=True)
+    manager = models.ForeignKey(Manager, verbose_name='менеджер', blank=True, null=True, on_delete=models.SET_NULL)
     manager_comment = models.TextField('комментарий менеджера', blank=True)
     # delivery
     delivery = models.SmallIntegerField('доставка', choices=DELIVERY_CHOICES, default=DELIVERY_UNKNOWN, db_index=True)
@@ -1076,14 +1102,14 @@ class Order(models.Model):
     delivery_pickpoint_terminal = models.CharField('терминал', max_length=10, blank=True)
     delivery_pickpoint_service = models.CharField('тип сдачи', max_length=10, choices=PICKPOINT_SERVICES, default=PICKPOINT_SERVICE_STD)
     delivery_pickpoint_reception = models.CharField('вид приема', max_length=10, choices=PICKPOINT_RECEPTIONS, default=PICKPOINT_RECEPTION_CUR)
-    buyer = models.ForeignKey(Contractor, verbose_name='покупатель 1С', related_name='покупатель', blank=True, null=True)
-    seller = models.ForeignKey(Contractor, verbose_name='продавец 1С', related_name='продавец', blank=True, null=True)
+    buyer = models.ForeignKey(Contractor, verbose_name='покупатель 1С', related_name='покупатель', blank=True, null=True, on_delete=models.SET_NULL)
+    seller = models.ForeignKey(Contractor, verbose_name='продавец 1С', related_name='продавец', blank=True, null=True, on_delete=models.SET_NULL)
     wiring_date = models.DateField('дата проводки', blank=True, null=True)
-    courier = models.ForeignKey(Courier, verbose_name='курьер', blank=True, null=True)
+    courier = models.ForeignKey(Courier, verbose_name='курьер', blank=True, null=True, on_delete=models.SET_NULL)
     store = models.ForeignKey(Store, verbose_name='магазин самовывоза', blank=True, null=True, on_delete=models.PROTECT)
     utm_source = models.CharField(max_length=20, blank=True)
     # user
-    user = models.ForeignKey(ShopUser, verbose_name='покупатель')
+    user = models.ForeignKey(ShopUser, verbose_name='покупатель', on_delete=models.PROTECT)
     name = models.CharField('имя', max_length=100, blank=True)
     postcode = models.CharField('индекс', max_length=10, blank=True)
     city = models.CharField('город', max_length=255, blank=True)
@@ -1226,8 +1252,8 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, related_name='items', related_query_name='item')
-    product = models.ForeignKey(Product, related_name='+', verbose_name='товар')
+    order = models.ForeignKey(Order, related_name='items', related_query_name='item', on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, related_name='+', verbose_name='товар', on_delete=models.PROTECT)
     product_price = models.DecimalField('цена товара', max_digits=10, decimal_places=2, default=0)
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
