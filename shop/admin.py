@@ -238,7 +238,9 @@ class ProductRelationAdmin(admin.ModelAdmin):
     list_filter = ['kind']
     search_fields = ['parent_product__title','parent_product__code', 'parent_product__article', 'parent_product__partnumber',
                      'child_product__title','child_product__code', 'child_product__article', 'child_product__partnumber']
-    form = autocomplete_light.modelform_factory(ProductRelation, exclude=['fake'])
+    #form = autocomplete_light.modelform_factory(ProductRelation, exclude=['fake'])
+    # REMOVE IT IN Django2!
+    raw_id_fields = ['parent_product', 'child_product']
 
 
 class StockInline(admin.TabularInline):
