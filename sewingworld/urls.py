@@ -3,13 +3,13 @@ from django.conf.urls import include, url
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from ajax_select import urls as ajax_select_urls
 
 import mptt_urls
 
 import shop
 
 from . import views
+
 
 urlpatterns = [
     # ex: /
@@ -30,12 +30,6 @@ urlpatterns = [
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*
     url(r'^shop/', include('shop.urls', namespace='shop')),
-    url(r'^blog/', include('zinnia.urls')),
-    url(r'^comments/', include('django_comments.urls')),
-    url(r'^autocomplete/', include('autocomplete_light.urls')),
-    url(r'^admin/lookups/', include(ajax_select_urls)),
-    url(r'^admin/import1c/$', shop.views.import_1c, name='import_1c'),
-    url(r'^admin/', include(admin.site.urls)),
 ]
 
 urlpatterns += staticfiles_urlpatterns()

@@ -7,6 +7,7 @@ from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, HttpResponseServerError, HttpResponseNotFound
 from django.shortcuts import render, get_object_or_404
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.admin.views.decorators import staff_member_required
@@ -14,7 +15,7 @@ from django_ipgeobase.models import IPGeoBase
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 from django.core.mail import mail_admins
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.forms.models import model_to_dict
 from django.core.exceptions import MultipleObjectsReturned
 from django.utils.formats import localize
@@ -294,6 +295,53 @@ def authorize(request):
             return HttpResponseRedirect(reverse('shop:basket'))
 
 
+def register_user(request):
+    if request.method == 'POST':
+        phone = request.POST.get('phone')
+        norm_phone = ShopUserManager.normalize_phone(phone)
+        next_url = request.POST.get('next')
+        if norm_phone:
+            try:
+                user = ShopUser.objects.get(phone=norm_phone)
+                context = {
+                    'phone': phone,
+                    'email': request.POST.get('email'),
+                    'name': request.POST.get('name'),
+                    'username': request.POST.get('username'),
+                    'next': next_url,
+                    'error': 'Пользователь с таким телефоном уже зарегистрирован'
+                }
+            except ShopUser.DoesNotExist:
+                # create user, it will be authorized later by login
+                try:
+                    user = ShopUser(phone=norm_phone)
+                    user.email = request.POST.get('email')
+                    user.name = request.POST.get('name')
+                    user.username = request.POST.get('username')
+                    user.save()
+                    params = {
+                        'phone': norm_phone,
+                        'next': next_url,
+                        'reg': 1
+                    }
+                    return HttpResponseRedirect(reverse('shop:login') + '?' + urlencode(params))
+                except IntegrityError:
+                    logger.exception("An error occurred")
+                    context = {
+                        'phone': phone,
+                        'email': request.POST.get('email'),
+                        'name': request.POST.get('name'),
+                        'username': request.POST.get('username'),
+                        'next': next_url,
+                        'error': 'Пользователь с таким именем уже зарегистрирован'
+                    }
+    else:
+        context = {
+            'next': request.GET.get('next')
+        }
+    return render(request, 'shop/register.html', context)
+
+
 def login_user(request):
     """
     Login user preserving his basket
@@ -551,6 +599,20 @@ def update_user(request):
 
 
 @staff_member_required
+def goto_order(request):
+    order_id = request.GET.get('order', None)
+    if order_id is not None:
+        try:
+            order = Order.objects.get(pk=order_id)
+            return HttpResponseRedirect(reverse('admin:shop_order_change', args=[order.id]))
+        except Order.DoesNotExist:
+            messages.add_message(request, messages.ERROR, 'Заказ №{} отсутствует'.format(order_id))
+        except ValueError:
+            messages.add_message(request, messages.WARNING, 'Укажите номер заказа')
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+
+@staff_member_required
 def import_1c(request):
     if request.method == 'POST':
         form = OneSImportForm(request.POST, request.FILES)
@@ -558,8 +620,10 @@ def import_1c(request):
             result = form.save()
             context = {'result': result}
         else:
-            context = {'result': form.errors}
+            context = {'form': form}
+        context['is_popup'] = request.POST.get('_popup', 0)
     else:
         form = OneSImportForm()
-        context = {'form': form, 'url_name': 'import_1c'}
+        context = {'form': form, 'is_popup': request.GET.get('_popup', 0)}
+    context['title'] = "Импорт 1С"
     return render(request, 'admin/shop/import_1c.html', context)

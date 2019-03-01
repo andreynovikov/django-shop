@@ -3,14 +3,14 @@
 <channel>
 {% load mptt_tags %}
 <title>Швейный Мир</title>
-<link>http://www.sewing-world.ru</link>
+<link>https://www.sewing-world.ru</link>
 {% for product in products %}
 <item>
 <g:id>{{ product.id }}</g:id>
 <title>{{ product.title }}</title>
 <g:description>{{ product.whatis|safe }} {{ product.yandexdescr|safe }} {{ product.descr|striptags }}</g:description>
-<link>http://www.sewing-world.ru/products/{{ product.code }}.html?utm_source=merchant&amp;utm_term={{ product.id }}</link>
-<g:image_link>https://order.sewing-world.ru{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</g:image_link>
+<link>https://www.sewing-world.ru/products/{{ product.code }}.html?utm_source=merchant&amp;utm_term={{ product.id }}</link>
+<g:image_link>https://www.sewing-world.ru{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</g:image_link>
 {% if product.instock > 0 %}
 <g:availability>in stock</g:availability>
 {% else %}

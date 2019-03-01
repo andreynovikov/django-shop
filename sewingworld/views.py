@@ -55,5 +55,45 @@ def product(request, code):
                         product.images.append(file[:-6])
         except NotADirectoryError:
             pass
-    context = {'product': product}
+    category = None
+    cat_id = request.GET.get('cat', None)
+    if cat_id is not None:
+        try:
+            category = Category.objects.get(pk=cat_id)
+        except Category.DoesNotExist:
+            pass
+        except ValueError:
+            pass
+    if category is None and product.breadcrumbs:
+        category = product.breadcrumbs.last()
+
+    # temporary
+    if not product.categories.exists():
+        product.enabled = False
+
+    if not product.hide_contents:
+        constituents = ProductSet.objects.filter(declaration=product).order_by('-constituent__price')
+    else:
+        constituents = None
+
+    context = {
+        'category': category,
+        'product': product,
+        'constituents': constituents,
+        'accessories': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_ACCESSORY),
+        'similar': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR),
+        'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT),
+        'utm_source': request.GET.get('utm_source', None)
+        }
     return render(request, 'product.html', context)
+
+
+def review_product(request, code):
+    product = get_object_or_404(Product, code=code)
+    if product.categories.exists() and not product.breadcrumbs:
+        raise Http404("Product does not exist")
+
+    context = {
+        'target': product,
+        }
+    return render(request, 'reviews/post.html', context)

@@ -27,6 +27,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='order',
             name='courier',
-            field=models.ForeignKey(to='shop.Courier', blank=True, null=True, verbose_name='курьер'),
+            field=models.ForeignKey(to='shop.Courier', blank=True, null=True, verbose_name='курьер', on_delete=models.SET_NULL),
         ),
     ]

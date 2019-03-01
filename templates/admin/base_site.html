@@ -1,187 +1,33 @@
-{% extends "admin/base.html" %}
-{% load i18n %}
+{% extends "admin/base_site.html" %}
 {% block extrastyle %}
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
+{# https://fontawesome.com/icons?d=gallery&m=free #}
 <style>
-.add-on {
-    padding:2px!important;
-    margin-top:1px!important;
-    border: 1px solid #eee!important;
-}
-
-#order-quick-link-input {
-    border-radius: 5px;
-    border: 1px solid #000;
-    width: 100px;
-    padding: 3px 10px;
-    background: #f6f7f8;
-    height: 25px;
-    font-size: 14px;
-    text-align:center;
-    line-height: 18px;
-    color: #555555;
-}
-label[for="id_user"]+div, label[for="id_user"] {
-    x-display:none!important;
-}
-
-#order_form tr.dynamic-items td.field-product, #order_form #items-group table thead th:nth-child(1) {
-    display: none !important;
-}
-
-#group_form .field-permissions .selector select {
-    height: 300px;
-}
-
-#group_form .control-group .controls .selector .selector-available, #group_form .control-group .controls .selector .selector-chosen {
-    max-width: 100% !important;
-}
-
-.autocomplete-light-widget .deck [data-value] {
-    display: block !important;
-}
-
-#result_list td,
-#result_list th  {
-    padding:2px;
-}
-#result_list .action-checkbox,
-#result_list .action-checkbox-column {
-    padding-left:5px;
-}
-#id_title,
-#id_categories,
-#id_runame,
-#id_whatis,
-#id_spec,
-#id_shortdescr,
-#id_yandexdescr,
-#id_descr,
-#id_state,
-#id_complect,
-#id_dealertxt,
-#id_sales_notes,
-#id_present,
-#id_comment,
-#id_manager_comment,
-#id_delivery_info,
-#id_firm_details,
-#id_address,
-#id_firm_address,
-#s2id_id_tags,
-#s2id_id_user_tags {
-    width:100% !important;
-    max-width:587px;
-}
-#id_categories {
-    height:200px;
-}
-#id_phone {font-size:16px;}
-input#id_delivery_time_from, input#id_delivery_time_till {
-    width: 4em;
-}
-.control-label {
-    padding-top:5px!important;
-}
-.controls,
-.field-product_price input,
-.field-pct_discount input,
-.field-val_discount input,
-.field-quantity input,
-.field-total input {
-    padding-top:1px!important;
-    padding-bottom:1px!important;
-}
-.controls input,
-.controls textarea,
-.controls select  {
-    border:1px solid #eee!important;
-    padding-top:2px!important;
-    padding-bottom:2px!important;
-}
-.controls .multi-field-box {
-    margin-top:0!important;
-}
-
-
-td.field-price, td.field-cur_price, td.field-pct_discount, td.field-val_discount {
-    text-align: right;
-}
-#order-quick-link {
-    position: relative;
-    float: right;
-    margin: 0px;
-    padding: 12px 20px 0px 0px;
-}
-#order-quick-link label {
-    display: inline;
-}
-#order-quick-link-input {
-    margin-top: -4px;
-    padding: 0px 10px 0px 0px;
-    width: 5em;
-    box-sizing: border-box;
-    overflow: hidden;
-    outline: 0px none;
-    vertical-align: middle;
-    box-shadow: 0px 1px 1px rgba(0, 0, 0, 0.075) inset, 0px 0px 8px rgba(82, 168, 236, 0.6);
-}
+    @media (max-width: 1200px) {
+    #branding h1 { display: none }
+    }
+    @media (max-width: 1024px) {
+    #branding h1 { display: block }
+    #quick-links, #order-quick-link { margin: 8px 0 0; }
+    }
+    @media (min-width: 1024px) {
+    #quick-links, #order-quick-link { margin: 0 0 0 20px }
+    }
+    #quick-links, #order-quick-link { float: right }
+    #quick-links { text-transform: uppercase }
 </style>
 {% endblock %}
-
-{% block extrajs %}
-<script type="text/javascript" charset="utf-8">
-(function($) {
-  $(document).ready(function() {
-    function handleEnter() {
-        var orderId = $("#order-quick-link-input").val();
-        window.location.href = "/admin/shop/order/" + orderId + "/";
-        return(false);
-    }
-    $("#order-quick-link-form").submit(handleEnter);
-
-//    $("left-nav ul li.active a::after").click($(".suit-columns").css("padding-left","0"));
-    
-    if (~window.location.pathname.indexOf("/admin/shop/order/")){
-        $( "button[name='_save']" ).remove();
-        $( "button[name='_addanother']" ).remove();
-        $( "button[name='_continue']" ).after("<button type=\"submit\" class=\"btn btn-high\" name=\"_save\">Сохранить</button>");
-        $( "button[name='_continue']" ).addClass("btn-info");
-        $( "button[name='_save']" ).html("Сохранить и выйти");
-        var Phone = $( "#id_phone" ).val();
-        $( "label[for='id_phone']" ).html("<a href=\"skype:"+Phone+"?call\">Телефон:</a>");
-        var Delivery_Price = $( "input[name='delivery_price']" ).val();
-        var Total = $( "div.field-total > div > div > span.readonly" ).html();
-        var Number = $( "div.field-id > div > div.controls > span.readonly" ).html();
-        $( "div.field-total" ).css("display","none");
-        $( "div.field-id" ).css("display","none");
-        $("#items-group" ).after("<div style=\"text-align:right;\" class=\"lead\">Итого: " + Total + "</div>");
-        $(".save-box" ).before("<div style=\"text-align:center;\" class=\"lead\">Заказ " + Number + "</div>");
-        $("#items-group" ).after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Доставка: " + Delivery_Price + "</div>");
-    }
-  });
-})(jQuery);
-</script>
-{% endblock %}
-
-{% block extrahead %}
-    {{ block.super }}
-    {% include 'autocomplete_light/static.html' %}
-{% endblock %}
-
 {% block nav-global %}
-<div id="order-quick-link">
-<form id="order-quick-link-form">
-<label for="order-quick-link-input">Заказ:</label>
-<input id="order-quick-link-input" size="3"/>
-</form>
+<div id="quick-links">
+    <a href="{% url 'admin:shop_order_changelist' %}">Заказы</a>
+    /
+    <a href="{% url 'admin:shop_product_changelist' %}">Товары</a>
+    /
+    <a href="{% url 'admin:import_1c' %}?_popup=1" onclick="window.open(this.href, 'Импорт 1С', 'height=500,width=800,resizable=yes,scrollbars=yes').focus(); return false;">Импорт 1С</a>
 </div>
-{% endblock %}
-
-{% block welcome-msg %}
-{% trans 'Welcome,' %}
-<strong>
-{% filter force_escape %}
-{% firstof user.first_name user.username user.name %}
-{% endfilter %}
-</strong>.
+<div id="order-quick-link">
+    <form action="{% url 'admin:goto_order' %}">
+        Заказ: <input type="text" name="order" size="5" autocomplete="off" />
+    </form>
+</div>
 {% endblock %}
