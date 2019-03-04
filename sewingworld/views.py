@@ -222,7 +222,7 @@ def product(request, code):
         product.enabled = False
 
     if not product.hide_contents:
-        constituents = ProductSet.objects.filter(declaration=product)
+        constituents = ProductSet.objects.filter(declaration=product).order_by('-constituent__price')
     else:
         constituents = None
 
@@ -236,3 +236,14 @@ def product(request, code):
         'utm_source': request.GET.get('utm_source', None)
         }
     return render(request, 'product.html', context)
+
+
+def review_product(request, code):
+    product = get_object_or_404(Product, code=code)
+    if product.categories.exists() and not product.breadcrumbs:
+        raise Http404("Product does not exist")
+
+    context = {
+        'target': product,
+        }
+    return render(request, 'reviews/post.html', context)

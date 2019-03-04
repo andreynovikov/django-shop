@@ -7,6 +7,7 @@ import mptt_urls
 
 from . import views
 
+
 urlpatterns = [
     # ex: /
     url(r'^$', views.index, name='index'),
