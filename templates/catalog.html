@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% load mptt_tags %}
+{% block title %}
+<title>Каталог</title>
+{% endblock %}
+{% block content %}
+<h1>Каталог</h1>
+{% for node,structure in root.get_descendants|tree_info %}
+    {% if structure.new_level %}<ul><li>{% else %}</li><li>{% endif %}
+        <a href="{{ node.get_absolute_url }}">{{ node.name }}</a>
+    {% for level in structure.closed_levels %}</li></ul>{% endfor %}
+{% endfor %}
+{% endblock %}

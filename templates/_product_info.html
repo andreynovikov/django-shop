@@ -1,0 +1,22 @@
+<form class="row update form-inline ajax" action="{% url 'shop:update' product.id %}" method="post">
+{% csrf_token %}
+<div class="col-md-8"><a class="expand-description" data-toggle="collapse" href="#descr_{{ product.id }}" aria-expanded="false" aria-controls="descr_{{ product.id }}">{{ product.title }}</a>
+{% if product.pack_factor != 1 %}
+<div class="small">Упаковка: {{ product.pack_factor }}{% if product.ws_pack_only %} (продажа только упаковками){% endif %}</div>
+{% endif %}
+<div class="row collapse" id="descr_{{ product.id }}" style="padding-left:15px;"></div>
+</div>
+<div class="col-md-2">
+{{ cost|floatformat:"-2" }}&nbsp;руб.
+</div>
+<div class="col-md-2">
+<div class="input-group spinner quantity-container" data-trigger="spinner">
+  <input name="quantity" type="text" class="form-control text-center sw-basket-quantity" value="{{ quantity }}" data-min="0" {% if product.ws_pack_only %}data-step="{{ product.pack_factor }}" {% endif %}data-delay="1000" id="spinner{{ product.id }}" autocomplete="off" />
+  <span class="input-group-addon">
+    <a href="javascript:;" class="spin-up" data-spin="up"><i class=" glyphicon glyphicon-triangle-top"></i></a>
+    <a href="javascript:;" class="spin-down" data-spin="down"><i class=" glyphicon glyphicon-triangle-bottom"></i></a>
+  </span>
+</div>
+</div>
+</form>
+
