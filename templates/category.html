@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% load mptt_tags %}
+{% block title %}
+<title>{{ category.name }}</title>
+{% endblock %}
+{% block content %}
+<h1>{{ category.name }}</h1>
+<div class="row">
+<ul class="col-md-3">
+{% for node,structure in root.get_descendants|tree_info %}
+    {% if structure.new_level %}<ul><li>{% else %}</li><li>{% endif %}
+        {% if node.pk == category.pk  %}
+            <b>{{ node.name }}</b>
+        {% else %}
+            <a href="{{ node.get_absolute_url }}">{{ node.name }}</a>
+        {% endif %}
+    {% for level in structure.closed_levels %}</li></ul>{% endfor %}
+{% endfor %}
+</ul>
+<div class="col-md-8">
+{% for product, cost, quantity in products %}
+{% include "_product_info.html" %}
+{% endfor %}
+</div>
+{% endblock %}
+{% block javascript %}
+<script>
+$(document).ready(function () {
+
+    var CustomHandlers = function () {
+    };
+    CustomHandlers.prototype.addAjaxFlag = function (e, $el) {
+        $el.on("eldarion-ajax:modify-data", function (e, data) {
+            if (typeof data === "object") // using FormData
+                data.append("ajax", 1);
+            else if (data != null)
+                data = data + "&ajax=1";
+            else
+                data = "ajax=1";
+            return data;
+        });
+    };
+    CustomHandlers.prototype.setQuantityWarning = function (e, $el) {
+        $el.find(".quantity-container").addClass("has-warning");
+    };
+    CustomHandlers.prototype.setQuantity = function (e, $el, data) {
+        var $in = $el.find(".sw-basket-quantity");
+        $in.val(data["quantity"]);
+        var $cn = $el.find(".quantity-container");
+        $cn.removeClass("has-warning").addClass("has-success");
+        $in.on("blur", function () {
+            $cn.removeClass("has-success");
+        });
+    };
+
+    $(document).on("eldarion-ajax:begin", function(evt, $el) {
+        $("body").css("cursor", "progress");
+    });
+    $(document).on("eldarion-ajax:complete", function(evt, $el) {
+        $("body").css("cursor", "auto");
+        updateCartNotice();
+    });
+
+
+    $(document).on("eldarion-ajax:begin",   ".ajax", CustomHandlers.prototype.addAjaxFlag);
+    $(document).on("eldarion-ajax:begin",   ".update", CustomHandlers.prototype.setQuantityWarning);
+    $(document).on("eldarion-ajax:success", ".update", CustomHandlers.prototype.setQuantity);
+
+
+    $('[data-trigger="spinner"]').spinner('changed', function(e, newVal, oldVal) {
+        var $form = $(this).closest("form");
+        //console.error($form);
+        //$.dump($form);
+        $form.submit();
+        //return false;
+        //alert("{{ product.id }} " + newVal);
+    });
+
+    $('.expand-description').each(function() {
+        $(this).one("click", function() {
+            var productID = this.href.split("descr_")[1];
+            var url="/catalog/expand/"+productID+"/";
+            $('#descr_'+productID).load(url);
+        });
+    });
+});
+</script>
+{% endblock %}
