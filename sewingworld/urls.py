@@ -2,13 +2,13 @@ from django.conf import settings
 from django.conf.urls import include, url
 from django.conf.urls.static import static
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from ajax_select import urls as ajax_select_urls
 
 import mptt_urls
 
 import shop
 
 from . import views
+
 
 urlpatterns = [
     # ex: /
@@ -19,8 +19,6 @@ urlpatterns = [
     url(r'^products\.xml$', views.products, {'template': 'products.xml'}, name='products'),
     # ex: /google.xml
     url(r'^google\.xml$', views.products, {'template': 'google.xml'}, name='google'),
-    # ex: /cc-prym.xml
-    url(r'^cc-prym\.xml$', views.products, {'template': 'prym.xml'}, name='cc-prym'),
     # ex: /search/
     url(r'^search/$', views.search, name='search'),
     # ex: /catalog/
