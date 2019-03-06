@@ -286,7 +286,7 @@ def authorize(request):
                 'shop_user': user,
             }
 
-    if request.user.is_authenticated() and not data:
+    if request.user.is_authenticated and not data:
         if request.POST.get('ajax'):
             return JsonResponse({'location': reverse('shop:confirm')})
         else:
