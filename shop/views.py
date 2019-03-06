@@ -278,7 +278,7 @@ def authorize(request):
             login(request, user)
             basket.update_session(request.session.session_key)
 
-    if request.user.is_authenticated() and not data:
+    if request.user.is_authenticated and not data:
         if request.POST.get('ajax'):
             return JsonResponse({'location': reverse('shop:confirm')})
         else:
