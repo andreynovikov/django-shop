@@ -6,7 +6,7 @@
 <shop>
 <name>Швейный Мир</name>
 <company>Швейный Мир</company>
-<url>http://www.sewing-world.ru/</url>
+<url>{% site_url_prefix %}</url>
 
 <currencies>
 <currency  id="RUR" rate="1"/>
@@ -23,7 +23,7 @@
 <offers>
 {% for product in products %}
 <offer id="{{ product.id }}" type="vendor.model" {% if product.instock > 0 %}available="true"{% else %}available="false"{% endif %}>
-    <url>http://www.sewing-world.ru/products/{{ product.code }}.html?utm_source=yamarket&amp;utm_term={{ product.id }}</url>
+    <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=yamarket&amp;utm_term={{ product.id }}</url>
     <price>{{ product.cost|quantize:"1" }}</price>
     <currencyId>RUR</currencyId>
 {% for category in product.categories.all %}
@@ -33,7 +33,7 @@
 {% endif %}
 {% endwith %}
 {% endfor %}
-    <picture>http://www.sewing-world.ru/{{ product.image_prefix }}.jpg</picture>
+    <picture>{% site_url_prefix %}{{ product.image_prefix }}.jpg</picture>
     <vendor>{{ product.manufacturer.name }}</vendor>
     <model>{{ product.title }}</model>
     {% if product.whatis %}

@@ -20,6 +20,7 @@ from django.conf.urls import url
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.formats import date_format
+from django.utils.html import escape
 from django.utils.http import urlquote
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext, ugettext_lazy as _
@@ -66,10 +67,14 @@ def product_stock_view(product, order=None):
                 if stock.quantity == 0:
                     result = result + '</span>'
                 if stock.correction != 0.0:
+                    result = result + '<span style="color: '
                     if stock.correction > 0.0:
-                        result = result + '<span style="color: #090">+'
+                        result = result + '#090'
                     else:
-                        result = result + '<span style="color: #c00">'
+                        result = result + '#c00'
+                    result = result + ('" title="%s">' % escape(stock.reason))
+                    if stock.correction > 0.0:
+                        result = result + '+'
                     result = result + ('%s</span>' % floatformat(stock.correction))
                 result = result + '<br/>'
         else:
@@ -114,7 +119,7 @@ class CategoryAdmin(DraggableMPTTAdmin):
     
 @admin.register(Supplier)
 class SupplierAdmin(SortableAdminMixin, admin.ModelAdmin):
-    list_display = ['id', 'code', 'name', 'show_in_order', 'count_in_stock', 'spb_count_in_stock']
+    list_display = ['code', 'name', 'show_in_order', 'count_in_stock', 'spb_count_in_stock', 'ws_count_in_stock']
     list_display_links = ['name']
     search_fields = ['code', 'name']
 
@@ -246,7 +251,7 @@ class ProductRelationAdmin(admin.ModelAdmin):
 class StockInline(admin.TabularInline):
     model = Stock
     form = StockInlineForm
-    fields = ['supplier', 'quantity', 'correction']
+    fields = ['supplier', 'quantity', 'correction', 'reason']
     extra = 0
     classes = ['collapse']
     suit_classes = 'suit-tab suit-tab-stock'
