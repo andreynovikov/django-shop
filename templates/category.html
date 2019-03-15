@@ -2,9 +2,7 @@
 {% load staticfiles %}
 {% load mptt_tags %}
 {% load django_bootstrap_breadcrumbs %}
-{% block title %}
-<title>{{ category.name }}</title>
-{% endblock %}
+{% block title %}{{ category.name }}{% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
     {% breadcrumb "К первой странице" "/" %}
