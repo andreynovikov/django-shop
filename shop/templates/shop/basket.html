@@ -30,7 +30,7 @@
              {% endif %}
           </div>
           <div class="sw-p-l-name text-center">
-             <a href="http://www.sewing-world.ru/products/{{ item.product.code }}.html"
+             <a href="{% url 'product' item.product.code %}"
                 class="sw-basket-product-title">{{ item.product.title }}</a>
           </div>
           <div class="text-center">

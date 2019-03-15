@@ -47,7 +47,10 @@
 </div>
 
 <div class="col-md-5" style="margin-top:20px; margin-bottom:5px;">
-<div class="text-right"><span id="cart_notice"></span></div>
+{% block cart_notice %}
+{% load render_view %}
+<div class="text-right" id="cartholder"><span id="cart_notice">{% view "shop.views.view_basket_notice" %}</span></div>
+{% endblock %}
 </div>
 </div>
 </div>
@@ -145,9 +148,6 @@
         $("#topSearchText").closest("form").submit();
       }
     });
-  });
-  $(document).ready(function() {
-    reloadNotice();
   });
 </script>
 {% block javascript %}

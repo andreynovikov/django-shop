@@ -8,6 +8,7 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, HttpResponseServerError, HttpResponseNotFound
 from django.shortcuts import render, get_object_or_404
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.admin.views.decorators import staff_member_required
@@ -15,7 +16,7 @@ from django_ipgeobase.models import IPGeoBase
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 from django.core.mail import mail_admins
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.forms.models import model_to_dict
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import IntegrityError
@@ -285,7 +286,7 @@ def authorize(request):
                 'shop_user': user,
             }
 
-    if request.user.is_authenticated() and not data:
+    if request.user.is_authenticated and not data:
         if request.POST.get('ajax'):
             return JsonResponse({'location': reverse('shop:confirm')})
         else:
@@ -333,6 +334,7 @@ def register_user(request):
                     }
                     return HttpResponseRedirect(reverse('shop:login') + '?' + urlencode(params))
                 except IntegrityError:
+                    logger.exception("An error occurred")
                     context = {
                         'phone': phone,
                         'email': request.POST.get('email'),
@@ -656,6 +658,20 @@ def update_user(request):
 
 
 @staff_member_required
+def goto_order(request):
+    order_id = request.GET.get('order', None)
+    if order_id is not None:
+        try:
+            order = Order.objects.get(pk=order_id)
+            return HttpResponseRedirect(reverse('admin:shop_order_change', args=[order.id]))
+        except Order.DoesNotExist:
+            messages.add_message(request, messages.ERROR, 'Заказ №{} отсутствует'.format(order_id))
+        except ValueError:
+            messages.add_message(request, messages.WARNING, 'Укажите номер заказа')
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+
+@staff_member_required
 def import_1c(request):
     if request.method == 'POST':
         form = OneSImportForm(request.POST, request.FILES)
@@ -663,8 +679,10 @@ def import_1c(request):
             result = form.save()
             context = {'result': result}
         else:
-            context = {'result': form.errors}
+            context = {'form': form}
+        context['is_popup'] = request.POST.get('_popup', 0)
     else:
         form = OneSImportForm()
-        context = {'form': form, 'url_name': 'import_1c'}
+        context = {'form': form, 'is_popup': request.GET.get('_popup', 0)}
+    context['title'] = "Импорт 1С"
     return render(request, 'admin/shop/import_1c.html', context)

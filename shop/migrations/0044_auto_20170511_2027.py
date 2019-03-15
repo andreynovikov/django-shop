@@ -18,11 +18,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='order',
             name='manager',
-            field=models.ForeignKey(blank=True, verbose_name='менеджер', to='shop.Manager', null=True),
+            field=models.ForeignKey(blank=True, verbose_name='менеджер', to='shop.Manager', null=True, on_delete=models.SET_NULL),
         ),
         migrations.AlterField(
             model_name='order',
             name='courier',
-            field=models.ForeignKey(blank=True, verbose_name='курьер', to='shop.Courier', null=True),
+            field=models.ForeignKey(blank=True, verbose_name='курьер', to='shop.Courier', null=True, on_delete=models.SET_NULL),
         ),
     ]

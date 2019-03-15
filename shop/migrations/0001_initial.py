@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', auto_created=True, primary_key=True, serialize=False)),
                 ('quantity', models.PositiveSmallIntegerField(default=1)),
-                ('basket', models.ForeignKey(to='shop.Basket', related_query_name='item', related_name='items')),
+                ('basket', models.ForeignKey(to='shop.Basket', related_query_name='item', related_name='items', on_delete=models.CASCADE)),
             ],
         ),
         migrations.CreateModel(
@@ -73,7 +73,7 @@ class Migration(migrations.Migration):
                 ('firm_details', models.TextField(verbose_name='реквизиты', blank=True)),
                 ('created', models.DateTimeField(verbose_name='создан', auto_now_add=True)),
                 ('status', models.SmallIntegerField(verbose_name='статус', default=0, choices=[(0, 'новый заказ'), (1, 'принят в работу'), (8, 'отменен'), (16, 'заморожен'), (32, 'передан в другой магазин'), (64, 'собран'), (1024, 'доставляется'), (2048, 'доставлен'), (16384, 'завершен')])),
-                ('user', models.ForeignKey(verbose_name='покупатель', to=settings.AUTH_USER_MODEL)),
+                ('user', models.ForeignKey(verbose_name='покупатель', to=settings.AUTH_USER_MODEL, on_delete=models.PROTECT)),
             ],
             options={
                 'verbose_name': 'заказ',
@@ -87,7 +87,7 @@ class Migration(migrations.Migration):
                 ('product_price', models.PositiveIntegerField(verbose_name='цена товара', default=0)),
                 ('discount', models.PositiveIntegerField(verbose_name='скидка', default=0)),
                 ('quantity', models.PositiveSmallIntegerField(verbose_name='количество', default=1)),
-                ('order', models.ForeignKey(to='shop.Order', related_query_name='item', related_name='items')),
+                ('order', models.ForeignKey(to='shop.Order', related_query_name='item', related_name='items', on_delete=models.CASCADE)),
             ],
             options={
                 'verbose_name': 'позиция заказа',
@@ -116,11 +116,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='orderitem',
             name='product',
-            field=models.ForeignKey(verbose_name='товар', to='shop.Product', related_name='+'),
+            field=models.ForeignKey(verbose_name='товар', to='shop.Product', related_name='+', on_delete=models.PROTECT),
         ),
         migrations.AddField(
             model_name='basketitem',
             name='product',
-            field=models.ForeignKey(to='shop.Product', related_name='+'),
+            field=models.ForeignKey(to='shop.Product', related_name='+', on_delete=models.PROTECT),
         ),
     ]

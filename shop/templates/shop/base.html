@@ -1,29 +1,7 @@
 {% extends "base.html" %}
 {% load staticfiles %}
-{% block body_header %}
-<div class="sw-top-navbar hidden-xs">
-  <div class="container text-center">
-    <a href="/shop/user/orders/" class="sw-top-navbar-lk">Что с моим заказом?</a>
-{% block cart_notice %}
-    <span id="cart_notice" class="hidden"></span>
-{% endblock %}
-  </div>
-</div>
-
-<div class="container-fluid sw-top-fixed-menu hidden-xs"></div>
-
-<div class="container-fluid sw-header-left">
-<div class="sw-logo">
-<div  style="max-width:399px; max-height:48px;"><a href="/"><img src="{% static 'i/logo.png' %}" alt="Швейный Мир - всероссийская сеть швейных супермаркетов.&#10; Швейные машинки, вышивальные и вязальные машины, оверлоки и аксессуары." class="img-responsive"></a></div>
-</div>
-</div>
-
-<div class="navbar navbar-default navbar-static-top sw-navbar"></div>
-{% endblock %}
-{% block footer_contents %}
-{% endblock %}
 {% block javascript_wrapper %}
 <script src="{% static 'js/eldarion-ajax.min.js' %}"></script>
-{% block javascript %}
+{{ block.super }}
 {% endblock %}
-{% endblock %}
+{% block cart_notice %}{% endblock %}

@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                 ('rght', models.PositiveIntegerField(db_index=True, editable=False)),
                 ('tree_id', models.PositiveIntegerField(db_index=True, editable=False)),
                 ('level', models.PositiveIntegerField(db_index=True, editable=False)),
-                ('parent', mptt.fields.TreeForeignKey(null=True, blank=True, related_name='children', to='shop.Category')),
+                ('parent', mptt.fields.TreeForeignKey(null=True, blank=True, related_name='children', to='shop.Category', on_delete=models.PROTECT)),
             ],
             options={
                 'verbose_name': 'категория',
