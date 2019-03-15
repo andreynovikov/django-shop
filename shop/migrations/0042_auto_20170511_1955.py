@@ -36,11 +36,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='order',
             name='courier',
-            field=models.ForeignKey(null=True, to='shop.Courier', blank=True),
+            field=models.ForeignKey(null=True, to='shop.Courier', blank=True, on_delete=models.SET_NULL),
         ),
         migrations.AddField(
             model_name='order',
             name='manafer',
-            field=models.ForeignKey(null=True, to='shop.Manager', blank=True),
+            field=models.ForeignKey(null=True, to='shop.Manager', blank=True, on_delete=models.SET_NULL),
         ),
     ]

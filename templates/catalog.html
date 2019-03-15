@@ -3,9 +3,7 @@
 {% load mptt_tags %}
 {% load site %}
 {% load django_bootstrap_breadcrumbs %}
-{% block title %}
-<title>Каталог</title>
-{% endblock %}
+{% block title %}Каталог{% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
     {% breadcrumb "К первой странице" "/" %}
@@ -18,3 +16,4 @@
     {% for level in structure.closed_levels %}</li></ul>{% endfor %}
 {% endfor %}
 {% endblock %}
+<!-- catalog.html -->
