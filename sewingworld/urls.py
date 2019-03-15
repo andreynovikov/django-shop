@@ -38,7 +38,7 @@ urlpatterns = [
     # /pages/*
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*
-    url(r'^shop/', include('shop.urls', namespace='shop')),
+    url(r'^shop/', include('shop.urls')),
 ]
 
 urlpatterns += staticfiles_urlpatterns()

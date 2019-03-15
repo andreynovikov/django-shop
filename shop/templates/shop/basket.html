@@ -1,5 +1,5 @@
 {% extends "shop/base.html" %}
-{% block title %}<title>Оформление заказа</title>{% endblock %}
+{% block title %}Оформление заказа{% endblock %}
 {% block css %}
 <style type="text/css">
 	.sw-basket-total span    { font-weight:bold; color:darkgreen; }
@@ -68,7 +68,7 @@
 {% block javascript %}
     <script type="text/javascript">
         $(document).ready(function () {
- //           window.dataLayer = window.dataLayer || [];
+            window.dataLayer = window.dataLayer || [];
             dataLayer.push({
             'event': 'checkout',
               "ecommerce": {
