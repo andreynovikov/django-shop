@@ -1,5 +1,5 @@
 {% extends "shop/base.html" %}
-{% block title %}<title>Оформление заказа</title>{% endblock %}
+{% block title %}Оформление заказа{% endblock %}
 {% block css %}
 <style type="text/css">
 	.sw-basket-total span    { font-weight:bold; color:darkgreen; }
@@ -30,7 +30,7 @@
              {% endif %}
           </div>
           <div class="sw-p-l-name text-center">
-             <a href="/products/{{ item.product.code }}.html"
+             <a href="{% url 'product' item.product.code %}"
                 class="sw-basket-product-title">{{ item.product.title }}</a>
           </div>
           <div class="text-center">
@@ -68,7 +68,7 @@
 {% block javascript %}
     <script type="text/javascript">
         $(document).ready(function () {
- //           window.dataLayer = window.dataLayer || [];
+            window.dataLayer = window.dataLayer || [];
             dataLayer.push({
             'event': 'checkout',
               "ecommerce": {
