@@ -1,0 +1,14 @@
+.calendar td.today a {
+    padding: 4px;
+    border: 2px solid #79aec8;
+}
+
+ul.timelist li {
+    float: left;
+    padding: 0 2px;
+    background: white;
+}
+
+.calendar-cancel, ul.timelist li:nth-child(8n+1) {
+    clear: left;
+}
