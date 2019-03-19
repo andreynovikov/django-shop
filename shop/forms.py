@@ -104,8 +104,8 @@ class ProductAdminForm(forms.ModelForm):
             'categories': SWTreeNodeMultipleChoiceField,
         }
         widgets = {
-            'title': forms.TextInput(attrs={'size': 120}), 
-            'runame': forms.TextInput(attrs={'size': 120}), 
+            'title': forms.TextInput(attrs={'size': 120}),
+            'runame': forms.TextInput(attrs={'size': 120}),
             'gtin': forms.TextInput(attrs={'size': 10}),
             #'spec': AutosizedTextarea(attrs={'rows': 3,}),
             #'shortdescr': AutosizedTextarea(attrs={'rows': 3,}),
@@ -173,5 +173,13 @@ class OrderAdminForm(forms.ModelForm): #autocomplete_light.ModelForm):
         exclude = ['created']
         widgets = {
             'phone': PhoneWidget(),
-            'phone_aux': PhoneWidget(),
+            'phone_aux': PhoneWidget()
+        }
+
+    class Media:
+            js = [
+                'js/time-shortcuts.js'
+            ]
+            css = {
+                'all': ('css/time-shortcuts.css',)
             }
