@@ -45,6 +45,24 @@ def search(request):
     return render(request, 'search.html', context)
 
 
+def full(request):
+    root = Category.objects.get(slug=settings.MPTT_ROOT)
+    children = root.get_children()
+    categories = {}
+    for child in children:
+        categories[child.pk] = child.pk;
+        descendants = child.get_descendants()
+        for descendant in descendants:
+            categories[descendant.pk] = child.pk;
+    context = {
+        'root': root,
+        'children': children,
+        'category_map': categories,
+        'products': Product.objects.filter(enabled=True, variations__exact='', price__gt=0, categories__in=root.get_descendants(include_self=True)).distinct()
+        }
+    return render(request, 'products.xml', context, content_type='text/xml; charset=utf-8')
+
+
 def products(request, template):
     root = Category.objects.get(slug=settings.MPTT_ROOT)
     children = root.get_children().filter(ya_active=True)

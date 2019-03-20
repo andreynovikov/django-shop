@@ -35,6 +35,8 @@ urlpatterns = [
     url(r'^$', views.index, name='index'),
     # ex: /sitemap.xml
     url(r'^sitemap\.xml$', sitemap, {'sitemaps' : sitemaps}, name='sitemap'),
+    # ex: /full.xml
+    url(r'^full\.xml$', views.full, name='full'),
     # ex: /search.xml
     url(r'^search\.xml$', views.search_xml, name='search_xml'),
     # ex: /products.xml
