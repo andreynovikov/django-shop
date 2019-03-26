@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.conf.urls import include, url
 from django.conf.urls.static import static
+from django.urls import path
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
@@ -28,11 +29,14 @@ sitemaps = {
 }
 
 
+
 urlpatterns = [
     # ex: /
     url(r'^$', views.index, name='index'),
     # ex: /sitemap.xml
     url(r'^sitemap\.xml$', sitemap, {'sitemaps' : sitemaps}, name='sitemap'),
+    # ex: /full.xml
+    url(r'^full\.xml$', views.full, name='full'),
     # ex: /search.xml
     url(r'^search\.xml$', views.search_xml, name='search_xml'),
     # ex: /products.xml
@@ -64,16 +68,14 @@ urlpatterns = [
     # /pages/*
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*
-    url(r'^shop/', include('shop.urls', namespace='shop')),
+    url(r'^shop/', include('shop.urls')),
     url(r'^blog/', include('zinnia.urls')),
     url(r'^comments/', include('django_comments.urls')),
     url(r'^forum/', include(spirit.urls)),
     url(r'^reviews/', include('reviews.urls')),
-    url(r'^oldforum/', include('forum.urls', namespace='forum')),
-    url(r'^autocomplete/', include('autocomplete_light.urls')),
+    url(r'^oldforum/', include('forum.urls')),
     url(r'^lock_tokens/', include('lock_tokens.urls', namespace='lock-tokens')),
-    url(r'^admin/import1c/$', shop.views.import_1c, name='import_1c'),
-    url(r'^admin/', include(admin.site.urls)),
+    path('admin/', admin.site.urls),
     url(r'^admin/', include('massadmin.urls')),
     url(r'^admin/', include('loginas.urls')),
 ]
@@ -82,5 +84,5 @@ urlpatterns += staticfiles_urlpatterns()
 
 if settings.DEBUG:
     import debug_toolbar
-    urlpatterns += [ url(r'^__debug__/', include(debug_toolbar.urls)) ]
+    urlpatterns += [ path('__debug__/', include(debug_toolbar.urls)) ]
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

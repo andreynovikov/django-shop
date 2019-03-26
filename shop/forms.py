@@ -2,13 +2,14 @@ import os
 import re
 from django import forms
 from django.forms.models import model_to_dict
-from suit.widgets import AutosizedTextarea
+#from suit.widgets import AutosizedTextarea
 from django.conf import settings
 
-import autocomplete_light
+#import autocomplete_light
 
 from shop.models import Supplier, Product, Stock, Order, OrderItem, ShopUser
-from shop.widgets import PhoneWidget, TagAutoComplete, DisablePluralText, OrderItemTotalText
+from shop.widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
+    OrderItemProductLink
 from shop.tasks import import1c
 
 
@@ -40,7 +41,8 @@ class OneSImportForm(forms.Form):
         import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
         files = [(f, f) for f in filter(lambda x: x.endswith('.txt'), os.listdir(import_dir))]
         self.fields['file'].choices = files
-        self.fields['file'].initial=files[0]
+        if len(files):
+            self.fields['file'].initial = files[0]
 
     def save(self):
         import1c.delay(self.cleaned_data['file'])
@@ -77,19 +79,41 @@ class SelectSupplierForm(forms.Form):
     supplier = forms.ModelChoiceField(label='Поставщик', queryset=Supplier.objects.order_by('order'), required=True, empty_label=None)
 
 
-class ProductAdminForm(autocomplete_light.ModelForm):
+class StockInlineForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['supplier'].widget = ReadOnlyInput(self.instance.supplier)
+            self.fields['quantity'].widget = ReadOnlyInput(self.instance.quantity)
+
+
+from django.utils.encoding import smart_text
+from django.utils.html import conditional_escape, mark_safe
+from mptt.forms import TreeNodeChoiceField, TreeNodeMultipleChoiceField
+
+class SWTreeNodeMultipleChoiceField(TreeNodeMultipleChoiceField):
+    def label_from_instance(self, obj):
+        return mark_safe(conditional_escape(smart_text('/'.join([x['name'] for x in obj.get_ancestors(include_self=True).values()]))))
+
+
+class ProductAdminForm(forms.ModelForm):
     class Meta:
         model = Product
-        exclude = ['fake']
+        fields = '__all__'
+        field_classes = {
+            'categories': SWTreeNodeMultipleChoiceField,
+        }
         widgets = {
+            'title': forms.TextInput(attrs={'size': 120}),
+            'runame': forms.TextInput(attrs={'size': 120}),
             'gtin': forms.TextInput(attrs={'size': 10}),
-            'spec': AutosizedTextarea(attrs={'rows': 3,}),
-            'shortdescr': AutosizedTextarea(attrs={'rows': 3,}),
-            'yandexdescr': AutosizedTextarea(attrs={'rows': 3,}),
-            'descr': AutosizedTextarea(attrs={'rows': 3,}),
-            'state': AutosizedTextarea(attrs={'rows': 2,}),
-            'complect': AutosizedTextarea(attrs={'rows': 3,}),
-            'dealertxt': AutosizedTextarea(attrs={'rows': 2,}),
+            #'spec': AutosizedTextarea(attrs={'rows': 3,}),
+            #'shortdescr': AutosizedTextarea(attrs={'rows': 3,}),
+            #'yandexdescr': AutosizedTextarea(attrs={'rows': 3,}),
+            #'descr': AutosizedTextarea(attrs={'rows': 3,}),
+            #'state': AutosizedTextarea(attrs={'rows': 2,}),
+            #'complect': AutosizedTextarea(attrs={'rows': 3,}),
+            #'dealertxt': AutosizedTextarea(attrs={'rows': 2,}),
             'tags': TagAutoComplete(model=ShopUser)
         }
 
@@ -106,20 +130,22 @@ class ProductAdminForm(autocomplete_light.ModelForm):
 class OrderItemInlineAdminForm(forms.ModelForm):
     class Meta:
         model = OrderItem
-        exclude = ['fake']
+        fields = '__all__'
         widgets = {
             'pct_discount': forms.TextInput(attrs={'style': 'width: 3em'}),
             }
 
     def __init__(self, *args, **kwargs):
-        super(OrderItemInlineAdminForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['product'].widget = OrderItemProductLink(self.instance)
         self.fields['product_price'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 6em'})
         self.fields['val_discount'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 4em'})
         self.fields['quantity'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 3em'})
         self.fields['total'].widget = OrderItemTotalText(self.instance, attrs={'style': 'width: 6em'})
 
 
-class OrderAdminForm(autocomplete_light.ModelForm):
+class OrderAdminForm(forms.ModelForm): #autocomplete_light.ModelForm):
     user_tags = forms.CharField(label='Теги', max_length=getattr(settings, 'MAX_TAG_LENGTH', 50), required=False)
 
     def __init__(self, *args, **kwargs):
@@ -147,5 +173,13 @@ class OrderAdminForm(autocomplete_light.ModelForm):
         exclude = ['created']
         widgets = {
             'phone': PhoneWidget(),
-            'phone_aux': PhoneWidget(),
+            'phone_aux': PhoneWidget()
+        }
+
+    class Media:
+            js = [
+                'js/time-shortcuts.js'
+            ]
+            css = {
+                'all': ('css/time-shortcuts.css',)
             }

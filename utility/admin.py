@@ -4,7 +4,10 @@ from django.contrib.flatpages.models import FlatPage
 from django.utils.translation import ugettext_lazy as _
 from django.forms import ModelForm
 
-from suit.widgets import AutosizedTextarea
+from tagging.admin import TagAdmin
+from tagging.models import Tag
+
+#from suit.widgets import AutosizedTextarea
 
 
 def get_sites(obj):
@@ -16,7 +19,7 @@ get_sites.short_description = 'Sites'
 class SWFlatPageForm(ModelForm):
     class Meta:
         widgets = {
-            'content': AutosizedTextarea(attrs={'rows': 5, 'style': 'width: 95%; max-height: 500px'}),
+            #'content': AutosizedTextarea(attrs={'rows': 5, 'style': 'width: 95%; max-height: 500px'}),
         }
 
 # Define a new FlatPageAdmin
@@ -38,6 +41,15 @@ class SWFlatPageAdmin(FlatPageAdmin):
 # Re-register FlatPageAdmin
 admin.site.unregister(FlatPage)
 admin.site.register(FlatPage, SWFlatPageAdmin)
+
+
+class SWTagAdmin(TagAdmin):
+    search_fields = ['name']
+    ordering = ['name']
+
+admin.site.unregister(Tag)
+admin.site.register(Tag, SWTagAdmin)
+
 
 from lock_tokens.admin import LockTokenAdmin
 from lock_tokens.models import LockToken

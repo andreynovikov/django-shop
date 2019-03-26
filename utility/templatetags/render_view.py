@@ -2,7 +2,8 @@
 
 from django.template import Library, Node, TemplateSyntaxError, Variable
 from django.conf import settings
-from django.urls import RegexURLResolver, get_callable
+from django.urls import URLResolver, get_callable
+from django.urls.resolvers import RegexPattern
 
 register = Library()
 
@@ -20,7 +21,7 @@ class ViewNode(Node):
         url_or_view = Variable(self.url_or_view).resolve(context)
         try:
             urlconf = getattr(request, "urlconf", settings.ROOT_URLCONF)
-            resolver = RegexURLResolver(r'^/', urlconf)
+            resolver = URLResolver(RegexPattern(r'^/'), urlconf)
             view, args, kwargs = resolver.resolve(url_or_view)
         except:
             view = get_callable(url_or_view)
@@ -31,10 +32,10 @@ class ViewNode(Node):
 
         try:
             if callable(view):
-                return view(context['request'], *args, **kwargs).content
+                return view(context['request'], *args, **kwargs).content.decode(settings.DEFAULT_CHARSET)
             raise "%r is not callable" % view
         except:
-            if settings.TEMPLATE_DEBUG:
+            if getattr(settings, 'TEMPLATE_DEBUG', False):
                 raise
         return ""
 
