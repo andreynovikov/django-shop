@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 import sys
 import csv
+import datetime
+import logging
 from collections import defaultdict
 from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
@@ -9,36 +11,56 @@ from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
+from django.urls import reverse
+from django.contrib.sites.models import Site
 
 from celery import shared_task
 
-from sewingworld import sms_uslugi
+from sewingworld import sms_uslugi, smsru
 
-from shop.models import Supplier, Currency, Product, Stock, Order
+from shop.models import Supplier, Currency, Product, Stock, Basket, Order
 
 
-@shared_task
-def send_password(phone, password):
-    #smsru_key = getattr(settings, 'SMSRU_KEY', None)
+log = logging.getLogger('shop')
+
+
+
+@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
+def send_message(phone, message):
+    smsru_key = getattr(settings, 'SMSRU_KEY', None)
     sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
     sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
     client = sms_uslugi.Client(sms_login, sms_password)
-    client.send(phone, "%s" % password)
+    #client = smsru.Client(smsru_key)
+    client.send(phone, message)
 
 
-@shared_task
+@shared_task(autoretry_for=(Exception,), default_retry_delay=15, retry_backoff=True)
+def send_password(phone, password):
+    smsru_key = getattr(settings, 'SMSRU_KEY', None)
+    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
+    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
+    client = sms_uslugi.Client(sms_login, sms_password)
+    #client = smsru.Client(smsru_key)
+    client.send(phone, "Пароль для доступа на сайт: %s" % password)
+
+
+@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_user_order_new_sms(order_id, password):
     order = Order.objects.get(id=order_id)
+    smsru_key = getattr(settings, 'SMSRU_KEY', None)
     sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
     sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
     client = sms_uslugi.Client(sms_login, sms_password)
+    #client = smsru.Client(smsru_key)
     password_text = ""
     if password:
-        password_text = " Пароль %s" % password
-    client.send(order.phone, "Состояние заказа №%s можно узнать в личном кабинете.%s" % (order_id, password_text))
+        password_text = " Пароль: %s" % password
+    client.send(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s %s" \
+                    % (order_id, Site.objects.get_current().domain, reverse('shop:user_orders'), password_text))
 
 
-@shared_task
+@shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
 def notify_user_order_new_mail(order_id):
     order = Order.objects.get(id=order_id)
     if order.email:
@@ -59,14 +81,16 @@ def notify_user_order_new_mail(order_id):
         )
 
 
-@shared_task
+@shared_task(autoretry_for=(Exception,), retry_backoff=True)
 def notify_user_order_collected(order_id):
     order = Order.objects.get(id=order_id)
+    smsru_key = getattr(settings, 'SMSRU_KEY', None)
     sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
     sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
     client = sms_uslugi.Client(sms_login, sms_password)
-    client.send(order.phone, "Заказ №%s собран и ожидает оплаты. Нажмите ссылку \"Что с моим заказом?\"" \
-                             " на сайте магазина \"Швейный Мир\", чтобы оплатить заказ." % order_id)
+    #client = smsru.Client(smsru_key)
+    client.send(order.phone, "Заказ №%s собран и ожидает оплаты. Перейдите по ссылке, чтобы оплатить заказ: https://%s%s" \
+                    % (order_id, Site.objects.get_current().domain, reverse('shop:order', args=[order_id])))
 
     if order.email:
         shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
@@ -86,30 +110,34 @@ def notify_user_order_collected(order_id):
         )
 
 
-@shared_task
+@shared_task(autoretry_for=(Exception,), retry_backoff=True)
 def notify_user_order_delivered_shop(order_id):
     order = Order.objects.get(id=order_id)
     city = order.store.city.name
     address = order.store.address
     name = order.store.name
+    smsru_key = getattr(settings, 'SMSRU_KEY', None)
     sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
     sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
     client = sms_uslugi.Client(sms_login, sms_password)
+    #client = smsru.Client(smsru_key)
     client.send(order.phone, "Ваш заказ доставлен в магазин \"%s\" по адресу %s, %s." \
                              " Для получения заказа обратитесь в кассу и назовите номер" \
                              " заказа %s." % (name, city, address, order_id))
 
 
-@shared_task
+@shared_task(autoretry_for=(Exception,), retry_backoff=True)
 def notify_user_order_delivered(order_id):
     order = Order.objects.get(id=order_id)
     if order.delivery == Order.DELIVERY_PICKPOINT:
         title = 'PickPoint'
     else:
         title = 'ТК'
+    smsru_key = getattr(settings, 'SMSRU_KEY', None)
     sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
     sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
     client = sms_uslugi.Client(sms_login, sms_password)
+    #client = smsru.Client(smsru_key)
     client.send(order.phone, "Заказ №%s доставлен в %s: %s" % (order_id, title, order.delivery_info))
 
     if order.email:
@@ -130,7 +158,7 @@ def notify_user_order_delivered(order_id):
         )
 
 
-@shared_task
+@shared_task(autoretry_for=(Exception,), retry_backoff=True)
 def notify_user_order_done(order_id):
     order = Order.objects.get(id=order_id)
 
@@ -152,7 +180,7 @@ def notify_user_order_done(order_id):
         )
 
 
-@shared_task
+@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_manager(order_id):
     order = Order.objects.get(id=order_id)
 
@@ -169,7 +197,7 @@ def notify_manager(order_id):
     )
 
 
-@shared_task(time_limit=1200)
+@shared_task(time_limit=2400, autoretry_for=(Exception,), retry_backoff=True)
 def import1c(file):
     frozen_orders = Order.objects.filter(status=Order.STATUS_FROZEN)
     frozen_products = defaultdict(list)
@@ -268,3 +296,13 @@ def import1c(file):
         shop_settings['email_from'],
         shop_settings['email_managers'],
     )
+
+
+@shared_task(autoretry_for=(Exception,), retry_backoff=True)
+def remove_outdated_baskets():
+    threshold = datetime.datetime.now() - datetime.timedelta(days=90)
+    baskets = Basket.objects.filter(created__lt=threshold)
+    num = len(baskets)
+    for basket in baskets.all():
+        basket.delete()
+    log.info('Deleted %d baskets' % num)

@@ -4,7 +4,8 @@ from django.dispatch import receiver
 from tagging.utils import parse_tag_input
 
 from shop.models import Order
-from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, notify_user_order_delivered, notify_user_order_done
+from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, \
+    notify_user_order_delivered, notify_user_order_done
 
 
 @receiver(post_save, sender=Order, dispatch_uid='order_saved_receiver')
@@ -23,7 +24,7 @@ def order_saved(sender, **kwargs):
             for item in order.items.all():
                 if item.product.tags:
                     tags = parse_tag_input(item.product.tags)
-                    order.append_user_tags(tags)                    
+                    order.append_user_tags(tags)
 
         if order.status == Order.STATUS_COLLECTED:
             if order.payment == Order.PAYMENT_CARD or order.payment == Order.PAYMENT_TRANSFER:

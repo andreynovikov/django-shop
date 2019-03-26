@@ -1,40 +1,185 @@
 {% extends "admin/change_form.html" %}
-{% load i18n admin_urls %}
+{% load i18n admin_urls admin_modify lock_tokens_tags %}
 
 {% block extrastyle %}
     {{ block.super }}
     <style>
-        .grp-row .l-2c-fluid.grp-cell:not(:first-child) .c-1 {
+        .x .grp-row .l-2c-fluid.grp-cell:not(:first-child) .c-1 {
             min-width: 0px;
             width: auto;
         }
-        .controls .datetimeshortcuts .date-icon { text-indent:200%;white-space:nowrap;overflow:hidden;width:14px;height:14px;
-                            background-image:url("/static/suit/bootstrap/img/glyphicons-halflings.png");background-position:0 -96px;
-                            background-repeat:no-repeat;opacity:.75;margin:0;
-                            background-color:#F6F7F8;display:inline-block;vertical-align:middle }
+        .x .inner-right-column i { float: left; }
+        .x .inner-right-column a span { display:block; overflow:hidden; }
+
+        #id_phone { font-size:16px; }
+
+        .x .controls,
+        .x .field-product_price input,
+        .x .field-pct_discount input,
+        .x .field-val_discount input,
+        .x .field-quantity input,
+        .x .field-total input {
+            padding-top:1px!important;
+            padding-bottom:1px!important;
+        }
+
+        /* Remove label gaps */
+        @media (min-width: 1025px) {
+            .form-row > .fieldBox:not(:first-child) > label {
+                width: auto;
+            }
+            .form-row > .fieldBox:not(:first-child) > label + div.readonly {
+                margin-left: 0px;
+                float: left;
+            }
+        }
+
+        /* Format bottom summary */
+        #items-group {
+            margin-bottom: 0;
+        }
+        .lead {
+            text-align: right;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        .lead + .submit-row {
+            margin-top: 30px;
+        }
+        .related-widget-wrapper-link.add-related, .related-widget-wrapper-link.delete-related {
+            display: none;
+        }
+
+        /* Remove tabular inline headers */
+        .original {
+            display: none;
+        }
+        .inline-group .tabular tr.has_original td {
+            padding-top: 0;
+        }
+
+        /* Remove unnecessary blocks */
+        div.field-products_price,
+        div.field-total,
+        div.field-id {
+            display: none;
+        }
+
+        /* Document list box */
+        .documentlist a:focus, .documentlist a:hover { background: #79aec8; color: white; }
+        .documentlist a { display: block; font-weight: 400; padding: 2px 6px; text-decoration: none; color: #444; }
+        ul.documentlist, .documentlist li { list-style-type: none; margin: 0; padding: 0; }
+        .documentbox { margin: 5px auto; font-size: 12px; width: 19em; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); overflow: hidden; position: relative; }
+        .documentlist-cancel { margin: 0; padding: 4px 0; font-size: 12px; text-align: center; background: #eee; border-top: 1px solid #ddd; color: #333; }
     </style>
 {% endblock %}
 
-{% block object-tools-items %}
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+<script>
+(function($) {
+    $(document).ready(function() {
+        var $SaveButton = $("input[name='_save']");
+        var $ContinueButton = $("input[name='_continue']");
+        $SaveButton.removeClass('default');
+        $ContinueButton.addClass('default');
+        $SaveButton.val("Сохранить и выйти");
+        $ContinueButton.val("Сохранить");
+        var Delivery_Price = $("input[name='delivery_price']").val();
+        var Products_Price = $("div.field-products_price > div > div.readonly").html();
+        var Total = $("div.field-total > div > div.readonly").html();
+        var Number = $("div.field-id > div > div.readonly").html();
+        $("#items-group").after("<div style=\"text-align:right;\" class=\"lead\">Итого: " + Total + "</div>");
+        $("#items-group").after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Доставка: " + Delivery_Price + "</div>");
+        $("#items-group").after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Всего: " + Products_Price + "</div>");
+        $("#content h1").append(' <b>' + Number + '</b>');
+
+        $("select#id_status").on('change', function() {
+            if (this.value == 1) {
+                alert("Не забудь проставить теги!");
+            }
+        });
+    });
+
+    var documentBoxLink = document.getElementById("documentboxlink");
+    documentBoxLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var documentBox = document.getElementById("documentbox");
+        documentBox.style.left = findPosX(documentBoxLink) - 110 + 'px';
+        documentBox.style.top = Math.max(0, findPosY(documentBoxLink) - 10) + 'px';
+        documentBox.style.display = 'block';
+        var closeDocumentBox = function(e) {
+            documentBox.style.display = 'none';
+            document.removeEventListener('click', closeDocumentBox);
+            e.preventDefault();
+            e.stopPropagation();
+        };
+        document.addEventListener('click', closeDocumentBox);
+        document.addEventListener('keyup', function(e) {
+            if (e.which === 27) {
+                // ESC key closes popup
+                closeDocumentBox(e);
+            }
+        });
+    });
+}(django.jQuery));
+</script>
+{% endblock %}
+
+{% block content %}
+    {{ block.super }}
+    {% if False or lock_token %}
+        {% admin_lock_handler opts.app_label opts.model_name original.id lock_token %}
+    {% endif %}
+<div id="documentbox" class="documentbox module" style="display: none; position: absolute">
+    <ul class="documentlist">
+    {% url opts|admin_urlname:'document' original.pk 'stock'|admin_urlquote as stock_url %}
+    <li><a href="{% add_preserved_filters stock_url %}?_popup=1" class="related-widget-wrapper-link">
+            <span>{% trans "Задание на отбор" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'bill'|admin_urlquote as bill_url %}
-    <li><a href="{% add_preserved_filters bill_url %}">{% trans "Счёт" %}</a></li>
+    <li><a href="{% add_preserved_filters bill_url %}?_popup=1" class="related-widget-wrapper-link">
+            <span>{% trans "Счёт" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'billwostamp'|admin_urlquote as billwostamp_url %}
-    <li><a href="{% add_preserved_filters billwostamp_url %}">{% trans "Счёт без печати" %}</a></li>
+    <li><a href="{% add_preserved_filters billwostamp_url %}?_popup=1" class="related-widget-wrapper-link">
+            <span>{% trans "Счёт без печати" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'slip'|admin_urlquote as slip_url %}
-    <li><a href="{% add_preserved_filters slip_url %}">{% trans "Накладная" %}</a></li>
+    <li><a href="{% add_preserved_filters slip_url %}?_popup=1" class="related-widget-wrapper-link">
+            <span>{% trans "Накладная" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'slipandrules'|admin_urlquote as slipandrules_url %}
-    <li><a href="{% add_preserved_filters slipandrules_url %}">{% trans "Накладная с правилами" %}</a></li>
+    <li><a href="{% add_preserved_filters slipandrules_url %}?_popup=1" class="related-widget-wrapper-link">
+            <span>{% trans "Накладная с правилами" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'packing'|admin_urlquote as packing_url %}
-    <li><a href="{% add_preserved_filters packing_url %}">{% trans "Сопроводительный лист" %}</a></li>
+    <li><a href="{% add_preserved_filters packing_url %}?_popup=1" class="related-widget-wrapper-link">
+            <span>{% trans "Сопроводительный лист" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'productlist'|admin_urlquote as productlist_url %}
-    <li><a href="{% add_preserved_filters productlist_url %}">{% trans "Товарный чек" %}</a></li>
+    <li><a href="{% add_preserved_filters productlist_url %}?_popup=1" class="related-widget-wrapper-link">
+            <span>{% trans "Товарный чек" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'productlistandrules'|admin_urlquote as productlistandrules_url %}
-    <li><a href="{% add_preserved_filters productlistandrules_url %}">{% trans "Товарный чек для покупателя" %}</a></li>
+    <li><a href="{% add_preserved_filters productlistandrules_url %}?_popup=1" class="related-widget-wrapper-link">
+            <span>{% trans "Товарный чек для покупателя" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'label'|admin_urlquote as label_url %}
-    <li><a href="{% add_preserved_filters label_url %}">{% trans "Наклейка" %}</a></li>
+    <li><a href="{% add_preserved_filters label_url %}?_popup=1" class="related-widget-wrapper-link">
+            <span>{% trans "Наклейка" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'check'|admin_urlquote as check_url %}
-    <li><a href="{% add_preserved_filters check_url %}">{% trans "Чек" %}</a></li>
-    {% url opts|admin_urlname:'document' original.pk 'warrantycard'|admin_urlquote as warrantycard_url %}
-    <li><a href="{% add_preserved_filters warrantycard_url %}">{% trans "Гарантийный талон" %}</a></li>
+    <li><a href="{% add_preserved_filters check_url %}?_popup=1" class="related-widget-wrapper-link">
+            <span>{% trans "Чек" %}</span></a></li>
+    </ul>
+    <p class="documentlist-cancel"><a href="#">{% trans "Cancel" %}</a></p>
+</div>
+{% endblock %}
+{% block xsubmit_buttons_top %}{% if not original.pk or lock_token %}{% submit_row %}{% endif %}{% endblock %}
+{% block xsubmit_buttons_bottom %}{% if not original.pk or lock_token %}{% submit_row %}{% endif %}{% endblock %}
+
+{% block object-tools-items %}
+    <li><a id="documentboxlink" href="#" class="related-widget-wrapper-link">Документы</a></li>
+    {% url opts|admin_urlname:'combine' original.pk|admin_urlquote as combine_url %}
+    <li><a href="{% add_preserved_filters combine_url %}?_popup=1" class="related-widget-wrapper-link">
+            <i class="icon-resize-small icon-alpha75"></i>
+            <span>{% trans "Объединение заказов" %}</span></a></li>
+    {% url opts|admin_urlname:'discount' original.pk|admin_urlquote as discount_url %}
+    <li><a href="{% add_preserved_filters discount_url %}?_popup=1" class="related-widget-wrapper-link">
+            <i class="icon-forward icon-alpha75"></i>
+            <span>{% trans "Скидка" %}</span></a></li>
     {{ block.super }}
 {% endblock %}
