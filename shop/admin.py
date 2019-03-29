@@ -820,11 +820,13 @@ class OrderAdmin(admin.ModelAdmin):#LockableModelAdmin):
     @mark_safe
     def combined_payment(self, obj):
         style = ''
+        checkmark = ''
         if obj.paid:
-            style = ' style="color: green"'
+            style = '; color: green'
+            checkmark = '<span style="display: table-cell; padding-left: 5px; color: green; font-weight: bold">&#10003;</span>'
         elif obj.payment in [Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_POS, Order.PAYMENT_CREDIT]:
-            style = ' style="color: red"'
-        return '<span%s>%s</span>' % (style, obj.get_payment_display())
+            style = '; color: red'
+        return '<div style="display: table"><span style="display: table-cell%s">%s</span>%s</div>' % (style, obj.get_payment_display(), checkmark)
     combined_payment.admin_order_field = 'payment'
     combined_payment.short_description = 'оплата'
 
