@@ -90,7 +90,7 @@ def product_stock_view(product, order=None):
                 for row in cursor:
                     ids.append(str(row[0]))
                     ordered = ordered + int(row[1])
-                url = '%s?id__in=%s&status=any' % (reverse("admin:shop_order_changelist"), ','.join(ids))
+                url = '%s?id__in=%s&status=all' % (reverse("admin:shop_order_changelist"), ','.join(ids))
                 result = result + '<a href="%s" style="color: #00c">Зак:&nbsp;%s<br/></a>' % (url, floatformat(ordered))
             cursor.close()
     else:
@@ -300,7 +300,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         article = obj.article or '--'
         partnumber = obj.partnumber or '--'
         return '<br/>'.join([code, article, partnumber])
-    product_codes.admin_order_field = 'product__code'
+    product_codes.admin_order_field = 'code'
     product_codes.short_description = 'Ид/1С/PN'
 
     @mark_safe
@@ -311,13 +311,14 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         if not obj.cur_code.code == 643:
             result = result + '<br/>%s&nbsp;%s' % (obj.cur_price, obj.cur_code)
         return result
+    combined_price.admin_order_field = 'price'
     combined_price.short_description = 'цена'
 
     @mark_safe
     def combined_discount(self, obj):
         return '%s&nbsp;руб<br/>%s%%' % (obj.val_discount, obj.pct_discount)
     combined_discount.short_description = 'скидка'
-    
+
     def product_stock(self, obj):
         return product_stock_view(obj)
     product_stock.short_description = 'склад'
@@ -767,7 +768,7 @@ class FutureDateFieldListFilter(admin.FieldListFilter):
 
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):#LockableModelAdmin):
+class OrderAdmin(LockableModelAdmin):
     @mark_safe
     def order_name(self, obj):
         manager = ''
@@ -880,8 +881,9 @@ class OrderAdmin(admin.ModelAdmin):#LockableModelAdmin):
     list_display = ['order_name', 'name_and_skyped_phone', 'city', 'total_cost', 'combined_payment', 'combined_delivery',
                     'colored_status', 'combined_comments']
     readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders']
-    list_filter = [OrderStatusListFilter, ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter), 'paid', 'site', 'manager', 'courier', OrderDeliveryListFilter,
-                   ('delivery_dispatch_date', FutureDateRangeFilter), ('delivery_handing_date', FutureDateRangeFilter)]
+    list_filter = [OrderStatusListFilter, ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter), OrderDeliveryListFilter,
+                   ('delivery_dispatch_date', FutureDateRangeFilter), ('delivery_handing_date', FutureDateRangeFilter),
+                   'paid', 'site', 'manager', 'courier']
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode', 'manager_comment']
     inlines = [OrderItemInline] #, AddOrderItemInline]
@@ -1333,11 +1335,6 @@ class OrderAdmin(admin.ModelAdmin):#LockableModelAdmin):
 
         return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
     order_set_user_tag_action.short_description = "Добавить тег покупателю"
-
-    def get_actions(self, request):
-        actions = super(OrderAdmin, self).get_actions(request)
-        del actions['delete_selected']
-        return actions
 
 
 class UserCreationForm(forms.ModelForm):
