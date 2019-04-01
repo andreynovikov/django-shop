@@ -18,7 +18,7 @@ from celery import shared_task
 
 import reviews
 
-from sewingworld import sms_uslugi, smsru
+from sewingworld.sms import sms_client as client
 
 from shop.models import Supplier, Currency, Product, Stock, Basket, Order
 
@@ -29,32 +29,17 @@ log = logging.getLogger('shop')
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def send_message(phone, message):
-    smsru_key = getattr(settings, 'SMSRU_KEY', None)
-    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
-    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
-    client = sms_uslugi.Client(sms_login, sms_password)
-    #client = smsru.Client(smsru_key)
     client.send(phone, message)
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=15, retry_backoff=True)
 def send_password(phone, password):
-    smsru_key = getattr(settings, 'SMSRU_KEY', None)
-    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
-    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
-    client = sms_uslugi.Client(sms_login, sms_password)
-    #client = smsru.Client(smsru_key)
     client.send(phone, "Пароль для доступа на сайт: %s" % password)
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_user_order_new_sms(order_id, password):
     order = Order.objects.get(id=order_id)
-    smsru_key = getattr(settings, 'SMSRU_KEY', None)
-    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
-    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
-    client = sms_uslugi.Client(sms_login, sms_password)
-    #client = smsru.Client(smsru_key)
     password_text = ""
     if password:
         password_text = " Пароль: %s" % password
@@ -86,11 +71,6 @@ def notify_user_order_new_mail(order_id):
 @shared_task(autoretry_for=(Exception,), retry_backoff=True)
 def notify_user_order_collected(order_id):
     order = Order.objects.get(id=order_id)
-    smsru_key = getattr(settings, 'SMSRU_KEY', None)
-    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
-    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
-    client = sms_uslugi.Client(sms_login, sms_password)
-    #client = smsru.Client(smsru_key)
     client.send(order.phone, "Заказ №%s собран и ожидает оплаты. Перейдите по ссылке, чтобы оплатить заказ: https://%s%s" \
                     % (order_id, Site.objects.get_current().domain, reverse('shop:order', args=[order_id])))
 
@@ -118,11 +98,6 @@ def notify_user_order_delivered_shop(order_id):
     city = order.store.city.name
     address = order.store.address
     name = order.store.name
-    smsru_key = getattr(settings, 'SMSRU_KEY', None)
-    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
-    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
-    client = sms_uslugi.Client(sms_login, sms_password)
-    #client = smsru.Client(smsru_key)
     client.send(order.phone, "Ваш заказ доставлен в магазин \"%s\" по адресу %s, %s." \
                              " Для получения заказа обратитесь в кассу и назовите номер" \
                              " заказа %s." % (name, city, address, order_id))
@@ -135,11 +110,6 @@ def notify_user_order_delivered(order_id):
         title = 'PickPoint'
     else:
         title = 'ТК'
-    smsru_key = getattr(settings, 'SMSRU_KEY', None)
-    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
-    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
-    client = sms_uslugi.Client(sms_login, sms_password)
-    #client = smsru.Client(smsru_key)
     client.send(order.phone, "Заказ №%s доставлен в %s: %s" % (order_id, title, order.delivery_info))
 
     if order.email:
