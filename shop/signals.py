@@ -1,14 +1,30 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.core.cache import InvalidCacheBackendError, caches
+from django.core.cache.utils import make_template_fragment_key
 
 from tagging.utils import parse_tag_input
 
 from reviews import get_model
 from reviews.signals import review_was_posted
 
-from shop.models import Order
+from shop.models import Product, Order
 from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, \
     notify_user_order_delivered, notify_user_order_done, notify_review_posted
+
+
+@receiver(post_save, sender=Product, dispatch_uid='product_saved_receiver')
+def product_saved(sender, **kwargs):
+    product = kwargs['instance']
+    try:
+        fragment_cache = caches['template_fragments']
+    except InvalidCacheBackendError:
+        fragment_cache = caches['default']
+    vary_on = [product.id]
+    cache_key = make_template_fragment_key('product', vary_on)
+    fragment_cache.delete(cache_key)
+    cache_key = make_template_fragment_key('product_description', vary_on)
+    fragment_cache.delete(cache_key)
 
 
 @receiver(post_save, sender=Order, dispatch_uid='order_saved_receiver')
