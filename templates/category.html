@@ -83,3 +83,11 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 </script>
 {% endfor %}
 {% endblock %}
+
+{% block javascript %}
+<script>
+$(document).ready(function() {
+  dataLayer.push({'ecommerce':{'currencyCode':'RUB','impressions':gtm_products}});
+});
+</script>
+{% endblock javascript %}
