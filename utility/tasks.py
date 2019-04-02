@@ -6,6 +6,12 @@ from celery import shared_task
 
 
 @shared_task
+def django_clearsessions():
+    """Cleanup expired sessions by using Django management command."""
+    management.call_command("clearsessions", verbosity=1)
+
+
+@shared_task
 def zinnia_count_discussions():
     management.call_command("count_discussions", verbosity=1)
 
@@ -20,5 +26,5 @@ def haystack_update_index():
     management.call_command("update_index", verbosity=1)
 
 @shared_task
-def lock_tockens_remove_expired_locks():
+def lock_tokens_remove_expired_locks():
     management.call_command("remove_expired_locks", verbosity=1)
