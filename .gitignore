@@ -4,5 +4,6 @@ __pycache__/
 *~
 *.pyc
 settings_local.py
-media/images/
+media/
 static/
+st_search/
