@@ -33,7 +33,7 @@
 {% endif %}
 {% endwith %}
 {% endfor %}
-    <picture>{% site_url_prefix %}{{ product.image_prefix }}.jpg</picture>
+    <picture>{% site_url_prefix %}{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</picture>
     <vendor>{{ product.manufacturer.name }}</vendor>
     <model>{{ product.title }}</model>
     {% if product.whatis %}

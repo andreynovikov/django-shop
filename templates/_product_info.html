@@ -13,9 +13,9 @@
 </div>
 <div class="sw-p-l-image text-center">
 {% if product.variations %}
-<a href="{{ product.variations }}">
+<a href="{{ product.variations }}" onclick="dataLayer.push({'event': 'productClick','ecommerce': {'click': {'actionField': {'list': '{{ gtm_list }}'},'products': [{'name': '{{ product.partnumber}} {{ product.title }}','id': '{{ product.id }}','price': '{{ product.cost }}','brand': '{{ product.manufacturer.code }}','category': '{{ category.name }}','position': {{ forloop.counter }}}]}},'eventCallback': function() {document.location = {{ product.variations }}}});">
 {% else %}
-<a href="{% url 'product' product.code %}">
+<a href="{% url 'product' product.code %}" onclick="dataLayer.push({'event': 'productClick','ecommerce': {'click': {'actionField': {'list': '{{ gtm_list }}'},'products': [{'name': '{{ product.partnumber}} {{ product.title }}','id': '{{ product.id }}','price': '{{ product.cost }}','brand': '{{ product.manufacturer.code }}','category': '{{ category.name }}','position': {{ forloop.counter }}}]}},'eventCallback': function() {document.location = {% url 'product' product.code %}}});">
 {% endif %}
 {% if product.image_prefix|add:'.s.jpg'|file_exists %}
 <img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" />
@@ -32,22 +32,22 @@
 {% endif %}
 {% for action in product.get_sales_actions %}
 {% if action.notice %}
-<span class="label sw-action">{{ action.notice }}</p>
+<span class="label sw-action">{{ action.notice }}</span>
 {% endif %}
 {% endfor %}
 </div>
 <h3 class="sw-p-l-name-h">
 {% if product.variations %}
-<a href="{{ product.variations }}">
+<a href="{{ product.variations }}" onclick="dataLayer.push({'event': 'productClick','ecommerce': {'click': {'actionField': {'list': '{{ gtm_list }}'},'products': [{'name': '{{ product.partnumber}} {{ product.title }}','id': '{{ product.id }}','price': '{{ product.cost }}','brand': '{{ product.manufacturer.code }}','category': '{{ category.name }}','position': {{ forloop.counter }}}]}},'eventCallback': function() {document.location = {{ product.variations }}}});">
 {% else %}
-<a href="{% url 'product' product.code %}">
+<a href="{% url 'product' product.code %}" onclick="dataLayer.push({'event': 'productClick','ecommerce': {'click': {'actionField': {'list': '{{ gtm_list }}'},'products': [{'name': '{{ product.partnumber}} {{ product.title }}','id': '{{ product.id }}','price': '{{ product.cost }}','brand': '{{ product.manufacturer.code }}','category': '{{ category.name }}','position': {{ forloop.counter }}}]}},'eventCallback': function() {document.location = {% url 'product' product.code %}}});">
 {% endif %}
 {{ product.title }}</a></h3>
 <p>
 {% if product.variations %}
-<a href="{{ product.variations }}">
+<a href="{{ product.variations }}" onclick="dataLayer.push({'event': 'productClick','ecommerce': {'click': {'actionField': {'list': '{{ gtm_list }}'},'products': [{'name': '{{ product.partnumber}} {{ product.title }}','id': '{{ product.id }}','price': '{{ product.cost }}','brand': '{{ product.manufacturer.code }}','category': '{{ category.name }}','position': {{ forloop.counter }}}]}},'eventCallback': function() {document.location = {{ product.variations }}}});">
 {% else %}
-<a href="{% url 'product' product.code %}">
+<a href="{% url 'product' product.code %}" onclick="dataLayer.push({'event': 'productClick','ecommerce': {'click': {'actionField': {'list': '{{ gtm_list }}'},'products': [{'name': '{{ product.partnumber}} {{ product.title }}','id': '{{ product.id }}','price': '{{ product.cost }}','brand': '{{ product.manufacturer.code }}','category': '{{ category.name }}','position': {{ forloop.counter }}}]}},'eventCallback': function() {document.location = {% url 'product' product.code %}}});">
 {% endif %}
 {{ product.whatis }} {{ product.partnumber }}</a></p>
 <div class="sw-p-l-brif">
@@ -64,14 +64,15 @@
 
 <div class="sw-p-l-buy">
 {% if product.variations %}
-<a href="{{ product.variations }}" class="btn btn-xs btn-success sw-addProduct-sm" role="button">Выбрать</a>
+<a href="{{ product.variations }}" class="btn btn-xs btn-success sw-addProduct-sm" role="button" onclick="dataLayer.push({'event': 'productClick','ecommerce': {'click': {'actionField': {'list': '{{ gtm_list }}'},'products': [{'name': '{{ product.partnumber}} {{ product.title }}','id': '{{ product.id }}','price': '{{ product.cost }}','brand': '{{ product.manufacturer.code }}','category': '{{ category.name }}','position': {{ forloop.counter }}}]}},'eventCallback': function() {document.location = {{ product.variations }}}});">Выбрать</a>
 {% else %}
 {% if product.instock > 0 %}
 <a href="{% url 'shop:add' product.id %}"
-class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
+class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}" onclick="var VK_add_to_cart_Params = {'products': [{'id': '{{ product.id }}'}]};
+    VK.Retargeting.ProductEvent(3195, 'add_to_cart', VK_add_to_cart_Params); dataLayer.push({'event': 'addToCart','ecommerce': {'currencyCode': 'RUB','add': {'products': [{'name':'{{ product.partnumber}} {{ product.title }}','id':'{{ product.id }}','category':'{{ category.name }}','brand':'{{ product.manufacturer.code }}','price':'{{ product.cost|quantize:"1" }}','quantity': 1}]}}});">Купить</a>
 {% else %}
-<a href="{% url 'shop:add' product.id %}"
-class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a>
+<!-- <a href="{% url 'shop:add' product.id %}"
+class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a> -->
 {% endif %}
 {% endif %}
 </div>
@@ -92,7 +93,7 @@ class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{
 {% endif %}
 </span></p>
 {% endif %}
+</div>
+</div>
 
-</div>
-</div>
 <!-- /product -->

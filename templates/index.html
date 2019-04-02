@@ -47,8 +47,8 @@
 gtm_products = [];
 </script>
 
-<h2>Идеи для подарков</h2>
-{% for product in gift_products %}
+<h2><a href="/catalog/promo/">Специальные предложения!</a></h2>
+{% for product in recomended_products %}
 {% include "_product_info.html" %}
 <script>
 gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Первая страница акции','position':{{ forloop.counter }}});
@@ -85,13 +85,14 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 </div>
 {% endif %}
 
-<h2><a href="/catalog/promo/">Специальные предложения!</a></h2>
-{% for product in recomended_products %}
+<h2>Идеи для подарков</h2>
+{% for product in gift_products %}
 {% include "_product_info.html" %}
 <script>
 gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Первая страница акции','position':{{ forloop.counter }}});
 </script>
 {% endfor %}
+
 
 {% if bottom_adverts %}
 <div id="bottom_slides" class="carousel slide" data-ride="carousel" data-interval="6000">

@@ -52,7 +52,7 @@
           <div>
             <span class="sw-p-l-price"><span id="price_{{item.product.id}}">{{ item.price }}</span></span>&nbsp;руб.
           </div>
-          <a href="{% url 'shop:delete' item.product.id %}" class="delete ajax">Удалить</a>
+          <a href="{% url 'shop:delete' item.product.id %}" class="delete ajax" onclick="dataLayer.push({'event': 'removeFromCart','ecommerce': {'currencyCode': 'RUB','remove': {'products': [{'name':'{{ product.partnumber}} {{ product.title }}','id':'{{ product.id }}','category':'{{ category.name }}','brand':'{{ product.manufacturer.code }}','price':'{{ product.cost }}','quantity': 1}]}}});">Удалить</a>
        </div>
        </div>
     </div>

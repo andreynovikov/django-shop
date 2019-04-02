@@ -108,10 +108,10 @@ class Topic(models.Model):
     title = models.CharField(max_length=50)
     descr = models.TextField(blank=True, null=True)
     privacy = models.IntegerField()
-    enabled = models.IntegerField()
-    isopen = models.IntegerField()
+    enabled = models.BooleanField()
+    isopen = models.BooleanField()
     seq = models.IntegerField()
-    support = models.IntegerField(blank=True, null=True)
+    support = models.BooleanField(blank=True, null=True)
     parentid = models.IntegerField(blank=True, null=True)
 
     class Meta:
@@ -129,14 +129,14 @@ class Topic(models.Model):
 class Thread(models.Model):
     topic = models.ForeignKey(Topic, db_column='topic', on_delete=models.PROTECT)
     title = models.CharField(max_length=200)
-    isopen = models.IntegerField()
-    archived = models.IntegerField()
+    isopen = models.BooleanField()
+    archived = models.BooleanField()
     owner = models.ForeignKey(BassetUser, db_column='owner', on_delete=models.CASCADE)
     mtime = models.DateTimeField(blank=True, null=True)
-    notify = models.IntegerField()
+    notify = models.BooleanField()
     slink = models.IntegerField(blank=True, null=True)
     ip = models.CharField(max_length=15, blank=True, null=True)
-    enabled = models.IntegerField(blank=True, null=True)
+    enabled = models.BooleanField(blank=True, null=True)
 
     class Meta:
         managed = False
@@ -157,8 +157,8 @@ class Opinion(models.Model):
     mode = models.IntegerField()
     ip = models.CharField(max_length=15, blank=True, null=True)
     rate = models.IntegerField()
-    edited = models.IntegerField()
-    rated = models.IntegerField()
+    edited = models.BooleanField()
+    rated = models.BooleanField()
 
     class Meta:
         managed = False
@@ -199,7 +199,7 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     orid = models.ForeignKey(Order, db_column='orid', primary_key=True, on_delete=models.CASCADE, related_name='item')
-    pid = models.ForeignKey(Product, db_column='pid', on_delete=models.PROTECT)
+    pid = models.ForeignKey(Product, db_column='pid', on_delete=models.CASCADE)
     pq = models.IntegerField()
     pprice = models.FloatField()
     pccode = models.CharField(max_length=3)
