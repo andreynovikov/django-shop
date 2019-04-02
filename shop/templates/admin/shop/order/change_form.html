@@ -129,7 +129,7 @@
 
 {% block content %}
     {{ block.super }}
-    {% if False or lock_token %}
+    {% if lock_token %}
         {% admin_lock_handler opts.app_label opts.model_name original.id lock_token %}
     {% endif %}
 <div id="documentbox" class="documentbox module" style="display: none; position: absolute">
@@ -168,8 +168,8 @@
     <p class="documentlist-cancel"><a href="#">{% trans "Cancel" %}</a></p>
 </div>
 {% endblock %}
-{% block xsubmit_buttons_top %}{% if not original.pk or lock_token %}{% submit_row %}{% endif %}{% endblock %}
-{% block xsubmit_buttons_bottom %}{% if not original.pk or lock_token %}{% submit_row %}{% endif %}{% endblock %}
+{% block submit_buttons_top %}{% if not original.pk or lock_token %}{% submit_row %}{% endif %}{% endblock %}
+{% block submit_buttons_bottom %}{% if not original.pk or lock_token %}{% submit_row %}{% endif %}{% endblock %}
 
 {% block object-tools-items %}
     <li><a id="documentboxlink" href="#" class="related-widget-wrapper-link">Документы</a></li>
