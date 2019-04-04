@@ -23,6 +23,8 @@ def index(request):
 def products_stream(request, templates, filter_type):
     root = Category.objects.get(slug=settings.MPTT_ROOT)
     children = root.get_children()
+    if filter_type == 'yandex':
+        children = children.filter(ya_active=True)
     categories = {}
     for child in children:
         categories[child.pk] = child.pk;
@@ -38,6 +40,7 @@ def products_stream(request, templates, filter_type):
     yield t.render(context)
 
     t = loader.get_template('xml/_{}_product.xml'.format(templates))
+
     filters = {
         'enabled': True,
         'price__gt': 0,
