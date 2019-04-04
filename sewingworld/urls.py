@@ -12,7 +12,9 @@ urlpatterns = [
     # ex: /
     url(r'^$', views.index, name='index'),
     # ex: /search.xml
-    url(r'^search\.xml$', views.search_xml, name='search_xml'),
+    url(r'^search\.xml$', views.products, {'templates': 'search', 'filters': None}, name='search_xml'),
+    # ex: /full.xml
+    url(r'^full\.xml$', views.products, {'templates': 'products', 'filters': None}, name='full'),
     # ex: /products.xml
     url(r'^products\.xml$', views.products, {'templates': 'products', 'filters': 'yandex'}, name='products'),
     # ex: /google.xml

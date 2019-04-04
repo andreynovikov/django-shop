@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE yml_catalog SYSTEM "shops.dtd">
+<yml_catalog date="{% now 'Y-m-d H:i' %}" >
+
+{% load site %}
+<shop>
+<name>Швейный Мир</name>
+<company>Швейный Мир</company>
+<url>{% site_url_prefix %}</url>
+
+<currencies>
+<currency  id="RUR" rate="1"/>
+<currency  id="USD" rate="CBRF"/>
+</currencies>
+
+<categories>
+{% for child in children %}
+    <category id="{{ child.id }}">{{ child.name }}</category>
+{% endfor %}
+</categories>
+
+<offers>
