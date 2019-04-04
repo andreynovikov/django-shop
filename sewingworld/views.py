@@ -1,7 +1,10 @@
+from django.http import Http404, StreamingHttpResponse
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.sites.models import Site
+from django.template import loader, Context
 
 from shop.models import Category, Product, Basket
 
@@ -17,24 +20,43 @@ def index(request):
     return render(request, 'index.html', context)
 
 
-def products(request, template):
+def products_stream(request, templates, filter_type):
     root = Category.objects.get(slug=settings.MPTT_ROOT)
-    children = root.get_children() #.filter(ya_active=True)
+    children = root.get_children()
     categories = {}
     for child in children:
-        #if not child.ya_active:
-        #    continue
         categories[child.pk] = child.pk;
         descendants = child.get_descendants()
         for descendant in descendants:
             categories[descendant.pk] = child.pk;
     context = {
-        'root': root,
+        'request': request,
         'children': children,
-        'category_map': categories,
-        'products': Product.objects.filter(enabled=True, categories__in=root.get_descendants(include_self=True)).distinct()
+        'category_map': categories
+    }
+    t = loader.get_template('xml/_{}_header.xml'.format(templates))
+    yield t.render(context)
+
+    t = loader.get_template('xml/_{}_product.xml'.format(templates))
+    filters = {
+        'enabled': True,
+        'price__gt': 0,
+        'variations__exact': '',
+        'categories__in': root.get_descendants(include_self=True)
         }
-    return render(request, template, context, content_type='text/xml; charset=utf-8')
+        
+    products = Product.objects.filter(**filters).distinct()
+    for product in products:
+        context['product'] = product
+        yield t.render(context)
+
+    del context['product']
+    t = loader.get_template('xml/_{}_footer.xml'.format(templates))
+    yield t.render(context)
+
+
+def products(request, templates, filters):
+    return StreamingHttpResponse(products_stream(request, templates, filters), content_type='text/xml; charset=utf-8')
 
 
 def catalog(request):

@@ -12,7 +12,7 @@ urlpatterns = [
     # ex: /
     url(r'^$', views.index, name='index'),
     # ex: /products.xml
-    url(r'^products\.xml$', views.products, {'template': 'products.xml'}, name='products'),
+    url(r'^products\.xml$', views.products, {'templates': 'products', 'filters': 'yandex'}, name='products'),
     # ex: /catalog/
     url(r'^catalog/$', views.catalog, name='catalog'),
     # ex: /catalog/expand/1234

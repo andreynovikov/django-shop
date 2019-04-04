@@ -1,27 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE yml_catalog SYSTEM "shops.dtd">
-<yml_catalog date="{% now 'Y-m-d H:i' %}" >
-
 {% load site %}
-<shop>
-<name>Швейный Мир Опт</name>
-<company>Швейный Мир</company>
-<url>https://opt.sewing-world.ru/</url>
-
-<currencies>
-<currency id="RUR" rate="1"/>
-<currency id="USD" rate="CBRF" plus="6.5"/>
-<currency id="EUR" rate="CBRF" plus="6.5"/>
-</currencies>
-
-<categories>
-{% for child in children %}
-    <category id="{{ child.id }}">{{ child.name }}</category>
-{% endfor %}
-</categories>
-
-<offers>
-{% for product in products %}
 <offer id="{{ product.id }}" type="vendor.model" {% if product.instock > 10 %}available="10"{% else %}available="{{ product.instock }}"{% endif %}>
     <article>{{ product.article }}</article>
     <url>https://www.sewing-world.ru/products/{{ product.code }}.html</url>
@@ -56,8 +33,3 @@
     {% endif %}
     <description>{{ product.whatis|safe }} {{ product.yandexdescr|safe }} {{ product.descr|striptags }}</description>
 </offer>
-{% endfor %}
-</offers>
-
-</shop>
-</yml_catalog>
