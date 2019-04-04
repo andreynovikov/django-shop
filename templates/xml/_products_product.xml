@@ -1,27 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE yml_catalog SYSTEM "shops.dtd">
-<yml_catalog date="{% now 'Y-m-d H:i' %}" >
-
+{% load static %}
 {% load site %}
-<shop>
-<name>Швейный Мир</name>
-<company>Швейный Мир</company>
-<url>{% site_url_prefix %}</url>
-
-<currencies>
-<currency  id="RUR" rate="1"/>
-<currency  id="USD" rate="CBRF"/>
-</currencies>
-
 {% load decimals %}
-<categories>
-{% for child in children %}
-    <category id="{{ child.id }}">{{ child.name }}</category>
-{% endfor %}
-</categories>
-
-<offers>
-{% for product in products %}
 <offer id="{{ product.id }}" type="vendor.model" {% if product.instock > 0 %}available="true"{% else %}available="false"{% endif %}>
     <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=yamarket&amp;utm_term={{ product.id }}</url>
     <price>{{ product.cost|quantize:"1" }}</price>
@@ -33,7 +12,7 @@
 {% endif %}
 {% endwith %}
 {% endfor %}
-    <picture>{% site_url_prefix %}{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</picture>
+    <picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image_prefix }}.jpg</picture>
     <vendor>{{ product.manufacturer.name }}</vendor>
     <model>{{ product.title }}</model>
     {% if product.whatis %}
@@ -55,8 +34,3 @@
  	<manufacturer_warranty>true</manufacturer_warranty>
     {% endif %}
 </offer>
-{% endfor %}
-</offers>
-
-</shop>
-</yml_catalog>

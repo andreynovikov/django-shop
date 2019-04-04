@@ -35,16 +35,16 @@ urlpatterns = [
     url(r'^$', views.index, name='index'),
     # ex: /sitemap.xml
     url(r'^sitemap\.xml$', sitemap, {'sitemaps' : sitemaps}, name='sitemap'),
-    # ex: /full.xml
-    url(r'^full\.xml$', views.full, name='full'),
     # ex: /search.xml
-    url(r'^search\.xml$', views.search_xml, name='search_xml'),
+    url(r'^search\.xml$', views.products, {'templates': 'search', 'filters': None}, name='search_xml'),
+    # ex: /full.xml
+    url(r'^full\.xml$', views.products, {'templates': 'products', 'filters': None}, name='full'),
     # ex: /products.xml
-    url(r'^products\.xml$', views.products, {'template': 'products.xml'}, name='products'),
+    url(r'^products\.xml$', views.products, {'templates': 'products', 'filters': 'yandex'}, name='products'),
     # ex: /google.xml
-    url(r'^google\.xml$', views.products, {'template': 'google.xml'}, name='google'),
+    url(r'^google\.xml$', views.products, {'templates': 'google', 'filters': 'yandex'}, name='google'),
     # ex: /cc-prym.xml
-    url(r'^cc-prym\.xml$', views.products, {'template': 'prym.xml'}, name='cc-prym'),
+    url(r'^cc-prym\.xml$', views.products, {'templates': 'prym', 'filters': 'yandex'}, name='cc-prym'),
     # ex: /search/
     url(r'^search/$', views.search, name='search'),
     # ex: /catalog/

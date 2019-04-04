@@ -1,22 +1,20 @@
-<?xml version="1.0"?>
-<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+{% load static %}
 {% load site %}
-<channel>
-<title>Швейный Мир</title>
-<link>{% site_url_prefix %}</link>
-{% for product in products %}
 <item>
 <g:id>{{ product.id }}</g:id>
 <title>{{ product.title }}</title>
 <g:description>{{ product.whatis|safe }} {{ product.yandexdescr|safe }} {{ product.descr|striptags }}</g:description>
-<link>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=merchant&amp;utm_term={{ product.id }}</link>
-<g:image_link>{% site_url_prefix %}{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</g:image_link>
+<link>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=prym&amp;utm_term={{ product.id }}</link>
+<g:image_link>{% site_url_prefix %}{% get_media_prefix %}{{ product.image_prefix }}.jpg</g:image_link>
 {% if product.instock > 0 %}
 <g:availability>in stock</g:availability>
 {% else %}
 <g:availability>out of stock</g:availability>
 {% endif %}
 <g:price>{{ product.cost }} RUB</g:price>
+<g:price_net>{{ product.cost }} RUB</g:price_net>
+<g:delivery_price>0</g:delivery_price>
+<g:delivery_price_net>0</g:delivery_price_net>
 <g:brand>{{ product.manufacturer.name }}</g:brand>
 {% if product.gtin %}
 <g:gtin>{{ product.gtin }}</g:gtin>
@@ -27,8 +25,3 @@
 <g:condition>new</g:condition>
 <g:adult>no</g:adult>
 </item>
-{% endfor %}
-
-</channel>
-</rss>
-
