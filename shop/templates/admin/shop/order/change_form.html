@@ -81,10 +81,10 @@
     $(document).ready(function() {
         var $SaveButton = $("input[name='_save']");
         var $ContinueButton = $("input[name='_continue']");
-        $SaveButton.removeClass('default');
-        $ContinueButton.addClass('default');
-        $SaveButton.val("Сохранить и выйти");
-        $ContinueButton.val("Сохранить");
+        $SaveButton.val("Сохранить");
+        $SaveButton.attr('name', '_continue');
+        $ContinueButton.val("Сохранить и выйти");
+        $ContinueButton.attr('name', '_save');
         var Delivery_Price = $("input[name='delivery_price']").val();
         var Products_Price = $("div.field-products_price > div > div.readonly").html();
         var Total = $("div.field-total > div > div.readonly").html();
