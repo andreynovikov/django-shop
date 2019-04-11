@@ -914,7 +914,7 @@ class OrderAdmin(LockableModelAdmin):
             #('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
             #                          ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
             ('Покупатель', {'fields': [('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux', 'email'),
-                                       ('postcode', 'city', 'address'), 'comment', ('firm_name', 'is_firm')]}),
+                                       'address', ('city', 'postcode'), 'comment', ('firm_name', 'is_firm')]}),
             )
         if obj is None or obj.is_firm:
             fieldsets[2][1]['fields'].extend(('firm_address', 'firm_details'))
