@@ -121,7 +121,7 @@ class CategoryAdmin(DraggableMPTTAdmin):
 class SupplierAdmin(SortableAdminMixin, admin.ModelAdmin):
     list_display = ['code', 'name', 'show_in_order', 'count_in_stock', 'spb_count_in_stock', 'ws_count_in_stock']
     list_display_links = ['name']
-    search_fields = ['code', 'name']
+    search_fields = ['code', 'code1c', 'name']
 
 
 @admin.register(Currency)
@@ -161,7 +161,7 @@ class CityAdmin(admin.ModelAdmin):
 
 @admin.register(Store)
 class StoreAdmin(admin.ModelAdmin):
-    list_display = ['city', 'address', 'name', 'enabled', 'latitude', 'longitude']
+    list_display = ['city', 'address', 'name', 'supplier', 'enabled', 'latitude', 'longitude']
     list_display_links = ['address', 'name']
     list_filter = [('city', RelatedDropdownFilter), 'enabled']
     search_fields = ['name', 'address', 'address2']
