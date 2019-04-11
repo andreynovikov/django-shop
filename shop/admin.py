@@ -108,7 +108,7 @@ class CategoryAdmin(DraggableMPTTAdmin):
     list_display = ('tree_actions', 'indented_title', 'slug', 'active')
     #list_editable = ['active']
     list_display_links = ['indented_title']
-    exclude = ('order', 'image_width', 'image_height', 'promo_image_width', 'promo_image_height')
+    exclude = ('image_width', 'image_height', 'promo_image_width', 'promo_image_height')
     form = CategoryForm
 
     
