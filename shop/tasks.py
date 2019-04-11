@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import sys
 import csv
 import datetime
 import logging
@@ -198,6 +197,38 @@ def notify_manager(order_id):
     )
 
 
+@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
+def notify_review_posted(review_id):
+    review = reviews.get_model().objects.get(id=review_id)
+
+    shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+    msg_plain = render_to_string('mail/reviews/review_posted.txt', {'review': review})
+
+    send_mail(
+        'Новый обзор для %s' % review.content_object,
+        msg_plain,
+        shop_settings['email_from'],
+        [manager_tuple[1] for manager_tuple in settings.MANAGERS]
+    )
+
+
+class fragile(object):
+    class Break(Exception):
+        """Break out of the with statement"""
+
+    def __init__(self, value):
+        self.value = value
+
+    def __enter__(self):
+        return self.value.__enter__()
+
+    def __exit__(self, etype, value, traceback):
+        error = self.value.__exit__(etype, value, traceback)
+        if etype == self.Break:
+            return True
+        return error
+
+
 @shared_task(time_limit=2400, autoretry_for=(Exception,), retry_backoff=True)
 def import1c(file):
     frozen_orders = Order.objects.filter(status=Order.STATUS_FROZEN)
@@ -220,16 +251,31 @@ def import1c(file):
     updated = 0
     errors = []
     orders = set()
-
-    suppliers = Supplier.objects.all().order_by('order')
+    suppliers = []
     currencies = Currency.objects.all()
-    with open(filepath) as csvfile:
+    with fragile(open(filepath)) as csvfile:
         next(csvfile)
         next(csvfile)
-        all_products = Product.objects.all()
+        line = csvfile.readline().strip()
+        if line != '//Список складов':
+            errors.append("Неправильный формат файла импорта (ожидался список складов)")
+            raise fragile.Break
+        for line in csvfile:
+            line = line.strip()
+            if line == '//Остатки':
+                break
+            name, code = line.split(';')
+            try:
+                supplier = Supplier.objects.get(code1c=code)
+                suppliers.append(supplier)
+            except ObjectDoesNotExist:
+                errors.append("Неизвестный поставщик с кодом %s: %s" % (code, name))
+                suppliers.append(None)
+        if not suppliers:
+            errors.append("Нет ни одного известного поставщика")
+            raise fragile.Break
         csv_fields = ('article', 'sp_cur_price', 'sp_cur_code', 'ws_cur_price', 'ws_cur_code', 'cur_price', 'cur_code')
         records = csv.DictReader(csvfile, delimiter=';', fieldnames=csv_fields, restkey='suppliers')
-        #products = {x.pk:x for x in all_products}
         for line in records:
             imported = imported + 1
             try:
@@ -259,20 +305,19 @@ def import1c(file):
                 #product.stock.clear()
                 product.save()
                 for idx, quantity in enumerate(line['suppliers']):
+                    if suppliers[idx] is None:
+                        continue
                     try:
                         quantity = float(quantity.replace('\xA0','').replace(',','.'))
-                        #s = Stock(product=product, supplier=suppliers[idx], quantity=quantity)
-                        #s.save()
-                        s, created = Stock.objects.update_or_create(
-                            product=product, supplier=suppliers[idx],
-                            defaults={'quantity': quantity})
-                        if s.quantity == 0.0 and s.correction == 0.0:
-                            s.delete()
+                        updated = Stock.objects.filter(product=product, supplier=suppliers[idx]).update(quantity=quantity)
+                        if updated and quantity == 0.0:
+                            s = Stock.objects.get(product=product, supplier=suppliers[idx])
+                            if s.correction == 0.0:
+                                s.delete()
                     except ValueError:
                         errors.append("%s: состояние складa" % line['article'])
                     except IndexError:
                         errors.append("%s: неправильное количество складов" % line['article'])
-                #products[product.id].imported = True
                 product.num = -1
                 product.spb_num = -1
                 product.save()
