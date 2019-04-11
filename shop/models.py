@@ -128,7 +128,6 @@ class Category(MPTTModel):
     promo_image_height = models.IntegerField(null=True, blank=True)
     product_order = models.CharField('поле сортировки товаров', max_length=50, default='-price')
     ya_active = models.BooleanField('выдавать в Яндекс.Маркет', default=True)
-    order = models.PositiveIntegerField()
 
     def get_active_descendants(self):
         return self.get_descendants().filter(active=True)
@@ -146,9 +145,9 @@ class Category(MPTTModel):
         import traceback
         tb = traceback.extract_stack(limit=6)
         for line in tb:
-            if self.id == 15:
-                import sys
-                print('{}: {}'.format(line.filename, line.name), file=sys.stderr)
+            #if self.id == 15:
+            #    import sys
+            #    print('{}: {}'.format(line.filename, line.name), file=sys.stderr)
             if line.name == 'field_choices' and line.filename.endswith('contrib/admin/filters.py'):
                 show_path = True
             if line.name == 'get' and line.filename.endswith('contrib/admin/views/autocomplete.py'):
@@ -161,9 +160,6 @@ class Category(MPTTModel):
     class Meta:
         verbose_name = "категория"
         verbose_name_plural = "категории"
-
-    class MPTTMeta:
-        order_insertion_by = ['order']
 
 
 class Currency(models.Model):
