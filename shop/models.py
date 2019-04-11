@@ -261,8 +261,40 @@ class City(models.Model):
         return str(self.country) + ', ' + self.name
 
 
+class Supplier(models.Model):
+    COUNT_STOCK = 1
+    COUNT_DEFER = 2
+    COUNT_NONE = 99
+    COUNT_CHOICES = (
+        (COUNT_NONE, 'не учитывать'),
+        (COUNT_STOCK, 'наличие'),
+        (COUNT_DEFER, 'под заказ'),
+    )
+    code = models.CharField('код', max_length=10)
+    code1c = models.CharField('код 1С', max_length=50)
+    name = models.CharField('название', max_length=100)
+    show_in_order = models.BooleanField('показывать в заказе', default=False, db_index=True)
+    count_in_stock = models.SmallIntegerField('учитывать в наличии', choices=COUNT_CHOICES, default=COUNT_NONE)
+    spb_count_in_stock = models.SmallIntegerField('учитывать в наличии СПб', choices=COUNT_CHOICES, default=COUNT_NONE)
+    ws_count_in_stock = models.SmallIntegerField('учитывать в наличии Опт', choices=COUNT_CHOICES, default=COUNT_NONE)
+    order = models.PositiveIntegerField()
+
+    class Meta:
+        verbose_name = 'поставщик'
+        verbose_name_plural = 'поставщики'
+        ordering = ['order']
+
+    @staticmethod
+    def autocomplete_search_fields():
+        return ['code__startswith', 'name__icontains']
+
+    def __str__(self):
+        return self.name
+
+
 class Store(models.Model):
     city = models.ForeignKey(City, verbose_name='город', on_delete=models.PROTECT)
+    supplier = models.ForeignKey(Supplier, verbose_name='склад', blank=True, null=True, on_delete=models.SET_NULL)
     address = models.CharField('адрес', max_length=255)
     phone = models.CharField('телефон', max_length=100, blank=True)
     name = models.CharField('название', max_length=100)
@@ -337,35 +369,6 @@ class Manufacturer(models.Model):
     @staticmethod
     def autocomplete_search_fields():
         return ['name__icontains']
-
-    def __str__(self):
-        return self.name
-
-
-class Supplier(models.Model):
-    COUNT_STOCK = 1
-    COUNT_DEFER = 2
-    COUNT_NONE = 99
-    COUNT_CHOICES = (
-        (COUNT_NONE, 'не учитывать'),
-        (COUNT_STOCK, 'наличие'),
-        (COUNT_DEFER, 'под заказ'),
-    )
-    code = models.CharField('код', max_length=10)
-    name = models.CharField('название', max_length=100)
-    show_in_order = models.BooleanField('показывать в заказе', default=False, db_index=True)
-    count_in_stock = models.SmallIntegerField('учитывать в наличии', choices=COUNT_CHOICES, default=COUNT_NONE)
-    spb_count_in_stock = models.SmallIntegerField('учитывать в наличии СПб', choices=COUNT_CHOICES, default=COUNT_NONE)
-    order = models.PositiveIntegerField()
-
-    class Meta:
-        verbose_name = 'поставщик'
-        verbose_name_plural = 'поставщики'
-        ordering = ['order']
-
-    @staticmethod
-    def autocomplete_search_fields():
-        return ['code__startswith', 'name__icontains']
 
     def __str__(self):
         return self.name
