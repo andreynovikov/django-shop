@@ -273,7 +273,6 @@ def import1c(file):
                             product.cur_price = int(round(price))
                     except ValueError:
                         errors.append("%s: розничная цена" % line['article'])
-                #product.stock.clear()
                 product.save()
                 for idx, quantity in enumerate(line['suppliers']):
                     if suppliers[idx] is None:
@@ -285,6 +284,8 @@ def import1c(file):
                             s = Stock.objects.get(product=product, supplier=suppliers[idx])
                             if s.correction == 0.0:
                                 s.delete()
+                        if not updated and quantity > 0.0:
+                            s = Stock.objects.create(product=product, supplier=suppliers[idx], quantity=quantity)
                     except ValueError:
                         errors.append("%s: состояние складa" % line['article'])
                     except IndexError:
@@ -298,10 +299,9 @@ def import1c(file):
                 updated = updated + 1
             except MultipleObjectsReturned:
                 errors.append("%s: артикль не уникален" % line['article'])
-                next
             except ObjectDoesNotExist:
                 #errors.append("%s: товар отсутсвует" % line['article'])
-                next
+                pass
 
     shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
