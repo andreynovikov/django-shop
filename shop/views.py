@@ -95,7 +95,7 @@ def view_basket_extnotice(request):
         'basket': basket
     }
     product_id = request.GET.get('product', None)
-    if product_id and basket.items.count() > 4:
+    if product_id and basket is not None and basket.items.count() > 4:
         context['collapse'] = True
         context['added_product'] = int(product_id)
         context['other_count'] = basket.items.count() -1
@@ -437,7 +437,7 @@ def reset_password(request):
         try:
             send_password.delay(phone, password)
         except Exception as e:
-            mail_admins('Task error', 'Failed to send password: %s' % e, message, fail_silently=True)
+            mail_admins('Task error', 'Failed to send password: %s' % e, fail_silently=True)
     else:
         """ we can not reset password if phone is not known yet """
         return HttpResponseForbidden()
@@ -472,8 +472,10 @@ def confirm_order(request, order_id=None):
             order = Order.register(basket)
             ipgeobases = IPGeoBase.objects.by_ip(request.META.get('REMOTE_ADDR'))
             if ipgeobases.exists():
-                ipgeobase = ipgeobases[0]
-                order.city = ipgeobase.city
+                for ipgeobase in ipgeobases:
+                    if ipgeobase.city is not None:
+                        order.city = ipgeobase.city
+                        break
             order.save()
             request.session['last_order'] = order.id
             request.session['last_order_updated'] = False
@@ -483,7 +485,7 @@ def confirm_order(request, order_id=None):
                 notify_user_order_new_mail.apply_async((order.id,), countdown=300)
                 notify_user_order_new_sms.apply_async((order.id, request.session.get('password', None),), countdown=300)
             except Exception as e:
-                mail_admins('Task error', 'Failed to send notification: %s' % e, message, fail_silently=True)
+                mail_admins('Task error', 'Failed to send notification: %s' % e, fail_silently=True)
             basket.delete()
             """ clear promo discount """
             try:
@@ -494,6 +496,7 @@ def confirm_order(request, order_id=None):
                 'order': order
             }
         except Exception as e:
+            mail_admins('Order error', 'Failed to register order: %s' % e, fail_silently=True)
             return HttpResponseServerError("Failed to register order: %s" % e)
     return render(request, 'shop/order_confirmation.html', context)
 
