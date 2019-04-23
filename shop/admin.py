@@ -826,7 +826,7 @@ class OrderAdmin(LockableModelAdmin):
         if obj.paid:
             style = '; color: green'
             checkmark = '<span style="display: table-cell; padding-left: 5px; color: green; font-weight: bold">&#10003;</span>'
-        elif obj.payment in [Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_POS, Order.PAYMENT_CREDIT]:
+        elif obj.payment in [Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_CREDIT]:
             style = '; color: red'
         return '<div style="display: table"><span style="display: table-cell%s">%s</span>%s</div>' % (style, obj.get_payment_display(), checkmark)
     combined_payment.admin_order_field = 'payment'
