@@ -6,7 +6,7 @@ from django import forms
 from django.urls import reverse
 from django.db import connection
 from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, \
-    TimeField, DateTimeField, DecimalField, FloatField
+    TimeField, DateTimeField, DecimalField, FloatField, Q
 from django.contrib import admin, messages
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin
@@ -544,6 +544,27 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
                 # start at the end to avoid recomputing offsets
                 del formsets[index]
         super().save_related(request, form, formsets, change)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        info = self.get_model_info()
+        my_urls = [
+            url(r'^stock_correction/$', self.admin_site.admin_view(self.stock_correction), name='%s_%s_stock_correction' % info),
+        ]
+        return my_urls + urls
+
+    def stock_correction(self, request):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        sort = request.GET.get('o', 'product__title')
+        stock = Stock.objects.filter(~Q(correction=0)).order_by(sort)
+        return render(request, 'admin/shop/product/stock_correction.html', {
+            'title': 'Коррекция склада',
+            'stock': stock,
+            'o': sort,
+            'cl': self,
+            **self.admin_site.each_context(request)
+        })
 
 
 @admin.register(Manager)
