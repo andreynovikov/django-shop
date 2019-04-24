@@ -19,3 +19,8 @@
     })(django.jQuery);
 </script>
 {% endblock %}
+{% block object-tools-items %}
+{% load admin_urls %}
+<li><a href="{% url opts|admin_urlname:'stock_correction' %}">Коррекция склада</a></li>
+{{ block.super }}
+{% endblock %}
