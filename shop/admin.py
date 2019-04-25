@@ -847,7 +847,7 @@ class OrderAdmin(LockableModelAdmin):
         if obj.paid:
             style = '; color: green'
             checkmark = '<span style="display: table-cell; padding-left: 5px; color: green; font-weight: bold">&#10003;</span>'
-        elif obj.payment in [Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_POS, Order.PAYMENT_CREDIT]:
+        elif obj.payment in [Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_CREDIT]:
             style = '; color: red'
         return '<div style="display: table"><span style="display: table-cell%s">%s</span>%s</div>' % (style, obj.get_payment_display(), checkmark)
     combined_payment.admin_order_field = 'payment'
@@ -935,7 +935,7 @@ class OrderAdmin(LockableModelAdmin):
             #('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
             #                          ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
             ('Покупатель', {'fields': [('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux', 'email'),
-                                       ('postcode', 'city', 'address'), 'comment', ('firm_name', 'is_firm')]}),
+                                       'address', ('city', 'postcode'), 'comment', ('firm_name', 'is_firm')]}),
             )
         if obj is None or obj.is_firm:
             fieldsets[2][1]['fields'].extend(('firm_address', 'firm_details'))

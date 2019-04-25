@@ -172,6 +172,7 @@ class OrderAdminForm(forms.ModelForm): #autocomplete_light.ModelForm):
         model = Order
         exclude = ['created']
         widgets = {
+            'address': forms.TextInput(attrs={'style': 'width: 60%'}),
             'phone': PhoneWidget(),
             'phone_aux': PhoneWidget()
         }

@@ -200,7 +200,7 @@ class fragile(object):
         return error
 
 
-@shared_task(time_limit=2400, autoretry_for=(Exception,), retry_backoff=True)
+@shared_task(time_limit=7200, autoretry_for=(Exception,), retry_backoff=True)
 def import1c(file):
     frozen_orders = Order.objects.filter(status=Order.STATUS_FROZEN)
     frozen_products = defaultdict(list)
@@ -279,12 +279,12 @@ def import1c(file):
                         continue
                     try:
                         quantity = float(quantity.replace('\xA0','').replace(',','.'))
-                        updated = Stock.objects.filter(product=product, supplier=suppliers[idx]).update(quantity=quantity)
-                        if updated and quantity == 0.0:
+                        count = Stock.objects.filter(product=product, supplier=suppliers[idx]).update(quantity=quantity)
+                        if count and quantity == 0.0:
                             s = Stock.objects.get(product=product, supplier=suppliers[idx])
                             if s.correction == 0.0:
                                 s.delete()
-                        if not updated and quantity > 0.0:
+                        if not count and quantity > 0.0:
                             s = Stock.objects.create(product=product, supplier=suppliers[idx], quantity=quantity)
                     except ValueError:
                         errors.append("%s: состояние складa" % line['article'])

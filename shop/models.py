@@ -506,7 +506,7 @@ class Product(models.Model):
     stitches=models.TextField('Строчки', blank=True)
     complect=models.TextField('Комплектация', blank=True)
     dealertxt=models.TextField('Текст про официального дилера', blank=True)
-    num=models.SmallIntegerField('в наличии', default=-1, db_column=settings.SHOP_STOCK_DB_COLUMN)
+    num=models.IntegerField('в наличии', default=-1, db_column=settings.SHOP_STOCK_DB_COLUMN)
     if settings.SHOP_STOCK_DB_COLUMN == 'num':
         spb_num = models.SmallIntegerField('в наличии СПб', default=-1)
         ws_num = models.SmallIntegerField('в наличии Опт', default=-1)

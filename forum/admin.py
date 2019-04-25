@@ -4,6 +4,7 @@ from django import forms
 from django.db.models import F
 from django.urls import reverse
 from django.contrib import admin
+from django.utils.safestring import mark_safe
 
 from import_export import resources
 from import_export.admin import ExportMixin
@@ -44,9 +45,9 @@ class SpiritTopicAdmin(admin.ModelAdmin):
     category_title.admin_order_field = 'category'
     category_title.short_description = 'категория'
 
+    @mark_safe
     def view_link(self, obj):
-        return '<a href={}><i class="icon-eye-open"></i></a>'.format(reverse('spirit:topic:detail', args=(obj.pk, obj.slug)))
-    view_link.allow_tags=True
+        return '<a href={}><i class="fas fa-external-link-alt"></i></a>'.format(reverse('spirit:topic:detail', args=(obj.pk, obj.slug)))
     view_link.short_description = 'просмотр'
 
     list_display = ['title', 'category_title', 'date', 'comment_count', 'is_pinned', 'is_globally_pinned', 'is_closed', 'is_removed', 'view_link']
@@ -60,14 +61,14 @@ class SpiritTopicAdmin(admin.ModelAdmin):
 
 @admin.register(models.SpiritCommentFlag)
 class SpiritCommentFlagAdmin(admin.ModelAdmin):
+    @mark_safe
     def view_link(self, obj):
         return "<a href={}>{}</a>".format(reverse('spirit:comment:find', args=(obj.pk,)), obj.comment.comment)
-    view_link.allow_tags=True
     view_link.short_description = 'просмотр'
 
+    @mark_safe
     def moderate_link(self, obj):
         return '<a href={}><i class="icon-lock"></i></a>'.format(reverse('spirit:admin:flag:detail', args=(obj.pk,)))
-    moderate_link.allow_tags=True
     moderate_link.short_description = 'модерирование'
 
     list_display = ['view_link', 'date', 'is_closed', 'moderate_link']
@@ -80,12 +81,12 @@ class SpiritCommentFlagAdmin(admin.ModelAdmin):
 
 @admin.register(models.Opinion)
 class OpinionAdmin(admin.ModelAdmin):
+    @mark_safe
     def author_link(self, obj):
         if obj.author.pk == '':
             return obj.author
         return "<a href={}>{}</a>".format(reverse('admin:{}_{}_change'.format(obj.author._meta.app_label, obj.author._meta.model_name), args=(obj.author.pk,)), obj.author)
     author_link.admin_order_field = 'author'
-    author_link.allow_tags=True
     author_link.short_description = 'author'
 
     list_display = ['id', 'tid', 'post', 'text', 'author_link', 'ip']
@@ -99,12 +100,12 @@ class OpinionAdmin(admin.ModelAdmin):
 
 @admin.register(models.Thread)
 class ThreadAdmin(admin.ModelAdmin):
+    @mark_safe
     def owner_link(self, obj):
         if obj.owner.pk == '':
             return obj.owner
         return "<a href={}>{}</a>".format(reverse('admin:{}_{}_change'.format(obj.owner._meta.app_label, obj.owner._meta.model_name), args=(obj.owner.pk,)), obj.owner)
     owner_link.admin_order_field = 'owner'
-    owner_link.allow_tags=True
     owner_link.short_description = 'owner'
 
     def discuss_count(self, obj):
@@ -222,12 +223,12 @@ class OrderResource(resources.ModelResource):
 
 @admin.register(models.Order)
 class OrderAdmin(ExportMixin, admin.ModelAdmin):
+    @mark_safe
     def user_link(self, obj):
         if obj.uid.pk == '':
             return obj.uid
         return "<a href={}>{}</a>".format(reverse('admin:{}_{}_change'.format(obj.uid._meta.app_label, obj.uid._meta.model_name), args=(obj.uid.pk,)), obj.uid)
     user_link.admin_order_field = 'uid'
-    user_link.allow_tags=True
     user_link.short_description = 'uid'
 
     def otime_datetime(self, obj):
