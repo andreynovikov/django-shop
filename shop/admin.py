@@ -549,22 +549,39 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         urls = super().get_urls()
         info = self.get_model_info()
         my_urls = [
-            url(r'^stock_correction/$', self.admin_site.admin_view(self.stock_correction), name='%s_%s_stock_correction' % info),
+            url(r'(\d+)/stock/$', self.admin_site.admin_view(self.stock_view), name='%s_%s_stock' % info),
+            url(r'^stock/correction/$', self.admin_site.admin_view(self.stock_correction_view), name='%s_%s_stock_correction' % info),
         ]
         return my_urls + urls
 
-    def stock_correction(self, request):
+    def stock_view(self, request, id):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        product = Product.objects.get(pk=id)
+        stock = product.stock_items.all().order_by('supplier__order')
+        context = {
+            'title': 'Запасы %s' % str(product),
+            'product': product,
+            'stock': stock,
+            'cl': self,
+            'is_popup': request.GET.get('_popup', 0),
+            **self.admin_site.each_context(request)
+        }
+        return TemplateResponse(request, 'admin/shop/product/stock.html', context)
+
+    def stock_correction_view(self, request):
         if not request.user.is_staff:
             raise PermissionDenied
         sort = request.GET.get('o', 'product__title')
         stock = Stock.objects.filter(~Q(correction=0)).order_by(sort)
-        return render(request, 'admin/shop/product/stock_correction.html', {
+        context = {
             'title': 'Коррекция склада',
             'stock': stock,
             'o': sort,
             'cl': self,
             **self.admin_site.each_context(request)
-        })
+        }
+        return TemplateResponse(request, 'admin/shop/product/stock_correction.html', context)
 
 
 @admin.register(Manager)
