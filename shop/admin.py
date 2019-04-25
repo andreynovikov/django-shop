@@ -370,7 +370,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         ('Маркетинг', {
                 'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
                 'fields': (('enabled','available','show_on_sw'),'isnew','deshevle','recomended','gift','market','credit_allowed','sales_notes',
-                           'internetonly','present','delivery','firstpage','sales_actions','tags')
+                           'present','delivery','firstpage','sales_actions','tags')
         }),
         spb_fieldset,
         ('Размеры', {
