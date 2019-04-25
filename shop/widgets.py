@@ -194,10 +194,10 @@ class OrderItemProductLink(Widget):
         final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
         return format_html(
             '<p><a href="{}" target="_blank" style="margin-right: 8px"><i class="fas fa-external-link-alt"></i></a>' + \
-            '<input{} /><a href="{}?_popup=1" class="related-widget-wrapper-link">{}&nbsp;<i class="fas fa-edit" title="Изменить"></i></a>' + \
-                ' <a class="related-widget-wrapper-link" href="{}?_popup=1" title="Гарантийный талон"><i class="fas fa-envelope-open-text"></i></a>' + \
+            '<input{} /><a href="{}?_popup=1" class="related-widget-wrapper-link">{}</a>' + \
+                ' <a href="{}?_popup=1" class="related-widget-wrapper-link" title="Гарантийный талон"><i class="fas fa-envelope-open-text"></i></a>' + \
                 '&nbsp;<span class="tiny">{}</span></p>', self.object.product.get_absolute_url(), flatatt(final_attrs),
-            reverse('admin:shop_product_change', args=[self.object.product.id]), str(self.object.product),
+            reverse('admin:shop_product_stock', args=[self.object.product.id]), str(self.object.product),
             reverse('admin:print-warranty-card', args=[self.object.order.id, self.object.pk]), self.object.serial_number)
 
 
