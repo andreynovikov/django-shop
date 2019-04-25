@@ -9,7 +9,7 @@ from django.conf import settings
 
 from shop.models import Supplier, Product, Stock, Order, OrderItem, ShopUser
 from shop.widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
-    OrderItemProductLink
+    OrderItemProductLink, ListTextWidget
 from shop.tasks import import1c
 
 
@@ -64,6 +64,11 @@ class OrderDiscountForm(forms.Form):
 
 class SendSmsForm(forms.Form):
     message = forms.CharField(label='Сообщение', max_length=160, required=True)
+
+    def __init__(self, *args, **kwargs):
+        _message_list = getattr(settings, 'SHOP_SMS_MESSAGES', ())
+        super(SendSmsForm, self).__init__(*args, **kwargs)
+        self.fields['message'].widget = ListTextWidget(data_list=_message_list, attrs={'size': 90})
 
 
 class SelectTagForm(forms.Form):
