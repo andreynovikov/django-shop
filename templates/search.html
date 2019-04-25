@@ -244,4 +244,11 @@
   }
 })();
 </script>
-{% endblock %}
+{% endblock javascript %}
+{% block vk_retargeting %}
+<script>
+$(document).ready(function() {
+  VK.Retargeting.ProductEvent(3195, "view_search");
+});
+</script>
+{% endblock vk_retargeting %}

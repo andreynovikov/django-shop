@@ -154,7 +154,7 @@ gtm_products = [];
 <p class="product-salesnotes">Участник акции <a href="/actions/utilisation.html">"Утилизация"</a>! Скидка по акции <span class="price">{{ maxdiscount }}%</span>!</p>
 {% endif %}
 
-{% if product.internetonly and product.instock > 0 %}
+{% if False and product.internetonly and product.instock > 0 %}
 <p>Этот товар продается только в интернет-магазине. <a href="#dialog_internetonly" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
 <div id="dialog_internetonly" class="mfp-hide white-popup-block">
 <h4>Этот товар продается только в интернет-магазине!</h4>
@@ -550,13 +550,6 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 $(document).ready(function() {
   dataLayer.push({'ecommerce':{'currencyCode':'RUB','impressions':gtm_products,'detail':{'products': [{'id':'{{ product.id }}','name':'{{ product.partnumber }} {{ product.title }}','category':'{{ category.name }}','brand':'{{ product.manufacturer.code }}','price':'{{ product.cost }}'}]}
   }});
-/* продукт для динамического ретаргетинга ВК */
-  var eventParams = {'products': [{'id': '{{ product.id }}'}], 'category_ids':'{{ category.id }},473', 'products_recommended_ids':
-'{% with product as parent %}{% for product in accessories %}{{ product.id }},{% endfor %}{% for product in similar %}{{ product.id }},{% endfor %}{% endwith %}12476,11820'
-}; 
-  VK.Retargeting.ProductEvent(3195, "view_product", eventParams);
-  
-  
   
 {% if product.credit_allowed and product.instock > 0 %}
   const $checkoutCreditUI = YandexCheckoutCreditUI({ shopId: '42873', sum: '{{ product.cost|quantize:"1" }}' });
@@ -568,7 +561,7 @@ $('#p_{{ product.id }}').click(function(){
   dataLayer.push({'event': 'addToCart','ecommerce': {'currencyCode': 'RUB','add': {'products': [{'name':'{{ product.partnumber}} {{ product.title }}','id':'{{ product.id }}','category':'{{ category.name }}','brand':'{{ product.manufacturer.code }}','price':'{{ product.cost|quantize:"1" }}','quantity': 1}]}}
   });
   var VK_add_to_cart_Params = {'products': [{'id': '{{ product.id }}'}]};
-    VK.Retargeting.ProductEvent(3195, "add_to_cart", VK_add_to_cart_Params);
+  VK.Retargeting.ProductEvent(3195, "add_to_cart", VK_add_to_cart_Params);
 });
 
 var google_tag_params = {
@@ -585,3 +578,14 @@ var google_remarketing_only = true;
 </script>
 <script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js"></script>
 {% endblock javascript %}
+{% block vk_retargeting %}
+<script>
+$(document).ready(function() {
+  /* продукт для динамического ретаргетинга ВК */
+  var eventParams = {'products': [{'id': '{{ product.id }}'}], 'category_ids':'{{ category.id }},473', 'products_recommended_ids':
+    '{% with product as parent %}{% for product in accessories %}{{ product.id }},{% endfor %}{% for product in similar %}{{ product.id }},{% endfor %}{% endwith %}12476,11820'
+  }; 
+  VK.Retargeting.ProductEvent(3195, "view_product", eventParams);
+});
+</script>
+{% endblock vk_retargeting %}

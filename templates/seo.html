@@ -10,8 +10,21 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 {% endblock %}
 {% block body_bottom %}
 {% if not debug %}
+<script src="https://vk.com/js/api/openapi.js?49"></script>
+<script>
+$(document).ready(function() {
+  VK.Widgets.Group("vk_groups", {mode: 0, width: "234", height: "200"}, 38122758);
+});
+</script>
+{% block vk_retargeting %}
+<script>
+$(document).ready(function() {
+  VK.Retargeting.ProductEvent(3195, "view_other");
+});
+</script>
+{% endblock %}
 <!-- Yandex.Metrika counter -->
-<script type="text/javascript" >
+<script>
     (function (d, w, c) {
         (w[c] = w[c] || []).push(function() {
             try {
