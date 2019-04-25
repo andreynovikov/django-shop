@@ -290,7 +290,7 @@ class Supplier(models.Model):
 
 class Store(models.Model):
     city = models.ForeignKey(City, verbose_name='город', on_delete=models.PROTECT)
-    supplier = models.ForeignKey(Supplier, verbose_name='склад', blank=True, null=True, on_delete=models.SET_NULL)
+    supplier = models.ForeignKey(Supplier, verbose_name='склад', related_name='stores', blank=True, null=True, on_delete=models.SET_NULL)
     address = models.CharField('адрес', max_length=255)
     phone = models.CharField('телефон', max_length=100, blank=True)
     name = models.CharField('название', max_length=100)
@@ -486,7 +486,6 @@ class Product(models.Model):
     recomended=models.BooleanField('Рекомендуем', default=False)
     absent=models.BooleanField('Нет в продаже', default=False)
     credit_allowed=models.BooleanField('можно в кредит', default=False)
-    internetonly=models.BooleanField('Только в интернет-магазине', default=False)
     present=models.CharField('Подарок к этому товару', max_length=255, blank=True)
     coupon=models.BooleanField('Предлагать купон', default=False)
     not_for_sale=models.BooleanField('Не показывать кнопку заказа', default=False)
@@ -794,10 +793,11 @@ class ProductSet(models.Model):
 
 
 class Stock(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='item')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='stock_items')
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, verbose_name='поставщик')
     quantity = models.FloatField('кол-во', default=0)
-    correction = models.FloatField('корректировка', default=0)
+    correction = models.FloatField('коррекция', default=0)
+    reason = models.CharField('причина', max_length=100, blank=True)
 
     class Meta:
         verbose_name = 'запас'
