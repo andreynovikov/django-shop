@@ -1,5 +1,6 @@
 {% extends "admin/base.html" %}
 {% load i18n admin_static admin_modify %}
+{% load site %}
 {% block extrahead %}
 {{ form.media }}
 {% endblock %}
@@ -24,16 +25,21 @@
     {% endif %}
     <fieldset class="module aligned">
       {% for field in form %}
-        <div class="form-row">
+        <div class="form-row"><div>
           {{ field.errors }}
           {{ field.label_tag }}
-          {{ field }}
+          {% get_class_name field.field.widget as class %}
+          {% if class == 'ReadOnlyInput' or class == 'CheckboxInput' %}
+            <div class="readonly">{{ field }}</div>
+          {% else %}
+            {{ field }}
+          {% endif %}
           {% if field.field.help_text %}
           <p class="help">
             {{ field.field.help_text|safe }}
           </p>
           {% endif %}
-        </div>
+        </div></div>
       {% endfor %}
     </fieldset>
 
@@ -46,5 +52,4 @@
 
   </form>
 </div>
-
 {% endblock %}

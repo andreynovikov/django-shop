@@ -1,0 +1,36 @@
+{% extends "admin/base.html" %}
+{% load admin_static %}
+{% block content %}
+<meta name="ydWidgetData" id="d1f31d9f8e29fbdd50f3fb2fce277747" content="" data-sender_id="15938" data-weight="{{ weight }}" data-cost="{{ order.total|floatformat }}" data-height="{{ height }}" data-length="{{ length }}" data-width="{{ width }}" data-city_from="Москва" data-geo_id_from="213" data-city_to="{{ city }}" data-css_name="info_tpl_v2" data-tpl_name="info_tpl_v2" data-container_tag_id="efee9266f82f58196fcedecdc97337d4" data-resource_id="21272" data-resource_key="1780931b94c77b42c08b895fb88747d2" data-tracking_method_key="43df8cf1b0d40baaef3a3363458314f1" data-autocomplete_method_key="fd34c231b276f9bea3db9b60ac09506e"></meta>
+<!--[if lt IE 9]><script>document.createElement("msw");</script><![endif]-->
+<script src="https://delivery.yandex.ru/widget/widgetJsLoader?dataTagID=d1f31d9f8e29fbdd50f3fb2fce277747" charset="utf-8"></script>
+<msw id="efee9266f82f58196fcedecdc97337d4" class="yd-widget-container"></msw>
+<form action="" method="GET" id="{% firstof opts.model_name opts.module_name %}_form">
+    <input type="hidden" name="_popup" value="{{ is_popup }}" />
+    <div style="margin-top: 10px">
+        Вес: <input type="text" size="5" name="weight" value="{{ weight }}" />
+        Длина: <input type="text" size="5" name="length" value="{{ length }}" />
+        Ширина: <input type="text" size="5" name="width" value="{{ width }}" />
+        Высота: <input type="text" size="5" name="height" value="{{ height }}" />
+        <input type="submit" value="Пересчитать" style="margin-left: 10px" />
+    </div>
+</form>
+<script src="{% static "admin/js/vendor/jquery/jquery.min.js" %}"></script>
+<script src="{% static "admin/js/jquery.init.js" %}"></script>
+<script>
+(function($) {
+    function elementLoaded(el, cb) {
+        if ($(el).length) {
+            cb($(el));
+        } else {
+            setTimeout(function() { elementLoaded(el, cb) }, 500);
+        }
+    };
+
+    elementLoaded('.widget-info', function(el) {
+        var w = $(window), d = $(document), b = $('body');
+        window.resizeBy(0, ((b.height() - w.height()) || d.height() - w.height()));
+    });
+}(django.jQuery));
+</script>
+{% endblock %}

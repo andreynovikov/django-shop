@@ -9,7 +9,7 @@ from django.conf import settings
 
 from shop.models import Supplier, Product, Stock, Order, OrderItem, ShopUser
 from shop.widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
-    OrderItemProductLink, ListTextWidget
+    OrderItemProductLink, ListTextWidget, YandexDeliveryWidget
 from shop.tasks import import1c
 
 
@@ -69,6 +69,23 @@ class SendSmsForm(forms.Form):
         _message_list = getattr(settings, 'SHOP_SMS_MESSAGES', ())
         super(SendSmsForm, self).__init__(*args, **kwargs)
         self.fields['message'].widget = ListTextWidget(data_list=_message_list, attrs={'size': 90})
+
+
+class YandexDeliveryForm(forms.Form):
+    yd_client = getattr(settings, 'YD_CLIENT', {})
+    warehouses = yd_client.get('warehouses', [])
+    fio = forms.CharField(label='ФИО', required=True)
+    fio_last = forms.BooleanField(label='Фамилия в конце', required=False)
+    warehouse = forms.ChoiceField(label='Склад', choices=map(lambda x:(x['id'], x['name']), warehouses))
+
+    def __init__(self, *args, **kwargs):
+        super(YandexDeliveryForm, self).__init__(*args, **kwargs)
+        self.fields['fio'].widget = ReadOnlyInput(None)
+
+    class Media:
+        css = {
+            'all': ('admin/css/forms.css',)
+        }
 
 
 class SelectTagForm(forms.Form):
@@ -150,7 +167,7 @@ class OrderItemInlineAdminForm(forms.ModelForm):
         self.fields['total'].widget = OrderItemTotalText(self.instance, attrs={'style': 'width: 6em'})
 
 
-class OrderAdminForm(forms.ModelForm): #autocomplete_light.ModelForm):
+class OrderAdminForm(forms.ModelForm):
     user_tags = forms.CharField(label='Теги', max_length=getattr(settings, 'MAX_TAG_LENGTH', 50), required=False)
 
     def __init__(self, *args, **kwargs):
@@ -159,6 +176,7 @@ class OrderAdminForm(forms.ModelForm): #autocomplete_light.ModelForm):
             instance = kwargs['instance']
             self.fields['user_tags'].initial = instance.user.tags
             self.fields['user_tags'].widget = TagAutoComplete(model=type(instance.user), attrs=self.fields['user_tags'].widget.attrs)
+            self.fields['delivery_yd_order'].widget = YandexDeliveryWidget(instance.id)
         except (KeyError, AttributeError):
             pass
 

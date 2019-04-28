@@ -38,6 +38,8 @@ from tagging.utils import parse_tag_input
 from import_export import resources
 from import_export.admin import ImportExportMixin, ExportMixin
 
+from yandex_delivery.api import DeliveryClient
+
 from utility.admin import get_sites
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
     Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, Advert, \
@@ -45,7 +47,7 @@ from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contracto
     Courier, Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
     OrderDiscountForm, SendSmsForm, SelectTagForm, SelectSupplierForm, ProductAdminForm, \
-    OrderItemInlineAdminForm, StockInlineForm
+    OrderItemInlineAdminForm, StockInlineForm, YandexDeliveryForm
 from shop.widgets import TagAutoComplete
 from shop.decorators import admin_changelist_link
 from shop.tasks import send_message
@@ -994,6 +996,8 @@ class OrderAdmin(LockableModelAdmin):
             url(r'(\d+)/item/(\d+)/print_warranty_card/$', self.admin_site.admin_view(self.print_warranty_card), name='print-warranty-card'),
             url(r'(\d+)/combine/$', self.admin_site.admin_view(self.combine_form), name='shop_order_combine'),
             url(r'(\d+)/discount/$', self.admin_site.admin_view(self.discount_form), name='shop_order_discount'),
+            url(r'(\d+)/yandex_delivery/$', self.admin_site.admin_view(self.yandex_delivery_form), name='shop_order_yandex_delivery'),
+            url(r'(\d+)/yandex_delivery_estimate/$', self.admin_site.admin_view(self.yandex_delivery_estimate), name='shop_order_yandex_delivery_estimate'),
             url(r'sms/(\+\d+)/$', self.admin_site.admin_view(self.send_sms_form), name='shop_order_send_sms'),
         ]
         return my_urls + urls
@@ -1196,6 +1200,116 @@ class OrderAdmin(LockableModelAdmin):
         context['action_title'] = "Применить"
 
         return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+
+    def yandex_delivery_form(self, request, id):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        order = Order.objects.get(pk=id)
+        messages = None
+        if request.method != 'POST':
+            initial = {
+                'fio': order.name,
+            }
+            form = YandexDeliveryForm(initial=initial)
+            is_popup = request.GET.get('_popup', 0)
+        else:
+            form = YandexDeliveryForm(request.POST)
+            is_popup = request.POST.get('_popup', 0)
+            if form.is_valid():
+                try:
+                    fio_last = form.cleaned_data['fio_last']
+                    warehouse = form.cleaned_data['warehouse']
+
+                    fio = order.name.split(' ')
+                    first_name = ''
+                    middle_name = ''
+                    last_name = ''
+                    if len(fio) == 1: # looks like it's a name only
+                        first_name = fio[0]
+                    elif len(fio) == 2: # looks like it's name with surname
+                        if fio_last:
+                            fio.reverse()
+                        last_name, first_name = fio
+                    else:
+                        if fio_last:
+                            first_name, middle_name, last_name = fio
+                        else:
+                            last_name, first_name, middle_name = fio
+
+                    yd = DeliveryClient(
+                        settings.YD_CLIENT['client']['id'],
+                        settings.YD_CLIENT['senders'][0]['id'],
+                        list(map(lambda x:x['id'], settings.YD_CLIENT['warehouses'])),
+                        list(map(lambda x:x['id'], settings.YD_CLIENT['requisites'])),
+                        settings.YD_METHODS
+                    )
+
+                    order_items = []
+                    for item in order.items.all():
+                        if item.quantity > 1:
+                            title = '{} ({} шт.)'.format(item.product.title, item.quantity)
+                        else:
+                            title = item.product.title
+                        order_items.append({
+                            'orderitem_id': item.product.id,
+                            'orderitem_article': item.product.code,
+                            'orderitem_name': title,
+                            'orderitem_cost': item.price,
+                            'orderitem_quantity': 1
+                        })
+
+                    result = yd.create_order(
+                        order_num=order.id,
+                        order_warehouse=warehouse,
+                        order_items=order_items,
+                        recipient={
+                            'first_name': first_name,
+                            'middle_name': middle_name,
+                            'last_name': last_name,
+                            'phone': order.phone,
+                            'email': order.email
+                            },
+                        deliverypoint={
+                            'city': order.city,
+                            'street': order.address,
+                            'index': order.postcode
+                            }
+                    )
+                    yd_order = result['data']['order']['full_num']
+
+                    return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
+                                        '<script type="text/javascript">opener.dismissYandexDeliveryPopup(window, "%s", "%s");</script>'
+                                        '</body></html>' % (Order.DELIVERY_YANDEX, yd_order))
+
+                except Exception as e:
+                    form.errors['__all__'] = form.error_class([str(e)])
+
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['form'] = form
+        context['is_popup'] = is_popup
+        context['messages'] = messages
+        context['title'] = "Создать черновик заказа"
+        context['action_title'] = "Создать"
+
+        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+
+    def yandex_delivery_estimate(self, request, id):
+        if not request.user.is_staff:
+            raise PermissionDenied
+
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['is_popup'] = request.GET.get('_popup', 0)
+        context['title'] = "Варианты доставки"
+        context['order'] = Order.objects.get(pk=id)
+        context['city'] = request.GET.get('city', context['order'].city)
+        context['weight'] = request.GET.get('weight', 10)
+        context['height'] = request.GET.get('height', 27)
+        context['length'] = request.GET.get('length', 50)
+        context['width'] = request.GET.get('width', 40)
+
+        return TemplateResponse(request, 'admin/shop/order/yandex_delivery_estimate.html', context)
 
     def send_sms_form(self, request, phone):
         if not request.user.is_staff:
