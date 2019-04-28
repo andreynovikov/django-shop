@@ -5,7 +5,8 @@ from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
 from django.template import loader, Context
 
-from shop.models import Category, Product, ProductRelation, ProductSet, Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
+from shop.models import Category, Product, ProductRelation, ProductSet, Manufacturer, Advert, SalesAction, City, \
+    Store, ServiceCenter, Stock
 from shop.filters import get_product_filter
 
 
@@ -248,6 +249,61 @@ def product(request, code):
         'utm_source': request.GET.get('utm_source', None)
         }
     return render(request, 'product.html', context)
+
+
+def product_stock(request, code):
+    product = get_object_or_404(Product, code=code)
+    if product.categories.exists() and not product.breadcrumbs:
+        raise Http404("Product does not exist")
+
+    if product.constituents.count() == 0:
+        suppliers = product.stock.all()
+        stores = Store.objects.filter(enabled=True, supplier__in=suppliers).order_by('city__country__ename', 'city__name')
+    else:
+        stores = Store.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+    store_groups = []
+    cur_country = None
+    cur_country_index = -1
+    cur_city = None
+    cur_city_index = -1
+    for store in stores:
+        if product.constituents.count() == 0:
+            stock = Stock.objects.get(product=product, supplier=store.supplier)
+            quantity = stock.quantity + stock.correction
+        else:
+            quantity = 32767
+            for item in ProductSet.objects.filter(declaration=product):
+                try:
+                    stock = Stock.objects.get(product=item.constituent, supplier=store.supplier)
+                    q = stock.quantity + stock.correction
+                    if item.quantity > 1:
+                        q = int(q / item.quantity)
+                except Stock.DoesNotExist:
+                    q = 0.0
+                if q < quantity:
+                    quantity = q
+        if not quantity > 0.0:
+            continue
+        if cur_country != store.city.country:
+            store_groups.append({'country': store.city.country, 'cities': []})
+            cur_country = store.city.country
+            cur_country_index += 1
+            cur_city = None
+            cur_city_index = -1
+        if cur_city != store.city:
+            store_groups[cur_country_index]['cities'].append({'city': store.city, 'stores': []})
+            cur_city = store.city
+            cur_city_index += 1
+        store_groups[cur_country_index]['cities'][cur_city_index]['stores'].append({
+            'store': store,
+            'quantity': quantity
+        })
+
+    context = {
+        'product': product,
+        'store_groups': store_groups,
+        }
+    return render(request, 'stock.html', context)
 
 
 def review_product(request, code):

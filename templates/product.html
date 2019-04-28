@@ -14,7 +14,22 @@
 {% block css %}
 <style>
 .pull-right .gl-star-rating-stars > span {
-  width: 18px; height: 18px; background-size: 18px;
+    width: 18px; height: 18px; background-size: 18px;
+}
+.product-nal-store-link {
+    display: block;
+}
+ul.product-city-list, ul.product-city-list ul {
+    margin: 0; padding: 0; list-style: none;
+}
+ul.product-city-list ul {
+    padding-left: 20px;
+}
+ul.product-city-list li {
+    margin: 0; padding: 0;
+}
+ul.product-city-list li li {
+    margin: 0 0 3px; padding-left: 0;
 }
 </style>
 {% endblock %}
@@ -140,6 +155,9 @@ gtm_products = [];
 {% if product.instock < 1 %}
 <span class="product-nal-false">Нет</span>
 {% endif %}
+{% if product.cost > 0 %}
+<a class="product-nal-store-link opener-ajax" href="{% url 'product_stock' product.code %}">Наличие в розничных магазинах</a>
+{% endif %}
 </p>
 {% if product.state %}
 <p>{{ product.state }}</p>
@@ -152,17 +170,6 @@ gtm_products = [];
 {% endfor %}
 {% if product.utilisation %}
 <p class="product-salesnotes">Участник акции <a href="/actions/utilisation.html">"Утилизация"</a>! Скидка по акции <span class="price">{{ maxdiscount }}%</span>!</p>
-{% endif %}
-
-{% if False and product.internetonly and product.instock > 0 %}
-<p>Этот товар продается только в интернет-магазине. <a href="#dialog_internetonly" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
-<div id="dialog_internetonly" class="mfp-hide white-popup-block">
-<h4>Этот товар продается только в интернет-магазине!</h4>
-<p>Этот товар мы можем доставить курьером или транспортной компанией,<br>
-а также его можно получить в нашем московском магазине на &laquo;Пролетарке&raquo;,<br>
- по адресу: Волгоградский проспект, д.10 стр.2.<br>
- В других наших магазинах этот товар купить по цене интернет-магазина нельзя.</p>
-</div><!-- /#dialog_internetonly -->
 {% endif %}
 
 {% if product.warranty and product.price > 0 and not product.state and 1 > 2 %}
