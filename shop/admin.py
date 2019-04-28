@@ -118,7 +118,7 @@ class CategoryAdmin(DraggableMPTTAdmin):
     exclude = ('image_width', 'image_height', 'promo_image_width', 'promo_image_height')
     form = CategoryForm
 
-    
+
 @admin.register(Supplier)
 class SupplierAdmin(SortableAdminMixin, admin.ModelAdmin):
     list_display = ['code', 'name', 'show_in_order', 'count_in_stock', 'spb_count_in_stock', 'ws_count_in_stock']
@@ -235,7 +235,7 @@ class ProductRelationAdmin(admin.ModelAdmin):
         return '<span style="white-space: normal!">%s</span>' % obj.parent_product.title
     parent_product_link.admin_order_field = 'parent_product'
     parent_product_link.short_description = 'товар'
-    
+
     @mark_safe
     def child_product_link(self, obj):
         return '<span style="white-space: normal!">%s</span>' % obj.child_product.title
@@ -1078,6 +1078,7 @@ class OrderAdmin(LockableModelAdmin):
             'o': sort,
             'cl': self,
             'opts': self.model._meta,
+            **self.admin_site.each_context(request)
         })
 
     def print_warranty_card(self, request, order_id, item_id):
