@@ -77,6 +77,57 @@ class PhoneWidget(TextInput):
         )
 
 
+class YandexDeliveryWidget(TextInput):
+    def __init__(self, order_id, attrs=None):
+        self.order_id = order_id
+        super(YandexDeliveryWidget, self).__init__(attrs)
+
+    def render(self, name, value, attrs=None, renderer=None):
+        final_attrs = self.build_attrs(attrs)
+        # Use provided id or generate hex to avoid collisions in document
+        id = final_attrs.get('id', uuid.uuid4().hex)
+        if value:
+            glyphicon = 'pencil-alt'
+            yd_id = value[value.find("YD")+2:]
+            popup = 'https://delivery.yandex.ru/order/create?id=' + yd_id
+            link_class = ''
+        else:
+            glyphicon = 'plus-circle'
+            popup = reverse('admin:shop_order_yandex_delivery', args=[self.order_id]) + '?_popup=1'
+            link_class = ' related-widget-wrapper-link'
+
+        output = [super(YandexDeliveryWidget, self).render(name, value, attrs, renderer)]
+        output.append('''<a class="button%(link_class)s" style="display: inline-block; margin-left: 7px"
+                          id="%(id)s_create_link" href="%(popup)s"><i class="fas fa-%(glyphicon)s"></i></a>''' % dict(
+                             id=id,
+                             glyphicon=glyphicon,
+                             popup=popup,
+                             link_class=link_class
+                         ))
+        if not value:
+            output.append('''<a class="button related-widget-wrapper-link" style="display: inline-block"
+                              id="%(id)s_estimate_link" href="%(popup)s?city=__city__&_popup=1"><i class="fas fa-hand-holding-usd"></i></a>''' % dict(
+                                  id=id,
+                                  popup=reverse('admin:shop_order_yandex_delivery_estimate', args=[self.order_id])
+                              ))
+            output.append('''
+                <script>
+                    (function($) {
+                        $("#%(id)s_estimate_link").click(function() {
+                            var city = $( "#id_city" ).val();
+                            if (!city || 0 === city.length) {
+                                alert("Укажите город доставки");
+                                return false;
+                            }
+                            var href = $(this).attr("href");
+                            $(this).attr("href", href.replace('__city__', city));
+                        });
+                    }(django.jQuery));
+                </script>''' % dict(id=id))
+
+        return mark_safe(''.join(output))
+
+
 class TagAutoComplete(widgets.AdminTextInputWidget):
     """
     Tag widget with autocompletion based on select2.
@@ -181,6 +232,8 @@ class ReadOnlyInput(Widget):
     def render(self, name, value, attrs=None, renderer=None):
         if value is None:
             value = ''
+        if self.value is None:
+            self.value = value
         final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
         return mark_safe('<input{} />{}'.format(flatatt(final_attrs), self.value))
 

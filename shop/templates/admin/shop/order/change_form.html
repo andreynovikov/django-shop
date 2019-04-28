@@ -126,6 +126,14 @@
             }
         });
     });
+
+    function dismissYandexDeliveryPopup(win, deliveryId, ydOrderId) {
+        document.getElementById("id_delivery").value = deliveryId;
+        document.getElementById("id_delivery_yd_order").value = ydOrderId;
+        win.close();
+    }
+
+    window.dismissYandexDeliveryPopup = dismissYandexDeliveryPopup;
 }(django.jQuery));
 </script>
 {% endblock %}
