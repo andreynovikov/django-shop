@@ -7,8 +7,11 @@ Historically server is run under latest Devian Stable.
 The following packages are required:
 ::
     apt install sudo
+    apt install ntpdate
+    apt install exim4
     apt install rsync
     apt install python3-dev
+    apt install python3-virtualenv
     apt install postgresql
     apt install nginx
     apt install uwsgi
@@ -16,30 +19,37 @@ The following packages are required:
     apt install memcached
     apt install redis-server
     apt install letsencrypt
+    apt install git
 
 The following packages are optional:
 ::
+    apt install less
     apt install emacs-nox
     apt install dnsutils
     apt install htop
 
 Master/slave cold redundancy server scheme is used for High Availability. It means that two servers are kept identical
-but if one server fails manual actions should be performed to switch to another server (described later).
+but if one server fails manual actions should be performed to switch to another server (described below).
 
-Server should have SMTP daemon running. For Debian it's Exim and it does not need any specific configuration.
-
-Three users should be created in this particular order (to preserve uids):
+Create three users in this particular order (to preserve uids):
 ::
     adduser andrey
     adduser nikolays
     adduser import1c
 
-Users andrey and nikolays should be added to suduers and www-data groups. User import1c should not be able to login
-interactively (shell set to ``/bin/false``).
+Add users ``andrey`` and ``nikolays`` to ``suduers`` and ``www-data`` groups. Disable interactive login for user ``import1c``
+(set shell to ``/bin/false``). Rename ``import1c`` group to ``sftponly``.
 
-****************
-PostgreSQL setup
-****************
+Setup correct timezone:
+::
+    echo "Europe/Moscow" > /etc/timezone
+    ln -fs /usr/share/zoneinfo/Europe/Moscow /etc/localtime
+    dpkg-reconfigure -f noninteractive tzdata
+
+Enable time syncronization. Create ``/etc/cron.daily/ntpdate`` file:
+::
+    !#/bin/sh
+    /usr/sbin/ntpdate -u ru.pool.ntp.org
 
 ***********
 Nginx setup
@@ -57,12 +67,27 @@ Celery setup
 Environment setup
 *****************
 
-All sites are located in ``/www`` folder.
+All sites are located in ``/www`` folder. Replication should be configured for this folder (see below). The following
+description is included for general reference.
 
 All sites are kept in git on GitHub. Each site is configured as separate Python virtualenv and has its own ``requirements.txt``
 file. So, general deployment scheme looks like this:
 ::
-    
+    cd /www
+    git clone git@github.com:andreynovikov/django-shop.git janome.club
+    cd janome.club
+    git checkout janome
+    python3 -m virtualenv -p python3 env
+    source env/bin/activate
+    pip install -r requirements.txt
+    deactivate
+    mkdir media
+    mkdir static
+    mkdir logs
+    sudo chown nikolays:www-data logs
+    mkdir st_search
+    sudo chown nikolays:www-data st_search
+
 Import
 ******
 
@@ -103,3 +128,9 @@ to switch **from** *master* **to** *slave*. Actions on **master** should be take
 #. On **slave**: ``sudo systemctl start nginx``
 #. ...
 #. Switch DNS IP records for all sites in order of importance.
+
+****
+TODO
+****
+
+#. SSL certificates syncronization.
