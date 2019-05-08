@@ -1,13 +1,69 @@
 {% extends "admin/base.html" %}
 {% load admin_static %}
+{% load daterange %}
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .rub { color: grey; }
+    #yde_widget .yde_variants { width: 100%; }
+    #yde_widget .yde_variants > tbody > tr > td:first-child { padding-left: 0; min-width: 120px; }
+    #yde_widget .delivery_date { width: 120px; min-width: 120px; }
+    #yde_widget .user_cost, #yde_widget .shop_cost { width: 50px; text-align: right; }
+    #yde_widget #map { width: 500px; height: 500px; }
+    #yde_widget .time_interval { display: block; font-size: 80%; color: grey; }
+    #yde_widget .pickup_count { color: grey; font-size: 80%; }
+    #yde_widget #yde_map div { margin: 3px 0; }
+    #yde_widget #yde_map ul { display: inline; list-style: none; padding: 0; }
+    #yde_widget #yde_map li { display: inline; padding: 0; }
+    #yde_widget #yde_map li:not(:last-child):after { content: ", "; }
+    #yde_widget #yde_map .comment { font-size: 80%; line-height: 120%; }
+    #yde_widget #yde_map .point_time_interval { padding-left: 0.7em; color: grey; }
+    .shop_cost .popup { display: none; position:absolute; z-index: 300; padding: 5px; background: #f0f0f0; border: 1px solid grey; border-radius: 4px; }
+    .shop_cost .popup td, .shop_cost .popup th { font-size: 80%; padding: 3px; border: 0; text-align: left }
+    .shop_cost .popup .service_cost { text-align: right; }
+    .shop_cost:hover .popup { display: block; }
+</style>
+{% endblock %}
 {% block content %}
-<meta name="ydWidgetData" id="d1f31d9f8e29fbdd50f3fb2fce277747" content="" data-sender_id="15938" data-weight="{{ weight }}" data-cost="{{ order.total|floatformat }}" data-height="{{ height }}" data-length="{{ length }}" data-width="{{ width }}" data-city_from="Москва" data-geo_id_from="213" data-city_to="{{ city }}" data-css_name="info_tpl_v2" data-tpl_name="info_tpl_v2" data-container_tag_id="efee9266f82f58196fcedecdc97337d4" data-resource_id="21272" data-resource_key="1780931b94c77b42c08b895fb88747d2" data-tracking_method_key="43df8cf1b0d40baaef3a3363458314f1" data-autocomplete_method_key="fd34c231b276f9bea3db9b60ac09506e"></meta>
-<!--[if lt IE 9]><script>document.createElement("msw");</script><![endif]-->
-<script src="https://delivery.yandex.ru/widget/widgetJsLoader?dataTagID=d1f31d9f8e29fbdd50f3fb2fce277747" charset="utf-8"></script>
-<msw id="efee9266f82f58196fcedecdc97337d4" class="yd-widget-container"></msw>
+{% if error %}
+<p>{{ error }}</p>
+{% endif %}
+<table id="yde_widget"><tr><td>
+{% for type, variants in deliveries.items|dictsort:"0.lower" %}
+<h2>{% if type == 'TODOOR' %}Курьером{% elif type == 'PICKUP' %}Самовывозом{% elif type == 'POST' %}Почтой России{% else %}{{ type }}{% endif %}</h2>
+<table class="yde_variants">
+    {% for variant in variants %}
+    <tr>
+        <td title="Тариф: {{ variant.tariffName }}"><span style="color: {{ variant.color }}">&#9608;</span>&nbsp;{{ variant.delivery.name }}{% if variant.pickupPoints %}&nbsp;<span class="pickup_count">{{ variant.pickupPoints|length }}{% endif %}</td>
+        <td class="delivery_date" title="{{ variant.delivery_date }}">{{ variant.delivery_date|daterange }}<span class="time_interval">{{ variant.delivery_interval }}</span></td>
+        <td class="user_cost">{{ variant.cost }}<span class="rub">&#8381;</span></td>
+        <td class="shop_cost">{{ variant.shop_cost }}<span class="rub">&#8381;</span>
+            <table class="popup">
+                {% for service in variant.required_services %}
+                {% if forloop.first %}
+                <tr><th colspan="2">Включено:</th></tr>
+                {% endif %}
+                <tr><td class="{{ service.code }}">{{ service.name }}</td><td class="service_cost">{{ service.cost }}<span class="rub">&#8381;</span></td></tr>
+                {% endfor %}
+                {% for service in variant.optional_services %}
+                {% if forloop.first %}
+                <tr><th colspan="2">Не включено:</th></tr>
+                {% endif %}
+                <tr><td class="{{ service.code }}">{{ service.name }}</td><td class="service_cost">{{ service.cost }}<span class="rub">&#8381;</span></td></tr>
+                {% endfor %}
+            </table>
+        </td>
+    </tr>
+{% endfor %}
+</table>
+{% endfor %}
+</td><td id="yde_map">
+<div id="map"></div>
+</td></tr></table>
 <form action="" method="GET" id="{% firstof opts.model_name opts.module_name %}_form">
     <input type="hidden" name="_popup" value="{{ is_popup }}" />
     <div style="margin-top: 10px">
+        Город: <input type="text" size="20" name="city" value="{{ city }}" />
         Вес: <input type="text" size="5" name="weight" value="{{ weight }}" />
         Длина: <input type="text" size="5" name="length" value="{{ length }}" />
         Ширина: <input type="text" size="5" name="width" value="{{ width }}" />
@@ -17,6 +73,7 @@
 </form>
 <script src="{% static "admin/js/vendor/jquery/jquery.min.js" %}"></script>
 <script src="{% static "admin/js/jquery.init.js" %}"></script>
+<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU"></script>
 <script>
 (function($) {
     function elementLoaded(el, cb) {
@@ -27,10 +84,74 @@
         }
     };
 
-    elementLoaded('.widget-info', function(el) {
+    elementLoaded('ymaps', function(el) {
         var w = $(window), d = $(document), b = $('body');
-        window.resizeBy(0, ((b.height() - w.height()) || d.height() - w.height()));
+        window.resizeBy(((b.width() - w.width()) || d.width() - w.width()), ((b.height() - w.height()) || d.height() - w.height()));
     });
+
+$(document).ready(function() {
+  ymaps.ready(function() {
+    var center = [55.75, 37.6];
+    var coords = [];
+    var placemarks = [];
+
+  {% for type, variants in deliveries.items %}
+    {% for variant in variants %}
+      {% for point in variant.pickupPoints %}
+    coords.push([{{ point.lat }}, {{ point.lng }}]);
+    placemarks.push(new ymaps.Placemark([{{ point.lat }}, {{ point.lng }}], {
+        balloonContentHeader: '{{ variant.delivery.name|escapejs }}: {{ point.name|escapejs }}',
+        balloonContent: '<div class="address">{{ point.full_address|escapejs }}</div>' +
+        '<div class="payment">Оплата: <ul>{% if point.has_payment_cash == '1' %}<li>наличные</li>{% endif %}' +
+        '{% if point.has_payment_card == '1' %}<li>карта</li>{% endif %}' +
+        '{% if point.has_payment_prepaid == '1' %}<li>предоплата</li>{% endif %}</ul></div>' +
+        '{% if point.address.comment %}<div class="comment">{{ point.address.comment|escapejs }}</div>{% endif %}',
+        balloonContentFooter: '<div class="delivery_interval">{{ point.delivery_date|daterange }}<span class="point_time_interval">{{ point.delivery_interval }}</span></div>'
+      },
+      {
+        iconColor: '{{ variant.color }}',
+        preset: 'islands#icon'
+      }));
+      {% endfor %}
+    {% endfor %}
+  {% endfor %}
+
+    var options = {
+      margin: 10,
+      behaviors: ['default', 'scrollZoom']
+    };
+    if (coords.length > 1) {
+      options['bounds'] = ymaps.util.bounds.fromPoints(coords);
+    } else if (coords.length == 1) {
+      options['center'] = coords[0];
+      options['zoom'] = 14;
+    } else {
+      options['center'] = center;
+      options['zoom'] = 10;
+    }
+    myMap = new ymaps.Map('map', options);
+    myMap.setZoom(myMap.getZoom()-0.3);
+    for (var i = 0; i < placemarks.length; i++) {
+      myMap.geoObjects.add(placemarks[i]);
+    }
+    var myGeocoder = ymaps.geocode("{{ city|escapejs }}", {kind: 'locality', results: 1});
+    myGeocoder.then(function (res) {
+      console.log(res.geoObjects.getLength());
+
+      if (res.geoObjects.getLength() > 0) {
+        console.log(res.geoObjects.get(0).properties);
+        $('h1').append(document.createTextNode(' в ' + res.geoObjects.get(0).properties.get('text')));
+        if (coords.length == 0) {
+          myMap.setBounds(res.geoObjects.get(0).properties.get('boundedBy'), { checkZoomRange: true });
+        }
+      }
+    }, function (err) {
+      console.log(err);
+    });
+  });
+});
+
+
 }(django.jQuery));
 </script>
 {% endblock %}
