@@ -1299,16 +1299,107 @@ class OrderAdmin(LockableModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied
 
+        order = Order.objects.get(pk=id)
+
         context = self.admin_site.each_context(request)
         context['opts'] = self.model._meta
         context['is_popup'] = request.GET.get('_popup', 0)
         context['title'] = "Варианты доставки"
-        context['order'] = Order.objects.get(pk=id)
-        context['city'] = request.GET.get('city', context['order'].city)
+        context['order'] = order,
+        context['city'] = request.GET.get('city', order.city)
         context['weight'] = request.GET.get('weight', 10)
         context['height'] = request.GET.get('height', 27)
         context['length'] = request.GET.get('length', 50)
         context['width'] = request.GET.get('width', 40)
+
+        try:
+            yd = DeliveryClient(
+                settings.YD_CLIENT['client']['id'],
+                settings.YD_CLIENT['senders'][0]['id'],
+                list(map(lambda x:x['id'], settings.YD_CLIENT['warehouses'])),
+                list(map(lambda x:x['id'], settings.YD_CLIENT['requisites'])),
+                settings.YD_METHODS
+            )
+            result = yd.search_delivery_list('Москва', context['city'], context['weight'], context['width'],
+                                             context['height'], context['length'], order_cost=order.total,
+                                             total_cost=order.total)
+            colors = [
+                '#1E98FF', #blue
+                '#1BAD03', #darkGreen
+                '#ED4543', #red
+                '#E6761B', #darkOrange
+                '#B51EFF', #violet
+                '#0E4779', #night
+                '#FFD21E', #yellow
+                '#177BC9', #darkBlue
+                '#56DB40', #green
+                '#F371D1', #pink
+                '#FF931E', #orange
+                '#B3B3B3', #gray
+                '#82CDFF', #lightBlue
+                '#793D0E', #brown
+                '#97A100', #olive
+            ]
+            deliveries = {}
+            i = 0
+            for delivery in result['data']:
+                delivery_type = deliveries.get(delivery['type'], None)
+                if delivery_type is None:
+                    delivery_type = []
+                    deliveries[delivery['type']] = delivery_type
+                shop_cost = delivery['costWithRules']
+                required_services = []
+                optional_services = []
+                for service in delivery['services']:
+                    if service['optional']:
+                        optional_services.append(service)
+                    else:
+                        required_services.append(service)
+                        shop_cost = shop_cost + service['cost']
+                delivery['required_services'] = required_services
+                delivery['optional_services'] = optional_services
+                delivery['shop_cost'] = shop_cost
+                pickup_points = delivery.get('pickupPoints', [])
+                if len(pickup_points):
+                    delivery['color'] = colors[i]
+                    i = i + 1
+                else:
+                    delivery['color'] = '#FFFFFF'
+                dmf = datetime.time.max
+                dmt = datetime.time.min
+                for point in pickup_points:
+                    mf = datetime.time.max
+                    mt = datetime.time.min
+                    for schedule in point.get('schedules', []):
+                        fr = datetime.datetime.strptime(schedule['from'], '%H:%M:%S').time()
+                        tl = datetime.datetime.strptime(schedule['to'], '%H:%M:%S').time()
+                        if fr < mf:
+                            mf = fr
+                        if tl > mt:
+                            mt = tl
+                        if fr < dmf:
+                            dmf = fr
+                        if tl > dmt:
+                            dmt = tl
+                    if mf != datetime.time.max and mt != datetime.time.min:
+                        point['delivery_interval'] = mark_safe('{}&ndash;{}'.format(mf.strftime('%H:%M'), mt.strftime('%H:%M')))
+                if dmf == datetime.time.max or dmt == datetime.time.min:
+                    for delivery_interval in delivery.get('deliveryIntervals', []):
+                        fr = datetime.datetime.strptime(delivery_interval['from'], '%H:%M:%S').time()
+                        tl = datetime.datetime.strptime(delivery_interval['to'], '%H:%M:%S').time()
+                        if fr < dmf:
+                            dmf = fr
+                        if tl > dmt:
+                            dmt = tl
+                if dmf != datetime.time.max and dmt != datetime.time.min:
+                    delivery['delivery_interval'] = mark_safe('{}&ndash;{}'.format(dmf.strftime('%H:%M'), dmt.strftime('%H:%M')))
+                delivery_type.append(delivery)
+
+            context['deliveries'] = deliveries
+            context['result'] = result['data']
+
+        except Exception as e:
+            context['error'] = str(e)
 
         return TemplateResponse(request, 'admin/shop/order/yandex_delivery_estimate.html', context)
 
