@@ -1,4 +1,4 @@
-from django.http import Http404, StreamingHttpResponse
+from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
@@ -59,7 +59,7 @@ def products_stream(request, templates, filter_type):
     if filter_type == 'yandex':
         filters['market'] = True
         filters['num__gt'] = 0
-        
+
     if templates == 'prym':
         try:
             filters['manufacturer'] = Manufacturer.objects.get(code='Prym')
@@ -252,6 +252,9 @@ def product(request, code):
 
 
 def product_stock(request, code):
+    if not request.is_ajax():
+        return HttpResponseForbidden()
+
     product = get_object_or_404(Product, code=code)
     if product.categories.exists() and not product.breadcrumbs:
         raise Http404("Product does not exist")
