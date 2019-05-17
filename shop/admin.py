@@ -19,7 +19,7 @@ from django.conf import settings
 from django.conf.urls import url
 from django.shortcuts import render
 from django.utils import timezone
-from django.utils.formats import date_format
+from django.utils.formats import date_format, number_format
 from django.utils.html import escape
 from django.utils.http import urlquote
 from django.utils.safestring import mark_safe
@@ -620,6 +620,7 @@ class OrderItemInline(admin.TabularInline):
         code = obj.product.code or '--'
         article = obj.product.article or '--'
         partnumber = obj.product.partnumber or '--'
+        code = '<a href="{}">{}</a>'.format(reverse('admin:shop_product_change', args=[obj.product.id]), code)
         return '<br/>'.join([code, article, partnumber])
     product_codes.admin_order_field = 'product__code'
     product_codes.short_description = 'Ид/1С/PN'
@@ -875,9 +876,9 @@ class OrderAdmin(LockableModelAdmin):
     @mark_safe
     def total_cost(self, obj):
         if obj.total == int(obj.total):
-            return '%.0f<span style="color: grey">\u20BD</span>' % obj.total
+            return number_format(int(obj.total), force_grouping=True)
         else:
-            return '%f<span style="color: grey">\u20BD</span>' % obj.total
+            return number_format(obj.total, force_grouping=True)
     total_cost.short_description = 'всего'
 
     @mark_safe

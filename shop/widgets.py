@@ -286,7 +286,7 @@ class OrderItemTotalText(forms.TextInput):
             return mark_safe('<input{0} />'.format(flatatt(final_attrs)))
         else:
             final_attrs['type'] = 'hidden'
-            return mark_safe('<p><input{0} />{1}<span style="color: grey">\u20BD</span></p>'.format(flatatt(final_attrs), self.object.quantity * self.object.cost))
+            return mark_safe('<p><input{0} />{1}</p>'.format(flatatt(final_attrs), self.object.quantity * self.object.cost))
 
 
 class ListTextWidget(forms.TextInput):
