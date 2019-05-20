@@ -306,7 +306,9 @@ def product_stock(request, code):
         'product': product,
         'store_groups': store_groups,
         }
-    return render(request, 'stock.html', context)
+    response = render(request, 'stock.html', context)
+    response['X-Robots-Tag'] = 'noindex'
+    return response
 
 
 def review_product(request, code):

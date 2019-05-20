@@ -156,7 +156,7 @@ gtm_products = [];
 <span class="product-nal-false">Нет</span>
 {% endif %}
 {% if product.cost > 0 %}
-<a class="product-nal-store-link opener-ajax" href="{% url 'product_stock' product.code %}">Проверить наличие в розничных магазинах</a>
+<a class="product-nal-store-link opener-ajax" href="{% url 'product_stock' product.code %}" rel="nofollow">Проверить наличие в розничных магазинах</a>
 {% endif %}
 </p>
 {% if product.state %}
