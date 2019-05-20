@@ -96,19 +96,25 @@
 <script>
 $(document).ready(function() {
   ymaps.ready(function() {
-    var geolocation = ymaps.geolocation;
     {% if city %}
     var coords = [{{ city.latitude|unlocalize }}, {{ city.longitude|unlocalize }}];
     $("#search_form option[id='city_option_{{ city.id }}']").attr("selected", "selected");
     {% else %}
-    var coords = [geolocation.latitude, geolocation.longitude];
+    var coords = [55.76, 37.64];
     {% endif %}
     myMap = new ymaps.Map('map', {center: coords, zoom: 10, behaviors:['default', 'scrollZoom']});
-    myMap.controls
-      .add('zoomControl', { left: 5, top: 5 })
-      .add('typeSelector')
-      .add('mapTools', { left: 35, top: 5 })
-      .add(new ymaps.control.MiniMap({type: 'yandex#publicMap'}));
+
+    {% if not city %}
+    var location = ymaps.geolocation;
+    location.get({
+      provider: 'yandex'
+    }).then(function(result) {
+      var userCoodinates = result.geoObjects.get(0).geometry.getCoordinates();
+      myMap.setCenter(userCoodinates);
+    }, function(err) {
+      console.log('Ошибка: ' + err)
+    });
+    {% endif %}
 
     $('#search_form').change(function () {
       var latitude = $("select option:selected").data('latitude');
@@ -147,5 +153,5 @@ $(document).ready(function() {
   });
 });
 </script>
-<script src="//api-maps.yandex.ru/2.0-stable/?load=package.standard&lang=ru-RU" type="text/javascript"></script>
+<script src="https://api-maps.yandex.ru/2.1/?apikey=d55e0ba4-d72b-4062-914c-94559697de16&lang=ru_RU"></script>
 {% endblock %}

@@ -39,11 +39,6 @@ $(document).ready(function() {
   ymaps.ready(function() {
     var coords = [{{ store.latitude|unlocalize }}, {{ store.longitude|unlocalize }}];
     var myMap = new ymaps.Map('map', {center: coords, zoom: 14, behaviors:['default']});
-    myMap.controls
-      .add('zoomControl', { left: 5, top: 5 })
-      .add('typeSelector')
-      .add('mapTools', { left: 35, top: 5 })
-      .add(new ymaps.control.MiniMap({type: 'yandex#publicMap'}));
     var myPlacemark = new ymaps.Placemark(coords, {
         balloonContentHeader: '{% if store.logo and 'i/shoplogos/marks/'|add:store.logo|add:'.png'|static_file_exists %}<img src="{% static 'i/shoplogos/marks/'|add:store.logo|add:'.png' %}"/>{% else %}<img src="{% static 'i/shoplogos/marks/other.png' %}" />{% endif %}{{ store.name|escapejs }}',
         balloonContent: '{{ store.address|escapejs }}{% if store.address2 %}<br/>{{ store.address2|escapejs }}{% endif %}<br/>{% if store.hours %}{{ store.hours|escapejs }}<br/>{% endif %}{{ store.phone|escapejs }}{% if store.phone2 %}<br/>{{ store.phone2|escapejs }}{% endif %}{% if store.url %}<br/><a href="{{ store.url }}">{{ store.url }}</a>{% endif %}',
@@ -59,6 +54,6 @@ $(document).ready(function() {
   });
 });
 </script>
-<script src="//api-maps.yandex.ru/2.0-stable/?load=package.standard&lang=ru-RU" type="text/javascript"></script>
+<script src="https://api-maps.yandex.ru/2.1/?apikey=d55e0ba4-d72b-4062-914c-94559697de16&lang=ru_RU"></script>
 {% endif %}
 {% endblock %}

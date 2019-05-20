@@ -52,16 +52,19 @@ Pfaff, Husqvarna Viking, Family, Janome, Silver Reed и ряда других ф
 <script>
 $(document).ready(function() {
   ymaps.ready(function() {
-    var geolocation = ymaps.geolocation;
-    var coords = [geolocation.latitude, geolocation.longitude];
-    var myMap = new ymaps.Map('map', {center: coords, zoom: 10, behaviors:['default']});
-    myMap.controls
-      .add('zoomControl', { left: 5, top: 5 })
-      .add('typeSelector')
-      .add('mapTools', { left: 35, top: 5 })
-      .add(new ymaps.control.MiniMap({type: 'yandex#publicMap'}));
+    var myMap = new ymaps.Map('map', {center: [55.76, 37.64], zoom: 10, behaviors:['default']});
 
-  {% for service in services %}
+    var location = ymaps.geolocation;
+    location.get({
+      provider: 'yandex'
+    }).then(function(result) {
+      var userCoodinates = result.geoObjects.get(0).geometry.getCoordinates();
+      myMap.setCenter(userCoodinates);
+    }, function(err) {
+      console.log('Ошибка: ' + err)
+    });
+
+{% for service in services %}
   {% if service.latitude and service.longitude %}
     myMap.geoObjects.add(new ymaps.Placemark([{{ service.latitude|unlocalize }}, {{ service.longitude|unlocalize }}], {
         balloonContentHeader: '<img src="{% static 'i/shoplogos/workshop.png' %}" />',
@@ -78,5 +81,5 @@ $(document).ready(function() {
   });
 });
 </script>
-<script src="//api-maps.yandex.ru/2.0-stable/?load=package.standard&lang=ru-RU" type="text/javascript"></script>
+<script src="https://api-maps.yandex.ru/2.1/?apikey=d55e0ba4-d72b-4062-914c-94559697de16&lang=ru_RU"></script>
 {% endblock %}
