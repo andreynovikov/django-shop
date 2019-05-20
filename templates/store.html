@@ -38,7 +38,7 @@
 $(document).ready(function() {
   ymaps.ready(function() {
     var coords = [{{ store.latitude|unlocalize }}, {{ store.longitude|unlocalize }}];
-    var myMap = new ymaps.Map('map', {center: coords, zoom: 14, behaviors:['default']});
+    var myMap = new ymaps.Map('map', {center: coords, zoom: 14, controls: ['zoomControl', 'typeSelector',  'fullscreenControl', 'geolocationControl', 'rulerControl']});
     var myPlacemark = new ymaps.Placemark(coords, {
         balloonContentHeader: '{% if store.logo and 'i/shoplogos/marks/'|add:store.logo|add:'.png'|static_file_exists %}<img src="{% static 'i/shoplogos/marks/'|add:store.logo|add:'.png' %}"/>{% else %}<img src="{% static 'i/shoplogos/marks/other.png' %}" />{% endif %}{{ store.name|escapejs }}',
         balloonContent: '{{ store.address|escapejs }}{% if store.address2 %}<br/>{{ store.address2|escapejs }}{% endif %}<br/>{% if store.hours %}{{ store.hours|escapejs }}<br/>{% endif %}{{ store.phone|escapejs }}{% if store.phone2 %}<br/>{{ store.phone2|escapejs }}{% endif %}{% if store.url %}<br/><a href="{{ store.url }}">{{ store.url }}</a>{% endif %}',
