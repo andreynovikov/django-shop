@@ -55,3 +55,14 @@
         });
     </script>
 {% endblock %}
+{% block vk_retargeting %}
+<script>
+    $(document).ready(function() {
+        VK.Retargeting.ProductEvent(3195, "purchase", {'products': [
+{% for item in order.items.all %}
+            {'id': '{{ item.product.id }}'}{% if not forloop.last %},{% endif %}
+{% endfor %}
+        ]});
+    });
+</script>
+{% endblock %}

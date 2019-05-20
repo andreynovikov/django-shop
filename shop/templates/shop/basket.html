@@ -52,7 +52,8 @@
           <div>
             <span class="sw-p-l-price"><span id="price_{{item.product.id}}">{{ item.price }}</span></span>&nbsp;руб.
           </div>
-          <a href="{% url 'shop:delete' item.product.id %}" class="delete ajax" onclick="dataLayer.push({'event': 'removeFromCart','ecommerce': {'currencyCode': 'RUB','remove': {'products': [{'name':'{{ product.partnumber}} {{ product.title }}','id':'{{ product.id }}','category':'{{ category.name }}','brand':'{{ product.manufacturer.code }}','price':'{{ product.cost }}','quantity': 1}]}}});">Удалить</a>
+          <a href="{% url 'shop:delete' item.product.id %}" class="delete ajax" data-name="{{ item.product.partnumber}} {{ item.product.title }}"
+             data-id="{{ item.product.id }}" data-brand="{{ item.product.manufacturer.code }}" data-price="{{ item.price }}">Удалить</a>
        </div>
        </div>
     </div>
@@ -68,6 +69,7 @@
 {% block javascript %}
     <script type="text/javascript">
         $(document).ready(function () {
+            // Yandex
  //           window.dataLayer = window.dataLayer || [];
             dataLayer.push({
             'event': 'checkout',
@@ -81,7 +83,7 @@
                         {
                             "id": "{{ item.product.id }}",
                             "name": "{{ item.product.title }}",
-                            "price": "{{ item.product.price }}",
+                            "price": "{{ item.price }}",
                             "quantity": "{{ item.quantity }}"
                         },
 {% endfor %}
@@ -124,6 +126,18 @@
                     $(this).remove();
                 });
             };
+            CustomHandlers.prototype.removeProductSeo = function (e, $el) {
+                // Yandex
+                dataLayer.push({'event': 'removeFromCart','ecommerce': {'currencyCode': 'RUB','remove': {'products': [{
+                    'name':$el.data("name"),
+                    'id': $el.data("id"),
+                    'brand':$el.data("brand"),
+                    'price':$el.data("price"),
+                    'quantity': 1
+                }]}}});
+                // VK
+                VK.Retargeting.ProductEvent(3195, "remove_from_cart", {'products': [{'id': $el.data("id")}]});
+            };
             CustomHandlers.prototype.addAjaxFlag = function (e, $el) {
                 $el.on("eldarion-ajax:modify-data", function (e, data) {
                     if (typeof data === "object") // using FormData
@@ -162,6 +176,7 @@
                 $("body").css("cursor", "auto");
             });
             $(document).on("eldarion-ajax:begin",   ".ajax", CustomHandlers.prototype.addAjaxFlag);
+            $(document).on("eldarion-ajax:begin",   ".delete", CustomHandlers.prototype.removeProductSeo);
             $(document).on("eldarion-ajax:success", ".delete", CustomHandlers.prototype.removeProduct);
             $(document).on("eldarion-ajax:begin",   ".update", CustomHandlers.prototype.setQuantityWarning);
             $(document).on("eldarion-ajax:success", ".update", CustomHandlers.prototype.setQuantity);
@@ -276,28 +291,37 @@
         }
     </script>
     <script type="text/javascript">
-var google_tag_params = {
-ecomm_prodid: [
+        var google_tag_params = {
+            ecomm_prodid: [
+            {% for item in basket.items.all %}
+                {{ item.product.id }}{% if not forloop.last %},{% endif %}
+            {% endfor %}],
+            ecomm_pagetype: 'cart',
+            ecomm_totalvalue: {{ basket.total }},
+        };
+    </script>
+    <script type="text/javascript">
+        /* <![CDATA[ */
+        var google_conversion_id = 826531590;
+        var google_custom_params = window.google_tag_params;
+        var google_remarketing_only = true;
+        /* ]]> */
+    </script>
+    <script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js"></script>
+    <noscript>
+        <div style="display:inline;">
+        <img height="1" width="1" style="border-style:none;" alt="" src="//googleads.g.doubleclick.net/pagead/viewthroughconversion/826531590/?guid=ON&amp;script=0"/>
+        </div>
+    </noscript>
+{% endblock %}
+{% block vk_retargeting %}
+<script>
+    $(document).ready(function() {
+        VK.Retargeting.ProductEvent(3195, "init_checkout", {'products': [
 {% for item in basket.items.all %}
-{{ item.product.id }}
-{% if not forloop.last %},{% endif %}
-{% endfor %}],
-ecomm_pagetype: 'cart',
-ecomm_totalvalue: {{ basket.total }},
-};
+            {'id': '{{ item.product.id }}'}{% if not forloop.last %},{% endif %}
+{% endfor %}
+        ]});
+    });
 </script>
-<script type="text/javascript">
-/* <![CDATA[ */
-var google_conversion_id = 826531590;
-var google_custom_params = window.google_tag_params;
-var google_remarketing_only = true;
-/* ]]> */
-</script>
-<script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js">
-</script>
-<noscript>
-<div style="display:inline;">
-<img height="1" width="1" style="border-style:none;" alt="" src="//googleads.g.doubleclick.net/pagead/viewthroughconversion/826531590/?guid=ON&amp;script=0"/>
-</div>
-</noscript>
 {% endblock %}

@@ -557,7 +557,7 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 $(document).ready(function() {
   dataLayer.push({'ecommerce':{'currencyCode':'RUB','impressions':gtm_products,'detail':{'products': [{'id':'{{ product.id }}','name':'{{ product.partnumber }} {{ product.title }}','category':'{{ category.name }}','brand':'{{ product.manufacturer.code }}','price':'{{ product.cost }}'}]}
   }});
-  
+
 {% if product.credit_allowed and product.instock > 0 %}
   const $checkoutCreditUI = YandexCheckoutCreditUI({ shopId: '42873', sum: '{{ product.cost|quantize:"1" }}' });
   const checkoutCreditText = $checkoutCreditUI({ type: 'info', domSelector: '#yandex-credit' });
@@ -591,7 +591,7 @@ $(document).ready(function() {
   /* продукт для динамического ретаргетинга ВК */
   var eventParams = {'products': [{'id': '{{ product.id }}'}], 'category_ids':'{{ category.id }},473', 'products_recommended_ids':
     '{% with product as parent %}{% for product in accessories %}{{ product.id }},{% endfor %}{% for product in similar %}{{ product.id }},{% endfor %}{% endwith %}12476,11820'
-  }; 
+  };
   VK.Retargeting.ProductEvent(3195, "view_product", eventParams);
 });
 </script>
