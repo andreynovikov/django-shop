@@ -102,7 +102,7 @@ $(document).ready(function() {
     {% else %}
     var coords = [55.76, 37.64];
     {% endif %}
-    myMap = new ymaps.Map('map', {center: coords, zoom: 10, behaviors:['default', 'scrollZoom']});
+    myMap = new ymaps.Map('map', {center: coords, zoom: 10, controls: ['zoomControl', 'typeSelector',  'fullscreenControl', 'geolocationControl', 'rulerControl']});
 
     {% if not city %}
     var location = ymaps.geolocation;

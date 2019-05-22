@@ -4,9 +4,9 @@ from django import template
 from django.utils.formats import date_format
 from django.utils.safestring import mark_safe
 
-DAY_FORMAT = 'd'
-SINGLE_DATE_FORMAT = 'd E'
-SINGLE_DATE_FORMAT_WITH_YEAR = 'd E Y'
+DAY_FORMAT = 'j'
+SINGLE_DATE_FORMAT = 'j E'
+SINGLE_DATE_FORMAT_WITH_YEAR = 'j E Y'
 RANGE_FORMAT = '{}&thinsp;&ndash;&thinsp;{}'
 
 register=template.Library()
@@ -42,7 +42,7 @@ def daterange(dates):
                 ))
             else:
                 return mark_safe(RANGE_FORMAT.format(
-                    date_format(from_date, format=SINGLE_DAY_FORMAT),
+                    date_format(from_date, format=SINGLE_DATE_FORMAT),
                     date_format(till_date, format=base_format)
                 ))
         else:

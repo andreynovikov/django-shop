@@ -52,7 +52,7 @@ Pfaff, Husqvarna Viking, Family, Janome, Silver Reed и ряда других ф
 <script>
 $(document).ready(function() {
   ymaps.ready(function() {
-    var myMap = new ymaps.Map('map', {center: [55.76, 37.64], zoom: 10, behaviors:['default']});
+    var myMap = new ymaps.Map('map', {center: [55.76, 37.64], zoom: 10, controls: ['zoomControl', 'typeSelector',  'fullscreenControl', 'geolocationControl', 'rulerControl']});
 
     var location = ymaps.geolocation;
     location.get({
