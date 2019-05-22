@@ -150,12 +150,6 @@ dataLayer.push({'ecommerce':{'currencyCode':'RUB','impressions':gtm_products}});
 </script>
 {% endcache %}
 {% endblock content %}
-{% block vk_retargeting %}
-<script>
-$(document).ready(function() {
-  /* просмотр первой для ВК */
-  var eventParams = {}; 
-  VK.Retargeting.ProductEvent(3195, "view_home", eventParams);
-});
-</script>
-{% endblock vk_retargeting %}
+{% block vk_retargeting_event %}
+  VK.Retargeting.ProductEvent(3195, "view_home");
+{% endblock %}

@@ -55,14 +55,10 @@
         });
     </script>
 {% endblock %}
-{% block vk_retargeting %}
-<script>
-    $(document).ready(function() {
-        VK.Retargeting.ProductEvent(3195, "purchase", {'products': [
+{% block vk_retargeting_event %}
+  VK.Retargeting.ProductEvent(3195, "init_checkout", {'products': [
 {% for item in order.items.all %}
-            {'id': '{{ item.product.id }}'}{% if not forloop.last %},{% endif %}
+    {'id': '{{ item.product.id }}'}{% if not forloop.last %},{% endif %}
 {% endfor %}
-        ]});
-    });
-</script>
+  ]});
 {% endblock %}

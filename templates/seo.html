@@ -10,19 +10,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 {% endblock %}
 {% block body_bottom %}
 {% if not debug %}
-<script src="https://vk.com/js/api/openapi.js?49"></script>
+{% block vk %}
+<script src="https://vk.com/js/api/openapi.js" async></script>
 <script>
-$(document).ready(function() {
+window.vkAsyncInit = function() {
+  VK.Retargeting.Init("VK-RTRG-335957-1YsJG");
   VK.Widgets.Group("vk_groups", {mode: 0, width: "234", height: "200"}, 38122758);
-});
-</script>
-{% block vk_retargeting %}
-<script>
-$(document).ready(function() {
+  {% block vk_retargeting_event %}
   VK.Retargeting.ProductEvent(3195, "view_other");
-});
+  {% endblock %}
+};
 </script>
-{% endblock %}
+{% endblock vk %}
 <!-- Yandex.Metrika counter -->
 <script>
     (function (d, w, c) {
