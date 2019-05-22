@@ -245,10 +245,6 @@
 })();
 </script>
 {% endblock javascript %}
-{% block vk_retargeting %}
-<script>
-$(document).ready(function() {
+{% block vk_retargeting_event %}
   VK.Retargeting.ProductEvent(3195, "view_search");
-});
-</script>
-{% endblock vk_retargeting %}
+{% endblock %}

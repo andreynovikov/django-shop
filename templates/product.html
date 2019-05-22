@@ -585,14 +585,9 @@ var google_remarketing_only = true;
 </script>
 <script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js"></script>
 {% endblock javascript %}
-{% block vk_retargeting %}
-<script>
-$(document).ready(function() {
-  /* продукт для динамического ретаргетинга ВК */
+{% block vk_retargeting_event %}
   var eventParams = {'products': [{'id': '{{ product.id }}'}], 'category_ids':'{{ category.id }},473', 'products_recommended_ids':
     '{% with product as parent %}{% for product in accessories %}{{ product.id }},{% endfor %}{% for product in similar %}{{ product.id }},{% endfor %}{% endwith %}12476,11820'
   };
   VK.Retargeting.ProductEvent(3195, "view_product", eventParams);
-});
-</script>
-{% endblock vk_retargeting %}
+{% endblock vk_retargeting_event %}
