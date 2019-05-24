@@ -4,8 +4,8 @@
 
 {% load site %}
 <shop>
-<name>Швейный Мир</name>
-<company>Швейный Мир</company>
+<name>{{ shop_info.title }}</name>
+<company>{{ shop_info.description }}</company>
 <url>{% site_url_prefix %}</url>
 
 <currencies>
