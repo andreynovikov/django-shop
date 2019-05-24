@@ -3,7 +3,7 @@ from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
-from django.template import loader, Context
+from django.template import loader
 
 from shop.models import Category, Product, ProductRelation, ProductSet, Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
 from shop.filters import get_product_filter
@@ -40,12 +40,11 @@ def products_stream(request, templates, filter_type):
         for descendant in descendants:
             categories[descendant.pk] = child.pk;
     context = {
-        'request': request,
         'children': children,
         'category_map': categories
     }
     t = loader.get_template('xml/_{}_header.xml'.format(templates))
-    yield t.render(context)
+    yield t.render(context, request)
 
     t = loader.get_template('xml/_{}_product.xml'.format(templates))
 
@@ -71,11 +70,11 @@ def products_stream(request, templates, filter_type):
     products = Product.objects.filter(**filters).distinct()
     for product in products:
         context['product'] = product
-        yield t.render(context)
+        yield t.render(context, request)
 
     del context['product']
     t = loader.get_template('xml/_{}_footer.xml'.format(templates))
-    yield t.render(context)
+    yield t.render(context, request)
 
 
 def products(request, templates, filters):
