@@ -72,7 +72,7 @@ def products_stream(request, templates, filter_type):
         context['product'] = product
         yield t.render(context, request)
 
-    del context['product']
+    context.pop('product', None)
     t = loader.get_template('xml/_{}_footer.xml'.format(templates))
     yield t.render(context, request)
 
