@@ -1,5 +1,8 @@
 import os
 import re
+
+from tidylib import tidy_fragment
+
 from django import forms
 from django.forms.models import model_to_dict
 #from suit.widgets import AutosizedTextarea
@@ -140,13 +143,24 @@ class ProductAdminForm(forms.ModelForm):
         }
 
     def clean(self):
-        code = self.cleaned_data.get('code')
+        cleaned_data = super().clean()
+        # clean HTML in some fields
+        for field in ['shortdescr', 'yandexdescr', 'descr', 'spec', 'state', 'complect', 'stitches', 'dealertxt', 'sm_display', 'sm_software']:
+            value = cleaned_data.get(field)
+            if not value:
+                continue
+            fragment, errors = tidy_fragment(value, options={'indent':0})
+            if not fragment:
+                self.add_error(field, forms.ValidationError("Ошибка очистки HTML"))
+                continue
+            cleaned_data[field] = fragment
+
+        code = cleaned_data.get('code')
         reg = re.compile('^[-\.\w]+$')
         # test for code presence is required for mass edit
-        if not code or reg.match(code):
-            return super().clean()
-        else:
+        if code and not reg.match(code):
             self.add_error('code', forms.ValidationError("Код товара содержит недопустимые символы"))
+        return cleaned_data
 
 
 class OrderItemInlineAdminForm(forms.ModelForm):
