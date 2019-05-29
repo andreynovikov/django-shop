@@ -6,9 +6,9 @@
                 {% url "spirit:comment:find" pk=n.comment.pk as url_topic %}
 
                 {% if n.is_comment %}
-                    {% blocktrans trimmed with username=n.comment.user.username topic_title=n.topic.title %}Пользователь {{ username }} прокомментировал тему <a href="{{ url_topic }}">{{ topic_title }}</a>{% endblocktrans %}
+                    {% blocktrans trimmed with username=n.comment.user.get_full_name topic_title=n.topic.title %}Пользователь {{ username }} прокомментировал тему <a href="{{ url_topic }}">{{ topic_title }}</a>{% endblocktrans %}
                 {% elif n.is_mention %}
-                    {% blocktrans trimmed with username=n.comment.user.username topic_title=n.topic.title %}Пользователь {{ username }} упомянул вас в теме <a href="{{ url_topic }}">{{ topic_title }}</a>{% endblocktrans %}
+                    {% blocktrans trimmed with username=n.comment.user.get_full_name topic_title=n.topic.title %}Пользователь {{ username }} упомянул вас в теме <a href="{{ url_topic }}">{{ topic_title }}</a>{% endblocktrans %}
                 {% else %}
                     Unknown action
                 {% endif %}

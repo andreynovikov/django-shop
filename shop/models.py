@@ -72,10 +72,35 @@ class AliasField(models.Field):
         setattr(cls, name, self)
 
 
+class UsernameField(models.CharField):
+    description = "CharField that stores NULL but returns ''"
+
+    def __init__(self, *args, **kwargs):
+        kwargs['unique'] = True
+        kwargs['null'] = True
+        kwargs['blank'] = True
+        kwargs['default'] = ''
+        super().__init__(*args, **kwargs)
+
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+        del kwargs['unique']
+        del kwargs['null']
+        del kwargs['blank']
+        del kwargs['default']
+        return name, path, args, kwargs
+
+    def from_db_value(self, value, expression, connection):
+        return value or ''
+
+    def get_db_prep_value(self, value, connection, prepared=False):
+        return value or None
+
+
 class ShopUser(AbstractBaseUser, PermissionsMixin):
     phone = models.CharField('телефон', max_length=30, unique=True)
     name = models.CharField('имя', max_length=100, blank=True)
-    username = models.CharField('прозвище', max_length=100, unique=True, null=True, blank=True)
+    username = UsernameField('прозвище', max_length=100)
     email = models.EmailField('эл.почта', blank=True)
     postcode = models.CharField('индекс', max_length=10, blank=True)
     city = models.CharField('город', max_length=255, blank=True)
@@ -105,24 +130,11 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
     def autocomplete_search_fields():
         return ['id__iexact', 'name__icontains', 'phone__icontains', 'email__icontains']
 
-    def save(self, *args, **kwargs):
-        if self.username is not None and self.username.strip() == '':
-            self.username = None
-        super().save(*args, **kwargs)
-
     def get_short_name(self):
         return self.name or self.phone
 
     def get_full_name(self):
         return self.username or self.name or ShopUserManager.format_phone(self.phone[:-6] + '****' + self.phone[-2:])
-
-    """
-    def __getattribute__(self, name):
-        if name == 'username':
-            return self.name or ShopUserManager.format_phone(self.phone[:-6] + '****' + self.phone[-2:])
-        else:
-            return super().__getattribute__(name)
-    """
 
     def __str__(self):
         return self.get_short_name()
