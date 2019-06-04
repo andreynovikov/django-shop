@@ -129,7 +129,7 @@ def notify_user_order_delivered(order_id):
         )
 
 
-@shared_task(autoretry_for=(Exception,), retry_backoff=True)
+@shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
 def notify_user_order_done(order_id):
     order = Order.objects.get(id=order_id)
 
@@ -144,6 +144,28 @@ def notify_user_order_done(order_id):
 
         send_mail(
             'Заказ №%s выполнен' % order_id,
+            msg_plain,
+            shop_settings['email_from'],
+            [order.email,],
+            html_message=msg_html,
+        )
+
+
+@shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
+def notify_user_review_products(order_id):
+    order = Order.objects.get(id=order_id)
+
+    if order.email:
+        shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+        context = {
+            'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
+            'order': order
+        }
+        msg_plain = render_to_string('mail/shop/order_review_products.txt', context)
+        msg_html = render_to_string('mail/shop/order_review_products.html', context)
+
+        send_mail(
+            'Оцените товары из заказа №%s' % order_id,
             msg_plain,
             shop_settings['email_from'],
             [order.email,],
