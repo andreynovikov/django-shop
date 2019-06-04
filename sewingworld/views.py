@@ -2,6 +2,7 @@ from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
+from django.contrib.auth.decorators import login_required
 from django.contrib.sites.models import Site
 from django.template import loader
 
@@ -310,6 +311,7 @@ def product_stock(request, code):
     return response
 
 
+@login_required
 def review_product(request, code):
     product = get_object_or_404(Product, code=code)
     if product.categories.exists() and not product.breadcrumbs:
