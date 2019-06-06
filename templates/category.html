@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load staticfiles %}
+{% load site %}
 {% load mptt_tags %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}
@@ -26,19 +27,81 @@
 {% endif %}
  <div class="category_list">
     <ul>
-{% drilldown_tree_for_node category as categories %}
-    {% for node,structure in categories|tree_info %}
-        {% if node.parent_id == category.pk  %}
-                <li class="reg"><span class="name"><a rel="singer_product_home.png" href="{% url 'category' node.get_path %}">{{ node }}</a></span></li>
-        {% endif %}
-    {% endfor %}
+{% for child in category.get_children|filter_qs:"active" %}
+      <li class="reg"><a href="{% url 'category' child.get_path %}">{{ child }}</a></li>
+{% endfor %}
   </ul>
 </div><!-- category_list -->
 <div class="clear"></div>
 <div id="list_results">
-{% for product in products %}
+{% for product, cost, quantity in products %}
 {% include "_product_info.html" %}
 {% endfor %}
 </div>
 <div class="clear"></div>
+{% endblock %}
+{% block javascript %}
+<script src="{% static 'js/jquery.spinner.js' %}"></script>
+<script>
+$(document).ready(function () {
+
+    var CustomHandlers = function () {
+    };
+    CustomHandlers.prototype.addAjaxFlag = function (e, $el) {
+        $el.on("eldarion-ajax:modify-data", function (e, data) {
+            if (typeof data === "object") // using FormData
+                data.append("ajax", 1);
+            else if (data != null)
+                data = data + "&ajax=1";
+            else
+                data = "ajax=1";
+            return data;
+        });
+    };
+    CustomHandlers.prototype.setQuantityWarning = function (e, $el) {
+        $el.find(".quantity-container").addClass("has-warning");
+    };
+    CustomHandlers.prototype.setQuantity = function (e, $el, data) {
+        var $in = $el.find(".sw-basket-quantity");
+        $in.val(data["quantity"]);
+        var $cn = $el.find(".quantity-container");
+        $cn.removeClass("has-warning").addClass("has-success");
+        $in.on("blur", function () {
+            $cn.removeClass("has-success");
+        });
+    };
+
+    $(document).on("eldarion-ajax:begin", function(evt, $el) {
+        $("body").css("cursor", "progress");
+    });
+    $(document).on("eldarion-ajax:complete", function(evt, $el) {
+        $("body").css("cursor", "auto");
+        updateCartNotice();
+    });
+
+
+    $(document).on("eldarion-ajax:begin",   ".ajax", CustomHandlers.prototype.addAjaxFlag);
+    $(document).on("eldarion-ajax:begin",   ".update", CustomHandlers.prototype.setQuantityWarning);
+    $(document).on("eldarion-ajax:success", ".update", CustomHandlers.prototype.setQuantity);
+
+
+    $('[data-trigger="spinner"]').spinner('changed', function(e, newVal, oldVal) {
+        var $form = $(this).closest("form");
+        //console.error($form);
+        //$.dump($form);
+        $form.submit();
+        //return false;
+        //alert("{{ product.id }} " + newVal);
+        ym(51806498, 'reachGoal', 'tobasket');
+    });
+
+    $('.expand-description').each(function() {
+        $(this).one("click", function() {
+            var productID = this.href.split("descr_")[1];
+            var url="/catalog/expand/"+productID+"/";
+            $('#descr_'+productID).load(url);
+        });
+    });
+});
+</script>
 {% endblock %}

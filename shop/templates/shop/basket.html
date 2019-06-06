@@ -30,23 +30,25 @@
              {% endif %}
           </div>
           <div class="sw-p-l-name text-center">
-             <a href="{% url 'product' item.product.code %}"
-                class="sw-basket-product-title">{{ item.product.title }}</a>
+             <span class="sw-basket-product-title">{{ item.product.title }}</span>
           </div>
           <div class="text-center">
              {% if item.discount > 0 %}
-                 {{ item.product.price|quantize:'1' }}&nbsp;руб.
+                 {{ item.product.ws_price }}&nbsp;руб.
                  - {{ item.discount_text }}
                  = {{ item.cost }}&nbsp;руб.
              {% else %}
-                 {{ item.product.price|quantize:'1' }}&nbsp;руб.
+                 {{ item.product.ws_price }}&nbsp;руб.
              {% endif %}
              <form class="update form-inline ajax" action="{% url 'shop:update' item.product.id %}" method="post">
              {% csrf_token %}
-             <div class="input-group quantity-container">
-                <span class="input-group-btn sw-minus"><button type="button" class="btn btn-default" aria-label="-">-</button></span>
-                <input class="form-control sw-basket-quantity" type="text" name="quantity" value="{{ item.quantity }}" size="3" title="Количество"/>
-                <span class="input-group-btn sw-plus"><button  type="button" class="btn btn-default" aria-label="+">+</button></span>
+             <div class="input-group spinner quantity-container" data-trigger="spinner">
+                 <span class="input-group-btn sw-minus"><button type="button" class="btn btn-default" aria-label="-" data-spin="down">-</button></span>
+                 <input class="form-control text-center sw-basket-quantity" type="text" name="quantity" value="{{ item.quantity }}"
+                        data-min="{% if item.product.ws_pack_only %}{{ item.product.pack_factor }}{% else %}1{% endif %}"
+                        {% if item.product.ws_pack_only %}data-step="{{ item.product.pack_factor }}"{% endif %} size="4"
+                        data-delay="1000" id="spinner{{ product.id }}" autocomplete="off" title="Количество"/>
+                 <span class="input-group-btn sw-plus"><button  type="button" class="btn btn-default" aria-label="+" data-spin="up">+</button></span>
              </div>
              </form>
           <div>
@@ -66,6 +68,7 @@
 {% endblock %}
 
 {% block javascript %}
+    <script src="{% static 'js/jquery.spinner.js' %}"></script>
     <script type="text/javascript">
         $(document).ready(function () {
             window.dataLayer = window.dataLayer || [];
@@ -90,20 +93,6 @@
               }
             });
 
-            var createTimeout = function(timeoutHandler, delay) {
-                var timeoutId;
-                timeoutId = setTimeout(timeoutHandler, delay);
-                return {
-                    cancel: function() {
-                        clearTimeout(timeoutId);
-                    },
-                    trigger: function() {
-                        clearTimeout(timeoutId);
-                        return timeoutHandler();
-                    }
-                };
-            };
-
             var CustomHandlers = function () {
             };
             CustomHandlers.prototype.setQuantityWarning = function (e, $el) {
@@ -114,9 +103,9 @@
                 $in.val(data["quantity"]);
                 var $cn = $el.find(".quantity-container");
                 $cn.removeClass("has-warning").addClass("has-success");
-                $in.on("blur", function () {
+                setTimeout(function() {
                     $cn.removeClass("has-success");
-                });
+                }, 2000);
             };
             CustomHandlers.prototype.removeProduct = function (e, $el) {
                 var $row = $el.closest(".sw-product-row");
@@ -170,48 +159,13 @@
             $(document).on("eldarion-ajax:success", "#reset-password", CustomHandlers.prototype.passwordReset);
             $(document).on("eldarion-ajax:complete", initHandlers);
 
-            var inputTimer;
-            var inputTimerRef;
-
             $(".sw-basket-quantity").inputmask({mask: "9", repeat: 4, placeholder: ""});
             $(".sw-basket-quantity").on( "keyup", function () {
-                var $cn = $(this).closest(".quantity-container");
-                $cn.removeClass("has-success");
-
-                if (inputTimerRef && inputTimerRef.context == $(this).context) {
-                    inputTimer.cancel();
-                    console.error('  cancel');
-                }
-                else if (inputTimer != undefined)
-                    inputTimer.trigger();
-                inputTimerRef = $(this);
-                inputTimer = createTimeout($.proxy(function() {
-                    if ($(this).val()) {
-                        console.error($(this).val());
-                        var $form = $(this).closest("form");
-                        $form.submit();
-                    }
-                }, $(this)), 300);
+                $(this).closest(".quantity-container").removeClass("has-success");
             });
 
-            $(".sw-minus").on("click", function () {
-                var $input = $(this).parent().find("input");
-                var $form  = $(this).closest("form");
-                var count = parseInt($input.val()) - 1;
-                count = count < 1 ? 1 : count;
-                $input.val(count);
-                $input.change();
-                $form.submit();
-                return false;
-            });
-
-            $(".sw-plus").on("click", function () {
-                var $input = $(this).parent().find("input");
-                var $form  = $(this).closest("form");
-                $input.val(parseInt($input.val()) + 1);
-                $input.change();
-                $form.submit();
-                return false;
+            $(".spinner").spinner("changed", function(e, newVal, oldVal) {
+                $(this).closest("form").submit();
             });
 
             initHandlers();
@@ -275,4 +229,4 @@
             }, 5000);
         }
     </script>
-{% endblock %}
+{% endblock javascript %}

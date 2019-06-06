@@ -1,411 +1,121 @@
-{% extends "base.html" %}
 {% load staticfiles %}
-{% load decimals %}
 {% load shop_filters %}
-{% load mptt_tags %}
-{% load django_bootstrap_breadcrumbs %}
-{% block title %}
-{{ product.title }}
-{% endblock %}
-{% block css %}
+
 <style type="text/css">
-.product-page          { max-width:1000px; margin: 0 auto; }
-.product-page h2       { font-size:1.4em; border-bottom:1px solid #e0e0e0; padding-bottom:5px; margin-top:40px; margin-bottom:20px; }
-.product-buyblock      { float:none; display:inline-block; vertical-align:top;}
-@media(max-width:768px){
-.product-buyblock      { width:100%; }
-.product-buyblock-body { max-width:320px; text-align:center;}
-.product-image         { width:100%; }
-.product-image .popup-gallery { max-width:600px; margin: 0 auto; text-align:center;}
-}
-@media(min-width:768px){
-.product-buyblock      { max-width:380px; }
-}
-.panel-body {padding:3px;padding-top:10px;}
-.product-image        { float:none; display:inline-block; vertical-align:top; }
-.product-nal-caption  { font-weight:bold; }
-.product-nal-true     { color:#4cae4c; font-weight:bold; }
-.product-nal-false    { color:#aaaaaa; font-weight:bold; }
-.product-delivery-caption { font-weight:bold; }
-.product-salesnotes, .product-gift  { color:@brand-orange; }
-.price                { font-size:1.2em; font-weight:bold; }
-.price span           { color:@brand-orange; font-size:1.4em; }
-.oldprice             { text-decoration:line-through; }
-.product-spec         { display: block; position:relative; margin:0; }
-.product-spec dt      { display: inline-block; width: 49%; margin: 0 0 7px; vertical-align: top;}
-.product-spec dd      { display: inline-block; width: 50%; margin: 0 0 7px; vertical-align: bottom; background: inherit; }
-.product-spec dt span { font-weight:normal; }
-.product-spec dt:after { position: absolute; content:"";  }
+    /* overlay at start */
+    .mfp-fade.mfp-bg {
+    opacity: 0;
 
-.modelProperties td	{padding-right:0;padding-bottom:0;padding-left:0;vertical-align: bottom;}
-.modelProperties td.sw-label	{padding-right:10;padding-bottom:0;padding-left:0;line-height:1.2em;}
-.modelProperties span	{background-color:white;}
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+    }
+    /* overlay animate in */
+    .mfp-fade.mfp-bg.mfp-ready {
+    opacity: 0.3;
+    }
+    /* overlay animate out */
+    .mfp-fade.mfp-bg.mfp-removing {
+    opacity: 0;
+    }
 
+    /* content at start */
+    .mfp-fade.mfp-wrap .mfp-content .gallery-popup {
+    opacity: 0;
 
-/* для подсказки */
-.opener img, .opener-ajax img, .opener-html img { opacity: 0.5; width: 14px; height: 14px; border:0; border-spacing:0; }
-.white-popup-block            {background: white;padding: 20px 30px;text-align: left;max-width: 800px;margin: 40px auto;position: relative;}
-.white-popup-block img        {margin:10px}
-.popup-gallery                { margin-top:5px; }
+    -webkit-transition: all 0.3s ease-out;
+    -moz-transition: all 0.3s ease-out;
+    transition: all 0.3s ease-out;
+    }
+    /* content animate it */
+    .mfp-fade.mfp-wrap.mfp-ready .mfp-content .gallery-popup {
+    opacity: 1;
+    }
+    /* content animate out */
+    .mfp-fade.mfp-wrap.mfp-removing .mfp-content .gallery-popup {
+    opacity: 0;
+    }
 
-.price .sw-addProduct-sm      { margin-bottom:5px; }
-.sw-addProduct-sm     { font-weight:bold; text-decoration:none; }
+    .gallery-popup .mfp-close { padding: 0; top: 25px; right: 23px; opacity: 1; }
+    .gallery-popup * { -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; }
+    .gallery-popup {
+    position: fixed; z-index: 1; top: 40px; left: 40px; bottom: 40px; right: 40px; overflow: hidden; xwidth: 100%; xheight: 100%; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; background: #fff; box-sizing: border-box;
+    }
+    .gallery-popup-image-container {
+    position: absolute; top: 0; left: 100px; bottom: 0; right: 0; overflow: hidden; width: auto; height: 100%; margin: auto; padding: 30px 100px 40px; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; text-align: center;
+    }
+    .gallery-popup-inner { position: relative; width: 100%; height: 100%; }
+    .gallery-popup-image {
+    position: absolute; top: 0; right: 0; bottom: 0; left: 0; max-width: 100%; max-height: 100%; margin: auto;
+    }
+    .gallery-popup-thumbs {
+    padding: 0; list-style: none;
+    position: absolute; top: 20px; left: 0; right: auto; bottom: 40px; overflow-x: hidden; overflow-y: auto; width: 100px; border-left: none; border-right: 1px solid #e9e9e9; background: #fff;
+    }
+    .gallery-popup-thumbs-item {
+    padding: 0;
+    position: relative; width: 72px; height: 72px; margin: 0 auto 12px; border: 2px solid #fff; cursor: pointer; -webkit-transition: border-color .15s ease-out; -moz-transition: border-color .15s ease-out; -o-transition: border-color .15s ease-out; transition: border-color .15s ease-out;
+    }
+    .gallery-popup-thumbs-item:hover, .gallery-popup-thumbs-item.selected {
+    border-color: #10A04E;
+    }
+    .gallery-popup-thumbs-item img {
+    position: absolute; top: 0; right: 0; bottom: 0; left: 0; max-width: 64px; max-height: 64px; margin: auto;
+    }
+    .gallery-popup-nav {
+    position: absolute; bottom: 25px; right: 23px; z-index: 102;
+    }
+    .gallery-popup-nav-item {
+    width: 60px; height: 45px; background-position: 50% 50%; background-repeat: no-repeat; cursor: pointer; text-indent: 61px; overflow: hidden;
+    }
+    @media screen and (max-width: 768px) {
+    .gallery-popup-image-container { left: 70px; padding: 15px 20px 20px; }
+    .gallery-popup-thumbs { width: 70px; top: 10px; bottom: 20px; }
+    .gallery-popup-thumbs-item { width: 44px; height: 44px; }
+    .gallery-popup-thumbs-item img { max-width: 36px; max-height: 36px; }
+    .gallery-popup-nav-item { width: 30px; height: 25px; background-size: 50%; }
+    }
+    .gallery-popup-action-prev {
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABsAAAAPCAYAAAAVk7TYAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyRpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoTWFjaW50b3NoKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo4Q0NEN0I5MDI2RTgxMUU0QkU5N0E5RTBGNzg4MzYzOCIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo4Q0NEN0I5MTI2RTgxMUU0QkU5N0E5RTBGNzg4MzYzOCI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjhDQ0Q3QjhFMjZFODExRTRCRTk3QTlFMEY3ODgzNjM4IiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjhDQ0Q3QjhGMjZFODExRTRCRTk3QTlFMEY3ODgzNjM4Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+5/TgHQAAAONJREFUeNpi3LhxAwMZgB+IP4IYfn7+RGtiIsMiJyB+CKVJAqRaZs/IyLhGRkbmGIgG8u1oZRnIovU6OrqrjIyMW3V1dVeB+Js2bbSjtmVwixQVFTuAFhxVUFDsAFq4mhQLmYi1COQTqEUPQIIgmlQLmYi1CGQwzCIYINVCJnItQgLoFtqTapkdkRaRZCETFSxCt3AVLguZcFi0mkSLiLKQiYoWEbSQicKgI8lCFiDmAQqsQLLoIQN1ANhCEOPy5csrgOaqMf7//5/tx48fxRwcHMvIsYiIUl8BaH4k0Pw+gAADAKb0mwiMYbceAAAAAElFTkSuQmCC);
+    }
+    .gallery-popup-action-next {
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABsAAAAPCAYAAAAVk7TYAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyRpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoTWFjaW50b3NoKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo2NkY5Q0RCOTI2RTIxMUU0QkU5N0E5RTBGNzg4MzYzOCIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo2NkY5Q0RCQTI2RTIxMUU0QkU5N0E5RTBGNzg4MzYzOCI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjY2RjlDREI3MjZFMjExRTRCRTk3QTlFMEY3ODgzNjM4IiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjY2RjlDREI4MjZFMjExRTRCRTk3QTlFMEY3ODgzNjM4Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+o8rjZQAAAO5JREFUeNq01EEKgzAQBVCTnaB3aNxqegS9gT1CL9F9t4Kn6FYLbTxNd/UQgthVf0AhttUkkg4MkXGYpyJDhLh7iADZeRsizw/anqYRAfo6iusQ+UCm3h8CUCbn4wwpxBfne0EIubkGJSTnJgkX0qEoDIyxknNeuwQVqIqiqERpoOONdrdjhStQhfAiBUqtrFOlwQk4QZgzg2aYC1CF5BwV+sIWwMwF9BPbAqI/1UGL2AdYrYGm0CpmCE5QrYO0mAa0goywBfBk+umsMRWM40T+NGecVxtIBhm3vs2WZ33fH33fv+ABniZbf4q3AAMAgV2eMZtbl18AAAAASUVORK5CYII=);
+    }
+    .mfp-close {
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyRpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoTWFjaW50b3NoKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo0NDE4REM2OTI2REYxMUU0QkU5N0E5RTBGNzg4MzYzOCIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo0NDE4REM2QTI2REYxMUU0QkU5N0E5RTBGNzg4MzYzOCI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjQ0MThEQzY3MjZERjExRTRCRTk3QTlFMEY3ODgzNjM4IiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjQ0MThEQzY4MjZERjExRTRCRTk3QTlFMEY3ODgzNjM4Ii8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+0Nc5IQAAAWpJREFUeNq01j1OwzAUAODkCaEM7QmiQJKBKUYqMwo3KDPnQByArWoljoGidIB0ZQYOkIUxLDlBh5QlvCeMZCA/z66xZDl+sd+nxIlltygeHSwTrFvHoMznl6NjNptiguO2gNdTrG9YU+cfCkIXlB/bKaD4IcRp4brug22QIMqbJKIgBzCwi6JoJYRY2wQVKI/jeIWhHcgbVRhGC1ugCuGDLDBUURyUAVbAPugHZgMcgv5g+4DfEM7rhDoxE1CFaF4X1IvpgFxoEGOCbGgUGwG1IBbWA97oQmxMBX3ff8XuEtsXHUgLk+BRXdfnQRA8UYv9Y535Olj69cMm2Wx2dkst9eWubhVL5Rqt6dUh8CzXMNcBwQCqfn00bBBMoI6vlAWCKaQUNgh7QlogWIDYIFiCWCB0QLkhNAqCZWgQPKADKgYyBXq3dJKr5N7plGWZYd4Tt23bw6Zprj3PuzeBGCfiEPNfYf67TwEGADMrMRAGyAgwAAAAAElFTkSuQmCC);
+    }
 </style>
-{% endblock %}
 
-
-
-
-
-{% block breadcrumbs %}
-    {{ block.super }}
-    {% breadcrumb "К первой странице" "/" %}
-    {% breadcrumb "Каталог" "catalog" %}
-    {% if product.breadcrumbs %}
-    {% for node,structure in product.breadcrumbs|tree_info %}
-        {% if node.is_child_node %}
-            {% breadcrumb node "category" node.get_path %}
-        {% endif %}
-    {% endfor %}
-    {% endif %}
-{% endblock %}
-{% block content %}
-<div class="products">
-<div itemscope itemtype="http://schema.org/Product">
-<h1 itemprop="name">{{ product.title }}
-<sup>
-{% if product.ishot %}
-<span class="label label-warning">Акция</span>
-{% endif %}
-{% if product.isnew %}
-<span class="label label-danger">Новинка</span>
-{% endif %}
-{% if product.recomended %}
-<span class="label label-success">Рекомендуем</span>
-{% endif %}
-</sup>
-</h1>
-
-{% if product.partnumber %}
-<p>Код производителя: {{ product.partnumber }}</p>
-{% endif %}
-{% if product.runame or product.whatis %}
-<p>{{ product.whatis }} {{ product.runame }}</p>
-{% endif %}
-
-
-<div class="product-image">
-{% if product.image_prefix|add:'.jpg'|file_exists %}
+<div class="gallery-popup">
+    <div class="gallery-popup-image-container">
+        <div class="gallery-popup-inner">
 {% if product.image_prefix|add:'.b.jpg'|file_exists %}
-<div class="popup-gallery"><a href="{{ MEDIA_URL }}{{ product.image_prefix }}.b.jpg">
+<img class="gallery-popup-image" src="{{ MEDIA_URL }}{{ product.image_prefix }}.b.jpg" alt="{{ product.title }} {{ product.whatis }}" style="display: none" onload="$(this).fadeIn('fast')"/>
+{% elif product.image_prefix|add:'.jpg'|file_exists %}
+<img class="gallery-popup-image" src="{{ MEDIA_URL }}{{ product.image_prefix }}.jpg" alt="{{ product.title }} {{ product.whatis }}" style="display: none" onload="$(this).fadeIn('fast')"/>
 {% endif %}
-<img  style="max-width:540px; height:auto;" id="{{ product.id }}" src="{{ MEDIA_URL }}{{ product.image_prefix }}.jpg" alt="{{ product.title }} {{ product.whatis }}" itemprop="image"  class="img-responsive"/>
-{% if product.image_prefix|add:'.b.jpg'|file_exists %}
-</a></div>
-{% endif %}
-{% endif %}
-</div>
+        </div>
+    </div>
 
-<div class="panel panel-default product-buyblock">
-<div class="panel-body product-buyblock-body">
-{% if product.enabled %}
-<div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
-{% if product.discount > 0 %}
-<p class="oldprice">{{ product.price|quantize:"1" }}&nbsp;руб. <a href="#dialog_discount" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
-{% endif %}
-<p class="price"><span itemprop="price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.
-
-{% if product.instock > 0 %}
-<a href="{% url 'shop:add' product.id %}"
-class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
-{% else %}
-<a href="{% url 'shop:add' product.id %}"
-class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a>
-{% endif %}
-
-<span itemprop="priceCurrency" style="visibility:hidden;font-size:1pt;margin:0;padding:0;width:0;height:0;line-height:0;">RUB</span>
-</p>
-{% if product.available %}
-<p><span class="product-nal-caption">Наличие:</span>
-{% if product.instock > 1 %}
-<span class="product-nal-true">Есть</span>
-{% endif %}
-{% if product.instock == 1 %}
-<span class="product-nal-true">Мало</span>
-{% endif %}
-{% if product.instock < 1 %}
-<span class="product-nal-false">Нет</span>
-{% endif %}
-</p>
-{% endif %}
-{% if sales_notes %}
-<p class="product-salesnotes">{{ sales_notes }}</p>
-{% endif %}
-{% if product.instock > 1 %}
-<meta name="ydWidgetData" id="e87ab1a4b521b363e68df04de4866de4" content="" data-sender_id="15938" data-weight="10" data-cost="{{ product.cost }}" data-height="27" data-length="50" data-width="40" data-city_from="Москва" data-geo_id_from="213" data-css_name="geo_tpl" data-tpl_name="geo_tpl" data-container_tag_id="b1a118f6e3252a711b9146c1d41567e5" data-resource_id="21272" data-resource_key="1780931b94c77b42c08b895fb88747d2" data-tracking_method_key="43df8cf1b0d40baaef3a3363458314f1" data-autocomplete_method_key="fd34c231b276f9bea3db9b60ac09506e"></meta><!--[if lt IE 9]><script>document.createElement("msw");</script><![endif]-->
-<script src="https://delivery.yandex.ru/widget/widgetJsLoader?dataTagID=e87ab1a4b521b363e68df04de4866de4" charset="utf-8"></script>
-<msw id="b1a118f6e3252a711b9146c1d41567e5" class="yd-widget-container"></msw>
-{% endif %}
-</div>
-{% else %}
-<span class="product-nal-false">Товар снят с продажи</span>
-{% endif %}{# enabled #}
-</div>
-</div>
 
 {% if product.images %}
-<div class="popup-gallery">
-{% for image in product.images %}
-<a href="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.jpg"><img src="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.s.jpg" alt="{{ product.title }} - Фото №{{ forloop.counter }}" border="0" /></a>
-{% endfor %}
+<ul class="gallery-popup-thumbs">
+    <li class="gallery-popup-thumbs-item selected" data-image="{% if product.image_prefix|add:'.b.jpg'|file_exists %}
+        {{ MEDIA_URL }}{{ product.image_prefix }}.b.jpg
+        {% elif product.image_prefix|add:'.jpg'|file_exists %}
+        {{ MEDIA_URL }}{{ product.image_prefix }}.jpg{% endif %}">
+        <img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" />
+    </li>
+    {% for image in product.images %}
+    <li class="gallery-popup-thumbs-item" data-image="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.jpg">
+        <img src="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.s.jpg" alt="{{ product.title }} - Фото №{{ forloop.counter }}" />
+    </li>
+    {% endfor %}
+</ul>
+
+<div class="gallery-popup-nav">
+    <div class="gallery-popup-nav-item gallery-popup-action-prev"></div>
+    <div class="gallery-popup-nav-item gallery-popup-action-next"></div>
 </div>
 {% endif %}
-
-{% if constituents %}
-<h2>Состав комплекта:</h2>
-<table style="margin-bottom: 10pt">
-{% for item in constituents %}
-{% with item.constituent as product %}
-<tr><td>{% if product.image_prefix|add:'.s.jpg'|file_exists %}
-<img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" />
-{% endif %}</td>
-<td style="padding-left: 6pt">
-<h3 class="sw-p-l-name-h"><a href="{% url 'product' product.code %}">{{ product.title }}</a>{% if item.quantity > 1 %} ({{ item.quantity }} шт.){% endif %}</h3>
-<div class="sw-p-l-brif">
-{{ product.shortdescr|safe }}
 </div>
-</td></tr>
-<script>
-gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Состав комплекта','position':{{ forloop.counter }}});
-</script>
-{% endwith %}
-{% endfor %}
-</table>
-{% endif %}
-
-{% if product.descr %}
-<p itemprop="description">{{ product.descr|safe }}</p>
-{% endif %}
-
-
-{% if product.warranty %}
-<h2>Характеристики {{ product.title }}:</h2>
-{% endif %}
-
-<dl class="product-spec">
-{% if product.fabric_verylite %}
-<dt><span>Диапазон прошиваемых материалов</span></dt><dd>Очень легкие – {{ product.fabric_verylite }}<br>Легкие – {{ product.fabric_lite }}<br>Средние и умеренно тяжелые – {{ product.fabric_medium }}<br>Тяжелые – {{ product.fabric_hard }}<br>Трикотаж – {{ product.fabric_stretch }}</dd>
-{% endif %}
-{% if product.sm_shuttletype %}
-<dt><span>Тип челнока <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_shuttletype/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_shuttletype }}</dd>
-{% endif %}
-{% if product.sm_stitchwidth %}
-<dt><span>Максимальная ширина строчки <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchlength/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchwidth }} мм</dd>
-{% endif %}
-{% if product.sm_stitchlenght %}
-<dt><span>Максимальная длина стежка <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchlength/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchlenght }} мм</dd>
-{% endif %}
-{% if product.sm_stitchquantity %}
-<dt><span>Количество строчек <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_stitchquantity/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_stitchquantity }}</dd>
-{% endif %}
-{% if product.sm_buttonhole %}
-<dt><span>Режим вымётывания петли <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_buttonhole/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_buttonhole }}</dd>
-{% endif %}
-{% if product.sm_alphabet %}
-<dt><span>Алфавит <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_alphabet/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_alphabet }}</dd>
-{% endif %}
-{% if product.sm_platformlenght %}
-<dt><span>Длина платформы <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_platformlenght/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_platformlenght }} см</dd>
-{% endif %}
-{% if product.sm_freearm %}
-<dt><span>Размеры рукавной платформы (длина/обхват) <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_freearm/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_freearm }} см</dd>
-{% endif %}
-{% if product.sm_feedwidth %}
-<dt><span>Ширина гребёнки транспортера <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_feedwidth/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_feedwidth }} мм</dd>
-{% endif %}
-{% if product.sm_footheight %}
-<dt><span>Высота подъема лапки (нормальная/максимальная) <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_footheight/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_footheight }}</dd>
-{% endif %}
-{% if product.sm_speedcontrol %}
-<dt><span>Регулятор (ограничитель) максимальной скорости <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_speedcontrol/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_speedcontrol }}</dd>
-{% endif %}
-{% if product.sm_needleupdown %}
-<dt><span>Программируемая остановка иглы в верхнем/нижнем положении <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_needleupdown/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_needleupdown }}</dd>
-{% endif %}
-{% if product.sm_threader %}
-<dt><span>Нитевдеватель <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_threader/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_threader }}</dd>
-{% endif %}
-{% if product.sm_autocutter %}
-<dt><span>Автоматическая обрезка нитей</span></dt><dd>{{ product.sm_autocutter }}</dd>
-{% endif %}
-{% if product.sm_spool %}
-<dt><span>Горизонтальное расположение катушки <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_spool/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_spool }}</dd>
-{% endif %}
-{% if product.sm_presscontrol %}
-<dt><span>Регулятор давления лапки <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_presscontrol/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_presscontrol }}</dd>
-{% endif %}
-{% if product.sm_power %}
-<dt><span>Потребляемая мощность <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_power/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_power }} Вт</dd>
-{% endif %}
-{% if product.sm_light %}
-<dt><span>Тип освещения </span></dt><dd>{{ product.sm_light }}</dd>
-{% endif %}
-{% if product.sm_organizer %}
-<dt><span>Органайзер <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_organizer/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_organizer }}</dd>
-{% endif %}
-{% if product.sm_autostop %}
-<dt><span>Автостоп при намотке нитки на шпульку <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_autostop/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_autostop }}</dd>
-{% endif %}
-{% if product.sm_ruler %}
-<dt><span>Линейка на корпусе <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_ruler/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_ruler }}</dd>
-{% endif %}
-{% if product.sm_cover %}
-<dt><span>Чехол <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_cover/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_cover }}</dd>
-{% endif %}
-{% if product.sm_display %}
-<dt><span>Дисплей</span></dt><dd>{{ product.sm_display }}</dd>
-{% endif %}
-{% if product.sm_russian %}
-<dt><span>Русское меню</span></dt><dd>{{ product.sm_russian }}</dd>
-{% endif %}
-{% if product.sm_advisor %}
-<dt><span>Швейный советник <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_advisor/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_advisor }}</dd>
-{% endif %}
-{% if product.sm_memory %}
-<dt><span>Память</span></dt><dd>{{ product.sm_memory }}</dd>
-{% endif %}
-{% if product.sm_mirror %}
-<dt><span>Зеркальное отображение образца строчки</span></dt><dd>{{ product.sm_mirror }}</dd>
-{% endif %}
-{% if product.sm_startstop %}
-<dt><span>Клавиша шитья без педали <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_startstop/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_startstop }}</dd>
-{% endif %}
-{% if product.sm_kneelift %}
-<dt><span>Коленный рычаг подъема лапки <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_kneelift/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_kneelift }}</dd>
-{% endif %}
-{% if product.sm_diffeed %}
-<dt><span>Дифференциальный транспортер ткани <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_diffeed/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_diffeed }}</dd>
-{% endif %}
-{% if product.sm_easythreading %}
-<dt><span>Облегченная заправка петлителей <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_easythreading/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_easythreading }}</dd>
-{% endif %}
-{% if product.ov_freearm %}
-<dt><span>Рукавная платформа</span></dt><dd>{{ product.ov_freearm }}</dd>
-{% endif %}
-{% if product.sm_needles %}
-<dt><span>Стандарт игл <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/sm_needles/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>{{ product.sm_needles }}</dd>
-{% endif %}
-{% if product.enginecounid_name %}
-<dt><span>Страна разработки</span></dt><dd>{{ product.enginecounid_name }}</dd>
-{% endif %}
-{% if product.counid_name %}
-<dt><span>Страна производства</span></dt><dd>{{ product.counid_name }}</dd>
-{% endif %}
-{% if product.warranty %}
-<dt><span>Гарантия</span></dt><dd>{{ product.warranty }}</dd>
-{% endif %}
-
-{% if product.prom_transporter_type %}
-<dt><span>Тип транспортера</span></dt><dd>{{ product.prom_transporter_type }}</dd>
-{% endif %}
-{% if product.prom_shuttle_type %}
-<dt><span>Тип челнока</span></dt><dd>{{ product.prom_shuttle_type }}</dd>
-{% endif %}
-{% if product.prom_speed %}
-<dt><span>Максимальная скорость шитья</span></dt><dd>{{ product.prom_speed }}</dd>
-{% endif %}
-{% if product.prom_needle_type %}
-<dt><span>Размер и тип иглы</span></dt><dd>{{ product.prom_needle_type }}</dd>
-{% endif %}
-{% if product.prom_stitch_lenght %}
-<dt><span>Длина стежка</span></dt><dd>{{ product.prom_stitch_lenght }}</dd>
-{% endif %}
-{% if product.prom_foot_lift %}
-<dt><span>Высота подъема лапки</span></dt><dd>{{ product.prom_foot_lift }}</dd>
-{% endif %}
-{% if product.prom_fabric_type %}
-<dt><span>Тип материала</span></dt><dd>{{ product.prom_fabric_type }}</dd>
-{% endif %}
-{% if product.prom_oil_type %}
-<dt><span>Тип смазки</span></dt><dd>{{ product.prom_oil_type }}</dd>
-{% endif %}
-{% if product.weight %}
-<dt><span>Вес без упаковки</span></dt><dd>{{ product.weight }} кг</dd>
-{% endif %}
-{% if product.prom_weight %}
-<dt><span>Вес в упаковке</span></dt><dd>{{ product.prom_weight }} кг</dd>
-{% endif %}
-{% if product.prom_cutting %}
-<dt><span>Обрезка нити</span></dt><dd>{{ product.prom_cutting }}</dd>
-{% endif %}
-{% if product.prom_threads_num %}
-<dt><span>Количество нитей</span></dt><dd>{{ product.prom_threads_num }}</dd>
-{% endif %}
-{% if product.prom_power %}
-<dt><span>Мощность</span></dt><dd>{{ product.prom_power }}</dd>
-{% endif %}
-{% if product.prom_bhlenght %}
-<dt><span>Длина петли</span></dt><dd>{{ product.prom_bhlenght }}</dd>
-{% endif %}
-{% if product.prom_overstitch_lenght %}
-<dt><span>Максимальная длина обметочного стежка</span></dt><dd>{{ product.prom_overstitch_lenght }}</dd>
-{% endif %}
-{% if product.prom_overstitch_width %}
-<dt><span>Максимальная ширина обметочного стежка</span></dt><dd>{{ product.prom_overstitch_width }}</dd>
-{% endif %}
-{% if product.prom_stitch_width %}
-<dt><span>Ширина зигзагообразной строчки</span></dt><dd>{{ product.prom_stitch_width }}</dd>
-{% endif %}
-{% if product.prom_needle_width %}
-<dt><span>Расстояние между иглами</span></dt><dd>{{ product.prom_needle_width }}</dd>
-{% endif %}
-{% if product.prom_needle_num %}
-<dt><span>Количество игл</span></dt><dd>{{ product.prom_needle_num }}</dd>
-{% endif %}
-{% if product.prom_platform_type %}
-<dt><span>Тип платформы</span></dt><dd>{{ product.prom_platform_type }}</dd>
-{% endif %}
-{% if product.prom_button_diaouter %}
-<dt><span>Наружный диаметр пуговицы</span></dt><dd>{{ product.prom_button_diaouter }}</dd>
-{% endif %}
-{% if product.prom_button_diainner %}
-<dt><span>Внутренний диаметр пуговицы</span></dt><dd>{{ product.prom_button_diainner }}</dd>
-{% endif %}
-{% if product.prom_needle_height %}
-<dt><span>Ход игловодителя</span></dt><dd>{{ product.prom_needle_height }}</dd>
-{% endif %}
-{% if product.prom_stitch_type %}
-<dt><span>Тип стежка</span></dt><dd>{{ product.prom_stitch_type }}</dd>
-{% endif %}
-{% if product.prom_autothread %}
-<dt><span>Автоматический нитеотводчик</span></dt><dd>{{ product.prom_autothread }}</dd>
-{% endif %}
-</dl>
-
-{% if 'images/'|add:product.manufacturer.name|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists or product.stitches %}
-<h2>Строчки {{ product.title }}:</h2>
-
-<p>
-{% if 'images/'|add:product.manufacturer.name|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists %}
-<img src="{{ MEDIA_URL }}/images/{{ product.manufacturer.name }}/stitches/{{ product.code }}_stitches.jpg" alt="Строчки швейной машины {{ product.title }}">
-{% endif %}
-{% if product.stitches %}
-{{ product.stitches|safe }}
-{% endif %}
-</p>
-
-{% endif %}
-
-{% if product.spec %}
-<p itemprop="description">{{ product.spec|safe }}</p>
-{% endif %}
-
-{% if product.complect %}
-<h2>Комплектация</h2>
-<p>{{ product.complect|safe }}</p>
-{% endif %}
-
-</div>
-
-</div> <!--- /product-page --->
-{% endblock %}

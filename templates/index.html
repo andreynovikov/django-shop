@@ -4,6 +4,61 @@
 Дор Так - Швейные нитки оптом и в розницу
 {% endblock %}
 {% block content %}
-<img src="/static/images/jumbo.jpg" class="img-responsive" alt="Нитки Дор Так">
-<br clear="all">
+<img src="/static/images/jumbo.jpg" class="img-responsive" alt="Нитки Дор Так" style="margin-bottom: 20px">
+<div id="list_results">
+{% for product, cost, quantity in products %}
+{% include "_product_info.html" %}
+{% endfor %}
+</div>
+<div class="clear"></div>
+{% endblock %}
+{% block javascript %}
+<script src="{% static 'js/jquery.spinner.js' %}"></script>
+<script>
+$(document).ready(function () {
+
+    var CustomHandlers = function () {
+    };
+    CustomHandlers.prototype.addAjaxFlag = function (e, $el) {
+        $el.on("eldarion-ajax:modify-data", function (e, data) {
+            if (typeof data === "object") // using FormData
+                data.append("ajax", 1);
+            else if (data != null)
+                data = data + "&ajax=1";
+            else
+                data = "ajax=1";
+            return data;
+        });
+    };
+    CustomHandlers.prototype.setQuantityWarning = function (e, $el) {
+        $el.find(".quantity-container").addClass("has-warning");
+    };
+    CustomHandlers.prototype.setQuantity = function (e, $el, data) {
+        var $in = $el.find(".sw-basket-quantity");
+        $in.val(data["quantity"]);
+        var $cn = $el.find(".quantity-container");
+        $cn.removeClass("has-warning").addClass("has-success");
+        $in.on("blur", function () {
+            $cn.removeClass("has-success");
+        });
+    };
+
+    $(document).on("eldarion-ajax:begin", function(evt, $el) {
+        $("body").css("cursor", "progress");
+    });
+    $(document).on("eldarion-ajax:complete", function(evt, $el) {
+        $("body").css("cursor", "auto");
+        updateCartNotice();
+    });
+
+    $(document).on("eldarion-ajax:begin",   ".ajax", CustomHandlers.prototype.addAjaxFlag);
+    $(document).on("eldarion-ajax:begin",   ".update", CustomHandlers.prototype.setQuantityWarning);
+    $(document).on("eldarion-ajax:success", ".update", CustomHandlers.prototype.setQuantity);
+
+    $('[data-trigger="spinner"]').spinner('changed', function(e, newVal, oldVal) {
+        $(this).closest("form").submit();
+        ym(51806498, 'reachGoal', 'tobasket');
+    });
+});
+</script>
 {% endblock %}

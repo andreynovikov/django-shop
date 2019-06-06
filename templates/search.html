@@ -39,26 +39,17 @@
     <div class="sw-p-l-image text-center">{{if snippet}}<a href="{{:url}}"><img src="{{:snippet}}" alt="{{:name}}"/></a>{{/if}}</div>
     <div class="sw-p-l-name">
       <h3 class="sw-p-l-name-h"><a href="{{:url}}">{{:name}}</a></h3>
-      <div class="sw-p-l-brif">
-      {{:description}}
-      </div>
-    </div>
-    <div class="sw-p-l-prices" style="display:block; text-align:center; width:100%">
-      <span class="sw-p-l-price">{{:price}}</span>&nbsp;руб.
     </div>
     {{if available == true}}
-    <div class="product-nal-true" style="text-align:center; width:100%">В наличии</div>
+    <div class="sw-p-l-buy" style="display:block; text-align:center; width:100%">
+      <a href="/shop/basket/add/{{:id}}/"
+      class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{:id}}">Купить</a>
+    </div>
     {{else}}
     <div class="product-nal-false" style="text-align:center; width:100%">Закончились</div>
     {{/if}}
-    <div class="sw-p-l-buy" style="display:block; text-align:center; width:100%">
-      {{if available == true}}
-      <a href="/shop/basket/add/{{:id}}/"
-      class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{:id}}">Купить</a>
-      {{else}}
-      <a href="/shop/basket/add/{{:id}}/"
-      class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{:id}}">Сообщить о поступлении</a>
-      {{/if}}
+    <div class="sw-p-l-prices" style="display:block; text-align:center; width:100%">
+      <span class="sw-p-l-price">{{:price}}</span>&nbsp;руб.
     </div>
   </div>
 </div>
@@ -78,7 +69,7 @@
 <script>
 (function() {
   var yandexAPI = "https://catalogapi.site.yandex.net/v1.0";
-  var apiKey = "067e33cf-0ff4-4dbc-851b-0861a04c7af8";
+  var apiKey = "0d945168-72d3-4886-91c5-9451076077c7";
 
   var categoryFilter = 0;
 
@@ -144,7 +135,7 @@
 
     var request = {
       apikey: apiKey,
-      searchid: "2316299",
+      searchid: "2346710",
       text: text,
       page: page,
       perPage: perPage
@@ -200,7 +191,7 @@
         document["snippet"] = document["snippet"].replace(/^http:\/\//i, 'https://');
 	$documents.append(documentTemplate.render(document));
       });
-      $('.addProduct').each(addProduct);
+      //$('.addProduct').each(addProduct);
 
       $pages.twbsPagination($.extend({}, defaultOpts, {
         startPage: data.page + 1,

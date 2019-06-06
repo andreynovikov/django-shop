@@ -1,17 +1,35 @@
 from django.http import Http404, StreamingHttpResponse
 from django.conf import settings
+from django.db.models import Q
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
 from django.template import loader
 
-from shop.models import Category, Product, ProductRelation, ProductSet, Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
+from shop.models import Category, Product, Basket, ProductRelation, ProductSet, \
+    Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
 from shop.filters import get_product_filter
 
 
+def ensure_session(request):
+    if hasattr(request, 'session') and not request.session.session_key:
+        request.session.save()
+        request.session.modified = True
+
+
 def index(request):
+    ensure_session(request)
     site = Site.objects.get_current()
-    context = {}
+    products = None
+    instance = Category.objects.get(slug='nitki-dor-tak')
+    order = instance.product_order.split(',')
+    products = instance.products.filter(enabled=True).order_by(*order)
+    basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
+    quantities = {item.product: item.quantity for item in basket.items.all()}
+    products = map(lambda p:(p,basket.product_cost(p),quantities.get(p, 0)), products)
+    context = {
+        'products': products,
+    }
     return render(request, 'index.html', context)
 
 
@@ -161,6 +179,7 @@ def catalog(request):
 
 
 def category(request, path, instance):
+    ensure_session(request)
     products = None
     gtm_list = None
     if not instance:
@@ -183,6 +202,11 @@ def category(request, path, instance):
         fields = instance.filters.split(',')
         product_filter = get_product_filter(request.GET, queryset=products, fields=fields, request=request)
         products = product_filter.qs
+
+    basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
+    quantities = {item.product: item.quantity for item in basket.items.all()}
+
+    products = map(lambda p:(p,basket.product_cost(p),quantities.get(p, 0)), products)
 
     context = {
         'category': instance,
