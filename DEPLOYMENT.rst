@@ -114,6 +114,18 @@ Files are replicated by ``rsync`` executed by ``cron`` on hourly basis.
 Database replication
 ********************
 
+Configure PostgreSql on master:
+::
+    listen_addresses = '*'
+    wal_level = replica
+    max_wal_senders = 3
+    wal_keep_segments = 16
+    hot_standby = on
+
+Permit replication connection in ``/etc/postgresql/9.6/main/pg_hba.conf``:
+::
+    host     replication     replicator      193.19.119.252/32       md5
+
 ****************
 Failover actions
 ****************
