@@ -372,7 +372,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         ('Деньги', {
                 'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
                 'fields': (('cur_price', 'cur_code', 'price'), ('pct_discount', 'val_discount', 'max_discount', 'max_val_discount'),
-                           ('ws_cur_price', 'ws_cur_code', 'ws_price'), 'ws_pack_only', ('ws_pct_discount', 'ws_max_discount'),
+                           ('ws_cur_price', 'ws_cur_code', 'ws_price'), ('ws_pct_discount', 'ws_max_discount'), 'ws_pack_only',
                            ('sp_cur_price', 'sp_cur_code', 'sp_price'), 'consultant_delivery_price', 'forbid_price_import')
         }),
         ('Маркетинг', {
@@ -383,7 +383,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         spb_fieldset,
         ('Размеры', {
                 'classes': ('collapse', 'suit-tab', 'suit-tab-general'),
-                'fields': ('dimensions','measure','weight','prom_weight',)
+                'fields': ('dimensions','measure','weight','prom_weight','pack_factor')
         }),
         ('Вязальные машины', {
                 'classes': ('collapse', 'suit-tab', 'suit-tab-knittingmachines'),
