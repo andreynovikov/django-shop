@@ -6,6 +6,9 @@ from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
 from django.template import loader
 
+from haystack.forms import SearchForm
+from haystack.views import SearchView as BaseSearchView
+
 from shop.models import Category, Product, Basket, ProductRelation, ProductSet, \
     Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
 from shop.filters import get_product_filter
@@ -273,3 +276,25 @@ def review_product(request, code):
         'target': product,
         }
     return render(request, 'reviews/post.html', context)
+
+
+class SearchView(BaseSearchView):
+    def __init__(self, *args, **kwargs):
+        super(SearchView, self).__init__(form_class=SearchForm)
+
+    def get_queryset(self):
+        queryset = super(SearchView, self).get_queryset()
+        return queryset.filter(enabled=True)
+
+    def get_results(self):
+        """
+        Fetches the results via the form. Returns an empty list if there's no query to search with.
+        """
+        results = self.form.search()
+        basket, created = Basket.objects.get_or_create(session_id=self.request.session.session_key)
+        quantities = {item.product: item.quantity for item in basket.items.all()}
+        return list(map(lambda r:(r,basket.product_cost(r.object),quantities.get(r.object, 0)), results))
+
+    def __call__(self, request):
+        ensure_session(request)
+        return super(SearchView, self).__call__(request)

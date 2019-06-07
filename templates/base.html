@@ -21,11 +21,11 @@
 {% block css_wrapper %}
 <style type="text/css">
 .nav li             { font-weight:bold; }
-@media (min-width:768px){.dortak-search, .dortak-cart { margin-top:10px; }}
-@media (min-width:1200px){.dortak-search, .dortak-cart { margin-top:40px; }}
+@media (min-width:768px){.dortak-cart { margin-top:10px; }}
+@media (min-width:1200px){.dortak-cart { margin-top:40px; }}
 
 .sw-p-l               { float:none; display:inline-block; vertical-align:top; width:224px; margin-bottom:20px; }
-.sw-p-l .panel-body   { padding:2px 5px 5px 5px; text-align:center; }
+.sw-p-l .panel-body   { padding:2px 5px 5px 5px; }
 .sw-p-l-name          { position:relative;}
 .sw-p-l-name p        { font-size:0.95em; margin-bottom:8px; }
 h3.sw-p-l-name-h      { font-size:1em; margin-top:8px; margin-bottom:2px; font-weight:bold; }
@@ -97,6 +97,8 @@ h3.sw-p-l-name-h      { max-width:240px; }
 #breadcrumbs li{float:left;padding-left:10px;color:#887F77}
 #breadcrumbs li:first-child{padding-left:0}
 #breadcrumbs a{padding-right:17px;}
+#list_results .panel-body   { text-align:center; }
+#searchForm { margin-bottom: 20px }
 
 .ui-autocomplete { z-index: 2000 }
 .ui-autocomplete-loading { background: white url("{% static 'i/ui-anim_basic_16x16.gif' %}") right center no-repeat; }
@@ -135,12 +137,7 @@ h3.sw-p-l-name-h      { max-width:240px; }
 
 <div class="container">
 <div class="row">
-  <div class="col-sm-4 dortak-search">
-<!--<form id="topSearchForm" action="/search/" class="form-inline">
-<input type="search" name="text"  placeholder="Поиск товара" id="topSearchText" autocomplete="off" class="form-control input-sm" style="width: 70%; height:18pt"/>
-<input type="submit" value="Найти" class="btn btn-xs btn-warning" />
-</form>-->
-</div>
+  <div class="col-sm-4"></div>
   <div class="col-sm-3 text-center"><a href="/"><img src="{% static 'images/logo.svg' %}" alt="DorTak" width="300" class="img-responsive"></a></div>
   <div class="col-sm-5 text-right dortak-cart" id="cartholder">{% block cart_notice %}
       {% load render_view %}
@@ -170,12 +167,12 @@ h3.sw-p-l-name-h      { max-width:240px; }
         <li><a href="{% url 'django.contrib.flatpages.views.flatpage' url='where-to-buy/' %}">Где купить</a></li>
         <li><a href="{% url 'shop:user_orders' %}">Кабинет покупателя</a></li>
       </ul>{% block search_form %}
-<!--      <form class="navbar-form navbar-right" id="topSearchForm" action="/search/">
+      <form class="navbar-form navbar-right" id="topSearchForm" action="/search/">
         <div class="form-group">
-          <input type="search" name="text" class="form-control" placeholder="Поиск товара" id="topSearchText" autocomplete="off">
+          <input type="search" name="q" class="form-control" placeholder="Поиск товара" id="topSearchText" autocomplete="off">
         </div>
         <button type="submit" class="btn btn-default">Найти</button>
-      </form>-->{% endblock %}
+      </form>{% endblock %}
     </div><!-- /.navbar-collapse -->
   </div><!-- /.container-fluid -->
 </nav>
@@ -222,7 +219,7 @@ h3.sw-p-l-name-h      { max-width:240px; }
 <script>
   $(function() {
     var cache = {};
-    $("#topSearchText").autocomplete({
+    $("#xtopSearchText").autocomplete({
       minLength: 3,
       source: function(request, response) {
         var term = request.term;
