@@ -719,13 +719,16 @@ class Product(models.Model):
     def instock(self):
         if self.num >= 0:
             return self.num
+        self.num = self.get_stock()
+        super(Product, self).save()
 
+    def get_stock(self, which=settings.SHOP_STOCK_DB_COLUMN):
+        num = 0
         if self.constituents.count() == 0:
-            self.num = 0
-            if settings.SHOP_STOCK_DB_COLUMN == 'spb_num':
+            if which == 'spb_num':
                 suppliers = self.stock.filter(spb_count_in_stock=Supplier.COUNT_STOCK)
                 site_addon = '= 6'
-            elif settings.SHOP_STOCK_DB_COLUMN == 'ws_num':
+            elif which == 'ws_num':
                 suppliers = self.stock.filter(ws_count_in_stock=Supplier.COUNT_STOCK)
                 site_addon = '<> 6'
             else:
@@ -734,15 +737,15 @@ class Product(models.Model):
             if suppliers.exists():
                 for supplier in suppliers:
                     stock = Stock.objects.get(product=self, supplier=supplier)
-                    self.num = self.num + stock.quantity + stock.correction
+                    num = num + stock.quantity + stock.correction
 
             # reserve 2 items for retail
-            if self.num > 0 and settings.SHOP_STOCK_DB_COLUMN == 'ws_num':
-                self.num = self.num - 2
-                if self.num < 0:
-                    self.num = 0
+            if num > 0 and which == 'ws_num':
+                num = num - 2
+                if num < 0:
+                    num = 0
 
-            if self.num > 0:
+            if num > 0:
                 cursor = connection.cursor()
                 cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
                               INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
@@ -750,21 +753,19 @@ class Product(models.Model):
                               shop_orderitem.product_id""", (self.id,))
                 if cursor.rowcount:
                     row = cursor.fetchone()
-                    self.num = self.num - float(row[0])
+                    num = num - float(row[0])
                 cursor.close()
-                if self.num < 0:
-                    self.num = 0
+                if num < 0:
+                    num = 0
         else:
-            self.num = 32767
+            num = 32767
             for item in ProductSet.objects.filter(declaration=self):
-                num = item.constituent.instock
+                n = item.constituent.instock
                 if item.quantity > 1:
-                    num = int(num / item.quantity)
-                if num < self.num:
-                    self.num = num
-
-        super(Product, self).save()
-        return self.num
+                    n = int(n / item.quantity)
+                if n < num:
+                    num = n
+        return num
 
     @staticmethod
     def autocomplete_search_fields():
