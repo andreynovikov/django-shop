@@ -1171,14 +1171,16 @@ class Order(models.Model):
             if WHOLESALE:
                 pct_discount = 0
                 val_discount = item.discount
+                price = item.product.ws_price
             # иначе считаем отдельно скидку в процентах и копируем текущую рублёвую скидку товара
             else:
                 pct_discount = basket.product_pct_discount(item.product)
                 val_discount = item.product.val_discount
+                price = item.product.price
             # если это обычный товар, добавляем его в заказ
             if item.product.constituents.count() == 0:
                 order.items.create(product=item.product,
-                                   product_price=item.product.price.quantize(qnt, rounding=ROUND_UP),
+                                   product_price=price.quantize(qnt, rounding=ROUND_UP),
                                    pct_discount=pct_discount,
                                    val_discount=val_discount,
                                    quantity=item.quantity)
@@ -1187,22 +1189,30 @@ class Order(models.Model):
                 full_discount = val_discount
                 discount_remainder = full_discount
                 if not item.product.recalculate_price:
-                    full_price = item.product.price.quantize(qnt, rounding=ROUND_UP)
+                    if WHOLESALE:
+                        full_price = item.product.ws_price
+                    else:
+                        full_price = item.product.price
+                    full_price = full_price.quantize(qnt, rounding=ROUND_UP)
                     price_remainder = full_price
                 constituents = ProductSet.objects.filter(declaration=item.product)
                 last = len(constituents) - 1
                 for idx, itm in enumerate(constituents):
+                    if WHOLESALE:
+                        constituent_price = itm.constituent.ws_price
+                    else:
+                        constituent_price = itm.constituent.price
                     item_price = 0
                     item_total = 0
                     proportion = Decimal(itm.constituent.price / item.product.price)
                     # если комплект динамически пересчитывает цену, то указываем цену элемента
                     if item.product.recalculate_price:
-                        item_price = (itm.constituent.price * Decimal((100 - itm.discount) / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
+                        item_price = (constituent_price * Decimal((100 - itm.discount) / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
                         if itm.quantity > 1:
                             item_total = item_price * itm.quantity * item.quantity
                     # иначе разбиваем цену комплекта на части пропорционально ценам элементов
                     elif idx < last:
-                        item_price = (itm.constituent.price * proportion).quantize(qnt, rounding=ROUND_HALF_EVEN)
+                        item_price = (constituent_price * proportion).quantize(qnt, rounding=ROUND_HALF_EVEN)
                         price_remainder = price_remainder - item_price * itm.quantity
                         if itm.quantity > 1:
                             item_total = item_price * itm.quantity * item.quantity
