@@ -531,11 +531,12 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         for inline in self.get_inline_instances(request, obj):
             if request.user.is_superuser or not request.user.has_perm('shop.change_order_spb'):
                 yield inline.get_formset(request, obj), inline
- 
-    # сбрасываем кеш наличия при сохранении
+
+    # обновляем кеш наличия при сохранении
     def save_model(self, request, obj, form, change):
-        obj.num = -1
-        obj.spb_num = -1
+        obj.num = obj.get_stock('num')
+        obj.spb_num = obj.get_stock('spb_num')
+        obj.ws_num = obj.get_stock('ws_num')
         super().save_model(request, obj, form, change)
 
     def save_related(self, request, form, formsets, change):
