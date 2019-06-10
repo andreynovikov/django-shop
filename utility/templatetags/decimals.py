@@ -1,9 +1,44 @@
+import math
 import decimal
 
 from django import template
 
 
 register=template.Library()
+
+@register.filter
+def round_up(value, decimals=0):
+    """
+    Takes a number and rounds it up to a specified
+    number of digits.
+
+    Examples (assuming value="12.345"):
+    {% value|round_up %} -> 13
+    {% value|round_up:1 %} -> 12.35
+    {% value|round_up:-1 %} -> 20
+    """
+    multiplier = 10 ** decimals
+    if decimals > 0:
+        return math.ceil(value * multiplier) / multiplier
+    else:
+        return int(math.ceil(value * multiplier) / multiplier)
+
+@register.filter
+def round_down(value, decimals=0):
+    """
+    Takes a number and rounds it down to a specified
+    number of digits.
+
+    Examples (assuming value="12.345"):
+    {% value|round_up %} -> 12
+    {% value|round_up:1 %} -> 12.34
+    {% value|round_up:-1 %} -> 10
+    """
+    multiplier = 10 ** decimals
+    if decimals > 0:
+        return math.floor(value * multiplier) / multiplier
+    else:
+        return int(math.floor(value * multiplier) / multiplier)
 
 @register.filter
 def quantize(value, arg=None):
@@ -28,7 +63,8 @@ def quantize(value, arg=None):
     See the decimal module for more info:
     http://docs.python.org/library/decimal.html
     """
-    #num=decimal.Decimal(str(value))
+    if not isinstance(value, decimal.Decimal):
+        value = decimal.Decimal(str(value))
     options=["ru","rf","rd","rhd","rhe","rhu"]
     precision=None;rounding=None
     if arg:
@@ -44,5 +80,4 @@ def quantize(value, arg=None):
     elif rounding=="rhd": rounding=decimal.ROUND_HALF_DOWN
     elif rounding=="rhe": rounding=decimal.ROUND_HALF_EVEN
     elif rounding=="rhu": rounding=decimal.ROUND_HALF_UP
-    num=value.quantize(decimal.Decimal(precision),rounding=rounding)
-    return num
+    return value.quantize(decimal.Decimal(precision),rounding=rounding)
