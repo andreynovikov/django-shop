@@ -1141,13 +1141,9 @@ class OrderAdmin(LockableModelAdmin):
                             item.pk = None
                             item.order = order
                             item.save()
-                        messages = ["Позиции добавлены, закройте окно и обновите страницу заказа"]
-                        form = OrderCombineForm()
-                    """
-                    return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
-                                        '<script type="text/javascript">opener.dismissAddRelatedObjectPopup(window, "%s", "%s");</script>'
-                                        '</body></html>' % (id, order))
-                    """
+                        return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
+                                            '<script type="text/javascript">opener.dismissPopupAndReload(window);</script>'
+                                            '</body></html>')
 
                 except Exception as e:
                     form.errors['__all__'] = form.error_class([str(e)])
@@ -1183,13 +1179,10 @@ class OrderAdmin(LockableModelAdmin):
                             else:
                                 item.pct_discount = item.product.max_discount
                             item.save()
-                    messages = ["Скидка применена, закройте окно и обновите страницу заказа"]
-                    form = OrderDiscountForm()
-                    """
+
                     return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
-                                        '<script type="text/javascript">opener.dismissAddRelatedObjectPopup(window, "%s", "%s");</script>'
-                                        '</body></html>' % (id, order))
-                    """
+                                        '<script type="text/javascript">opener.dismissPopupAndReload(window);</script>'
+                                        '</body></html>')
 
                 except Exception as e:
                     form.errors['__all__'] = form.error_class([str(e)])

@@ -76,13 +76,6 @@
     </style>
 {% endblock %}
 
-{% block extrahead %}{{ block.super }}
-<script src="https://vk.com/js/api/openapi.js" async></script>
-<script>
-    window.vkAsyncInit = function() { VK.Retargeting.Init("VK-RTRG-335957-1YsJG"); };
-</script>
-{% endblock %}
-
 {% block admin_change_form_document_ready %}
 {{ block.super }}
 <script>
@@ -106,11 +99,6 @@
         $("select#id_status").on('change', function() {
             if (this.value == 1) {
                 alert("Не забудь проставить теги!");
-                VK.Retargeting.ProductEvent(3195, "purchase", {'products': [
-                {% for item in original.items.all %}
-                    {'id': '{{ item.product.id }}'}{% if not forloop.last %},{% endif %}
-                {% endfor %}
-                ]});
             }
         });
     });
@@ -137,6 +125,13 @@
             }
         });
     });
+
+    function dismissPopupAndReload(win) {
+        win.close();
+        window.location.reload(true);
+    }
+
+    window.dismissPopupAndReload = dismissPopupAndReload;
 
     function dismissYandexDeliveryPopup(win, deliveryId, ydOrderId) {
         document.getElementById("id_delivery").value = deliveryId;
