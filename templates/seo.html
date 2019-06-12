@@ -13,7 +13,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 {% block vk %}
 <script src="https://vk.com/js/api/openapi.js" async></script>
 <script>
+var vkInitHasBeenCalled = false;
 window.vkAsyncInit = function() {
+  if (vkInitHasBeenCalled)
+    return;
+  vkInitHasBeenCalled = true;
   VK.Retargeting.Init("VK-RTRG-335957-1YsJG");
   VK.Widgets.Group("vk_groups", {mode: 0, width: "234", height: "200"}, 38122758);
   {% block vk_retargeting_event %}
