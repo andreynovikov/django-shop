@@ -898,7 +898,7 @@ class OrderAdmin(LockableModelAdmin):
         if not orders:
             return '<span>нет</span>'
         else:
-            url = '%s?pk__in=%s&status=all' % (reverse("admin:shop_order_changelist"), ','.join(map(lambda x: str(x), list(orders))))
+            url = '%s?pk__in=%s,%s&status=all' % (reverse("admin:shop_order_changelist"), obj.id, ','.join(map(lambda x: str(x), list(orders))))
             return '<span><a href="%s">%s</a></span>' % (url, orders.count())
     link_to_orders.short_description = 'заказы'
 
