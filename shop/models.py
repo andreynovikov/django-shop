@@ -1027,22 +1027,23 @@ class Order(models.Model):
         (DELIVERY_PICKPOINT, 'PickPoint'),
         (DELIVERY_YANDEX, 'Яндекс.Доставка'),
     )
-    STATUS_NEW = 0
-    STATUS_ACCEPTED = 1
-    STATUS_COLLECTING = 4
-    STATUS_CANCELED = 8
-    STATUS_FROZEN = 16
-    STATUS_OTHERSHOP = 32
-    STATUS_COLLECTED = 64
-    STATUS_SERVICE = 128
-    STATUS_DELIVERED_SHOP = 256
-    STATUS_DELIVERED_STORE = 512
-    STATUS_SENT = 1024
-    STATUS_DELIVERED = 2048
-    STATUS_CONSULTATION = 4096
-    STATUS_PROBLEM = 8192
-    STATUS_DONE = 16384
-    STATUS_FINISHED = 0x0F000000
+    STATUS_NEW             = 0x0
+    STATUS_ACCEPTED        = 0x00000001
+    STATUS_COLLECTING      = 0x00000004
+    STATUS_CANCELED        = 0x00000008
+    STATUS_FROZEN          = 0x00000010
+    STATUS_OTHERSHOP       = 0x00000020
+    STATUS_COLLECTED       = 0x00000040
+    STATUS_SERVICE         = 0x00000080
+    STATUS_DELIVERED_SHOP  = 0x00000100
+    STATUS_DELIVERED_STORE = 0x00000200
+    STATUS_SENT            = 0x00000400
+    STATUS_DELIVERED       = 0x00000800
+    STATUS_CONSULTATION    = 0x00001000
+    STATUS_PROBLEM         = 0x00002000
+    STATUS_DONE            = 0x00004000
+    STATUS_UNCLAIMED       = 0x04000000
+    STATUS_FINISHED        = 0x0F000000
     STATUS_CHOICES = (
         (STATUS_NEW, 'новый заказ'),
         (STATUS_ACCEPTED, 'принят в работу'),
@@ -1058,6 +1059,7 @@ class Order(models.Model):
         (STATUS_DELIVERED_STORE, 'передан в службу доставки'),
         (STATUS_CONSULTATION, 'консультация'),
         (STATUS_PROBLEM, 'проблема'),
+        (STATUS_UNCLAIMED, 'не востребован'),
         (STATUS_DONE, 'завершён'),
         (STATUS_FINISHED, 'выполнен'),
     )
@@ -1076,6 +1078,7 @@ class Order(models.Model):
         STATUS_DELIVERED_STORE: 'gray',
         STATUS_CONSULTATION: 'darkgreen',
         STATUS_PROBLEM: 'black',
+        STATUS_UNCLAIMED: 'black',
         STATUS_DONE: 'gray',
         STATUS_FINISHED: 'gray',
     }
