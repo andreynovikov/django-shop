@@ -16,9 +16,13 @@ urlpatterns = [
     # ex: /search.xml
     url(r'^search\.xml$', views.search_xml, name='search_xml'),
     # ex: /products.xml
-    url(r'^products\.xml$', views.products, {'template': 'products.xml'}, name='products'),
+    url(r'^products\.xml$', views.products, {'templates': 'products', 'filters': 'yandex'}, name='products'),
+    # ex: /beru.xml
+    url(r'^beru\.xml$', views.products, {'templates': 'beru', 'filters': 'beru'}, name='beru'),
     # ex: /google.xml
-    url(r'^google\.xml$', views.products, {'template': 'google.xml'}, name='google'),
+    url(r'^google\.xml$', views.products, {'templates': 'google', 'filters': 'yandex'}, name='google'),
+    # ex: /cc-prym.xml
+    url(r'^cc-prym\.xml$', views.products, {'templates': 'prym', 'filters': 'prym'}, name='cc-prym'),
     # ex: /search/
     url(r'^search/$', views.search, name='search'),
     # ex: /catalog/
