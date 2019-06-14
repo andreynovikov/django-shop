@@ -4,6 +4,7 @@ import re
 from tidylib import tidy_fragment
 
 from django import forms
+from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.forms.models import model_to_dict
 #from suit.widgets import AutosizedTextarea
 from django.conf import settings
@@ -161,6 +162,13 @@ class ProductAdminForm(forms.ModelForm):
         if code and not reg.match(code):
             self.add_error('code', forms.ValidationError("Код товара содержит недопустимые символы"))
         return cleaned_data
+
+
+class ProductKindForm(forms.ModelForm):
+    class Meta:
+        widgets = {
+            'comparison': FilteredSelectMultiple('свойства товара', False)
+        }
 
 
 class OrderItemInlineAdminForm(forms.ModelForm):
