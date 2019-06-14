@@ -44,6 +44,9 @@ def products_stream(request, templates, filter_type):
         'variations__exact': '',
         'categories__in': root.get_descendants(include_self=True)
         }
+    if filter_type == 'yandex':
+        filters['market'] = True
+        filters['num__gt'] = 0
 
     products = Product.objects.filter(**filters).distinct()
     for product in products:
