@@ -59,8 +59,11 @@ def products_stream(request, templates, filter_type):
     if filter_type == 'yandex':
         filters['market'] = True
         filters['num__gt'] = 0
-
-    if templates == 'prym':
+    if filter_type == 'beru':
+        filters['beru'] = True
+    if filter_type == 'prym':
+        filters['market'] = True
+        filters['num__gt'] = 0
         try:
             filters['manufacturer'] = Manufacturer.objects.get(code='Prym')
         except Manufacturer.DoesNotExist:

@@ -1,0 +1,35 @@
+{% load static %}
+{% load site %}
+{% load decimals %}
+<offer id="{{ product.id }}" type="vendor.model">
+    <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=beru&amp;utm_term={{ product.id }}</url>
+    <price>{{ product.beru_price|quantize:"1" }}</price>
+    <currencyId>RUR</currencyId>
+{% for category in product.categories.all %}
+{% with top_category=category_map|get_dict_item:category.pk %}
+{% if top_category %}
+    <categoryId>{{ top_category }}</categoryId>
+{% endif %}
+{% endwith %}
+{% endfor %}
+    <name>{{ product.whatis }} {{ product.title }}</name>
+    <picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image_prefix }}.jpg</picture>
+    <vendor>{{ product.manufacturer.name }}</vendor>
+    <model>{{ product.title }}</model>
+    {% if product.whatis %}
+    <typePrefix>{{ product.whatis }}</typePrefix>
+    {% endif %}
+    {% if product.gtin %}
+    <barcode>{{ product.gtin }}</barcode>
+    {% endif %}
+    {% if product.partnumber %}
+    <vendorCode>{{ product.partnumber }}</vendorCode>
+    {% endif %}
+    <description>{{ product.whatis|safe }} {{ product.yandexdescr|safe }} {{ product.descr|striptags }}</description>
+    {% if product.manufacturer_warranty %}
+    <manufacturer_warranty>true</manufacturer_warranty>
+    {% endif %}
+    <shop-sku>{{ product.article }}</shop-sku>
+    <weight>1.001</weight>
+    <dimensions>65.55/50.7/20.0</dimensions>
+</offer>
