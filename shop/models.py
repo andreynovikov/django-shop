@@ -24,6 +24,8 @@ from tagging.fields import TagField
 
 from model_utils import FieldTracker
 
+from model_field_list import ModelFieldListField
+
 
 logger = logging.getLogger(__name__)
 
@@ -466,6 +468,8 @@ class Product(models.Model):
     max_val_discount = models.DecimalField('макс. скидка, руб', max_digits=10, decimal_places=2, null=True, blank=True)
     ws_max_discount = models.PositiveSmallIntegerField('опт. макс. скидка, %', default=10)
     image_prefix = models.CharField('префикс изображения', max_length=200)
+    kind = models.ManyToManyField('shop.ProductKind', verbose_name='тип', related_name='products',
+                                  related_query_name='product', blank=True)
     categories = TreeManyToManyField('shop.Category', related_name='products',
                                      related_query_name='product', verbose_name='категории', blank=True)
     tags = TagField('теги')
@@ -803,6 +807,18 @@ class ProductSet(models.Model):
     class Meta:
         verbose_name = 'комплект'
         verbose_name_plural = 'комплекты'
+
+
+class ProductKind(models.Model):
+    name = models.CharField('Название', max_length=100)
+    comparison = ModelFieldListField('критерии сравнения', source_model=Product, blank=True)
+
+    class Meta:
+        verbose_name = 'тип товара'
+        verbose_name_plural = 'типы товаров'
+
+    def __str__(self):
+        return self.name
 
 
 class Stock(models.Model):

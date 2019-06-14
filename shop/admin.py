@@ -43,11 +43,11 @@ from yandex_delivery.api import DeliveryClient
 from utility.admin import get_sites
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
     Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, Advert, \
-    Product, ProductRelation, ProductSet, SalesAction, Stock, Basket, BasketItem, Manager, \
-    Courier, Order, OrderItem
+    Product, ProductRelation, ProductSet, ProductKind, SalesAction, Stock, Basket, BasketItem, \
+    Manager, Courier, Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
     OrderDiscountForm, SendSmsForm, SelectTagForm, SelectSupplierForm, ProductAdminForm, \
-    OrderItemInlineAdminForm, StockInlineForm, YandexDeliveryForm
+    ProductKindForm, OrderItemInlineAdminForm, StockInlineForm, YandexDeliveryForm
 from shop.widgets import TagAutoComplete
 from shop.decorators import admin_changelist_link
 from shop.tasks import send_message
@@ -366,7 +366,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     fieldsets = (
         ('Основное', {
                 'classes': ('collapse', 'suit-tab', 'suit-tab-general'),
-                'fields': (('code', 'article', 'partnumber'),'title','runame','whatis','categories',('manufacturer','gtin'),
+                'fields': (('code', 'article', 'partnumber'),'title','runame','whatis','kind','categories',('manufacturer','gtin'),
                            ('country','developer_country'),'variations','spec','shortdescr','yandexdescr','descr','state','complect','dealertxt',)
         }),
         ('Деньги', {
@@ -585,6 +585,15 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
             **self.admin_site.each_context(request)
         }
         return TemplateResponse(request, 'admin/shop/product/stock_correction.html', context)
+
+
+@admin.register(ProductKind)
+class ProductKindAdmin(admin.ModelAdmin):
+    form = ProductKindForm
+    list_display = ['name']
+    list_display_links = ['name']
+    search_fields = ['name']
+    ordering = ['name']
 
 
 @admin.register(Manager)
