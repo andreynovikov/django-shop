@@ -258,7 +258,7 @@ def import1c(file):
                         product.sp_cur_code = currencies.get(pk=line['sp_cur_code'])
                     except ValueError:
                         errors.append("%s: цена СП" % line['article'])
-                if line['ws_cur_code'] is not '0':
+                if line['ws_cur_code'] is not '0' and not product.forbid_ws_price_import:
                     try:
                         ws_cur_price = float(line['ws_cur_price'].replace('\xA0',''))
                         if ws_cur_price > 0:
