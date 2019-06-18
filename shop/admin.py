@@ -376,7 +376,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         spb_fieldset,
         ('Размеры', {
                 'classes': ('collapse', 'suit-tab', 'suit-tab-general'),
-                'fields': ('dimensions','measure','weight','prom_weight',)
+                'fields': ('measure',('weight','prom_weight'),('length','width','height'))
         }),
         ('Вязальные машины', {
                 'classes': ('collapse', 'suit-tab', 'suit-tab-knittingmachines'),
