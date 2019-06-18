@@ -1,8 +1,9 @@
-from django.http import Http404
+from django.http import Http404, StreamingHttpResponse
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
+from django.template import loader
 
 from shop.models import Category, Product, ProductRelation, ProductSet, Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
 from shop.filters import get_product_filter
@@ -14,58 +15,53 @@ def index(request):
     return render(request, 'index.html', context)
 
 
-def search_xml(request):
-    root = Category.objects.get(slug=settings.MPTT_ROOT)
-    children = root.get_children()
-    categories = {}
-    for child in children:
-        categories[child.pk] = child.pk;
-        descendants = child.get_descendants()
-        for descendant in descendants:
-            categories[descendant.pk] = child.pk;
-    context = {
-        'root': root,
-        'children': children,
-        'category_map': categories,
-        'products': Product.objects.filter(enabled=True, variations__exact='', categories__in=root.get_descendants(include_self=True)).distinct()
-        }
-    return render(request, 'search.xml', context, content_type='text/xml; charset=utf-8')
-
-
 def search(request):
     context = {}
     return render(request, 'search.html', context)
 
 
-def products(request, template):
+def products_stream(request, templates, filter_type):
     root = Category.objects.get(slug=settings.MPTT_ROOT)
-    children = root.get_children().filter(ya_active=True)
+    children = root.get_children()
+    if filter_type == 'yandex':
+        children = children.filter(ya_active=True)
     categories = {}
     for child in children:
-        if not child.ya_active:
-            continue
         categories[child.pk] = child.pk;
         descendants = child.get_descendants()
         for descendant in descendants:
             categories[descendant.pk] = child.pk;
+    context = {
+        'children': children,
+        'category_map': categories
+    }
+    t = loader.get_template('xml/_{}_header.xml'.format(templates))
+    yield t.render(context, request)
+
+    t = loader.get_template('xml/_{}_product.xml'.format(templates))
+
     filters = {
         'enabled': True,
-        'market': True,
-        'num__gt': 0,
+        'price__gt': 0,
+        'variations__exact': '',
         'categories__in': root.get_descendants(include_self=True)
         }
-    if template == 'prym.xml':
-        try:
-            filters['manufacturer'] = Manufacturer.objects.get(code='Prym')
-        except Manufacturer.DoesNotExist:
-            pass
-    context = {
-        'root': root,
-        'children': children,
-        'category_map': categories,
-        'products': Product.objects.filter(**filters).distinct()
-        }
-    return render(request, template, context, content_type='text/xml; charset=utf-8')
+    if filter_type == 'yandex':
+        filters['market'] = True
+        filters['num__gt'] = 0
+
+    products = Product.objects.filter(**filters).distinct()
+    for product in products:
+        context['product'] = product
+        yield t.render(context, request)
+
+    context.pop('product', None)
+    t = loader.get_template('xml/_{}_footer.xml'.format(templates))
+    yield t.render(context, request)
+
+
+def products(request, templates, filters):
+    return StreamingHttpResponse(products_stream(request, templates, filters), content_type='text/xml; charset=utf-8')
 
 
 def sales_actions(request):

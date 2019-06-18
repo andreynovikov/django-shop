@@ -1,6 +1,8 @@
 import os
 import re
 from django import forms
+
+from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.forms.models import model_to_dict
 #from suit.widgets import AutosizedTextarea
 from django.conf import settings
@@ -125,6 +127,13 @@ class ProductAdminForm(forms.ModelForm):
             return super().clean()
         else:
             self.add_error('code', forms.ValidationError("Код товара содержит недопустимые символы"))
+
+
+class ProductKindForm(forms.ModelForm):
+    class Meta:
+        widgets = {
+            'comparison': FilteredSelectMultiple('свойства товара', False)
+        }
 
 
 class OrderItemInlineAdminForm(forms.ModelForm):

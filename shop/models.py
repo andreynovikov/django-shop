@@ -24,6 +24,8 @@ from tagging.fields import TagField
 
 from model_utils import FieldTracker
 
+from model_field_list import ModelFieldListField
+
 
 logger = logging.getLogger(__name__)
 
@@ -446,6 +448,7 @@ class Product(models.Model):
     sp_price =  models.DecimalField('цена СП, руб', max_digits=10, decimal_places=2, default=0)
     sp_cur_price=models.DecimalField('цена СП, вал', max_digits=10, decimal_places=2, default=0)
     sp_cur_code = models.ForeignKey(Currency, verbose_name='СП валюта', related_name="spprice", on_delete=models.PROTECT, default=643)
+    beru_price = models.DecimalField('цена Беру, руб', max_digits=10, decimal_places=2, default=0)
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
     ws_pct_discount = models.PositiveSmallIntegerField('опт. скидка, %', default=0)
@@ -454,12 +457,15 @@ class Product(models.Model):
     max_val_discount = models.DecimalField('макс. скидка, руб', max_digits=10, decimal_places=2, null=True, blank=True)
     ws_max_discount = models.PositiveSmallIntegerField('опт. макс. скидка, %', default=10)
     image_prefix = models.CharField('префикс изображения', max_length=200)
+    kind = models.ManyToManyField('shop.ProductKind', verbose_name='тип', related_name='products',
+                                  related_query_name='product', blank=True)
     categories = TreeManyToManyField('shop.Category', related_name='products',
                                      related_query_name='product', verbose_name='категории', blank=True)
     tags = TagField('теги')
     forbid_price_import = models.BooleanField('не импортировать цену', default=False)
     if settings.SHOP_PRICE_DB_COLUMN == 'price':
         forbid_spb_price_import = models.BooleanField('не импортировать цену СПб', default=False)
+    forbid_ws_price_import = models.BooleanField('не импортировать опт. цену', default=False)
     warranty = models.CharField('гарантия', max_length=20, blank=True)
     extended_warranty = models.CharField('расширенная гарантия', max_length=20, blank=True)
     manufacturer_warranty = models.BooleanField('официальная гарантия', default=False)
@@ -467,7 +473,6 @@ class Product(models.Model):
     swcode=models.CharField('Код товара в ШМ', max_length=20, blank=True)
     runame=models.CharField('Русское название', max_length=200, blank=True)
     sales_notes=models.CharField('Yandex.Market Sales Notes', max_length=50, blank=True)
-    available=models.CharField('Наличие', max_length=255, blank=True)
     bid=models.CharField('Ставка маркета для основной выдачи', max_length=10, blank=True)
     cbid=models.CharField('Ставка маркета для карточки модели', max_length=10, blank=True)
     show_on_sw=models.BooleanField('витрина', default=True, db_index=True, db_column=settings.SHOP_SHOW_DB_COLUMN)
@@ -477,10 +482,10 @@ class Product(models.Model):
     market=models.BooleanField('маркет', default=False, db_index=True, db_column=settings.SHOP_MARKET_DB_COLUMN)
     if settings.SHOP_MARKET_DB_COLUMN == 'market':
         spb_market=models.BooleanField('маркет СПб', default=False, db_index=True)
+    beru = models.BooleanField('выгружать в Беру', default=False, db_index=True)
     manufacturer=models.ForeignKey(Manufacturer, verbose_name="Производитель", on_delete=models.PROTECT, default=49)
     country=models.ForeignKey(Country, verbose_name="Страна-производитель", on_delete=models.PROTECT, default=1)
     developer_country=models.ForeignKey(Country, verbose_name="Страна-разработчик", on_delete=models.PROTECT, related_name="developed_product", default=1)
-    oprice=models.DecimalField('Цена розничная', max_digits=10, decimal_places=2, default=0)
     isnew=models.BooleanField('Новинка', default=False)
     deshevle=models.BooleanField('Нашли дешевле', default=False)
     recomended=models.BooleanField('Рекомендуем', default=False)
@@ -494,9 +499,11 @@ class Product(models.Model):
     order = models.IntegerField('позиция сортировки', default=0, db_index=True)
     opinion=models.CharField('Ссылка на обсуждение модели', max_length=255, blank=True)
     allow_reviews=models.BooleanField('Разрешить обзоры', default=True)
-    dimensions=models.CharField('Размеры', max_length=255, blank=True)
     measure=models.CharField('Единицы', max_length=10, blank=True)
     weight=models.FloatField('Вес нетто', default=0)
+    length = models.DecimalField('длина', max_digits=5, decimal_places=2, default=0)
+    width = models.DecimalField('ширина', max_digits=5, decimal_places=2, default=0)
+    height = models.DecimalField('высота', max_digits=5, decimal_places=2, default=0)
     delivery=models.SmallIntegerField('Доставка', default=0)
     consultant_delivery_price=models.DecimalField('Стоимость доставки с консультантом', max_digits=6, decimal_places=2, default=0)
     spec=models.TextField('Подробное описание', blank=True)
@@ -790,6 +797,18 @@ class ProductSet(models.Model):
     class Meta:
         verbose_name = 'комплект'
         verbose_name_plural = 'комплекты'
+
+
+class ProductKind(models.Model):
+    name = models.CharField('Название', max_length=100)
+    comparison = ModelFieldListField('критерии сравнения', source_model=Product, blank=True)
+
+    class Meta:
+        verbose_name = 'тип товара'
+        verbose_name_plural = 'типы товаров'
+
+    def __str__(self):
+        return self.name
 
 
 class Stock(models.Model):

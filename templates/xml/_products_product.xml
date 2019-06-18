@@ -1,37 +1,14 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE yml_catalog SYSTEM "shops.dtd">
-<yml_catalog date="{% now 'Y-m-d H:i' %}" >
-
+{% load static %}
 {% load site %}
-<shop>
-<name>{{ shop_info.title }}</name>
-<company>{{ shop_info.description }}</company>
-<url>{% site_url_prefix %}/</url>
-
-<currencies>
-<currency  id="RUR" rate="1"/>
-<currency  id="USD" rate="CBRF"/>
-</currencies>
-
-{% load mptt_tags %}
-<categories>
-{% for node,structure in root.get_descendants|tree_info %}{% if node.id != 177 %}
-    <category id="{{ node.id }}">{{ node.name }}</category>
-{% endif %}{% endfor %}
-</categories>
-
-<deliveryIncluded/>
-
-<offers>
-{% for product in products %}
+{% load decimals %}
 <offer id="{{ product.id }}" type="vendor.model" {% if product.instock > 0 %}available="true"{% else %}available="false"{% endif %}>
     <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=yamarket&amp;utm_term={{ product.id }}</url>
-    <price>{{ product.cost }}</price>
+    <price>{{ product.cost|quantize:"1" }}</price>
     <currencyId>RUR</currencyId>
 {% for category in product.categories.all %}
     <categoryId>{{ category.id }}</categoryId>
 {% endfor %}
-    <picture>{% site_url_prefix %}{{ MEDIA_URL }}{{ product.image_prefix }}.jpg</picture>
+    <picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image_prefix }}.jpg</picture>
     <vendor>{{ product.manufacturer.name }}</vendor>
     <model>{{ product.title }}</model>
     <description>{{ product.whatis|safe }} {{ product.yandexdescr|safe }} {{ product.descr|striptags }}</description>
@@ -41,8 +18,3 @@
     <sales_notes>Оплата при получении или картой на сайте</sales_notes>
     {% endif %}
 </offer>
-{% endfor %}
-</offers>
-
-</shop>
-</yml_catalog>
