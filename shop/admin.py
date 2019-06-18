@@ -377,7 +377,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         }),
         ('Маркетинг', {
                 'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
-                'fields': (('enabled','available','show_on_sw','firstpage'),('market', 'beru'),('isnew','recomended','gift'),'credit_allowed','deshevle',
+                'fields': (('enabled','show_on_sw','firstpage'),('market', 'beru'),('isnew','recomended','gift'),'credit_allowed','deshevle',
                            'sales_notes','present','delivery','sales_actions','tags')
         }),
         spb_fieldset,
@@ -461,7 +461,6 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
                 'fields': (
                     'order',
                     'swcode',
-                    'oprice',
                     'coupon',
                     'not_for_sale',
                     'absent',
