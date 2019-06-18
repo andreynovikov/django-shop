@@ -44,7 +44,7 @@ def products_stream(request, templates, filter_type):
         'variations__exact': '',
         'categories__in': root.get_descendants(include_self=True)
         }
-        
+
     products = Product.objects.filter(**filters).distinct()
     for product in products:
         context['product'] = product
