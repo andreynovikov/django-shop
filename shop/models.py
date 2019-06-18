@@ -445,6 +445,7 @@ class Product(models.Model):
     forbid_price_import = models.BooleanField('не импортировать цену', default=False)
     if settings.SHOP_PRICE_DB_COLUMN == 'price':
         forbid_spb_price_import = models.BooleanField('не импортировать цену СПб', default=False)
+    forbid_ws_price_import = models.BooleanField('не импортировать опт. цену', default=False)
     warranty = models.CharField('гарантия', max_length=20, blank=True)
     extended_warranty = models.CharField('расширенная гарантия', max_length=20, blank=True)
     manufacturer_warranty = models.BooleanField('официальная гарантия', default=False)
