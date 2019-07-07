@@ -47,6 +47,11 @@ function loadExtNotice(id) {
     $("#cart_extnotice").load("/shop/basket/extnotice/?product=" + id);
 }
 
+function reloadCompareNotice() {
+    $("#compare_notice").load("/compare/notice/", function() {
+    });
+}
+
 function addProduct() {
     var productIDSplitter = (this.id).split("_");
     var productID = productIDSplitter[1];
@@ -70,6 +75,29 @@ function addProduct() {
         });
         return false;
     });
+}
+
+function compareProduct() {
+    var link = this;
+    var id = $(link).data("id");
+    var comparisonLink = $(link).data("comparison-link");
+    if (comparisonLink) {
+        $.ajax({
+            type: "GET",
+            url: link.href,
+            success: function(theResponse) {
+                link.href = comparisonLink;
+                link.innerHTML = "Сравнить";
+                $(link).removeData("comparison-link");
+                $(link).removeAttr("data-comparison-link");
+                reloadCompareNotice();
+            },
+            error: function(theResponse) {
+            }
+        });
+        return false;
+    }
+    return true;
 }
 
 $(document).ready(function() {
@@ -123,6 +151,7 @@ $(document).ready(function() {
     });
 
     $('.addProduct').each(addProduct);
+    $('.compareProduct').click(compareProduct);
 });
 
 function delayShowPasswordReset(what) {

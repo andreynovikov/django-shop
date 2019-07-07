@@ -27,6 +27,14 @@ urlpatterns = [
     url(r'^catalog/(?P<path>.*)', mptt_urls.view(model='shop.models.Category', view='sewingworld.views.category', slug_field='slug', root=settings.MPTT_ROOT), name='category'),
     # ex: /products/JanomeEQ60.html
     url(r'^products/(?P<code>[-\.\w]+)\.html$', views.product, name='product'),
+    # ex: /products/JanomeEQ60/compare/
+    url(r'^products/(?P<code>[-\.\w]+)/compare/$', views.compare_product, name='compare_product'),
+    # ex: /products/JanomeEQ60/uncompare/
+    url(r'^products/(?P<code>[-\.\w]+)/uncompare/$', views.uncompare_product, name='uncompare_product'),
+    # ex: /compare/notice/
+    url(r'^compare/notice/$', views.compare_notice, name='compare_notice'),
+    # ex: /compare/1/
+    url(r'^compare/(?P<kind>\d+)/$', views.compare_products, name='compare_products'),
     # /pages/*
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*
