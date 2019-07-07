@@ -2,6 +2,7 @@ from django.conf import settings
 from django import template
 from django.db.models.query import QuerySet
 from django.contrib.sites.models import Site
+from django.utils.text import capfirst
 
 from shop.models import Category
 
@@ -44,3 +45,33 @@ def get_dict_item(dictionary, key):
 @register.filter
 def get_list_item(dictionary, idx):
     return dictionary[idx]
+
+
+@register.filter
+def get_field(object, key):
+    return getattr(object, key)
+
+
+@register.filter
+def get_field_name(object, key):
+    field = object._meta.get_field(key)
+    return capfirst(field.verbose_name) if hasattr(field, 'verbose_name') else capfirst(field.name)
+
+
+@register.filter
+def parse_field_name(name):
+    parts = name.split(',')
+    if len(parts) == 1:
+        return parts[0], ''
+    return parts
+
+
+@register.filter
+def prettify(value):
+    if isinstance(value, float):
+        if value % 1 == 0:
+            return int(value)
+        return value
+    if isinstance(value, str):
+        return value.strip()
+    return value
