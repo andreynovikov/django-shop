@@ -1,13 +1,14 @@
-from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse
+from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse, JsonResponse
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 from django.contrib.auth.decorators import login_required
 from django.contrib.sites.models import Site
 from django.template import loader
+from django.utils.text import capfirst
 
-from shop.models import Category, Product, ProductRelation, ProductSet, Manufacturer, Advert, SalesAction, City, \
-    Store, ServiceCenter, Stock
+from shop.models import Category, Product, ProductRelation, ProductSet, ProductKind, Manufacturer, \
+    Advert, SalesAction, City, Store, ServiceCenter, Stock
 from shop.filters import get_product_filter
 
 
@@ -242,6 +243,8 @@ def product(request, code):
     else:
         constituents = None
 
+    comparison_list = list(map(int, request.session.get('comparison_list', '0').split(',')))
+
     context = {
         'category': category,
         'product': product,
@@ -249,7 +252,8 @@ def product(request, code):
         'accessories': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_ACCESSORY),
         'similar': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR),
         'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT),
-        'utm_source': request.GET.get('utm_source', None)
+        'utm_source': request.GET.get('utm_source', None),
+        'is_compared': product.id in comparison_list
         }
     return render(request, 'product.html', context)
 
@@ -314,12 +318,85 @@ def product_stock(request, code):
     return response
 
 
+def compare_product(request, code):
+    if not request.is_ajax():
+        return HttpResponseForbidden()
+
+    product = get_object_or_404(Product, code=code)
+    if product.categories.exists() and not product.breadcrumbs:
+        raise Http404("Product does not exist")
+
+    comparison_list = request.session.get('comparison_list', None)
+    if comparison_list:
+        product_ids = list(map(int, comparison_list.split(',')))
+        if product.id not in product_ids:
+            product_ids.append(product.id)
+        request.session['comparison_list'] = ','.join(map(str, product_ids))
+    else:
+        request.session['comparison_list'] = str(product.id)
+
+    return JsonResponse({})
+
+
+def uncompare_product(request, code):
+    if not request.is_ajax():
+        return HttpResponseForbidden()
+
+    product = get_object_or_404(Product, code=code)
+    if product.categories.exists() and not product.breadcrumbs:
+        raise Http404("Product does not exist")
+
+    comparison_list = request.session.get('comparison_list', None)
+    if comparison_list:
+        product_ids = list(filter(lambda id: id != product.id, map(int, comparison_list.split(','))))
+        if product_ids:
+            request.session['comparison_list'] = ','.join(map(str, product_ids))
+        else:
+            del request.session['comparison_list']
+
+    return JsonResponse({})
+
+
+def compare_products(request, kind):
+    kind = get_object_or_404(ProductKind, pk=kind)
+    product_ids = list(map(int, request.session.get('comparison_list', '0').split(',')))
+
+    kinds = ProductKind.objects.filter(product__in=product_ids).distinct()
+
+    field_map = {}
+    for field_id in kind.comparison:
+        field = Product._meta.get_field(field_id)
+        field_map[field_id] = capfirst(field.verbose_name) if hasattr(field, 'verbose_name') else capfirst(field.name)
+
+    context = {
+        'kind': kind,
+        'kinds': kinds,
+        'products': Product.objects.filter(pk__in=product_ids, kind=kind),
+        'field_map': field_map
+        }
+    return render(request, 'compare.html', context)
+
+
+def compare_notice(request):
+    comparison_list = request.session.get('comparison_list', None)
+    count = 0
+    kind = None
+    if comparison_list:
+        product_ids = list(map(int, comparison_list.split(',')))
+        count = len(product_ids)
+        kind = ProductKind.objects.filter(product__exact=product_ids[-1]).first()
+    context = {
+        'count': count,
+        'kind': kind
+    }
+    return render(request, 'compare_notice.html', context)
+
+
 @login_required
 def review_product(request, code):
     product = get_object_or_404(Product, code=code)
     if product.categories.exists() and not product.breadcrumbs:
         raise Http404("Product does not exist")
-
     context = {
         'target': product,
         }

@@ -5,6 +5,7 @@
 {% block meta-description %}Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары{% endblock %}
 
 {% block css_wrapper %}
+<link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap_glyphicons.css' %}"/>
 <style>
   .ui-autocomplete { z-index: 2000 }
   .ui-autocomplete-loading { background: white url("{% static '/i/ui-anim_basic_16x16.gif' %}") right center no-repeat; }
@@ -68,13 +69,17 @@
         <li role="separator" class="divider"></li>
         <li><a href="{% url 'shop:logout' %}?next={% firstof request.get_full_path|urlencode '/' %}">Выйти</a></li>
         {% else %}
-        <li><a href="{% url 'shop:login' %}?next={% firstof request.get_full_path|urlencode '/' %}">Войти</li>
+        <li><a href="{% url 'shop:login' %}?next={% firstof request.get_full_path|urlencode '/' %}">Войти</a></li>
         {% endif %}
     </ul>
 </div>
 {% block cart_notice %}
 {% load render_view %}
 <div class="text-right" id="cartholder"><span id="cart_notice">{% view "shop.views.view_basket_notice" %}</span></div>
+{% endblock %}
+{% block compare_notice %}
+{% load render_view %}
+<div id="compare-block" class="text-right"><span id="compare_notice">{% view "sewingworld.views.compare_notice" %}</span></div>
 {% endblock %}
 {% get_unpaid_order as order %}
 {% if order %}

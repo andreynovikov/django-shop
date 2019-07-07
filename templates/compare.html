@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% load staticfiles %}
+{% load decimals %}
+{% load shop_filters %}
+{% load site %}
+{% block css %}
+<style>
+    #comparison { margin: 0px auto; }
+    #comparison .sw-pc-f th { padding: 6px 3px; border-top: 1px solid #eee; font-weight: normal; font-size: 80%; color: #666; text-transform: uppercase; }
+    #comparison .sw-pc-ph td { width: 300px; min-width: 210px; padding: 3px 3px 8px; text-align: left; }
+    #comparison .sw-pc-pr td { width: 300px; min-width: 210px; padding: 0px 3px 10px; text-align: left; vertical-align: top; }
+    #comparison .sw-p-l-name { min-height: 32px; }
+    #comparison .differ { background-color: #fffbe6; }
+    #comparison .sw-pc-f th img { vertical-align: text-bottom; }
+</style>
+{% endblock %}
+{% block title %}Сравнение товаров{% endblock %}
+{% block compare_notice %}
+{% endblock %}
+{% block content %}
+<h1>Сравнение товаров</h1>
+<h2>
+{% if kinds|length > 1 %}
+    {% for k in kinds %}
+    <a class="btn btn-sm {% if kind == k %}btn-warning{% else %}btn-default{% endif %}" href="{% url 'compare_products' k.pk %}">{{ k.name }}</a>
+    {% endfor %}
+{% else %}
+{{ kind.name }}
+{% endif %}
+</h2>
+<div id="comparison_selector">
+<a class="btn btn-default btn-xs" id="diff_link">различающиеся характеристики</a> <a class="btn btn-default btn-xs" id="full_link">все характеристики</a>
+</div>
+{% if products|length == 1 %}
+<h3>Добавьте ещё как минимум один товар в сравнение</h3>
+{% endif %}
+<table id="comparison">
+    <tr class="sw-pc-ph">
+    {% for product in products %}
+    <td>
+        <div style="position: relative" class="mfp-close-btn-in"><div style="position: absolute; top: 10px; right: 10px; width: 16px">
+            <button type="button" class="uncompareProduct close" data-href="{% url 'uncompare_product' product.code %}" title="Удалить из сравнения" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div></div>
+<div class="sw-p-l-image text-center">
+        <a href="{% url 'product' product.code %}">
+        {% if product.image_prefix|add:'.s.jpg'|file_exists %}
+        <img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" /><br/>
+        {% endif %}
+        </a>
+</div>
+<div class="sw-p-l-name">
+<div class="sw-p-l-action">
+{% if product.isnew %}
+<span class="label sw-new">Новинка</span>
+{% endif %}
+{% if product.recomended %}
+<span class="label sw-recomended">Рекомендуем</span>
+{% endif %}
+{% for action in product.get_sales_actions %}
+{% if action.notice %}
+<span class="label sw-action">{{ action.notice }}</span>
+{% endif %}
+{% endfor %}
+</div>
+<h3 class="sw-p-l-name-h"><a href="{% url 'product' product.code %}">{{ product.title }}</a></h3>
+</div>
+    </td>
+    {% endfor %}
+    </tr>
+    <tr class="sw-pc-ph">
+    {% for product in products %}
+    <td>
+{% if product.price > 0 %}
+<div class="sw-p-l-prices">
+{% if product.discount > 0 %}
+<div><s class="sw-p-l-oldprice">{{ product.price|quantize:"1" }}</s>&nbsp;руб.</div>
+{% endif %}
+<div><span class="sw-p-l-price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.</div>
+</div>
+<div class="sw-p-l-buy">
+{% if product.instock > 0 %}
+<a href="{% url 'shop:add' product.id %}"
+class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}" onclick="var VK_add_to_cart_Params = {'products': [{'id': '{{ product.id }}'}]};
+    VK.Retargeting.ProductEvent(3195, 'add_to_cart', VK_add_to_cart_Params); dataLayer.push({'event': 'addToCart','ecommerce': {'currencyCode': 'RUB','add': {'products': [{'name':'{{ product.partnumber}} {{ product.title }}','id':'{{ product.id }}','category':'{{ category.name }}','brand':'{{ product.manufacturer.code }}','price':'{{ product.cost|quantize:"1" }}','quantity': 1}]}}});">Купить</a>
+{% endif %}
+</div>
+{% endif %}
+    </td>
+    {% endfor %}
+    </tr>
+{% for field in kind.comparison %}
+    <tr class="sw-pc-f">
+    {% with field_name=field_map|get_dict_item:field|parse_field_name %}
+    <th colspan="{{ products|length }}">{{ field_name.0 }}{% include '_field_help.html' %}</th>
+    </tr><tr class="sw-pc-pr">
+    {% for product in products %}
+        {% with field_value=product|get_field:field %}
+        <td>{{ field_value|prettify }}{{ field_name.1 }}</td>
+        {% endwith %}
+    {% endfor %}
+    {% endwith %}
+    </tr>
+{% endfor %}
+</table>
+{% endblock content %}
+{% block javascript %}
+<script>
+  $(function() {
+    function prepareComparison(full) {
+      var table = document.getElementById("comparison");
+      for (var i = 2, row, header; header = table.rows[i], row = table.rows[i+1]; i+=2) {
+        var differ = false, value = "";
+        for (var j = 0, col; col = row.cells[j]; j++) {
+          var val = col.textContent;
+          if (value != "" && val != value)
+            differ = true;
+          value = val;
+        }
+        if (differ) {
+          if (full) {
+            header.classList.add("differ");
+            row.classList.add("differ");
+          } else {
+            header.classList.remove("differ");
+            row.classList.remove("differ");
+          }
+        } else {
+          if (!full || value == "") {
+            header.style.display = 'none';
+            row.style.display = 'none';
+          } else {
+            header.style.display = '';
+            row.style.display = '';
+          }
+        }
+      }
+      var fullLink = document.getElementById("full_link");
+      var diffLink = document.getElementById("diff_link");
+      if (full) {
+        fullLink.classList.remove("btn-default")
+        fullLink.classList.add("btn-info");
+        diffLink.classList.remove("btn-info")
+        diffLink.classList.add("btn-default");
+      } else {
+        fullLink.classList.remove("btn-info")
+        fullLink.classList.add("btn-default");
+        diffLink.classList.remove("btn-default")
+        diffLink.classList.add("btn-info");
+      }
+    }
+
+    prepareComparison(false);
+
+    $("#diff_link").on("click", function() {
+      prepareComparison(false);
+    });
+
+    $("#full_link").on("click", function() {
+      prepareComparison(true);
+    });
+
+  function uncompareProduct() {
+      var $btn = $(this);
+      $.ajax({
+        type: "GET",
+        url: $btn.data("href"),
+        success: function(theResponse) {
+          var $td = $btn.closest("td");
+          var col = $td.index();
+          var $table = $td.closest("table");
+          var cols = -1;
+          $table.find('tr:first').children().each(function(){
+            cols++;
+          });
+          $table.find("tr").each(function() {
+            var $tr = $(this);
+            $tr.find("th").attr('colspan', cols);
+            $tr.find("td").eq(col).fadeOut("fast", function() { $(this).remove(); });
+          });
+          if (cols == 0) {
+            $table.fadeOut("fast", function() { $table.remove(); });
+            $("#comparison_selector").fadeOut("fast", function() { $(this).remove(); });
+          }
+        },
+        error: function(theResponse) {
+        }
+      });
+      return false;
+    }
+
+    $('.uncompareProduct').click(uncompareProduct);
+  });
+</script>
+{% endblock javascript %}
