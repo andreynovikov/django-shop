@@ -2,6 +2,7 @@ from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse, J
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
+from django.contrib.auth.decorators import login_required
 from django.contrib.sites.models import Site
 from django.template import loader
 from django.utils.text import capfirst
