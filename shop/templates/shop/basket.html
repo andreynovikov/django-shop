@@ -314,3 +314,10 @@
         </div>
     </noscript>
 {% endblock %}
+{% block vk_retargeting_event %}
+  VK.Retargeting.ProductEvent(3195, "init_checkout", {'products': [
+{% for item in basket.items.all %}
+    {'id': '{{ item.product.id }}'}{% if not forloop.last %},{% endif %}
+{% endfor %}
+  ]});
+{% endblock %}

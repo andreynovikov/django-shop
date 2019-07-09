@@ -728,6 +728,7 @@ class Product(models.Model):
             return self.num
         self.num = self.get_stock()
         super(Product, self).save()
+        return self.num
 
     def get_stock(self, which=settings.SHOP_STOCK_DB_COLUMN):
         num = 0

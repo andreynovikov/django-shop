@@ -95,7 +95,7 @@ class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{
     </tr><tr class="sw-pc-pr">
     {% for product in products %}
         {% with field_value=product|get_field:field %}
-        <td>{{ field_value|prettify }}{{ field_name.1 }}</td>
+        <td>{% if field_value %}{{ field_value|prettify|safe }}{{ field_name.1 }}{% endif %}</td>
         {% endwith %}
     {% endfor %}
     {% endwith %}
@@ -109,12 +109,13 @@ class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{
     function prepareComparison(full) {
       var table = document.getElementById("comparison");
       for (var i = 2, row, header; header = table.rows[i], row = table.rows[i+1]; i+=2) {
-        var differ = false, value = "";
-        for (var j = 0, col; col = row.cells[j]; j++) {
+        var differ = false, value = row.cells[0].textContent;
+        for (var j = 1, col; col = row.cells[j]; j++) {
           var val = col.textContent;
-          if (value != "" && val != value)
+          if (val != value) {
             differ = true;
-          value = val;
+            break;
+          }
         }
         if (differ) {
           if (full) {

@@ -20,6 +20,7 @@
 }
 .product-nal-store-link {
     display: block;
+    text-decoration:underline;
 }
 ul.product-city-list, ul.product-city-list ul {
     margin: 0; padding: 0; list-style: none;
@@ -161,15 +162,15 @@ gtm_products = [];
 <a class="product-nal-store-link opener-ajax" href="{% url 'product_stock' product.code %}" rel="nofollow">Проверить наличие в розничных магазинах</a>
 {% endif %}
 </p>
+{% for action in product.get_sales_actions %}
+<p class="product-salesnotes">{% render_as_template action.brief %}</p>
+{% endfor %}
 {% if product.state %}
 <p>{{ product.state }}</p>
 {% endif %}
 {% if product.sales_notes %}
 <p class="product-salesnotes">{{ product.sales_notes }}</p>
 {% endif %}
-{% for action in product.get_sales_actions %}
-<p class="product-salesnotes">{% render_as_template action.brief %}</p>
-{% endfor %}
 {% if product.utilisation %}
 <p class="product-salesnotes">Участник акции <a href="/actions/utilisation.html">"Утилизация"</a>! Скидка по акции <span class="price">{{ maxdiscount }}%</span>!</p>
 {% endif %}
