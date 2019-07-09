@@ -534,9 +534,14 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
 
     # обновляем кеш наличия при сохранении
     def save_model(self, request, obj, form, change):
-        obj.num = obj.get_stock('num')
-        obj.spb_num = obj.get_stock('spb_num')
-        obj.ws_num = obj.get_stock('ws_num')
+        if change:
+            obj.num = obj.get_stock('num')
+            obj.spb_num = obj.get_stock('spb_num')
+            obj.ws_num = obj.get_stock('ws_num')
+        else:
+            obj.num = -1
+            obj.spb_num = -1
+            obj.ws_num = -1
         super().save_model(request, obj, form, change)
 
     def save_related(self, request, form, formsets, change):
