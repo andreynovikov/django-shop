@@ -33,8 +33,12 @@ urlpatterns = [
     url(r'^products/(?P<code>[-\.\w]+)/uncompare/$', views.uncompare_product, name='uncompare_product'),
     # ex: /compare/notice/
     url(r'^compare/notice/$', views.compare_notice, name='compare_notice'),
-    # ex: /compare/1/
-    url(r'^compare/(?P<kind>\d+)/$', views.compare_products, name='compare_products'),
+    # ex: /compare/kind/1/
+    url(r'^compare/kind/(?P<kind>\d+)/$', views.compare_products, name='compare_kind'),
+    # ex: /compare/1,2,3/
+    url(r'^compare/(?P<compare>[\d,]+)/$', views.compare_products, name='compare_products'),
+    # ex: /compare/
+    url(r'^compare/$', views.compare_products, name='compare'),
     # /pages/*
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*

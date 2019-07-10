@@ -22,7 +22,7 @@
 <h2>
 {% if kinds|length > 1 %}
     {% for k in kinds %}
-    <a class="btn btn-sm {% if kind == k %}btn-warning{% else %}btn-default{% endif %}" href="{% url 'compare_products' k.pk %}">{{ k.name }}</a>
+    <a class="btn btn-sm {% if kind == k %}btn-warning{% else %}btn-default{% endif %}" href="{% url 'compare_kind' k.pk %}">{{ k.name }}</a>
     {% endfor %}
 {% else %}
 {{ kind.name }}
@@ -39,7 +39,8 @@
     {% for product in products %}
     <td>
         <div style="position: relative" class="mfp-close-btn-in"><div style="position: absolute; top: 10px; right: 10px; width: 16px">
-            <button type="button" class="uncompareProduct close" data-href="{% url 'uncompare_product' product.code %}" title="Удалить из сравнения" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <button type="button" class="uncompareProduct close" data-id="{{ product.id }}" data-href="{% url 'uncompare_product' product.code %}"
+                        title="Удалить из сравнения" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         </div></div>
 <div class="sw-p-l-image text-center">
         <a href="{% url 'product' product.code %}">
@@ -106,7 +107,10 @@ class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{
 {% block javascript %}
 <script>
   $(function() {
+    var is_full = false;
+
     function prepareComparison(full) {
+      is_full = full;
       var table = document.getElementById("comparison");
       for (var i = 2, row, header; header = table.rows[i], row = table.rows[i+1]; i+=2) {
         var differ = false, value = row.cells[0].textContent;
@@ -150,7 +154,7 @@ class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{
       }
     }
 
-    prepareComparison(false);
+    prepareComparison(is_full);
 
     $("#diff_link").on("click", function() {
       prepareComparison(false);
@@ -159,6 +163,20 @@ class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{
     $("#full_link").on("click", function() {
       prepareComparison(true);
     });
+
+  function updateLocation(id) {
+    var href = window.location.href;
+    var reg = new RegExp("\/([0-9,]+)\/$");
+    var string = reg.exec(href);
+    if (string) {
+      var ureg = new RegExp(id + ',?');
+      var ids = string[1].replace(ureg, "");
+      ids = ids.replace(/,$/, "");
+      ids = ids ? "/" + ids + "/" : "/";
+      href = href.replace(reg, ids);
+      window.history.pushState(id, document.title, href);
+    }
+  }
 
   function uncompareProduct() {
       var $btn = $(this);
@@ -173,10 +191,20 @@ class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{
           $table.find('tr:first').children().each(function(){
             cols++;
           });
-          $table.find("tr").each(function() {
+          var $rows = $table.find("tr");
+          var len = $rows.length;
+          $rows.each(function(index) {
             var $tr = $(this);
             $tr.find("th").attr('colspan', cols);
-            $tr.find("td").eq(col).fadeOut("fast", function() { $(this).remove(); });
+            $tr.find("td").eq(col).fadeOut("fast", function() {
+              $(this).remove();
+              if (index === (len - 1)) {
+                if (cols > 0) {
+                  prepareComparison(is_full);
+                }
+                updateLocation($btn.data("id"));
+              }
+            });
           });
           if (cols == 0) {
             $table.fadeOut("fast", function() { $table.remove(); });

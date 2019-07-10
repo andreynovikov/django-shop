@@ -1,6 +1,6 @@
 from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse, JsonResponse
 from django.conf import settings
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
 from django.template import loader
@@ -275,11 +275,29 @@ def uncompare_product(request, code):
     return JsonResponse({})
 
 
-def compare_products(request, kind):
-    kind = get_object_or_404(ProductKind, pk=kind)
+def compare_products(request, compare=None, kind=None):
     product_ids = list(map(int, request.session.get('comparison_list', '0').split(',')))
 
-    kinds = ProductKind.objects.filter(product__in=product_ids).distinct()
+    if not compare:
+        if kind:
+            kind = get_object_or_404(ProductKind, pk=kind)
+        else:
+            product = Product.objects.get(pk=product_ids[-1])
+            kind = product.kind.all()[0]
+        products = Product.objects.filter(pk__in=product_ids, kind=kind).values_list('id', flat=True)
+        if products:
+            return redirect('compare_products', compare=','.join(map(str, products)))
+        else:
+            return redirect('compare')
+
+    all_kinds = ProductKind.objects.filter(product__in=product_ids).distinct()
+
+    compare_ids = list(map(int, compare.split(',')))
+    products = Product.objects.filter(pk__in=compare_ids)
+    kinds = products.first().kind.all()
+    if not len(kinds):
+        return redirect('compare')
+    kind = kinds[0]
 
     field_map = {}
     for field_id in kind.comparison:
@@ -288,8 +306,8 @@ def compare_products(request, kind):
 
     context = {
         'kind': kind,
-        'kinds': kinds,
-        'products': Product.objects.filter(pk__in=product_ids, kind=kind),
+        'kinds': all_kinds,
+        'products': products,
         'field_map': field_map
     }
     return render(request, 'compare.html', context)
@@ -298,13 +316,9 @@ def compare_products(request, kind):
 def compare_notice(request):
     comparison_list = request.session.get('comparison_list', None)
     count = 0
-    kind = None
     if comparison_list:
-        product_ids = list(map(int, comparison_list.split(',')))
-        count = len(product_ids)
-        kind = ProductKind.objects.filter(product__exact=product_ids[-1]).first()
+        count = len(list(map(int, comparison_list.split(','))))
     context = {
         'count': count,
-        'kind': kind
     }
     return render(request, 'compare_notice.html', context)
