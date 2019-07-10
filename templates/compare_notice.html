@@ -1,5 +1,5 @@
 {% load staticfiles %}
 {% load rupluralize %}
 {% if count %}
-<a href="{% url 'compare_products' kind.id %}" rel="nofollow"><img src="{% static 'i/diag.svg' %}" alt="Сравнение" height="24" style="padding-right: 4px">В сравнении {{ count }} {{count|rupluralize:"товар,товара,товаров"}}</a>
+<a href="{% url 'compare' %}" rel="nofollow"><img src="{% static 'i/diag.svg' %}" alt="Сравнение" height="24" style="padding-right: 4px">В сравнении {{ count }} {{count|rupluralize:"товар,товара,товаров"}}</a>
 {% endif %}

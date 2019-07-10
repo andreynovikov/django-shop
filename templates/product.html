@@ -203,10 +203,9 @@ gtm_products = [];
 <p style="margin-top: 8px">
     <i class="glyphicon glyphicon-stats" aria-hidden="true"></i>
     {% if is_compared %}
-    <a class="compareProduct" data-id="{{ product.id }}" href="{% url 'compare_products' product.kind.all.0.id %}" rel="nofollow">Сравнить</a>
+    <a class="compareProduct" data-id="{{ product.id }}" href="{% url 'compare' %}" rel="nofollow">Сравнить</a>
     {% else %}
-    <a class="compareProduct" data-id="{{ product.id }}" data-comparison-link="{% url 'compare_products' product.kind.all.0.id %}"
-       href="{% url 'compare_product' product.code %}" rel="nofollow">Добавить в сравнение</a>
+    <a class="compareProduct" data-id="{{ product.id }}" data-comparison-link="{% url 'compare' %}" href="{% url 'compare_product' product.code %}" rel="nofollow">Добавить в сравнение</a>
     {% endif %}
 </p>
 {% endif %}
