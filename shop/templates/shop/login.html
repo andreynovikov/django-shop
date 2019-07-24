@@ -212,8 +212,17 @@
         }
 
         function delayShowPasswordReset() {
-            timer(30000, function(timeleft) {
-                $("#reset-counter").text("Запросить {% if reg %}код{% else %}пароль{% endif %} повторно можно через " + timeleft + " " + declOfNum(timeleft, ['секунду','секунды','секунд']));
+            timer(240000, function(timeleft) {
+                if (timeleft > 60) {
+                    var minutesleft = Math.floor(timeleft/60);
+                    timeleft = timeleft - minutesleft * 60;
+                    $("#reset-counter").text("Запросить {% if reg %}код{% else %}пароль{% endif %} повторно можно через "
+                                             + minutesleft + " " + declOfNum(minutesleft, ['минуту','минуты','минут']) + " "
+                                             + timeleft  + " " + declOfNum(timeleft, ['секунду','секунды','секунд']));
+                } else {
+                    $("#reset-counter").text("Запросить {% if reg %}код{% else %}пароль{% endif %} повторно можно через "
+                                             + timeleft + " " + declOfNum(timeleft, ['секунду','секунды','секунд']));
+                }
             }, function() {
                 $("#reset-counter").text("");
                 $("#password-help").addClass("hide").hide();
