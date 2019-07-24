@@ -342,6 +342,9 @@ def uncompare_product(request, code):
     if not request.is_ajax():
         return HttpResponseForbidden()
 
+
+@login_required
+def review_product(request, code):
     product = get_object_or_404(Product, code=code)
     if product.categories.exists() and not product.breadcrumbs:
         raise Http404("Product does not exist")
