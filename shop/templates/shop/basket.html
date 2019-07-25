@@ -140,11 +140,11 @@
                 $('input[type="hidden"][name="csrfmiddlewaretoken"]').prop("value", csrf);
             };
             CustomHandlers.prototype.passwordReset = function (e, $el) {
-                $("#password-help").text("Новый пароль выслан на указанный телефон");
+                $("#password-help").text("Новый пароль выслан на указанный телефон.");
                 $("#password-help").removeClass("hide").show();
                 $("#reset-password").addClass("hide").hide();
                 $("#send-order").addClass("has-warning");
-                delayShowPasswordReset();
+                delayShowPasswordReset("пароль");
             };
             CustomHandlers.prototype.processError = function (e, $el, jqXHR, error, ex) {
                 // is not used anymore
@@ -265,14 +265,6 @@
                 },
                 keepStatic: true
             });
-
-            delayShowPasswordReset();
-        }
-
-        function delayShowPasswordReset() {
-            setTimeout(function() {
-                $("#reset-password").removeClass("hide").show();
-            }, 5000);
         }
     </script>
     <script type="text/javascript">
