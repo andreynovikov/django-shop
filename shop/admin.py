@@ -1449,7 +1449,7 @@ class ShopUserAdmin(ExportMixin, UserAdmin):
         if not obj:
             return super().get_fieldsets(request, obj)
         fieldsets = [
-            (None, {'fields': ('phone', 'password')}),
+            (None, {'fields': ('phone', 'password', 'permanent_password')}),
             ('Personal info', {'fields': ('name', 'username', 'email', 'postcode', 'city', 'address')}),
             ('Marketing', {'fields': ('discount','tags')}),
             ('Important dates', {'fields': ('last_login',)}),
