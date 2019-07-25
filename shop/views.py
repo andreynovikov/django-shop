@@ -112,6 +112,8 @@ def view_basket(request):
             return HttpResponseRedirect(reverse('shop:user_orders'))
         else:
             return HttpResponseRedirect(reverse('shop:empty'))
+    if basket.total == 0: # Basket always exists and can be empty on dortak because of product spinners
+        return HttpResponseRedirect(reverse('shop:empty'))
     phone = basket.phone
     full_phone = None
     user = None

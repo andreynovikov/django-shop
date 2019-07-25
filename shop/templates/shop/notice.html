@@ -1,6 +1,7 @@
 {% load staticfiles %}
-{% if basket %}
-<span id="cartinfo"><a href="{% url 'shop:basket' %}"><img src="{% static 'i/cart.svg' %}" alt="Корзина" height="25">Товаров в корзине <span class="sw-top-navbar-numbers" style="font-weight:bold;color:black;font-size:12pt;">{{ basket.quantity }}</span> на <span class="sw-top-navbar-numbers" style="font-weight:bold;color:black;font-size:12pt;">{{ basket.total|floatformat:"-2" }}</span>&nbsp;руб</a> <a class="btn btn-warning btn-xs" style="visibility:visible;color:white;" href="{% url 'shop:basket' %}" role="button" id="topbasketbutton">Оформить заказ</a></span>
+{% load rupluralize %}
+{% if basket.total > 0 %}{# Basket always exists and can be empty on dortak because of product spinners #}
+<span id="cartinfo"><a href="{% url 'shop:basket' %}"><img src="{% static 'i/cart.svg' %}" alt="Корзина" height="25">В корзине <span class="sw-top-navbar-numbers" style="font-weight:bold;color:black;font-size:12pt;">{{ basket.quantity }}</span> {{basket.quantity|rupluralize:"товар,товара,товаров"}} на <span class="sw-top-navbar-numbers" style="font-weight:bold;color:black;font-size:12pt;">{{ basket.total|floatformat:"-2" }}</span>&nbsp;руб</a> <a class="btn btn-warning btn-xs" style="visibility:visible;color:white;" href="{% url 'shop:basket' %}" role="button" id="topbasketbutton">Оформить заказ</a></span>
 {% else %}
 <span id="cartinfo"><img src="{% static 'i/cart.svg' %}" alt="Корзина" height="25">Корзина пуста</span>
 {% endif %}
