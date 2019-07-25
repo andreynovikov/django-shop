@@ -124,3 +124,41 @@ $(document).ready(function() {
 
     $('.addProduct').each(addProduct);
 });
+
+function delayShowPasswordReset(what) {
+    timer(240000, function(timeleft) {
+        if (timeleft > 60) {
+            var minutesleft = Math.floor(timeleft/60);
+            timeleft = timeleft - minutesleft * 60;
+            var text = "Запросить " + what + " повторно можно через "
+                + minutesleft + " " + declOfNum(minutesleft, ['минуту','минуты','минут']);
+            if (timeleft != 0) {
+                text += " " + timeleft  + " " + declOfNum(timeleft, ['секунду','секунды','секунд']);
+            }
+            text += ".";
+            $("#reset-counter").text(text);
+        } else {
+            $("#reset-counter").text("Запросить " + what + " повторно можно через "
+                                     + timeleft + " " + declOfNum(timeleft, ['секунду','секунды','секунд']) + ".");
+        }
+    }, function() {
+        $("#reset-counter").text("");
+        $("#password-help").addClass("hide").hide();
+        $("#reset-password").removeClass("hide").show();
+    });
+}
+
+function timer(time, update, complete) {
+    var start = new Date().getTime();
+    var interval = setInterval(function() {
+        var now = time - (new Date().getTime() - start);
+        if (now <= 0) {
+            clearInterval(interval);
+            complete();
+        } else update(Math.ceil(now/1000));
+    }, 100);
+}
+
+function declOfNum(n, titles) {
+    return titles[(n % 10 === 1 && n % 100 !== 11) ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2]
+}
