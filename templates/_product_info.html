@@ -39,13 +39,15 @@
 <a class="opener-product" href="{% url 'product' product.code %}">
 {% endif %}
 {{ product.title|remove:"Dor Tak" }}</a></h3>
+{% if product.whatis %}
 <p>
 {% if product.variations %}
 <a href="{{ product.variations }}">
 {% else %}
 <a class="opener-product" href="{% url 'product' product.code %}">
 {% endif %}
-{{ product.whatis }} {{ product.partnumber }}</a></p>
+{{ product.whatis }}</a></p>
+{% endif %}
 <div class="sw-p-l-brif">
 {{ product.shortdescr|safe }}
 </div>

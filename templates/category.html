@@ -86,12 +86,7 @@ $(document).ready(function () {
 
 
     $('[data-trigger="spinner"]').spinner('changed', function(e, newVal, oldVal) {
-        var $form = $(this).closest("form");
-        //console.error($form);
-        //$.dump($form);
-        $form.submit();
-        //return false;
-        //alert("{{ product.id }} " + newVal);
+        $(this).closest("form").submit();
         ym(51806498, 'reachGoal', 'tobasket');
     });
 
