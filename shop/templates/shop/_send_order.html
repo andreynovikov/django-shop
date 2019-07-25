@@ -14,12 +14,32 @@
         <p><a href="{% url 'shop:unbind' %}" id="unbind-phone" class="sw-small-jumbotron">Это не мой телефон</a></p>
         <label class="control-label lead" for="password-input">Пароль:</label>
         <input type="password" class="form-control input-lg" name="password" id="password-input" value="" size="20"/>
+        <span class="help-block">
         {% if wrong_password %}
-        <span id="password-help" class="help-block">Вы ввели неправильный пароль</span>
+        <span id="password-help">Вы ввели неправильный пароль.</span>
+        {% elif shop_user.permanent_password %}
+        <span id="password-help" class="hide"></span>
         {% else %}
-        <span id="password-help" class="help-block">Пароль выслан на указанный телефон по смс</span>
+        <span id="password-help">Пароль выслан на указанный телефон по смс.</span>
+        <script>
+            // This code is loaded both as separate Ajax and as a part of document before main js code
+            // so we need to take into account both variants.
+            if (typeof delayShowPasswordReset === "function") {
+                delayShowPasswordReset("пароль");
+            } else {
+                document.addEventListener("DOMContentLoaded", function() {
+                    delayShowPasswordReset("пароль");
+                });
+            }
+        </script>
         {% endif %}
-        <p><a href="{% url 'shop:reset_password' %}" id="reset-password" class="ajax sw-small-jumbotron hide">Прислать пароль повторно</a></p>
+        <span id="reset-counter"></span>
+        {% if shop_user.permanent_password %}
+        <span id="reset-password"><a href="{% url 'shop:reset_password' %}" class="ajax sw-small-jumbotron">Сбросить забытый пароль</a></span>
+        {% else %}
+        <span id="reset-password" class="hide"><a href="{% url 'shop:reset_password' %}" class="ajax sw-small-jumbotron">Прислать пароль повторно</a></span>
+        {% endif %}
+        </span>
         <input type="submit" id="order-submit" class="btn btn-success btn-lg" value="Продолжить"/>
     {% else %}
         {# Анонимный пользователь #}
