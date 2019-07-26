@@ -14,9 +14,18 @@
     <![endif]-->
 
     <style>
-      .zinnia .entry-content img {
-        padding: 0;
-      }
+        .zinnia .complementary {
+            font-size: 80%;
+        }
+        .zinnia .entry-content img {
+            padding: 0;
+        }
+        .zinnia .breadcrumbs li:last-child {
+        display: none;
+        }
+        .zinnia .breadcrumbs li:nth-last-child(2):after {
+        content: "";
+        }
     </style>
 {% endblock css %}
 {% block script %}{% endblock script %}
@@ -52,7 +61,12 @@
     </div>
 {% endblock %}
 </div>
-<div class="col-md-6" role="complementary">
+<div class="col-md-6 complementary" role="complementary">
+        <h3>Поиск по блогу</h3>
+        <form method="get" action="{% url 'zinnia:entry_search' %}" class="form-inline">
+            <input type="text" name="pattern" class="form-control input-sm" placeholder="{% trans "Keywords..." %}" {% if pattern %}value="{{ pattern }}"{% endif %} />
+            <input type="submit" class="btn btn-sm btn-default" value="Искать" />
+        </form>
           <ul class="top-navigation">
             <li>
               <a href="{% url 'zinnia:sitemap' %}" title="{% trans "Sitemap" %}" class="sitemap" rel="sitemap">
@@ -65,16 +79,8 @@
               </a>
             </li>
           </ul>
-        <form method="get" action="{% url 'zinnia:entry_search' %}">
-          <p>
-            <input type="text" name="pattern" placeholder="{% trans "Keywords..." %}" {% if pattern %}value="{{ pattern }}"{% endif %} />
-            <input type="submit" class="submitbutton" value="OK" />
-          </p>
-        </form>
-      <div id="sidebar">
         {% block sidebar %}
         {% endblock sidebar %}
-      </div>
 </div>
 </div> <!-- /container-fluid -->
 {% endblock %}

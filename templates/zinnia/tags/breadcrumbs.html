@@ -1,0 +1,14 @@
+<nav>
+  <ul class="breadcrumbs">
+    <li><a href="/">К первой странице</a></li>
+    {% for crumb in breadcrumbs %}
+    <li>
+      {% if crumb.url %}
+      <a href="{{ crumb.url }}" title="{{ crumb.name }}">{{ crumb.name }}</a>
+      {% else %}
+      {{ crumb.name }}
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</nav>
