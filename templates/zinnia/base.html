@@ -55,13 +55,15 @@
   <h3>{% trans "Recent linkbacks" %}</h3>
   {% get_recent_linkbacks %}
 </aside>
+{% comment "disabled" %}
 <aside id="widget-populars" class="widget">
   <h3>{% trans "Popular entries" %}</h3>
   {% get_popular_entries %}
 </aside>
+{% endcomment %}
 <aside id="widget-archives" class="widget">
   <h3>{% trans "Archives" %}</h3>
-  {% get_archives_entries_tree %}
+  {% get_archives_entries %}
 </aside>
 {% if user.is_authenticated %}
 <aside id="widget-tools" class="widget">
