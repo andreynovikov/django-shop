@@ -6,6 +6,7 @@ import logging
 from collections import defaultdict
 from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
+import django.db
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.mail import send_mail
 from django.conf import settings
@@ -13,9 +14,12 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.contrib.sites.models import Site
 
-from celery import shared_task
+from celery import shared_task, states
+from celery.exceptions import Ignore
 
 import reviews
+
+from unisender import Unisender
 
 from sewingworld.sms import sms_client as client
 
@@ -151,8 +155,8 @@ def notify_user_order_done(order_id):
         )
 
 
-@shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
-def notify_user_review_products(order_id):
+@shared_task(bind=True, autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=300, retry_jitter=False)
+def notify_user_review_products(self, order_id):
     order = Order.objects.get(id=order_id)
 
     if order.email:
@@ -161,16 +165,30 @@ def notify_user_review_products(order_id):
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
         }
-        msg_plain = render_to_string('mail/shop/order_review_products.txt', context)
         msg_html = render_to_string('mail/shop/order_review_products.html', context)
 
-        send_mail(
-            'Оцените товары из заказа №%s' % order_id,
-            msg_plain,
-            shop_settings['email_from'],
-            [order.email,],
-            html_message=msg_html,
-        )
+        unisender = Unisender(api_key=settings.UNISENDER_KEY)
+        result = unisender.sendEmail(order.email, 'Подписка', shop_settings['email_unisender'],
+                                     'Оцените товары из заказа №%s' % order_id,
+                                     msg_html, settings.UNISENDER_PRODUCT_REVIEW_LIST)
+
+        # https://www.unisender.com/ru/support/api/common/api-errors/
+        if unisender.errorMessage:
+            if unisender.errorCode in ['retry_later', 'api_call_limit_exceeded_for_api_key', 'api_call_limit_exceeded_for_ip']:
+                raise self.retry(countdown=60*60*2, max_retries=5, exc=Exception(unisender.errorMessage)) # 2 hours
+            if unisender.errorCode == 'not_enough_money':
+                raise self.retry(countdown=60*60*24, max_retries=5, exc=Exception(unisender.errorMessage)) # 24 hours
+            self.update_state(state = states.FAILURE, meta = unisender.errorMessage)
+            raise Ignore()
+
+        # recipient errors
+        for r in result['result']:
+            if 'index' in r and r['index'] == 0:
+                if 'errors' in r:
+                    self.update_state(state = states.FAILURE, meta = str(r['errors']))
+                    raise Ignore()
+                else:
+                    return r['id']
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
