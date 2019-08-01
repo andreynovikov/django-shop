@@ -14,8 +14,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.contrib.sites.models import Site
 
-from celery import shared_task, states
-from celery.exceptions import Ignore
+from celery import shared_task
 
 import reviews
 
@@ -161,14 +160,15 @@ def notify_user_review_products(self, order_id):
 
     if order.email:
         shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+        owner_info = getattr(settings, 'SHOP_OWNER_INFO', {})
         context = {
-            'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
+            'owner_info': owner_info,
             'order': order
         }
         msg_html = render_to_string('mail/shop/order_review_products.html', context)
 
         unisender = Unisender(api_key=settings.UNISENDER_KEY)
-        result = unisender.sendEmail(order.email, 'Подписка', shop_settings['email_unisender'],
+        result = unisender.sendEmail(order.email, owner_info.get('short_name', ''), shop_settings['email_unisender'],
                                      'Оцените товары из заказа №%s' % order_id,
                                      msg_html, settings.UNISENDER_PRODUCT_REVIEW_LIST)
 
@@ -178,15 +178,16 @@ def notify_user_review_products(self, order_id):
                 raise self.retry(countdown=60*60*2, max_retries=5, exc=Exception(unisender.errorMessage)) # 2 hours
             if unisender.errorCode == 'not_enough_money':
                 raise self.retry(countdown=60*60*24, max_retries=5, exc=Exception(unisender.errorMessage)) # 24 hours
-            self.update_state(state = states.FAILURE, meta = unisender.errorMessage)
-            raise Ignore()
+            return unisender.errorMessage
 
         # recipient errors
         for r in result['result']:
             if 'index' in r and r['index'] == 0:
                 if 'errors' in r:
-                    self.update_state(state = states.FAILURE, meta = str(r['errors']))
-                    raise Ignore()
+                    try:
+                        return r['errors'][0]['message']
+                    except:
+                        return str(r['errors'])
                 else:
                     return r['id']
 
