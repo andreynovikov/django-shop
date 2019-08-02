@@ -1,7 +1,7 @@
 {% include 'django/forms/widgets/text.html' %}
-<div id="slider-{{ widget.attrs.id }}"></div>
 <script>
 document.addEventListener("DOMContentLoaded", function(event) {
+  $( "#{{ widget.attrs.id }}" ).closest(".sw-field").append('<div id="slider-{{ widget.attrs.id }}"></div>');
   $( "#slider-{{ widget.attrs.id }}" ).slider({
     range: "min",
     min: {{ widget.attrs.min_value }},
