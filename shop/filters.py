@@ -131,7 +131,7 @@ class BaseProductFilter(django_filters.FilterSet):
     #sm_dualtransporter_bool = django_filters.BooleanFilter(widget=BooleanWidget)
     #sm_autobuttonhole_bool = django_filters.BooleanFilter(widget=BooleanWidget)
     #sm_power = django_filters.NumberFilter(lookup_expr='gt')
-    sm_power = django_filters.NumberFilter(widget=ShopSliderWidget(attrs={'step': 10, 'min_value': 20, 'max_value': 100}), lookup_expr='gt')
+    sm_power = django_filters.NumberFilter(widget=ShopSliderWidget(attrs={'step': 10, 'min_value': 20, 'max_value': 100}), lookup_expr='gt', label='Потребляемая мощность больше, Вт')
     sm_stitchquantity = django_filters.NumberFilter(widget=ShopSliderWidget(attrs={'step': 10, 'min_value': 0, 'max_value': 250}), lookup_expr='gt')
     price = django_filters.RangeFilter(widget=ShopRangeWidget(attrs={'step': 5000, }))
     manufacturer = ShopChoiceFilter(choices=manufacturers, empty_label='- - любой - -')

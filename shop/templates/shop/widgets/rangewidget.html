@@ -3,9 +3,9 @@
 {% include widget.template_name %}
 {% if forloop.first %}до{% endif %}
 {% endfor %}
-<div id="slider-range-{{ widget.attrs.id }}"></div>
 <script>
 document.addEventListener("DOMContentLoaded", function(event) {
+  $( "#{{ widget.subwidgets.0.attrs.id }}" ).closest(".sw-field").append('<div id="slider-range-{{ widget.attrs.id }}"></div>');
   $( "#slider-range-{{ widget.attrs.id }}" ).slider({
     range: true,
     min: {{ widget.attrs.min_value }},
