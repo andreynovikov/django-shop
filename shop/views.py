@@ -235,6 +235,28 @@ def delete_from_basket(request, product_id):
         return HttpResponseRedirect(reverse('shop:basket'))
 
 
+def restore_basket(request, restore):
+    ensure_session(request)
+    basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
+    if created:
+        contents = map(lambda p: map(int, p.split('*')), restore.split(','))
+        import sys
+        for product_id, quantity in contents:
+            print('%d: %d' % (product_id, quantity), file=sys.stderr)
+            try:
+                product = Product.objects.get(pk=product_id)
+                item, _ = basket.items.get_or_create(product=product)
+                item.quantity = quantity
+                item.save()
+            except Product.DoesNotExist:
+                pass
+        utm_source = request.GET.get('utm_source', None)
+        if utm_source:
+            basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source) # ASCII only regex
+            basket.save()
+    return HttpResponseRedirect(reverse('shop:basket'))
+
+
 @require_POST
 def authorize(request):
     ensure_session(request)

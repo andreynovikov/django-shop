@@ -4,6 +4,7 @@ import csv
 import datetime
 import logging
 from collections import defaultdict
+from importlib import import_module
 from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
 import django.db
@@ -22,7 +23,7 @@ from unisender import Unisender
 
 from sewingworld.sms import sms_client as client
 
-from shop.models import Supplier, Currency, Product, Stock, Basket, Order
+from shop.models import ShopUser, Supplier, Currency, Product, Stock, Basket, Order
 
 
 log = logging.getLogger('shop')
@@ -356,11 +357,99 @@ def import1c(file):
     )
 
 
-@shared_task(autoretry_for=(Exception,), retry_backoff=True)
+@shared_task(autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=60, retry_jitter=False)
 def remove_outdated_baskets():
-    threshold = datetime.datetime.now() - datetime.timedelta(days=90)
+    threshold = datetime.datetime.now() - datetime.timedelta(seconds=settings.SESSION_COOKIE_AGE)
     baskets = Basket.objects.filter(created__lt=threshold)
     num = len(baskets)
     for basket in baskets.all():
         basket.delete()
     log.info('Deleted %d baskets' % num)
+    SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
+    SessionStore.clear_expired()
+    log.info('Cleared expired sessions')
+
+
+@shared_task(bind=True, autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=3, retry_jitter=False)
+def notify_abandoned_basket(self, basket_id, email, phone):
+    basket = Basket.objects.get(id=basket_id)
+
+    shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+    owner_info = getattr(settings, 'SHOP_OWNER_INFO', {})
+
+    restore_url = 'https://{}{}'.format(
+        Site.objects.get_current().domain,
+        reverse('shop:restore', args=[','.join(map(lambda i: '%s*%s' % (i.product.id, i.quantity), basket.items.all()))])
+    )
+    import sys
+    print(restore_url, file=sys.stderr)
+
+    unisender = Unisender(api_key=settings.UNISENDER_KEY)
+    if email:
+        context = {
+            'owner_info': owner_info,
+            'basket': basket,
+            'restore_url': restore_url
+        }
+        result = unisender.sendEmail(email, owner_info.get('short_name', ''), shop_settings['email_unisender'],
+                                     'Вы забыли оформить заказ',
+                                     render_to_string('mail/shop/basket_abandoned.html', context),
+                                     settings.UNISENDER_ABANDONED_BASKET_LIST)
+        # https://www.unisender.com/ru/support/api/common/api-errors/
+        if unisender.errorMessage:
+            if unisender.errorCode in ['retry_later', 'api_call_limit_exceeded_for_api_key', 'api_call_limit_exceeded_for_ip']:
+                raise self.retry(countdown=60*60*2, max_retries=5, exc=Exception(unisender.errorMessage)) # 2 hours
+            if unisender.errorCode == 'not_enough_money':
+                raise self.retry(countdown=60*60*24, max_retries=5, exc=Exception(unisender.errorMessage)) # 24 hours
+            return unisender.errorMessage
+        # recipient errors
+        for r in result['result']:
+            if 'index' in r and r['index'] == 0:
+                if 'errors' in r:
+                    try:
+                        return r['errors'][0]['message']
+                    except:
+                        return str(r['errors'])
+                else:
+                    return r['id']
+    elif phone:
+        result = client.send(phone, "Вы забыли оформить заказ: %s" % restore_url)
+        try:
+            return result['descr']
+        except:
+            return result
+
+
+@shared_task(autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=3, retry_jitter=False)
+def notify_abandoned_baskets(first_try=True):
+    SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
+
+    if first_try:
+        lt = datetime.datetime.now() - datetime.timedelta(hours=3)
+        gt = lt - datetime.timedelta(hours=1)
+    else:
+        lt = datetime.datetime.now() - datetime.timedelta(days=3)
+        gt = lt - datetime.timedelta(days=1)
+    baskets = Basket.objects.filter(created__lt=lt, created__gte=gt)
+    num = 0
+    for basket in baskets.all():
+        email = None
+        phone = None
+
+        session = SessionStore(session_key=basket.session_id).load()
+        uid = session.get('_auth_user_id')
+        if uid:
+            user = ShopUser.objects.get(id=uid)
+            if user.email:
+                email = user.email
+            if user.phone:
+                phone = user.phone
+        if phone is None and basket.phone:
+            phone = basket.phone
+        log.info('email: %s phone: %s' % (email, phone))
+
+        if email or phone:
+            notify_abandoned_basket.delay(basket.id, email, phone)
+            num = num + 1
+    log.info('Sent notifications for %d abandoned baskets' % num)
+    return num

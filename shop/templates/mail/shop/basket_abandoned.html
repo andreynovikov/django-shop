@@ -1,0 +1,43 @@
+{% load static %}
+{% load shop_filters %}
+<html>
+<body>
+<style type="text/css">
+.sewingworld_button {
+    color: #fff;
+    background-color: #5cb85c;
+    border-color: #4cae4c;
+    display: inline-block;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    background-image: none;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    padding: 5px 10px;
+    font-size: 9pt;
+    line-height: 1.428571429;
+    border-radius: 4px;
+    user-select: none;
+    text-decoration:none;
+}
+</style>
+<p><strong>Здравствуйте!</strong></p>
+
+<p>Недавно Вы хотели заказать, но облажались в интернет-магазине "{{ owner_info.short_name }}".</p>
+{% for item in basket.items.all %}
+<p>
+<div style="width:130px; float:left; text-align:center;">
+{% if item.product.image_prefix|add:'.s.jpg'|file_exists %}
+<img src="{{ owner_info.www }}{% get_media_prefix %}{{ item.product.image_prefix }}.s.jpg" />
+{% endif %}
+</div>
+<b>{{ item.product.title }}</b></p>
+<br clear="all"/>
+{% endfor %}
+<p><a href="{{ restore_url }}" class="sewingworld_button">Перейти в корзину</a></p>
+<p>С благодарностью,<br/>
+служба контроля качества<br/>
+интернет-магазина "<a href="{{ owner_info.www }}">{{ owner_info.short_name }}</a>"</p>
+</body>
+</html>
