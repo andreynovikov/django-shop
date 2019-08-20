@@ -128,15 +128,19 @@
             };
             CustomHandlers.prototype.removeProductSeo = function (e, $el) {
                 // Yandex
-                dataLayer.push({'event': 'removeFromCart','ecommerce': {'currencyCode': 'RUB','remove': {'products': [{
-                    'name':$el.data("name"),
-                    'id': $el.data("id"),
-                    'brand':$el.data("brand"),
-                    'price':$el.data("price"),
-                    'quantity': 1
-                }]}}});
+                if (typeof dataLayer !== "undefined") { // protect from ad blockers
+                    dataLayer.push({'event': 'removeFromCart','ecommerce': {'currencyCode': 'RUB','remove': {'products': [{
+                        'name':$el.data("name"),
+                        'id': $el.data("id"),
+                        'brand':$el.data("brand"),
+                        'price':$el.data("price"),
+                        'quantity': 1
+                    }]}}});
+                }
                 // VK
-                VK.Retargeting.ProductEvent(3195, "remove_from_cart", {'products': [{'id': $el.data("id")}]});
+                if (typeof VK !== "undefined") { // protect from ad blockers
+                    VK.Retargeting.ProductEvent(3195, "remove_from_cart", {'products': [{'id': $el.data("id")}]});
+                }
             };
             CustomHandlers.prototype.addAjaxFlag = function (e, $el) {
                 $el.on("eldarion-ajax:modify-data", function (e, data) {
