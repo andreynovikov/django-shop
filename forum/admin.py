@@ -14,14 +14,6 @@ from shop.decorators import admin_changelist_link
 from . import models
 
 
-@admin.register(models.DjConfig)
-class DjConfigAdmin(admin.ModelAdmin):
-    list_display = ['key', 'value']
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-
 @admin.register(models.SpiritCategory)
 class SpiritCategoryAdmin(admin.ModelAdmin):
     list_display = ['title', 'slug', 'is_closed', 'is_removed', 'is_private', 'is_global']

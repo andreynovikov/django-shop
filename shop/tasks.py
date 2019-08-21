@@ -21,7 +21,7 @@ import reviews
 
 from unisender import Unisender
 
-from sewingworld.sms import sms_client as client
+from sewingworld.sms import send_sms
 
 from shop.models import ShopUser, Supplier, Currency, Product, Stock, Basket, Order
 
@@ -32,12 +32,12 @@ log = logging.getLogger('shop')
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def send_message(phone, message):
-    client.send(phone, message)
+    send_sms(phone, message)
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=15, retry_backoff=True)
 def send_password(phone, password):
-    client.send(phone, "Пароль для доступа на сайт: %s" % password)
+    send_sms(phone, "Пароль для доступа на сайт: %s" % password)
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
@@ -46,8 +46,8 @@ def notify_user_order_new_sms(order_id, password):
     password_text = ""
     if password:
         password_text = " Пароль: %s" % password
-    client.send(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s %s" \
-                    % (order_id, Site.objects.get_current().domain, reverse('shop:user_orders'), password_text))
+    send_sms(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s %s" \
+                          % (order_id, Site.objects.get_current().domain, reverse('shop:user_orders'), password_text))
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
@@ -74,8 +74,8 @@ def notify_user_order_new_mail(order_id):
 @shared_task(autoretry_for=(Exception,), retry_backoff=True)
 def notify_user_order_collected(order_id):
     order = Order.objects.get(id=order_id)
-    client.send(order.phone, "Заказ №%s собран и ожидает оплаты. Перейдите по ссылке, чтобы оплатить заказ: https://%s%s" \
-                    % (order_id, Site.objects.get_current().domain, reverse('shop:order', args=[order_id])))
+    send_sms(order.phone, "Заказ №%s собран и ожидает оплаты. Перейдите по ссылке, чтобы оплатить заказ: https://%s%s" \
+                          % (order_id, Site.objects.get_current().domain, reverse('shop:order', args=[order_id])))
 
     if order.email:
         shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
@@ -101,9 +101,9 @@ def notify_user_order_delivered_shop(order_id):
     city = order.store.city.name
     address = order.store.address
     name = order.store.name
-    client.send(order.phone, "Ваш заказ доставлен в магазин \"%s\" по адресу %s, %s." \
-                             " Для получения заказа обратитесь в кассу и назовите номер" \
-                             " заказа %s." % (name, city, address, order_id))
+    send_sms(order.phone, "Ваш заказ доставлен в магазин \"%s\" по адресу %s, %s." \
+                          " Для получения заказа обратитесь в кассу и назовите номер" \
+                          " заказа %s." % (name, city, address, order_id))
 
 
 @shared_task(autoretry_for=(Exception,), retry_backoff=True)
@@ -113,7 +113,7 @@ def notify_user_order_delivered(order_id):
         title = 'PickPoint'
     else:
         title = 'ТК'
-    client.send(order.phone, "Заказ №%s доставлен в %s: %s" % (order_id, title, order.delivery_info))
+    send_sms(order.phone, "Заказ №%s доставлен в %s: %s" % (order_id, title, order.delivery_info))
 
     if order.email:
         shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
@@ -413,7 +413,7 @@ def notify_abandoned_basket(self, basket_id, email, phone):
                 else:
                     return r['id']
     elif phone:
-        result = client.send(phone, "Вы забыли оформить заказ: %s" % restore_url)
+        result = send_sms(phone, "Вы забыли оформить заказ: %s" % restore_url)
         try:
             return result['descr']
         except:
