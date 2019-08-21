@@ -1,5 +1,11 @@
 from django.contrib import admin
+from django.forms import ModelForm
 from django.urls import path
+from django.utils.translation import ugettext_lazy as _
+
+import djconfig
+
+from .forms import SWConfigForm
 
 from shop import views
 
@@ -15,3 +21,65 @@ class SWAdminSite(admin.AdminSite):
             path('import1c/', views.import_1c, name='import_1c')
         ] + urls
         return urls
+
+
+class SWConfigAdmin(djconfig.admin.ConfigAdmin):
+    change_list_form = SWConfigForm
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+class SWConfig(djconfig.admin.Config):
+    app_label = 'sewingworld'
+    verbose_name_plural = 'Настройки'
+    name = 'swconfig'
+
+
+"""
+class SWFlatPageForm(ModelForm):
+    class Meta:
+        widgets = {
+            #'content': AutosizedTextarea(attrs={'rows': 5, 'style': 'width: 95%; max-height: 500px'}),
+        }
+"""
+
+
+def get_sites(obj):
+    'returns a list of site names for a FlatPage object'
+    return ", ".join((site.name for site in obj.sites.all()))
+get_sites.short_description = 'Sites'
+
+
+def configure_admin():
+    djconfig.admin.register(SWConfig, SWConfigAdmin)
+
+    from tagging.admin import TagAdmin
+    from tagging.models import Tag
+    SWTagAdmin = type('SWTagAdmin', (TagAdmin,), {'search_fields': ['name'], 'ordering': ['name']})
+    admin.site.unregister(Tag)
+    admin.site.register(Tag, SWTagAdmin)
+
+    from lock_tokens.admin import LockTokenAdmin
+    from lock_tokens.models import LockToken
+    admin.site.register(LockToken, LockTokenAdmin)
+
+    from django.contrib.flatpages.admin import FlatPageAdmin
+    from django.contrib.flatpages.models import FlatPage
+    SWFlatPageAdmin = type('SWFlatPageAdmin', (FlatPageAdmin,), {
+        'list_display': ('url', 'title', get_sites),
+        'fieldsets': (
+            (None, {'fields': ('url', 'title', 'content', 'sites')}),
+            (_('Advanced options'), {
+                'classes': ('collapse', ),
+                'fields': (
+                    'enable_comments',
+                    'registration_required',
+                    'template_name',
+                ),
+            }),
+        ),
+        #form = SWFlatPageForm
+    })
+    admin.site.unregister(FlatPage)
+    admin.site.register(FlatPage, SWFlatPageAdmin)

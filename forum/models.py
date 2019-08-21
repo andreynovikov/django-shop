@@ -2,20 +2,12 @@ from __future__ import unicode_literals
 
 from django.db import models
 
-from djconfig.models import Config
 from spirit.category.models import Category
 from spirit.user.models import UserProfile
 from spirit.topic.models import Topic
 from spirit.comment.flag.models import CommentFlag
 
 from shop.models import Product
-
-
-class DjConfig(Config):
-    class Meta:
-        proxy = True
-        verbose_name = 'Настройка'
-        verbose_name_plural = 'Настройки'
 
 
 class SpiritCategory(Category):
@@ -198,7 +190,7 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-    orid = models.ForeignKey(Order, db_column='orid', primary_key=True, on_delete=models.CASCADE, related_name='item')
+    orid = models.ForeignKey(Order, db_column='orid', on_delete=models.CASCADE, related_name='item')
     pid = models.ForeignKey(Product, db_column='pid', on_delete=models.CASCADE)
     pq = models.IntegerField()
     pprice = models.FloatField()

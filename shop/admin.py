@@ -40,7 +40,7 @@ from import_export.admin import ImportExportMixin, ExportMixin
 
 from yandex_delivery.api import DeliveryClient
 
-from utility.admin import get_sites
+from sewingworld.admin import get_sites
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
     Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, Advert, \
     Product, ProductRelation, ProductSet, ProductKind, SalesAction, Stock, Basket, BasketItem, \
