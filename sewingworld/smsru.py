@@ -53,10 +53,7 @@ class Client(object):
         args['from'] = 'SEWINGWORLD'
 
         url = "http://sms.ru/%s?%s" % (method, urlencode(args))
-        import sys
-        print(url, file=sys.stderr)
         res = urlopen(url).read().decode('utf-8')
-        print(res, file=sys.stderr)
         return res.strip().split('\n')
 
     def send(self, to, message, express=False, test=False):

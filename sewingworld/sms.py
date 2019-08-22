@@ -8,8 +8,6 @@ from . import sms_uslugi, smsru
 
 def send_sms(phone, message):
     reload_maybe()
-    import sys
-    print(config.sw_sms_provider, file=sys.stderr)
     sms_client = None
     if config.sw_sms_provider == 'sms_uslugi':
         sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
