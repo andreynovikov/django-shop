@@ -4,6 +4,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.cache import InvalidCacheBackendError, caches
 from django.core.cache.utils import make_template_fragment_key
+from django.utils import timezone
 
 from tagging.utils import parse_tag_input
 
@@ -68,7 +69,7 @@ def order_saved(sender, **kwargs):
                 order.user.save()
             if order.status == Order.STATUS_DONE:
                 notify_user_order_done.delay(order.id)
-                next_week = datetime.utcnow() + timedelta(days=7)
+                next_week = timezone.now() + timedelta(days=7)
                 notify_user_review_products.apply_async((order.id,), eta=next_week)
 
         print(order.tracker.changed())

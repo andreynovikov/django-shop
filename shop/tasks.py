@@ -13,6 +13,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils import timezone
 from django.contrib.sites.models import Site
 
 from celery import shared_task
@@ -361,7 +362,7 @@ def import1c(file):
 
 @shared_task(autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=60, retry_jitter=False)
 def remove_outdated_baskets():
-    threshold = datetime.datetime.now() - datetime.timedelta(seconds=settings.SESSION_COOKIE_AGE)
+    threshold = timezone.now() - datetime.timedelta(seconds=settings.SESSION_COOKIE_AGE)
     baskets = Basket.objects.filter(created__lt=threshold)
     num = len(baskets)
     for basket in baskets.all():
@@ -427,10 +428,10 @@ def notify_abandoned_baskets(first_try=True):
     SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
 
     if first_try:
-        lt = datetime.datetime.now() - datetime.timedelta(hours=3)
+        lt = timezone.now() - datetime.timedelta(hours=3)
         gt = lt - datetime.timedelta(hours=1)
     else:
-        lt = datetime.datetime.now() - datetime.timedelta(days=3)
+        lt = timezone.now() - datetime.timedelta(days=3)
         gt = lt - datetime.timedelta(days=1)
     baskets = Basket.objects.filter(created__lt=lt, created__gte=gt)
     num = 0
