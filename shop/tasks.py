@@ -17,6 +17,8 @@ from django.contrib.sites.models import Site
 
 from celery import shared_task
 
+from djconfig import config, reload_maybe
+
 import reviews
 
 from unisender import Unisender
@@ -54,7 +56,7 @@ def notify_user_order_new_sms(order_id, password):
 def notify_user_order_new_mail(order_id):
     order = Order.objects.get(id=order_id)
     if order.email:
-        shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+        reload_maybe()
         context = {
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
@@ -65,7 +67,7 @@ def notify_user_order_new_mail(order_id):
         send_mail(
             'Ваш заказ №%s принят' % order_id,
             msg_plain,
-            shop_settings['email_from'],
+            config.sw_email_from,
             [order.email,],
             html_message=msg_html,
         )
@@ -78,7 +80,7 @@ def notify_user_order_collected(order_id):
                           % (order_id, Site.objects.get_current().domain, reverse('shop:order', args=[order_id])))
 
     if order.email:
-        shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+        reload_maybe()
         context = {
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
@@ -89,7 +91,7 @@ def notify_user_order_collected(order_id):
         send_mail(
             'Оплата заказа №%s' % order_id,
             msg_plain,
-            shop_settings['email_from'],
+            config.sw_email_from,
             [order.email,],
             html_message=msg_html,
         )
@@ -116,7 +118,7 @@ def notify_user_order_delivered(order_id):
     send_sms(order.phone, "Заказ №%s доставлен в %s: %s" % (order_id, title, order.delivery_info))
 
     if order.email:
-        shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+        reload_maybe()
         context = {
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
@@ -127,7 +129,7 @@ def notify_user_order_delivered(order_id):
         send_mail(
             'Получение заказа №%s' % order_id,
             msg_plain,
-            shop_settings['email_from'],
+            config.sw_email_from,
             [order.email,],
             html_message=msg_html,
         )
@@ -138,7 +140,7 @@ def notify_user_order_done(order_id):
     order = Order.objects.get(id=order_id)
 
     if order.email:
-        shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+        reload_maybe()
         context = {
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
@@ -149,7 +151,7 @@ def notify_user_order_done(order_id):
         send_mail(
             'Заказ №%s выполнен' % order_id,
             msg_plain,
-            shop_settings['email_from'],
+            config.sw_email_from,
             [order.email,],
             html_message=msg_html,
         )
@@ -160,7 +162,7 @@ def notify_user_review_products(self, order_id):
     order = Order.objects.get(id=order_id)
 
     if order.email:
-        shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+        reload_maybe()
         owner_info = getattr(settings, 'SHOP_OWNER_INFO', {})
         context = {
             'owner_info': owner_info,
@@ -169,7 +171,7 @@ def notify_user_review_products(self, order_id):
         msg_html = render_to_string('mail/shop/order_review_products.html', context)
 
         unisender = Unisender(api_key=settings.UNISENDER_KEY)
-        result = unisender.sendEmail(order.email, owner_info.get('short_name', ''), shop_settings['email_unisender'],
+        result = unisender.sendEmail(order.email, owner_info.get('short_name', ''), config.sw_email_unisender,
                                      'Оцените товары из заказа №%s' % order_id,
                                      msg_html, settings.UNISENDER_PRODUCT_REVIEW_LIST)
 
@@ -197,15 +199,15 @@ def notify_user_review_products(self, order_id):
 def notify_manager(order_id):
     order = Order.objects.get(id=order_id)
 
-    shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+    reload_maybe()
     msg_plain = render_to_string('mail/shop/order_manager.txt', {'order': order})
     msg_html = render_to_string('mail/shop/order_manager.html', {'order': order})
 
     send_mail(
         'Новый заказ №%s' % order_id,
         msg_plain,
-        shop_settings['email_from'],
-        shop_settings['email_managers'],
+        config.sw_email_from,
+        config.sw_email_managers.split(','),
         html_message=msg_html,
     )
 
@@ -214,13 +216,13 @@ def notify_manager(order_id):
 def notify_review_posted(review_id):
     review = reviews.get_model().objects.get(id=review_id)
 
-    shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+    reload_maybe()
     msg_plain = render_to_string('mail/reviews/review_posted.txt', {'review': review})
 
     send_mail(
         'Новый обзор для %s' % review.content_object,
         msg_plain,
-        shop_settings['email_from'],
+        config.sw_email_from,
         [manager_tuple[1] for manager_tuple in settings.MANAGERS]
     )
 
@@ -345,15 +347,15 @@ def import1c(file):
                 #errors.append("%s: товар отсутсвует" % line['article'])
                 pass
 
-    shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+    reload_maybe()
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
                                  {'file': file, 'imported': imported, 'updated': updated, 'errors': errors,
                                   'orders': orders, 'opts': Order._meta})
     send_mail(
         'Импорт 1С из %s' % file,
         msg_plain,
-        shop_settings['email_from'],
-        shop_settings['email_managers'],
+        config.sw_email_from,
+        config.sw_email_managers.split(','),
     )
 
 
@@ -374,7 +376,7 @@ def remove_outdated_baskets():
 def notify_abandoned_basket(self, basket_id, email, phone):
     basket = Basket.objects.get(id=basket_id)
 
-    shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+    reload_maybe()
     owner_info = getattr(settings, 'SHOP_OWNER_INFO', {})
 
     restore_url = 'https://{}{}'.format(
@@ -391,7 +393,7 @@ def notify_abandoned_basket(self, basket_id, email, phone):
             'basket': basket,
             'restore_url': restore_url
         }
-        result = unisender.sendEmail(email, owner_info.get('short_name', ''), shop_settings['email_unisender'],
+        result = unisender.sendEmail(email, owner_info.get('short_name', ''), config.sw_email_unisender,
                                      'Вы забыли оформить заказ',
                                      render_to_string('mail/shop/basket_abandoned.html', context),
                                      settings.UNISENDER_ABANDONED_BASKET_LIST)
