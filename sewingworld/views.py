@@ -125,7 +125,7 @@ def stores(request):
         'stores': stores,
         'store_groups': store_groups,
         }
-    city = settings.SHOP_SETTINGS.get('city_id')
+    city = getattr(settings, 'SHOP_CITY_ID', None)
     if city:
         context['city'] = City.objects.get(pk=city)
 
@@ -162,7 +162,7 @@ def service(request):
         'services': services,
         'service_groups': service_groups,
         }
-    city = settings.SHOP_SETTINGS.get('city_id')
+    city = getattr(settings, 'SHOP_CITY_ID', None)
     if city:
         context['city'] = City.objects.get(pk=city)
 
