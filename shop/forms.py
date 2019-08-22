@@ -9,6 +9,8 @@ from django.forms.models import model_to_dict
 #from suit.widgets import AutosizedTextarea
 from django.conf import settings
 
+from djconfig import config
+
 #import autocomplete_light
 
 from shop.models import Supplier, Product, Stock, Order, OrderItem, ShopUser
@@ -50,8 +52,7 @@ class OneSImportForm(forms.Form):
 
     def save(self):
         import1c.delay(self.cleaned_data['file'])
-        shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
-        return 'Импорт запущен в фоновом режиме, результат придёт на адрес %s' % ', '.join(shop_settings['email_managers'])
+        return 'Импорт запущен в фоновом режиме, результат придёт на адрес %s' % config.sw_email_managers
 
 
 class WarrantyCardPrintForm(forms.Form):
