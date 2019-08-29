@@ -1,7 +1,15 @@
 from django import forms
 from django.forms.models import model_to_dict
 
+from reviews.forms import ReviewForm
+
 from shop.models import ShopUser
+
+
+class ProductReviewForm(ReviewForm):
+    def __init__(self, *args, **kwargs):
+        super(ProductReviewForm, self).__init__(*args, **kwargs)
+        self.fields['comment'].required = False
 
 
 class UserForm(forms.Form):

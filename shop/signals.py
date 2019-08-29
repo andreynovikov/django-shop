@@ -3,7 +3,7 @@ from django.dispatch import receiver
 
 from tagging.utils import parse_tag_input
 
-from reviews import get_model
+from reviews import get_review_model
 from reviews.signals import review_was_posted
 
 from shop.models import Order
@@ -52,6 +52,6 @@ def order_saved(sender, **kwargs):
         print(order.tracker.changed())
 
 
-@receiver(review_was_posted, sender=get_model(), dispatch_uid='review_posted_receiver')
+@receiver(review_was_posted, sender=get_review_model(), dispatch_uid='review_posted_receiver')
 def review_posted(sender, review, request, **kwargs):
     notify_review_posted.delay(review.id)

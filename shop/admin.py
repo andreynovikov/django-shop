@@ -33,6 +33,7 @@ from mptt.admin import DraggableMPTTAdmin
 from lock_tokens.admin import LockableModelAdmin
 from tagging.models import Tag, TaggedItem
 from tagging.utils import parse_tag_input
+from reviews.admin import ReviewAdmin
 
 from import_export import resources
 from import_export.admin import ImportExportMixin, ExportMixin
@@ -40,8 +41,8 @@ from import_export.admin import ImportExportMixin, ExportMixin
 from utility.admin import get_sites
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
     Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, Advert, \
-    Product, ProductRelation, ProductSet, ProductKind, SalesAction, Stock, Basket, BasketItem, \
-    Manager, Courier, Order, OrderItem
+    Product, ProductRelation, ProductSet, ProductKind, SalesAction, Stock, ProductReview, \
+    Basket, BasketItem, Manager, Courier, Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
     OrderDiscountForm, SendSmsForm, SelectTagForm, SelectSupplierForm, ProductAdminForm, \
     ProductKindForm, OrderItemInlineAdminForm, StockInlineForm, YandexDeliveryForm
@@ -1463,3 +1464,6 @@ class ShopUserAdmin(ExportMixin, UserAdmin):
 
 # Now register the new UserAdmin...
 admin.site.register(ShopUser, ShopUserAdmin)
+
+# Register default ReviewAdmin as it suits our model
+admin.site.register(ProductReview, ReviewAdmin)

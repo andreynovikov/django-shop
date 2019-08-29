@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load staticfiles %}
 {% block title %}Редактирование отзыва{% endblock %}
 {% block css %}
 <style>
@@ -13,6 +14,19 @@ form textarea#id_comment {
 {% endblock %}
 {% block content %}
 <h1>Отзыв о товаре {{ target }}</h1>
+
+{% if not user.username %}
+<div id="sw-user-update-popup" class="sw-cartinfo-popup mfp-hide">
+<div id="sw-user-update-container"><div id="update-user"></div></div>
+</div>
+<style type="text/css">
+.sw-update-user-form label {
+  margin-top: 5px;
+}
+</style>
+<div><span id="sw-user-update-warning" style="display: inline-block; background-color: #fffaee; color: #fa0; margin: 10pt 0; padding: 4pt 8pt"><i class="fa fa-warning" style="color: #fa0"></i> Вы можете <a id="sw-user-update-link" href="#">указать</a> псевдоним, если не хотите, чтобы отображалось Ваше реальное имя.</span></div>
+{% endif %}
+
 {% if form %}
 {% include 'reviews/form.html' %}
 {% else %}
@@ -21,11 +35,57 @@ form textarea#id_comment {
 {% endif %}
 {% endblock %}
 {% block javascript %}
+<script src="{% static "js/eldarion-ajax.min.js" %}"></script>
 <script>
 var btns = document.getElementsByClassName('submit-post');
 for (var i = 0; i < btns.length; ++i) {
-  btns[i].classList.add('btn');
-  btns[i].classList.add('btn-default');
+    btns[i].classList.add('btn');
+    btns[i].classList.add('btn-default');
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    $("#sw-user-update-link").click(function() {
+        $("#sw-user-update-container").load("/shop/user/update/?update");
+        $.magnificPopup.open({
+            items: {
+                src: '#sw-user-update-popup',
+                type: 'inline'
+            }
+        });
+        return false;
+    });
+
+    var hasUsername = false;
+
+    var CustomHandlers = function () {
+    };
+    CustomHandlers.prototype.addAjaxFlag = function (e, $el) {
+        $el.on("eldarion-ajax:modify-data", function (e, data) {
+            if (typeof data === "object") { // using FormData
+                hasUsername = data.get('username').length > 0;
+                data.append('ajax', 1);
+            } else if (data != null) {
+                hasUsername = /username=[^&]+/.test(data);
+                data = data + "&ajax=1";
+            } else {
+                data = "ajax=1";
+            }
+            return data;
+        });
+    };
+    $(document).on("eldarion-ajax:begin", function(evt, $el) {
+        $("body").css("cursor", "progress");
+    });
+    $(document).on("eldarion-ajax:complete", function(evt, $el) {
+        $("body").css("cursor", "auto");
+        if ($("#sw-user-update-container").has("form").length == 0) {
+            $.magnificPopup.close();
+            $("#sw-user-update-container").html('<div id="update-user"></div>');
+            if (hasUsername)
+                $("#sw-user-update-warning").hide();
+        }
+    });
+    $(document).on("eldarion-ajax:begin", "#update-user", CustomHandlers.prototype.addAjaxFlag);
+});
 </script>
 {% endblock %}

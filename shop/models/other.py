@@ -18,6 +18,8 @@ from mptt.models import MPTTModel, TreeForeignKey, TreeManyToManyField
 
 from tagging.fields import TagField
 
+from reviews.models import UserReviewAbstractModel, REVIEW_MAX_LENGTH
+
 from model_field_list import ModelFieldListField
 
 __all__ = [
@@ -835,6 +837,10 @@ class Stock(models.Model):
         verbose_name = 'запас'
         verbose_name_plural = 'запасы'
         unique_together = ('product', 'supplier')
+
+
+class ProductReview(UserReviewAbstractModel):
+    comment = models.TextField('комментарий', max_length=REVIEW_MAX_LENGTH, blank=True)
 
 
 class Basket(models.Model):
