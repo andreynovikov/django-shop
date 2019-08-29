@@ -18,6 +18,9 @@
 .pull-right .gl-star-rating-stars > span {
     width: 18px; height: 18px; background-size: 18px;
 }
+.pull-right .gl-star-rating-stars.readonly {
+    cursor: pointer;
+}
 .product-nal-store-link {
     display: block;
     text-decoration:underline;
@@ -93,7 +96,7 @@ gtm_products = [];
 {% endif %}
 {% get_rating for product as product_rating %}
 {% if product_rating %}
-{% render_rating for product %}
+<a href="#reviews">{% render_rating for product %}</a>
 {% endif %}
 </div>
 </div>
@@ -326,7 +329,7 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 {% if product.allow_reviews %}
   {% get_review_count for product as review_count %}
   {% if review_count %}
-    <h2>Отзывы о товаре {{ product.title }}</h2>
+    <h2 id="reviews">Отзывы о товаре {{ product.title }}</h2>
     {% render_review_list for product %}
   {% else %}
     <h2>Опубликуйте ваш отзыв</h2>
