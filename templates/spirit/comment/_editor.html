@@ -121,7 +121,7 @@
         };
         CustomHandlers.prototype.addAjaxFlag = function (e, $el) {
             $el.on("eldarion-ajax:modify-data", function (e, data) {
-                if (typeof data === "object") { // using FormData 
+                if (typeof data === "object") { // using FormData
                     hasUsername = data.get('username').length > 0;
                     data.append('ajax', 1);
                 } else if (data != null) {

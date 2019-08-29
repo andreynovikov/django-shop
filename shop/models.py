@@ -22,6 +22,8 @@ from mptt.models import MPTTModel, TreeForeignKey, TreeManyToManyField
 
 from tagging.fields import TagField
 
+from reviews.models import UserReviewAbstractModel, REVIEW_MAX_LENGTH
+
 from model_utils import FieldTracker
 
 from model_field_list import ModelFieldListField
@@ -838,6 +840,10 @@ class Stock(models.Model):
         unique_together = ('product', 'supplier')
 
 
+class ProductReview(UserReviewAbstractModel):
+    comment = models.TextField('комментарий', max_length=REVIEW_MAX_LENGTH, blank=True)
+
+
 class Basket(models.Model):
     session = models.ForeignKey(Session, null=True, on_delete=models.SET_NULL)
     created = models.DateTimeField(auto_now_add=True)
@@ -1371,8 +1377,8 @@ class OrderItem(models.Model):
         return "%s, %d шт." % (self.product.title, self.quantity)
 
     class Meta:
-        verbose_name = 'товар'
-        verbose_name_plural = 'товары'
+        verbose_name = 'товарная позиция'
+        verbose_name_plural = 'товарные позиции'
 
 
 def set_order_item_price(sender, instance, **kwargs):

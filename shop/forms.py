@@ -11,12 +11,19 @@ from django.conf import settings
 
 from djconfig import config
 
+from reviews.forms import ReviewForm
 #import autocomplete_light
 
 from shop.models import Supplier, Product, Stock, Order, OrderItem, ShopUser
 from shop.widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
     OrderItemProductLink, ListTextWidget, YandexDeliveryWidget
 from shop.tasks import import1c
+
+
+class ProductReviewForm(ReviewForm):
+    def __init__(self, *args, **kwargs):
+        super(ProductReviewForm, self).__init__(*args, **kwargs)
+        self.fields['comment'].required = False
 
 
 class UserForm(forms.Form):
