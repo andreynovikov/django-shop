@@ -163,7 +163,7 @@ class Category(MPTTModel):
     image_width = models.IntegerField(null=True, blank=True)
     image_height = models.IntegerField(null=True, blank=True)
     promo_image = models.ImageField('промо изображение', upload_to='categories', blank=True,
-                              width_field='promo_image_width', height_field='promo_image_height')
+                                    width_field='promo_image_width', height_field='promo_image_height')
     promo_image_width = models.IntegerField(null=True, blank=True)
     promo_image_height = models.IntegerField(null=True, blank=True)
     product_order = models.CharField('поле сортировки товаров', max_length=50, default='-price')
@@ -176,14 +176,14 @@ class Category(MPTTModel):
         return reverse('category', kwargs={'path': self.get_path()})
 
     def __str__(self):
-        #return self.name
+        # return self.name
         show_path = False
         import traceback
         tb = traceback.extract_stack(limit=6)
         for line in tb:
-            #if self.id == 15:
-            #    import sys
-            #    print('{}: {}'.format(line.filename, line.name), file=sys.stderr)
+            # if self.id == 15:
+            #     import sys
+            #     print('{}: {}'.format(line.filename, line.name), file=sys.stderr)
             if line.name == 'field_choices' and line.filename.endswith('contrib/admin/filters.py'):
                 show_path = True
             if line.name == 'get' and line.filename.endswith('contrib/admin/views/autocomplete.py'):
@@ -210,10 +210,12 @@ class Currency(models.Model):
     def __str__(self):
         return self.name
 
+
 def update_product_prices(sender, instance, **kwargs):
     products = Product.objects.filter(models.Q(cur_code=instance) | models.Q(ws_cur_code=instance))
     for product in products:
         product.save()
+
 
 post_save.connect(update_product_prices, sender=Currency, dispatch_uid='update_product_prices')
 
@@ -455,19 +457,19 @@ class Product(models.Model):
         spb_price = models.DecimalField('цена СПб, руб', max_digits=10, decimal_places=2, default=0)
     cur_price = models.DecimalField('цена, вал', max_digits=10, decimal_places=2, default=0)
     cur_code = models.ForeignKey(Currency, verbose_name='валюта', related_name="rtprice", on_delete=models.PROTECT, default=643)
-    ws_price =  models.DecimalField('опт. цена, руб', max_digits=10, decimal_places=2, default=0)
-    ws_cur_price =  models.DecimalField('опт. цена, вал', max_digits=10, decimal_places=2, default=0)
+    ws_price = models.DecimalField('опт. цена, руб', max_digits=10, decimal_places=2, default=0)
+    ws_cur_price = models.DecimalField('опт. цена, вал', max_digits=10, decimal_places=2, default=0)
     ws_cur_code = models.ForeignKey(Currency, verbose_name='опт. валюта', related_name="wsprice", on_delete=models.PROTECT, default=643)
     ws_pack_only = models.BooleanField('опт. только упаковкой', default=False)
-    sp_price =  models.DecimalField('цена СП, руб', max_digits=10, decimal_places=2, default=0)
-    sp_cur_price=models.DecimalField('цена СП, вал', max_digits=10, decimal_places=2, default=0)
+    sp_price = models.DecimalField('цена СП, руб', max_digits=10, decimal_places=2, default=0)
+    sp_cur_price = models.DecimalField('цена СП, вал', max_digits=10, decimal_places=2, default=0)
     sp_cur_code = models.ForeignKey(Currency, verbose_name='СП валюта', related_name="spprice", on_delete=models.PROTECT, default=643)
     beru_price = models.DecimalField('цена Беру, руб', max_digits=10, decimal_places=2, default=0)
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
     ws_pct_discount = models.PositiveSmallIntegerField('опт. скидка, %', default=0)
     max_discount = models.PositiveSmallIntegerField('макс. скидка, %', default=10)
-    #todo: not used in logic, only in templates
+    # todo: not used in logic, only in templates
     max_val_discount = models.DecimalField('макс. скидка, руб', max_digits=10, decimal_places=2, null=True, blank=True)
     ws_max_discount = models.PositiveSmallIntegerField('опт. макс. скидка, %', default=10)
     image_prefix = models.CharField('префикс изображения', max_length=200)
@@ -484,58 +486,58 @@ class Product(models.Model):
     extended_warranty = models.CharField('расширенная гарантия', max_length=20, blank=True)
     manufacturer_warranty = models.BooleanField('официальная гарантия', default=False)
 
-    swcode=models.CharField('Код товара в ШМ', max_length=20, blank=True)
-    runame=models.CharField('Русское название', max_length=200, blank=True)
-    sales_notes=models.CharField('Yandex.Market Sales Notes', max_length=50, blank=True)
-    bid=models.CharField('Ставка маркета для основной выдачи', max_length=10, blank=True)
-    cbid=models.CharField('Ставка маркета для карточки модели', max_length=10, blank=True)
-    show_on_sw=models.BooleanField('витрина', default=True, db_index=True, db_column=settings.SHOP_SHOW_DB_COLUMN)
+    swcode = models.CharField('Код товара в ШМ', max_length=20, blank=True)
+    runame = models.CharField('Русское название', max_length=200, blank=True)
+    sales_notes = models.CharField('Yandex.Market Sales Notes', max_length=50, blank=True)
+    bid = models.CharField('Ставка маркета для основной выдачи', max_length=10, blank=True)
+    cbid = models.CharField('Ставка маркета для карточки модели', max_length=10, blank=True)
+    show_on_sw = models.BooleanField('витрина', default=True, db_index=True, db_column=settings.SHOP_SHOW_DB_COLUMN)
     if settings.SHOP_SHOW_DB_COLUMN == 'show_on_sw':
         spb_show_in_catalog = models.BooleanField('витрина СПб', default=True, db_index=True)
-    gift=models.BooleanField('Годится в подарок', default=False)
-    market=models.BooleanField('маркет', default=False, db_index=True, db_column=settings.SHOP_MARKET_DB_COLUMN)
+    gift = models.BooleanField('Годится в подарок', default=False)
+    market = models.BooleanField('маркет', default=False, db_index=True, db_column=settings.SHOP_MARKET_DB_COLUMN)
     if settings.SHOP_MARKET_DB_COLUMN == 'market':
-        spb_market=models.BooleanField('маркет СПб', default=False, db_index=True)
+        spb_market = models.BooleanField('маркет СПб', default=False, db_index=True)
     beru = models.BooleanField('выгружать в Беру', default=False, db_index=True)
-    manufacturer=models.ForeignKey(Manufacturer, verbose_name="Производитель", on_delete=models.PROTECT, default=49)
-    country=models.ForeignKey(Country, verbose_name="Страна производства", on_delete=models.PROTECT, default=1)
-    developer_country=models.ForeignKey(Country, verbose_name="Страна разработки", on_delete=models.PROTECT, related_name="developed_product", default=1)
-    isnew=models.BooleanField('Новинка', default=False)
-    deshevle=models.BooleanField('Нашли дешевле', default=False)
-    recomended=models.BooleanField('Рекомендуем', default=False)
-    absent=models.BooleanField('Нет в продаже', default=False)
-    credit_allowed=models.BooleanField('можно в кредит', default=False)
-    present=models.CharField('Подарок к этому товару', max_length=255, blank=True)
-    coupon=models.BooleanField('Предлагать купон', default=False)
-    not_for_sale=models.BooleanField('Не показывать кнопку заказа', default=False)
-    firstpage=models.BooleanField('Показать на первой странице', default=False)
-    suspend=models.BooleanField('Готовится к выпуску', default=False)
+    manufacturer = models.ForeignKey(Manufacturer, verbose_name="Производитель", on_delete=models.PROTECT, default=49)
+    country = models.ForeignKey(Country, verbose_name="Страна производства", on_delete=models.PROTECT, default=1)
+    developer_country = models.ForeignKey(Country, verbose_name="Страна разработки", on_delete=models.PROTECT, related_name="developed_product", default=1)
+    isnew = models.BooleanField('Новинка', default=False)
+    deshevle = models.BooleanField('Нашли дешевле', default=False)
+    recomended = models.BooleanField('Рекомендуем', default=False)
+    absent = models.BooleanField('Нет в продаже', default=False)
+    credit_allowed = models.BooleanField('можно в кредит', default=False)
+    present = models.CharField('Подарок к этому товару', max_length=255, blank=True)
+    coupon = models.BooleanField('Предлагать купон', default=False)
+    not_for_sale = models.BooleanField('Не показывать кнопку заказа', default=False)
+    firstpage = models.BooleanField('Показать на первой странице', default=False)
+    suspend = models.BooleanField('Готовится к выпуску', default=False)
     order = models.IntegerField('позиция сортировки', default=0, db_index=True)
-    opinion=models.CharField('Ссылка на обсуждение модели', max_length=255, blank=True)
-    allow_reviews=models.BooleanField('Разрешить обзоры', default=True)
-    measure=models.CharField('Единицы', max_length=10, blank=True)
-    weight=models.FloatField('Вес без упаковки, кг', default=0)
+    opinion = models.CharField('Ссылка на обсуждение модели', max_length=255, blank=True)
+    allow_reviews = models.BooleanField('Разрешить обзоры', default=True)
+    measure = models.CharField('Единицы', max_length=10, blank=True)
+    weight = models.FloatField('Вес без упаковки, кг', default=0)
     length = models.DecimalField('длина, см', max_digits=5, decimal_places=2, default=0)
     width = models.DecimalField('ширина, см', max_digits=5, decimal_places=2, default=0)
     height = models.DecimalField('высота, см', max_digits=5, decimal_places=2, default=0)
-    delivery=models.SmallIntegerField('Доставка', default=0)
-    consultant_delivery_price=models.DecimalField('Стоимость доставки с консультантом', max_digits=6, decimal_places=2, default=0)
-    spec=models.TextField('Подробное описание', blank=True)
-    descr=models.TextField('Краткое описание', blank=True)
-    state=models.TextField('Состояние', blank=True)
-    stitches=models.TextField('Строчки', blank=True)
-    complect=models.TextField('Комплектация', blank=True)
-    dealertxt=models.TextField('Текст про официального дилера', blank=True)
-    num=models.IntegerField('в наличии', default=-1, db_column=settings.SHOP_STOCK_DB_COLUMN)
+    delivery = models.SmallIntegerField('Доставка', default=0)
+    consultant_delivery_price = models.DecimalField('Стоимость доставки с консультантом', max_digits=6, decimal_places=2, default=0)
+    spec = models.TextField('Подробное описание', blank=True)
+    descr = models.TextField('Краткое описание', blank=True)
+    state = models.TextField('Состояние', blank=True)
+    stitches = models.TextField('Строчки', blank=True)
+    complect = models.TextField('Комплектация', blank=True)
+    dealertxt = models.TextField('Текст про официального дилера', blank=True)
+    num = models.IntegerField('в наличии', default=-1, db_column=settings.SHOP_STOCK_DB_COLUMN)
     if settings.SHOP_STOCK_DB_COLUMN == 'num':
         spb_num = models.SmallIntegerField('в наличии СПб', default=-1)
         ws_num = models.SmallIntegerField('в наличии Опт', default=-1)
-    stock=models.ManyToManyField(Supplier, through='Stock')
-    pack_factor=models.SmallIntegerField('Количество в упаковке', default=1)
-    shortdescr=models.TextField('Характеристика', blank=True)
-    yandexdescr=models.TextField('Описание для Яндекс.Маркет', blank=True)
-    whatis=models.TextField('Что это такое', blank=True)
-    whatisit=models.CharField('Что это такое, кратко', max_length=50, blank=True)
+    stock = models.ManyToManyField(Supplier, through='Stock')
+    pack_factor = models.SmallIntegerField('Количество в упаковке', default=1)
+    shortdescr = models.TextField('Характеристика', blank=True)
+    yandexdescr = models.TextField('Описание для Яндекс.Маркет', blank=True)
+    whatis = models.TextField('Что это такое', blank=True)
+    whatisit = models.CharField('Что это такое, кратко', max_length=50, blank=True)
     variations = models.CharField('вариации', max_length=255, blank=True)
 
     sales_actions = models.ManyToManyField(SalesAction, related_name='products', related_query_name='product', verbose_name='акции', blank=True)
@@ -544,88 +546,88 @@ class Product(models.Model):
     recalculate_price = models.BooleanField('пересчитывать цену', default=True)
     hide_contents = models.BooleanField('скрыть содержимое', default=True)
 
-    fabric_verylite=models.CharField('Очень легкие ткани', max_length=50, blank=True)
-    fabric_lite=models.CharField('Легкие ткани', max_length=50, blank=True)
-    fabric_medium=models.CharField('Средние ткани', max_length=50, blank=True)
-    fabric_hard=models.CharField('Тяжелые ткани', max_length=50, blank=True)
-    fabric_veryhard=models.CharField('Очень тяжелые ткани', max_length=50, blank=True)
-    fabric_stretch=models.CharField('Трикотаж', max_length=50, blank=True)
-    fabric_leather=models.CharField('Кожа', max_length=50, blank=True)
-    sm_shuttletype=models.CharField('Тип челнока', max_length=50, blank=True)
-    sm_stitchwidth=models.CharField('Максимальная ширина строчки, мм', max_length=50, blank=True)
-    sm_stitchlenght=models.CharField('Максимальная длина стежка, мм', max_length=50, blank=True)
-    sm_stitchquantity=models.SmallIntegerField('Количество строчек', default=0)
-    sm_buttonhole=models.CharField('Режим вымётывания петли', max_length=255, blank=True)
-    sm_dualtransporter=models.CharField('Верхний транспортёр', max_length=50, blank=True)
-    sm_platformlenght=models.CharField('Длина платформы, см', max_length=50, blank=True)
-    sm_freearm=models.CharField('Размеры рукавной платформы (длина/обхват), см', max_length=50, blank=True)
-    ov_freearm=models.CharField('Рукавная платформа', max_length=255, blank=True)
-    sm_feedwidth=models.CharField('Ширина гребёнки транспортера, мм', max_length=50, blank=True)
-    sm_footheight=models.CharField('Высота подъема лапки (нормальная/максимальная)', max_length=50, blank=True)
-    sm_constant=models.CharField('Электронный стабилизатор усилия прокола', max_length=50, blank=True)
-    sm_speedcontrol=models.CharField('Регулятор (ограничитель) максимальной скорости', max_length=50, blank=True)
-    sm_needleupdown=models.CharField('Программируемая остановка иглы в верхнем/нижнем положении', max_length=50, blank=True)
-    sm_threader=models.CharField('Нитевдеватель', max_length=50, blank=True)
-    sm_spool=models.CharField('Горизонтальное расположение катушки', max_length=50, blank=True)
-    sm_presscontrol=models.CharField('Регулятор давления лапки', max_length=50, blank=True)
-    sm_power=models.FloatField('Потребляемая мощность, Вт', default=0)
-    sm_light=models.CharField('Тип освещения', max_length=50, blank=True)
-    sm_organizer=models.CharField('Органайзер', max_length=50, blank=True)
-    sm_autostop=models.CharField('Автостоп при намотке нитки на шпульку', max_length=50, blank=True)
-    sm_ruler=models.CharField('Линейка на корпусе', max_length=50, blank=True)
-    sm_cover=models.CharField('Чехол', max_length=50, blank=True)
-    sm_startstop=models.CharField('Клавиша шитья без педали', max_length=255, blank=True)
-    sm_kneelift=models.CharField('Коленный рычаг подъема лапки', max_length=255, blank=True)
-    sm_display=models.TextField('Дисплей', blank=True)
-    sm_advisor=models.CharField('Швейный советник', max_length=255, blank=True)
-    sm_memory=models.CharField('Память', max_length=255, blank=True)
-    sm_mirror=models.CharField('Зеркальное отображение образца строчки', max_length=255, blank=True)
-    sm_fix=models.CharField('Закрепка', max_length=255, blank=True)
-    sm_alphabet=models.CharField('Алфавит', max_length=255, blank=True)
-    sm_diffeed=models.CharField('Дифференциальный транспортер ткани', max_length=255, blank=True)
-    sm_easythreading=models.CharField('Облегчённая заправка петлителей', max_length=255, blank=True)
-    sm_needles=models.CharField('Стандарт игл', max_length=255, blank=True)
-    sm_software=models.TextField('Возможности встроенного ПО', blank=True)
-    sm_autocutter=models.CharField('Автоматическая обрезка нитей', max_length=255, blank=True)
-    sm_maxi=models.CharField('Макси-узоры', max_length=255, blank=True)
-    sm_autobuttonhole_bool=models.BooleanField('Делает автоматически петлю', default=False)
-    sm_threader_bool=models.BooleanField('Есть нитевдеватель', default=False)
-    sm_dualtransporter_bool=models.BooleanField('Есть встроенный транспортер', default=False)
-    sm_alphabet_bool=models.BooleanField('Есть алфавит', default=False)
-    sm_maxi_bool=models.BooleanField('Есть макси-узоры', default=False)
-    sm_patterncreation_bool=models.BooleanField('Есть функция создания строчек', default=False)
-    sm_advisor_bool=models.BooleanField('Есть швейный советник', default=False)
-    km_class=models.CharField('Класс машины', max_length=255, blank=True)
-    km_font=models.CharField('Количество фонтур', max_length=255, blank=True)
-    km_needles=models.CharField('Количество игл', max_length=255, blank=True)
-    km_prog=models.CharField('Способ программирования', max_length=255, blank=True)
-    km_rapport=models.CharField('Раппорт программируемого рисунка', max_length=255, blank=True)
-    sw_hoopsize=models.CharField('Размер пяльцев', max_length=255, blank=True)
-    sw_datalink=models.CharField('Способ связи с компьютером', max_length=255, blank=True)
-    prom_transporter_type=models.CharField('Тип транспортера', max_length=255, blank=True)
-    prom_shuttle_type=models.CharField('Тип челнока', max_length=255, blank=True)
-    prom_speed=models.CharField('Максимальная скорость шитья', max_length=255, blank=True)
-    prom_needle_type=models.CharField('Размер и тип иглы', max_length=255, blank=True)
-    prom_stitch_lenght=models.CharField('Длина стежка', max_length=255, blank=True)
-    prom_foot_lift=models.CharField('Высота подъема лапки', max_length=255, blank=True)
-    prom_fabric_type=models.CharField('Тип материала', max_length=255, blank=True)
-    prom_oil_type=models.CharField('Тип смазки', max_length=255, blank=True)
-    prom_weight=models.CharField('Вес с упаковкой', max_length=255, blank=True)
-    prom_cutting=models.CharField('Обрезка нити', max_length=255, blank=True)
-    prom_threads_num=models.CharField('Количество нитей', max_length=255, blank=True)
-    prom_power=models.CharField('Мощность', max_length=255, blank=True)
-    prom_bhlenght=models.CharField('Длина петли', max_length=255, blank=True)
-    prom_overstitch_lenght=models.CharField('Максимальная длина обметочного стежка', max_length=255, blank=True)
-    prom_overstitch_width=models.CharField('Максимальная ширина обметочного стежка', max_length=255, blank=True)
-    prom_stitch_width=models.CharField('Ширина зигзагообразной строчки', max_length=255, blank=True)
-    prom_needle_width=models.CharField('Расстояние между иглами', max_length=255, blank=True)
-    prom_needle_num=models.CharField('Количество игл', max_length=255, blank=True)
-    prom_platform_type=models.CharField('Тип платформы', max_length=255, blank=True)
-    prom_button_diaouter=models.CharField('Наружный диаметр пуговицы', max_length=255, blank=True)
-    prom_button_diainner=models.CharField('Внутренний диаметр пуговицы', max_length=255, blank=True)
-    prom_needle_height=models.CharField('Ход игловодителя', max_length=255, blank=True)
-    prom_stitch_type=models.CharField('Тип стежка', max_length=255, blank=True)
-    prom_autothread=models.CharField('Автоматический нитеотводчик', max_length=255, blank=True)
+    fabric_verylite = models.CharField('Очень легкие ткани', max_length=50, blank=True)
+    fabric_lite = models.CharField('Легкие ткани', max_length=50, blank=True)
+    fabric_medium = models.CharField('Средние ткани', max_length=50, blank=True)
+    fabric_hard = models.CharField('Тяжелые ткани', max_length=50, blank=True)
+    fabric_veryhard = models.CharField('Очень тяжелые ткани', max_length=50, blank=True)
+    fabric_stretch = models.CharField('Трикотаж', max_length=50, blank=True)
+    fabric_leather = models.CharField('Кожа', max_length=50, blank=True)
+    sm_shuttletype = models.CharField('Тип челнока', max_length=50, blank=True)
+    sm_stitchwidth = models.CharField('Максимальная ширина строчки, мм', max_length=50, blank=True)
+    sm_stitchlenght = models.CharField('Максимальная длина стежка, мм', max_length=50, blank=True)
+    sm_stitchquantity = models.SmallIntegerField('Количество строчек', default=0)
+    sm_buttonhole = models.CharField('Режим вымётывания петли', max_length=255, blank=True)
+    sm_dualtransporter = models.CharField('Верхний транспортёр', max_length=50, blank=True)
+    sm_platformlenght = models.CharField('Длина платформы, см', max_length=50, blank=True)
+    sm_freearm = models.CharField('Размеры рукавной платформы (длина/обхват), см', max_length=50, blank=True)
+    ov_freearm = models.CharField('Рукавная платформа', max_length=255, blank=True)
+    sm_feedwidth = models.CharField('Ширина гребёнки транспортера, мм', max_length=50, blank=True)
+    sm_footheight = models.CharField('Высота подъема лапки (нормальная/максимальная)', max_length=50, blank=True)
+    sm_constant = models.CharField('Электронный стабилизатор усилия прокола', max_length=50, blank=True)
+    sm_speedcontrol = models.CharField('Регулятор (ограничитель) максимальной скорости', max_length=50, blank=True)
+    sm_needleupdown = models.CharField('Программируемая остановка иглы в верхнем/нижнем положении', max_length=50, blank=True)
+    sm_threader = models.CharField('Нитевдеватель', max_length=50, blank=True)
+    sm_spool = models.CharField('Горизонтальное расположение катушки', max_length=50, blank=True)
+    sm_presscontrol = models.CharField('Регулятор давления лапки', max_length=50, blank=True)
+    sm_power = models.FloatField('Потребляемая мощность, Вт', default=0)
+    sm_light = models.CharField('Тип освещения', max_length=50, blank=True)
+    sm_organizer = models.CharField('Органайзер', max_length=50, blank=True)
+    sm_autostop = models.CharField('Автостоп при намотке нитки на шпульку', max_length=50, blank=True)
+    sm_ruler = models.CharField('Линейка на корпусе', max_length=50, blank=True)
+    sm_cover = models.CharField('Чехол', max_length=50, blank=True)
+    sm_startstop = models.CharField('Клавиша шитья без педали', max_length=255, blank=True)
+    sm_kneelift = models.CharField('Коленный рычаг подъема лапки', max_length=255, blank=True)
+    sm_display = models.TextField('Дисплей', blank=True)
+    sm_advisor = models.CharField('Швейный советник', max_length=255, blank=True)
+    sm_memory = models.CharField('Память', max_length=255, blank=True)
+    sm_mirror = models.CharField('Зеркальное отображение образца строчки', max_length=255, blank=True)
+    sm_fix = models.CharField('Закрепка', max_length=255, blank=True)
+    sm_alphabet = models.CharField('Алфавит', max_length=255, blank=True)
+    sm_diffeed = models.CharField('Дифференциальный транспортер ткани', max_length=255, blank=True)
+    sm_easythreading = models.CharField('Облегчённая заправка петлителей', max_length=255, blank=True)
+    sm_needles = models.CharField('Стандарт игл', max_length=255, blank=True)
+    sm_software = models.TextField('Возможности встроенного ПО', blank=True)
+    sm_autocutter = models.CharField('Автоматическая обрезка нитей', max_length=255, blank=True)
+    sm_maxi = models.CharField('Макси-узоры', max_length=255, blank=True)
+    sm_autobuttonhole_bool = models.BooleanField('Делает автоматически петлю', default=False)
+    sm_threader_bool = models.BooleanField('Есть нитевдеватель', default=False)
+    sm_dualtransporter_bool = models.BooleanField('Есть встроенный транспортер', default=False)
+    sm_alphabet_bool = models.BooleanField('Есть алфавит', default=False)
+    sm_maxi_bool = models.BooleanField('Есть макси-узоры', default=False)
+    sm_patterncreation_bool = models.BooleanField('Есть функция создания строчек', default=False)
+    sm_advisor_bool = models.BooleanField('Есть швейный советник', default=False)
+    km_class = models.CharField('Класс машины', max_length=255, blank=True)
+    km_font = models.CharField('Количество фонтур', max_length=255, blank=True)
+    km_needles = models.CharField('Количество игл', max_length=255, blank=True)
+    km_prog = models.CharField('Способ программирования', max_length=255, blank=True)
+    km_rapport = models.CharField('Раппорт программируемого рисунка', max_length=255, blank=True)
+    sw_hoopsize = models.CharField('Размер пяльцев', max_length=255, blank=True)
+    sw_datalink = models.CharField('Способ связи с компьютером', max_length=255, blank=True)
+    prom_transporter_type = models.CharField('Тип транспортера', max_length=255, blank=True)
+    prom_shuttle_type = models.CharField('Тип челнока', max_length=255, blank=True)
+    prom_speed = models.CharField('Максимальная скорость шитья', max_length=255, blank=True)
+    prom_needle_type = models.CharField('Размер и тип иглы', max_length=255, blank=True)
+    prom_stitch_lenght = models.CharField('Длина стежка', max_length=255, blank=True)
+    prom_foot_lift = models.CharField('Высота подъема лапки', max_length=255, blank=True)
+    prom_fabric_type = models.CharField('Тип материала', max_length=255, blank=True)
+    prom_oil_type = models.CharField('Тип смазки', max_length=255, blank=True)
+    prom_weight = models.CharField('Вес с упаковкой', max_length=255, blank=True)
+    prom_cutting = models.CharField('Обрезка нити', max_length=255, blank=True)
+    prom_threads_num = models.CharField('Количество нитей', max_length=255, blank=True)
+    prom_power = models.CharField('Мощность', max_length=255, blank=True)
+    prom_bhlenght = models.CharField('Длина петли', max_length=255, blank=True)
+    prom_overstitch_lenght = models.CharField('Максимальная длина обметочного стежка', max_length=255, blank=True)
+    prom_overstitch_width = models.CharField('Максимальная ширина обметочного стежка', max_length=255, blank=True)
+    prom_stitch_width = models.CharField('Ширина зигзагообразной строчки', max_length=255, blank=True)
+    prom_needle_width = models.CharField('Расстояние между иглами', max_length=255, blank=True)
+    prom_needle_num = models.CharField('Количество игл', max_length=255, blank=True)
+    prom_platform_type = models.CharField('Тип платформы', max_length=255, blank=True)
+    prom_button_diaouter = models.CharField('Наружный диаметр пуговицы', max_length=255, blank=True)
+    prom_button_diainner = models.CharField('Внутренний диаметр пуговицы', max_length=255, blank=True)
+    prom_needle_height = models.CharField('Ход игловодителя', max_length=255, blank=True)
+    prom_stitch_type = models.CharField('Тип стежка', max_length=255, blank=True)
+    prom_autothread = models.CharField('Автоматический нитеотводчик', max_length=255, blank=True)
 
     class Meta:
         verbose_name = 'товар'
@@ -693,9 +695,9 @@ class Product(models.Model):
     @cached_property
     def breadcrumbs(self):
         for category in self.categories.all():
-             ancestors = category.get_ancestors(include_self=True)
-             if ancestors[0].slug == settings.MPTT_ROOT:
-                 return ancestors
+            ancestors = category.get_ancestors(include_self=True)
+            if ancestors[0].slug == settings.MPTT_ROOT:
+                return ancestors
         return None
 
     @property
@@ -718,7 +720,6 @@ class Product(models.Model):
 
     @property
     def ws_discount(self):
-        pd = Decimal(0)
         if self.ws_pct_discount > 0:
             return (self.ws_price * Decimal(self.ws_pct_discount / 100)).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
         else:
@@ -782,7 +783,7 @@ class Product(models.Model):
         return ['title__icontains', 'code__icontains', 'article__icontains', 'partnumber__icontains']
 
     def __str__(self):
-        #return " ".join([self.partnumber, self.title])
+        # return " ".join([self.partnumber, self.title])
         return self.title
 
 
@@ -794,7 +795,7 @@ class ProductRelation(models.Model):
         (KIND_SIMILAR, 'похожий'),
         (KIND_ACCESSORY, 'аксессуар'),
         (KIND_GIFT, 'подарок'),
-        )
+    )
     parent_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='parent_products', verbose_name='товар')
     child_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='child_products', verbose_name='связанный товар')
     kind = models.SmallIntegerField('тип', choices=RELATIONSHIP_KINDS, default=KIND_SIMILAR, db_index=True)
@@ -849,6 +850,7 @@ class Basket(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     phone = models.CharField(max_length=30, blank=True)
     utm_source = models.CharField(max_length=20, blank=True)
+    secondary = models.BooleanField(default=False)
 
     def product_cost(self, product):
         if WHOLESALE:
@@ -911,7 +913,7 @@ class Basket(models.Model):
             return ''
         pds = ' руб.'
         if pdt:
-             pds = '%'
+            pds = '%'
         return '%d%s' % (pdv, pds)
 
     @property
@@ -975,7 +977,7 @@ class BasketItem(models.Model):
         if WHOLESALE:
             return (self.cost * Decimal(self.quantity)).quantize(Decimal('0.01'), rounding=ROUND_UP)
         else:
-            return (self.cost * Decimal(self.quantity)) #.quantize(Decimal('1'), rounding=ROUND_UP)
+            return (self.cost * Decimal(self.quantity))  # .quantize(Decimal('1'), rounding=ROUND_UP)
 
     @property
     def cost(self):
@@ -1370,7 +1372,7 @@ class OrderItem(models.Model):
             return ''
         pds = ' руб.'
         if pdt:
-             pds = '%'
+            pds = '%'
         return '%d%s' % (pdv, pds)
 
     def __str__(self):
@@ -1385,5 +1387,6 @@ def set_order_item_price(sender, instance, **kwargs):
     if instance._state.adding is True:
         if not instance.product_price:
             instance.product_price = instance.product.price
+
 
 pre_save.connect(set_order_item_price, sender=OrderItem, dispatch_uid="set_order_item_price")
