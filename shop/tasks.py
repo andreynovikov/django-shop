@@ -5,9 +5,10 @@ import datetime
 import logging
 from collections import defaultdict
 from importlib import import_module
-from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
+from decimal import Decimal, ROUND_HALF_EVEN
 
 import django.db
+from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.mail import send_mail
 from django.conf import settings
@@ -30,7 +31,6 @@ from shop.models import ShopUser, Supplier, Currency, Product, Stock, Basket, Or
 
 
 log = logging.getLogger('shop')
-
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
@@ -69,7 +69,7 @@ def notify_user_order_new_mail(order_id):
             'Ваш заказ №%s принят' % order_id,
             msg_plain,
             config.sw_email_from,
-            [order.email,],
+            [order.email],
             html_message=msg_html,
         )
 
@@ -93,7 +93,7 @@ def notify_user_order_collected(order_id):
             'Оплата заказа №%s' % order_id,
             msg_plain,
             config.sw_email_from,
-            [order.email,],
+            [order.email],
             html_message=msg_html,
         )
 
@@ -131,7 +131,7 @@ def notify_user_order_delivered(order_id):
             'Получение заказа №%s' % order_id,
             msg_plain,
             config.sw_email_from,
-            [order.email,],
+            [order.email],
             html_message=msg_html,
         )
 
@@ -153,7 +153,7 @@ def notify_user_order_done(order_id):
             'Заказ №%s выполнен' % order_id,
             msg_plain,
             config.sw_email_from,
-            [order.email,],
+            [order.email],
             html_message=msg_html,
         )
 
@@ -179,9 +179,9 @@ def notify_user_review_products(self, order_id):
         # https://www.unisender.com/ru/support/api/common/api-errors/
         if unisender.errorMessage:
             if unisender.errorCode in ['retry_later', 'api_call_limit_exceeded_for_api_key', 'api_call_limit_exceeded_for_ip']:
-                raise self.retry(countdown=60*60*2, max_retries=5, exc=Exception(unisender.errorMessage)) # 2 hours
+                raise self.retry(countdown=60*60*2, max_retries=5, exc=Exception(unisender.errorMessage))  # 2 hours
             if unisender.errorCode == 'not_enough_money':
-                raise self.retry(countdown=60*60*24, max_retries=5, exc=Exception(unisender.errorMessage)) # 24 hours
+                raise self.retry(countdown=60*60*24, max_retries=5, exc=Exception(unisender.errorMessage))  # 24 hours
             return unisender.errorMessage
 
         # recipient errors
@@ -296,16 +296,16 @@ def import1c(file):
             imported = imported + 1
             try:
                 product = Product.objects.get(article=line['article'])
-                if line['sp_cur_code'] is not '0':
+                if line['sp_cur_code'] != '0':
                     try:
-                        sp_cur_price = float(line['sp_cur_price'].replace('\xA0',''))
+                        sp_cur_price = float(line['sp_cur_price'].replace('\xA0', ''))
                         product.sp_cur_price = int(round(sp_cur_price))
                         product.sp_cur_code = currencies.get(pk=line['sp_cur_code'])
                     except ValueError:
                         errors.append("%s: цена СП" % line['article'])
                 if line['ws_cur_code'] is not '0' and not product.forbid_ws_price_import:
                     try:
-                        ws_cur_price = float(line['ws_cur_price'].replace('\xA0',''))
+                        ws_cur_price = float(line['ws_cur_price'].replace('\xA0', ''))
                         if ws_cur_price > 0:
                             product.ws_cur_price = Decimal(ws_cur_price).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
                         product.ws_cur_code = currencies.get(pk=line['ws_cur_code'])
@@ -313,7 +313,7 @@ def import1c(file):
                         errors.append("%s: оптовая цена" % line['article'])
                 if line['cur_code'] is not '0' and not product.forbid_price_import:
                     try:
-                        price = float(line['cur_price'].replace('\xA0',''))
+                        price = float(line['cur_price'].replace('\xA0', ''))
                         if price > 0 and product.cur_code.code == 643:
                             product.cur_price = int(round(price))
                     except ValueError:
@@ -323,7 +323,7 @@ def import1c(file):
                     if suppliers[idx] is None:
                         continue
                     try:
-                        quantity = float(quantity.replace('\xA0','').replace(',','.'))
+                        quantity = float(quantity.replace('\xA0', '').replace(',', '.'))
                         count = Stock.objects.filter(product=product, supplier=suppliers[idx]).update(quantity=quantity)
                         if count and quantity == 0.0:
                             s = Stock.objects.get(product=product, supplier=suppliers[idx])
@@ -345,7 +345,7 @@ def import1c(file):
             except MultipleObjectsReturned:
                 errors.append("%s: артикль не уникален" % line['article'])
             except ObjectDoesNotExist:
-                #errors.append("%s: товар отсутсвует" % line['article'])
+                # errors.append("%s: товар отсутсвует" % line['article'])
                 pass
 
     reload_maybe()
@@ -380,19 +380,27 @@ def notify_abandoned_basket(self, basket_id, email, phone):
     reload_maybe()
     owner_info = getattr(settings, 'SHOP_OWNER_INFO', {})
 
+    signer = signing.Signer()
+
     restore_url = 'https://{}{}'.format(
         Site.objects.get_current().domain,
         reverse('shop:restore', args=[','.join(map(lambda i: '%s*%s' % (i.product.id, i.quantity), basket.items.all()))])
     )
+    clear_url = 'https://{}{}'.format(
+        Site.objects.get_current().domain,
+        reverse('shop:clear', args=[signer.sign(basket.id)])
+    )
     import sys
     print(restore_url, file=sys.stderr)
+    print(clear_url, file=sys.stderr)
 
     unisender = Unisender(api_key=settings.UNISENDER_KEY)
     if email:
         context = {
             'owner_info': owner_info,
             'basket': basket,
-            'restore_url': restore_url
+            'restore_url': restore_url,
+            'clear_url': clear_url
         }
         result = unisender.sendEmail(email, owner_info.get('short_name', ''), config.sw_email_unisender,
                                      'Вы забыли оформить заказ',
@@ -401,9 +409,9 @@ def notify_abandoned_basket(self, basket_id, email, phone):
         # https://www.unisender.com/ru/support/api/common/api-errors/
         if unisender.errorMessage:
             if unisender.errorCode in ['retry_later', 'api_call_limit_exceeded_for_api_key', 'api_call_limit_exceeded_for_ip']:
-                raise self.retry(countdown=60*60*2, max_retries=5, exc=Exception(unisender.errorMessage)) # 2 hours
+                raise self.retry(countdown=60*60*2, max_retries=5, exc=Exception(unisender.errorMessage))  # 2 hours
             if unisender.errorCode == 'not_enough_money':
-                raise self.retry(countdown=60*60*24, max_retries=5, exc=Exception(unisender.errorMessage)) # 24 hours
+                raise self.retry(countdown=60*60*24, max_retries=5, exc=Exception(unisender.errorMessage))  # 24 hours
             return unisender.errorMessage
         # recipient errors
         for r in result['result']:
@@ -433,7 +441,7 @@ def notify_abandoned_baskets(first_try=True):
     else:
         lt = timezone.now() - datetime.timedelta(days=3)
         gt = lt - datetime.timedelta(days=1)
-    baskets = Basket.objects.filter(created__lt=lt, created__gte=gt)
+    baskets = Basket.objects.filter(secondary=False, created__lt=lt, created__gte=gt)
     num = 0
     for basket in baskets.all():
         email = None
