@@ -943,8 +943,9 @@ class OrderAdmin(LockableModelAdmin):
     list_filter = [OrderStatusListFilter, ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter), OrderDeliveryListFilter,
                    ('delivery_dispatch_date', FutureDateRangeFilter), ('delivery_handing_date', FutureDateRangeFilter),
                    'paid', 'site', 'manager', 'courier']
-    search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment',
-                     'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode', 'manager_comment']
+    search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment',
+                     'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
+                     'item__serial_number']
     inlines = [OrderItemInline] #, AddOrderItemInline]
     change_form_template = 'admin/shop/order/change_form.html' # we do not need this by default but lockable model overrides it
     form = OrderAdminForm
