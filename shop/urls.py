@@ -26,6 +26,10 @@ urlpatterns = [
     url(r'^basket/add/(?P<product_id>\d+)/$', views.add_to_basket, name='add'),
     # ex: /shop/basket/delete/5/
     url(r'^basket/delete/(?P<product_id>\d+)/$', views.delete_from_basket, name='delete'),
+    # ex: /shop/basket/restore/1*2,2*1/
+    url(r'^basket/restore/(?P<restore>[\d,\*]+)/$', views.restore_basket, name='restore'),
+    # ex: /shop/basket/clear/1:bTglh_4sHg/
+    url(r'^basket/clear/(?P<basket_sign>\d+\:[\w_\-]+)/$', views.clear_basket, name='clear'),
     # ex: /shop/basket/unbind/
     url(r'^basket/unbind/$', views.unbind, name='unbind'),
     # ex: /shop/basket/authorize/
