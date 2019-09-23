@@ -4,8 +4,11 @@ import csv
 import datetime
 import logging
 from collections import defaultdict
-from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
+from importlib import import_module
+from decimal import Decimal, ROUND_HALF_EVEN
 
+import django.db
+from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.mail import send_mail
 from django.conf import settings
@@ -21,7 +24,6 @@ from shop.models import Supplier, Currency, Product, Stock, Basket, Order
 
 
 log = logging.getLogger('shop')
-
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
@@ -74,8 +76,8 @@ def notify_user_order_new_mail(order_id):
         send_mail(
             'Ваш заказ №%s принят' % order_id,
             msg_plain,
-            shop_settings['email_from'],
-            [order.email,],
+            config.sw_email_from,
+            [order.email],
             html_message=msg_html,
         )
 
@@ -103,8 +105,8 @@ def notify_user_order_collected(order_id):
         send_mail(
             'Оплата заказа №%s' % order_id,
             msg_plain,
-            shop_settings['email_from'],
-            [order.email,],
+            config.sw_email_from,
+            [order.email],
             html_message=msg_html,
         )
 
@@ -151,8 +153,8 @@ def notify_user_order_delivered(order_id):
         send_mail(
             'Получение заказа №%s' % order_id,
             msg_plain,
-            shop_settings['email_from'],
-            [order.email,],
+            config.sw_email_from,
+            [order.email],
             html_message=msg_html,
         )
 
@@ -173,10 +175,48 @@ def notify_user_order_done(order_id):
         send_mail(
             'Заказ №%s выполнен' % order_id,
             msg_plain,
-            shop_settings['email_from'],
-            [order.email,],
+            config.sw_email_from,
+            [order.email],
             html_message=msg_html,
         )
+
+
+@shared_task(bind=True, autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=300, retry_jitter=False)
+def notify_user_review_products(self, order_id):
+    order = Order.objects.get(id=order_id)
+
+    if order.email:
+        reload_maybe()
+        owner_info = getattr(settings, 'SHOP_OWNER_INFO', {})
+        context = {
+            'owner_info': owner_info,
+            'order': order
+        }
+        msg_html = render_to_string('mail/shop/order_review_products.html', context)
+
+        unisender = Unisender(api_key=settings.UNISENDER_KEY)
+        result = unisender.sendEmail(order.email, owner_info.get('short_name', ''), config.sw_email_unisender,
+                                     'Оцените товары из заказа №%s' % order_id,
+                                     msg_html, settings.UNISENDER_PRODUCT_REVIEW_LIST)
+
+        # https://www.unisender.com/ru/support/api/common/api-errors/
+        if unisender.errorMessage:
+            if unisender.errorCode in ['retry_later', 'api_call_limit_exceeded_for_api_key', 'api_call_limit_exceeded_for_ip']:
+                raise self.retry(countdown=60*60*2, max_retries=5, exc=Exception(unisender.errorMessage))  # 2 hours
+            if unisender.errorCode == 'not_enough_money':
+                raise self.retry(countdown=60*60*24, max_retries=5, exc=Exception(unisender.errorMessage))  # 24 hours
+            return unisender.errorMessage
+
+        # recipient errors
+        for r in result['result']:
+            if 'index' in r and r['index'] == 0:
+                if 'errors' in r:
+                    try:
+                        return r['errors'][0]['message']
+                    except:
+                        return str(r['errors'])
+                else:
+                    return r['id']
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
@@ -279,16 +319,16 @@ def import1c(file):
             imported = imported + 1
             try:
                 product = Product.objects.get(article=line['article'])
-                if line['sp_cur_code'] is not '0':
+                if line['sp_cur_code'] != '0':
                     try:
-                        sp_cur_price = float(line['sp_cur_price'].replace('\xA0',''))
+                        sp_cur_price = float(line['sp_cur_price'].replace('\xA0', ''))
                         product.sp_cur_price = int(round(sp_cur_price))
                         product.sp_cur_code = currencies.get(pk=line['sp_cur_code'])
                     except ValueError:
                         errors.append("%s: цена СП" % line['article'])
                 if line['ws_cur_code'] is not '0' and not product.forbid_ws_price_import:
                     try:
-                        ws_cur_price = float(line['ws_cur_price'].replace('\xA0',''))
+                        ws_cur_price = float(line['ws_cur_price'].replace('\xA0', ''))
                         if ws_cur_price > 0:
                             product.ws_cur_price = Decimal(ws_cur_price).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
                         product.ws_cur_code = currencies.get(pk=line['ws_cur_code'])
@@ -296,7 +336,7 @@ def import1c(file):
                         errors.append("%s: оптовая цена" % line['article'])
                 if line['cur_code'] is not '0' and not product.forbid_price_import:
                     try:
-                        price = float(line['cur_price'].replace('\xA0',''))
+                        price = float(line['cur_price'].replace('\xA0', ''))
                         if price > 0 and product.cur_code.code == 643:
                             product.cur_price = int(round(price))
                     except ValueError:
@@ -307,9 +347,9 @@ def import1c(file):
                     if suppliers[idx] is None:
                         continue
                     try:
-                        quantity = float(quantity.replace('\xA0','').replace(',','.'))
-                        updated = Stock.objects.filter(product=product, supplier=suppliers[idx]).update(quantity=quantity)
-                        if updated and quantity == 0.0:
+                        quantity = float(quantity.replace('\xA0', '').replace(',', '.'))
+                        count = Stock.objects.filter(product=product, supplier=suppliers[idx]).update(quantity=quantity)
+                        if count and quantity == 0.0:
                             s = Stock.objects.get(product=product, supplier=suppliers[idx])
                             if s.correction == 0.0:
                                 s.delete()
@@ -327,8 +367,8 @@ def import1c(file):
                 errors.append("%s: артикль не уникален" % line['article'])
                 next
             except ObjectDoesNotExist:
-                #errors.append("%s: товар отсутсвует" % line['article'])
-                next
+                # errors.append("%s: товар отсутсвует" % line['article'])
+                pass
 
     shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
@@ -350,3 +390,99 @@ def remove_outdated_baskets():
     for basket in baskets.all():
         basket.delete()
     log.info('Deleted %d baskets' % num)
+    SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
+    SessionStore.clear_expired()
+    log.info('Cleared expired sessions')
+
+
+@shared_task(bind=True, autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=3, retry_jitter=False)
+def notify_abandoned_basket(self, basket_id, email, phone):
+    basket = Basket.objects.get(id=basket_id)
+
+    reload_maybe()
+    owner_info = getattr(settings, 'SHOP_OWNER_INFO', {})
+
+    signer = signing.Signer()
+
+    restore_url = 'https://{}{}'.format(
+        Site.objects.get_current().domain,
+        reverse('shop:restore', args=[','.join(map(lambda i: '%s*%s' % (i.product.id, i.quantity), basket.items.all()))])
+    )
+    clear_url = 'https://{}{}'.format(
+        Site.objects.get_current().domain,
+        reverse('shop:clear', args=[signer.sign(basket.id)])
+    )
+    import sys
+    print(restore_url, file=sys.stderr)
+    print(clear_url, file=sys.stderr)
+
+    unisender = Unisender(api_key=settings.UNISENDER_KEY)
+    if email:
+        context = {
+            'owner_info': owner_info,
+            'basket': basket,
+            'restore_url': restore_url,
+            'clear_url': clear_url
+        }
+        result = unisender.sendEmail(email, owner_info.get('short_name', ''), config.sw_email_unisender,
+                                     'Вы забыли оформить заказ',
+                                     render_to_string('mail/shop/basket_abandoned.html', context),
+                                     settings.UNISENDER_ABANDONED_BASKET_LIST)
+        # https://www.unisender.com/ru/support/api/common/api-errors/
+        if unisender.errorMessage:
+            if unisender.errorCode in ['retry_later', 'api_call_limit_exceeded_for_api_key', 'api_call_limit_exceeded_for_ip']:
+                raise self.retry(countdown=60*60*2, max_retries=5, exc=Exception(unisender.errorMessage))  # 2 hours
+            if unisender.errorCode == 'not_enough_money':
+                raise self.retry(countdown=60*60*24, max_retries=5, exc=Exception(unisender.errorMessage))  # 24 hours
+            return unisender.errorMessage
+        # recipient errors
+        for r in result['result']:
+            if 'index' in r and r['index'] == 0:
+                if 'errors' in r:
+                    try:
+                        return r['errors'][0]['message']
+                    except:
+                        return str(r['errors'])
+                else:
+                    return r['id']
+    elif phone:
+        result = send_sms(phone, "Вы забыли оформить заказ: %s" % restore_url)
+        try:
+            return result['descr']
+        except:
+            return result
+
+
+@shared_task(autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=3, retry_jitter=False)
+def notify_abandoned_baskets(first_try=True):
+    SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
+
+    if first_try:
+        lt = timezone.now() - datetime.timedelta(hours=3)
+        gt = lt - datetime.timedelta(hours=1)
+    else:
+        lt = timezone.now() - datetime.timedelta(days=3)
+        gt = lt - datetime.timedelta(days=1)
+    baskets = Basket.objects.filter(secondary=False, created__lt=lt, created__gte=gt)
+    num = 0
+    for basket in baskets.all():
+        email = None
+        phone = None
+
+        session = SessionStore(session_key=basket.session_id).load()
+        uid = session.get('_auth_user_id')
+        if uid:
+            user = ShopUser.objects.get(id=uid)
+            if user.email:
+                email = user.email
+            if user.phone:
+                phone = user.phone
+        if phone is None and basket.phone:
+            phone = basket.phone
+        log.info('email: %s phone: %s' % (email, phone))
+
+        if email or phone:
+            notify_abandoned_basket.delay(basket.id, email, phone)
+            num = num + 1
+    log.info('Sent notifications for %d abandoned baskets' % num)
+    return num
