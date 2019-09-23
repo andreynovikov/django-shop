@@ -4,17 +4,21 @@ import re
 from tidylib import tidy_fragment
 
 from django import forms
+from django.conf import settings
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.forms.models import model_to_dict
-#from suit.widgets import AutosizedTextarea
-from django.conf import settings
+from django.utils.encoding import smart_text
+from django.utils.html import conditional_escape, mark_safe
+
+from mptt.forms import TreeNodeChoiceField, TreeNodeMultipleChoiceField
 
 from djconfig import config
 
 from reviews.forms import ReviewForm
-#import autocomplete_light
 
-from shop.models import Supplier, Product, Stock, Order, OrderItem, ShopUser
+from sewingworld.widgets import AutosizedTextarea
+
+from shop.models import Supplier, Product, Order, OrderItem, ShopUser
 from shop.widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
     OrderItemProductLink, ListTextWidget, YandexDeliveryWidget
 from shop.tasks import import1c
@@ -88,7 +92,7 @@ class YandexDeliveryForm(forms.Form):
     warehouses = yd_client.get('warehouses', [])
     fio = forms.CharField(label='ФИО', required=True)
     fio_last = forms.BooleanField(label='Фамилия в конце', required=False)
-    warehouse = forms.ChoiceField(label='Склад', choices=map(lambda x:(x['id'], x['name']), warehouses))
+    warehouse = forms.ChoiceField(label='Склад', choices=map(lambda x: (x['id'], x['name']), warehouses))
 
     def __init__(self, *args, **kwargs):
         super(YandexDeliveryForm, self).__init__(*args, **kwargs)
@@ -121,10 +125,6 @@ class StockInlineForm(forms.ModelForm):
             self.fields['quantity'].widget = ReadOnlyInput(self.instance.quantity)
 
 
-from django.utils.encoding import smart_text
-from django.utils.html import conditional_escape, mark_safe
-from mptt.forms import TreeNodeChoiceField, TreeNodeMultipleChoiceField
-
 class SWTreeNodeMultipleChoiceField(TreeNodeMultipleChoiceField):
     def label_from_instance(self, obj):
         return mark_safe(conditional_escape(smart_text('/'.join([x['name'] for x in obj.get_ancestors(include_self=True).values()]))))
@@ -141,15 +141,22 @@ class ProductAdminForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'size': 120}),
             'runame': forms.TextInput(attrs={'size': 120}),
             'gtin': forms.TextInput(attrs={'size': 10}),
-            #'spec': AutosizedTextarea(attrs={'rows': 3,}),
-            #'shortdescr': AutosizedTextarea(attrs={'rows': 3,}),
-            #'yandexdescr': AutosizedTextarea(attrs={'rows': 3,}),
-            #'descr': AutosizedTextarea(attrs={'rows': 3,}),
-            #'state': AutosizedTextarea(attrs={'rows': 2,}),
-            #'complect': AutosizedTextarea(attrs={'rows': 3,}),
-            #'dealertxt': AutosizedTextarea(attrs={'rows': 2,}),
+            'whatis': AutosizedTextarea(attrs={'rows': 1}),
+            'spec': AutosizedTextarea(attrs={'rows': 3}),
+            'shortdescr': AutosizedTextarea(attrs={'rows': 3}),
+            'yandexdescr': AutosizedTextarea(attrs={'rows': 3}),
+            'descr': AutosizedTextarea(attrs={'rows': 3}),
+            'state': AutosizedTextarea(attrs={'rows': 1}),
+            'complect': AutosizedTextarea(attrs={'rows': 3}),
+            'dealertxt': AutosizedTextarea(attrs={'rows': 2}),
             'tags': TagAutoComplete(model=ShopUser)
         }
+
+    def clean_article(self):
+        article = self.cleaned_data['article']
+        if article and Product.objects.filter(article=article).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Такой код 1С уже используется")
+        return article
 
     def clean(self):
         cleaned_data = super().clean()
@@ -158,7 +165,7 @@ class ProductAdminForm(forms.ModelForm):
             value = cleaned_data.get(field)
             if not value:
                 continue
-            fragment, errors = tidy_fragment(value, options={'indent':0})
+            fragment, errors = tidy_fragment(value, options={'indent': 0})
             if not fragment:
                 self.add_error(field, forms.ValidationError("Ошибка очистки HTML"))
                 continue
@@ -185,7 +192,7 @@ class OrderItemInlineAdminForm(forms.ModelForm):
         fields = '__all__'
         widgets = {
             'pct_discount': forms.TextInput(attrs={'style': 'width: 3em'}),
-            }
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -231,9 +238,9 @@ class OrderAdminForm(forms.ModelForm):
         }
 
     class Media:
-            js = [
-                'js/time-shortcuts.js'
-            ]
-            css = {
-                'all': ('css/time-shortcuts.css',)
-            }
+        js = [
+            'js/time-shortcuts.js'
+        ]
+        css = {
+            'all': ('css/time-shortcuts.css',)
+        }
