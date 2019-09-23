@@ -819,6 +819,7 @@ class Basket(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     phone = models.CharField(max_length=30, blank=True)
     utm_source = models.CharField(max_length=20, blank=True)
+    secondary = models.BooleanField(default=False)
 
     def product_cost(self, product):
         if WHOLESALE:
