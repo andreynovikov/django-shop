@@ -15,6 +15,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django_ipgeobase.models import IPGeoBase
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
+from django.core import signing
 from django.core.mail import mail_admins
 from django.urls import reverse
 from django.forms.models import model_to_dict
@@ -253,7 +254,21 @@ def restore_basket(request, restore):
         utm_source = request.GET.get('utm_source', None)
         if utm_source:
             basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source) # ASCII only regex
-            basket.save()
+        basket.secondary = True
+        basket.save()
+    return HttpResponseRedirect(reverse('shop:basket'))
+
+
+def clear_basket(request, basket_sign):
+    signer = signing.Signer()
+    try:
+        basket_id = signer.unsign(basket_sign)
+        basket = Basket.objects.get(pk=basket_id)
+        basket.delete()
+    except signing.BadSignature:
+        return HttpResponseForbidden()
+    except Basket.DoesNotExist:
+        pass
     return HttpResponseRedirect(reverse('shop:basket'))
 
 
