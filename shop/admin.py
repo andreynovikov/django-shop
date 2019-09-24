@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.db import connection
 from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, \
     TimeField, DateTimeField, DecimalField, FloatField, Q
+from django.core.exceptions import PermissionDenied
 from django.contrib import admin, messages
 from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin
@@ -385,7 +386,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         spb_fieldset,
         ('Размеры', {
                 'classes': ('collapse', 'suit-tab', 'suit-tab-general'),
-                'fields': ('measure',('weight','prom_weight'),('length','width','height'))
+                'fields': (('measure', 'pack_factor'), ('weight', 'prom_weight'), ('length', 'width', 'height'))
         }),
         ('Вязальные машины', {
                 'classes': ('collapse', 'suit-tab', 'suit-tab-knittingmachines'),
