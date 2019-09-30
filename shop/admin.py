@@ -6,10 +6,9 @@ from django import forms
 from django.urls import reverse
 from django.db import connection
 from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, \
-    TimeField, DateTimeField, DecimalField, FloatField, Q
+    DateTimeField, DecimalField, FloatField, Q
 from django.core.exceptions import PermissionDenied
 from django.contrib import admin, messages
-from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.http import HttpResponse, HttpResponseRedirect
@@ -24,10 +23,8 @@ from django.utils.formats import date_format, number_format
 from django.utils.html import escape
 from django.utils.http import urlquote
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext, ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _
 
-#import autocomplete_light
-#from suit.widgets import AutosizedTextarea
 from daterangefilter.filters import FutureDateRangeFilter, PastDateRangeFilter
 from adminsortable2.admin import SortableAdminMixin
 from django_admin_listfilter_dropdown.filters import DropdownFilter, ChoiceDropdownFilter, RelatedDropdownFilter
@@ -43,18 +40,17 @@ from import_export.admin import ImportExportMixin, ExportMixin
 from yandex_delivery.api import DeliveryClient
 
 from sewingworld.admin import get_sites
+from sewingworld.widgets import AutosizedTextarea
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
     Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, Advert, \
     Product, ProductRelation, ProductSet, ProductKind, SalesAction, Stock, ProductReview, \
-    Basket, BasketItem, Manager, Courier, Order, OrderItem
+    Manager, Courier, Order, OrderItem
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
     OrderDiscountForm, SendSmsForm, SelectTagForm, SelectSupplierForm, ProductAdminForm, \
     ProductKindForm, OrderItemInlineAdminForm, StockInlineForm, YandexDeliveryForm
 from shop.widgets import TagAutoComplete
 from shop.decorators import admin_changelist_link
 from shop.tasks import send_message
-
-from django.apps import AppConfig
 
 
 def product_stock_view(product, order=None):
@@ -105,17 +101,17 @@ def product_stock_view(product, order=None):
 class CategoryForm(forms.ModelForm):
     class Meta:
         widgets = {
-            #'brief': AutosizedTextarea(attrs={'rows': 3,}),
-            #'description': AutosizedTextarea(attrs={'rows': 3,}),
+            'brief': AutosizedTextarea(attrs={'rows': 3}),
+            'description': AutosizedTextarea(attrs={'rows': 3}),
         }
 
 
 @admin.register(Category)
 class CategoryAdmin(DraggableMPTTAdmin):
-    search_fields = ('name','slug')
+    search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
     list_display = ('tree_actions', 'indented_title', 'slug', 'active')
-    #list_editable = ['active']
+    # list_editable = ['active']
     list_display_links = ['indented_title']
     exclude = ('image_width', 'image_height', 'promo_image_width', 'promo_image_height')
     form = CategoryForm
@@ -183,7 +179,7 @@ class ServiceCenterAdmin(admin.ModelAdmin):
 
 @admin.register(Manufacturer)
 class ManufacturerAdmin(admin.ModelAdmin):
-    list_display = ['id', 'code', 'name', 'machinemaker', 'accessorymaker','logo']
+    list_display = ['id', 'code', 'name', 'machinemaker', 'accessorymaker', 'logo']
     list_display_links = ['name']
     list_filter = ['machinemaker', 'accessorymaker']
     search_fields = ['code', 'name']
@@ -201,7 +197,7 @@ class ContractorAdmin(admin.ModelAdmin):
 class AdvertAdminForm(forms.ModelForm):
     class Meta:
         widgets = {
-            #'content': AutosizedTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'}),
+            'content': AutosizedTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'}),
         }
 
 
@@ -217,8 +213,8 @@ class AdvertAdmin(SortableAdminMixin, admin.ModelAdmin):
 class SalesActionAdminForm(forms.ModelForm):
     class Meta:
         widgets = {
-            #'brief': AutosizedTextarea(attrs={'rows': 3, 'style': 'width: 95%; max-height: 500px'}),
-            #'description': AutosizedTextarea(attrs={'rows': 10, 'style': 'width: 95%; max-height: 500px'}),
+            'brief': AutosizedTextarea(attrs={'rows': 3, 'style': 'width: 95%; max-height: 500px'}),
+            'description': AutosizedTextarea(attrs={'rows': 10, 'style': 'width: 95%; max-height: 500px'}),
         }
 
 
@@ -226,7 +222,7 @@ class SalesActionAdminForm(forms.ModelForm):
 class SalesActionAdmin(SortableAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'slug', get_sites, 'active', 'show_in_list']
     list_display_links = ['name']
-    search_fields = ['name','slug']
+    search_fields = ['name', 'slug']
     form = SalesActionAdminForm
 
 
@@ -247,8 +243,8 @@ class ProductRelationAdmin(admin.ModelAdmin):
     list_display = ['parent_product_link', 'child_product_link', 'kind']
     list_display_links = ['parent_product_link', 'child_product_link']
     list_filter = ['kind']
-    search_fields = ['parent_product__title','parent_product__code', 'parent_product__article', 'parent_product__partnumber',
-                     'child_product__title','child_product__code', 'child_product__article', 'child_product__partnumber']
+    search_fields = ['parent_product__title', 'parent_product__code', 'parent_product__article', 'parent_product__partnumber',
+                     'child_product__title', 'child_product__code', 'child_product__article', 'child_product__partnumber']
     autocomplete_fields = ('parent_product', 'child_product')
 
 
@@ -264,7 +260,7 @@ class StockInline(admin.TabularInline):
     }
 
     def has_delete_permission(self, request, obj=None):
-        return obj is None #False
+        return obj is None  # False
 
 
 class ProductSetInline(admin.TabularInline):
@@ -340,11 +336,11 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     form = ProductAdminForm
     change_list_template = 'admin/shop/product/change_list.html'
     resource_class = ProductResource
-    list_display = ['product_codes', 'title', 'combined_price',
+    list_display = ['product_codes', 'title', 'weight', 'length', 'width', 'height', 'combined_price',
                     'combined_discount', 'enabled', 'show_on_sw', 'market', 'spb_market', 'product_stock',
                     'orders_link', 'product_link']
     list_display_links = ['title']
-    list_editable = ['enabled', 'show_on_sw', 'market', 'spb_market']
+    list_editable = ['enabled', 'show_on_sw', 'market', 'spb_market', 'weight', 'length', 'width', 'height']
     list_filter = ['cur_code', ('pct_discount', DropdownFilter), ('val_discount', DropdownFilter),
                    ('categories', RelatedDropdownFilter), 'manufacturer', 'enabled', 'isnew', 'recomended',
                    'show_on_sw', 'market']
@@ -353,173 +349,135 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     readonly_fields = ['price', 'ws_price', 'sp_price']
     save_as = True
     view_on_site = True
-    inlines = (ProductSetInline,ProductRelationInline,StockInline,)
+    inlines = (ProductSetInline, ProductRelationInline, StockInline,)
     filter_vertical = ('categories',)
     autocomplete_fields = ('manufacturer',)
     formfield_overrides = {
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
-        DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 8em'})},
+        DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
+        FloatField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
     }
     spb_fieldset = ('С.Петербург', {
-            'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
-            'fields': ('spb_price', 'forbid_spb_price_import', 'spb_show_in_catalog', 'spb_market')
-        })
+        'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
+        'fields': ('spb_price', 'forbid_spb_price_import', 'spb_show_in_catalog', 'spb_market')
+    })
     fieldsets = (
         ('Основное', {
-                'classes': ('collapse', 'suit-tab', 'suit-tab-general'),
-                'fields': (('code', 'article', 'partnumber'),'title','runame','whatis','kind','categories',('manufacturer','gtin'),
-                           ('country','developer_country'),'variations','spec','shortdescr','yandexdescr','descr','state','complect','dealertxt',)
+            'classes': ('collapse', 'suit-tab', 'suit-tab-general'),
+            'fields': (('code', 'article', 'partnumber'), 'title', 'runame', 'whatis', 'kind', 'categories', ('manufacturer', 'gtin'),
+                       ('country', 'developer_country'), 'variations', 'spec', 'shortdescr', 'yandexdescr', 'descr', 'state', 'complect', 'dealertxt')
         }),
         ('Деньги', {
-                'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
-                'fields': (('cur_price', 'cur_code', 'price'), ('pct_discount', 'val_discount', 'max_discount', 'max_val_discount'),
-                           ('ws_cur_price', 'ws_cur_code', 'ws_price'), 'ws_pack_only', ('ws_pct_discount', 'ws_max_discount'),
-                           ('sp_cur_price', 'sp_cur_code', 'sp_price'), 'beru_price', 'consultant_delivery_price',
-                           ('forbid_price_import', 'forbid_ws_price_import'))
+            'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
+            'fields': (('cur_price', 'cur_code', 'price'), ('pct_discount', 'val_discount', 'max_discount', 'max_val_discount'),
+                       ('ws_cur_price', 'ws_cur_code', 'ws_price'), 'ws_pack_only', ('ws_pct_discount', 'ws_max_discount'),
+                       ('sp_cur_price', 'sp_cur_code', 'sp_price'), 'beru_price', 'consultant_delivery_price',
+                       ('forbid_price_import', 'forbid_ws_price_import'))
         }),
         ('Маркетинг', {
-                'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
-                'fields': (('enabled','show_on_sw','firstpage'),('market', 'beru'),('isnew','recomended','gift'),'credit_allowed','deshevle',
-                           'sales_notes','present','delivery','sales_actions','tags')
+            'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
+            'fields': (('enabled', 'show_on_sw', 'firstpage'), ('market', 'beru'), ('isnew', 'recomended', 'gift'), 'credit_allowed', 'deshevle',
+                       'sales_notes', 'present', 'delivery', 'sales_actions', 'tags')
         }),
         spb_fieldset,
         ('Размеры', {
-                'classes': ('collapse', 'suit-tab', 'suit-tab-general'),
-                'fields': (('measure', 'pack_factor'), ('weight', 'prom_weight'), ('length', 'width', 'height'))
+            'classes': ('collapse', 'suit-tab', 'suit-tab-general'),
+            'fields': (('measure', 'pack_factor'), ('weight', 'prom_weight'), ('length', 'width', 'height'))
         }),
         ('Вязальные машины', {
-                'classes': ('collapse', 'suit-tab', 'suit-tab-knittingmachines'),
-                'fields': (
-                    'km_class',
-                    'km_needles',
-                    'km_font',
-                    'km_prog',
-                    'km_rapport',)
+            'classes': ('collapse', 'suit-tab', 'suit-tab-knittingmachines'),
+            'fields': ('km_class', 'km_needles', 'km_font', 'km_prog', 'km_rapport')
         }),
         ('Швейные машины', {
-                'classes': ('collapse', 'suit-tab', 'suit-tab-sewingmachines'),
-                'fields': (
-                    'stitches',
-                    'fabric_verylite',
-                    'fabric_lite',
-                    'fabric_medium',
-                    'fabric_hard',
-                    'fabric_veryhard',
-                    'fabric_stretch',
-                    'fabric_leather',
-                    'sm_shuttletype',
-                    'sm_stitchwidth',
-                    'sm_stitchlenght',
-                    'sm_stitchquantity',
-                    'sm_buttonhole',
-                    'sm_dualtransporter',
-                    'sm_platformlenght',
-                    'sm_freearm',
-                    'ov_freearm',
-                    'sm_feedwidth',
-                    'sm_footheight',
-                    'sm_constant',
-                    'sm_speedcontrol',
-                    'sm_needleupdown',
-                    'sm_threader',
-                    'sm_spool',
-                    'sm_presscontrol',
-                    'sm_power',
-                    'sm_light',
-                    'sm_organizer',
-                    'sm_autostop',
-                    'sm_ruler',
-                    'sm_cover',
-                    'sm_startstop',
-                    'sm_kneelift',
-                    'sm_display',
-                    'sm_advisor',
-                    'sm_memory',
-                    'sm_mirror',
-                    'sm_fix',
-                    'sm_alphabet',
-                    'sm_diffeed',
-                    'sm_easythreading',
-                    'sm_needles',
-                    'sm_software',
-                    'sm_autocutter',
-                    'sm_maxi',
-                    'sm_autobuttonhole_bool',
-                    'sm_threader_bool',
-                    'sm_dualtransporter_bool',
-                    'sm_alphabet_bool',
-                    'sm_maxi_bool',
-                    'sm_patterncreation_bool',
-                    'sm_advisor_bool',
-                    'sw_datalink',
-                    'sw_hoopsize',)
+            'classes': ('collapse', 'suit-tab', 'suit-tab-sewingmachines'),
+            'fields': ('stitches', 'fabric_verylite', 'fabric_lite', 'fabric_medium', 'fabric_hard', 'fabric_veryhard', 'fabric_stretch',
+                       'fabric_leather', 'sm_shuttletype', 'sm_stitchwidth', 'sm_stitchlenght', 'sm_stitchquantity', 'sm_buttonhole', 'sm_dualtransporter',
+                       'sm_platformlenght', 'sm_freearm', 'ov_freearm', 'sm_feedwidth', 'sm_footheight', 'sm_constant', 'sm_speedcontrol', 'sm_needleupdown',
+                       'sm_threader',
+                       'sm_spool',
+                       'sm_presscontrol',
+                       'sm_power',
+                       'sm_light',
+                       'sm_organizer',
+                       'sm_autostop',
+                       'sm_ruler',
+                       'sm_cover',
+                       'sm_startstop',
+                       'sm_kneelift',
+                       'sm_display',
+                       'sm_advisor',
+                       'sm_memory',
+                       'sm_mirror',
+                       'sm_fix',
+                       'sm_alphabet',
+                       'sm_diffeed',
+                       'sm_easythreading',
+                       'sm_needles',
+                       'sm_software',
+                       'sm_autocutter',
+                       'sm_maxi',
+                       'sm_autobuttonhole_bool',
+                       'sm_threader_bool',
+                       'sm_dualtransporter_bool',
+                       'sm_alphabet_bool',
+                       'sm_maxi_bool',
+                       'sm_patterncreation_bool',
+                       'sm_advisor_bool',
+                       'sw_datalink',
+                       'sw_hoopsize')
         }),
         ('Гарантия', {
-                'classes': ('collapse', 'suit-tab', 'suit-tab-general'),
-                'fields': ('warranty', 'extended_warranty', 'manufacturer_warranty') # запятая в конце нужна, если в списке одна позиция
+            'classes': ('collapse', 'suit-tab', 'suit-tab-general'),
+            'fields': ('warranty', 'extended_warranty', 'manufacturer_warranty')
         }),
         ('Остальное', {
-                'classes': ('collapse', 'suit-tab', 'suit-tab-other'),
-                'fields': (
-                    'order',
-                    'swcode',
-                    'coupon',
-                    'not_for_sale',
-                    'absent',
-                    'suspend',
-                    'opinion',
-                    'allow_reviews',
-                    ('bid','cbid'),
-                    'whatisit',
-                )
+            'classes': ('collapse', 'suit-tab', 'suit-tab-other'),
+            'fields': (
+                'order',
+                'swcode',
+                'coupon',
+                'not_for_sale',
+                'absent',
+                'suspend',
+                'opinion',
+                'allow_reviews',
+                ('bid', 'cbid'),
+                'whatisit',
+            )
         }),
         ('Промышленные машины', {
-                'classes': ('collapse', 'suit-tab', 'suit-tab-prommachines'),
-                'fields': (
-                    'prom_transporter_type',
-                    'prom_shuttle_type',
-                    'prom_speed',
-                    'prom_needle_type',
-                    'prom_stitch_lenght',
-                    'prom_foot_lift',
-                    'prom_fabric_type',
-                    'prom_oil_type',
-                    'prom_cutting',
-                    'prom_threads_num',
-                    'prom_power',
-                    'prom_bhlenght',
-                    'prom_overstitch_lenght',
-                    'prom_overstitch_width',
-                    'prom_stitch_width',
-                    'prom_needle_width',
-                    'prom_needle_num',
-                    'prom_platform_type',
-                    'prom_button_diaouter',
-                    'prom_button_diainner',
-                    'prom_needle_height',
-                    'prom_stitch_type',
-                    'prom_autothread'
-                )
+            'classes': ('collapse', 'suit-tab', 'suit-tab-prommachines'),
+            'fields': (
+                'prom_transporter_type',
+                'prom_shuttle_type',
+                'prom_speed',
+                'prom_needle_type',
+                'prom_stitch_lenght',
+                'prom_foot_lift',
+                'prom_fabric_type',
+                'prom_oil_type',
+                'prom_cutting',
+                'prom_threads_num',
+                'prom_power',
+                'prom_bhlenght',
+                'prom_overstitch_lenght',
+                'prom_overstitch_width',
+                'prom_stitch_width',
+                'prom_needle_width',
+                'prom_needle_num',
+                'prom_platform_type',
+                'prom_button_diaouter',
+                'prom_button_diainner',
+                'prom_needle_height',
+                'prom_stitch_type',
+                'prom_autothread'
+            )
         }),
         ('Комплект', {
-                'classes': ('collapse', 'suit-tab', 'suit-tab-set'),
-                'fields': (
-                    'recalculate_price',
-                    'hide_contents',
-                )
+            'classes': ('collapse', 'suit-tab', 'suit-tab-set'),
+            'fields': ('recalculate_price', 'hide_contents')
         }),
-    )
-    suit_form_tabs = (
-        ('general', 'Основное'),
-        ('money', 'Деньги и маркетинг'),
-        ('sewingmachines', 'Швейные машины'),
-        ('knittingmachines', 'Вязальные машины'),
-        ('prommachines', 'Промышленные машины'),
-        ('other', 'Остальное'),
-        ('set', 'Комплект'),
-        ('related', 'Связанные товары'),
-        ('stock', 'Запасы'),
     )
 
     def get_fieldsets(self, request, obj=None):
@@ -947,10 +905,10 @@ class OrderAdmin(LockableModelAdmin):
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
                      'item__serial_number']
-    inlines = [OrderItemInline] #, AddOrderItemInline]
-    change_form_template = 'admin/shop/order/change_form.html' # we do not need this by default but lockable model overrides it
+    inlines = [OrderItemInline]
+    change_form_template = 'admin/shop/order/change_form.html'  # we do not need this by default but lockable model overrides it
     form = OrderAdminForm
-    autocomplete_fields = ('store','user')
+    autocomplete_fields = ('store', 'user')
     formfield_overrides = {
         TextField: {'widget': forms.Textarea(attrs={'style': 'width: 60%; height: 4em'})},
         PositiveSmallIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 4em'})},
@@ -968,13 +926,13 @@ class OrderAdmin(LockableModelAdmin):
                                'delivery_dispatch_date', ('delivery_tracking_number', 'delivery_yd_order'), 'delivery_info',
                                ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'store',
                                'products_price', 'total', 'id')}),
-            ('1С', {'fields': (('buyer', 'seller','wiring_date'),),}),
-            #('Яндекс.Доставка', {'fields': ('delivery_yd_order',)}),
-            #('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
-            #                          ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
+            ('1С', {'fields': (('buyer', 'seller', 'wiring_date'),)}),
+            # ('Яндекс.Доставка', {'fields': ('delivery_yd_order',)}),
+            # ('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
+            #                           ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
             ('Покупатель', {'fields': [('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux', 'email'),
                                        'address', ('city', 'postcode'), 'comment', ('firm_name', 'is_firm')]}),
-            )
+        )
         if obj is None or obj.is_firm:
             fieldsets[2][1]['fields'].extend(('firm_address', 'firm_details'))
         fieldsets[2][1]['fields'].append('user_tags')
@@ -1078,10 +1036,10 @@ class OrderAdmin(LockableModelAdmin):
                     stock = stock + '<br/>'
             else:
                 stock = '<span style="color: #ff0000">отсутствует</span>'
-            #inner_cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
+            # inner_cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
             #                        INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
             #                        AND shop_orderitem.product_id = %s GROUP BY shop_orderitem.product_id""", (product['product_id'],))
-            #if inner_cursor.rowcount:
+            # if inner_cursor.rowcount:
             #    row = inner_cursor.fetchone()
             #    stock = stock + '<span style="color: #00c">Зак:&nbsp;'
             #    stock = stock + ('%s' % floatformat(row[0]))
@@ -1120,10 +1078,10 @@ class OrderAdmin(LockableModelAdmin):
                         'order': order,
                         'product': item.product,
                         'serial_number': serial_number
-                        }
+                    }
                     return TemplateResponse(request, 'shop/order/warrantycard.html', context)
 
-                except Exception as e:
+                except Exception:
                     # If save() raised, the form will a have a non
                     # field error containing an informative message.
                     pass
@@ -1237,9 +1195,9 @@ class OrderAdmin(LockableModelAdmin):
                     first_name = ''
                     middle_name = ''
                     last_name = ''
-                    if len(fio) == 1: # looks like it's a name only
+                    if len(fio) == 1:  # looks like it's a name only
                         first_name = fio[0]
-                    elif len(fio) == 2: # looks like it's name with surname
+                    elif len(fio) == 2:  # looks like it's name with surname
                         if fio_last:
                             fio.reverse()
                         last_name, first_name = fio
@@ -1252,8 +1210,8 @@ class OrderAdmin(LockableModelAdmin):
                     yd = DeliveryClient(
                         settings.YD_CLIENT['client']['id'],
                         settings.YD_CLIENT['senders'][0]['id'],
-                        list(map(lambda x:x['id'], settings.YD_CLIENT['warehouses'])),
-                        list(map(lambda x:x['id'], settings.YD_CLIENT['requisites'])),
+                        list(map(lambda x: x['id'], settings.YD_CLIENT['warehouses'])),
+                        list(map(lambda x: x['id'], settings.YD_CLIENT['requisites'])),
                         settings.YD_METHODS
                     )
 
@@ -1281,12 +1239,12 @@ class OrderAdmin(LockableModelAdmin):
                             'last_name': last_name,
                             'phone': order.phone,
                             'email': order.email
-                            },
+                        },
                         deliverypoint={
                             'city': order.city,
                             'street': order.address,
                             'index': order.postcode
-                            }
+                        }
                     )
                     yd_order = result['data']['order']['full_num']
 
@@ -1328,29 +1286,29 @@ class OrderAdmin(LockableModelAdmin):
             yd = DeliveryClient(
                 settings.YD_CLIENT['client']['id'],
                 settings.YD_CLIENT['senders'][0]['id'],
-                list(map(lambda x:x['id'], settings.YD_CLIENT['warehouses'])),
-                list(map(lambda x:x['id'], settings.YD_CLIENT['requisites'])),
+                list(map(lambda x: x['id'], settings.YD_CLIENT['warehouses'])),
+                list(map(lambda x: x['id'], settings.YD_CLIENT['requisites'])),
                 settings.YD_METHODS
             )
             result = yd.search_delivery_list('Москва', context['city'], context['weight'], context['width'],
                                              context['height'], context['length'], order_cost=order.total,
                                              total_cost=order.total)
             colors = [
-                '#1E98FF', #blue
-                '#1BAD03', #darkGreen
-                '#ED4543', #red
-                '#E6761B', #darkOrange
-                '#B51EFF', #violet
-                '#0E4779', #night
-                '#FFD21E', #yellow
-                '#177BC9', #darkBlue
-                '#56DB40', #green
-                '#F371D1', #pink
-                '#FF931E', #orange
-                '#B3B3B3', #gray
-                '#82CDFF', #lightBlue
-                '#793D0E', #brown
-                '#97A100', #olive
+                '#1E98FF',  # blue
+                '#1BAD03',  # darkGreen
+                '#ED4543',  # red
+                '#E6761B',  # darkOrange
+                '#B51EFF',  # violet
+                '#0E4779',  # night
+                '#FFD21E',  # yellow
+                '#177BC9',  # darkBlue
+                '#56DB40',  # green
+                '#F371D1',  # pink
+                '#FF931E',  # orange
+                '#B3B3B3',  # gray
+                '#82CDFF',  # lightBlue
+                '#793D0E',  # brown
+                '#97A100',  # olive
             ]
             deliveries = {}
             i = 0
@@ -1456,9 +1414,9 @@ class OrderAdmin(LockableModelAdmin):
             if not order.wiring_date:
                 missing_wiring_date.add(order.id)
         if missing_contractors:
-            self.message_user(request, "В заказах не указан контрагент: %s" % ', '.join(map(str,missing_contractors)), level=messages.ERROR)
+            self.message_user(request, "В заказах не указан контрагент: %s" % ', '.join(map(str, missing_contractors)), level=messages.ERROR)
         elif missing_wiring_date:
-            self.message_user(request, "В заказах не указана дата проводки: %s" % ', '.join(map(str,missing_wiring_date)), level=messages.ERROR)
+            self.message_user(request, "В заказах не указана дата проводки: %s" % ', '.join(map(str, missing_wiring_date)), level=messages.ERROR)
         else:
             template = get_template('admin/shop/order/1c.txt')
             response = HttpResponse(template.render({'orders': queryset}).replace('\n', '\r\n'), content_type='text/xml; charset=utf8')
@@ -1542,7 +1500,7 @@ class OrderAdmin(LockableModelAdmin):
                     datetime.date.today().isoformat())
                 return response
 
-        form = SelectSupplierForm(initial = {'supplier': Supplier.objects.get(code='С3').pk})
+        form = SelectSupplierForm(initial={'supplier': Supplier.objects.get(code='С3').pk})
         context = self.admin_site.each_context(request)
         context['opts'] = self.model._meta
         context['form'] = form
@@ -1600,10 +1558,10 @@ class UserCreationForm(forms.ModelForm):
         'password_mismatch': _("The two password fields didn't match."),
     }
     password1 = forms.CharField(label=_("Password"),
-        widget=forms.PasswordInput)
+                                widget=forms.PasswordInput)
     password2 = forms.CharField(label=_("Password confirmation"),
-        widget=forms.PasswordInput,
-        help_text=_("Enter the same password as above, for verification."))
+                                widget=forms.PasswordInput,
+                                help_text=_("Enter the same password as above, for verification."))
 
     class Meta:
         model = ShopUser
@@ -1629,15 +1587,15 @@ class UserCreationForm(forms.ModelForm):
 
 class UserChangeForm(forms.ModelForm):
     password = ReadOnlyPasswordHashField(help_text=_("Raw passwords are not stored, so there is no way to see "
-                    "this user's password, but you can change the password "
-                    "using <a href=\"../password/\">this form</a>."))
+                                                     "this user's password, but you can change the password "
+                                                     "using <a href=\"../password/\">this form</a>."))
 
     class Meta:
         model = ShopUser
         fields = '__all__'
         widgets = {
             'tags': TagAutoComplete(model=ShopUser),
-            }
+        }
 
     def clean_password(self):
         # Regardless of what the user provides, return the initial value.
@@ -1660,7 +1618,7 @@ class TagListFilter(admin.SimpleListFilter):
 
     def queryset(self, request, queryset):
         if self.value() is not None:
-            #return ShopUser.tagged.with_all(self.value(), queryset)
+            # return ShopUser.tagged.with_all(self.value(), queryset)
             return TaggedItem.objects.get_by_model(queryset, self.value())
 
 
@@ -1685,14 +1643,14 @@ class ShopUserAdmin(ExportMixin, UserAdmin):
     # overrides get_fieldsets to use this attribute when creating a user.
     add_fieldsets = (
         (None, {
-            'fields': ('phone', 'name', 'password1', 'password2')}
-        ),
+            'fields': ('phone', 'name', 'password1', 'password2')
+        }),
     )
     search_fields = ('phone', 'name', 'email', 'tags')
     ordering = ('phone', 'name')
     filter_horizontal = ()
-    #change_list_template = 'admin/change_list_filter_sidebar.html'
-    #change_list_filter_template = 'admin/filter_listing.html'
+    # change_list_template = 'admin/change_list_filter_sidebar.html'
+    # change_list_filter_template = 'admin/filter_listing.html'
     resource_class = ShopUserResource
     change_form_template = 'loginas/change_form.html'
 
@@ -1702,11 +1660,11 @@ class ShopUserAdmin(ExportMixin, UserAdmin):
         fieldsets = [
             (None, {'fields': ('phone', 'password', 'permanent_password')}),
             ('Personal info', {'fields': ('name', 'username', 'email', 'postcode', 'city', 'address')}),
-            ('Marketing', {'fields': ('discount','tags')}),
+            ('Marketing', {'fields': ('discount', 'tags')}),
             ('Important dates', {'fields': ('last_login',)}),
         ]
-        #if obj is None or obj.is_firm:
-        #    fieldsets[2][1]['fields'].extend(('firm_address', 'firm_details'))
+        # if obj is None or obj.is_firm:
+        #     fieldsets[2][1]['fields'].extend(('firm_address', 'firm_details'))
         if request.user.is_superuser:
             fieldsets.append(('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}))
         return fieldsets
