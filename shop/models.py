@@ -612,7 +612,7 @@ class Product(models.Model):
     prom_foot_lift = models.CharField('Высота подъема лапки', max_length=255, blank=True)
     prom_fabric_type = models.CharField('Тип материала', max_length=255, blank=True)
     prom_oil_type = models.CharField('Тип смазки', max_length=255, blank=True)
-    prom_weight = models.CharField('Вес с упаковкой', max_length=255, blank=True)
+    prom_weight = models.FloatField('Вес с упаковкой, кг', default=0)
     prom_cutting = models.CharField('Обрезка нити', max_length=255, blank=True)
     prom_threads_num = models.CharField('Количество нитей', max_length=255, blank=True)
     prom_power = models.CharField('Мощность', max_length=255, blank=True)
