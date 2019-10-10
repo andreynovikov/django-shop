@@ -576,6 +576,7 @@ class Product(models.Model):
     sm_organizer = models.CharField('Органайзер', max_length=50, blank=True)
     sm_autostop = models.CharField('Автостоп при намотке нитки на шпульку', max_length=50, blank=True)
     sm_ruler = models.CharField('Линейка на корпусе', max_length=50, blank=True)
+    sm_wastebin = models.CharField('мусоросборник', max_length=50, blank=True)
     sm_cover = models.CharField('Чехол', max_length=50, blank=True)
     sm_startstop = models.CharField('Клавиша шитья без педали', max_length=255, blank=True)
     sm_kneelift = models.CharField('Коленный рычаг подъема лапки', max_length=255, blank=True)
