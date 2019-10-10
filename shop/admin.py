@@ -366,7 +366,8 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         ('Основное', {
             'classes': ('collapse', 'suit-tab', 'suit-tab-general'),
             'fields': (('code', 'article', 'partnumber'), 'title', 'runame', 'whatis', 'kind', 'categories', ('manufacturer', 'gtin'),
-                       ('country', 'developer_country'), 'variations', 'spec', 'shortdescr', 'yandexdescr', 'descr', 'state', 'complect', 'dealertxt')
+                       ('country', 'developer_country'), 'variations', 'spec', 'shortdescr', 'yandexdescr', 'descr', 'manuals', 'state',
+                       'complect', 'dealertxt')
         }),
         ('Деньги', {
             'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
