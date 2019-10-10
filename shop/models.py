@@ -525,6 +525,7 @@ class Product(models.Model):
     spec = models.TextField('Подробное описание', blank=True)
     descr = models.TextField('Краткое описание', blank=True)
     state = models.TextField('Состояние', blank=True)
+    manuals = models.TextField('инструкции', blank=True)
     stitches = models.TextField('Строчки', blank=True)
     complect = models.TextField('Комплектация', blank=True)
     dealertxt = models.TextField('Текст про официального дилера', blank=True)
@@ -1133,7 +1134,7 @@ class Order(models.Model):
     delivery = models.SmallIntegerField('доставка', choices=DELIVERY_CHOICES, default=DELIVERY_UNKNOWN, db_index=True)
     delivery_price = models.DecimalField('стоимость доставки', max_digits=8, decimal_places=2, default=0)
     delivery_info = models.TextField('ТК, ТТН, курьер', blank=True)
-    delivery_tracking_number = models.CharField('трек-код', max_length=30, blank=True)
+    delivery_tracking_number = models.CharField('трек-код', max_length=30, blank=True, db_index=True)
     delivery_dispatch_date = models.DateField('дата отправки', blank=True, null=True)
     delivery_handing_date = models.DateField('дата получения', blank=True, null=True)
     delivery_time_from = models.TimeField('от', blank=True, null=True)
@@ -1197,6 +1198,8 @@ class Order(models.Model):
         order.utm_source = basket.utm_source
         if order.utm_source == 'yamarket':
             order.site = Site.objects.get(domain='market.yandex.ru')
+        if order.utm_source == 'beru':
+            order.site = Site.objects.get(domain='beru.ru')
         order.name = user.name
         order.postcode = user.postcode
         order.city = user.city
@@ -1212,7 +1215,7 @@ class Order(models.Model):
         # добавляем в заказ все элементы корзины
         for item in basket.items.all():
             # если это опт, то указываем только рублёвую скидку, высчитанную корзиной
-            if WHOLESALE:
+            if WHOLESALE or order.utm_source == 'beru':
                 pct_discount = 0
                 val_discount = item.discount
                 price = item.product.ws_price
