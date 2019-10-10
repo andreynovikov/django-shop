@@ -403,6 +403,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
                        'sm_organizer',
                        'sm_autostop',
                        'sm_ruler',
+                       'sm_wastebin',
                        'sm_cover',
                        'sm_startstop',
                        'sm_kneelift',
