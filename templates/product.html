@@ -262,6 +262,11 @@ gtm_products = [];
 <p>{{ product.spec|safe }}</p>
 {% endif %}
 
+{% if product.manuals %}
+<h2>Инструкции для {{ product.title }}:</h2>
+{{ product.manuals|safe }}
+{% endif %}
+
 {% if product.warranty %}
 <h2>Характеристики {{ product.title }}:</h2>
 {% endif %}
