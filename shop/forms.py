@@ -146,6 +146,7 @@ class ProductAdminForm(forms.ModelForm):
             'shortdescr': AutosizedTextarea(attrs={'rows': 3}),
             'yandexdescr': AutosizedTextarea(attrs={'rows': 3}),
             'descr': AutosizedTextarea(attrs={'rows': 3}),
+            'manuals': AutosizedTextarea(attrs={'rows': 2}),
             'state': AutosizedTextarea(attrs={'rows': 1}),
             'complect': AutosizedTextarea(attrs={'rows': 3}),
             'dealertxt': AutosizedTextarea(attrs={'rows': 2}),
@@ -161,7 +162,7 @@ class ProductAdminForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         # clean HTML in some fields
-        for field in ['shortdescr', 'yandexdescr', 'descr', 'spec', 'state', 'complect', 'stitches', 'dealertxt', 'sm_display', 'sm_software']:
+        for field in ['shortdescr', 'yandexdescr', 'descr', 'spec', 'manuals', 'state', 'complect', 'stitches', 'dealertxt', 'sm_display', 'sm_software']:
             value = cleaned_data.get(field)
             if not value:
                 continue
