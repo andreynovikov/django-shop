@@ -504,15 +504,16 @@ class Product(models.Model):
     length = models.DecimalField('длина, см', max_digits=5, decimal_places=2, default=0)
     width = models.DecimalField('ширина, см', max_digits=5, decimal_places=2, default=0)
     height = models.DecimalField('высота, см', max_digits=5, decimal_places=2, default=0)
-    delivery=models.SmallIntegerField('Доставка', default=0)
-    consultant_delivery_price=models.DecimalField('Стоимость доставки с консультантом', max_digits=6, decimal_places=2, default=0)
-    spec=models.TextField('Подробное описание', blank=True)
-    descr=models.TextField('Краткое описание', blank=True)
-    state=models.TextField('Состояние', blank=True)
-    stitches=models.TextField('Строчки', blank=True)
-    complect=models.TextField('Комплектация', blank=True)
-    dealertxt=models.TextField('Текст про официального дилера', blank=True)
-    num=models.SmallIntegerField('в наличии', default=-1, db_column=settings.SHOP_STOCK_DB_COLUMN)
+    delivery = models.SmallIntegerField('Доставка', default=0)
+    consultant_delivery_price = models.DecimalField('Стоимость доставки с консультантом', max_digits=6, decimal_places=2, default=0)
+    spec = models.TextField('Подробное описание', blank=True)
+    descr = models.TextField('Краткое описание', blank=True)
+    state = models.TextField('Состояние', blank=True)
+    manuals = models.TextField('инструкции', blank=True)
+    stitches = models.TextField('Строчки', blank=True)
+    complect = models.TextField('Комплектация', blank=True)
+    dealertxt = models.TextField('Текст про официального дилера', blank=True)
+    num = models.IntegerField('в наличии', default=-1, db_column=settings.SHOP_STOCK_DB_COLUMN)
     if settings.SHOP_STOCK_DB_COLUMN == 'num':
         spb_num = models.SmallIntegerField('в наличии СПб', default=-1)
         ws_num = models.SmallIntegerField('в наличии Опт', default=-1)
@@ -1109,7 +1110,7 @@ class Order(models.Model):
     delivery = models.SmallIntegerField('доставка', choices=DELIVERY_CHOICES, default=DELIVERY_UNKNOWN, db_index=True)
     delivery_price = models.DecimalField('стоимость доставки', max_digits=8, decimal_places=2, default=0)
     delivery_info = models.TextField('ТК, ТТН, курьер', blank=True)
-    delivery_tracking_number = models.CharField('трек-код', max_length=30, blank=True)
+    delivery_tracking_number = models.CharField('трек-код', max_length=30, blank=True, db_index=True)
     delivery_dispatch_date = models.DateField('дата отправки', blank=True, null=True)
     delivery_handing_date = models.DateField('дата получения', blank=True, null=True)
     delivery_time_from = models.TimeField('от', blank=True, null=True)
@@ -1173,6 +1174,8 @@ class Order(models.Model):
         order.utm_source = basket.utm_source
         if order.utm_source == 'yamarket':
             order.site = Site.objects.get(domain='market.yandex.ru')
+        if order.utm_source == 'beru':
+            order.site = Site.objects.get(domain='beru.ru')
         order.name = user.name
         order.postcode = user.postcode
         order.city = user.city
@@ -1188,7 +1191,7 @@ class Order(models.Model):
         # добавляем в заказ все элементы корзины
         for item in basket.items.all():
             # если это опт, то указываем только рублёвую скидку, высчитанную корзиной
-            if WHOLESALE:
+            if WHOLESALE or order.utm_source == 'beru':
                 pct_discount = 0
                 val_discount = item.discount
             # иначе считаем отдельно скидку в процентах и копируем текущую рублёвую скидку товара
