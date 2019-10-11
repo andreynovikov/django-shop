@@ -1,6 +1,7 @@
 {% load static %}
 {% load site %}
 {% load decimals %}
+{% load l10n %}
 <offer id="{{ product.id }}" type="vendor.model">
     <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=beru&amp;utm_term={{ product.id }}</url>
     <price>{{ product.beru_price|quantize:"1" }}</price>
@@ -30,6 +31,6 @@
     <manufacturer_warranty>true</manufacturer_warranty>
     {% endif %}
     <shop-sku>{{ product.article }}</shop-sku>
-    <weight>1.001</weight>
-    <dimensions>65.55/50.7/20.0</dimensions>
+    <weight>{{ product.prom_weight|unlocalize }}</weight>
+    <dimensions>{{ product.length|unlocalize }}/{{ product.width|unlocalize }}/{{product.height|unlocalize }}</dimensions>
 </offer>

@@ -29,7 +29,6 @@ sitemaps = {
 }
 
 
-
 urlpatterns = [
     # ex: /
     url(r'^$', views.index, name='index'),
@@ -85,6 +84,7 @@ urlpatterns = [
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*
     url(r'^shop/', include('shop.urls')),
+    url(r'^beru/', include('beru.urls')),
     url(r'^blog/', include('zinnia.urls')),
     url(r'^comments/', include('django_comments.urls')),
     url(r'^forum/', include(spirit.urls)),
