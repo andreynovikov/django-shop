@@ -4,6 +4,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.cache import InvalidCacheBackendError, caches
 from django.core.cache.utils import make_template_fragment_key
+from django.contrib.sites.models import Site
 from django.utils import timezone
 
 from tagging.utils import parse_tag_input
@@ -41,6 +42,9 @@ def order_saved(sender, **kwargs):
         item.product.spb_num = -1
         item.product.ws_num = -1
         item.product.save()
+
+    if order.site == Site.objects.get(domain='beru.ru'):
+        return
 
     if order.tracker.has_changed('status'):
         if order.status == Order.STATUS_ACCEPTED:

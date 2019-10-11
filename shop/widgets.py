@@ -5,6 +5,7 @@ import json
 from django import forms
 from django.urls import reverse
 from django.contrib.admin import widgets
+from django.contrib.sites.models import Site
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.forms.utils import flatatt
 from django.forms.widgets import Widget, TextInput
@@ -45,11 +46,12 @@ BOOTSTRAP_INPUT_TEMPLATE = {
            });
        </script>
        """
-    }
+}
+
 
 class PhoneWidget(TextInput):
     def __init__(self, attrs=None, bootstrap_version=None):
-        if bootstrap_version in [2,3]:
+        if bootstrap_version in [2, 3]:
             self.bootstrap_version = bootstrap_version
         else:
             # default 2 to mantain support to old implemetation of django-datetime-widget
@@ -243,15 +245,25 @@ class OrderItemProductLink(Widget):
         self.object = obj
         super().__init__(attrs)
 
+    def num(self, n):
+        return int(n) if n == int(n) else n
+
     def render(self, name, value, attrs=None, renderer=None):
         final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
+        if self.object.order.site == Site.objects.get(domain='beru.ru'):
+            dimensions = mark_safe("<br/>{} кг {}&times;{}&times;{} см".format(
+                self.num(self.object.product.prom_weight), self.num(self.object.product.length), self.num(self.object.product.width),
+                self.num(self.object.product.height))
+            )
+        else:
+            dimensions = ""
         return format_html(
             '<p><a href="{}" target="_blank" style="margin-right: 8px"><i class="fas fa-external-link-alt"></i></a>' + \
             '<input{} /><a href="{}?_popup=1" class="related-widget-wrapper-link">{}</a>' + \
                 ' <a href="{}?_popup=1" class="related-widget-wrapper-link" title="Гарантийный талон"><i class="fas fa-envelope-open-text"></i></a>' + \
-                '&nbsp;<span class="tiny">{}</span></p>', self.object.product.get_absolute_url(), flatatt(final_attrs),
+                '&nbsp;<span class="tiny">{}</span>{}</p>', self.object.product.get_absolute_url(), flatatt(final_attrs),
             reverse('admin:shop_product_stock', args=[self.object.product.id]), str(self.object.product),
-            reverse('admin:print-warranty-card', args=[self.object.order.id, self.object.pk]), self.object.serial_number)
+            reverse('admin:print-warranty-card', args=[self.object.order.id, self.object.pk]), self.object.serial_number, dimensions)
 
 
 class DisablePluralText(forms.TextInput):
