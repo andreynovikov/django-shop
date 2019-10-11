@@ -27,7 +27,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from daterangefilter.filters import FutureDateRangeFilter, PastDateRangeFilter
 from adminsortable2.admin import SortableAdminMixin
-from django_admin_listfilter_dropdown.filters import DropdownFilter, ChoiceDropdownFilter, RelatedDropdownFilter
+from django_admin_listfilter_dropdown.filters import SimpleDropdownFilter, DropdownFilter, ChoiceDropdownFilter, RelatedDropdownFilter
 from mptt.admin import DraggableMPTTAdmin
 from lock_tokens.admin import LockableModelAdmin
 from tagging.models import Tag, TaggedItem
@@ -1606,7 +1606,7 @@ class UserChangeForm(forms.ModelForm):
         return self.initial["password"]
 
 
-class TagListFilter(admin.SimpleListFilter):
+class TagListFilter(SimpleDropdownFilter):
     """
     Filter records by tags for the current model only. Tags are sorted alphabetically by name.
     """
@@ -1640,7 +1640,7 @@ class ShopUserAdmin(ExportMixin, UserAdmin):
     # These override the definitions on the base UserAdmin
     # that reference specific fields on auth.User.
     list_display = ('phone', 'name', 'email', 'discount', 'tags', 'is_staff', 'is_superuser')
-    list_filter = ('discount', TagListFilter, 'groups', 'is_staff', 'is_superuser')
+    list_filter = (('discount', DropdownFilter), TagListFilter, 'groups', 'is_staff', 'is_superuser')
     # add_fieldsets is not a standard ModelAdmin attribute. UserAdmin
     # overrides get_fieldsets to use this attribute when creating a user.
     add_fieldsets = (
