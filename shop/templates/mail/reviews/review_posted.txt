@@ -1,2 +1,2 @@
 {{ review.user }} опубликовал обзор для {{ review.content_object }} с рейтингом {{ review.rating }}.
-https://www.sewing-world.ru{% url 'admin:reviews_review_change' review.id %}
+https://www.sewing-world.ru{% url 'admin:shop_productreview_change' review.id %}

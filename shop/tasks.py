@@ -9,8 +9,9 @@ from decimal import Decimal, ROUND_HALF_EVEN
 
 import django.db
 from django.core import signing
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from django.core.mail import send_mail
+from django.core.validators import EmailValidator
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -33,6 +34,15 @@ from shop.models import ShopUser, Supplier, Currency, Product, Stock, Basket, Or
 log = logging.getLogger('shop')
 
 
+def validate_email(email):
+    validator = EmailValidator()
+    try:
+        validator(email)
+        return True
+    except ValidationError:
+        return False
+
+
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def send_message(phone, message):
     return send_sms(phone, message)
@@ -49,7 +59,7 @@ def notify_user_order_new_sms(order_id, password):
     password_text = ""
     if password:
         password_text = " Пароль: %s" % password
-    return send_sms(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s %s" \
+    return send_sms(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s %s"
                                  % (order_id, Site.objects.get_current().domain, reverse('shop:user_orders'), password_text))
 
 
@@ -57,6 +67,8 @@ def notify_user_order_new_sms(order_id, password):
 def notify_user_order_new_mail(order_id):
     order = Order.objects.get(id=order_id)
     if order.email:
+        if not validate_email(order.email):
+            return
         reload_maybe()
         context = {
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
@@ -77,10 +89,12 @@ def notify_user_order_new_mail(order_id):
 @shared_task(autoretry_for=(Exception,), retry_backoff=True)
 def notify_user_order_collected(order_id):
     order = Order.objects.get(id=order_id)
-    send_sms(order.phone, "Заказ №%s собран и ожидает оплаты. Перейдите по ссылке, чтобы оплатить заказ: https://%s%s" \
+    send_sms(order.phone, "Заказ №%s собран и ожидает оплаты. Перейдите по ссылке, чтобы оплатить заказ: https://%s%s"
                           % (order_id, Site.objects.get_current().domain, reverse('shop:order', args=[order_id])))
 
     if order.email:
+        if not validate_email(order.email):
+            return
         reload_maybe()
         context = {
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
@@ -104,8 +118,8 @@ def notify_user_order_delivered_shop(order_id):
     city = order.store.city.name
     address = order.store.address
     name = order.store.name
-    send_sms(order.phone, "Ваш заказ доставлен в магазин \"%s\" по адресу %s, %s." \
-                          " Для получения заказа обратитесь в кассу и назовите номер" \
+    send_sms(order.phone, "Ваш заказ доставлен в магазин \"%s\" по адресу %s, %s."
+                          " Для получения заказа обратитесь в кассу и назовите номер"
                           " заказа %s." % (name, city, address, order_id))
 
 
@@ -119,6 +133,8 @@ def notify_user_order_delivered(order_id):
     send_sms(order.phone, "Заказ №%s доставлен в %s: %s" % (order_id, title, order.delivery_info))
 
     if order.email:
+        if not validate_email(order.email):
+            return
         reload_maybe()
         context = {
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
@@ -141,6 +157,8 @@ def notify_user_order_done(order_id):
     order = Order.objects.get(id=order_id)
 
     if order.email:
+        if not validate_email(order.email):
+            return
         reload_maybe()
         context = {
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
@@ -163,6 +181,8 @@ def notify_user_review_products(self, order_id):
     order = Order.objects.get(id=order_id)
 
     if order.email:
+        if not validate_email(order.email):
+            return
         reload_maybe()
         owner_info = getattr(settings, 'SHOP_OWNER_INFO', {})
         context = {
@@ -179,9 +199,9 @@ def notify_user_review_products(self, order_id):
         # https://www.unisender.com/ru/support/api/common/api-errors/
         if unisender.errorMessage:
             if unisender.errorCode in ['retry_later', 'api_call_limit_exceeded_for_api_key', 'api_call_limit_exceeded_for_ip']:
-                raise self.retry(countdown=60*60*2, max_retries=5, exc=Exception(unisender.errorMessage))  # 2 hours
+                raise self.retry(countdown=60 * 60 * 2, max_retries=5, exc=Exception(unisender.errorMessage))  # 2 hours
             if unisender.errorCode == 'not_enough_money':
-                raise self.retry(countdown=60*60*24, max_retries=5, exc=Exception(unisender.errorMessage))  # 24 hours
+                raise self.retry(countdown=60 * 60 * 24, max_retries=5, exc=Exception(unisender.errorMessage))  # 24 hours
             return unisender.errorMessage
 
         # recipient errors
@@ -190,7 +210,7 @@ def notify_user_review_products(self, order_id):
                 if 'errors' in r:
                     try:
                         return r['errors'][0]['message']
-                    except:
+                    except Exception:
                         return str(r['errors'])
                 else:
                     return r['id']
@@ -215,7 +235,7 @@ def notify_manager(order_id):
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_review_posted(review_id):
-    review = reviews.get_model().objects.get(id=review_id)
+    review = reviews.get_review_model().objects.get(id=review_id)
 
     reload_maybe()
     msg_plain = render_to_string('mail/reviews/review_posted.txt', {'review': review})
@@ -303,7 +323,7 @@ def import1c(file):
                         product.sp_cur_code = currencies.get(pk=line['sp_cur_code'])
                     except ValueError:
                         errors.append("%s: цена СП" % line['article'])
-                if line['ws_cur_code'] is not '0' and not product.forbid_ws_price_import:
+                if line['ws_cur_code'] != '0' and not product.forbid_ws_price_import:
                     try:
                         ws_cur_price = float(line['ws_cur_price'].replace('\xA0', ''))
                         if ws_cur_price > 0:
@@ -311,7 +331,7 @@ def import1c(file):
                         product.ws_cur_code = currencies.get(pk=line['ws_cur_code'])
                     except ValueError:
                         errors.append("%s: оптовая цена" % line['article'])
-                if line['cur_code'] is not '0' and not product.forbid_price_import:
+                if line['cur_code'] != '0' and not product.forbid_price_import:
                     try:
                         price = float(line['cur_price'].replace('\xA0', ''))
                         if price > 0 and product.cur_code.code == 643:
@@ -409,9 +429,9 @@ def notify_abandoned_basket(self, basket_id, email, phone):
         # https://www.unisender.com/ru/support/api/common/api-errors/
         if unisender.errorMessage:
             if unisender.errorCode in ['retry_later', 'api_call_limit_exceeded_for_api_key', 'api_call_limit_exceeded_for_ip']:
-                raise self.retry(countdown=60*60*2, max_retries=5, exc=Exception(unisender.errorMessage))  # 2 hours
+                raise self.retry(countdown=60 * 60 * 2, max_retries=5, exc=Exception(unisender.errorMessage))  # 2 hours
             if unisender.errorCode == 'not_enough_money':
-                raise self.retry(countdown=60*60*24, max_retries=5, exc=Exception(unisender.errorMessage))  # 24 hours
+                raise self.retry(countdown=60 * 60 * 24, max_retries=5, exc=Exception(unisender.errorMessage))  # 24 hours
             return unisender.errorMessage
         # recipient errors
         for r in result['result']:
@@ -419,7 +439,7 @@ def notify_abandoned_basket(self, basket_id, email, phone):
                 if 'errors' in r:
                     try:
                         return r['errors'][0]['message']
-                    except:
+                    except Exception:
                         return str(r['errors'])
                 else:
                     return r['id']
@@ -427,7 +447,7 @@ def notify_abandoned_basket(self, basket_id, email, phone):
         result = send_sms(phone, "Вы забыли оформить заказ: %s" % restore_url)
         try:
             return result['descr']
-        except:
+        except Exception:
             return result
 
 
@@ -444,6 +464,9 @@ def notify_abandoned_baskets(first_try=True):
     baskets = Basket.objects.filter(secondary=False, created__lt=lt, created__gte=gt)
     num = 0
     for basket in baskets.all():
+        if basket.items.count() == 0:
+            continue
+
         email = None
         phone = None
 
@@ -457,7 +480,6 @@ def notify_abandoned_baskets(first_try=True):
                 phone = user.phone
         if phone is None and basket.phone:
             phone = basket.phone
-        log.info('email: %s phone: %s' % (email, phone))
 
         if email or phone:
             notify_abandoned_basket.delay(basket.id, email, phone)
