@@ -440,10 +440,10 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 {% endif %}
 </dl>
 
-{% if 'images/'|add:product.manufacturer.name|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists or product.stitches %}
+{% if 'images/'|add:product.manufacturer.code|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists or product.stitches %}
 <h2>Строчки {{ product.title }}:</h2>
-{% if 'images/'|add:product.manufacturer.name|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists %}
-<p><img src="{{ MEDIA_URL }}/images/{{ product.manufacturer.name }}/stitches/{{ product.code }}_stitches.jpg" alt="Строчки швейной машины {{ product.title }}" class="img-responsive"></p>
+{% if 'images/'|add:product.manufacturer.code|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists %}
+<p><img src="{{ MEDIA_URL }}/images/{{ product.manufacturer.code }}/stitches/{{ product.code }}_stitches.jpg" alt="Строчки швейной машины {{ product.title }}" class="img-responsive"></p>
 {% endif %}
 {% if product.stitches %}
 {{ product.stitches|safe }}
