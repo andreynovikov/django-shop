@@ -3,9 +3,11 @@ from __future__ import absolute_import
 import csv
 import datetime
 import logging
+import json
 from collections import defaultdict
 from importlib import import_module
 from decimal import Decimal, ROUND_HALF_EVEN
+from urllib.request import Request, urlopen
 
 import django.db
 from django.core import signing
@@ -486,3 +488,19 @@ def notify_abandoned_baskets(first_try=True):
             num = num + 1
     log.info('Sent notifications for %d abandoned baskets' % num)
     return num
+
+
+@shared_task(bind=True, autoretry_for=(OSError, django.db.Error), retry_backoff=300, retry_jitter=False)
+def update_cbrf_currencies(self):
+    url = 'https://www.cbr-xml-daily.ru/daily_json.js'
+    request = Request(url)
+    response = urlopen(request)
+    result = json.loads(response.read().decode('utf-8'))
+    rate = result.get('Valute', {}).get('USD', {}).get('Value', None)
+    if rate:
+        usd_cbrf = Currency.objects.get(code=998)
+        usd_cbrf.rate = rate
+        usd_cbrf.save()
+    else:
+        raise self.retry(countdown=60 * 60, max_retries=4)  # 1 hour
+    return rate
