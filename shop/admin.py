@@ -1,3 +1,4 @@
+import re
 import datetime
 
 from decimal import Decimal, ROUND_UP
@@ -40,11 +41,12 @@ from import_export.admin import ImportExportMixin, ExportMixin
 from utility.admin import get_sites
 from shop.models import ShopUserManager, ShopUser, Category, Supplier, Contractor, \
     Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, Advert, \
-    Product, ProductRelation, ProductSet, ProductKind, SalesAction, Stock, Basket, BasketItem, \
-    Manager, Courier, Order, OrderItem
+    Product, ProductRelation, ProductSet, ProductKind, SalesAction, Stock, ProductReview, \
+    Manager, Courier, Order, OrderItem, Box, Act, ActOrder
 from shop.forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
     OrderDiscountForm, SendSmsForm, SelectTagForm, SelectSupplierForm, ProductAdminForm, \
-    ProductKindForm, OrderItemInlineAdminForm, StockInlineForm, YandexDeliveryForm
+    ProductKindForm, OrderItemInlineAdminForm, BoxInlineAdminForm, StockInlineForm, \
+    YandexDeliveryForm, ActOrderInlineAdminForm
 from shop.widgets import TagAutoComplete
 from shop.decorators import admin_changelist_link
 from shop.tasks import send_message
@@ -598,9 +600,43 @@ class OrderItemInline(admin.TabularInline):
     model = OrderItem
     form = OrderItemInlineAdminForm
     extra = 0
-    fields = ['product_codes', 'product', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'total', 'product_stock']
     autocomplete_fields = ('product',)
     readonly_fields = ['product_codes', 'product_stock', 'item_cost']
+
+    def get_fields(self, request, obj=None):
+        if obj and obj.is_beru:
+            return ['product_codes', 'product', 'quantity', 'total', 'product_stock', 'box']
+        else:
+            return ['product_codes', 'product', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'total', 'product_stock']
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = [elem for elem in self.readonly_fields]
+        if obj and obj.is_beru:
+            readonly_fields += ['quantity']
+        return readonly_fields
+
+    def has_add_permission(self, request, obj=None):
+        return not obj or not obj.is_beru
+
+    def has_delete_permission(self, request, obj=None):
+        return obj and not obj.is_beru
+
+
+class BoxInline(admin.TabularInline):
+    def title(self, obj):
+        if obj.pk:
+            return "{:010d}".format(obj.pk)
+        else:
+            return '-'
+    title.admin_order_field = 'id'
+    title.short_description = '№'
+
+    model = Box
+    form = BoxInlineAdminForm
+    extra = 0
+    fields = ['title', 'weight', 'length', 'width', 'height']
+    readonly_fields = ['title']
+    ordering = ['id']
 
 
 class OrderStatusListFilter(admin.SimpleListFilter):
@@ -714,11 +750,11 @@ class FutureDateFieldListFilter(admin.FieldListFilter):
         else:       # field is a models.DateField
             today = now.date()
         tomorrow = today + datetime.timedelta(days=1)
-        if today.month == 12:
-            next_month = today.replace(year=today.year + 1, month=1, day=1)
-        else:
-            next_month = today.replace(month=today.month + 1, day=1)
-        next_year = today.replace(year=today.year + 1, month=1, day=1)
+        # if today.month == 12:
+        #     next_month = today.replace(year=today.year + 1, month=1, day=1)
+        # else:
+        #     next_month = today.replace(month=today.month + 1, day=1)
+        # next_year = today.replace(year=today.year + 1, month=1, day=1)
         shop_epoch = datetime.date(2000, 1, 1)
 
         self.lookup_kwarg_since = '%s__gte' % field_path
@@ -883,13 +919,15 @@ class OrderAdmin(admin.ModelAdmin):#LockableModelAdmin):
 
     list_display = ['order_name', 'name_and_skyped_phone', 'city', 'total_cost', 'combined_payment', 'combined_delivery',
                     'colored_status', 'combined_comments']
-    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'skyped_phone']
-    list_filter = [OrderStatusListFilter, ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter), 'paid', 'site', 'manager', 'courier', OrderDeliveryListFilter,
-                   ('delivery_dispatch_date', FutureDateRangeFilter), ('delivery_handing_date', FutureDateRangeFilter)]
-    search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment',
-                     'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode', 'manager_comment']
-    inlines = [OrderItemInline] #, AddOrderItemInline]
-    change_form_template = 'admin/shop/order/change_form.html' # we do not need this by default but lockable model overrides it
+    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders']
+    list_filter = [OrderStatusListFilter, ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter), OrderDeliveryListFilter,
+                   ('delivery_dispatch_date', FutureDateRangeFilter), ('delivery_handing_date', FutureDateRangeFilter),
+                   'paid', 'site', 'manager', 'courier']
+    search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment',
+                     'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
+                     'item__serial_number']
+    inlines = [OrderItemInline, BoxInline]
+    change_form_template = 'admin/shop/order/change_form.html'  # we do not need this by default but lockable model overrides it
     form = OrderAdminForm
     autocomplete_fields = ('store','user')
     formfield_overrides = {
@@ -898,28 +936,42 @@ class OrderAdmin(admin.ModelAdmin):#LockableModelAdmin):
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
         DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
     }
-    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_stock_action', 'order_set_user_tag_action']
+    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_stock_action', 'order_set_user_tag_action',
+               'order_act_action']
     save_as = True
     save_on_top = True
     list_per_page = 50
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = (
-            (None, {'fields': (('status', 'payment', 'paid', 'manager', 'site', 'credit_notice'), ('delivery', 'delivery_price', 'courier'),
-                               'delivery_dispatch_date', ('delivery_tracking_number', 'delivery_yd_order'), 'delivery_info',
-                               ('delivery_handing_date', 'delivery_time_from', 'delivery_time_till'), 'manager_comment', 'store',
-                               'products_price', 'total', 'id')}),
-            ('1С', {'fields': (('buyer', 'seller','wiring_date'),),}),
-            #('Яндекс.Доставка', {'fields': ('delivery_yd_order',)}),
-            #('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
-            #                          ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
-            ('Покупатель', {'fields': [('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux', 'email'),
-                                       ('postcode', 'city', 'address'), 'comment', ('firm_name', 'is_firm')]}),
-            )
-        if obj is None or obj.is_firm:
-            fieldsets[2][1]['fields'].extend(('firm_address', 'firm_details'))
-        fieldsets[2][1]['fields'].append('user_tags')
+            (None, {'fields': [['status', 'payment', 'paid', 'manager', 'site'], ['delivery', 'delivery_price'],
+                               'delivery_dispatch_date', ['delivery_tracking_number'], 'delivery_info',
+                               ['delivery_handing_date'], 'manager_comment',
+                               'products_price', 'total', 'id']}),
+            ('1С', {'fields': (('buyer', 'seller', 'wiring_date'),)}),
+            # ('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
+            #                           ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
+            ('Покупатель', {'fields': []})
+        )
+        if obj and obj.is_beru:
+            fieldsets[2][1]['fields'].extend((('user', 'link_to_orders'), 'address', ('city', 'postcode')))
+        else:
+            fieldsets[0][1]['fields'].append('store')
+            fieldsets[0][1]['fields'][0].append('credit_notice')
+            fieldsets[0][1]['fields'][1].append('courier')
+            fieldsets[0][1]['fields'][3].append('delivery_yd_order')
+            fieldsets[0][1]['fields'][5].extend(('delivery_time_from', 'delivery_time_till'))
+            fieldsets[2][1]['fields'].extend((('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux', 'email'),
+                                              'address', ('city', 'postcode'), 'comment', ('firm_name', 'is_firm')))
+            if obj is None or obj.is_firm:
+                fieldsets[2][1]['fields'].extend(('firm_address', 'firm_details'))
+            fieldsets[2][1]['fields'].append('user_tags')
         return fieldsets
+
+    def get_formsets_with_inlines(self, request, obj=None):
+        for inline in self.get_inline_instances(request, obj):
+            if obj.is_beru or not inline.model == Box:
+                yield inline.get_formset(request, obj), inline
 
     def lookup_allowed(self, lookup, value):
         if lookup == 'item__product__pk':
@@ -933,9 +985,12 @@ class OrderAdmin(admin.ModelAdmin):#LockableModelAdmin):
         return qs
 
     def get_readonly_fields(self, request, obj=None):
+        readonly_fields = [elem for elem in self.readonly_fields]
         if obj and not request.user.is_superuser:
-            return self.readonly_fields + ['site']
-        return self.readonly_fields
+            readonly_fields += ['site']
+        if obj and obj.is_beru:
+            readonly_fields += ['delivery_tracking_number', 'delivery_handing_date']
+        return readonly_fields
 
     def changelist_view(self, request, extra_context=None):
         if not request.user.is_staff:
@@ -956,6 +1011,9 @@ class OrderAdmin(admin.ModelAdmin):#LockableModelAdmin):
             url(r'(\d+)/item/(\d+)/print_warranty_card/$', self.admin_site.admin_view(self.print_warranty_card), name='print-warranty-card'),
             url(r'(\d+)/combine/$', self.admin_site.admin_view(self.combine_form), name='shop_order_combine'),
             url(r'(\d+)/discount/$', self.admin_site.admin_view(self.discount_form), name='shop_order_discount'),
+            url(r'(\d+)/yandex_delivery/$', self.admin_site.admin_view(self.yandex_delivery_form), name='shop_order_yandex_delivery'),
+            url(r'(\d+)/yandex_delivery_estimate/$', self.admin_site.admin_view(self.yandex_delivery_estimate), name='shop_order_yandex_delivery_estimate'),
+            url(r'(\d+)/beru_labels/$', self.admin_site.admin_view(self.beru_labels), name='shop_order_beru_labels'),
             url(r'sms/(\+\d+)/$', self.admin_site.admin_view(self.send_sms_form), name='shop_order_send_sms'),
         ]
         return my_urls + urls
@@ -996,7 +1054,7 @@ class OrderAdmin(admin.ModelAdmin):#LockableModelAdmin):
                           FROM shop_product
                           INNER JOIN shop_orderitem ON (shop_product.id = shop_orderitem.product_id)
                           INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id)""" + where +
-                          """ GROUP BY shop_order.id, shop_product.id ORDER BY """ + sort)
+                       """ GROUP BY shop_order.id, shop_product.id ORDER BY """ + sort)
         products = []
         for row in cursor.fetchall():
             columns = (x[0] for x in cursor.description)
@@ -1158,6 +1216,256 @@ class OrderAdmin(admin.ModelAdmin):#LockableModelAdmin):
         context['action_title'] = "Применить"
 
         return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+
+    def yandex_delivery_form(self, request, id):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        order = Order.objects.get(pk=id)
+        messages = None
+        if request.method != 'POST':
+            initial = {
+                'fio': order.name,
+            }
+            form = YandexDeliveryForm(initial=initial)
+            is_popup = request.GET.get('_popup', 0)
+        else:
+            form = YandexDeliveryForm(request.POST)
+            is_popup = request.POST.get('_popup', 0)
+            if form.is_valid():
+                try:
+                    fio_last = form.cleaned_data['fio_last']
+                    warehouse = form.cleaned_data['warehouse']
+
+                    fio = order.name.split(' ')
+                    first_name = ''
+                    middle_name = ''
+                    last_name = ''
+                    if len(fio) == 1:  # looks like it's a name only
+                        first_name = fio[0]
+                    elif len(fio) == 2:  # looks like it's name with surname
+                        if fio_last:
+                            fio.reverse()
+                        last_name, first_name = fio
+                    else:
+                        if fio_last:
+                            first_name, middle_name, last_name = fio
+                        else:
+                            last_name, first_name, middle_name = fio
+
+                    yd = DeliveryClient(
+                        settings.YD_CLIENT['client']['id'],
+                        settings.YD_CLIENT['senders'][0]['id'],
+                        list(map(lambda x: x['id'], settings.YD_CLIENT['warehouses'])),
+                        list(map(lambda x: x['id'], settings.YD_CLIENT['requisites'])),
+                        settings.YD_METHODS
+                    )
+
+                    order_items = []
+                    for item in order.items.all():
+                        if item.quantity > 1:
+                            title = '{} ({} шт.)'.format(item.product.title, item.quantity)
+                        else:
+                            title = item.product.title
+                        order_items.append({
+                            'orderitem_id': item.product.id,
+                            'orderitem_article': item.product.code,
+                            'orderitem_name': title,
+                            'orderitem_cost': item.price,
+                            'orderitem_quantity': 1
+                        })
+
+                    result = yd.create_order(
+                        order_num=order.id,
+                        order_warehouse=warehouse,
+                        order_items=order_items,
+                        recipient={
+                            'first_name': first_name,
+                            'middle_name': middle_name,
+                            'last_name': last_name,
+                            'phone': order.phone,
+                            'email': order.email
+                        },
+                        deliverypoint={
+                            'city': order.city,
+                            'street': order.address,
+                            'index': order.postcode
+                        }
+                    )
+                    yd_order = result['data']['order']['full_num']
+
+                    return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
+                                        '<script type="text/javascript">opener.dismissYandexDeliveryPopup(window, "%s", "%s");</script>'
+                                        '</body></html>' % (Order.DELIVERY_YANDEX, yd_order))
+
+                except Exception as e:
+                    form.errors['__all__'] = form.error_class([str(e)])
+
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['form'] = form
+        context['is_popup'] = is_popup
+        context['messages'] = messages
+        context['title'] = "Создать черновик заказа"
+        context['action_title'] = "Создать"
+
+        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+
+    def yandex_delivery_estimate(self, request, id):
+        if not request.user.is_staff:
+            raise PermissionDenied
+
+        order = Order.objects.get(pk=id)
+
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['is_popup'] = request.GET.get('_popup', 0)
+        context['title'] = "Варианты доставки"
+        context['order'] = order
+        context['city'] = request.GET.get('city', order.city)
+        context['weight'] = request.GET.get('weight', 10)
+        context['height'] = request.GET.get('height', 27)
+        context['length'] = request.GET.get('length', 50)
+        context['width'] = request.GET.get('width', 40)
+
+        try:
+            yd = DeliveryClient(
+                settings.YD_CLIENT['client']['id'],
+                settings.YD_CLIENT['senders'][0]['id'],
+                list(map(lambda x: x['id'], settings.YD_CLIENT['warehouses'])),
+                list(map(lambda x: x['id'], settings.YD_CLIENT['requisites'])),
+                settings.YD_METHODS
+            )
+            result = yd.search_delivery_list('Москва', context['city'], context['weight'], context['width'],
+                                             context['height'], context['length'], order_cost=order.total,
+                                             total_cost=order.total)
+            colors = [
+                '#1E98FF',  # blue
+                '#1BAD03',  # darkGreen
+                '#ED4543',  # red
+                '#E6761B',  # darkOrange
+                '#B51EFF',  # violet
+                '#0E4779',  # night
+                '#FFD21E',  # yellow
+                '#177BC9',  # darkBlue
+                '#56DB40',  # green
+                '#F371D1',  # pink
+                '#FF931E',  # orange
+                '#B3B3B3',  # gray
+                '#82CDFF',  # lightBlue
+                '#793D0E',  # brown
+                '#97A100',  # olive
+            ]
+            deliveries = {}
+            i = 0
+            for delivery in result['data']:
+                delivery_type = deliveries.get(delivery['type'], None)
+                if delivery_type is None:
+                    delivery_type = []
+                    deliveries[delivery['type']] = delivery_type
+                shop_cost = delivery['costWithRules']
+                required_services = []
+                optional_services = []
+                for service in delivery['services']:
+                    if service['optional']:
+                        optional_services.append(service)
+                    else:
+                        required_services.append(service)
+                        shop_cost = shop_cost + service['cost']
+                delivery['required_services'] = required_services
+                delivery['optional_services'] = optional_services
+                delivery['shop_cost'] = shop_cost
+                pickup_points = delivery.get('pickupPoints', [])
+                if len(pickup_points):
+                    delivery['color'] = colors[i]
+                    i = i + 1
+                else:
+                    delivery['color'] = '#FFFFFF'
+                dmf = datetime.time.max
+                dmt = datetime.time.min
+                for point in pickup_points:
+                    mf = datetime.time.max
+                    mt = datetime.time.min
+                    for schedule in point.get('schedules', []):
+                        fr = datetime.datetime.strptime(schedule['from'], '%H:%M:%S').time()
+                        tl = datetime.datetime.strptime(schedule['to'], '%H:%M:%S').time()
+                        if fr < mf:
+                            mf = fr
+                        if tl > mt:
+                            mt = tl
+                        if fr < dmf:
+                            dmf = fr
+                        if tl > dmt:
+                            dmt = tl
+                    if mf != datetime.time.max and mt != datetime.time.min:
+                        point['delivery_interval'] = mark_safe('{}&ndash;{}'.format(mf.strftime('%H:%M'), mt.strftime('%H:%M')))
+                if dmf == datetime.time.max or dmt == datetime.time.min:
+                    for delivery_interval in delivery.get('deliveryIntervals', []):
+                        fr = datetime.datetime.strptime(delivery_interval['from'], '%H:%M:%S').time()
+                        tl = datetime.datetime.strptime(delivery_interval['to'], '%H:%M:%S').time()
+                        if fr < dmf:
+                            dmf = fr
+                        if tl > dmt:
+                            dmt = tl
+                if dmf != datetime.time.max and dmt != datetime.time.min:
+                    delivery['delivery_interval'] = mark_safe('{}&ndash;{}'.format(dmf.strftime('%H:%M'), dmt.strftime('%H:%M')))
+                delivery_type.append(delivery)
+
+            context['deliveries'] = deliveries
+            context['result'] = result['data']
+
+        except Exception as e:
+            context['error'] = str(e)
+
+        return TemplateResponse(request, 'admin/shop/order/yandex_delivery_estimate.html', context)
+
+    def beru_labels(self, request, id):
+        if not request.user.is_staff:
+            raise PermissionDenied
+
+        from beru.tasks import get_beru_order_details
+        import barcode
+
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['is_popup'] = request.GET.get('_popup', 0)
+
+        order = Order.objects.get(pk=id)
+
+        try:
+            beru_order = get_beru_order_details(order.id)
+            beru_order_id = str(beru_order.get('id', 0))
+
+            CODE128 = barcode.get_barcode_class('code128')
+            order_barcode = CODE128(str(order.id)).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
+            order_barcode = re.sub(r'^.*(?=<svg)', '', order_barcode)
+            beru_order_barcode = CODE128(beru_order_id).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
+            beru_order_barcode = re.sub(r'^.*(?=<svg)', '', beru_order_barcode)
+
+            count = 0
+            shipments = []
+            delivery = beru_order.get('delivery', {})
+            for box in order.boxes.all():
+                count += 1
+                barcode = CODE128(box.code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
+                barcode = re.sub(r'^.*(?=<svg)', '', barcode)
+                shipments.append({
+                    'id': box.code,
+                    'barcode': mark_safe(barcode),
+                    'weight': box.weight
+                })
+
+            context['beru_order'] = beru_order
+            context['order'] = order
+            context['delivery_service_name'] = delivery.get('serviceName', '')
+            context['delivery_service_id'] = delivery.get('deliveryServiceId', '')
+            context['beru_order_barcode'] = mark_safe(beru_order_barcode)
+            context['order_barcode'] = mark_safe(order_barcode)
+            context['shipments'] = shipments
+            context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
+        except Exception as e:
+            context['error'] = getattr(e, 'message', str(e))
+
+        return TemplateResponse(request, 'shop/order/beru_labels.html', context)
 
     def send_sms_form(self, request, phone):
         if not request.user.is_staff:
@@ -1338,10 +1646,103 @@ class OrderAdmin(admin.ModelAdmin):#LockableModelAdmin):
         return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
     order_set_user_tag_action.short_description = "Добавить тег покупателю"
 
-    def get_actions(self, request):
-        actions = super(OrderAdmin, self).get_actions(request)
-        del actions['delete_selected']
-        return actions
+    def order_act_action(self, request, queryset):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        wrong_status = set()
+        already_acted = set()
+        for order in queryset:
+            if order.status != Order.STATUS_COLLECTED:
+                wrong_status.add(order.id)
+            if order.acts.exists():
+                already_acted.add(order.id)
+        if wrong_status:
+            self.message_user(request, "Нельзя выписать акт по несобранным заказам: %s" % ', '.join(map(str, wrong_status)), level=messages.ERROR)
+        elif already_acted:
+            self.message_user(request, "Некоторые заказы уже описаны в других актах: %s" % ', '.join(map(str, already_acted)), level=messages.ERROR)
+        else:
+            act = Act()
+            act.save()
+            # act.orders.add(*queryset) - will be available in Django 2.2
+            for order in queryset:
+                ActOrder.objects.create(act=act, order=order)
+            for order in queryset:  # we do it in separate loops to correctly handle errors
+                order.status = Order.STATUS_SENT
+                order.save()
+            return HttpResponseRedirect(reverse('admin:shop_act_change', args=[act.pk]))
+    order_act_action.short_description = "Сформировать акт"
+
+
+class ActOrderInline(admin.TabularInline):
+    model = ActOrder
+    form = ActOrderInlineAdminForm
+    fk_name = 'act'
+    ordering = ('order__pk',)
+    autocomplete_fields = ('order',)
+    extra = 0
+    verbose_name = "заказ"
+    verbose_name_plural = "заказы"
+
+
+@admin.register(Act)
+class ActAdmin(admin.ModelAdmin):
+    def title(self, obj):
+        return str(obj)
+    title.admin_order_field = 'id'
+    title.short_description = '№'
+
+    list_display = ('title',)
+    search_fields = ('id',)
+    ordering = ('-id',)
+    inlines = (ActOrderInline,)
+    date_hierarchy = 'created'
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def get_urls(self):
+        urls = super(ActAdmin, self).get_urls()
+        my_urls = [
+            url(r'(\d+)/print/$', self.admin_site.admin_view(self.print_document), name='shop_act_print'),
+        ]
+        return my_urls + urls
+
+    def print_document(self, request, id):
+        if not request.user.is_staff:
+            raise PermissionDenied
+
+        from beru.tasks import get_beru_order_details
+
+        context = self.admin_site.each_context(request)
+        context['opts'] = self.model._meta
+        context['is_popup'] = request.GET.get('_popup', 0)
+
+        act = Act.objects.get(pk=id)
+
+        try:
+            orders = []
+            for order in act.orders.all():
+                beru_order = get_beru_order_details(order.id)
+                shipments = beru_order.get('delivery', {}).get('shipments', [])
+                if not shipments:
+                    raise ValueError("Не удалось получить номер отправления для заказа {}".format(order.id))
+                shipment_id = str(shipments[0].get('id', 0))
+                if not shipment_id:
+                    raise ValueError("Не удалось получить номер отправления для заказа {}".format(order.id))
+                orders.append({
+                    'id': order.id,
+                    'shipment_id': shipment_id,
+                    'total': order.total,
+                    'weight': order.weight,
+                    'boxes': order.boxes.all()
+                })
+            context['act'] = act
+            context['orders'] = orders
+            context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
+        except Exception as e:
+            context['error'] = getattr(e, 'message', str(e))
+
+        return TemplateResponse(request, 'shop/act/document.html', context)
 
 
 class UserCreationForm(forms.ModelForm):
