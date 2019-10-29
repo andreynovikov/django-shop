@@ -1146,6 +1146,19 @@ class Order(models.Model):
             quantity += item.quantity
         return quantity
 
+    @property
+    def weight(self):
+        weight = 0
+        for item in self.items.all():
+            if item.product.prom_weight == 0:
+                return None
+            weight += item.product.prom_weight
+        return weight
+
+    @cached_property
+    def is_beru(self):
+        return self.site == Site.objects.get(domain='beru.ru')
+
     @staticmethod
     def register(basket):
         session_data = basket.session.get_decoded()
@@ -1264,6 +1277,31 @@ class Order(models.Model):
         )
 
 
+class Box(models.Model):
+    order = models.ForeignKey(Order, related_name='boxes', related_query_name='box', on_delete=models.CASCADE)
+    weight = models.FloatField('вес, кг', default=0)
+    length = models.DecimalField('длина, см', max_digits=5, decimal_places=2, default=0)
+    width = models.DecimalField('ширина, см', max_digits=5, decimal_places=2, default=0)
+    height = models.DecimalField('высота, см', max_digits=5, decimal_places=2, default=0)
+
+    def num(self, n):
+        return int(n) if n == int(n) else n
+
+    @property
+    def code(self):
+        return "{:010d}".format(self.pk)
+
+    def __str__(self):
+        if self.pk:
+            return "{:010d} - {}x{}x{}см".format(self.pk, self.num(self.length), self.num(self.width), self.num(self.height))
+        else:
+            return super(Box, self).__str__()
+
+    class Meta:
+        verbose_name = 'коробка'
+        verbose_name_plural = 'коробки'
+
+
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', related_query_name='item', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, related_name='+', verbose_name='товар', on_delete=models.PROTECT)
@@ -1273,6 +1311,7 @@ class OrderItem(models.Model):
     quantity = models.PositiveSmallIntegerField('количество', default=1)
     total = models.DecimalField('сумма', max_digits=10, decimal_places=2, default=0)
     serial_number = models.CharField('SN', max_length=30, blank=True)
+    box = models.ForeignKey(Box, blank=True, null=True, related_name='products', related_query_name='box', verbose_name='коробка', on_delete=models.SET_NULL)
 
     @property
     def price(self):
@@ -1349,3 +1388,28 @@ def set_order_item_price(sender, instance, **kwargs):
             instance.product_price = instance.product.price
 
 pre_save.connect(set_order_item_price, sender=OrderItem, dispatch_uid="set_order_item_price")
+
+
+class Act(models.Model):
+    orders = models.ManyToManyField(Order, verbose_name='заказы', through='ActOrder', related_name='acts', db_index=True)
+    created = models.DateField('дата формирования', default=datetime.date.today)
+
+    @property
+    def number(self):
+        return "№{:08d}".format(self.pk)
+
+    def __str__(self):
+        return "№{:08d} от {}".format(self.pk, date_format(self.created, "DATE_FORMAT"))
+
+    class Meta:
+        verbose_name = 'акт'
+        verbose_name_plural = 'акты'
+
+
+class ActOrder(models.Model):
+    act = models.ForeignKey(Act, on_delete=models.CASCADE, verbose_name='акт')
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, verbose_name='заказ')
+
+    class Meta:
+        verbose_name = 'актированный заказ'
+        verbose_name_plural = 'актированные заказы'
