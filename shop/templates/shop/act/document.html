@@ -1,0 +1,68 @@
+<html>
+<head>
+<style type="text/css">
+.beru_act tr td {border:1px solid black;padding:3pt;}
+.beru_act {width:100%}
+.beru_signature tr td {padding:10pt;width:50%;vertical-align:top;}
+.beru_signature {width:100%}
+</style>
+</head>
+<body>
+{% if error %}
+{{ error }}
+{% else %}
+<h1>Акт приема-передачи Отправлений {{ act.number }}</h1>
+<div style="max-width:190mm">
+<p>{{ act.created }}</p>
+
+<p>Заказчик: {{ owner_info.full_name }}</p>
+
+<p>Исполнитель (Доставщик): ________________________________</p>
+
+<p>Настоящий акт составлен о том, что в указанную выше дату (дата приема Отправлений) Отправитель передал, а Исполнитель (Доставщик) принял следующие Отправления:</p>
+<table class="beru_act">
+<tr style="background:#eeeeee">
+<td>№</td>
+<td>№ Отправления в системе Заказчика</td>
+<td>№ Отправления в системе Исполнителя</td>
+<td>Объявленная ценность, руб.</td>
+<td>Вес, кг.</td>
+<td>Кол-во мест, шт.</td>
+</tr>
+{% for order in orders %}
+<tr>
+<td>{{ forloop.counter }}</td>
+<td>{{ order.id }}</td>
+<td>{{ order.shipment_id }}</td>
+<td>{{ order.total }}</td>
+<td>{{ order.weight }}</td>
+<td>{{ order.boxes|length }}</td>
+</tr>
+{% endfor %}
+</table>
+<table class="beru_signature">
+<tr>
+<td>
+<p>Отправления передал (Заказчик):</p>
+<p>_______________________________________</p>
+<p>_______________________________________</p>
+<p><small>(реквизиты доверенности представителя Заказчика)</small></p>
+<p>_____________________(__________________)</p>
+<p><small>(подпись) (расшифровка)</small></p>
+<p>МП</p>
+</td>
+<td>
+<p>Отправления принял (Исполнитель/Доставщик):</p>
+<p>_______________________________________</p>
+<p>_______________________________________</p>
+<p><small>(реквизиты доверенности представителя Исполнителя/Доставщика)</small></p>
+<p>_____________________(__________________)</p>
+<p><small>(подпись) (расшифровка)</small></p>
+<p>МП</p>
+</td>
+</tr>
+</table>
+</div>
+{% endif %}
+</body>
+</html>

@@ -188,8 +188,10 @@ def order_status(request):
     order_id = str(beru_order.get('id', 0))
     try:
         order = Order.objects.get(delivery_tracking_number=order_id)
-        status = beru_order.get('status', 'PROCESSING')
-        if status == 'DELIVERY':  # заказ передан в службу доставки
+        status = beru_order.get('status', 'UNKNOWN')
+        if status == 'PROCESSING':  # заказ начал обрабатываться в Беру!
+            order.status = Order.STATUS_ACCEPTED
+        elif status == 'DELIVERY':  # заказ передан в службу доставки
             order.status = Order.STATUS_SENT
         elif status == 'PICKUP':  # заказ доставлен в пункт самовывоза
             order.status = Order.STATUS_DELIVERED

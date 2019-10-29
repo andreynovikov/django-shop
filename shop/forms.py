@@ -10,7 +10,7 @@ from django.forms.models import model_to_dict
 from django.utils.encoding import smart_text
 from django.utils.html import conditional_escape, mark_safe
 
-from mptt.forms import TreeNodeChoiceField, TreeNodeMultipleChoiceField
+from mptt.forms import TreeNodeMultipleChoiceField
 
 from djconfig import config
 
@@ -18,7 +18,7 @@ from reviews.forms import ReviewForm
 
 from sewingworld.widgets import AutosizedTextarea
 
-from shop.models import Supplier, Product, Order, OrderItem, ShopUser
+from shop.models import Supplier, Product, Order, OrderItem, ShopUser, Box, ActOrder
 from shop.widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
     OrderItemProductLink, ListTextWidget, YandexDeliveryWidget
 from shop.tasks import import1c
@@ -188,21 +188,64 @@ class ProductKindForm(forms.ModelForm):
 
 
 class OrderItemInlineAdminForm(forms.ModelForm):
-    class Meta:
-        model = OrderItem
-        fields = '__all__'
-        widgets = {
-            'pct_discount': forms.TextInput(attrs={'style': 'width: 3em'}),
-        }
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance.pk:
             self.fields['product'].widget = OrderItemProductLink(self.instance)
-        self.fields['product_price'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 6em'})
-        self.fields['val_discount'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 4em'})
-        self.fields['quantity'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 3em'})
+        if 'product_price' in self.fields:
+            self.fields['product_price'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 6em'})
+        if 'pct_discount' in self.fields:
+            self.fields['pct_discount'].widget = forms.TextInput(attrs={'style': 'width: 3em'})
+        if 'val_discount' in self.fields:
+            self.fields['val_discount'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 4em'})
+        if 'quantity' in self.fields:
+            self.fields['quantity'].widget = DisablePluralText(self.instance, attrs={'style': 'width: 3em'})
+        if 'box' in self.fields:
+            if self.instance.pk:
+                self.fields['box'].queryset = Box.objects.filter(order=self.instance.order)
         self.fields['total'].widget = OrderItemTotalText(self.instance, attrs={'style': 'width: 6em'})
+
+    def clean_box(self):
+        box = self.cleaned_data.get('box', None)
+        status = int(self.data.get('status', '0'))
+        if status == Order.STATUS_COLLECTED and not box:
+            raise forms.ValidationError("Не выбрана коробка")
+        return box
+
+    class Meta:
+        model = OrderItem
+        fields = '__all__'
+
+
+class BoxInlineAdminForm(forms.ModelForm):
+    def has_changed(self):
+        if self.instance.pk:
+            return super().has_changed()
+        else:
+            return True
+
+    def clean_field(self, field):
+        value = self.cleaned_data.get(field, None)
+        status = int(self.data.get('status', '0'))
+        if status == Order.STATUS_COLLECTED and not value:
+            raise forms.ValidationError("Отсутствует {}".format(self.fields[field].label.split(',')[0].lower()))
+        return value
+
+    def clean_weight(self):
+        return self.clean_field('weight')
+
+    def clean_length(self):
+        return self.clean_field('length')
+
+    def clean_width(self):
+        return self.clean_field('width')
+
+    def clean_height(self):
+        return self.clean_field('height')
+
+    class Meta:
+        model = Box
+        fields = '__all__'
 
 
 class OrderAdminForm(forms.ModelForm):
@@ -245,3 +288,14 @@ class OrderAdminForm(forms.ModelForm):
         css = {
             'all': ('css/time-shortcuts.css',)
         }
+
+
+class ActOrderInlineAdminForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['order'].widget = ReadOnlyInput(self.instance.order)
+
+    class Meta:
+        model = ActOrder
+        fields = '__all__'
