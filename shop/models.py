@@ -1193,6 +1193,12 @@ class Order(models.Model):
     @property
     def weight(self):
         weight = 0
+        for box in self.boxes.all():
+            if box.weight == 0:
+                return None
+            weight += box.weight
+        if weight > 0:
+            return weight
         for item in self.items.all():
             if item.product.prom_weight == 0:
                 return None
