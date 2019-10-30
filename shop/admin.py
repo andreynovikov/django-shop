@@ -987,7 +987,7 @@ class OrderAdmin(LockableModelAdmin):
 
     def get_formsets_with_inlines(self, request, obj=None):
         for inline in self.get_inline_instances(request, obj):
-            if obj.is_beru or not inline.model == Box:
+            if obj and obj.is_beru or not inline.model == Box:
                 yield inline.get_formset(request, obj), inline
 
     def lookup_allowed(self, lookup, value):
