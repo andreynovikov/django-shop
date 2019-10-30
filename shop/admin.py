@@ -1732,7 +1732,7 @@ class ActAdmin(admin.ModelAdmin):
 
         try:
             orders = []
-            for order in act.orders.all():
+            for order in act.orders.all().order_by('id'):
                 beru_order = get_beru_order_details(order.id)
                 shipments = beru_order.get('delivery', {}).get('shipments', [])
                 if not shipments:
