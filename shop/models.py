@@ -942,6 +942,7 @@ class BasketItem(models.Model):
     basket = models.ForeignKey(Basket, related_name='items', related_query_name='item', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, related_name='+', on_delete=models.PROTECT)
     quantity = models.PositiveSmallIntegerField(default=1)
+    ext_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     @property
     def price(self):
@@ -1194,8 +1195,13 @@ class Order(models.Model):
 
         # добавляем в заказ все элементы корзины
         for item in basket.items.all():
+            # если это Беру, то указываем только рублёвую скидку, предоставленную Беру
+            if order.utm_source == 'beru':
+                pct_discount = 0
+                val_discount = item.ext_discount
+                price = item.product.price
             # если это опт, то указываем только рублёвую скидку, высчитанную корзиной
-            if WHOLESALE or order.utm_source == 'beru':
+            elif WHOLESALE:
                 pct_discount = 0
                 val_discount = item.discount
             # иначе считаем отдельно скидку в процентах и копируем текущую рублёвую скидку товара
@@ -1300,6 +1306,7 @@ class Box(models.Model):
     class Meta:
         verbose_name = 'коробка'
         verbose_name_plural = 'коробки'
+        ordering = ['id']
 
 
 class OrderItem(models.Model):
