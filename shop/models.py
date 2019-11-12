@@ -942,6 +942,7 @@ class BasketItem(models.Model):
     basket = models.ForeignKey(Basket, related_name='items', related_query_name='item', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, related_name='+', on_delete=models.PROTECT)
     quantity = models.PositiveSmallIntegerField(default=1)
+    ext_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     @property
     def price(self):
@@ -1181,8 +1182,13 @@ class Order(models.Model):
 
         # добавляем в заказ все элементы корзины
         for item in basket.items.all():
+            # если это Беру, то указываем только рублёвую скидку, предоставленную Беру
+            if order.utm_source == 'beru':
+                pct_discount = 0
+                val_discount = item.ext_discount
+                price = item.product.price
             # если это опт, то указываем только рублёвую скидку, высчитанную корзиной
-            if WHOLESALE or order.utm_source == 'beru':
+            elif WHOLESALE:
                 pct_discount = 0
                 val_discount = item.discount
             # иначе считаем отдельно скидку в процентах и копируем текущую рублёвую скидку товара
@@ -1262,6 +1268,32 @@ class Order(models.Model):
         permissions = (
             ('change_order_spb', "Может редактировать заказы СПб"),
         )
+
+
+class Box(models.Model):
+    order = models.ForeignKey(Order, related_name='boxes', related_query_name='box', on_delete=models.CASCADE)
+    weight = models.FloatField('вес, кг', default=0)
+    length = models.DecimalField('длина, см', max_digits=5, decimal_places=2, default=0)
+    width = models.DecimalField('ширина, см', max_digits=5, decimal_places=2, default=0)
+    height = models.DecimalField('высота, см', max_digits=5, decimal_places=2, default=0)
+
+    def num(self, n):
+        return int(n) if n == int(n) else n
+
+    @property
+    def code(self):
+        return "{:010d}".format(self.pk)
+
+    def __str__(self):
+        if self.pk:
+            return "{:010d} - {}x{}x{}см".format(self.pk, self.num(self.length), self.num(self.width), self.num(self.height))
+        else:
+            return super(Box, self).__str__()
+
+    class Meta:
+        verbose_name = 'коробка'
+        verbose_name_plural = 'коробки'
+        ordering = ['id']
 
 
 class OrderItem(models.Model):
