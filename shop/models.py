@@ -1132,6 +1132,7 @@ class Order(models.Model):
     paid = models.BooleanField('оплачен', default=False)
     manager = models.ForeignKey(Manager, verbose_name='менеджер', blank=True, null=True, on_delete=models.SET_NULL)
     manager_comment = models.TextField('комментарий менеджера', blank=True)
+    alert = models.CharField('тревога', max_length=255, blank=True, db_index=True)
     # delivery
     delivery = models.SmallIntegerField('доставка', choices=DELIVERY_CHOICES, default=DELIVERY_UNKNOWN, db_index=True)
     delivery_price = models.DecimalField('стоимость доставки', max_digits=8, decimal_places=2, default=0)
