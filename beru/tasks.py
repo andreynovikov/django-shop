@@ -26,7 +26,9 @@ def notify_beru_order_status(self, order_id, status, substatus):
         beru_order = get_beru_order_details(order_id)
         beru_product_ids = {item['offerId']: item['id'] for item in beru_order.get('items', [])}
         boxes = []
+        count = 0
         for box in order.boxes.all():
+            count += 1
             items = []
             for item in order.items.all():
                 if item.box == box:
@@ -35,7 +37,7 @@ def notify_beru_order_status(self, order_id, status, substatus):
                         'count': item.quantity
                     })
             boxes.append({
-                'fulfilmentId': box.code,
+                'fulfilmentId': '%d-%d' % (order.id, count),
                 'weight': int(box.weight * 1000),
                 'width': int(box.width),
                 'height': int(box.height),

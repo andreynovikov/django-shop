@@ -338,14 +338,14 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     form = ProductAdminForm
     change_list_template = 'admin/shop/product/change_list.html'
     resource_class = ProductResource
-    list_display = ['product_codes', 'title', 'weight', 'length', 'width', 'height', 'combined_price',
-                    'combined_discount', 'enabled', 'show_on_sw', 'market', 'spb_market', 'product_stock',
+    list_display = ['product_codes', 'title', 'weight', 'prom_weight', 'length', 'width', 'height', 'combined_price',
+                    'combined_discount', 'enabled', 'show_on_sw', 'beru', 'market', 'spb_market', 'product_stock',
                     'orders_link', 'product_link']
     list_display_links = ['title']
-    list_editable = ['enabled', 'show_on_sw', 'market', 'spb_market', 'weight', 'length', 'width', 'height']
-    list_filter = ['cur_code', ('pct_discount', DropdownFilter), ('val_discount', DropdownFilter),
-                   ('categories', RelatedDropdownFilter), 'manufacturer', 'enabled', 'isnew', 'recomended',
-                   'show_on_sw', 'market']
+    list_editable = ['enabled', 'show_on_sw', 'beru', 'market', 'spb_market', 'weight', 'prom_weight', 'length', 'width', 'height']
+    list_filter = ['enabled', 'show_on_sw', 'beru', 'market', 'isnew', 'recomended',
+                   'cur_code', ('pct_discount', DropdownFilter), ('val_discount', DropdownFilter),
+                   ('categories', RelatedDropdownFilter), ('manufacturer', RelatedDropdownFilter)]
     exclude = ['image_prefix']
     search_fields = ['code', 'article', 'partnumber', 'title', 'tags']
     readonly_fields = ['price', 'ws_price', 'sp_price']
@@ -620,14 +620,14 @@ class OrderItemInline(admin.TabularInline):
 
     def get_fields(self, request, obj=None):
         if obj and obj.is_beru:
-            return ['product_codes', 'product', 'quantity', 'total', 'product_stock', 'box']
+            return ['product_codes', 'product', 'val_discount', 'quantity', 'total', 'product_stock', 'box']
         else:
             return ['product_codes', 'product', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'total', 'product_stock']
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = [elem for elem in self.readonly_fields]
         if obj and obj.is_beru:
-            readonly_fields += ['quantity']
+            readonly_fields += ['val_discount', 'quantity']
         return readonly_fields
 
     def has_add_permission(self, request, obj=None):
@@ -861,11 +861,12 @@ class OrderAdmin(LockableModelAdmin):
     combined_delivery.short_description = 'Доставка'
 
     @mark_safe
-    def name_and_skyped_phone(self, obj):
+    def name_and_phone(self, obj):
         name = obj.name if obj.name else '---'
-        return '%s<br/><a href="skype:%s?call">%s</a>' % (name, obj.phone, ShopUserManager.format_phone(obj.phone))
-    name_and_skyped_phone.admin_order_field = 'phone'
-    name_and_skyped_phone.short_description = 'Покупатель'
+        phone = ShopUserManager.format_phone(obj.phone) if obj.phone[0] == '+' else '---'
+        return '{}<br/>{}'.format(name, phone)
+    name_and_phone.admin_order_field = 'phone'
+    name_and_phone.short_description = 'Покупатель'
 
     @mark_safe
     def colored_status(self, obj):
@@ -934,7 +935,7 @@ class OrderAdmin(LockableModelAdmin):
             return 'нет'
     credit_notice.short_description = 'кредит'
 
-    list_display = ['order_name', 'name_and_skyped_phone', 'city', 'total_cost', 'combined_payment', 'combined_delivery',
+    list_display = ['order_name', 'name_and_phone', 'city', 'total_cost', 'combined_payment', 'combined_delivery',
                     'colored_status', 'combined_comments']
     readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders']
     list_filter = [OrderStatusListFilter, ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter), OrderDeliveryListFilter,
@@ -1457,10 +1458,12 @@ class OrderAdmin(LockableModelAdmin):
             delivery = beru_order.get('delivery', {})
             for box in order.boxes.all():
                 count += 1
-                barcode = CODE128(box.code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
+                code = '%d-%d' % (order.id, count)
+                barcode = CODE128(code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
                 barcode = re.sub(r'^.*(?=<svg)', '', barcode)
                 shipments.append({
-                    'id': box.code,
+                    'id': code,
+                    'code': box.code,
                     'barcode': mark_safe(barcode),
                     'weight': box.weight
                 })
@@ -1722,36 +1725,11 @@ class ActAdmin(admin.ModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied
 
-        from beru.tasks import get_beru_order_details
-
         context = self.admin_site.each_context(request)
         context['opts'] = self.model._meta
         context['is_popup'] = request.GET.get('_popup', 0)
-
-        act = Act.objects.get(pk=id)
-
-        try:
-            orders = []
-            for order in act.orders.all().order_by('id'):
-                beru_order = get_beru_order_details(order.id)
-                shipments = beru_order.get('delivery', {}).get('shipments', [])
-                if not shipments:
-                    raise ValueError("Не удалось получить номер отправления для заказа {}".format(order.id))
-                shipment_id = str(shipments[0].get('id', 0))
-                if not shipment_id:
-                    raise ValueError("Не удалось получить номер отправления для заказа {}".format(order.id))
-                orders.append({
-                    'id': order.id,
-                    'shipment_id': shipment_id,
-                    'total': order.total,
-                    'weight': order.weight,
-                    'boxes': order.boxes.all()
-                })
-            context['act'] = act
-            context['orders'] = orders
-            context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
-        except Exception as e:
-            context['error'] = getattr(e, 'message', str(e))
+        context['act'] = Act.objects.get(pk=id)
+        context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
 
         return TemplateResponse(request, 'shop/act/document.html', context)
 
