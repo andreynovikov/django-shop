@@ -838,7 +838,8 @@ class OrderAdmin(LockableModelAdmin):
 
     @mark_safe
     def combined_comments(self, obj):
-        return '<span style="color:#008">%s</span> %s<br/><em>%s</em>' % (obj.delivery_yd_order, obj.delivery_info, obj.manager_comment)
+        alert = '<span style="color:#ba2121">%s</span><br/>' % obj.alert if obj.alert else ''
+        return '%s<span style="color:#008">%s</span> %s<br/><em>%s</em>' % (alert, obj.delivery_yd_order, obj.delivery_info, obj.manager_comment)
     combined_comments.admin_order_field = 'manager_comment'
     combined_comments.short_description = 'Комментарии'
 
@@ -964,7 +965,7 @@ class OrderAdmin(LockableModelAdmin):
         fieldsets = (
             (None, {'fields': [['status', 'payment', 'paid', 'manager', 'site'], ['delivery', 'delivery_price'],
                                'delivery_dispatch_date', ['delivery_tracking_number'], 'delivery_info',
-                               ['delivery_handing_date'], 'manager_comment',
+                               ['delivery_handing_date'], 'manager_comment', 'alert',
                                'products_price', 'total', 'id']}),
             ('1С', {'fields': (('buyer', 'seller', 'wiring_date'),)}),
             # ('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),

@@ -3,25 +3,6 @@
 
 {% block extrastyle %}{{ block.super }}
     <style>
-        .x .grp-row .l-2c-fluid.grp-cell:not(:first-child) .c-1 {
-            min-width: 0px;
-            width: auto;
-        }
-        .x .inner-right-column i { float: left; }
-        .x .inner-right-column a span { display:block; overflow:hidden; }
-
-        #id_phone { font-size:16px; }
-
-        .x .controls,
-        .x .field-product_price input,
-        .x .field-pct_discount input,
-        .x .field-val_discount input,
-        .x .field-quantity input,
-        .x .field-total input {
-            padding-top:1px!important;
-            padding-bottom:1px!important;
-        }
-
         /* Remove label gaps */
         @media (min-width: 1025px) {
             .form-row > .fieldBox:not(:first-child) > label {
@@ -66,6 +47,9 @@
         div.field-id {
             display: none;
         }
+
+        /* Custom styling */
+        #id_alert { font-weight: bold; color: #ba2121; }
 
         /* Document list box */
         .documentlist a:focus, .documentlist a:hover { background: #79aec8; color: white; }
