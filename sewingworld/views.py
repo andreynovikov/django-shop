@@ -34,7 +34,7 @@ def search(request):
 def products_stream(request, templates, filter_type):
     root = Category.objects.get(slug=settings.MPTT_ROOT)
     children = root.get_children()
-    if filter_type == 'yandex':
+    if filter_type in ['yandex', 'beru']:
         children = children.filter(ya_active=True)
     categories = {}
     for child in children:

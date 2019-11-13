@@ -15,30 +15,30 @@ td {padding:2.5mm}
 {{ error }}
 {% else %}
 {% for item in shipments %}
-<table style="width:95mm; height:134mm; border:0.4mm solid black; padding:0;" class="pagebreak">
+<table style="width:95mm;height:134mm;border:0.4mm solid black;padding:0" class="pagebreak">
 <tr>
-<td colspan="2" style="vertical-align:top;text-align:center;">
-<img src="{% static 'i/beru_logo.svg' %}" style="width:33.5mm;height:12.88mm;">
+<td colspan="2" style="vertical-align:top;text-align:center">
+<img src="{% static 'i/beru_logo.svg' %}" style="width:33.5mm;height:12.88mm">
 </td>
 </tr>
 <tr>
-<td style="vertical-align:top;text-align:left;width:28mm; border-bottom:0.2mm solid black;">
+<td style="vertical-align:top;text-align:left;width:28mm; border-bottom:0.2mm solid black">
 <p>
 <span style="font-size:7pt">Перевозчик</span><br>
-<span style="font-size:10pt">{{ delivery_service_name }}</span>
+<span style="font-size:10pt">АО "ДПД РУС"<!--{{ delivery_service_name }}--></span>
 </p>
 </td>
-<td style="vertical-align:top;text-align:center; border-bottom:0.2mm solid black;">
+<td style="vertical-align:top;text-align:center; border-bottom:0.2mm solid black">
 {{ beru_order_barcode }}
 </td>
 </tr>
 <tr>
-<td colspan="2" style="vertical-align:center;text-align:center; border-bottom:0.2mm solid black;">
+<td colspan="2" style="vertical-align:center;text-align:center; border-bottom:0.2mm solid black">
 {{ item.barcode }}
 </td>
 </tr>
 <tr>
-<td colspan="2" style="vertical-align:top;text-align:center; border-bottom:0.2mm solid black;">
+<td colspan="2" style="vertical-align:top;text-align:center; border-bottom:0.2mm solid black">
 
 <table>
 <tr>
@@ -48,7 +48,7 @@ td {padding:2.5mm}
 <span style="font-size:10pt">{{ forloop.counter }}/{{ shipments|length }}</span>
 </p>
 </td>
-<td style="border-right:0.2mm solid black; width:21mm">
+<td style="border-right:0.2mm solid black;width:21mm">
 <p>
 <span style="font-size:7pt">Вес</span><br>
 <span style="font-size:10pt">{{ item.weight }} кг</span>
@@ -67,19 +67,20 @@ td {padding:2.5mm}
 </tr>
 
 <tr>
-<td style="vertical-align:top;text-align:left;width:28mm;">
+<td style="vertical-align:top;text-align:left;width:28mm">
 <p>
 <span style="font-size:7pt">Продавец</span><br>
 <span style="font-size:10pt">{{ owner_info.full_name }}</span>
 </p>
 </td>
-<td style="vertical-align:top;text-align:center;">
+<td style="vertical-align:top;text-align:center">
 {{ order_barcode }}
 </td>
 </tr>
 <tr>
-<td colspan="2" style="vertical-align:center;text-align:center;">
-<img src="{% static 'i/logo.svg' %}"  style="width:63mm;">
+<td colspan="2" style="vertical-align:center;text-align:center">
+<img src="{% static 'i/logo.svg' %}" style="width:63mm">
+<div style="font-size:7pt;margin-top:-6pt">{{ item.code }}</div>
 </td>
 </tr>
 </table>

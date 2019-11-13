@@ -17,7 +17,7 @@
 
 <p>Заказчик: {{ owner_info.full_name }}</p>
 
-<p>Исполнитель (Доставщик): ________________________________</p>
+<p>Исполнитель (Доставщик): АО "ДПД РУС"</p>
 
 <p>Настоящий акт составлен о том, что в указанную выше дату (дата приема Отправлений) Отправитель передал, а Исполнитель (Доставщик) принял следующие Отправления:</p>
 <table class="beru_act">
@@ -29,14 +29,14 @@
 <td>Вес, кг.</td>
 <td>Кол-во мест, шт.</td>
 </tr>
-{% for order in orders %}
+{% for order in act.orders.all|dictsort:"id" %}
 <tr>
 <td align="center">{{ forloop.counter }}</td>
 <td>{{ order.id }}</td>
-<td>{{ order.shipment_id }}</td>
+<td>{{ order.delivery_tracking_number }}</td>
 <td align="right">{{ order.total }}</td>
 <td align="center">{{ order.weight }}</td>
-<td align="center">{{ order.boxes|length }}</td>
+<td align="center">{{ order.boxes.all|length }}</td>
 </tr>
 {% endfor %}
 </table>
