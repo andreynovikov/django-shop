@@ -204,17 +204,20 @@ def order_status(request):
             order.status = Order.STATUS_DONE
         elif status == 'CANCELLED':  # заказ отменен
             substatus = beru_order.get('substatus', '')
-            if substatus in ('REPLACING_ORDER', 'RESERVATION_EXPIRED', 'USER_CHANGED_MIND', 'USER_NOT_PAID', 'USER_REFUSED_DELIVERY', 'USER_UNREACHABLE', 'USER_BOUGHT_CHEAPER'):
-                order.status = Order.STATUS_CANCELED
-            elif substatus in ('PROCESSING_EXPIRED', 'SHOP_FAILED', 'USER_REFUSED_PRODUCT', 'USER_REFUSED_QUALITY'):
-                order.status = Order.STATUS_PROBLEM
-            else:
-                order.status = Order.STATUS_PROBLEM
             info = BERU_ORDER_SUBSTATUS.get(substatus, "Неизвестная причина отмены заказа")
-            if order.delivery_info:
-                order.delivery_info = '\n'.join([order.delivery_info, info])
-            else:
-                order.delivery_info = info
+            if order.status in (Order.STATUS_NEW, Order.STATUS_ACCEPTED, Order.STATUS_CANCELED):  # меняем статус только, если заказ не обрабатывается
+                if substatus in ('REPLACING_ORDER', 'RESERVATION_EXPIRED', 'USER_CHANGED_MIND', 'USER_NOT_PAID', 'USER_REFUSED_DELIVERY', 'USER_UNREACHABLE', 'USER_BOUGHT_CHEAPER'):
+                    order.status = Order.STATUS_CANCELED
+                elif substatus in ('PROCESSING_EXPIRED', 'SHOP_FAILED', 'USER_REFUSED_PRODUCT', 'USER_REFUSED_QUALITY'):
+                    order.status = Order.STATUS_PROBLEM
+                else:
+                    order.status = Order.STATUS_PROBLEM
+                if order.delivery_info:
+                    order.delivery_info = '\n'.join([order.delivery_info, info])
+                else:
+                    order.delivery_info = info
+            else:  # если заказ в обработке, выставляем флаг тревоги, не меняя статус
+                order.alert = info
         elif status == 'UNPAID':
             pass
         payment = beru_order.get('paymentMethod', 'CASH_ON_DELIVERY')
