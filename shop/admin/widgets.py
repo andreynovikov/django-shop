@@ -5,13 +5,12 @@ import json
 from django import forms
 from django.urls import reverse
 from django.contrib.admin import widgets
-from django.contrib.staticfiles.storage import staticfiles_storage
+from django.contrib.sites.models import Site
 from django.forms.utils import flatatt
 from django.forms.widgets import Widget, TextInput
 from django.utils.safestring import mark_safe
 from django.utils.encoding import force_text
-from django.utils.translation import get_language
-from django.utils.html import format_html
+from django.utils.html import format_html, escape
 from django.conf import settings
 
 from tagging.models import Tag
