@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.forms import ModelForm
 from django.urls import path
 from django.utils.translation import ugettext_lazy as _
 
@@ -7,18 +6,17 @@ import djconfig
 
 from .forms import SWConfigForm
 
-from shop import views
-
 
 class SWAdminSite(admin.AdminSite):
     site_header = "Швейный Мир"
     site_title = "Административный сайт Швейный Мир"
 
     def get_urls(self):
+        import shop.admin.views  # prevent circular import
         urls = super().get_urls()
         urls = [
-            path('goto_order/', self.admin_view(views.goto_order), name='goto_order'),
-            path('import1c/', views.import_1c, name='import_1c')
+            path('goto_order/', self.admin_view(shop.admin.views.goto_order), name='goto_order'),
+            path('import1c/', shop.admin.views.import_1c, name='import_1c')
         ] + urls
         return urls
 
