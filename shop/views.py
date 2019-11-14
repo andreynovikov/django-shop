@@ -2,33 +2,29 @@ import re
 
 from math import ceil
 from random import randint
-from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
+from decimal import Decimal, ROUND_HALF_EVEN
 from urllib.parse import urlencode
 
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, HttpResponseServerError, HttpResponseNotFound
 from django.shortcuts import render, get_object_or_404
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.admin.views.decorators import staff_member_required
 from django_ipgeobase.models import IPGeoBase
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 from django.core import signing
 from django.core.mail import mail_admins
 from django.urls import reverse
-from django.forms.models import model_to_dict
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import IntegrityError
 from django.utils.formats import localize
 
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 from shop.models import Product, Basket, BasketItem, Order, ShopUser, ShopUserManager
-from shop.forms import UserForm, OneSImportForm
+from shop.forms import UserForm
 
 import logging
-import pprint
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +97,9 @@ def view_basket_extnotice(request):
     if product_id and basket is not None and basket.items.count() > 4:
         context['collapse'] = True
         context['added_product'] = int(product_id)
-        context['other_count'] = basket.items.count() -1
+        context['other_count'] = basket.items.count() - 1
     return render(request, 'shop/extnotice.html', context)
+
 
 def view_basket(request):
     ensure_session(request)
@@ -145,7 +142,7 @@ def add_to_basket(request, product_id):
     item.save()
     utm_source = request.GET.get('utm_source', None)
     if utm_source:
-        basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source) # ASCII only regex
+        basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source)  # ASCII only regex
         basket.save()
     # as soon as user starts gethering new basket "forget" last order
     try:
@@ -159,7 +156,7 @@ def add_to_basket(request, product_id):
 
 
 def around(x, base=10):
-    return int(base * ceil(float(x)/base))
+    return int(base * ceil(float(x) / base))
 
 
 @require_POST
@@ -255,7 +252,7 @@ def restore_basket(request, restore):
                 pass
         utm_source = request.GET.get('utm_source', None)
         if utm_source:
-            basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source) # ASCII only regex
+            basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source)  # ASCII only regex
         basket.secondary = True
         basket.save()
     return HttpResponseRedirect(reverse('shop:basket'))
@@ -686,9 +683,9 @@ def update_user(request):
         form = UserForm(user=user)
 
     context = {
-       'user_form': form,
-       'invalid': not form.is_valid(),
-       'update': not request.GET.get('update') is None
+        'user_form': form,
+        'invalid': not form.is_valid(),
+        'update': not request.GET.get('update') is None
     }
     if request.GET.get('ajax') or request.POST.get('ajax'):
         data = {
@@ -697,34 +694,3 @@ def update_user(request):
         return JsonResponse(data)
     else:
         return render(request, 'shop/_update_user.html', context)
-
-
-@staff_member_required
-def goto_order(request):
-    order_id = request.GET.get('order', None)
-    if order_id is not None:
-        try:
-            order = Order.objects.get(pk=order_id)
-            return HttpResponseRedirect(reverse('admin:shop_order_change', args=[order.id]))
-        except Order.DoesNotExist:
-            messages.add_message(request, messages.ERROR, 'Заказ №{} отсутствует'.format(order_id))
-        except ValueError:
-            messages.add_message(request, messages.WARNING, 'Укажите номер заказа')
-    return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
-
-
-@staff_member_required
-def import_1c(request):
-    if request.method == 'POST':
-        form = OneSImportForm(request.POST, request.FILES)
-        if form.is_valid():
-            result = form.save()
-            context = {'result': result}
-        else:
-            context = {'form': form}
-        context['is_popup'] = request.POST.get('_popup', 0)
-    else:
-        form = OneSImportForm()
-        context = {'form': form, 'is_popup': request.GET.get('_popup', 0)}
-    context['title'] = "Импорт 1С"
-    return render(request, 'admin/shop/import_1c.html', context)
