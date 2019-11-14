@@ -10,6 +10,7 @@ from django.db.models import TextField, PositiveSmallIntegerField, PositiveInteg
     DateTimeField, DecimalField
 from django.core.exceptions import PermissionDenied
 from django.contrib import admin, messages
+from django.contrib.sites.models import Site
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template.loader import get_template
 from django.template.defaultfilters import floatformat
@@ -268,6 +269,33 @@ class FutureDateFieldListFilter(admin.FieldListFilter):
             }
 
 
+class SiteListFilter(admin.filters.RelatedFieldListFilter):
+    template = 'django_admin_listfilter_dropdown/dropdown_filter.html'
+
+    def __init__(self, field, request, params, model, model_admin, field_path):
+        self.beru = Site.objects.get(domain='beru.ru')
+        return super().__init__(field, request, params, model, model_admin, field_path)
+
+    def queryset(self, request, queryset):
+        if self.lookup_val:
+            value = int(self.lookup_val)
+            if value < 0:
+                exclude = {self.lookup_kwarg: -value}
+                return queryset.exclude(**exclude)
+        return super().queryset(request, queryset)
+
+    def choices(self, changelist):
+        choice_list = list(super().choices(changelist))
+        yield choice_list[0]
+        yield {
+            'selected': self.lookup_val == str(-self.beru.pk),
+            'query_string': changelist.get_query_string({self.lookup_kwarg: -self.beru.pk}, [self.lookup_kwarg_isnull]),
+            'display': 'Кроме {}'.format(self.beru.domain),
+        }
+        for c in choice_list[1:]:
+            yield c
+
+
 @admin.register(Order)
 class OrderAdmin(LockableModelAdmin):
     @mark_safe
@@ -386,9 +414,9 @@ class OrderAdmin(LockableModelAdmin):
     list_display = ['order_name', 'name_and_phone', 'city', 'total_cost', 'combined_payment', 'combined_delivery',
                     'colored_status', 'combined_comments']
     readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders']
-    list_filter = [OrderStatusListFilter, ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter), OrderDeliveryListFilter,
-                   ('delivery_dispatch_date', FutureDateRangeFilter), ('delivery_handing_date', FutureDateRangeFilter),
-                   'paid', 'site', 'manager', 'courier']
+    list_filter = [OrderStatusListFilter, ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter), 'paid',
+                   OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
+                   ('delivery_handing_date', FutureDateRangeFilter), ('site', SiteListFilter), 'manager', 'courier']
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
                      'item__serial_number']
