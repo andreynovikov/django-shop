@@ -9,7 +9,7 @@ from django.utils.safestring import mark_safe
 from import_export import resources
 from import_export.admin import ExportMixin
 
-from shop.decorators import admin_changelist_link
+from shop.admin.decorators import admin_changelist_link
 
 from . import models
 

@@ -2,10 +2,10 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
-
 """
 https://medium.com/@hakibenita/things-you-must-know-about-django-admin-as-your-app-gets-bigger-6be0b0ee9614
 """
+
 
 def admin_changelist_url(model):
     app_label = model._meta.app_label
