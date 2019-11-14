@@ -4,7 +4,11 @@
 {% load l10n %}
 <offer id="{{ product.id }}" type="vendor.model">
     <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=beru&amp;utm_term={{ product.id }}</url>
+    {% if product.beru_price > 0 %}
     <price>{{ product.beru_price|quantize:"1" }}</price>
+    {% else %}
+    <price>{{ product.price|quantize:"1" }}</price>
+    {% endif %}
     <currencyId>RUR</currencyId>
 {% for category in product.categories.all %}
 {% with top_category=category_map|get_dict_item:category.pk %}
