@@ -4,7 +4,7 @@
 {% endblock %}
 {% block css %}
 <style type="text/css">
-	.sw-basket-total span    { font-weight:bold; color:darkgreen; }
+	#total { font-weight:bold; color:darkgreen; }
 	.sw-basket-product-title { font-size:1.2em; }
 	.sw-phone-input          { height:auto; color:black; }
 	.sw-phone-input:-moz-placeholder { color:#e0e0e0; }
@@ -34,21 +34,25 @@
              {% else %}
                  {{ item.product.ws_price }}&nbsp;руб.
              {% endif %}
+             <div class="sw-sec-price">${{ item.cost|convert_price:"998"|floatformat:"-2" }}</div>
           </div>
              <form class="col-md-2 update form-inline ajax" action="{% url 'shop:update' item.product.id %}" method="post">
              {% csrf_token %}
              <div class="input-group quantity-container">
-                <input class="form-control sw-basket-quantity" type="text" name="quantity" value="{{ item.quantity }}" size="3" title="Количество"/>
+                <input class="form-control sw-basket-quantity" type="text" name="quantity" value="{{ item.quantity }}" style="width: 4em" title="Количество"/>
                 <span class="input-group-btn sw-delete"><a href="{% url 'shop:delete' item.product.id %}" class="btn btn-warning delete ajax" role="button"><span class="glyphicon glyphicon-trash" aria-hidden="true"></span></a></span>
              </div>
              </form>
-             <div class="text-right col-md-1">
-                 <span id="price_{{ item.product.id }}">{{ item.price }}</span>&nbsp;руб.
+             <div class="col-md-1">
+                 <div style="display: inline-block" class="text-right">
+                 <span id="price_{{ item.product.id }}">{{ item.price }}</span>&nbsp;руб.<br/>
+                 <span class="sw-sec-price">${{ item.price|convert_price:"998"|floatformat:"-2" }}</span>
+                 </div>
              </div>
     </div>
     {% endfor %}
 
-    <p class="sw-basket-total lead">Итого, без учета стоимости доставки: <span id="total">{{ basket.total }}</span>&nbsp;руб.</p>
+    <p class="sw-basket-total lead">Итого, без учета стоимости доставки: <span id="total">{{ basket.total }}</span>&nbsp;руб. <span class="sw-sec-price">(${{ basket.total|convert_price:"998"|floatformat:"-2" }})</span></p>
 
     {% include "shop/_send_order.html" %}
 

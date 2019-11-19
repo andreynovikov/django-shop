@@ -1,13 +1,25 @@
+{% load site %}
+{% load shop_filters %}
 <form class="row update form-inline ajax" action="{% url 'shop:update' product.id %}" method="post">
 {% csrf_token %}
 <div class="col-md-8"><a class="expand-description" data-toggle="collapse" href="#descr_{{ product.id }}" aria-expanded="false" aria-controls="descr_{{ product.id }}">{{ product.title }}</a>
-{% if product.pack_factor != 1 %}
-<div class="small">Упаковка: {{ product.pack_factor }}{% if product.ws_pack_only %} (продажа только упаковками){% endif %}</div>
+<div class="small">
+{% if product.instock == 0 %}
+Нет в продаже
+{% else %}
+{% if product.ws_pack_only and product.pack_factor > 10 %}
+{% if product.instock > product.pack_factor %}Более {{ product.pack_factor }}{% else %}{{ product.pack_factor }}{% endif %}
+{% else %}
+{% if product.instock > 10 %}Более 10{% else %}{{ product.instock|prettify }}{% endif %}
+{% endif %} шт.
+{% if product.pack_factor != 1 %}Упаковка: {{ product.pack_factor }} шт.{% if product.ws_pack_only %} (продажа только упаковками){% endif %}{% endif %}
 {% endif %}
+</div>
 <div class="row collapse" id="descr_{{ product.id }}" style="padding-left:15px;"></div>
 </div>
-<div class="col-md-2">
-{{ cost|floatformat:"-2" }}&nbsp;руб.
+<div class="col-md-2 text-right">
+<div>{{ cost|floatformat:"-2" }}&nbsp;руб.</div>
+<div class="sw-sec-price">${{ cost|convert_price:"998"|floatformat:"-2" }}</div>
 </div>
 <div class="col-md-2">
 <div class="input-group spinner quantity-container" data-trigger="spinner">
