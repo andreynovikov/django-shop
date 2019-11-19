@@ -804,7 +804,7 @@ class Basket(models.Model):
         if WHOLESALE:
             return product.ws_price - self.product_discount(product)
         else:
-            return product.price - self.product_discount(product)
+            return (product.price - self.product_discount(product)).quantize(Decimal('1'), rounding=ROUND_UP)
 
     def product_pct_discount(self, product):
         """ Calculates maximum percent discount based on product, user and maximum discount """
@@ -926,14 +926,11 @@ class BasketItem(models.Model):
         if WHOLESALE:
             return (self.cost * Decimal(self.quantity)).quantize(Decimal('0.01'), rounding=ROUND_UP)
         else:
-            return (self.cost * Decimal(self.quantity)) #.quantize(Decimal('1'), rounding=ROUND_UP)
+            return (self.cost * Decimal(self.quantity))
 
     @property
     def cost(self):
-        if WHOLESALE:
-            return self.product.ws_price - self.discount
-        else:
-            return (self.product.price - self.discount).quantize(Decimal('1'), rounding=ROUND_UP)
+        return self.basket.product_cost(self.product)
 
     @property
     def discount(self):
