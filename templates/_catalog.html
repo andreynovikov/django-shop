@@ -1,0 +1,13 @@
+{% load mptt_tags %}
+{% load site %}
+<ul id="catalog">
+{% for child in root.get_children|filter_qs:"active" %}
+<li id="c{{ child.id }}"><a href="{{ child.get_absolute_url }}">{{ child.name }}</a>
+{% for node,structure in child.get_descendants|filter_qs:"active"|tree_info %}
+    {% if structure.new_level %}<ul>{% else %}</li>{% endif %}<li id="c{{ node.id }}"{% if category == node %} class="current"{% endif %}>
+        <a href="{{ node.get_absolute_url }}">{{ node.name }}</a>
+    {% for level in structure.closed_levels %}</li></ul>{% endfor %}
+    {% endfor %}
+</li>
+{% endfor %}
+</ul>

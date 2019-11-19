@@ -4,21 +4,19 @@
 {% block title %}
 <title>{{ category.name }}</title>
 {% endblock %}
+{% block css %}
+<style>
+    .container { width: auto }
+    #catalog .current a { font-weight: bold; color: black }
+</style>
+{% endblock %}
 {% block content %}
 <h1>{{ category.name }}</h1>
 <div class="row">
-<ul class="col-md-3">
-{% for node,structure in root.get_descendants|tree_info %}
-    {% if structure.new_level %}<ul><li>{% else %}</li><li>{% endif %}
-        {% if node.pk == category.pk  %}
-            <b>{{ node.name }}</b>
-        {% else %}
-            <a href="{{ node.get_absolute_url }}">{{ node.name }}</a>
-        {% endif %}
-    {% for level in structure.closed_levels %}</li></ul>{% endfor %}
-{% endfor %}
-</ul>
-<div class="col-md-8">
+<div class="col-md-4">
+{% include "_catalog.html" %}
+</div>
+<div class="col-md-6">
 {% for product, cost, quantity in products %}
 {% include "_product_info.html" %}
 {% endfor %}
@@ -84,6 +82,8 @@ $(document).ready(function () {
             $('#descr_'+productID).load(url);
         });
     });
+
+    $('#catalog').treed({openedClass:'glyphicon-menu-down', closedClass:'glyphicon-menu-right', open:'#c{{ category.id }}'});
 });
 </script>
 {% endblock %}

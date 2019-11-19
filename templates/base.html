@@ -9,8 +9,12 @@
 {% block title %}
 {% endblock %}
 <link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
+<link rel="stylesheet" href="{% static 'css/tree.css' %}"/>
 <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}"/>
 <link rel="stylesheet" href="{% static 'css/bootstrap-spinner.min.css' %}"/>
+<style>
+    .sw-sec-price { color: grey; font-size: 80% }
+</style>
 {% block css %}
 {% endblock %}
 <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -26,11 +30,11 @@
         <div class="col-md-4 sw-header-left">
             <div class="sw-logo">
                 <div><a href="/"><img src="{% static 'i/logo.svg' %}" class="img-responsive" alt="Швейный Мир - всероссийская сеть швейных супермаркетов.&#10; Швейные машинки, вышивальные и вязальные машины, оверлоки и аксессуары."></a></div>
-                <p class="hidden-xs"><a href="http://www.sewing-world.ru/shops.html">Больше 100 магазинов швейных машин и товаров для рукоделия</a></p>
+                <p class="hidden-xs"><a href="https://www.sewing-world.ru/shops.html">Больше 100 магазинов швейных машин и товаров для рукоделия</a></p>
             </div>
         </div>
         <div class="col-md-4" style="margin-top:20px;">
-            <div class="ya-site-form ya-site-form_inited_no" onclick="return {'action':'http://www.sewing-world.ru/search.html','arrow':false,'bg':'transparent','fontsize':'15','fg':'#000000','language':'ru','logo':'rb','publicname':'','suggest':true,'target':'_self','tld':'ru','type':2,'usebigdictionary':false,'searchid':2278339,'input_fg':'#000000','input_bg':'#FFFFFF','input_fontStyle':'normal','input_fontWeight':'normal','input_placeholder':'','input_placeholderColor':'#000000','input_borderColor':'#cbcbcb','is_catalog':true}">
+            <div class="ya-site-form ya-site-form_inited_no" onclick="return {'action':'https://www.sewing-world.ru/search.html','arrow':false,'bg':'transparent','fontsize':'15','fg':'#000000','language':'ru','logo':'rb','publicname':'','suggest':true,'target':'_self','tld':'ru','type':2,'usebigdictionary':false,'searchid':2278339,'input_fg':'#000000','input_bg':'#FFFFFF','input_fontStyle':'normal','input_fontWeight':'normal','input_placeholder':'','input_placeholderColor':'#000000','input_borderColor':'#cbcbcb','is_catalog':true}">
         <form action="//site.yandex.ru/search/site/catalog/" method="get" target="_self" accept-charset="utf-8">
         <input type="hidden" name="searchid" value="2278339"/>
         <input type="hidden" name="l10n" value="ru"/>
@@ -77,6 +81,7 @@
 <script src="{% static 'js/eldarion-ajax.min.js' %}"></script>
 <script src="{% static 'js/jquery.dump.js' %}"></script>
 <script src="{% static 'js/js.cookie.js' %}"></script>
+<script src="{% static 'js/tree.js' %}"></script>
 {% block javascript %}
 {% endblock %}
 {% block cart_notice_output %}

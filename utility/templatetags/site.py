@@ -1,5 +1,6 @@
 from django.conf import settings
 from django import template
+from django.db.models.query import QuerySet
 from django.contrib.sites.models import Site
 from django.utils.text import capfirst
 
