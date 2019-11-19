@@ -4,7 +4,7 @@ from django.utils.safestring import mark_safe
 #from django.contrib.staticfiles import finders
 from django.core.files.storage import default_storage
 
-from shop.models import ShopUserManager
+from shop.models import ShopUserManager, Currency
 
 
 register = template.Library()
@@ -20,3 +20,9 @@ def format_phone(value):
 def file_exists(filepath):
     return default_storage.exists(filepath)
     #return finders.find(filepath)
+
+
+@register.filter
+def convert_price(value, arg):
+    currency = Currency.objects.get(code=arg)
+    return value / currency.rate
