@@ -1,9 +1,8 @@
-from django.http import Http404, StreamingHttpResponse
+from django.http import StreamingHttpResponse
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 from django.contrib.auth.decorators import login_required, permission_required
-from django.contrib.sites.models import Site
 from django.template import loader
 
 from shop.models import Category, Product, Basket
@@ -27,10 +26,10 @@ def products_stream(request, templates, filter_type):
         children = children.filter(ya_active=True)
     categories = {}
     for child in children:
-        categories[child.pk] = child.pk;
+        categories[child.pk] = child.pk
         descendants = child.get_descendants()
         for descendant in descendants:
-            categories[descendant.pk] = child.pk;
+            categories[descendant.pk] = child.pk
     context = {
         'children': children,
         'category_map': categories
@@ -45,7 +44,7 @@ def products_stream(request, templates, filter_type):
         'price__gt': 0,
         'variations__exact': '',
         'categories__in': root.get_descendants(include_self=True)
-        }
+    }
     if filter_type == 'yandex':
         filters['market'] = True
         filters['num__gt'] = 0
@@ -79,14 +78,30 @@ def category(request, path, instance):
         products = instance.products.filter(enabled=True).order_by(*order)
         basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
         quantities = {item.product: item.quantity for item in basket.items.all()}
-        products = map(lambda p:(p,basket.product_cost(p),quantities.get(p, 0)), products)
+        products = map(lambda p: (p, basket.product_cost(p), quantities.get(p, 0)), products)
     context = {'root': Category.objects.get(slug=settings.MPTT_ROOT),
                'category': instance, 'products': products}
     return render(request, 'category.html', context)
 
 
+def product(request, code):
+    product = get_object_or_404(Product, code=code)
+    product.images = []
+    if default_storage.exists(product.image_prefix):
+        try:
+            dirs, files = default_storage.listdir(product.image_prefix)
+            if files is not None:
+                for file in sorted(files):
+                    if file.endswith('.s.jpg'):
+                        product.images.append(file[:-6])
+        except NotADirectoryError:
+            pass
+    context = {'product': product}
+    return render(request, 'product.html', context)
+
+
 def expand(request, product_id):
-    #ensure_session(request)
+    # ensure_session(request)
     product = get_object_or_404(Product, pk=product_id)
     context = {'product': product}
     return render(request, 'expand.html', context)

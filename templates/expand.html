@@ -1,6 +1,8 @@
 {% load shop_filters %}
 {% if product.image_prefix|add:'.s.jpg'|file_exists %}
+<a class="opener-product" href="{% url 'product' product.code %}">
 <img class="pull-left" style="padding-right: 10px" src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" />
+</a>
 {% endif %}
 <p>РРЦ: {{ product.cost|floatformat }}&nbsp;руб.</p>
 <p>{{ product.descr|safe }}</p>

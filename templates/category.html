@@ -79,7 +79,10 @@ $(document).ready(function () {
         $(this).one("click", function() {
             var productID = this.href.split("descr_")[1];
             var url="/catalog/expand/"+productID+"/";
-            $('#descr_'+productID).load(url);
+            var selector = '#descr_'+productID;
+            $(selector).load(url, function() {
+                setProductOpener(selector);
+            });
         });
     });
 
