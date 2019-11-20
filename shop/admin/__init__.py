@@ -1,4 +1,4 @@
-from django.forms import ModelForm, TextInput
+from django.forms import ModelForm, TextInput, ChoiceField, CharField, HiddenInput
 from django.urls import reverse
 from django.db.models import PositiveSmallIntegerField, PositiveIntegerField, \
     DecimalField, FloatField, Q
@@ -15,6 +15,7 @@ from reviews.admin import ReviewAdmin
 
 from import_export import resources
 from import_export.admin import ImportExportMixin
+from import_export.forms import ImportForm, ConfirmImportForm
 
 from sewingworld.admin import get_sites
 from sewingworld.widgets import AutosizedTextarea
@@ -219,10 +220,25 @@ class ProductRelationInline(admin.TabularInline):
     suit_classes = 'suit-tab suit-tab-related'
 
 
+class ProductImportForm(ImportForm):
+    id_field = ChoiceField(label='Идентификационное поле', choices=(('id', 'ID'), ('code', 'идентификатор'), ('article', 'код 1С'), ('partnumber', 'partnumber'), ('gtin', 'GTIN')))
+
+
+class ProductConfirmImportForm(ConfirmImportForm):
+    id_field = CharField(widget=HiddenInput())
+
+
 class ProductResource(resources.ModelResource):
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.id_field = kwargs.get('id_field', 'id')
+
+    def get_import_id_fields(self):
+        return (self.id_field,)
+
     class Meta:
         model = Product
-        exclude = ('categories',)
+        exclude = ('categories', 'stock', 'num', 'spb_num', 'ws_num', 'related', 'constituents', 'image_prefix')
 
 
 @admin.register(Product)
@@ -426,6 +442,26 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         for inline in self.get_inline_instances(request, obj):
             if request.user.is_superuser or not request.user.has_perm('shop.change_order_spb'):
                 yield inline.get_formset(request, obj), inline
+
+    def get_import_form(self):
+        return ProductImportForm
+
+    def get_confirm_import_form(self):
+        return ProductConfirmImportForm
+
+    def get_form_kwargs(self, form, *args, **kwargs):
+        if not isinstance(form, type) and form.is_valid():
+            kwargs.update({'id_field': form.cleaned_data['id_field']})
+        return kwargs
+
+    def get_import_resource_kwargs(self, request, *args, **kwargs):
+        if request.POST:
+            form_type = self.get_confirm_import_form()
+            form = form_type(request.POST)
+            form.full_clean()
+            return {'id_field': form.cleaned_data['id_field']}
+        else:
+            return {}
 
     # обновляем кеш наличия при сохранении
     def save_model(self, request, obj, form, change):
