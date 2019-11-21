@@ -10,6 +10,8 @@ from django.utils.encoding import smart_text
 from django.utils.html import conditional_escape, mark_safe
 
 from mptt.forms import TreeNodeMultipleChoiceField
+from import_export.forms import ImportForm, ConfirmImportForm, ExportForm
+from model_field_list import ModelFieldListFormField
 
 from djconfig import config
 
@@ -20,6 +22,14 @@ from shop.tasks import import1c
 
 from .widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
     OrderItemProductLink, ListTextWidget, YandexDeliveryWidget
+
+
+class CategoryAdminForm(forms.ModelForm):
+    class Meta:
+        widgets = {
+            'brief': AutosizedTextarea(attrs={'rows': 3}),
+            'description': AutosizedTextarea(attrs={'rows': 3}),
+        }
 
 
 class OneSImportForm(forms.Form):
@@ -100,6 +110,18 @@ class StockInlineForm(forms.ModelForm):
 class SWTreeNodeMultipleChoiceField(TreeNodeMultipleChoiceField):
     def label_from_instance(self, obj):
         return mark_safe(conditional_escape(smart_text('/'.join([x['name'] for x in obj.get_ancestors(include_self=True).values()]))))
+
+
+class ProductImportForm(ImportForm):
+    id_field = forms.ChoiceField(label='Идентификационное поле', choices=(('id', 'ID'), ('code', 'идентификатор'), ('article', 'код 1С'), ('partnumber', 'partnumber'), ('gtin', 'GTIN')))
+
+
+class ProductConfirmImportForm(ConfirmImportForm):
+    id_field = forms.CharField(widget=forms.HiddenInput())
+
+
+class ProductExportForm(ExportForm):
+    export_fields = ModelFieldListFormField(source_model=Product, label='Поля для экспорта', widget=FilteredSelectMultiple('свойства товара', False))
 
 
 class ProductAdminForm(forms.ModelForm):
