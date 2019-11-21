@@ -684,7 +684,7 @@ class Product(models.Model):
 
     @cached_property
     def breadcrumbs(self):
-        for category in self.categories.all():
+        for category in self.categories.filter(active=True):
             ancestors = category.get_ancestors(include_self=True)
             if ancestors[0].slug == settings.MPTT_ROOT:
                 return ancestors
