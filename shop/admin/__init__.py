@@ -1,4 +1,4 @@
-from django.forms import ModelForm, TextInput, ChoiceField, CharField, HiddenInput
+from django.forms import ModelForm, TextInput
 from django.urls import reverse
 from django.db.models import PositiveSmallIntegerField, PositiveIntegerField, \
     DecimalField, FloatField, Q
@@ -15,7 +15,6 @@ from reviews.admin import ReviewAdmin
 
 from import_export import resources
 from import_export.admin import ImportExportMixin
-from import_export.forms import ImportForm, ConfirmImportForm
 
 from sewingworld.admin import get_sites
 from sewingworld.widgets import AutosizedTextarea
@@ -23,21 +22,14 @@ from shop.models import Category, Supplier, Contractor, \
     Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, Advert, \
     Product, ProductRelation, ProductSet, ProductKind, SalesAction, Stock, ProductReview, \
     Manager, Courier, Order
-from .forms import ProductAdminForm, ProductKindForm, StockInlineForm
+from .forms import ProductImportForm, ProductConfirmImportForm, ProductExportForm, \
+    ProductAdminForm, ProductKindForm, StockInlineForm, CategoryAdminForm
 from .decorators import admin_changelist_link
 from .views import product_stock_view
 
 from .order import OrderAdmin  # NOQA
 from .act import ActAdmin  # NOQA
 from .user import ShopUserAdmin  # NOQA
-
-
-class CategoryForm(ModelForm):
-    class Meta:
-        widgets = {
-            'brief': AutosizedTextarea(attrs={'rows': 3}),
-            'description': AutosizedTextarea(attrs={'rows': 3}),
-        }
 
 
 @admin.register(Category)
@@ -48,7 +40,7 @@ class CategoryAdmin(DraggableMPTTAdmin):
     # list_editable = ['active']
     list_display_links = ['indented_title']
     exclude = ('image_width', 'image_height', 'promo_image_width', 'promo_image_height')
-    form = CategoryForm
+    form = CategoryAdminForm
 
 
 @admin.register(Supplier)
@@ -220,21 +212,20 @@ class ProductRelationInline(admin.TabularInline):
     suit_classes = 'suit-tab suit-tab-related'
 
 
-class ProductImportForm(ImportForm):
-    id_field = ChoiceField(label='Идентификационное поле', choices=(('id', 'ID'), ('code', 'идентификатор'), ('article', 'код 1С'), ('partnumber', 'partnumber'), ('gtin', 'GTIN')))
-
-
-class ProductConfirmImportForm(ConfirmImportForm):
-    id_field = CharField(widget=HiddenInput())
-
-
 class ProductResource(resources.ModelResource):
     def __init__(self, **kwargs):
         super().__init__()
         self.id_field = kwargs.get('id_field', 'id')
+        self.export_fields = kwargs.get('export_fields', [])
 
     def get_import_id_fields(self):
         return (self.id_field,)
+
+    def get_export_fields(self):
+        if self.export_fields:
+            return filter(lambda f: f.attribute in self.export_fields, self.get_fields())
+        else:
+            return self.get_fields()  # import uses same list as export
 
     class Meta:
         model = Product
@@ -449,6 +440,9 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     def get_confirm_import_form(self):
         return ProductConfirmImportForm
 
+    def get_export_form(self):
+        return ProductExportForm
+
     def get_form_kwargs(self, form, *args, **kwargs):
         if not isinstance(form, type) and form.is_valid():
             kwargs.update({'id_field': form.cleaned_data['id_field']})
@@ -456,10 +450,18 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
 
     def get_import_resource_kwargs(self, request, *args, **kwargs):
         if request.POST:
-            form_type = self.get_confirm_import_form()
-            form = form_type(request.POST)
+            form = self.get_confirm_import_form()(request.POST)
             form.full_clean()
             return {'id_field': form.cleaned_data['id_field']}
+        else:
+            return {}
+
+    def get_export_resource_kwargs(self, request, *args, **kwargs):
+        if request.POST:
+            formats = self.get_export_formats()
+            form = self.get_export_form()(formats, request.POST)
+            form.full_clean()
+            return {'export_fields': form.cleaned_data['export_fields']}
         else:
             return {}
 
