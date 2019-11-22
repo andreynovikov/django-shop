@@ -339,7 +339,7 @@ class OrderAdmin(LockableModelAdmin):
     @mark_safe
     def name_and_phone(self, obj):
         name = obj.name if obj.name else '---'
-        phone = ShopUserManager.format_phone(obj.phone) if obj.phone[0] == '+' else '---'
+        phone = ShopUserManager.format_phone(obj.user.phone) if obj.user.phone[0] == '+' else '---'
         return '{}<br/>{}'.format(name, phone)
     name_and_phone.admin_order_field = 'phone'
     name_and_phone.short_description = 'Покупатель'

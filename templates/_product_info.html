@@ -1,16 +1,9 @@
 {% load staticfiles %}
 {% load decimals %}
-{% load reviews %}
 {% load shop_filters %}
 <!-- product -->
 <div class="sw-p-l panel panel-default">
 <div class="panel-body">
-<div class="sw-p-l-rating">
-{% get_rating for product as product_rating %}
-{% if product_rating %}
-{% render_rating_value product_rating %}
-{% endif %}
-</div>
 <div class="sw-p-l-image text-center">
 {% if product.variations %}
 <a href="{{ product.variations }}" onclick="dataLayer.push({'event': 'productClick','ecommerce': {'click': {'actionField': {'list': '{{ gtm_list }}'},'products': [{'name': '{{ product.partnumber}} {{ product.title }}','id': '{{ product.id }}','price': '{{ product.cost }}','brand': '{{ product.manufacturer.code }}','category': '{{ category.name }}','position': {{ forloop.counter }}}]}},'eventCallback': function() {document.location = {{ product.variations }}}});">
