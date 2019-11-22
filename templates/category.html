@@ -22,7 +22,7 @@
 {% block content %}
 <h1>{{ category.name }}</h1>
 <ul class="catalog">
-{% for child in category.get_children|filter_qs:"active" %}
+{% for child in category.get_children|filter_qs:"active"|filter_qs:"!hidden" %}
     <li class="category"><a href="{% url 'category' child.get_path %}">{{ child }}</a></li>
 {% endfor %}
 </ul>
