@@ -31,7 +31,11 @@ def get_class_name(ref):
 @register.filter
 def filter_qs(queryset, field):
     if isinstance(queryset, QuerySet):
-        kwargs = {field: True}
+        criteria = True
+        if field[0] == '!':
+            criteria = False
+            field = field[1:]
+        kwargs = {field: criteria}
         return queryset.filter(**kwargs)
     else:
         return None
