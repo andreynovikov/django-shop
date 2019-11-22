@@ -140,7 +140,8 @@ class Category(MPTTModel):
     name = models.CharField(max_length=100)
     slug = models.CharField(max_length=100, db_index=True)
     parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True, on_delete=models.PROTECT)
-    active = models.BooleanField()
+    active = models.BooleanField('включена', default=True, db_index=True)
+    hidden = models.BooleanField('спрятана', default=False, db_index=True)
     filters = models.CharField('фильтры', max_length=255, blank=True)
     brief = models.TextField('описание', blank=True)
     description = models.TextField('статья', blank=True)
@@ -679,20 +680,11 @@ class Product(models.Model):
 
     @cached_property
     def breadcrumbs(self):
-        for category in self.categories.all():
-             ancestors = category.get_ancestors(include_self=True)
-             if ancestors[0].slug == settings.MPTT_ROOT:
-                 return ancestors
-        return None
-
-    @cached_property
-    def breadcrumbs(self):
-        for category in self.categories.all():
-             ancestors = category.get_ancestors(include_self=True)
-             if ancestors[0].slug == settings.MPTT_ROOT:
-                 import sys
-                 print("%s" % (ancestors), file=sys.stderr)
-                 return ancestors
+        root = Category.objects.get(slug=settings.MPTT_ROOT)
+        # select (optionally) not hidden category, the deepest or first sibling
+        category = self.categories.filter(tree_id=root.tree_id, active=True).order_by('hidden', '-level', 'lft').first()
+        if category:
+            return category.get_ancestors(include_self=True)
         return None
 
     @property
