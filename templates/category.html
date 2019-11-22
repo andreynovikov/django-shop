@@ -15,13 +15,10 @@
 {% endblock %}
 {% block content %}
 <h1>{{ category.name }}</h1>
-<ul>
-{% drilldown_tree_for_node category as categories %}
-    {% for node,structure in categories|tree_info %}
-        {% if node.parent_id == category.pk  %}
-                <li class="catalog"><a href="{% url 'category' node.get_path %}">{{ node }}</a></li>
-        {% endif %}
-    {% endfor %}
+<ul class="catalog">
+{% for child in category.get_children|filter_qs:"active"|filter_qs:"!hidden" %}
+    <li class="category"><a href="{% url 'category' child.get_path %}">{{ child }}</a></li>
+{% endfor %}
 </ul>
 {% for product in products %}
 {% include "_product_info.html" %}
