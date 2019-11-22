@@ -157,7 +157,7 @@ def catalog(request):
 def category(request, path, instance):
     products = None
     gtm_list = None
-    if not instance:
+    if not instance or not instance.active:
         raise Http404("Category does not exist")
     filters = {
         'enabled': True,
