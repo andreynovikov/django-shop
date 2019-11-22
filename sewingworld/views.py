@@ -188,7 +188,7 @@ def category(request, path, instance):
     ensure_session(request)
     products = None
     gtm_list = None
-    if not instance:
+    if not instance or not instance.active:
         raise Http404("Category does not exist")
     filters = {
         'enabled': True,
