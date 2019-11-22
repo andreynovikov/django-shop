@@ -1,4 +1,4 @@
-from django.http import StreamingHttpResponse
+from django.http import Http404, StreamingHttpResponse
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
@@ -72,13 +72,13 @@ def catalog(request):
 @permission_required('shop.wholesale')
 def category(request, path, instance):
     ensure_session(request)
-    products = None
-    if instance:
-        order = instance.product_order.split(',')
-        products = instance.products.filter(enabled=True).order_by(*order)
-        basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
-        quantities = {item.product: item.quantity for item in basket.items.all()}
-        products = map(lambda p: (p, basket.product_cost(p), quantities.get(p, 0)), products)
+    if not instance or not instance.active:
+        raise Http404("Category does not exist")
+    order = instance.product_order.split(',')
+    products = instance.products.filter(enabled=True).order_by(*order)
+    basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
+    quantities = {item.product: item.quantity for item in basket.items.all()}
+    products = map(lambda p: (p, basket.product_cost(p), quantities.get(p, 0)), products)
     context = {'root': Category.objects.get(slug=settings.MPTT_ROOT),
                'category': instance, 'products': products}
     return render(request, 'category.html', context)
