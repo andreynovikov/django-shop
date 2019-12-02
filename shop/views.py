@@ -15,12 +15,13 @@ from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 from django.core import signing
 from django.core.mail import mail_admins
+from django.db import IntegrityError
 from django.urls import reverse
 from django.core.exceptions import MultipleObjectsReturned
 from django.utils.formats import localize
 
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
-from shop.models import Product, Basket, BasketItem, Order, ShopUser, ShopUserManager
+from shop.models import Currency, Product, Basket, BasketItem, Order, ShopUser, ShopUserManager
 from shop.forms import UserForm
 
 import logging
@@ -468,6 +469,7 @@ def reset_password(request):
         except ShopUser.DoesNotExist:
             return HttpResponseNotFound()
         user.set_password(password)
+        user.permanent_password = False
         user.save()
         try:
             send_password.delay(phone, password)
@@ -511,6 +513,9 @@ def confirm_order(request, order_id=None):
                     if ipgeobase.city is not None:
                         order.city = ipgeobase.city
                         break
+            if WHOLESALE:
+                currency = Currency.objects.get(code=998)
+                order.manager_comment = "Курс ЦБ: {}".format(currency.rate)
             order.save()
             request.session['last_order'] = order.id
             request.session['last_order_updated'] = False
@@ -576,7 +581,7 @@ def update_order(request, order_id):
 @login_required
 def orders(request):
     orders = Order.objects.order_by('-id').filter(user=request.user.id)
-    form = UserForm(initial=model_to_dict(request.user))
+    form = UserForm(user=request.user)
     context = {
         'orders': orders,
         'user_form': form
@@ -612,15 +617,16 @@ def order_document(request, order_id, template_name):
 def update_user(request):
     user = request.user
     if request.method == 'POST':
-        form = UserForm(request.POST)
+        form = UserForm(request.POST, user=user)
         if form.is_valid():
             user.name = form.cleaned_data['name']
             user.phone = ShopUserManager.normalize_phone(form.cleaned_data['phone'])
             user.email = form.cleaned_data['email']
             user.address = form.cleaned_data['address']
+            user.username = form.cleaned_data['username']
             user.save()
     else:
-        form = UserForm(initial=model_to_dict(user))
+        form = UserForm(user=user)
 
     context = {
         'user_form': form,
