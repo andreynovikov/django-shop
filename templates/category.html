@@ -2,6 +2,7 @@
 {% load staticfiles %}
 {% load mptt_tags %}
 {% load django_bootstrap_breadcrumbs %}
+{% load site %}
 {% block title %}
 <title>{{ category.name }}</title>
 {% endblock %}
@@ -26,11 +27,8 @@
 {% endif %}
  <div class="category_list">
     <ul>
-{% drilldown_tree_for_node category as categories %}
-    {% for node,structure in categories|tree_info %}
-        {% if node.parent_id == category.pk  %}
-                <li class="reg"><span class="name"><a rel="singer_product_home.png" href="{% url 'category' node.get_path %}">{{ node }}</a></span></li>
-        {% endif %}
+    {% for child in category.get_children|filter_qs:"active"|filter_qs:"!hidden" %}
+        <li class="reg"><span class="name"><a rel="singer_product_home.png" href="{% url 'category' child.get_path %}">{{ child }}</a></span></li>
     {% endfor %}
   </ul>
 </div><!-- category_list -->
