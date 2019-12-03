@@ -303,11 +303,8 @@ class OrderAdmin(LockableModelAdmin):
         manager = ''
         if obj.manager:
             manager = ' style="color: %s"' % obj.manager.color
-        shop_code = getattr(settings, 'SHOP_ORDER_CODES', {}).get(obj.site.domain, '?')
-        if shop_code:
-            shop_code = shop_code + '-'
-        return '<b%s>%s%s</b><br/><span style="white-space:nowrap">%s</span>' % \
-            (manager, shop_code, obj.id, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
+        return '<b%s>%s</b><br/><span style="white-space:nowrap">%s</span>' % \
+            (manager, obj.title, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
     order_name.admin_order_field = 'id'
     order_name.short_description = 'заказ'
 
@@ -430,8 +427,8 @@ class OrderAdmin(LockableModelAdmin):
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
         DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
     }
-    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_stock_action', 'order_set_user_tag_action',
-               'order_act_action']
+    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_beru_action',
+               'order_stock_action', 'order_set_user_tag_action', 'order_act_action']
     save_as = True
     save_on_top = True
     list_per_page = 50
@@ -1130,6 +1127,12 @@ class OrderAdmin(LockableModelAdmin):
         return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
 
     order_stock_action.short_description = "Выгрузка поставщику"
+
+    def order_beru_action(self, request, queryset):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        return TemplateResponse(request, 'admin/shop/order/beru.html', {'orders': queryset})
+    order_beru_action.short_description = "Список заказов Беру"
 
     def order_set_user_tag_action(self, request, queryset):
         if not request.user.is_staff:
