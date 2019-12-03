@@ -1,6 +1,6 @@
 import re
 import datetime
-
+from collections import defaultdict
 from decimal import Decimal, ROUND_UP
 
 from django import forms
@@ -496,6 +496,38 @@ class OrderAdmin(LockableModelAdmin):
                 post.update({admin.ACTION_CHECKBOX_NAME: '0'})
                 request._set_post(post)
         return super(OrderAdmin, self).changelist_view(request, extra_context)
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        boxes = defaultdict(dict)
+        for formset in filter(lambda f: isinstance(f.empty_form.instance, OrderItem), formsets):
+            for inline in formset:
+                if inline.cleaned_data['box'] is not None:
+                    product = inline.cleaned_data['product']
+                    quantity = inline.instance.quantity
+                    box = boxes[inline.cleaned_data['box']]
+                    box['count'] = box.get('count', 0) + quantity
+                    box['weight'] = box.get('weight', 0) + product.prom_weight * quantity
+                    box['length'] = product.length
+                    box['width'] = product.width
+                    box['height'] = product.height
+        for formset in filter(lambda f: isinstance(f.empty_form.instance, Box), formsets):
+            for inline in formset:
+                if inline.instance.pk is None:
+                    continue
+                box = boxes.get(inline.instance)
+                if box is not None:
+                    changed = False
+                    if inline.cleaned_data['weight'] == 0:
+                        inline.instance.weight = box['weight']
+                        changed = True
+                    if box['count'] == 1:
+                        for dimension in ['length', 'width', 'height']:
+                            if inline.cleaned_data[dimension] == 0:
+                                setattr(inline.instance, dimension, box[dimension])
+                                changed = True
+                    if changed:
+                        inline.instance.save()
 
     def get_urls(self):
         urls = super(OrderAdmin, self).get_urls()
