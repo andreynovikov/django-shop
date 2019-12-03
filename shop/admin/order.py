@@ -414,9 +414,9 @@ class OrderAdmin(LockableModelAdmin):
     list_display = ['order_name', 'name_and_phone', 'city', 'total_cost', 'combined_payment', 'combined_delivery',
                     'colored_status', 'combined_comments']
     readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders']
-    list_filter = [OrderStatusListFilter, ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter), 'paid',
-                   OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
-                   ('delivery_handing_date', FutureDateRangeFilter), ('site', SiteListFilter), 'manager', 'courier']
+    list_filter = [OrderStatusListFilter, ('site', SiteListFilter), ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter),
+                   'paid', OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
+                   ('delivery_handing_date', FutureDateRangeFilter), 'manager', 'courier']
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
                      'item__serial_number']
