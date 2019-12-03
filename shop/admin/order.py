@@ -499,6 +499,8 @@ class OrderAdmin(LockableModelAdmin):
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
+        if not form.instance.is_beru:
+            return
         boxes = defaultdict(dict)
         for formset in filter(lambda f: isinstance(f.empty_form.instance, OrderItem), formsets):
             for inline in formset:
