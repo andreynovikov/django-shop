@@ -262,8 +262,9 @@ class OrderAdminForm(forms.ModelForm):
         return store
 
     def save(self, commit=True):
-        self.instance.user.tags = self.cleaned_data['user_tags']
-        self.instance.user.save()
+        if 'user_tags' in self.cleaned_data:  # massadmin does not have it
+            self.instance.user.tags = self.cleaned_data['user_tags']
+            self.instance.user.save()
         return super(OrderAdminForm, self).save(commit=commit)
 
     class Meta:
