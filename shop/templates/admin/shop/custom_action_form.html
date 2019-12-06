@@ -1,6 +1,11 @@
 {% extends "admin/base.html" %}
 {% load i18n admin_static admin_modify %}
 {% load site %}
+{% block extrastyle %}
+<style>
+    .form-row { padding-bottom: 10px }
+</style>
+{% endblock %}
 {% block extrahead %}
 {{ form.media }}
 {% endblock %}
@@ -31,6 +36,10 @@
           {% get_class_name field.field.widget as class %}
           {% if class == 'ReadOnlyInput' or class == 'CheckboxInput' %}
             <div class="readonly">{{ field }}</div>
+          {% elif class == 'RadioSelect' %}
+            {% for radio in field %}
+              {{ radio }}
+            {% endfor %}
           {% else %}
             {{ field }}
           {% endif %}

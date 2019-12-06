@@ -57,7 +57,9 @@ class OrderCombineForm(forms.Form):
 
 
 class OrderDiscountForm(forms.Form):
-    discount = forms.IntegerField(label='Скидка', min_value=0, required=True)
+    discount = forms.FloatField(label='Скидка', min_value=0, required=True)
+    unit = forms.ChoiceField(label='Вид', choices=(('pct', 'проценты'), ('val', 'рубли')),
+                             widget=forms.RadioSelect, initial='pct', required=True)
 
 
 class SendSmsForm(forms.Form):
