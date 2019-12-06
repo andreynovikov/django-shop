@@ -712,14 +712,21 @@ class OrderAdmin(LockableModelAdmin):
             is_popup = request.POST.get('_popup', 0)
             if form.is_valid():
                 try:
-                    discount = int(form.cleaned_data['discount'])
+                    unit = form.cleaned_data['unit']
                     for item in order.items.all():
-                        if discount > item.pct_discount:
-                            if discount <= item.product.max_discount:
-                                item.pct_discount = discount
-                            else:
-                                item.pct_discount = item.product.max_discount
-                            item.save()
+                        if unit == 'pct':
+                            discount = int(form.cleaned_data['discount'])
+                            if discount > item.pct_discount:
+                                if discount <= item.product.max_discount:
+                                    item.pct_discount = discount
+                                else:
+                                    item.pct_discount = item.product.max_discount
+                                item.save()
+                        elif unit == 'val':
+                            discount = float(form.cleaned_data['discount'])
+                            if discount > item.val_discount:
+                                item.val_discount = discount
+                                item.save()
 
                     return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
                                         '<script type="text/javascript">opener.dismissPopupAndReload(window);</script>'
