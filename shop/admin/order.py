@@ -429,8 +429,8 @@ class OrderAdmin(LockableModelAdmin):
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
         DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
     }
-    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_beru_action',
-               'order_stock_action', 'order_set_user_tag_action', 'order_act_action']
+    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_stock_action',
+               'order_products_action', 'order_beru_action', 'order_set_user_tag_action', 'order_act_action']
     save_as = True
     save_on_top = True
     list_per_page = 50
@@ -600,14 +600,6 @@ class OrderAdmin(LockableModelAdmin):
                     stock = stock + '<br/>'
             else:
                 stock = '<span style="color: #ff0000">отсутствует</span>'
-            # inner_cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
-            #                        INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
-            #                        AND shop_orderitem.product_id = %s GROUP BY shop_orderitem.product_id""", (product['product_id'],))
-            # if inner_cursor.rowcount:
-            #    row = inner_cursor.fetchone()
-            #    stock = stock + '<span style="color: #00c">Зак:&nbsp;'
-            #    stock = stock + ('%s' % floatformat(row[0]))
-            #    stock = stock + '</span><br/>'
             product['stock'] = stock
             products.append(product)
         cursor.close()
@@ -1134,8 +1126,39 @@ class OrderAdmin(LockableModelAdmin):
         context['action_title'] = "Сформировать выгрузку"
 
         return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
-
     order_stock_action.short_description = "Выгрузка поставщику"
+
+    def order_products_action(self, request, queryset):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
+        cursor = connection.cursor()
+        cursor.execute("""SELECT shop_orderitem.product_id, shop_product.article, SUM(shop_orderitem.quantity) AS quantity
+                          FROM shop_orderitem INNER JOIN shop_product ON (shop_product.id = shop_orderitem.product_id)
+                          INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id)
+                          WHERE shop_orderitem.order_id IN (""" + ','.join(selected) + """)
+                          GROUP BY shop_orderitem.product_id, shop_product.article""")
+        products = []
+        for row in cursor.fetchall():
+            columns = (x[0] for x in cursor.description)
+            product = dict(zip(columns, row))
+            products.append(product)
+        cursor.close()
+        import io
+        import xlsxwriter
+
+        output = io.BytesIO()
+        workbook = xlsxwriter.Workbook(output)
+        sheet = workbook.add_worksheet('Products')
+        for idx, product in enumerate(products):
+            sheet.write(idx, 0, product['article'])
+            sheet.write(idx, 1, product['quantity'])
+        workbook.close()
+
+        response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename=products-{}.xlsx'.format(datetime.date.today().isoformat())
+        return response
+    order_products_action.short_description = "Выгрузка товаров"
 
     def order_beru_action(self, request, queryset):
         if not request.user.is_staff:
