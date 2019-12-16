@@ -951,7 +951,7 @@ class OrderAdmin(LockableModelAdmin):
         context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
 
         # this method is called both from order change form with single id argument and order list with selected orders queryset
-        if isinstance(arg, int):
+        if isinstance(arg, str):
             orders = [Order.objects.get(pk=arg)]
         else:
             orders = arg.all()
@@ -974,12 +974,12 @@ class OrderAdmin(LockableModelAdmin):
                 for box in order.boxes.all():
                     count += 1
                     code = '%d-%d' % (order.id, count)
-                    barcode = CODE128(code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
-                    barcode = re.sub(r'^.*(?=<svg)', '', barcode)
+                    item_barcode = CODE128(code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
+                    item_barcode = re.sub(r'^.*(?=<svg)', '', item_barcode)
                     shipments.append({
                         'id': code,
                         'code': box.code,
-                        'barcode': mark_safe(barcode),
+                        'barcode': mark_safe(item_barcode),
                         'weight': box.weight
                     })
 
