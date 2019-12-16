@@ -430,7 +430,7 @@ class OrderAdmin(LockableModelAdmin):
         DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
     }
     actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_stock_action',
-               'order_products_action', 'order_beru_action', 'order_set_user_tag_action', 'order_act_action']
+               'order_products_action', 'order_beru_action', 'order_set_user_tag_action', 'beru_labels', 'order_act_action']
     save_as = True
     save_on_top = True
     list_per_page = 50
@@ -936,7 +936,7 @@ class OrderAdmin(LockableModelAdmin):
 
         return TemplateResponse(request, 'admin/shop/order/yandex_delivery_estimate.html', context)
 
-    def beru_labels(self, request, id):
+    def beru_labels(self, request, arg):
         if not request.user.is_staff:
             raise PermissionDenied
 
@@ -946,46 +946,55 @@ class OrderAdmin(LockableModelAdmin):
         context = self.admin_site.each_context(request)
         context['opts'] = self.model._meta
         context['is_popup'] = request.GET.get('_popup', 0)
+        context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
 
-        order = Order.objects.get(pk=id)
+        # this method is called both from order change form with single id argument and order list with selected orders queryset
+        if isinstance(arg, int):
+            orders = [Order.objects.get(pk=arg)]
+        else:
+            orders = arg.all()
 
+        context['orders'] = []
         try:
-            beru_order = get_beru_order_details(order.id)
-            beru_order_id = str(beru_order.get('id', 0))
+            for order in orders:
+                beru_order = get_beru_order_details(order.id)
+                beru_order_id = str(beru_order.get('id', 0))
 
-            CODE128 = barcode.get_barcode_class('code128')
-            order_barcode = CODE128(str(order.id)).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
-            order_barcode = re.sub(r'^.*(?=<svg)', '', order_barcode)
-            beru_order_barcode = CODE128(beru_order_id).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
-            beru_order_barcode = re.sub(r'^.*(?=<svg)', '', beru_order_barcode)
+                CODE128 = barcode.get_barcode_class('code128')
+                order_barcode = CODE128(str(order.id)).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
+                order_barcode = re.sub(r'^.*(?=<svg)', '', order_barcode)
+                beru_order_barcode = CODE128(beru_order_id).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
+                beru_order_barcode = re.sub(r'^.*(?=<svg)', '', beru_order_barcode)
 
-            count = 0
-            shipments = []
-            delivery = beru_order.get('delivery', {})
-            for box in order.boxes.all():
-                count += 1
-                code = '%d-%d' % (order.id, count)
-                barcode = CODE128(code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
-                barcode = re.sub(r'^.*(?=<svg)', '', barcode)
-                shipments.append({
-                    'id': code,
-                    'code': box.code,
-                    'barcode': mark_safe(barcode),
-                    'weight': box.weight
+                count = 0
+                shipments = []
+                delivery = beru_order.get('delivery', {})
+                for box in order.boxes.all():
+                    count += 1
+                    code = '%d-%d' % (order.id, count)
+                    barcode = CODE128(code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
+                    barcode = re.sub(r'^.*(?=<svg)', '', barcode)
+                    shipments.append({
+                        'id': code,
+                        'code': box.code,
+                        'barcode': mark_safe(barcode),
+                        'weight': box.weight
+                    })
+
+                context['orders'].append({
+                    'beru_order': beru_order,
+                    'order': order,
+                    'delivery_service_name': delivery.get('serviceName', ''),
+                    'delivery_service_id': delivery.get('deliveryServiceId', ''),
+                    'beru_barcode': mark_safe(beru_order_barcode),
+                    'barcode': mark_safe(order_barcode),
+                    'shipments': shipments
                 })
-
-            context['beru_order'] = beru_order
-            context['order'] = order
-            context['delivery_service_name'] = delivery.get('serviceName', '')
-            context['delivery_service_id'] = delivery.get('deliveryServiceId', '')
-            context['beru_order_barcode'] = mark_safe(beru_order_barcode)
-            context['order_barcode'] = mark_safe(order_barcode)
-            context['shipments'] = shipments
-            context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
         except Exception as e:
             context['error'] = getattr(e, 'message', str(e))
 
         return TemplateResponse(request, 'shop/order/beru_labels.html', context)
+    beru_labels.short_description = "Печать наклеек Беру"
 
     def send_sms_form(self, request, phone):
         if not request.user.is_staff:
