@@ -310,8 +310,20 @@ class OrderAdmin(LockableModelAdmin):
 
     @mark_safe
     def combined_comments(self, obj):
-        alert = '<span style="color:#ba2121">%s</span><br/>' % obj.alert if obj.alert else ''
-        return '%s<span style="color:#008">%s</span> %s<br/><em>%s</em>' % (alert, obj.delivery_yd_order, obj.delivery_info, obj.manager_comment)
+        comment = []
+        if obj.alert:
+            comment.append('<span style="color:#ba2121">{}</span><br/>'.format(obj.alert))
+        if obj.is_beru:
+            comment.append('<span style="color:#2121ba">№{}</span> '.format(obj.delivery_tracking_number))
+        else:
+            if obj.delivery_yd_order:
+                comment.append('<span style="color:#2121ba">{}</span> '.format(obj.delivery_yd_order))
+            if obj.delivery_tracking_number:
+                if obj.delivery_yd_order:
+                    comment.append('<span style="color:#2121ba">&#10095;</span> ')
+                comment.append('<span style="color:#21baba">{}</span> '.format(obj.delivery_tracking_number))
+        comment.append('{}<br/><em>{}</em>'.format(obj.delivery_info, obj.manager_comment))
+        return ''.join(comment)
     combined_comments.admin_order_field = 'manager_comment'
     combined_comments.short_description = 'Комментарии'
 
@@ -413,15 +425,9 @@ class OrderAdmin(LockableModelAdmin):
     readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders',
                        'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
                        'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
-<<<<<<< HEAD
-    list_filter = [OrderStatusListFilter, ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter), 'paid',
-                   OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
-                   ('delivery_handing_date', FutureDateRangeFilter), ('site', SiteListFilter), 'manager', 'courier']
-=======
     list_filter = [OrderStatusListFilter, ('site', SiteListFilter), ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter),
                    'paid', OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
                    ('delivery_handing_date', FutureDateRangeFilter), 'manager', 'courier']
->>>>>>> origin/production
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
                      'item__serial_number']
@@ -504,11 +510,8 @@ class OrderAdmin(LockableModelAdmin):
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
-<<<<<<< HEAD
-=======
         if not form.instance.is_beru:
             return
->>>>>>> origin/production
         boxes = defaultdict(dict)
         for formset in filter(lambda f: isinstance(f.empty_form.instance, OrderItem), formsets):
             for inline in formset:
@@ -960,11 +963,7 @@ class OrderAdmin(LockableModelAdmin):
         context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
 
         # this method is called both from order change form with single id argument and order list with selected orders queryset
-<<<<<<< HEAD
-        if isinstance(arg, int):
-=======
         if isinstance(arg, str):
->>>>>>> origin/production
             orders = [Order.objects.get(pk=arg)]
         else:
             orders = arg.all()
