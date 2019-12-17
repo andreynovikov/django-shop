@@ -413,9 +413,15 @@ class OrderAdmin(LockableModelAdmin):
     readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders',
                        'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
                        'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
+<<<<<<< HEAD
     list_filter = [OrderStatusListFilter, ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter), 'paid',
                    OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
                    ('delivery_handing_date', FutureDateRangeFilter), ('site', SiteListFilter), 'manager', 'courier']
+=======
+    list_filter = [OrderStatusListFilter, ('site', SiteListFilter), ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter),
+                   'paid', OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
+                   ('delivery_handing_date', FutureDateRangeFilter), 'manager', 'courier']
+>>>>>>> origin/production
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
                      'item__serial_number']
@@ -498,6 +504,11 @@ class OrderAdmin(LockableModelAdmin):
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
+<<<<<<< HEAD
+=======
+        if not form.instance.is_beru:
+            return
+>>>>>>> origin/production
         boxes = defaultdict(dict)
         for formset in filter(lambda f: isinstance(f.empty_form.instance, OrderItem), formsets):
             for inline in formset:
@@ -949,7 +960,11 @@ class OrderAdmin(LockableModelAdmin):
         context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
 
         # this method is called both from order change form with single id argument and order list with selected orders queryset
+<<<<<<< HEAD
         if isinstance(arg, int):
+=======
+        if isinstance(arg, str):
+>>>>>>> origin/production
             orders = [Order.objects.get(pk=arg)]
         else:
             orders = arg.all()
@@ -972,12 +987,12 @@ class OrderAdmin(LockableModelAdmin):
                 for box in order.boxes.all():
                     count += 1
                     code = '%d-%d' % (order.id, count)
-                    barcode = CODE128(code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
-                    barcode = re.sub(r'^.*(?=<svg)', '', barcode)
+                    item_barcode = CODE128(code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
+                    item_barcode = re.sub(r'^.*(?=<svg)', '', item_barcode)
                     shipments.append({
                         'id': code,
                         'code': box.code,
-                        'barcode': mark_safe(barcode),
+                        'barcode': mark_safe(item_barcode),
                         'weight': box.weight
                     })
 
