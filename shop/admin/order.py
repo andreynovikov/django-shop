@@ -310,8 +310,20 @@ class OrderAdmin(LockableModelAdmin):
 
     @mark_safe
     def combined_comments(self, obj):
-        alert = '<span style="color:#ba2121">%s</span><br/>' % obj.alert if obj.alert else ''
-        return '%s<span style="color:#008">%s</span> %s<br/><em>%s</em>' % (alert, obj.delivery_yd_order, obj.delivery_info, obj.manager_comment)
+        comment = []
+        if obj.alert:
+            comment.append('<span style="color:#ba2121">{}</span><br/>'.format(obj.alert))
+        if obj.is_beru:
+            comment.append('<span style="color:#2121ba">№{}</span> '.format(obj.delivery_tracking_number))
+        else:
+            if obj.delivery_yd_order:
+                comment.append('<span style="color:#2121ba">{}</span> '.format(obj.delivery_yd_order))
+            if obj.delivery_tracking_number:
+                if obj.delivery_yd_order:
+                    comment.append('<span style="color:#2121ba">&#10095;</span> ')
+                comment.append('<span style="color:#21baba">{}</span> '.format(obj.delivery_tracking_number))
+        comment.append('{}<br/><em>{}</em>'.format(obj.delivery_info, obj.manager_comment))
+        return ''.join(comment)
     combined_comments.admin_order_field = 'manager_comment'
     combined_comments.short_description = 'Комментарии'
 
