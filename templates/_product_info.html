@@ -1,4 +1,5 @@
 {% load staticfiles %}
+{% load thumbnail %}
 {% load decimals %}
 {% load shop_filters %}
 <!-- product -->
@@ -12,6 +13,10 @@
 {% endif %}
 {% if product.image_prefix|add:'.s.jpg'|file_exists %}
 <img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" />
+{% else %}
+{% thumbnail product.image_prefix|add:'.jpg' '120x120' padding=True as im %}
+<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}"/>
+{% endthumbnail %}
 {% endif %}
 </a>
 </div>
