@@ -253,12 +253,14 @@ class Order(models.Model):
         session_data = basket.session.get_decoded()
         uid = session_data.get('_auth_user_id')
         user = ShopUser.objects.get(id=uid)
-        order = Order.objects.create(user=user, site=Site.objects.get_current())
+        if basket.utm_source == 'yamarket':
+            site = Site.objects.get(domain='market.yandex.ru')
+        elif basket.utm_source == 'beru':
+            site = Site.objects.get(domain='beru.ru')
+        else:
+            site = Site.objects.get_current()
+        order = Order.objects.create(user=user, site=site)
         order.utm_source = basket.utm_source
-        if order.utm_source == 'yamarket':
-            order.site = Site.objects.get(domain='market.yandex.ru')
-        if order.utm_source == 'beru':
-            order.site = Site.objects.get(domain='beru.ru')
         order.name = user.name
         order.postcode = user.postcode
         order.city = user.city

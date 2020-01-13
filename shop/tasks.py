@@ -3,71 +3,81 @@ from __future__ import absolute_import
 import csv
 import datetime
 import logging
+import json
 from collections import defaultdict
 from importlib import import_module
 from decimal import Decimal, ROUND_HALF_EVEN
+from urllib.request import Request, urlopen
 
 import django.db
 from django.core import signing
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from django.core.mail import send_mail
-from django.contrib.sites.models import Site
+from django.core.validators import EmailValidator
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils import timezone
 from django.contrib.sites.models import Site
 
 from celery import shared_task
 
-from sewingworld import sms_uslugi, smsru
+from djconfig import config, reload_maybe
 
-from shop.models import Supplier, Currency, Product, Stock, Basket, Order
+import reviews
+
+from unisender import Unisender
+
+from sewingworld.sms import send_sms
+
+from shop.models import ShopUser, Supplier, Currency, Product, Stock, Basket, Order
 
 
 log = logging.getLogger('shop')
 
 
+def validate_email(email):
+    validator = EmailValidator()
+    try:
+        validator(email)
+        return True
+    except ValidationError:
+        return False
+
+
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def send_message(phone, message):
-    smsru_key = getattr(settings, 'SMSRU_KEY', None)
-    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
-    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
-    client = sms_uslugi.Client(sms_login, sms_password)
-    #client = smsru.Client(smsru_key)
-    client.send(phone, message)
+    return send_sms(phone, message)
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=15, retry_backoff=True)
 def send_password(phone, password):
-    smsru_key = getattr(settings, 'SMSRU_KEY', None)
-    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
-    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
-    client = sms_uslugi.Client(sms_login, sms_password)
-    #client = smsru.Client(smsru_key)
-    client.send(phone, "Пароль для доступа на сайт: %s" % password)
+    return send_sms(phone, "Пароль для доступа на сайт: %s" % password)
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
-def notify_user_order_new_sms(order_id, password):
+def notify_user_order_new_sms(order_id, password=None, domain=None):
+    if domain:
+        site = Site.objects.get(domain=domain)
+    else:
+        site = Site.objects.get_current()
     order = Order.objects.get(id=order_id)
-    smsru_key = getattr(settings, 'SMSRU_KEY', None)
-    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
-    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
-    client = sms_uslugi.Client(sms_login, sms_password)
-    #client = smsru.Client(smsru_key)
     password_text = ""
     if password:
         password_text = " Пароль: %s" % password
-    client.send(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s %s" \
-                    % (order_id, Site.objects.get_current().domain, reverse('shop:user_orders'), password_text))
+    return send_sms(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s %s"
+                                 % (order_id, site.domain, reverse('shop:user_orders'), password_text))
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
-def notify_user_order_new_mail(order_id):
+def notify_user_order_new_mail(order_id, shop_info={}):
     order = Order.objects.get(id=order_id)
     if order.email:
-        shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+        if not validate_email(order.email):
+            return
+        reload_maybe()
         context = {
+            'shop_info': shop_info,  # мы не используем settings, потому что они для каждого магазина свои
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
         }
@@ -86,16 +96,13 @@ def notify_user_order_new_mail(order_id):
 @shared_task(autoretry_for=(Exception,), retry_backoff=True)
 def notify_user_order_collected(order_id):
     order = Order.objects.get(id=order_id)
-    smsru_key = getattr(settings, 'SMSRU_KEY', None)
-    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
-    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
-    client = sms_uslugi.Client(sms_login, sms_password)
-    #client = smsru.Client(smsru_key)
-    client.send(order.phone, "Заказ №%s собран и ожидает оплаты. Перейдите по ссылке, чтобы оплатить заказ: https://%s%s" \
-                    % (order_id, Site.objects.get_current().domain, reverse('shop:order', args=[order_id])))
+    send_sms(order.phone, "Заказ №%s собран и ожидает оплаты. Перейдите по ссылке, чтобы оплатить заказ: https://%s%s"
+                          % (order_id, Site.objects.get_current().domain, reverse('shop:order', args=[order_id])))
 
     if order.email:
-        shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+        if not validate_email(order.email):
+            return
+        reload_maybe()
         context = {
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
@@ -118,14 +125,9 @@ def notify_user_order_delivered_shop(order_id):
     city = order.store.city.name
     address = order.store.address
     name = order.store.name
-    smsru_key = getattr(settings, 'SMSRU_KEY', None)
-    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
-    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
-    client = sms_uslugi.Client(sms_login, sms_password)
-    #client = smsru.Client(smsru_key)
-    client.send(order.phone, "Ваш заказ доставлен в магазин \"%s\" по адресу %s, %s." \
-                             " Для получения заказа обратитесь в кассу и назовите номер" \
-                             " заказа %s." % (name, city, address, order_id))
+    send_sms(order.phone, "Ваш заказ доставлен в магазин \"%s\" по адресу %s, %s."
+                          " Для получения заказа обратитесь в кассу и назовите номер"
+                          " заказа %s." % (name, city, address, order_id))
 
 
 @shared_task(autoretry_for=(Exception,), retry_backoff=True)
@@ -135,15 +137,12 @@ def notify_user_order_delivered(order_id):
         title = 'PickPoint'
     else:
         title = 'ТК'
-    smsru_key = getattr(settings, 'SMSRU_KEY', None)
-    sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
-    sms_password = getattr(settings, 'SMS_USLUGI_PASSWORD', None)
-    client = sms_uslugi.Client(sms_login, sms_password)
-    #client = smsru.Client(smsru_key)
-    client.send(order.phone, "Заказ №%s доставлен в %s: %s" % (order_id, title, order.delivery_info))
+    send_sms(order.phone, "Заказ №%s доставлен в %s: %s" % (order_id, title, order.delivery_info))
 
     if order.email:
-        shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+        if not validate_email(order.email):
+            return
+        reload_maybe()
         context = {
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
@@ -160,12 +159,14 @@ def notify_user_order_delivered(order_id):
         )
 
 
-@shared_task(autoretry_for=(Exception,), retry_backoff=True)
+@shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
 def notify_user_order_done(order_id):
     order = Order.objects.get(id=order_id)
 
     if order.email:
-        shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+        if not validate_email(order.email):
+            return
+        reload_maybe()
         context = {
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
@@ -187,6 +188,8 @@ def notify_user_review_products(self, order_id):
     order = Order.objects.get(id=order_id)
 
     if order.email:
+        if not validate_email(order.email):
+            return
         reload_maybe()
         owner_info = getattr(settings, 'SHOP_OWNER_INFO', {})
         context = {
@@ -203,9 +206,9 @@ def notify_user_review_products(self, order_id):
         # https://www.unisender.com/ru/support/api/common/api-errors/
         if unisender.errorMessage:
             if unisender.errorCode in ['retry_later', 'api_call_limit_exceeded_for_api_key', 'api_call_limit_exceeded_for_ip']:
-                raise self.retry(countdown=60*60*2, max_retries=5, exc=Exception(unisender.errorMessage))  # 2 hours
+                raise self.retry(countdown=60 * 60 * 2, max_retries=5, exc=Exception(unisender.errorMessage))  # 2 hours
             if unisender.errorCode == 'not_enough_money':
-                raise self.retry(countdown=60*60*24, max_retries=5, exc=Exception(unisender.errorMessage))  # 24 hours
+                raise self.retry(countdown=60 * 60 * 24, max_retries=5, exc=Exception(unisender.errorMessage))  # 24 hours
             return unisender.errorMessage
 
         # recipient errors
@@ -214,40 +217,45 @@ def notify_user_review_products(self, order_id):
                 if 'errors' in r:
                     try:
                         return r['errors'][0]['message']
-                    except:
+                    except Exception:
                         return str(r['errors'])
                 else:
                     return r['id']
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
-def notify_manager(order_id):
+def notify_manager(order_id, domain=None, managers=None):
     order = Order.objects.get(id=order_id)
 
-    shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+    reload_maybe()
     msg_plain = render_to_string('mail/shop/order_manager.txt', {'order': order})
     msg_html = render_to_string('mail/shop/order_manager.html', {'order': order})
 
+    site = ''
+    if domain:
+        site = ' (%s)' % domain
+    if managers is None:
+        managers = config.sw_email_managers
     send_mail(
-        'Новый заказ №%s (%s)' % (order_id, Site.objects.get_current()),
+        'Новый заказ №%s%s' % (order_id, site),
         msg_plain,
-        shop_settings['email_from'],
-        shop_settings['email_managers'],
+        config.sw_email_from,
+        managers.split(','),
         html_message=msg_html,
     )
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_review_posted(review_id):
-    review = reviews.get_model().objects.get(id=review_id)
+    review = reviews.get_review_model().objects.get(id=review_id)
 
-    shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+    reload_maybe()
     msg_plain = render_to_string('mail/reviews/review_posted.txt', {'review': review})
 
     send_mail(
         'Новый обзор для %s' % review.content_object,
         msg_plain,
-        shop_settings['email_from'],
+        config.sw_email_from,
         [manager_tuple[1] for manager_tuple in settings.MANAGERS]
     )
 
@@ -269,7 +277,7 @@ class fragile(object):
         return error
 
 
-@shared_task(time_limit=2400, autoretry_for=(Exception,), retry_backoff=True)
+@shared_task(time_limit=7200, autoretry_for=(Exception,), retry_backoff=True)
 def import1c(file):
     frozen_orders = Order.objects.filter(status=Order.STATUS_FROZEN)
     frozen_products = defaultdict(list)
@@ -327,7 +335,7 @@ def import1c(file):
                         product.sp_cur_code = currencies.get(pk=line['sp_cur_code'])
                     except ValueError:
                         errors.append("%s: цена СП" % line['article'])
-                if line['ws_cur_code'] is not '0' and not product.forbid_ws_price_import:
+                if line['ws_cur_code'] != '0' and not product.forbid_ws_price_import:
                     try:
                         ws_cur_price = float(line['ws_cur_price'].replace('\xA0', ''))
                         if ws_cur_price > 0:
@@ -335,14 +343,13 @@ def import1c(file):
                         product.ws_cur_code = currencies.get(pk=line['ws_cur_code'])
                     except ValueError:
                         errors.append("%s: оптовая цена" % line['article'])
-                if line['cur_code'] is not '0' and not product.forbid_price_import:
+                if line['cur_code'] != '0' and not product.forbid_price_import:
                     try:
                         price = float(line['cur_price'].replace('\xA0', ''))
                         if price > 0 and product.cur_code.code == 643:
                             product.cur_price = int(round(price))
                     except ValueError:
                         errors.append("%s: розничная цена" % line['article'])
-                #product.stock.clear()
                 product.save()
                 for idx, quantity in enumerate(line['suppliers']):
                     if suppliers[idx] is None:
@@ -354,38 +361,40 @@ def import1c(file):
                             s = Stock.objects.get(product=product, supplier=suppliers[idx])
                             if s.correction == 0.0:
                                 s.delete()
+                        if not count and quantity > 0.0:
+                            s = Stock.objects.create(product=product, supplier=suppliers[idx], quantity=quantity)
                     except ValueError:
                         errors.append("%s: состояние складa" % line['article'])
                     except IndexError:
                         errors.append("%s: неправильное количество складов" % line['article'])
                 product.num = -1
                 product.spb_num = -1
+                product.ws_num = -1
                 product.save()
                 if product in frozen_products.keys() and product.instock > 0:
                     orders.update(frozen_products[product])
                 updated = updated + 1
             except MultipleObjectsReturned:
                 errors.append("%s: артикль не уникален" % line['article'])
-                next
             except ObjectDoesNotExist:
                 # errors.append("%s: товар отсутсвует" % line['article'])
                 pass
 
-    shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
+    reload_maybe()
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
                                  {'file': file, 'imported': imported, 'updated': updated, 'errors': errors,
                                   'orders': orders, 'opts': Order._meta})
     send_mail(
         'Импорт 1С из %s' % file,
         msg_plain,
-        shop_settings['email_from'],
-        shop_settings['email_managers'],
+        config.sw_email_from,
+        config.sw_email_managers.split(','),
     )
 
 
-@shared_task(autoretry_for=(Exception,), retry_backoff=True)
+@shared_task(autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=60, retry_jitter=False)
 def remove_outdated_baskets():
-    threshold = datetime.datetime.now() - datetime.timedelta(days=90)
+    threshold = timezone.now() - datetime.timedelta(seconds=settings.SESSION_COOKIE_AGE)
     baskets = Basket.objects.filter(created__lt=threshold)
     num = len(baskets)
     for basket in baskets.all():
@@ -432,9 +441,9 @@ def notify_abandoned_basket(self, basket_id, email, phone):
         # https://www.unisender.com/ru/support/api/common/api-errors/
         if unisender.errorMessage:
             if unisender.errorCode in ['retry_later', 'api_call_limit_exceeded_for_api_key', 'api_call_limit_exceeded_for_ip']:
-                raise self.retry(countdown=60*60*2, max_retries=5, exc=Exception(unisender.errorMessage))  # 2 hours
+                raise self.retry(countdown=60 * 60 * 2, max_retries=5, exc=Exception(unisender.errorMessage))  # 2 hours
             if unisender.errorCode == 'not_enough_money':
-                raise self.retry(countdown=60*60*24, max_retries=5, exc=Exception(unisender.errorMessage))  # 24 hours
+                raise self.retry(countdown=60 * 60 * 24, max_retries=5, exc=Exception(unisender.errorMessage))  # 24 hours
             return unisender.errorMessage
         # recipient errors
         for r in result['result']:
@@ -442,7 +451,7 @@ def notify_abandoned_basket(self, basket_id, email, phone):
                 if 'errors' in r:
                     try:
                         return r['errors'][0]['message']
-                    except:
+                    except Exception:
                         return str(r['errors'])
                 else:
                     return r['id']
@@ -450,7 +459,7 @@ def notify_abandoned_basket(self, basket_id, email, phone):
         result = send_sms(phone, "Вы забыли оформить заказ: %s" % restore_url)
         try:
             return result['descr']
-        except:
+        except Exception:
             return result
 
 
@@ -467,6 +476,9 @@ def notify_abandoned_baskets(first_try=True):
     baskets = Basket.objects.filter(secondary=False, created__lt=lt, created__gte=gt)
     num = 0
     for basket in baskets.all():
+        if basket.items.count() == 0:
+            continue
+
         email = None
         phone = None
 
@@ -480,10 +492,25 @@ def notify_abandoned_baskets(first_try=True):
                 phone = user.phone
         if phone is None and basket.phone:
             phone = basket.phone
-        log.info('email: %s phone: %s' % (email, phone))
 
         if email or phone:
             notify_abandoned_basket.delay(basket.id, email, phone)
             num = num + 1
     log.info('Sent notifications for %d abandoned baskets' % num)
     return num
+
+
+@shared_task(bind=True, autoretry_for=(OSError, django.db.Error), retry_backoff=300, retry_jitter=False)
+def update_cbrf_currencies(self):
+    url = 'https://www.cbr-xml-daily.ru/daily_json.js'
+    request = Request(url)
+    response = urlopen(request)
+    result = json.loads(response.read().decode('utf-8'))
+    rate = result.get('Valute', {}).get('USD', {}).get('Value', None)
+    if rate:
+        usd_cbrf = Currency.objects.get(code=998)
+        usd_cbrf.rate = rate
+        usd_cbrf.save()
+    else:
+        raise self.retry(countdown=60 * 60, max_retries=4)  # 1 hour
+    return rate
