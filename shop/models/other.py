@@ -74,10 +74,35 @@ class AliasField(models.Field):
         setattr(cls, name, self)
 
 
+class UsernameField(models.CharField):
+    description = "CharField that stores NULL but returns ''"
+
+    def __init__(self, *args, **kwargs):
+        kwargs['unique'] = True
+        kwargs['null'] = True
+        kwargs['blank'] = True
+        kwargs['default'] = ''
+        super().__init__(*args, **kwargs)
+
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+        del kwargs['unique']
+        del kwargs['null']
+        del kwargs['blank']
+        del kwargs['default']
+        return name, path, args, kwargs
+
+    def from_db_value(self, value, expression, connection):
+        return value or ''
+
+    def get_db_prep_value(self, value, connection, prepared=False):
+        return value or None
+
+
 class ShopUser(AbstractBaseUser, PermissionsMixin):
     phone = models.CharField('телефон', max_length=30, unique=True)
     name = models.CharField('имя', max_length=100, blank=True)
-    username = models.CharField('прозвище', max_length=100, unique=True, null=True, blank=True)
+    username = UsernameField('прозвище', max_length=100)
     email = models.EmailField('эл.почта', blank=True)
     postcode = models.CharField('индекс', max_length=10, blank=True)
     city = models.CharField('город', max_length=255, blank=True)
@@ -107,24 +132,11 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
     def autocomplete_search_fields():
         return ['id__iexact', 'name__icontains', 'phone__icontains', 'email__icontains']
 
-    def save(self, *args, **kwargs):
-        if self.username is not None and self.username.strip() == '':
-            self.username = None
-        super().save(*args, **kwargs)
-
     def get_short_name(self):
         return self.name or self.phone
 
     def get_full_name(self):
         return self.username or self.name or ShopUserManager.format_phone(self.phone[:-6] + '****' + self.phone[-2:])
-
-    """
-    def __getattribute__(self, name):
-        if name == 'username':
-            return self.name or ShopUserManager.format_phone(self.phone[:-6] + '****' + self.phone[-2:])
-        else:
-            return super().__getattribute__(name)
-    """
 
     def __str__(self):
         return self.get_short_name()
@@ -150,7 +162,7 @@ class Category(MPTTModel):
     image_width = models.IntegerField(null=True, blank=True)
     image_height = models.IntegerField(null=True, blank=True)
     promo_image = models.ImageField('промо изображение', upload_to='categories', blank=True,
-                              width_field='promo_image_width', height_field='promo_image_height')
+                                    width_field='promo_image_width', height_field='promo_image_height')
     promo_image_width = models.IntegerField(null=True, blank=True)
     promo_image_height = models.IntegerField(null=True, blank=True)
     product_order = models.CharField('поле сортировки товаров', max_length=50, default='-price')
@@ -163,14 +175,14 @@ class Category(MPTTModel):
         return reverse('category', kwargs={'path': self.get_path()})
 
     def __str__(self):
-        #return self.name
+        # return self.name
         show_path = False
         import traceback
         tb = traceback.extract_stack(limit=6)
         for line in tb:
-            #if self.id == 15:
-            #    import sys
-            #    print('{}: {}'.format(line.filename, line.name), file=sys.stderr)
+            # if self.id == 15:
+            #     import sys
+            #     print('{}: {}'.format(line.filename, line.name), file=sys.stderr)
             if line.name == 'field_choices' and line.filename.endswith('contrib/admin/filters.py'):
                 show_path = True
             if line.name == 'get' and line.filename.endswith('contrib/admin/views/autocomplete.py'):
@@ -197,10 +209,12 @@ class Currency(models.Model):
     def __str__(self):
         return self.name
 
+
 def update_product_prices(sender, instance, **kwargs):
     products = Product.objects.filter(models.Q(cur_code=instance) | models.Q(ws_cur_code=instance))
     for product in products:
         product.save()
+
 
 post_save.connect(update_product_prices, sender=Currency, dispatch_uid='update_product_prices')
 
@@ -430,19 +444,19 @@ class Product(models.Model):
         spb_price = models.DecimalField('цена СПб, руб', max_digits=10, decimal_places=2, default=0)
     cur_price = models.DecimalField('цена, вал', max_digits=10, decimal_places=2, default=0)
     cur_code = models.ForeignKey(Currency, verbose_name='валюта', related_name="rtprice", on_delete=models.PROTECT, default=643)
-    ws_price =  models.DecimalField('опт. цена, руб', max_digits=10, decimal_places=2, default=0)
-    ws_cur_price =  models.DecimalField('опт. цена, вал', max_digits=10, decimal_places=2, default=0)
+    ws_price = models.DecimalField('опт. цена, руб', max_digits=10, decimal_places=2, default=0)
+    ws_cur_price = models.DecimalField('опт. цена, вал', max_digits=10, decimal_places=2, default=0)
     ws_cur_code = models.ForeignKey(Currency, verbose_name='опт. валюта', related_name="wsprice", on_delete=models.PROTECT, default=643)
     ws_pack_only = models.BooleanField('опт. только упаковкой', default=False)
-    sp_price =  models.DecimalField('цена СП, руб', max_digits=10, decimal_places=2, default=0)
-    sp_cur_price=models.DecimalField('цена СП, вал', max_digits=10, decimal_places=2, default=0)
+    sp_price = models.DecimalField('цена СП, руб', max_digits=10, decimal_places=2, default=0)
+    sp_cur_price = models.DecimalField('цена СП, вал', max_digits=10, decimal_places=2, default=0)
     sp_cur_code = models.ForeignKey(Currency, verbose_name='СП валюта', related_name="spprice", on_delete=models.PROTECT, default=643)
     beru_price = models.DecimalField('цена Беру, руб', max_digits=10, decimal_places=2, default=0)
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
     ws_pct_discount = models.PositiveSmallIntegerField('опт. скидка, %', default=0)
     max_discount = models.PositiveSmallIntegerField('макс. скидка, %', default=10)
-    #todo: not used in logic, only in templates
+    # todo: not used in logic, only in templates
     max_val_discount = models.DecimalField('макс. скидка, руб', max_digits=10, decimal_places=2, null=True, blank=True)
     ws_max_discount = models.PositiveSmallIntegerField('опт. макс. скидка, %', default=10)
     image_prefix = models.CharField('префикс изображения', max_length=200)
@@ -459,37 +473,37 @@ class Product(models.Model):
     extended_warranty = models.CharField('расширенная гарантия', max_length=20, blank=True)
     manufacturer_warranty = models.BooleanField('официальная гарантия', default=False)
 
-    swcode=models.CharField('Код товара в ШМ', max_length=20, blank=True)
-    runame=models.CharField('Русское название', max_length=200, blank=True)
-    sales_notes=models.CharField('Yandex.Market Sales Notes', max_length=50, blank=True)
-    bid=models.CharField('Ставка маркета для основной выдачи', max_length=10, blank=True)
-    cbid=models.CharField('Ставка маркета для карточки модели', max_length=10, blank=True)
-    show_on_sw=models.BooleanField('витрина', default=True, db_index=True, db_column=settings.SHOP_SHOW_DB_COLUMN)
+    swcode = models.CharField('Код товара в ШМ', max_length=20, blank=True)
+    runame = models.CharField('Русское название', max_length=200, blank=True)
+    sales_notes = models.CharField('Yandex.Market Sales Notes', max_length=50, blank=True)
+    bid = models.CharField('Ставка маркета для основной выдачи', max_length=10, blank=True)
+    cbid = models.CharField('Ставка маркета для карточки модели', max_length=10, blank=True)
+    show_on_sw = models.BooleanField('витрина', default=True, db_index=True, db_column=settings.SHOP_SHOW_DB_COLUMN)
     if settings.SHOP_SHOW_DB_COLUMN == 'show_on_sw':
         spb_show_in_catalog = models.BooleanField('витрина СПб', default=True, db_index=True)
-    gift=models.BooleanField('Годится в подарок', default=False)
-    market=models.BooleanField('маркет', default=False, db_index=True, db_column=settings.SHOP_MARKET_DB_COLUMN)
+    gift = models.BooleanField('Годится в подарок', default=False)
+    market = models.BooleanField('маркет', default=False, db_index=True, db_column=settings.SHOP_MARKET_DB_COLUMN)
     if settings.SHOP_MARKET_DB_COLUMN == 'market':
-        spb_market=models.BooleanField('маркет СПб', default=False, db_index=True)
+        spb_market = models.BooleanField('маркет СПб', default=False, db_index=True)
     beru = models.BooleanField('выгружать в Беру', default=False, db_index=True)
-    manufacturer=models.ForeignKey(Manufacturer, verbose_name="Производитель", on_delete=models.PROTECT, default=49)
-    country=models.ForeignKey(Country, verbose_name="Страна производства", on_delete=models.PROTECT, default=1)
-    developer_country=models.ForeignKey(Country, verbose_name="Страна разработки", on_delete=models.PROTECT, related_name="developed_product", default=1)
-    isnew=models.BooleanField('Новинка', default=False)
-    deshevle=models.BooleanField('Нашли дешевле', default=False)
-    recomended=models.BooleanField('Рекомендуем', default=False)
-    absent=models.BooleanField('Нет в продаже', default=False)
-    credit_allowed=models.BooleanField('можно в кредит', default=False)
-    present=models.CharField('Подарок к этому товару', max_length=255, blank=True)
-    coupon=models.BooleanField('Предлагать купон', default=False)
-    not_for_sale=models.BooleanField('Не показывать кнопку заказа', default=False)
-    firstpage=models.BooleanField('Показать на первой странице', default=False)
-    suspend=models.BooleanField('Готовится к выпуску', default=False)
+    manufacturer = models.ForeignKey(Manufacturer, verbose_name="Производитель", on_delete=models.PROTECT, default=49)
+    country = models.ForeignKey(Country, verbose_name="Страна производства", on_delete=models.PROTECT, default=1)
+    developer_country = models.ForeignKey(Country, verbose_name="Страна разработки", on_delete=models.PROTECT, related_name="developed_product", default=1)
+    isnew = models.BooleanField('Новинка', default=False)
+    deshevle = models.BooleanField('Нашли дешевле', default=False)
+    recomended = models.BooleanField('Рекомендуем', default=False)
+    absent = models.BooleanField('Нет в продаже', default=False)
+    credit_allowed = models.BooleanField('можно в кредит', default=False)
+    present = models.CharField('Подарок к этому товару', max_length=255, blank=True)
+    coupon = models.BooleanField('Предлагать купон', default=False)
+    not_for_sale = models.BooleanField('Не показывать кнопку заказа', default=False)
+    firstpage = models.BooleanField('Показать на первой странице', default=False)
+    suspend = models.BooleanField('Готовится к выпуску', default=False)
     order = models.IntegerField('позиция сортировки', default=0, db_index=True)
-    opinion=models.CharField('Ссылка на обсуждение модели', max_length=255, blank=True)
-    allow_reviews=models.BooleanField('Разрешить обзоры', default=True)
-    measure=models.CharField('Единицы', max_length=10, blank=True)
-    weight=models.FloatField('Вес без упаковки, кг', default=0)
+    opinion = models.CharField('Ссылка на обсуждение модели', max_length=255, blank=True)
+    allow_reviews = models.BooleanField('Разрешить обзоры', default=True)
+    measure = models.CharField('Единицы', max_length=10, blank=True)
+    weight = models.FloatField('Вес без упаковки, кг', default=0)
     length = models.DecimalField('длина, см', max_digits=5, decimal_places=2, default=0)
     width = models.DecimalField('ширина, см', max_digits=5, decimal_places=2, default=0)
     height = models.DecimalField('высота, см', max_digits=5, decimal_places=2, default=0)
@@ -506,12 +520,12 @@ class Product(models.Model):
     if settings.SHOP_STOCK_DB_COLUMN == 'num':
         spb_num = models.SmallIntegerField('в наличии СПб', default=-1)
         ws_num = models.SmallIntegerField('в наличии Опт', default=-1)
-    stock=models.ManyToManyField(Supplier, through='Stock')
-    pack_factor=models.SmallIntegerField('Количество в упаковке', default=1)
-    shortdescr=models.TextField('Характеристика', blank=True)
-    yandexdescr=models.TextField('Описание для Яндекс.Маркет', blank=True)
-    whatis=models.TextField('Что это такое', blank=True)
-    whatisit=models.CharField('Что это такое, кратко', max_length=50, blank=True)
+    stock = models.ManyToManyField(Supplier, through='Stock')
+    pack_factor = models.SmallIntegerField('Количество в упаковке', default=1)
+    shortdescr = models.TextField('Характеристика', blank=True)
+    yandexdescr = models.TextField('Описание для Яндекс.Маркет', blank=True)
+    whatis = models.TextField('Что это такое', blank=True)
+    whatisit = models.CharField('Что это такое, кратко', max_length=50, blank=True)
     variations = models.CharField('вариации', max_length=255, blank=True)
 
     sales_actions = models.ManyToManyField(SalesAction, related_name='products', related_query_name='product', verbose_name='акции', blank=True)
@@ -633,6 +647,7 @@ class Product(models.Model):
             if self.num < 0:
                 product_set.declaration.num = -1
                 product_set.declaration.spb_num = -1
+                product_set.declaration.ws_num = -1
                 updated = True
             if product_set.declaration.recalculate_price:
                 product_set.declaration.update_set_price()
@@ -695,7 +710,6 @@ class Product(models.Model):
 
     @property
     def ws_discount(self):
-        pd = Decimal(0)
         if self.ws_pct_discount > 0:
             return (self.ws_price * Decimal(self.ws_pct_discount / 100)).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
         else:
@@ -705,21 +719,34 @@ class Product(models.Model):
     def instock(self):
         if self.num >= 0:
             return self.num
+        self.num = self.get_stock()
+        super(Product, self).save()
+        return self.num
 
+    def get_stock(self, which=settings.SHOP_STOCK_DB_COLUMN):
+        num = 0
         if self.constituents.count() == 0:
-            self.num = 0
-            if settings.SHOP_STOCK_DB_COLUMN == 'spb_num':
+            if which == 'spb_num':
                 suppliers = self.stock.filter(spb_count_in_stock=Supplier.COUNT_STOCK)
                 site_addon = '= 6'
+            elif which == 'ws_num':
+                suppliers = self.stock.filter(ws_count_in_stock=Supplier.COUNT_STOCK)
+                site_addon = '<> 6'
             else:
                 suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
                 site_addon = '<> 6'
             if suppliers.exists():
                 for supplier in suppliers:
                     stock = Stock.objects.get(product=self, supplier=supplier)
-                    self.num = self.num + stock.quantity + stock.correction
+                    num = num + stock.quantity + stock.correction
 
-            if self.num > 0:
+            # reserve 2 items for retail
+            if num > 0 and which == 'ws_num':
+                num = num - 2
+                if num < 0:
+                    num = 0
+
+            if num > 0:
                 cursor = connection.cursor()
                 cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
                               INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
@@ -727,28 +754,26 @@ class Product(models.Model):
                               shop_orderitem.product_id""", (self.id,))
                 if cursor.rowcount:
                     row = cursor.fetchone()
-                    self.num = self.num - float(row[0])
+                    num = num - float(row[0])
                 cursor.close()
-                if self.num < 0:
-                    self.num = 0
+                if num < 0:
+                    num = 0
         else:
-            self.num = 32767
+            num = 32767
             for item in ProductSet.objects.filter(declaration=self):
-                num = item.constituent.instock
+                n = item.constituent.instock
                 if item.quantity > 1:
-                    num = int(num / item.quantity)
-                if num < self.num:
-                    self.num = num
-
-        super(Product, self).save()
-        return self.num
+                    n = int(n / item.quantity)
+                if n < num:
+                    num = n
+        return num
 
     @staticmethod
     def autocomplete_search_fields():
         return ['title__icontains', 'code__icontains', 'article__icontains', 'partnumber__icontains']
 
     def __str__(self):
-        #return " ".join([self.partnumber, self.title])
+        # return " ".join([self.partnumber, self.title])
         return self.title
 
 
@@ -760,7 +785,7 @@ class ProductRelation(models.Model):
         (KIND_SIMILAR, 'похожий'),
         (KIND_ACCESSORY, 'аксессуар'),
         (KIND_GIFT, 'подарок'),
-        )
+    )
     parent_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='parent_products', verbose_name='товар')
     child_product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='child_products', verbose_name='связанный товар')
     kind = models.SmallIntegerField('тип', choices=RELATIONSHIP_KINDS, default=KIND_SIMILAR, db_index=True)
@@ -874,7 +899,7 @@ class Basket(models.Model):
             return ''
         pds = ' руб.'
         if pdt:
-             pds = '%'
+            pds = '%'
         return '%d%s' % (pdv, pds)
 
     @property
@@ -939,7 +964,7 @@ class BasketItem(models.Model):
         if WHOLESALE:
             return (self.cost * Decimal(self.quantity)).quantize(Decimal('0.01'), rounding=ROUND_UP)
         else:
-            return (self.cost * Decimal(self.quantity)) #.quantize(Decimal('1'), rounding=ROUND_UP)
+            return (self.cost * Decimal(self.quantity))  # .quantize(Decimal('1'), rounding=ROUND_UP)
 
     @property
     def cost(self):
