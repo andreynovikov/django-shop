@@ -45,7 +45,7 @@ def stocks(request):
     for sku in data.get('skus', []):
         try:
             product = Product.objects.get(article=sku)
-            count = int(product.instock)
+            count = int(product.get_stock('beru'))
             if count < 0:
                 count = 0
             skus.append({
@@ -84,7 +84,7 @@ def cart(request):
             response['cart']['items'].append({
                 'feedId': item.get('feedId', 0),
                 'offerId': sku,
-                'count': min(item.get('count', 0), product.instock),
+                'count': min(item.get('count', 0), product.get_stock('beru')),
                 'price': int(price.to_integral_value(rounding=decimal.ROUND_UP)),
                 'delivery': True
             })
