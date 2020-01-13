@@ -22,6 +22,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 WHOLESALE = getattr(settings, 'SHOP_WHOLESALE', False)
+ORDER_CODES = getattr(settings, 'SHOP_ORDER_CODES', {})
 
 
 class Contractor(models.Model):
@@ -210,6 +211,13 @@ class Order(models.Model):
     status = models.PositiveIntegerField('статус', choices=STATUS_CHOICES, default=STATUS_NEW, db_index=True)
 
     tracker = FieldTracker(fields=['status'])
+
+    @property
+    def title(self):
+        shop_code = ORDER_CODES.get(self.site.domain, '?')
+        if shop_code:
+            shop_code = shop_code + '-'
+        return '{}{}'.format(shop_code, self.id)
 
     @property
     def total(self):
