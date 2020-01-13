@@ -276,6 +276,7 @@ class Supplier(models.Model):
     count_in_stock = models.SmallIntegerField('учитывать в наличии', choices=COUNT_CHOICES, default=COUNT_NONE)
     spb_count_in_stock = models.SmallIntegerField('учитывать в наличии СПб', choices=COUNT_CHOICES, default=COUNT_NONE)
     ws_count_in_stock = models.SmallIntegerField('учитывать в наличии Опт', choices=COUNT_CHOICES, default=COUNT_NONE)
+    beru_count_in_stock = models.SmallIntegerField('учитывать в наличии Беру', choices=COUNT_CHOICES, default=COUNT_NONE)
     order = models.PositiveIntegerField()
 
     class Meta:
@@ -711,6 +712,12 @@ class Product(models.Model):
             if settings.SHOP_STOCK_DB_COLUMN == 'spb_num':
                 suppliers = self.stock.filter(spb_count_in_stock=Supplier.COUNT_STOCK)
                 site_addon = '= 6'
+            elif which == 'ws_num':
+                suppliers = self.stock.filter(ws_count_in_stock=Supplier.COUNT_STOCK)
+                site_addon = '<> 6'
+            elif which == 'beru':
+                suppliers = self.stock.filter(beru_count_in_stock=Supplier.COUNT_STOCK)
+                site_addon = '<> 6'
             else:
                 suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
                 site_addon = '<> 6'
