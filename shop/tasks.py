@@ -47,7 +47,11 @@ def send_password(phone, password):
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
-def notify_user_order_new_sms(order_id, password):
+def notify_user_order_new_sms(order_id, password=None, domain=None):
+    if domain:
+        site = Site.objects.get(domain=domain)
+    else:
+        site = Site.objects.get_current()
     order = Order.objects.get(id=order_id)
     smsru_key = getattr(settings, 'SMSRU_KEY', None)
     sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)
@@ -57,16 +61,17 @@ def notify_user_order_new_sms(order_id, password):
     password_text = ""
     if password:
         password_text = " Пароль: %s" % password
-    client.send(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s %s" \
-                    % (order_id, Site.objects.get_current().domain, reverse('shop:user_orders'), password_text))
+    return send_sms(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s %s"
+                                 % (order_id, site.domain, reverse('shop:user_orders'), password_text))
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
-def notify_user_order_new_mail(order_id):
+def notify_user_order_new_mail(order_id, shop_info={}):
     order = Order.objects.get(id=order_id)
     if order.email:
         shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
         context = {
+            'shop_info': shop_info,  # мы не используем settings, потому что они для каждого магазина свои
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
         }
@@ -220,18 +225,23 @@ def notify_user_review_products(self, order_id):
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
-def notify_manager(order_id):
+def notify_manager(order_id, domain=None, managers=None):
     order = Order.objects.get(id=order_id)
 
     shop_settings = getattr(settings, 'SHOP_SETTINGS', {})
     msg_plain = render_to_string('mail/shop/order_manager.txt', {'order': order})
     msg_html = render_to_string('mail/shop/order_manager.html', {'order': order})
 
+    site = ''
+    if domain:
+        site = ' (%s)' % domain
+    if managers is None:
+        managers = config.sw_email_managers
     send_mail(
-        'Новый заказ №%s' % order_id,
+        'Новый заказ №%s%s' % (order_id, site),
         msg_plain,
-        shop_settings['email_from'],
-        shop_settings['email_managers'],
+        config.sw_email_from,
+        managers.split(','),
         html_message=msg_html,
     )
 
