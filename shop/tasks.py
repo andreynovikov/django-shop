@@ -84,7 +84,7 @@ def notify_user_order_new_mail(order_id, shop_info={}):
         msg_plain = render_to_string('mail/shop/order_new.txt', context)
         msg_html = render_to_string('mail/shop/order_new.html', context)
 
-        send_mail(
+        return send_mail(
             'Ваш заказ №%s принят' % order_id,
             msg_plain,
             config.sw_email_from,
@@ -110,7 +110,7 @@ def notify_user_order_collected(order_id):
         msg_plain = render_to_string('mail/shop/order_collected.txt', context)
         msg_html = render_to_string('mail/shop/order_collected.html', context)
 
-        send_mail(
+        return send_mail(
             'Оплата заказа №%s' % order_id,
             msg_plain,
             config.sw_email_from,
@@ -150,7 +150,7 @@ def notify_user_order_delivered(order_id):
         msg_plain = render_to_string('mail/shop/order_delivered.txt', context)
         msg_html = render_to_string('mail/shop/order_delivered.html', context)
 
-        send_mail(
+        return send_mail(
             'Получение заказа №%s' % order_id,
             msg_plain,
             config.sw_email_from,
@@ -174,7 +174,7 @@ def notify_user_order_done(order_id):
         msg_plain = render_to_string('mail/shop/order_done.txt', context)
         msg_html = render_to_string('mail/shop/order_done.html', context)
 
-        send_mail(
+        return send_mail(
             'Заказ №%s выполнен' % order_id,
             msg_plain,
             config.sw_email_from,
@@ -236,7 +236,7 @@ def notify_manager(order_id, domain=None, managers=None):
         site = ' (%s)' % domain
     if managers is None:
         managers = config.sw_email_managers
-    send_mail(
+    return send_mail(
         'Новый заказ №%s%s' % (order_id, site),
         msg_plain,
         config.sw_email_from,
@@ -252,7 +252,7 @@ def notify_review_posted(review_id):
     reload_maybe()
     msg_plain = render_to_string('mail/reviews/review_posted.txt', {'review': review})
 
-    send_mail(
+    return send_mail(
         'Новый обзор для %s' % review.content_object,
         msg_plain,
         config.sw_email_from,
