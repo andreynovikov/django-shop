@@ -110,6 +110,7 @@ class Order(models.Model):
     STATUS_CONSULTATION = 0x00001000
     STATUS_PROBLEM = 0x00002000
     STATUS_DONE = 0x00004000
+    STATUS_RETURNING = 0x02000000
     STATUS_UNCLAIMED = 0x04000000
     STATUS_FINISHED = 0x0F000000
     STATUS_CHOICES = (
@@ -127,6 +128,7 @@ class Order(models.Model):
         (STATUS_DELIVERED_STORE, 'передан в службу доставки'),
         (STATUS_CONSULTATION, 'консультация'),
         (STATUS_PROBLEM, 'проблема'),
+        (STATUS_RETURNING, 'возвращается'),
         (STATUS_UNCLAIMED, 'не востребован'),
         (STATUS_DONE, 'завершён'),
         (STATUS_FINISHED, 'выполнен'),
@@ -146,6 +148,7 @@ class Order(models.Model):
         STATUS_DELIVERED_STORE: 'gray',
         STATUS_CONSULTATION: 'darkgreen',
         STATUS_PROBLEM: 'black',
+        STATUS_RETURNING: 'blue',
         STATUS_UNCLAIMED: 'black',
         STATUS_DONE: 'gray',
         STATUS_FINISHED: 'gray',
