@@ -145,6 +145,18 @@ class TagAutoComplete(widgets.AdminTextInputWidget):
         else:
             return [tag.name for tag in Tag.objects.usage_for_model(self.model)]
 
+    def format_value(self, value):
+        value = super(TagAutoComplete, self).format_value(value)
+        if value and value.startswith('"') and value.endswith('"'):  # this is not generally correct but we do not use commas and quotes in tags
+            value = value[1:-1]
+        return value
+
+    def value_from_datadict(self, data, files, name):
+        value = data.get(name)
+        if value is not None and ',' not in value and ' ' in value:
+            value = '"' + value + '"'
+        return value
+
     def render(self, name, value, attrs=None, renderer=None):
         """
         Render the default widget and initialize select2.

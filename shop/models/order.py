@@ -368,7 +368,7 @@ class Order(models.Model):
         return order
 
     def append_user_tags(self, tags):
-        user_tags = self.user.tags.split(',')
+        user_tags = self.user.tags.split(',') if self.user.tags else []
         merged = list(set(tags + user_tags))
         self.user.tags = ','.join(merged)
         self.user.save()
