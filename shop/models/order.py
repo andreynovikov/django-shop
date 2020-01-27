@@ -12,6 +12,7 @@ from django.utils.functional import cached_property
 
 from model_utils import FieldTracker
 from colorfield.fields import ColorField
+from tagging.utils import parse_tag_input
 
 from . import Product, ProductSet, Store, ShopUser
 
@@ -197,7 +198,7 @@ class Order(models.Model):
     store = models.ForeignKey(Store, verbose_name='магазин самовывоза', blank=True, null=True, on_delete=models.PROTECT)
     utm_source = models.CharField(max_length=20, blank=True)
     # user
-    user = models.ForeignKey(ShopUser, verbose_name='покупатель', on_delete=models.PROTECT)
+    user = models.ForeignKey(ShopUser, verbose_name='покупатель', related_name='orders', on_delete=models.PROTECT)
     name = models.CharField('имя', max_length=100, blank=True)
     postcode = models.CharField('индекс', max_length=10, blank=True)
     city = models.CharField('город', max_length=255, blank=True)
@@ -368,8 +369,11 @@ class Order(models.Model):
         return order
 
     def append_user_tags(self, tags):
-        user_tags = self.user.tags.split(',') if self.user.tags else []
+        user_tags = parse_tag_input(self.user.tags)
+        print(user_tags)
+        print(tags)
         merged = list(set(tags + user_tags))
+        print(merged)
         self.user.tags = ','.join(merged)
         self.user.save()
 
