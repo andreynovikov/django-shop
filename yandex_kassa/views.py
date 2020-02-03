@@ -98,6 +98,7 @@ def payment(request, order_id):
             'order_id': order.id,
             'user_id': order.user.id
         },
+        'capture': True,
         'description': 'Заказ №{}'.format(order.id)
     }
     if order.payment == order.PAYMENT_CREDIT:
@@ -115,17 +116,21 @@ def callback(request):
     else:
         return HttpResponseForbidden()
     logger.debug(data)
-    print(data)
     try:
         notification_object = WebhookNotification(data)
+        if notification_object.event == 'refund.succeeded':
+            return HttpResponse('')
         payment = notification_object.object
-        order = Order.objects.get(pk=int(payment.metadata.get('order_id', '-1')))
-        user = ShopUser.objects.get(pk=int(payment.metadata.get('user_id', '-1')))
+        order = Order.objects.get(pk=int(payment.metadata.get('order_id', payment.metadata.get('orderNumber', '-1'))))
+        user = ShopUser.objects.get(pk=int(payment.metadata.get('user_id', payment.metadata.get('CustomerNumber', '-1'))))
         if order.user.id != user.id:
             raise Exception()
         order.paid = payment.paid
         if payment.status == 'canceled':
-            order.alert = "Оплата отклонена: {}".format(CANCELLATION_REASONS.get(payment.cancellation_details.reason, "неизвестная причина"))
+            if payment.cancellation_details:
+                order.alert = "Оплата отклонена: {}".format(CANCELLATION_REASONS.get(payment.cancellation_details.reason, "неизвестная причина"))
+            else:
+                order.alert = "Оплата отклонена: неизвестная причина"
         order.save()
     except Exception:
         logger.exception("Failed to process payment status")
