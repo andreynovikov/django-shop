@@ -78,45 +78,7 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
 {% if not order.paid %}
 {% if order.status == order.STATUS_COLLECTED %}
 {% if order.payment == order.PAYMENT_CARD or order.payment == order.PAYMENT_CREDIT %}
-<form name="ShopForm" method="post" action="https://money.yandex.ru/eshop.xml">
-<input type="hidden" name="scid" value="29182"/>
-<input type="hidden" name="ShopID" value="42873"/>
-<input type="hidden" name="orderNumber" value="{{ order.id }}"/>
-<input type="hidden" name="CustomerNumber" value="{{ order.user.id }}"/>
-<input type="hidden" name="Sum" value="{{ order.total }}"/>
-<input type="hidden" name="CustName" value="{{ order.name }}"/>
-<input type="hidden" name="CustEMail" value="{{ order.email }}"/>
-<input type="hidden" name="CustAddr" value="{{ order.address }}"/>
-<input type="hidden" name="cps_email" value="{{ order.email }}"/>
-<input type="hidden" name="shopSuccessURL" value="{% site_url_prefix %}/pages/orderdone/"/>
-<input type="hidden" name="ym_merchant_receipt" value='{
-  "customerContact": "{{ order.phone }}",
-  "taxSystem": 2,
-  "items":[{% for item in order.items.all %}
-    {"quantity": {{ item.quantity }}, "price": {"amount": {{ item.cost|quantize:'1' }}}, "tax": 1, "text": "{{ item.product.title|safe|escapejs }}"}{% if order.delivery_price > 0 or not forloop.last %},{% endif %}{% endfor %}{% if order.delivery_price > 0 %}
-    {"quantity": 1, "price": {"amount": {{ order.delivery_price|quantize:'1' }}}, "tax": 1, "text": "Доставка"}{% endif %}
-          ]
-}'/>
-{% if order.payment == order.PAYMENT_CARD %}
-Выберите способ оплаты:<br/>
-<div class="radio">
-<label>
-<input name="paymentType" value="PC" type="radio"/>
-Со счёта в Яндекс.Деньгах
-</label>
-</div>
-<div class="radio">
-<label>
-<input name="paymentType" value="AC" type="radio" checked="checked"/>
-Банковской картой
-</label>
-</div>
-<input type="submit" class="btn btn-success" value="Оплатить заказ"/>
-{% elif order.payment == order.PAYMENT_CREDIT %}
-<input name="paymentType" value="CR" type="hidden"/>
-<input type="submit" class="btn btn-success" value="Оформить кредит"/>
-{% endif %}
-</form>
+<a class="btn btn-success" href="{% url 'yandex_kassa:payment' order.id %}">{% if order.payment == order.PAYMENT_CREDIT %}Оформить кредит{% else %}Оплатить заказ{% endif %}</a>
 {% elif order.payment == order.PAYMENT_TRANSFER %}
 <a href="{% url 'shop:order_document' order.id 'bill' %}">Скачать счёт для оплаты в любом банке</a>
 {% endif %}
