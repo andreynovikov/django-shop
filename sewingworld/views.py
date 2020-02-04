@@ -5,12 +5,12 @@ from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
 from django.template import loader
 
-from shop.models import Category, Product, ProductRelation, ProductSet, Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
+from sewingworld.models import SiteProfile
+from shop.models import Category, Product, ProductRelation, ProductSet, SalesAction, Store, ServiceCenter
 from shop.filters import get_product_filter
 
 
 def index(request):
-    site = Site.objects.get_current()
     context = {}
     return render(request, 'index.html', context)
 
@@ -27,10 +27,10 @@ def products_stream(request, templates, filter_type):
         children = children.filter(ya_active=True)
     categories = {}
     for child in children:
-        categories[child.pk] = child.pk;
+        categories[child.pk] = child.pk
         descendants = child.get_descendants()
         for descendant in descendants:
-            categories[descendant.pk] = child.pk;
+            categories[descendant.pk] = child.pk
     context = {
         'children': children,
         'category_map': categories
@@ -45,7 +45,7 @@ def products_stream(request, templates, filter_type):
         'price__gt': 0,
         'variations__exact': '',
         'categories__in': root.get_descendants(include_self=True)
-        }
+    }
     if filter_type == 'yandex':
         filters['market'] = True
         filters['num__gt'] = 0
@@ -101,13 +101,12 @@ def stores(request):
             cur_city_index += 1
         store_groups[cur_country_index]['cities'][cur_city_index]['stores'].append(store)
 
+    site_profile = SiteProfile.objects.get(site=Site.objects.get_current())
     context = {
         'stores': stores,
         'store_groups': store_groups,
-        }
-    city = settings.SHOP_SETTINGS.get('city_id')
-    if city:
-        context['city'] = City.objects.get(pk=city)
+        'city': site_profile.city
+    }
 
     return render(request, 'stores.html', context)
 
@@ -138,13 +137,12 @@ def service(request):
             cur_city_index += 1
         service_groups[cur_country_index]['cities'][cur_city_index]['services'].append(service)
 
+    site_profile = SiteProfile.objects.get(site=Site.objects.get_current())
     context = {
         'services': services,
         'service_groups': service_groups,
-        }
-    city = settings.SHOP_SETTINGS.get('city_id')
-    if city:
-        context['city'] = City.objects.get(pk=city)
+        'city': site_profile.city
+    }
 
     return render(request, 'service.html', context)
 
@@ -161,7 +159,7 @@ def category(request, path, instance):
         raise Http404("Category does not exist")
     filters = {
         'enabled': True,
-        }
+    }
     order = instance.product_order.split(',')
     products = instance.products.filter(**filters).order_by(*order)
     if products.count() < 1:
@@ -230,7 +228,7 @@ def product(request, code):
         'similar': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR),
         'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT),
         'utm_source': request.GET.get('utm_source', None)
-        }
+    }
     return render(request, 'product.html', context)
 
 
@@ -241,5 +239,5 @@ def review_product(request, code):
 
     context = {
         'target': product,
-        }
+    }
     return render(request, 'reviews/post.html', context)
