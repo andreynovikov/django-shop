@@ -1,5 +1,4 @@
 from django.apps import AppConfig
-from django.contrib import admin
 from django.contrib.admin.apps import AdminConfig
 
 from lock_tokens.apps import LockTokensConfig

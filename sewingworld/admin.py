@@ -4,6 +4,7 @@ from django.utils.translation import ugettext_lazy as _
 
 import djconfig
 
+from .models import SiteProfile
 from .forms import SWConfigForm
 
 
@@ -51,6 +52,7 @@ get_sites.short_description = 'Sites'
 
 def configure_admin():
     djconfig.admin.register(SWConfig, SWConfigAdmin)
+    admin.site.register(SiteProfile, admin.ModelAdmin)
 
     from tagging.admin import TagAdmin
     from tagging.models import Tag

@@ -7,6 +7,7 @@ from django.contrib.sites.models import Site
 from django.template import loader
 from django.utils.text import capfirst
 
+from sewingworld.models import SiteProfile
 from shop.models import Category, Product, ProductRelation, ProductSet, ProductKind, Manufacturer, \
     Advert, SalesAction, City, Store, ServiceCenter, Stock
 from shop.filters import get_product_filter
@@ -22,7 +23,7 @@ def index(request):
         'gift_products': Product.objects.filter(enabled=True, show_on_sw=True, gift=True).order_by('-price')[:25],
         'recomended_products': Product.objects.filter(enabled=True, show_on_sw=True, recomended=True).order_by('-price')[:25],
         'first_page_products': Product.objects.filter(enabled=True, show_on_sw=True, firstpage=True).order_by('-price')[:25]
-        }
+    }
     return render(request, 'index.html', context)
 
 
@@ -38,10 +39,10 @@ def products_stream(request, templates, filter_type):
         children = children.filter(ya_active=True)
     categories = {}
     for child in children:
-        categories[child.pk] = child.pk;
+        categories[child.pk] = child.pk
         descendants = child.get_descendants()
         for descendant in descendants:
-            categories[descendant.pk] = child.pk;
+            categories[descendant.pk] = child.pk
     context = {
         'children': children,
         'category_map': categories
@@ -56,7 +57,7 @@ def products_stream(request, templates, filter_type):
         'price__gt': 0,
         'variations__exact': '',
         'categories__in': root.get_descendants(include_self=True)
-        }
+    }
     if filter_type == 'yandex':
         filters['market'] = True
         filters['num__gt'] = 0
@@ -121,13 +122,12 @@ def stores(request):
             cur_city_index += 1
         store_groups[cur_country_index]['cities'][cur_city_index]['stores'].append(store)
 
+    site_profile = SiteProfile.objects.get(site=Site.objects.get_current())
     context = {
         'stores': stores,
         'store_groups': store_groups,
-        }
-    city = getattr(settings, 'SHOP_CITY_ID', None)
-    if city:
-        context['city'] = City.objects.get(pk=city)
+        'city': site_profile.city
+    }
 
     return render(request, 'stores.html', context)
 
@@ -161,7 +161,7 @@ def service(request):
     context = {
         'services': services,
         'service_groups': service_groups,
-        }
+    }
     city = getattr(settings, 'SHOP_CITY_ID', None)
     if city:
         context['city'] = City.objects.get(pk=city)
@@ -182,7 +182,7 @@ def category(request, path, instance):
     filters = {
         'enabled': True,
         'show_on_sw': True
-        }
+    }
     order = instance.product_order.split(',')
     products = instance.products.filter(**filters).order_by(*order)
     if products.count() < 1:
@@ -254,7 +254,7 @@ def product(request, code):
         'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT),
         'utm_source': request.GET.get('utm_source', None),
         'is_compared': product.id in comparison_list
-        }
+    }
     return render(request, 'product.html', context)
 
 
@@ -312,7 +312,7 @@ def product_stock(request, code):
     context = {
         'product': product,
         'store_groups': store_groups,
-        }
+    }
     response = render(request, 'stock.html', context)
     response['X-Robots-Tag'] = 'noindex'
     return response
@@ -391,7 +391,7 @@ def compare_products(request, compare=None, kind=None):
         'kinds': all_kinds,
         'products': products,
         'field_map': field_map
-        }
+    }
     return render(request, 'compare.html', context)
 
 
@@ -413,5 +413,5 @@ def review_product(request, code):
         raise Http404("Product does not exist")
     context = {
         'target': product,
-        }
+    }
     return render(request, 'reviews/post.html', context)
