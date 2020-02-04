@@ -251,6 +251,10 @@ class Order(models.Model):
     def is_beru(self):
         return self.site == Site.objects.get(domain='beru.ru')
 
+    @cached_property
+    def is_from_market(self):
+        return self.site == Site.objects.get(domain='market.yandex.ru')
+
     @staticmethod
     def register(basket):
         session_data = basket.session.get_decoded()
