@@ -574,16 +574,9 @@ def confirm_order(request, order_id=None):
             request.session['last_order_updated'] = False
             """ wait for 5 minutes to let user supply comments and other stuff """
             try:
-                domain = Site.objects.get_current().domain
-                kwargs = None
-                if domain != 'www.sewing-world.ru':
-                    kwargs = {
-                        'domain': domain,
-                        'managers': getattr(settings, 'SHOP_SETTINGS', {}).get('email_managers', None)
-                    }
-                notify_manager.apply_async((order.id,), kwargs, countdown=300)
-                notify_user_order_new_mail.apply_async((order.id, getattr(settings, 'SHOP_INFO', {})), countdown=300)
-                notify_user_order_new_sms.apply_async((order.id, request.session.get('password', None), domain), countdown=300)
+                notify_manager.apply_async((order.id,), countdown=300)
+                notify_user_order_new_mail.apply_async((order.id,), countdown=300)
+                notify_user_order_new_sms.apply_async((order.id, request.session.get('password', None)), countdown=300)
             except Exception as e:
                 mail_admins('Task error', 'Failed to send notification: %s' % e, fail_silently=True)
             basket.delete()

@@ -14,12 +14,15 @@ from celery import shared_task
 
 from djconfig import config, reload_maybe
 
+from sewingworld.models import SiteProfile
 from sewingworld.sms import send_sms
 
 from shop.models import Order
 
 
 log = logging.getLogger('shop')
+
+sw_default_site = Site.objects.get_current()
 
 
 def validate_email(email):
@@ -29,6 +32,13 @@ def validate_email(email):
         return True
     except ValidationError:
         return False
+
+
+def get_site_for_order(order):
+    if order.is_beru or order.is_from_market:
+        return sw_default_site
+    else:
+        return order.site
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
@@ -42,12 +52,9 @@ def send_password(phone, password):
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
-def notify_user_order_new_sms(order_id, password=None, domain=None):
-    if domain:
-        site = Site.objects.get(domain=domain)
-    else:
-        site = Site.objects.get_current()
+def notify_user_order_new_sms(order_id, password=None):
     order = Order.objects.get(id=order_id)
+    site = get_site_for_order(order)
     password_text = ""
     if password:
         password_text = " Пароль: %s" % password
@@ -56,14 +63,16 @@ def notify_user_order_new_sms(order_id, password=None, domain=None):
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
-def notify_user_order_new_mail(order_id, shop_info={}):
+def notify_user_order_new_mail(order_id):
     order = Order.objects.get(id=order_id)
     if order.email:
         if not validate_email(order.email):
             return
+        site = get_site_for_order(order)
         reload_maybe()
         context = {
-            'shop_info': shop_info,  # мы не используем settings, потому что они для каждого магазина свои
+            'site': site,
+            'site_profile': SiteProfile.objects.get(site=site),
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
         }
@@ -79,17 +88,20 @@ def notify_user_order_new_mail(order_id, shop_info={}):
         )
 
 
-@shared_task(autoretry_for=(Exception,), retry_backoff=True)
+@shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
 def notify_user_order_collected(order_id):
     order = Order.objects.get(id=order_id)
+    site = get_site_for_order(order)
     send_sms(order.phone, "Заказ №%s собран и ожидает оплаты. Перейдите по ссылке, чтобы оплатить заказ: https://%s%s"
-                          % (order_id, Site.objects.get_current().domain, reverse('shop:order', args=[order_id])))
+                          % (order_id, site.domain, reverse('shop:order', args=[order_id])))
 
     if order.email:
         if not validate_email(order.email):
             return
         reload_maybe()
         context = {
+            'site': site,
+            'site_profile': SiteProfile.objects.get(site=site),
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
         }
@@ -170,20 +182,21 @@ def notify_user_order_done(order_id):
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
-def notify_manager(order_id, domain=None, managers=None):
+def notify_manager(order_id):
     order = Order.objects.get(id=order_id)
+    site = get_site_for_order(order)
+    site_profile = SiteProfile.objects.get(site=site)
 
     reload_maybe()
     msg_plain = render_to_string('mail/shop/order_manager.txt', {'order': order})
     msg_html = render_to_string('mail/shop/order_manager.html', {'order': order})
 
-    site = ''
-    if domain:
-        site = ' (%s)' % domain
-    if managers is None:
-        managers = config.sw_email_managers
+    site_text = ''
+    if site != sw_default_site:
+        site_text = ' (%s)' % site.domain
+    managers = site_profile.managers or config.sw_email_managers
     send_mail(
-        'Новый заказ №%s%s' % (order_id, site),
+        'Новый заказ №%s%s' % (order_id, site_text),
         msg_plain,
         config.sw_email_from,
         managers.split(','),
