@@ -1,6 +1,5 @@
 from django.http import Http404, StreamingHttpResponse
 from django.conf import settings
-from django.db.models import Q
 from django.shortcuts import render, get_object_or_404
 from django.core.files.storage import default_storage
 from django.contrib.sites.models import Site
@@ -9,8 +8,9 @@ from django.template import loader
 from haystack.forms import SearchForm
 from haystack.views import SearchView as BaseSearchView
 
+from sewingworld.models import SiteProfile
 from shop.models import Category, Product, Basket, ProductRelation, ProductSet, \
-    Manufacturer, Advert, SalesAction, City, Store, ServiceCenter
+    Manufacturer, SalesAction, Store, ServiceCenter
 from shop.filters import get_product_filter
 
 
@@ -22,14 +22,13 @@ def ensure_session(request):
 
 def index(request):
     ensure_session(request)
-    site = Site.objects.get_current()
     products = None
     instance = Category.objects.get(slug='nitki-dor-tak')
     order = instance.product_order.split(',')
     products = instance.products.filter(enabled=True).order_by(*order)
     basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
     quantities = {item.product: item.quantity for item in basket.items.all()}
-    products = map(lambda p:(p,basket.product_cost(p),quantities.get(p, 0)), products)
+    products = map(lambda p: (p, basket.product_cost(p), quantities.get(p, 0)), products)
     context = {
         'products': products,
     }
@@ -48,10 +47,10 @@ def products_stream(request, templates, filter_type):
         children = children.filter(ya_active=True)
     categories = {}
     for child in children:
-        categories[child.pk] = child.pk;
+        categories[child.pk] = child.pk
         descendants = child.get_descendants()
         for descendant in descendants:
-            categories[descendant.pk] = child.pk;
+            categories[descendant.pk] = child.pk
     context = {
         'children': children,
         'category_map': categories
@@ -66,7 +65,7 @@ def products_stream(request, templates, filter_type):
         'price__gt': 0,
         'variations__exact': '',
         'categories__in': root.get_descendants(include_self=True)
-        }
+    }
     if filter_type == 'yandex':
         filters['market'] = True
         filters['num__gt'] = 0
@@ -131,13 +130,12 @@ def stores(request):
             cur_city_index += 1
         store_groups[cur_country_index]['cities'][cur_city_index]['stores'].append(store)
 
+    site_profile = SiteProfile.objects.get(site=Site.objects.get_current())
     context = {
         'stores': stores,
         'store_groups': store_groups,
-        }
-    city = settings.SHOP_SETTINGS.get('city_id')
-    if city:
-        context['city'] = City.objects.get(pk=city)
+        'city': site_profile.city
+    }
 
     return render(request, 'stores.html', context)
 
@@ -168,13 +166,12 @@ def service(request):
             cur_city_index += 1
         service_groups[cur_country_index]['cities'][cur_city_index]['services'].append(service)
 
+    site_profile = SiteProfile.objects.get(site=Site.objects.get_current())
     context = {
         'services': services,
         'service_groups': service_groups,
-        }
-    city = settings.SHOP_SETTINGS.get('city_id')
-    if city:
-        context['city'] = City.objects.get(pk=city)
+        'city': site_profile.city
+    }
 
     return render(request, 'service.html', context)
 
@@ -192,7 +189,7 @@ def category(request, path, instance):
         raise Http404("Category does not exist")
     filters = {
         'enabled': True,
-        }
+    }
     order = instance.product_order.split(',')
     products = instance.products.filter(**filters).order_by(*order)
     if products.count() < 1:
@@ -212,7 +209,7 @@ def category(request, path, instance):
     basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
     quantities = {item.product: item.quantity for item in basket.items.all()}
 
-    products = map(lambda p:(p,basket.product_cost(p),quantities.get(p, 0)), products)
+    products = map(lambda p: (p, basket.product_cost(p), quantities.get(p, 0)), products)
 
     context = {
         'category': instance,
@@ -266,7 +263,7 @@ def product(request, code):
         'similar': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR),
         'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT),
         'utm_source': request.GET.get('utm_source', None)
-        }
+    }
     return render(request, 'product.html', context)
 
 
@@ -277,7 +274,7 @@ def review_product(request, code):
 
     context = {
         'target': product,
-        }
+    }
     return render(request, 'reviews/post.html', context)
 
 
