@@ -486,8 +486,7 @@ def logout_user(request):
         basket = None
     logout(request)
     ensure_session(request)
-    # do not copy cart contents for wholesale user
-    if basket and not WHOLESALE:
+    if basket:
         basket.update_session(request.session.session_key)
         basket.phone = ''
         basket.save()
