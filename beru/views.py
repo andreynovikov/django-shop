@@ -80,11 +80,12 @@ def cart(request):
         try:
             sku = item.get('offerId', '#NO_SKU#')
             product = Product.objects.get(article=sku)
+            price = product.beru_price if product.beru_price > 0 else product.price
             response['cart']['items'].append({
                 'feedId': item.get('feedId', 0),
                 'offerId': sku,
                 'count': min(item.get('count', 0), product.get_stock('beru')),
-                'price': int(product.beru_price.to_integral_value(rounding=decimal.ROUND_UP)),
+                'price': int(price.to_integral_value(rounding=decimal.ROUND_UP)),
                 'delivery': True
             })
         except Exception as e:
@@ -157,24 +158,28 @@ def accept_order(request):
 
 
 BERU_ORDER_SUBSTATUS = {
-    'PROCESSING_EXPIRED': 'магазин не обработал заказ в течение семи дней',
-    'REPLACING_ORDER': 'покупатель решил заменить товар другим по собственной инициативе',
-    'RESERVATION_EXPIRED': 'покупатель не завершил оформление зарезервированного заказа в течение 10 минут',
-    'SHOP_FAILED': 'магазин не может выполнить заказ',
-    'USER_CHANGED_MIND': 'покупатель отменил заказ по собственным причинам',
-    'USER_NOT_PAID': 'покупатель не оплатил заказ (для типа оплаты PREPAID) в течение двух часов',
-    'USER_BOUGHT_CHEAPER': 'покупатель нашёл товар дешевле',
-    'USER_REFUSED_DELIVERY': 'покупателя не устраивают условия доставки',
-    'USER_REFUSED_PRODUCT': 'покупателю не подошел товар',
-    'USER_REFUSED_QUALITY': 'покупателя не устраивает качество товара',
-    'USER_UNREACHABLE': 'не удалось связаться с покупателем'
+    'PROCESSING_EXPIRED': 'Магазин не обработал заказ в течение семи дней',
+    'REPLACING_ORDER': 'Покупатель решил заменить товар другим по собственной инициативе',
+    'RESERVATION_EXPIRED': 'Покупатель не завершил оформление зарезервированного заказа в течение 10 минут',
+    'SHOP_FAILED': 'Магазин не может выполнить заказ',
+    'USER_CHANGED_MIND': 'Покупатель отменил заказ по собственным причинам',
+    'USER_NOT_PAID': 'Покупатель не оплатил заказ (для типа оплаты PREPAID) в течение двух часов',
+    'USER_BOUGHT_CHEAPER': 'Покупатель нашёл товар дешевле',
+    'USER_REFUSED_DELIVERY': 'Покупателя не устраивают условия доставки',
+    'USER_REFUSED_PRODUCT': 'Покупателю не подошел товар',
+    'USER_REFUSED_QUALITY': 'Покупателя не устраивает качество товара',
+    'USER_UNREACHABLE': 'Не удалось связаться с покупателем',
+    'BANK_REJECT_CREDIT_OFFER': 'Банк отклонил заявку на кредит',
+    'USER_PLACED_OTHER_ORDER': 'Покупатель оформил другой заказ'
 }
 
 
 BERU_PAYMENT_METHODS = {
     'CASH_ON_DELIVERY': Order.PAYMENT_CASH,
     'CARD_ON_DELIVERY': Order.PAYMENT_POS,
-    'YANDEX': Order.PAYMENT_CARD
+    'YANDEX': Order.PAYMENT_CARD,
+    'APPLE_PAY': Order.PAYMENT_CARD,
+    'CREDIT': Order.PAYMENT_CREDIT
 }
 
 
@@ -196,8 +201,8 @@ def order_status(request):
         status = beru_order.get('status', 'UNKNOWN')
         if status == 'PROCESSING':  # заказ начал обрабатываться в Беру!
             order.status = Order.STATUS_ACCEPTED
-        elif status == 'DELIVERY':  # заказ передан в службу доставки
-            order.status = Order.STATUS_SENT
+            if beru_order.get('paymentType', 'UNKNOWN') == 'PREPAID':
+                order.paid = True
         elif status == 'PICKUP':  # заказ доставлен в пункт самовывоза
             order.status = Order.STATUS_DELIVERED
         elif status == 'DELIVERED':  # заказ получен покупателем
@@ -205,8 +210,9 @@ def order_status(request):
         elif status == 'CANCELLED':  # заказ отменен
             substatus = beru_order.get('substatus', '')
             info = BERU_ORDER_SUBSTATUS.get(substatus, "Неизвестная причина отмены заказа")
-            if order.status in (Order.STATUS_NEW, Order.STATUS_ACCEPTED, Order.STATUS_CANCELED):  # меняем статус только, если заказ не обрабатывается
-                if substatus in ('REPLACING_ORDER', 'RESERVATION_EXPIRED', 'USER_CHANGED_MIND', 'USER_NOT_PAID', 'USER_REFUSED_DELIVERY', 'USER_UNREACHABLE', 'USER_BOUGHT_CHEAPER'):
+            if order.status in (Order.STATUS_NEW, Order.STATUS_CANCELED):  # меняем статус только, если заказ не обрабатывается
+                if substatus in ('REPLACING_ORDER', 'RESERVATION_EXPIRED', 'USER_CHANGED_MIND', 'USER_NOT_PAID', 'USER_REFUSED_DELIVERY',
+                                 'USER_UNREACHABLE', 'USER_BOUGHT_CHEAPER', 'BANK_REJECT_CREDIT_OFFER', 'USER_PLACED_OTHER_ORDER'):
                     order.status = Order.STATUS_CANCELED
                 elif substatus in ('PROCESSING_EXPIRED', 'SHOP_FAILED', 'USER_REFUSED_PRODUCT', 'USER_REFUSED_QUALITY'):
                     order.status = Order.STATUS_PROBLEM
@@ -218,13 +224,14 @@ def order_status(request):
                     order.delivery_info = info
             else:  # если заказ в обработке, выставляем флаг тревоги, не меняя статус
                 order.alert = info
+        elif status == 'DELIVERY':  # заказ передан в службу доставки
+            pass  # ничего не меняем, так как с нашей стороны статус уже установлен
         elif status == 'UNPAID':
             pass
         payment = beru_order.get('paymentMethod', 'CASH_ON_DELIVERY')
         order.payment = BERU_PAYMENT_METHODS.get(payment, Order.PAYMENT_UNKNOWN)
         order.save()
     except Order.DoesNotExist:
-        # return HttpResponseBadRequest("Не существует внутреннего заказа с заказом Беру №{}".format(order_id))
-        pass
+        return HttpResponseBadRequest("Не существует внутреннего заказа с заказом Беру №{}".format(order_id))
 
     return HttpResponse('')

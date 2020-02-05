@@ -102,6 +102,7 @@ def payment(request, order_id):
             'order_id': order.id,
             'user_id': order.user.id
         },
+        'capture': True,
         'description': 'Заказ №{}'.format(order.id)
     }
     if order.payment == order.PAYMENT_CREDIT:
@@ -121,9 +122,11 @@ def callback(request):
     logger.debug(data)
     try:
         notification_object = WebhookNotification(data)
+        if notification_object.event == 'refund.succeeded':
+            return HttpResponse('')
         payment = notification_object.object
-        order = Order.objects.get(pk=int(payment.metadata.get('order_id', '-1')))
-        user = ShopUser.objects.get(pk=int(payment.metadata.get('user_id', '-1')))
+        order = Order.objects.get(pk=int(payment.metadata.get('order_id', payment.metadata.get('orderNumber', '-1'))))
+        user = ShopUser.objects.get(pk=int(payment.metadata.get('user_id', payment.metadata.get('CustomerNumber', '-1'))))
         if order.user.id != user.id:
             raise Exception()
         update = {
@@ -133,9 +136,12 @@ def callback(request):
             change_message = "Получено уведомление об оплате"
         if payment.status == 'canceled':
             if order.paid:
-                update['alert'] = "Попытка оплаты уже оплаченного заказа"
+                update['alert'] = "Неудачная попытка оплаты уже оплаченного заказа"
             else:
-                change_message = "Оплата отклонена: {}".format(CANCELLATION_REASONS.get(payment.cancellation_details.reason, "неизвестная причина"))
+                if payment.cancellation_details:
+                    change_message = "Оплата отклонена: {}".format(CANCELLATION_REASONS.get(payment.cancellation_details.reason, "неизвестная причина"))
+                else:
+                    change_message = "Оплата отклонена: неизвестная причина"
         if change_message:
             LogEntry.objects.log_action(
                 user_id=order.user.id,
