@@ -9,20 +9,28 @@ from importlib import import_module
 from decimal import Decimal, ROUND_HALF_EVEN
 from urllib.request import Request, urlopen
 
-import django.db
+from django.contrib.admin.models import LogEntry, CHANGE
+from django.contrib.contenttypes.models import ContentType
 from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from django.core.mail import send_mail
 from django.core.validators import EmailValidator
 from django.conf import settings
+from django.db import Error as DatabaseError
+from django.db.models.fields.related import RelatedField
+from django.db.models.fields.reverse_related import ForeignObjectRel
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.encoding import force_text
 from django.contrib.sites.models import Site
 
 from celery import shared_task
 
 from djconfig import config, reload_maybe
+
+from lock_tokens.exceptions import AlreadyLockedError
+from lock_tokens.sessions import lock_for_session, unlock_for_session
 
 import reviews
 
@@ -195,7 +203,7 @@ def notify_user_order_done(order_id):
         )
 
 
-@shared_task(bind=True, autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=300, retry_jitter=False)
+@shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def notify_user_review_products(self, order_id):
     order = Order.objects.get(id=order_id)
 
@@ -405,7 +413,7 @@ def import1c(file):
     )
 
 
-@shared_task(autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=60, retry_jitter=False)
+@shared_task(autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
 def remove_outdated_baskets():
     threshold = timezone.now() - datetime.timedelta(seconds=settings.SESSION_COOKIE_AGE)
     baskets = Basket.objects.filter(created__lt=threshold)
@@ -418,7 +426,7 @@ def remove_outdated_baskets():
     log.info('Cleared expired sessions')
 
 
-@shared_task(bind=True, autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=3, retry_jitter=False)
+@shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
 def notify_abandoned_basket(self, basket_id, email, phone):
     basket = Basket.objects.get(id=basket_id)
 
@@ -476,7 +484,7 @@ def notify_abandoned_basket(self, basket_id, email, phone):
             return result
 
 
-@shared_task(autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=3, retry_jitter=False)
+@shared_task(autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
 def notify_abandoned_baskets(first_try=True):
     SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
 
@@ -513,7 +521,41 @@ def notify_abandoned_baskets(first_try=True):
     return num
 
 
-@shared_task(bind=True, autoretry_for=(OSError, django.db.Error), retry_backoff=300, retry_jitter=False)
+@shared_task(bind=True, autoretry_for=(DatabaseError,), retry_backoff=300, retry_jitter=False)
+def update_order(self, order_id, data):
+    order = Order.objects.get(id=order_id)
+    SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
+    session = SessionStore()
+    session.create()
+    try:
+        lock_for_session(order, session)
+    except AlreadyLockedError:
+        raise self.retry(countdown=600, max_retries=24)  # 10 minutes
+    changed = {}
+    change_message = 'unchanged'
+    for attr, val in data.items():
+        field = order._meta.get_field(attr)
+        if field.editable and not field.primary_key and not isinstance(field, (ForeignObjectRel, RelatedField)):
+            if val != getattr(order, attr):
+                setattr(order, attr, val)
+                changed[attr] = val
+    if changed:
+        order.save(update_fields=changed.keys())
+        change_message = ', '.join(map(lambda item: '{}: {}'.format(item[0], item[1]), changed.items()))
+        LogEntry.objects.log_action(
+            user_id=order.user.id,
+            content_type_id=ContentType.objects.get_for_model(order).pk,
+            object_id=order.pk,
+            object_repr=force_text(order),
+            action_flag=CHANGE,
+            change_message=change_message
+        )
+    unlock_for_session(order, session)
+    session.delete()
+    return change_message
+
+
+@shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def update_cbrf_currencies(self):
     url = 'https://www.cbr-xml-daily.ru/daily_json.js'
     request = Request(url)
@@ -525,5 +567,5 @@ def update_cbrf_currencies(self):
         usd_cbrf.rate = rate
         usd_cbrf.save()
     else:
-        raise self.retry(countdown=60 * 60, max_retries=4)  # 1 hour
+        raise self.retry(countdown=3600, max_retries=4)  # 1 hour
     return rate

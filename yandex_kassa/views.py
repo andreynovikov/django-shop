@@ -3,19 +3,23 @@ import json
 from decimal import Decimal, ROUND_HALF_EVEN
 
 from django.conf import settings
+from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.auth.decorators import login_required
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
+from django.utils.encoding import force_text
 
 from yandex_checkout import Configuration, Payment, WebhookNotification
 
 import uuid
 
 from shop.models import Order, ShopUser
+from shop.tasks import update_order
 
 KASSA_ACCOUNT_ID = getattr(settings, 'KASSA_ACCOUNT_ID', 0)
 KASSA_SECRET_KEY = getattr(settings, 'KASSA_SECRET_KEY', '')
@@ -115,7 +119,6 @@ def callback(request):
     else:
         return HttpResponseForbidden()
     logger.debug(data)
-    print(data)
     try:
         notification_object = WebhookNotification(data)
         payment = notification_object.object
@@ -123,10 +126,26 @@ def callback(request):
         user = ShopUser.objects.get(pk=int(payment.metadata.get('user_id', '-1')))
         if order.user.id != user.id:
             raise Exception()
-        order.paid = payment.paid
+        update = {
+            'paid': order.paid or payment.paid
+        }
+        if payment.paid and not order.paid:
+            change_message = "Получено уведомление об оплате"
         if payment.status == 'canceled':
-            order.alert = "Оплата отклонена: {}".format(CANCELLATION_REASONS.get(payment.cancellation_details.reason, "неизвестная причина"))
-        order.save()
+            if order.paid:
+                update['alert'] = "Попытка оплаты уже оплаченного заказа"
+            else:
+                change_message = "Оплата отклонена: {}".format(CANCELLATION_REASONS.get(payment.cancellation_details.reason, "неизвестная причина"))
+        if change_message:
+            LogEntry.objects.log_action(
+                user_id=order.user.id,
+                content_type_id=ContentType.objects.get_for_model(order).pk,
+                object_id=order.pk,
+                object_repr=force_text(order),
+                action_flag=CHANGE,
+                change_message=change_message
+            )
+        update_order.delay(order.pk, update)
     except Exception:
         logger.exception("Failed to process payment status")
         return HttpResponseForbidden()
