@@ -162,8 +162,11 @@ def notify_user_order_delivered(order_id):
     if order.email:
         if not validate_email(order.email):
             return
+        site = get_site_for_order(order)
         reload_maybe()
         context = {
+            'site': site,
+            'site_profile': SiteProfile.objects.get(site=site),
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
         }
@@ -186,8 +189,11 @@ def notify_user_order_done(order_id):
     if order.email:
         if not validate_email(order.email):
             return
+        site = get_site_for_order(order)
         reload_maybe()
         context = {
+            'site': site,
+            'site_profile': SiteProfile.objects.get(site=site),
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
         }

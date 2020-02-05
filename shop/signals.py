@@ -78,8 +78,9 @@ def order_saved(sender, **kwargs):
                 order.user.save()
             if order.status == Order.STATUS_DONE:
                 notify_user_order_done.delay(order.id)
-                next_week = timezone.now() + timedelta(days=7)
-                notify_user_review_products.apply_async((order.id,), eta=next_week)
+                if order.site == Site.objects.get(domain='www.sewing-world.ru') or order.site == Site.objects.get(domain='market.yandex.ru'):
+                    next_week = timezone.now() + timedelta(days=7)
+                    notify_user_review_products.apply_async((order.id,), eta=next_week)
 
         print(order.tracker.changed())
 
