@@ -581,7 +581,7 @@ def update_order(request, order_id):
 
 @login_required
 def orders(request):
-    orders = Order.objects.order_by('-id').filter(user=request.user.id)
+    orders = Order.objects.order_by('-id').filter(user=request.user.id, site=Site.objects.get_current())
     form = UserForm(user=request.user)
     context = {
         'orders': orders,
