@@ -81,7 +81,10 @@ td {padding:2.5mm}
 <tr>
 <td colspan="2" style="vertical-align:center;text-align:center">
 <img src="{% static 'i/logo.svg' %}" style="width:63mm">
-<div style="font-size:7pt;margin-top:-6pt">{{ item.code }}</div>
+<div style="font-size:7pt;margin-top:-6pt">
+{{ item.code }}<br/>
+{% for order_item in item.products %}{{ order_item.product.code }}{% if order_item.quantity > 1 %}&times;{{ order_item.quantity }}{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}
+</div>
 </td>
 </tr>
 </table>

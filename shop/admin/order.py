@@ -992,6 +992,7 @@ class OrderAdmin(LockableModelAdmin):
                         'id': code,
                         'code': box.code,
                         'barcode': mark_safe(item_barcode),
+                        'products': box.products.all(),
                         'weight': box.weight
                     })
 
