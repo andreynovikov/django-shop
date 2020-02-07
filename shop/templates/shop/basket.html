@@ -8,6 +8,7 @@
 	.sw-phone-input:-moz-placeholder { color:#e0e0e0; }
 	.sw-phone-input::-webkit-input-placeholder { color:#e0e0e0; }
 	.sw-basket-quantity      { height:auto; text-align:center; }
+        .sw-p-l-quantity-notice  { font-size:10pt; color:#e61; }
 	.sw-small-jumbotron      { font-size:10pt; }
 </style>
 {% endblock %}
@@ -49,6 +50,7 @@
                 <span class="input-group-btn sw-plus"><button  type="button" class="btn btn-default" aria-label="+">+</button></span>
              </div>
              </form>
+          <div class="sw-p-l-quantity-notice"><span id="notice_{{item.product.id}}">{% if item.quantity > item.product.instock and item.product.instock > 0 %}Не всё количество есть на складе{% endif %}</span></div>
           <div>
             <span class="sw-p-l-price"><span id="price_{{item.product.id}}">{{ item.price }}</span></span>&nbsp;руб.
           </div>

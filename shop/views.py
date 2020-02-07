@@ -192,9 +192,13 @@ def update_basket(request, product_id):
             }
         }
         if quantity > 0:
-            data['fragments']['#price_' + str(item.product.id)] = \
-                '<span id="price_' + str(item.product.id) + '">' + \
+            product_id = str(item.product.id)
+            data['fragments']['#price_' + product_id] = \
+                '<span id="price_' + product_id + '">' + \
                 localize(item.price.quantize(qnt, rounding=ROUND_HALF_EVEN)) + '</span>'
+            notice = "Не всё количество есть на складе" if quantity > item.product.instock and item.product.instock > 0 else ""
+            data['fragments']['#notice_' + product_id] = \
+                '<span id="notice_' + product_id + '">' + notice + '</span>'
         return JsonResponse(data)
     else:
         return HttpResponseRedirect(reverse('shop:basket'))
