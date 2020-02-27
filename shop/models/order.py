@@ -86,6 +86,7 @@ class Order(models.Model):
     DELIVERY_TRANSPORT = 4
     DELIVERY_PICKPOINT = 5
     DELIVERY_YANDEX = 6
+    DELIVERY_TRANSIT = 7
     DELIVERY_UNKNOWN = 99
     DELIVERY_CHOICES = (
         (DELIVERY_UNKNOWN, 'уточняется'),
@@ -95,6 +96,7 @@ class Order(models.Model):
         (DELIVERY_TRANSPORT, 'транспортная компания'),
         (DELIVERY_PICKPOINT, 'PickPoint'),
         (DELIVERY_YANDEX, 'Яндекс.Доставка'),
+        (DELIVERY_TRANSIT, 'транзит'),
     )
     STATUS_NEW = 0x0
     STATUS_ACCEPTED = 0x00000001
