@@ -71,6 +71,14 @@ def parse_field_name(name):
 
 
 @register.filter
+def fields_with_values(fields, object):
+    for field in fields:
+        value = get_field(object, field)
+        if value:
+            yield field, value
+
+
+@register.filter
 def prettify(value):
     if isinstance(value, float):
         if value % 1 == 0:
