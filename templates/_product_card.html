@@ -1,0 +1,13 @@
+{% load shop_filters %}
+{% load thumbnail %}
+{% load decimals %}
+            <!-- Product-->
+            <div class="card product-card card-static">
+              <button class="btn-wishlist btn-sm" type="button" data-toggle="tooltip" data-placement="left" title="Add to wishlist"><i class="czi-heart"></i></button><a class="d-inline-block mx-auto overflow-hidden" href="{% url 'product' product.code %}">{% if product.image_prefix|add:'.jpg'|file_exists %}{% thumbnail product.image_prefix|add:'.jpg' '200x200' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}"/>{% endthumbnail %}{% else %}<i class="d-inline-block czi-camera text-muted" style="width: 200px; height: 200px; font-size: 100px; padding: 50px"></i>{% endif %}</a>
+              <div class="card-body py-2"><a class="product-meta d-block font-size-xs pb-1" href="{% url 'product' product.code %}">{{ product.whatis }} {{ product.partnumber }}</a>
+                <h3 class="product-title font-size-sm"><a href="{% url 'product' product.code %}">{{ product.title }}</a></h3>
+                <div class="d-flex justify-content-between">
+                  <div class="product-price"><span class="text-accent">{{ product.cost|quantize:"1" }}<small>&nbsp;руб</small></span></div>
+                </div>
+              </div>
+            </div>

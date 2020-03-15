@@ -1,410 +1,371 @@
-{% extends "base.html" %}
+{% extends "page_overlapped.html" %}
 {% load staticfiles %}
+{% load thumbnail %}
 {% load site %}
 {% load decimals %}
+{% load rupluralize %}
 {% load render_as_template %}
 {% load shop_filters %}
-{% load mptt_tags %}
 {% load reviews %}
-{% load cache %}
-{% load django_bootstrap_breadcrumbs %}
-{% block title %}{{ product.title }}{% endblock %}
 {% block link %}
-{% if request.META.QUERY_STRING %}<link rel="canonical" href="https://www.sewing-world.ru{% url 'product' product.code %}" />{% endif %}
+{% if request.META.QUERY_STRING %}
+    <link rel="canonical" href="https://www.sewing-world.ru{% url 'product' product.code %}" />
+{% endif %}
 {% endblock link %}
-{% block css %}
-<link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap_glyphicons.css' %}"/>
-<style>
-.pull-right .gl-star-rating-stars > span {
-    width: 18px; height: 18px; background-size: 18px;
-}
-.pull-right .gl-star-rating-stars.readonly {
-    cursor: pointer;
-}
-.product-nal-store-link {
-    display: block;
-    text-decoration:underline;
-}
-ul.product-city-list, ul.product-city-list ul {
-    margin: 0; padding: 0; list-style: none;
-}
-ul.product-city-list ul {
-    padding-left: 20px;
-}
-ul.product-city-list li {
-    margin: 0; padding: 0;
-}
-ul.product-city-list li li {
-    margin: 0 0 3px; padding-left: 0;
-}
-</style>
-{% endblock %}
-{% block breadcrumbs %}
-    {{ block.super }}
-    {% breadcrumb "К первой странице" "/" %}
-    {% breadcrumb "Каталог" "catalog" %}
-    {% if category %}
-    {% for node,structure in category.get_ancestors|tree_info %}
-        {% if node.is_child_node %}
-            {% breadcrumb node "category" node.get_path %}
-        {% endif %}
-    {% endfor %}
-    {% breadcrumb category "category" category.get_path %}
-    {% endif %}
-{% endblock %}
-{% block content %}
-{% cache 1800 product product.id %}
-<script>
-gtm_products = [];
-</script>
-<div class="container">
-<div class="product-page">
-<div itemscope itemtype="http://schema.org/Product">
-<div class="container-fluid">
-<div class="row">
-<div class="col-md-20">
-<h1 class="prodname" itemprop="name">{{ product.title }}
-<sup>
-{% if product.ishot %}
-<span class="label sw-action">Акция</span>
-{% endif %}
-{% if product.isnew %}
-<span class="label sw-new">Новинка</span>
-{% endif %}
-{% if product.recomended %}
-<span class="label sw-recomended">Рекомендуем</span>
-{% endif %}
-{% if product.utilisation %}
-<span class="label sw-action">Скидка по "Утилизации"</span>
-{% endif %}
-</sup>
-</h1>
-</div>
-<div class="col-md-4">
-<div class="pull-right">
-{% if product.manufacturer %}
-{% if product.manufacturer.logo %}
-<img class="hidden-xs hidden-sm" alt="{{ product.manufacturer.name }}" src="{{ product.manufacturer.logo.url }}" width="{{ product.manufacturer.logo_width }}" height="{{ product.manufacturer.logo_height }}"/>
-<p class="hidden-md hidden-lg">Производитель: <strong>{{ product.manufacturer.name }}</strong></p>
-{% else %}
-<p><strong>{{ product.manufacturer.name }}</strong></p>
-{% endif %}
-{% endif %}
-{% if product.partnumber %}
-<p class="hidden-xs hidden-sm">Артикул: {{ product.partnumber }}</p>
-<p class="hidden-md hidden-lg">Артикул: {{ product.partnumber }}</p>
-{% endif %}
+{% block title %}{{ product.title }}{% endblock %}
+{% block content_title %}{{ product.title }}{% endblock %}
+{% block content_title_addon %}
+{% if product.allow_reviews %}
 {% get_rating for product as product_rating %}
 {% if product_rating %}
-<a href="#reviews">{% render_rating for product %}</a>
+          <div>
+            <div class="star-rating">
+              <a href="#reviews" data-scroll>{% render_rating_value product_rating %}<span class="d-inline-block font-size-sm text-white opacity-70 align-middle mt-1 ml-1">{% get_review_count for product as review_count %}{{ review_count }} {{ review_count|rupluralize:"обзор,обзора,обзоров"}}</span></a>
+            </div>
+          </div>
 {% endif %}
-</div>
-</div>
-</div>
-</div>
+{% endif %}
+{% endblock content_title_addon %}
+{% block content %}
+    <div class="container">
+      <div class="bg-light box-shadow-lg rounded-lg px-4 py-3 mb-5">
+        <div class="px-lg-3">
+          <div class="row">
+            <div class="col-lg-7 pr-lg-0">
+              {% if product.image_prefix|add:'.jpg'|file_exists %}
+              <!-- Product gallery-->
+              <div class="cz-product-gallery d-block">{# added d-block #}
+                <div class="cz-preview ml-0">{# added ml-0, removed order-sm-2 #}
+                  <div class="cz-preview-item active" id="preview0"><img class="cz-image-zoom" src="{{ MEDIA_URL }}{{ product.image_prefix }}.jpg" alt="{{ product.title }} {{ product.whatis }}" itemprop="image" data-zoom="{{ MEDIA_URL }}{{ product.image_prefix }}{% if product.image_prefix|add:'.b.jpg'|file_exists %}.b{% endif %}.jpg">
+                    <div class="cz-image-zoom-pane"></div>
+                  </div>
+                  {% for image in product.images %}
+                  <div class="cz-preview-item" id="preview{{ forloop.counter }}"><img class="cz-image-zoom" src="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.jpg" data-zoom="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.jpg" alt="{{ product.title }} - фото №{{ forloop.counter }}">
+                    <div class="cz-image-zoom-pane"></div>
+                  </div>
+                  {% endfor %}
+                </div>
+                {% for image in product.images %}
+                {% if forloop.first %}
+                <div class="cz-thumblist d-flex flex-wrap">{# added d-flex flex-wrap, removed order-sm-1 #}<a class="cz-thumblist-item active" href="#preview0">{% thumbnail product.image_prefix|add:'.jpg' '80x80' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="Product thumb">{% endthumbnail %}</a>
+                {% endif %}
+                    <a class="cz-thumblist-item" href="#preview{{ forloop.counter }}">{% thumbnail product.image_prefix|add:'/'|add:image|add:'.jpg' '80x80' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="Product thumb"/>{% endthumbnail %}</a>
+                {% if forloop.last %}
+                </div>
+                {% endif %}
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="d-none d-lg-block"><i class="czi-camera text-muted d-block mx-auto" style="width: 300px; font-size: 300px"></i></div>
+              {% endif %}
+            </div>
+            <!-- Product details-->
+            <div class="col-lg-5 pt-4 pt-lg-0">
+              <div class="product-details ml-auto pb-3">
+                {% if product.enabled and product.cost > 0 %}
+                <div class="d-flex flex-row align-items-baseline mb-3">
+                  <div><span class="h3 font-weight-normal text-accent mr-1" itemprop="price">{{ product.cost|quantize:"1" }}<small>&nbsp;руб</small></span><span itemprop="priceCurrency" class="d-none">RUB</span>{% if product.discount > 0 %}<del class="text-muted font-size-lg">{{ product.price|quantize:"1" }}<small>&nbsp;руб</small></del>{% endif %}</div>
+                  <div class="ml-3">
+                    {% if product.discount > 0 %}
+                    <span class="badge badge-primary badge-shadow align-middle mt-n2" data-toggle="tooltip" data-placement="right" data-html="true" title="Базовая цена в магазинах &laquo;Швейный Мир&raquo; без учета скидок <b>{{ product.price|quantize:"1" }}</b>&nbsp;руб. Скидка при покупке в интернет-магазине составляет <b>{{ product.discount|quantize:"1" }}</b>&nbsp;руб.">Скидка</span>
+                    {% endif %}
+                    {% if product.ishot %}
+                    <span class="badge badge-accent badge-shadow align-middle mt-n2">Акция</span>
+                    {% endif %}
+                    {% if product.isnew %}
+                    <span class="badge badge-info badge-shadow align-middle mt-n2">Новинка</span>
+                    {% endif %}
+                    {% if product.recomended %}
+                    <span class="badge badge-warning badge-shadow align-middle mt-n2">Рекомендуем</span>
+                    {% endif %}
+                  </div>
+                </div>
+                {% endif %}{# enabled and cost > 0 #}
+                {% if product.runame or product.whatis %}
+                <div class="font-size-sm mb-4"><span class="text-muted font-weight-medium mr-1">{{ product.whatis }} {{ product.runame }}</span></div>
+                {% endif %}
+                <div class="position-relative mr-n4">
+                  <div class="product-badge product-{% if product.instock < 1 %}not-{% endif %}available mt-1"><i class="czi-security-{% if product.instock > 1 %}check{% elif product.instock == 1 %}announcement{% else %}close{% endif %}"></i>{% if product.enabled %}{% if product.instock > 1 %}В наличии{% elif product.instock == 1 %}Осталось мало{% else %}Закончились{% endif %}{% else %}Товар снят с продажи{% endif %}</div>
+                </div>
+                {% if product.enabled %}
+                <div class="mr-2"><div class="mr-5 pb-4 pr-5 font-size-sm">
+                  {% for action in product.get_sales_actions %}{% if action.brief %}
+                  <div class="mb-2"><i class="czi-gift text-danger pr-2"></i>{% render_as_template action.brief %}</div>
+                  {% endif %}{% endfor %}
+                  {% if product.state %}
+                  <div class="mb-2"><i class="czi-message text-danger pr-2"></i>{{ product.state }}</div>
+                  {% endif %}
+                  {% if product.sales_notes %}
+                  <div class="mb-2"><i class="czi-announcement text-danger pr-2"></i>{{ product.sales_notes }}</div>
+                  {% endif %}
+                  {% if product.utilisation %}
+                  <div class="mb-2"><i class="czi-gift text-danger pr-2"></i>Участник акции <a href="/actions/utilisation.html">"Утилизация"</a>! Скидка по акции <span class="price">{{ product.maxdiscount }}%</span>!</div>
+                  {% endif %}
+                </div></div>
+                {% if product.cost > 0 %}
+                <div class="d-flex align-items-center pt-2 pb-4" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+                  {% if product.instock > 5 %}
+                  <select class="custom-select mr-3 quantity-input" style="width: 5rem;">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                  {% endif %}
+                  {% if product.instock > 0 %}
+                  <a class="btn btn-primary btn-shadow btn-block add-to-cart" href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}" data-id="{{ product.id }}"><span class="d-none spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span><i class="czi-cart font-size-lg mr-2"></i>Купить</a>
+                  {% else %}
+                  <a class="btn btn-primary btn-shadow btn-block add-to-cart" href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}" data-id="{{ product.id }}"><span class="d-none spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span><i class="czi-delivery font-size-lg mr-2"></i>Сообщить о поступлении</a>
+                  {% endif %}
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="py-5"></div>
+                {% endif %}{# enabled #}
+                {% if product.enabled or product.kind.all %}
+                <div class="d-flex mb-4">
+                  {% if product.enabled %}
+                  <div class="w-100">
+                    <button class="btn btn-secondary btn-block" type="button"><i class="czi-heart font-size-lg mr-2"></i><span class='d-none d-sm-inline'>Add to </span>Wishlist</button>
+                  </div>
+                  {% endif %}
+                  {% if product.kind.all %}
+                  <div class="w-100 ml-3">
+                    <a class="btn btn-{% if is_compared %}accent{% else %}secondary{% endif %} btn-block compare-product" data-id="{{ product.id }}"{% if not is_compared %} data-comparison-link="{% url 'compare_kind' product.kind.all.0.id %}"{% endif %} href="{% if is_compared %}{% url 'compare_kind' product.kind.all.0.id %}{% else %}{% url 'compare_product' product.code %}{% endif %}" rel="nofollow"><i class="czi-compare font-size-lg mr-2"></i><span>{% if is_compared %}Сравнение{% else %}Сравнить{% endif %}</span></a>
+                  </div>
+                  {% endif %}
+                </div>
+                {% endif %}{# enabled or comparable #}
+                <!-- Product panels-->
+                <div class="accordion mb-4" id="productPanels">
+                  <div class="card">
+                    <div class="card-header">
+                      <h3 class="accordion-heading"><a href="#information" role="button" data-toggle="collapse" aria-expanded="true" aria-controls="information"><i class="czi-lable text-muted lead align-middle mt-n1 mr-2"></i>Информация<span class="accordion-indicator"><i data-feather="chevron-up"></i></span></a></h3>
+                    </div>
+                    <div class="collapse show" id="information" data-parent="#productPanels">
+                      <div class="card-body font-size-sm">
+                        {% if product.manufacturer %}
+                        <div class="d-flex justify-content-between pb-2">
+                          <div class="text-muted">Производитель</div>
+                          <div class="font-weight-semibold">{{ product.manufacturer.name }}</div>
+                        </div>
+                        {% endif %}
+                        {% if product.partnumber %}
+                        <div class="d-flex justify-content-between pb-2">
+                          <div class="text-muted">Артикул</div>
+                          <div class="font-weight-semibold">{{ product.partnumber }}</div>
+                        </div>
+                        {% endif %}
+                        {% if product.developer_country and product.developer_country.enabled %}
+                        <div class="d-flex justify-content-between pb-2">
+                          <div class="text-muted">Страна разработки</div>
+                          <div class="font-weight-semibold">{{ product.developer_country }}</div>
+                        </div>
+                        {% endif %}
+                        {% if product.country and product.country.enabled %}
+                        <div class="d-flex justify-content-between pb-2">
+                          <div class="text-muted">Страна производства</div>
+                          <div class="font-weight-semibold">{{ product.country }}</div>
+                        </div>
+                        {% endif %}
+                        {% if product.warranty %}
+                        <div class="d-flex justify-content-between pb-2">
+                          <div class="text-muted">Гарантия</div>
+                          <div class="font-weight-semibold">{{ product.warranty }}</div>
+                        </div>
+                        {% endif %}
+                        {% if product.article %}
+                        <div class="d-flex justify-content-between pb-2">
+                          <div class="text-muted">Код товара</div>
+                          <div class="font-weight-semibold">{{ product.article }}</div>
+                        </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  {% if product.enabled and product.cost > 0 %}
+                  <div class="card">
+                    <div class="card-header">
+                      <h3 class="accordion-heading"><a class="collapsed" href="#localStore" role="button" data-toggle="collapse" aria-expanded="true" aria-controls="localStore"><i class="czi-location text-muted font-size-lg align-middle mt-n1 mr-2"></i>Наличие в магазинах<span class="accordion-indicator"><i data-feather="chevron-up"></i></span></a></h3>
+                    </div>
+                    <div class="collapse" id="localStore" data-parent="#productPanels">
+                      <div class="card-body">
+                        <div class="text-center"><div class="spinner-border" role="status"><span class="sr-only">Загрузка...</span></div></div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
+                  {% if product.manuals %}
+                  <div class="card">
+                    <div class="card-header">
+                      <h3 class="accordion-heading"><a class="collapsed" href="#instructions" role="button" data-toggle="collapse" aria-expanded="true" aria-controls="instructions"><i class="czi-clip text-muted font-size-lg align-middle mt-n1 mr-2"></i>Инструкции<span class="accordion-indicator"><i data-feather="chevron-up"></i></span></a></h3>
+                    </div>
+                    <div class="collapse" id="instructions" data-parent="#productPanels">
+                      <div class="card-body font-size-sm">
+                        {{ product.manuals|safe }}
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
+                </div>
 
-<div class="clearfix"></div>
-{% if product.runame or product.whatis %}
-<p>{{ product.whatis }} {{ product.runame }}</p>
-{% endif %}
+                {% if product.enabled %}
+                {% with product as parent %}
+                {% for product in gifts %}
+                {% if forloop.first %}
+                <div class="mb-1">Покупая {{ parent.title }} в интернет-магазине, Вы получите подарок:</div>
+                <div class="mb-4 mx-auto w-75">
+                {% endif %}
+                  {% include "_product_card.html" %}
+                {% if forloop.last %}
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% endwith %}
+                {% endif %}{# enabled #}
 
+                <!-- Sharing-->
+                <h6 class="d-inline-block align-middle font-size-base my-2 mr-2">Share:</h6><a class="share-btn sb-twitter mr-2 my-2" href="#"><i class="czi-twitter"></i>Twitter</a><a class="share-btn sb-instagram mr-2 my-2" href="#"><i class="czi-instagram"></i>Instagram</a><a class="share-btn sb-facebook my-2" href="#"><i class="czi-facebook"></i>Facebook</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-<div class="product-image">
-{% if product.image_prefix|add:'.jpg'|file_exists %}
-{% if product.image_prefix|add:'.b.jpg'|file_exists %}
-<div class="popup-gallery"><a href="{{ MEDIA_URL }}{{ product.image_prefix }}.b.jpg">
-{% endif %}
-<img id="{{ product.id }}" src="{{ MEDIA_URL }}{{ product.image_prefix }}.jpg" alt="{{ product.title }} {{ product.whatis }}" itemprop="image"  class="img-responsive"/>
-{% if product.image_prefix|add:'.b.jpg'|file_exists %}
-</a></div>
-{% endif %}
-{% endif %}
-</div>
-{% endcache %}
-<div class="panel panel-default product-buyblock">
-<div class="panel-body product-buyblock-body">
-{% if product.enabled %}
-<div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
-{% if product.cost > 0 %}
-{% if product.discount > 0 %}
-<p class="oldprice">{{ product.price|quantize:"1" }}&nbsp;руб. <a href="#dialog_discount" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
-<div id="dialog_discount" class="mfp-hide white-popup-block">
-<h4>Скидка!</h4>
-<p>Базовая цена в магазинах &laquo;Швейный Мир&raquo; без учета скидок <b>{{ product.price|quantize:"1" }}&nbsp;руб.</b></p>
-<p>Скидка при покупке в интернет-магазине составляет <b>{{ product.discount }}&nbsp;руб.</b></p>
-</div>
-{% endif %}{# discount > 0 #}
-<p class="price"><span itemprop="price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.
-{% if product.instock > 0 %}
-<a href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
-{% else %}
-<a href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Сообщить о поступлении</a>
-{% endif %}
-
-<span itemprop="priceCurrency" style="visibility:hidden;font-size:1pt;margin:0;padding:0;width:0;height:0;line-height:0;">RUB</span>
-{% if product.deshevle %}
-<a href="{% url 'django.contrib.flatpages.views.flatpage' url='dialog/deshevle/' %}" class="opener-ajax deshevle">Нашли&nbsp;дешевле?</a>
-{% endif %}
-</p>
-{% if product.credit_allowed and product.instock > 0 %}
-<div id="yandex-credit" style="margin: -7pt 0 7pt"></div>
-{% endif %}
-{% endif %}{# cost > 0 #}
-
-<p><span class="product-nal-caption">Наличие в интернет-магазине:</span>
-{% if product.instock > 1 %}
-<span class="product-nal-true">Есть</span>
-{% endif %}
-{% if product.instock == 1 %}
-<span class="product-nal-true">Мало</span>
-{% endif %}
-{% if product.instock < 1 %}
-<span class="product-nal-false">Нет</span>
-{% endif %}
-{% if product.cost > 0 %}
-<a class="product-nal-store-link opener-ajax" href="{% url 'product_stock' product.code %}" rel="nofollow">Проверить наличие в розничных магазинах</a>
-{% endif %}
-</p>
-{% for action in product.get_sales_actions %}
-<p class="product-salesnotes">{% render_as_template action.brief %}</p>
-{% endfor %}
-{% if product.state %}
-<p>{{ product.state }}</p>
-{% endif %}
-{% if product.sales_notes %}
-<p class="product-salesnotes">{{ product.sales_notes }}</p>
-{% endif %}
-{% if product.utilisation %}
-<p class="product-salesnotes">Участник акции <a href="/actions/utilisation.html">"Утилизация"</a>! Скидка по акции <span class="price">{{ maxdiscount }}%</span>!</p>
-{% endif %}
-
-{% if product.warranty and product.price > 0 and not product.state and 1 > 2 %}
-<p>Легко вернуть в случае неисправности.
-<a href="{% url 'django.contrib.flatpages.views.flatpage' url='dialog/back/' %}" class="opener-ajax"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
-{% endif %}
-
-{% with product as parent %}
-{% for product in gifts %}
-{% if forloop.first %}
-<p class="product-gift">Покупая {{ parent.title }} в интернет-магазине, Вы получите подарок:</p>
-<div class="text-center">
-{% endif %}
-{% include "_product_info.html" %}
-{% if forloop.last %}
-</div>
-{% endif %}
-{% endfor %}
-{% endwith %}
-{% if product.article %}
-<div style="color:#888888;"><small>Код товара: {{ product.article }}</small></div>
-{% endif %}
-</div>
-{% else %}
-<span class="product-nal-false">Товар снят с продажи</span>
-{% endif %}{# enabled #}
-{% if product.kind.all %}
-<p style="margin-top: 8px">
-    <i class="glyphicon glyphicon-stats" aria-hidden="true"></i>
-    {% if is_compared %}
-    <a class="compareProduct" data-id="{{ product.id }}" href="{% url 'compare' %}" rel="nofollow">Сравнить</a>
-    {% else %}
-    <a class="compareProduct" data-id="{{ product.id }}" data-comparison-link="{% url 'compare' %}" href="{% url 'compare_product' product.code %}" rel="nofollow">Добавить в сравнение</a>
-    {% endif %}
-</p>
-{% endif %}
-</div>
-</div>
-{% cache 3600 product_description product.id %}
-{% if product.images %}
-<div class="popup-gallery">
-{% for image in product.images %}
-<a href="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.jpg"><img src="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.s.jpg" alt="{{ product.title }} - Фото №{{ forloop.counter }}" border="0" /></a>
-{% endfor %}
-</div>
-{% endif %}
-
-<!-- constituents -->
-{% if constituents %}
-<h2>Состав комплекта:</h2>
-{% for item in constituents %}
-{% with item.constituent as product %}
-<div class="sw-p-l panel panel-default">
-<div class="panel-body">
-<div class="sw-p-l-image text-center">
-<a href="{% url 'product' product.code %}">
-{% if product.image_prefix|add:'.s.jpg'|file_exists %}
-<img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" />
-{% endif %}
-</a>
-</div>
-<div class="sw-p-l-name">
-<div class="sw-p-l-action">
-</div>
-<h3 class="sw-p-l-name-h">
-<a href="{% url 'product' product.code %}">{{ product.title }}</a>{% if item.quantity > 1 %} ({{ item.quantity }} шт.){% endif %}</h3>
-<p>
-<a href="{% url 'product' product.code %}">{{ product.whatis }} {{ product.partnumber }}</a></p>
-<div class="sw-p-l-brif">
-{{ product.shortdescr|safe }}
-</div>
-</div>
-</div>
-</div>
-{% endwith %}
-{% endfor %}
-{% endif %}
-<!-- /constituents -->
-
-{% if product.descr %}
-<p itemprop="description">{{ product.descr|safe }}</p>
-{% endif %}
-{% if product.spec %}
-<p>{{ product.spec|safe }}</p>
-{% endif %}
-
-{% if product.manuals %}
-<h2>Инструкции для {{ product.title }}:</h2>
-{{ product.manuals|safe }}
-{% endif %}
-
-{% if product.warranty %}
-<h2>Характеристики {{ product.title }}:</h2>
-{% endif %}
-<dl class="product-spec">
-{% if product.fabric_verylite %}
-<dt><span>Диапазон прошиваемых материалов <a class="opener-html" href="/blog/H/"><img src="{% static 'i/icons/more_icon.png' %}"></a></span></dt><dd>Очень легкие – {{ product.fabric_verylite }}<br>Легкие – {{ product.fabric_lite }}<br>Средние и умеренно тяжелые – {{ product.fabric_medium }}<br>Тяжелые – {{ product.fabric_hard }}<br>Трикотаж – {{ product.fabric_stretch }}</dd>
-{% endif %}
-{% with 'km_class km_font km_needles km_prog km_rapport sw_hoopsize sw_datalink sm_software sm_shuttletype sm_stitchwidth sm_stitchlenght sm_maxi sm_stitchquantity sm_buttonhole sm_alphabet sm_dualtransporter sm_platformlenght sm_freearm sm_feedwidth sm_footheight sm_constant sm_speedcontrol sm_needleupdown sm_threader sm_autocutter sm_spool sm_presscontrol sm_power sm_light sm_organizer sm_autostop sm_ruler sm_wastebin sm_cover sm_display sm_advisor sm_memory sm_mirror sm_startstop sm_kneelift sm_diffeed sm_easythreading ov_freearm sm_needles developer_country country warranty prom_transporter_type prom_shuttle_type prom_speed prom_needle_type prom_stitch_lenght prom_foot_lift prom_fabric_type prom_oil_type weight prom_weight prom_cutting prom_threads_num prom_power prom_bhlenght prom_overstitch_lenght prom_overstitch_width prom_stitch_width prom_needle_width prom_needle_num prom_platform_type prom_button_diaouter prom_button_diainner prom_needle_height prom_stitch_type prom_autothread' as field_list %}
-{% for field in field_list.split %}
-{% if field == 'developer_country' and product.developer_country.enabled or field == 'country' and product.country.enabled or field != 'developer_country' and field != 'country' %}
-{% with field_value=product|get_field:field %}
-{% if field_value %}
-{% with field_name=product|get_field_name:field|parse_field_name %}
-<dt><span>{{ field_name.0 }}{% include '_field_help.html' %}</span></dt><dd>{{ field_value|prettify }}{{ field_name.1 }}</dd>
-{% endwith %}
-{% endif %}
-{% endwith %}
-{% endif %}
-{% endfor %}
-{% endwith %}
-</dl>
-
-{% if 'images/'|add:product.manufacturer.code|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists or product.stitches %}
-<h2>Строчки {{ product.title }}:</h2>
-{% if 'images/'|add:product.manufacturer.code|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists %}
-<p><img src="{{ MEDIA_URL }}/images/{{ product.manufacturer.code }}/stitches/{{ product.code }}_stitches.jpg" alt="Строчки швейной машины {{ product.title }}" class="img-responsive"></p>
-{% endif %}
-{% if product.stitches %}
-{{ product.stitches|safe }}
-{% endif %}
-{% endif %}
-
-{% if product.complect %}
-<h2>Комплектация</h2>
-<p>{{ product.complect|safe }}</p>
-{% endif %}
-
-{% with product as parent %}
-{% for product in accessories %}
-{% if forloop.first %}
-<h2>Популярные аксессуары для {{ parent.title }}</h2>
-{% endif %}
-{% include "_product_info.html" %}
-<script>
-gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Сопутствующие товары','position':{{ forloop.counter }}});
-</script>
-{% endfor %}
-{% for product in similar %}
-{% if forloop.first %}
-<h2>Товары похожие на {{ parent.title }}</h2>
-{% endif %}
-{% include "_product_info.html" %}
-<script>
-gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Похожие товары','position':{{ forloop.counter }}});
-</script>
-{% endfor %}
-{% endwith %}
-
-{% if product.dealertxt %}
-<h2>Обратите внимание!</h2>
-<p>{{ product.dealertxt }}</p>
-{% endif %}
-{% endcache %}
-
-{% if product.allow_reviews %}
-  {% get_review_count for product as review_count %}
-  {% if review_count %}
-    <h2 id="reviews">Отзывы о товаре {{ product.title }}</h2>
-    {% render_review_list for product %}
-  {% else %}
-    <h2>Опубликуйте ваш отзыв</h2>
-  {% endif %}
-  {% if request.user.is_authenticated %}
-    {% get_review_by_user for product as user_review %}
-    {% if user_review %}
-      <p>Вы уже оставляли отзыв о данном товаре.
-         {% if not user_review.is_public %}Если вы его не видите, он может быть отклонён или ещё проверяться модератором.{% endif %}
-         Вы можете <a href="{% url 'review_product' product.code %}">изменить свой отзыв</a> в любой момент.</p>
-    {% else %}
-      {% if review_count %}
-      <p>Вы тоже можете <a href="{% url 'review_product' product.code %}">оставить свой отзыв</a> о данном товаре.</p>
-      {% else %}
-      <p>Вы можете быть первым, <a href="{% url 'review_product' product.code %}">кто опубликует отзыв</a> об этом товаре.</p>
+      {% if constituents %}
+      <!-- Constituents -->
+      <div class="pt-lg-2 pb-3 mb-md-3">
+        <h2 class="h3 pb-2">Состав комплекта</h2>
+        <div class="container px-0">
+        {% for item in constituents %}
+        {% with item.constituent as product %}
+        <figure class="figure align-top" style="max-width: 242px">
+          {% if product.image_prefix|add:'.jpg'|file_exists %}{% thumbnail product.image_prefix|add:'.jpg' '224x224' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}" class="figure-img"/>{% endthumbnail %}{% else %}<i class="d-inline-block czi-camera text-muted figure-img" style="width: 224px; height: 224px; font-size: 100px; padding: 62px"></i>{% endif %}
+          <figcaption class="figure-caption"><strong><a href="{% url 'product' product.code %}" class="text-muted">{{ product.title }}</a>{% if item.quantity > 1 %} ({{ item.quantity }} шт.){% endif %}</strong>{% if product.shortdescr %} &mdash; {{ product.shortdescr|safe }}{% endif %}</figcaption>
+        </figure>
+        {% endwith %}
+        {% endfor %}
+        </div>
+      </div>
       {% endif %}
-    {% endif %}
-  {% else %}
-    <p>Отзывы о товаре могут оставлять только <a href="{% url 'shop:login' %}?next={% url 'review_product' product.code %}">зарегистрированные</a> покупатели.</p>
-  {% endif %}
-{% endif %}
-</div>
-</div> <!--- /product-page --->
 
-<noscript>
-<div style="display:inline;">
-<img height="1" width="1" style="border-style:none;" alt="" src="//googleads.g.doubleclick.net/pagead/viewthroughconversion/826531590/?guid=ON&amp;script=0"/>
-</div>
-</noscript>
-</div>
+      {% if product.descr %}
+      <div class="pb-3 mb-md-3" itemprop="description">{{ product.descr|safe }}</div>
+      {% endif %}
+
+      {% if product.spec %}
+      <div class="pb-3 mb-md-3">{{ product.spec|safe }}</div>
+      {% endif %}
+
+      {% with 'fabric_verylite km_class km_font km_needles km_prog km_rapport sw_hoopsize sw_datalink sm_software sm_shuttletype sm_stitchwidth sm_stitchlenght sm_maxi sm_stitchquantity sm_buttonhole sm_alphabet sm_dualtransporter sm_platformlenght sm_freearm sm_feedwidth sm_footheight sm_constant sm_speedcontrol sm_needleupdown sm_threader sm_autocutter sm_spool sm_presscontrol sm_power sm_light sm_organizer sm_autostop sm_ruler sm_wastebin sm_cover sm_display sm_advisor sm_memory sm_mirror sm_startstop sm_kneelift sm_diffeed sm_easythreading ov_freearm sm_needles prom_transporter_type prom_shuttle_type prom_speed prom_needle_type prom_stitch_lenght prom_foot_lift prom_fabric_type prom_oil_type weight prom_weight prom_cutting prom_threads_num prom_power prom_bhlenght prom_overstitch_lenght prom_overstitch_width prom_stitch_width prom_needle_width prom_needle_num prom_platform_type prom_button_diaouter prom_button_diainner prom_needle_height prom_stitch_type prom_autothread' as field_list %}
+      {% for field, field_value in field_list.split|fields_with_values:product %}
+      {% if forloop.first %}
+      <!-- Specs -->
+      <div class="pt-lg-2 pb-3 mb-md-3">
+        <h2 class="h3 pb-2">Характеристики {{ product.title }}</h2>
+        <div class="product-spec container font-size-sm">
+      {% endif %}
+      {% if field == 'fabric_verylite' %}
+          <div class="row mb-2"><span class="col-md px-0 text-muted"><span class="d-block border-bottom"><span>Диапазон прошиваемых материалов <a class="opener-html" href="/blog/H/"><i class="czi-message font-size-ms text-muted"></i></a></span></span></span><span class="col-md pt-1 pt-sm-0 pr-0 pl-2 align-self-end">Очень легкие – {{ product.fabric_verylite }}<br>Легкие – {{ product.fabric_lite }}<br>Средние и умеренно тяжелые – {{ product.fabric_medium }}<br>Тяжелые – {{ product.fabric_hard }}<br>Трикотаж – {{ product.fabric_stretch }}</span></div>
+      {% else %}
+      {% with field_name=product|get_field_name:field|parse_field_name %}
+          <div class="row mb-2"><span class="col-md px-0 text-muted"><span class="d-block border-bottom"><span>{{ field_name.0 }}{% include '_field_help.html' %}</span></span></span><span class="col-md pt-1 pt-sm-0 pr-0 pl-2 align-self-end">{{ field_value|prettify }}{{ field_name.1 }}</span></div>
+      {% endwith %}
+      {% endif %}
+      {% if forloop.last %}
+        </div>
+      </div>
+      {% endif %}
+      {% endfor %}
+      {% endwith %}
+
+      {% if 'images/'|add:product.manufacturer.code|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists or product.stitches %}
+      <!-- Stitches -->
+      <div class="pt-lg-2 pb-3 mb-md-3">
+        <h2 class="h3 pb-2">Строчки {{ product.title }}</h2>
+        {% if 'images/'|add:product.manufacturer.code|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists %}
+        <div class="pb-3 mb-md-3">
+          <img src="{{ MEDIA_URL }}/images/{{ product.manufacturer.code }}/stitches/{{ product.code }}_stitches.jpg" alt="Строчки швейной машины {{ product.title }}" class="img-responsive">
+        </div>
+        {% endif %}
+        {% if product.stitches %}
+        <div>
+          {{ product.stitches|safe }}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if product.complect %}
+      <div class="pt-lg-2 pb-3 mb-md-3">
+        <h2 class="h3 pb-2">Комплектация</h2>
+        <div>{{ product.complect|safe }}</div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    {% if accessories or similar %}
+    <hr class="pb-5">
+    {% with product as parent %}
+    {% for product in accessories %}
+    {% if forloop.first %}
+    <!-- Product carousel (accessories) -->
+    <div class="container pt-lg-2 pb-5 mb-md-3">
+      <h2 class="h3 text-center pb-4">Популярные аксессуары для {{ parent.title }}</h2>
+      <div class="cz-carousel cz-controls-static cz-controls-outside">
+        <div class="cz-carousel-inner" data-carousel-options="{&quot;items&quot;: 2, &quot;controls&quot;: true, &quot;nav&quot;: false, &quot;autoHeight&quot;: true, &quot;responsive&quot;: {&quot;0&quot;:{&quot;items&quot;:1},&quot;500&quot;:{&quot;items&quot;:2, &quot;gutter&quot;: 18},&quot;768&quot;:{&quot;items&quot;:3, &quot;gutter&quot;: 20}, &quot;1100&quot;:{&quot;items&quot;:4, &quot;gutter&quot;: 30}}}">
+    {% endif %}
+          <div>
+            {% include "_product_card.html" %}
+          </div>
+    {% if forloop.last %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% for product in similar %}
+    {% if forloop.first %}
+    <!-- Product carousel (similar) -->
+    <div class="container pt-lg-2 pb-5 mb-md-3">
+      <h2 class="h3 text-center pb-4">Товары похожие на {{ parent.title }}</h2>
+      <div class="cz-carousel cz-controls-static cz-controls-outside">
+        <div class="cz-carousel-inner" data-carousel-options="{&quot;items&quot;: 2, &quot;controls&quot;: true, &quot;nav&quot;: false, &quot;autoHeight&quot;: true, &quot;responsive&quot;: {&quot;0&quot;:{&quot;items&quot;:1},&quot;500&quot;:{&quot;items&quot;:2, &quot;gutter&quot;: 18},&quot;768&quot;:{&quot;items&quot;:3, &quot;gutter&quot;: 20}, &quot;1100&quot;:{&quot;items&quot;:4, &quot;gutter&quot;: 30}}}">
+    {% endif %}
+          <div>
+            {% include "_product_card.html" %}
+          </div>
+    {% if forloop.last %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% endwith %}
+    {% endif %}
+
+    {% if product.dealertxt %}
+    <hr class="pb-5">
+    <div class="container pt-lg-2 pb-5 mb-md-3">
+      <h2 class="h3 text-center pb-4">Обратите внимание!</h2>
+      <div>{{ product.dealertxt }}</div>
+    </div>
+    {% endif %}
+
+    {% if product.allow_reviews %}
+    {% include '_product_reviews.html' %}
+    {% endif %}
 {% endblock content %}
 {% block javascript %}
-{% if product.credit_allowed and product.instock > 0 %}
-<script src="https://static.yandex.net/kassa/pay-in-parts/ui/v1"></script>
-{% endif %}
 <script>
-$(document).ready(function() {
-  dataLayer.push({'ecommerce':{'currencyCode':'RUB','impressions':gtm_products,'detail':{'products': [{'id':'{{ product.id }}','name':'{{ product.partnumber }} {{ product.title }}','category':'{{ category.name }}','brand':'{{ product.manufacturer.code }}','price':'{{ product.cost }}'}]}
-  }});
-
-{% if product.credit_allowed and product.instock > 0 %}
-  const $checkoutCreditUI = YandexCheckoutCreditUI({ shopId: '42873', sum: '{{ product.cost|quantize:"1" }}' });
-  const checkoutCreditText = $checkoutCreditUI({ type: 'info', domSelector: '#yandex-credit' });
-{% endif %}
-});
-
-$('#p_{{ product.id }}').click(function(){
-  dataLayer.push({'event': 'addToCart','ecommerce': {'currencyCode': 'RUB','add': {'products': [{'name':'{{ product.partnumber}} {{ product.title }}','id':'{{ product.id }}','category':'{{ category.name }}','brand':'{{ product.manufacturer.code }}','price':'{{ product.cost|quantize:"1" }}','quantity': 1}]}}
-  });
-  var VK_add_to_cart_Params = {'products': [{'id': '{{ product.id }}'}]};
-  VK.Retargeting.ProductEvent(3195, "add_to_cart", VK_add_to_cart_Params);
-});
-
-var google_tag_params = {
-ecomm_prodid: '{{ product.id }}',
-ecomm_pagetype: 'product',
-ecomm_totalvalue: {{ product.cost|quantize:"1" }},
-};
-
-/* <![CDATA[ */
-var google_conversion_id = 826531590;
-var google_custom_params = window.google_tag_params;
-var google_remarketing_only = true;
-/* ]]> */
+    $('#productPanels').on('show.bs.collapse', function(e) {
+        if ($(e.target).has('.spinner-border').length == 0)
+            return;
+        var itemId = $(e.target).attr('id');
+        if (itemId == 'localStore')
+            $(e.target).find('.card-body').load('{% url 'product_stock' product.code %}', function(){});
+    });
 </script>
-<script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js"></script>
-{% endblock javascript %}
-{% block vk_retargeting_event %}
-  var eventParams = {'products': [{'id': '{{ product.id }}'}], 'category_ids':'{{ category.id }},473', 'products_recommended_ids':
-    '{% with product as parent %}{% for product in accessories %}{{ product.id }},{% endfor %}{% for product in similar %}{{ product.id }},{% endfor %}{% endwith %}12476,11820'
-  };
-  VK.Retargeting.ProductEvent(3195, "view_product", eventParams);
-{% endblock vk_retargeting_event %}
+{% endblock %}

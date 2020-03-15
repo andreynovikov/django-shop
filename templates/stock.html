@@ -1,21 +1,20 @@
-<div class="white-popup-block">
-{% for country_group in store_groups %}
-{% if forloop.first %}
-<h3>Товар есть в наличии в этих магазинах:</h3>
-{% endif %}
-<h2 class="hide">{{ country_group.country.name }}</h2>
-<ul class="product-city-list">
-{% for city_group in country_group.cities %}
-<li><h4><a data-toggle="collapse" href="#stores_{{ city_group.city.id }}" aria-expanded="false" aria-controls="stores_{{ city_group.city.id }}">{{ city_group.city.name }}</a></h4>
-<ul id="stores_{{ city_group.city.id }}" class="collapse">
-{% for item in city_group.stores %}
-<li><a href="{% url 'store' item.store.pk %}">{{ item.store.address }}</a></li>
-{% endfor %}
-</ul></li>
-{% endfor %}
-</ul>
-<p>Наличие в других магазинах сети можно уточнить по <a href="{% url 'stores' %}">телефонам магазинов</a>.</p>
-{% empty %}
-<h3>Данного товара нет в наличии в розничных магазинах.</h3>
-{% endfor %}
-</div>
+                        <div style="max-height: 14rem" data-simplebar="init" data-simplebar-auto-hide="false">
+                          {% for country_group in store_groups %}
+                          <h6 class="d-none">{{ country_group.country.name }}</h6>
+                          {% for city_group in country_group.cities %}
+                          <div class="border-bottom {% if forloop.first %}pb-2{% else %}py-2{% endif %}">
+                            <a class="d-block font-size-sm product-meta" href="#stores_{{ city_group.city.id }}" data-toggle="collapse" aria-expanded="false" aria-controls="stores_{{ city_group.city.id }}">{{ city_group.city.name }}</a>
+                            <div class="collapse" id="stores_{{ city_group.city.id }}">
+                              {% for item in city_group.stores %}
+                              <a class="d-block font-size-xs" href="{% url 'store' item.store.pk %}"><i class="czi-check mr-1 text-muted"></i>{{ item.store.address }}</a>
+                              {% endfor %}
+                            </div>
+                          </div>
+                          {% endfor %}
+                          <div class="pt-2 font-size-xs text-muted">
+                            Наличие в других магазинах сети можно уточнить по <a href="{% url 'stores' %}">телефонам магазинов</a>
+                          </div>
+                          {% empty %}
+                          <div class="font-weight-semibold text-dark py-3">Данного товара нет в наличии в розничных магазинах</div>
+                          {% endfor %}
+                        </div>
