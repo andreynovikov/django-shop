@@ -335,6 +335,12 @@ class Store(models.Model):
         verbose_name_plural = 'магазины'
         ordering = ('city', 'address')
 
+    def phones_as_list(self):
+        return [self.phone] + [x.strip() for x in self.phone2.split(',')]
+
+    def hours_as_list(self):
+        return [x.strip() for x in self.hours.split(',')]
+
     @staticmethod
     def autocomplete_search_fields():
         return ['name__icontains', 'address__icontains', 'city__name__icontains']
@@ -964,6 +970,9 @@ class BasketItem(models.Model):
     product = models.ForeignKey(Product, related_name='+', on_delete=models.PROTECT)
     quantity = models.PositiveSmallIntegerField(default=1)
     ext_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ('id',)
 
     @property
     def price(self):
