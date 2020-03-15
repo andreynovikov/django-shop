@@ -14,7 +14,8 @@ td {padding:2.5mm}
 {% if error %}
 {{ error }}
 {% else %}
-{% for item in shipments %}
+{% for order in orders %}
+{% for item in order.shipments %}
 <table style="width:95mm;height:134mm;border:0.4mm solid black;padding:0" class="pagebreak">
 <tr>
 <td colspan="2" style="vertical-align:top;text-align:center">
@@ -25,11 +26,11 @@ td {padding:2.5mm}
 <td style="vertical-align:top;text-align:left;width:28mm; border-bottom:0.2mm solid black">
 <p>
 <span style="font-size:7pt">Перевозчик</span><br>
-<span style="font-size:10pt">АО "ДПД РУС"<!--{{ delivery_service_name }}--></span>
+<span style="font-size:10pt">АО "ДПД РУС"<!--{{ order.delivery_service_name }}--></span>
 </p>
 </td>
 <td style="vertical-align:top;text-align:center; border-bottom:0.2mm solid black">
-{{ beru_order_barcode }}
+{{ order.beru_barcode }}
 </td>
 </tr>
 <tr>
@@ -45,7 +46,7 @@ td {padding:2.5mm}
 <td style="border-right:0.2mm solid black; width:21mm">
 <p>
 <span style="font-size:7pt">Кол-во мест</span><br>
-<span style="font-size:10pt">{{ forloop.counter }}/{{ shipments|length }}</span>
+<span style="font-size:10pt">{{ forloop.counter }}/{{ order.shipments|length }}</span>
 </p>
 </td>
 <td style="border-right:0.2mm solid black;width:21mm">
@@ -57,7 +58,7 @@ td {padding:2.5mm}
 <td style="width:50mm">
 <p>
 <span style="font-size:7pt">Перевозчик</span><br>
-<span style="font-size:10pt">{{ delivery_service_id }}</span>
+<span style="font-size:10pt">{{ order.delivery_service_id }}</span>
 </p>
 </td>
 </tr>
@@ -74,18 +75,22 @@ td {padding:2.5mm}
 </p>
 </td>
 <td style="vertical-align:top;text-align:center">
-{{ order_barcode }}
+{{ order.barcode }}
 </td>
 </tr>
 <tr>
 <td colspan="2" style="vertical-align:center;text-align:center">
 <img src="{% static 'i/logo.svg' %}" style="width:63mm">
-<div style="font-size:7pt;margin-top:-6pt">{{ item.code }}</div>
+<div style="font-size:7pt;margin-top:-6pt">
+{{ item.code }}<br/>
+{% for order_item in item.products %}{{ order_item.product.code }}{% if order_item.quantity > 1 %}&times;{{ order_item.quantity }}{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}
+</div>
 </td>
 </tr>
 </table>
 {% empty %}
 Беру! не предоставил информации о позициях доставки.
+{% endfor %}
 {% endfor %}
 {% endif %}
 </body>

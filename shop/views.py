@@ -267,7 +267,10 @@ def restore_basket(request, restore):
             basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source)  # ASCII only regex
         basket.secondary = True
         basket.save()
-    return HttpResponseRedirect(reverse('shop:basket'))
+    query_string = request.GET.urlencode()
+    if query_string:
+        query_string = '?' + query_string
+    return HttpResponseRedirect(reverse('shop:basket') + query_string)
 
 
 def clear_basket(request, basket_sign):

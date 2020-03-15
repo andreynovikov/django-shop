@@ -9,31 +9,42 @@ from importlib import import_module
 from decimal import Decimal, ROUND_HALF_EVEN
 from urllib.request import Request, urlopen
 
-import django.db
+from django.contrib.admin.models import LogEntry, CHANGE
+from django.contrib.contenttypes.models import ContentType
 from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from django.core.mail import send_mail
 from django.core.validators import EmailValidator
 from django.conf import settings
+from django.db import Error as DatabaseError
+from django.db.models.fields.related import RelatedField
+from django.db.models.fields.reverse_related import ForeignObjectRel
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.encoding import force_text
 from django.contrib.sites.models import Site
 
 from celery import shared_task
 
 from djconfig import config, reload_maybe
 
+from lock_tokens.exceptions import AlreadyLockedError
+from lock_tokens.sessions import lock_for_session, unlock_for_session
+
 import reviews
 
 from unisender import Unisender
 
+from sewingworld.models import SiteProfile
 from sewingworld.sms import send_sms
 
 from shop.models import ShopUser, Supplier, Currency, Product, Stock, Basket, Order
 
 
 log = logging.getLogger('shop')
+
+sw_default_site = Site.objects.get_current()
 
 
 def validate_email(email):
@@ -43,6 +54,13 @@ def validate_email(email):
         return True
     except ValidationError:
         return False
+
+
+def get_site_for_order(order):
+    if order.is_beru or order.is_from_market:
+        return sw_default_site
+    else:
+        return order.site
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
@@ -56,13 +74,14 @@ def send_password(phone, password):
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
-def notify_user_order_new_sms(order_id, password):
+def notify_user_order_new_sms(order_id, password=None):
     order = Order.objects.get(id=order_id)
+    site = get_site_for_order(order)
     password_text = ""
     if password:
         password_text = " Пароль: %s" % password
     return send_sms(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s %s"
-                                 % (order_id, Site.objects.get_current().domain, reverse('shop:user_orders'), password_text))
+                                 % (order_id, site.domain, reverse('shop:user_orders'), password_text))
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
@@ -71,15 +90,18 @@ def notify_user_order_new_mail(order_id):
     if order.email:
         if not validate_email(order.email):
             return
+        site = get_site_for_order(order)
         reload_maybe()
         context = {
+            'site': site,
+            'site_profile': SiteProfile.objects.get(site=site),
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
         }
         msg_plain = render_to_string('mail/shop/order_new.txt', context)
         msg_html = render_to_string('mail/shop/order_new.html', context)
 
-        send_mail(
+        return send_mail(
             'Ваш заказ №%s принят' % order_id,
             msg_plain,
             config.sw_email_from,
@@ -88,24 +110,27 @@ def notify_user_order_new_mail(order_id):
         )
 
 
-@shared_task(autoretry_for=(Exception,), retry_backoff=True)
+@shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
 def notify_user_order_collected(order_id):
     order = Order.objects.get(id=order_id)
+    site = get_site_for_order(order)
     send_sms(order.phone, "Заказ №%s собран и ожидает оплаты. Перейдите по ссылке, чтобы оплатить заказ: https://%s%s"
-                          % (order_id, Site.objects.get_current().domain, reverse('shop:order', args=[order_id])))
+                          % (order_id, site.domain, reverse('shop:order', args=[order_id])))
 
     if order.email:
         if not validate_email(order.email):
             return
         reload_maybe()
         context = {
+            'site': site,
+            'site_profile': SiteProfile.objects.get(site=site),
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
         }
         msg_plain = render_to_string('mail/shop/order_collected.txt', context)
         msg_html = render_to_string('mail/shop/order_collected.html', context)
 
-        send_mail(
+        return send_mail(
             'Оплата заказа №%s' % order_id,
             msg_plain,
             config.sw_email_from,
@@ -137,15 +162,18 @@ def notify_user_order_delivered(order_id):
     if order.email:
         if not validate_email(order.email):
             return
+        site = get_site_for_order(order)
         reload_maybe()
         context = {
+            'site': site,
+            'site_profile': SiteProfile.objects.get(site=site),
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
         }
         msg_plain = render_to_string('mail/shop/order_delivered.txt', context)
         msg_html = render_to_string('mail/shop/order_delivered.html', context)
 
-        send_mail(
+        return send_mail(
             'Получение заказа №%s' % order_id,
             msg_plain,
             config.sw_email_from,
@@ -161,15 +189,18 @@ def notify_user_order_done(order_id):
     if order.email:
         if not validate_email(order.email):
             return
+        site = get_site_for_order(order)
         reload_maybe()
         context = {
+            'site': site,
+            'site_profile': SiteProfile.objects.get(site=site),
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'order': order
         }
         msg_plain = render_to_string('mail/shop/order_done.txt', context)
         msg_html = render_to_string('mail/shop/order_done.html', context)
 
-        send_mail(
+        return send_mail(
             'Заказ №%s выполнен' % order_id,
             msg_plain,
             config.sw_email_from,
@@ -178,7 +209,7 @@ def notify_user_order_done(order_id):
         )
 
 
-@shared_task(bind=True, autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=300, retry_jitter=False)
+@shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def notify_user_review_products(self, order_id):
     order = Order.objects.get(id=order_id)
 
@@ -221,16 +252,22 @@ def notify_user_review_products(self, order_id):
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_manager(order_id):
     order = Order.objects.get(id=order_id)
+    site = get_site_for_order(order)
+    site_profile = SiteProfile.objects.get(site=site)
 
     reload_maybe()
     msg_plain = render_to_string('mail/shop/order_manager.txt', {'order': order})
     msg_html = render_to_string('mail/shop/order_manager.html', {'order': order})
 
+    site_text = ''
+    if site != sw_default_site:
+        site_text = ' (%s)' % site.domain
+    managers = site_profile.managers or config.sw_email_managers
     send_mail(
-        'Новый заказ №%s' % order_id,
+        'Новый заказ №%s%s' % (order_id, site_text),
         msg_plain,
         config.sw_email_from,
-        config.sw_email_managers.split(','),
+        managers.split(','),
         html_message=msg_html,
     )
 
@@ -242,7 +279,7 @@ def notify_review_posted(review_id):
     reload_maybe()
     msg_plain = render_to_string('mail/reviews/review_posted.txt', {'review': review})
 
-    send_mail(
+    return send_mail(
         'Новый обзор для %s' % review.content_object,
         msg_plain,
         config.sw_email_from,
@@ -382,7 +419,7 @@ def import1c(file):
     )
 
 
-@shared_task(autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=60, retry_jitter=False)
+@shared_task(autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
 def remove_outdated_baskets():
     threshold = timezone.now() - datetime.timedelta(seconds=settings.SESSION_COOKIE_AGE)
     baskets = Basket.objects.filter(created__lt=threshold)
@@ -395,7 +432,7 @@ def remove_outdated_baskets():
     log.info('Cleared expired sessions')
 
 
-@shared_task(bind=True, autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=3, retry_jitter=False)
+@shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
 def notify_abandoned_basket(self, basket_id, email, phone):
     basket = Basket.objects.get(id=basket_id)
 
@@ -405,11 +442,11 @@ def notify_abandoned_basket(self, basket_id, email, phone):
     signer = signing.Signer()
 
     restore_url = 'https://{}{}'.format(
-        Site.objects.get_current().domain,
+        sw_default_site.domain,
         reverse('shop:restore', args=[','.join(map(lambda i: '%s*%s' % (i.product.id, i.quantity), basket.items.all()))])
     )
     clear_url = 'https://{}{}'.format(
-        Site.objects.get_current().domain,
+        sw_default_site.domain,
         reverse('shop:clear', args=[signer.sign(basket.id)])
     )
     import sys
@@ -453,7 +490,7 @@ def notify_abandoned_basket(self, basket_id, email, phone):
             return result
 
 
-@shared_task(autoretry_for=(EnvironmentError, django.db.Error), retry_backoff=3, retry_jitter=False)
+@shared_task(autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
 def notify_abandoned_baskets(first_try=True):
     SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
 
@@ -490,7 +527,41 @@ def notify_abandoned_baskets(first_try=True):
     return num
 
 
-@shared_task(bind=True, autoretry_for=(OSError, django.db.Error), retry_backoff=300, retry_jitter=False)
+@shared_task(bind=True, autoretry_for=(DatabaseError,), retry_backoff=300, retry_jitter=False)
+def update_order(self, order_id, data):
+    order = Order.objects.get(id=order_id)
+    SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
+    session = SessionStore()
+    session.create()
+    try:
+        lock_for_session(order, session)
+    except AlreadyLockedError:
+        raise self.retry(countdown=600, max_retries=24)  # 10 minutes
+    changed = {}
+    change_message = 'unchanged'
+    for attr, val in data.items():
+        field = order._meta.get_field(attr)
+        if field.editable and not field.primary_key and not isinstance(field, (ForeignObjectRel, RelatedField)):
+            if val != getattr(order, attr):
+                setattr(order, attr, val)
+                changed[attr] = val
+    if changed:
+        order.save(update_fields=changed.keys())
+        change_message = ', '.join(map(lambda item: '{}: {}'.format(item[0], item[1]), changed.items()))
+        LogEntry.objects.log_action(
+            user_id=order.user.id,
+            content_type_id=ContentType.objects.get_for_model(order).pk,
+            object_id=order.pk,
+            object_repr=force_text(order),
+            action_flag=CHANGE,
+            change_message=change_message
+        )
+    unlock_for_session(order, session)
+    session.delete()
+    return change_message
+
+
+@shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def update_cbrf_currencies(self):
     url = 'https://www.cbr-xml-daily.ru/daily_json.js'
     request = Request(url)
@@ -502,5 +573,5 @@ def update_cbrf_currencies(self):
         usd_cbrf.rate = rate
         usd_cbrf.save()
     else:
-        raise self.retry(countdown=60 * 60, max_retries=4)  # 1 hour
+        raise self.retry(countdown=3600, max_retries=4)  # 1 hour
     return rate

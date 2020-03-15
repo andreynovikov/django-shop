@@ -1,6 +1,6 @@
 import re
 import datetime
-
+from collections import defaultdict
 from decimal import Decimal, ROUND_UP
 
 from django import forms
@@ -303,18 +303,27 @@ class OrderAdmin(LockableModelAdmin):
         manager = ''
         if obj.manager:
             manager = ' style="color: %s"' % obj.manager.color
-        shop_code = getattr(settings, 'SHOP_ORDER_CODES', {}).get(obj.site.domain, '?')
-        if shop_code:
-            shop_code = shop_code + '-'
-        return '<b%s>%s%s</b><br/><span style="white-space:nowrap">%s</span>' % \
-            (manager, shop_code, obj.id, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
+        return '<b%s>%s</b><br/><span style="white-space:nowrap">%s</span>' % \
+            (manager, obj.title, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
     order_name.admin_order_field = 'id'
     order_name.short_description = 'заказ'
 
     @mark_safe
     def combined_comments(self, obj):
-        alert = '<span style="color:#ba2121">%s</span><br/>' % obj.alert if obj.alert else ''
-        return '%s<span style="color:#008">%s</span> %s<br/><em>%s</em>' % (alert, obj.delivery_yd_order, obj.delivery_info, obj.manager_comment)
+        comment = []
+        if obj.alert:
+            comment.append('<span style="color:#ba2121">{}</span><br/>'.format(obj.alert))
+        if obj.is_beru:
+            comment.append('<span style="color:#2121ba">№{}</span> '.format(obj.delivery_tracking_number))
+        else:
+            if obj.delivery_yd_order:
+                comment.append('<span style="color:#2121ba">{}</span> '.format(obj.delivery_yd_order))
+            if obj.delivery_tracking_number:
+                if obj.delivery_yd_order:
+                    comment.append('<span style="color:#2121ba">&#10095;</span> ')
+                comment.append('<span style="color:#21baba">{}</span> '.format(obj.delivery_tracking_number))
+        comment.append('{}<br/><em>{}</em>'.format(obj.delivery_info, obj.manager_comment))
+        return ''.join(comment)
     combined_comments.admin_order_field = 'manager_comment'
     combined_comments.short_description = 'Комментарии'
 
@@ -413,10 +422,12 @@ class OrderAdmin(LockableModelAdmin):
 
     list_display = ['order_name', 'name_and_phone', 'city', 'total_cost', 'combined_payment', 'combined_delivery',
                     'colored_status', 'combined_comments']
-    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders']
-    list_filter = [OrderStatusListFilter, ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter), 'paid',
-                   OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
-                   ('delivery_handing_date', FutureDateRangeFilter), ('site', SiteListFilter), 'manager', 'courier']
+    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders',
+                       'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
+                       'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
+    list_filter = [OrderStatusListFilter, ('site', SiteListFilter), ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter),
+                   'paid', OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
+                   ('delivery_handing_date', FutureDateRangeFilter), 'manager', 'courier']
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment',
                      'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
                      'item__serial_number']
@@ -430,8 +441,8 @@ class OrderAdmin(LockableModelAdmin):
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
         DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
     }
-    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_stock_action', 'order_set_user_tag_action',
-               'order_act_action']
+    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_stock_action',
+               'order_products_action', 'order_beru_action', 'order_set_user_tag_action', 'beru_labels', 'order_act_action']
     save_as = True
     save_on_top = True
     list_per_page = 50
@@ -496,6 +507,40 @@ class OrderAdmin(LockableModelAdmin):
                 post.update({admin.ACTION_CHECKBOX_NAME: '0'})
                 request._set_post(post)
         return super(OrderAdmin, self).changelist_view(request, extra_context)
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        if not form.instance.is_beru:
+            return
+        boxes = defaultdict(dict)
+        for formset in filter(lambda f: isinstance(f.empty_form.instance, OrderItem), formsets):
+            for inline in formset:
+                if inline.cleaned_data['box'] is not None:
+                    product = inline.cleaned_data['product']
+                    quantity = inline.instance.quantity
+                    box = boxes[inline.cleaned_data['box']]
+                    box['count'] = box.get('count', 0) + quantity
+                    box['weight'] = box.get('weight', 0) + product.prom_weight * quantity
+                    box['length'] = product.length
+                    box['width'] = product.width
+                    box['height'] = product.height
+        for formset in filter(lambda f: isinstance(f.empty_form.instance, Box), formsets):
+            for inline in formset:
+                if inline.instance.pk is None:
+                    continue
+                box = boxes.get(inline.instance)
+                if box is not None:
+                    changed = False
+                    if inline.cleaned_data['weight'] == 0:
+                        inline.instance.weight = box['weight']
+                        changed = True
+                    if box['count'] == 1:
+                        for dimension in ['length', 'width', 'height']:
+                            if inline.cleaned_data[dimension] == 0:
+                                setattr(inline.instance, dimension, box[dimension])
+                                changed = True
+                    if changed:
+                        inline.instance.save()
 
     def get_urls(self):
         urls = super(OrderAdmin, self).get_urls()
@@ -569,14 +614,6 @@ class OrderAdmin(LockableModelAdmin):
                     stock = stock + '<br/>'
             else:
                 stock = '<span style="color: #ff0000">отсутствует</span>'
-            # inner_cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
-            #                        INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
-            #                        AND shop_orderitem.product_id = %s GROUP BY shop_orderitem.product_id""", (product['product_id'],))
-            # if inner_cursor.rowcount:
-            #    row = inner_cursor.fetchone()
-            #    stock = stock + '<span style="color: #00c">Зак:&nbsp;'
-            #    stock = stock + ('%s' % floatformat(row[0]))
-            #    stock = stock + '</span><br/>'
             product['stock'] = stock
             products.append(product)
         cursor.close()
@@ -679,14 +716,21 @@ class OrderAdmin(LockableModelAdmin):
             is_popup = request.POST.get('_popup', 0)
             if form.is_valid():
                 try:
-                    discount = int(form.cleaned_data['discount'])
+                    unit = form.cleaned_data['unit']
                     for item in order.items.all():
-                        if discount > item.pct_discount:
-                            if discount <= item.product.max_discount:
-                                item.pct_discount = discount
-                            else:
-                                item.pct_discount = item.product.max_discount
-                            item.save()
+                        if unit == 'pct':
+                            discount = int(form.cleaned_data['discount'])
+                            if discount > item.pct_discount:
+                                if discount <= item.product.max_discount:
+                                    item.pct_discount = discount
+                                else:
+                                    item.pct_discount = item.product.max_discount
+                                item.save()
+                        elif unit == 'val':
+                            discount = float(form.cleaned_data['discount'])
+                            if discount > item.val_discount:
+                                item.val_discount = discount
+                                item.save()
 
                     return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
                                         '<script type="text/javascript">opener.dismissPopupAndReload(window);</script>'
@@ -906,7 +950,7 @@ class OrderAdmin(LockableModelAdmin):
 
         return TemplateResponse(request, 'admin/shop/order/yandex_delivery_estimate.html', context)
 
-    def beru_labels(self, request, id):
+    def beru_labels(self, request, arg):
         if not request.user.is_staff:
             raise PermissionDenied
 
@@ -916,46 +960,56 @@ class OrderAdmin(LockableModelAdmin):
         context = self.admin_site.each_context(request)
         context['opts'] = self.model._meta
         context['is_popup'] = request.GET.get('_popup', 0)
+        context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
 
-        order = Order.objects.get(pk=id)
+        # this method is called both from order change form with single id argument and order list with selected orders queryset
+        if isinstance(arg, str):
+            orders = [Order.objects.get(pk=arg)]
+        else:
+            orders = arg.all()
 
+        context['orders'] = []
         try:
-            beru_order = get_beru_order_details(order.id)
-            beru_order_id = str(beru_order.get('id', 0))
+            for order in orders:
+                beru_order = get_beru_order_details(order.id)
+                beru_order_id = str(beru_order.get('id', 0))
 
-            CODE128 = barcode.get_barcode_class('code128')
-            order_barcode = CODE128(str(order.id)).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
-            order_barcode = re.sub(r'^.*(?=<svg)', '', order_barcode)
-            beru_order_barcode = CODE128(beru_order_id).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
-            beru_order_barcode = re.sub(r'^.*(?=<svg)', '', beru_order_barcode)
+                CODE128 = barcode.get_barcode_class('code128')
+                order_barcode = CODE128(str(order.id)).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
+                order_barcode = re.sub(r'^.*(?=<svg)', '', order_barcode)
+                beru_order_barcode = CODE128(beru_order_id).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
+                beru_order_barcode = re.sub(r'^.*(?=<svg)', '', beru_order_barcode)
 
-            count = 0
-            shipments = []
-            delivery = beru_order.get('delivery', {})
-            for box in order.boxes.all():
-                count += 1
-                code = '%d-%d' % (order.id, count)
-                barcode = CODE128(code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
-                barcode = re.sub(r'^.*(?=<svg)', '', barcode)
-                shipments.append({
-                    'id': code,
-                    'code': box.code,
-                    'barcode': mark_safe(barcode),
-                    'weight': box.weight
+                count = 0
+                shipments = []
+                delivery = beru_order.get('delivery', {})
+                for box in order.boxes.all():
+                    count += 1
+                    code = '%d-%d' % (order.id, count)
+                    item_barcode = CODE128(code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
+                    item_barcode = re.sub(r'^.*(?=<svg)', '', item_barcode)
+                    shipments.append({
+                        'id': code,
+                        'code': box.code,
+                        'barcode': mark_safe(item_barcode),
+                        'products': box.products.all(),
+                        'weight': box.weight
+                    })
+
+                context['orders'].append({
+                    'beru_order': beru_order,
+                    'order': order,
+                    'delivery_service_name': delivery.get('serviceName', ''),
+                    'delivery_service_id': delivery.get('deliveryServiceId', ''),
+                    'beru_barcode': mark_safe(beru_order_barcode),
+                    'barcode': mark_safe(order_barcode),
+                    'shipments': shipments
                 })
-
-            context['beru_order'] = beru_order
-            context['order'] = order
-            context['delivery_service_name'] = delivery.get('serviceName', '')
-            context['delivery_service_id'] = delivery.get('deliveryServiceId', '')
-            context['beru_order_barcode'] = mark_safe(beru_order_barcode)
-            context['order_barcode'] = mark_safe(order_barcode)
-            context['shipments'] = shipments
-            context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
         except Exception as e:
             context['error'] = getattr(e, 'message', str(e))
 
         return TemplateResponse(request, 'shop/order/beru_labels.html', context)
+    beru_labels.short_description = "Печать наклеек Беру"
 
     def send_sms_form(self, request, phone):
         if not request.user.is_staff:
@@ -1096,8 +1150,45 @@ class OrderAdmin(LockableModelAdmin):
         context['action_title'] = "Сформировать выгрузку"
 
         return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
-
     order_stock_action.short_description = "Выгрузка поставщику"
+
+    def order_products_action(self, request, queryset):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
+        cursor = connection.cursor()
+        cursor.execute("""SELECT shop_orderitem.product_id, shop_product.article, SUM(shop_orderitem.quantity) AS quantity
+                          FROM shop_orderitem INNER JOIN shop_product ON (shop_product.id = shop_orderitem.product_id)
+                          INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id)
+                          WHERE shop_orderitem.order_id IN (""" + ','.join(selected) + """)
+                          GROUP BY shop_orderitem.product_id, shop_product.article""")
+        products = []
+        for row in cursor.fetchall():
+            columns = (x[0] for x in cursor.description)
+            product = dict(zip(columns, row))
+            products.append(product)
+        cursor.close()
+        import io
+        import xlsxwriter
+
+        output = io.BytesIO()
+        workbook = xlsxwriter.Workbook(output)
+        sheet = workbook.add_worksheet('Products')
+        for idx, product in enumerate(products):
+            sheet.write(idx, 0, product['article'])
+            sheet.write(idx, 1, product['quantity'])
+        workbook.close()
+
+        response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename=products-{}.xlsx'.format(datetime.date.today().isoformat())
+        return response
+    order_products_action.short_description = "Выгрузка товаров"
+
+    def order_beru_action(self, request, queryset):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        return TemplateResponse(request, 'admin/shop/order/beru.html', {'orders': queryset})
+    order_beru_action.short_description = "Список заказов Беру"
 
     def order_set_user_tag_action(self, request, queryset):
         if not request.user.is_staff:

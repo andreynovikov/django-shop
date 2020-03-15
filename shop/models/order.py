@@ -12,6 +12,7 @@ from django.utils.functional import cached_property
 
 from model_utils import FieldTracker
 from colorfield.fields import ColorField
+from tagging.utils import parse_tag_input
 
 from . import Product, ProductSet, Store, ShopUser
 
@@ -22,6 +23,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 WHOLESALE = getattr(settings, 'SHOP_WHOLESALE', False)
+ORDER_CODES = getattr(settings, 'SHOP_ORDER_CODES', {})
 
 
 class Contractor(models.Model):
@@ -84,6 +86,7 @@ class Order(models.Model):
     DELIVERY_TRANSPORT = 4
     DELIVERY_PICKPOINT = 5
     DELIVERY_YANDEX = 6
+    DELIVERY_TRANSIT = 7
     DELIVERY_UNKNOWN = 99
     DELIVERY_CHOICES = (
         (DELIVERY_UNKNOWN, 'уточняется'),
@@ -93,6 +96,7 @@ class Order(models.Model):
         (DELIVERY_TRANSPORT, 'транспортная компания'),
         (DELIVERY_PICKPOINT, 'PickPoint'),
         (DELIVERY_YANDEX, 'Яндекс.Доставка'),
+        (DELIVERY_TRANSIT, 'транзит'),
     )
     STATUS_NEW = 0x0
     STATUS_ACCEPTED = 0x00000001
@@ -196,7 +200,7 @@ class Order(models.Model):
     store = models.ForeignKey(Store, verbose_name='магазин самовывоза', blank=True, null=True, on_delete=models.PROTECT)
     utm_source = models.CharField(max_length=20, blank=True)
     # user
-    user = models.ForeignKey(ShopUser, verbose_name='покупатель', on_delete=models.PROTECT)
+    user = models.ForeignKey(ShopUser, verbose_name='покупатель', related_name='orders', on_delete=models.PROTECT)
     name = models.CharField('имя', max_length=100, blank=True)
     postcode = models.CharField('индекс', max_length=10, blank=True)
     city = models.CharField('город', max_length=255, blank=True)
@@ -213,6 +217,13 @@ class Order(models.Model):
     status = models.PositiveIntegerField('статус', choices=STATUS_CHOICES, default=STATUS_NEW, db_index=True)
 
     tracker = FieldTracker(fields=['status'])
+
+    @property
+    def title(self):
+        shop_code = ORDER_CODES.get(self.site.domain, '?')
+        if shop_code:
+            shop_code = shop_code + '-'
+        return '{}{}'.format(shop_code, self.id)
 
     @property
     def total(self):
@@ -251,17 +262,23 @@ class Order(models.Model):
     def is_beru(self):
         return self.site == Site.objects.get(domain='beru.ru')
 
+    @cached_property
+    def is_from_market(self):
+        return self.site == Site.objects.get(domain='market.yandex.ru')
+
     @staticmethod
     def register(basket):
         session_data = basket.session.get_decoded()
         uid = session_data.get('_auth_user_id')
         user = ShopUser.objects.get(id=uid)
-        order = Order.objects.create(user=user, site=Site.objects.get_current())
+        if basket.utm_source == 'yamarket':
+            site = Site.objects.get(domain='market.yandex.ru')
+        elif basket.utm_source == 'beru':
+            site = Site.objects.get(domain='beru.ru')
+        else:
+            site = Site.objects.get_current()
+        order = Order.objects.create(user=user, site=site)
         order.utm_source = basket.utm_source
-        if order.utm_source == 'yamarket':
-            order.site = Site.objects.get(domain='market.yandex.ru')
-        if order.utm_source == 'beru':
-            order.site = Site.objects.get(domain='beru.ru')
         order.name = user.name
         order.postcode = user.postcode
         order.city = user.city
@@ -358,8 +375,11 @@ class Order(models.Model):
         return order
 
     def append_user_tags(self, tags):
-        user_tags = self.user.tags.split(',')
+        user_tags = parse_tag_input(self.user.tags)
+        print(user_tags)
+        print(tags)
         merged = list(set(tags + user_tags))
+        print(merged)
         self.user.tags = ','.join(merged)
         self.user.save()
 

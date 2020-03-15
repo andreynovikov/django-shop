@@ -36,7 +36,7 @@ from .user import ShopUserAdmin  # NOQA
 class CategoryAdmin(DraggableMPTTAdmin):
     search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
-    list_display = ('tree_actions', 'indented_title', 'slug', 'active')
+    list_display = ('tree_actions', 'indented_title', 'slug', 'active', 'hidden')
     # list_editable = ['active']
     list_display_links = ['indented_title']
     exclude = ('image_width', 'image_height', 'promo_image_width', 'promo_image_height')
@@ -45,7 +45,8 @@ class CategoryAdmin(DraggableMPTTAdmin):
 
 @admin.register(Supplier)
 class SupplierAdmin(SortableAdminMixin, admin.ModelAdmin):
-    list_display = ['code', 'name', 'show_in_order', 'count_in_stock', 'spb_count_in_stock', 'ws_count_in_stock']
+    list_display = ['code', 'name', 'show_in_order', 'count_in_stock', 'spb_count_in_stock',
+                    'ws_count_in_stock', 'beru_count_in_stock']
     list_display_links = ['name']
     search_fields = ['code', 'code1c', 'name']
 

@@ -57,7 +57,9 @@ class OrderCombineForm(forms.Form):
 
 
 class OrderDiscountForm(forms.Form):
-    discount = forms.IntegerField(label='Скидка', min_value=0, required=True)
+    discount = forms.FloatField(label='Скидка', min_value=0, required=True)
+    unit = forms.ChoiceField(label='Вид', choices=(('pct', 'проценты'), ('val', 'рубли')),
+                             widget=forms.RadioSelect, initial='pct', required=True)
 
 
 class SendSmsForm(forms.Form):
@@ -262,8 +264,9 @@ class OrderAdminForm(forms.ModelForm):
         return store
 
     def save(self, commit=True):
-        self.instance.user.tags = self.cleaned_data['user_tags']
-        self.instance.user.save()
+        if 'user_tags' in self.cleaned_data:  # massadmin does not have it
+            self.instance.user.tags = self.cleaned_data['user_tags']
+            self.instance.user.save()
         return super(OrderAdminForm, self).save(commit=commit)
 
     class Meta:

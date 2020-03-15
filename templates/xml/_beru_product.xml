@@ -7,7 +7,7 @@
     {% if product.beru_price > 0 %}
     <price>{{ product.beru_price|quantize:"1" }}</price>
     {% else %}
-    <price>{{ product.price|quantize:"1" }}</price>
+    <price>{{ product.cost|quantize:"1" }}</price>
     {% endif %}
     <currencyId>RUR</currencyId>
 {% for category in product.categories.all %}

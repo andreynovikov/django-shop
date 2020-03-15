@@ -1,0 +1,31 @@
+<html>
+    <head>
+        <style>
+            table {border-collapse:collapse}
+            table td {padding: 5px}
+            .order-header td {border-top: 3px solid #ccc; border-bottom: 1px solid #ddd}
+            .order-title {font-weight: bold}
+            .order-item {font-size: 80%}
+            .quantity, .price {text-align: right}
+        </style>
+    </head>
+    <body>
+        <table>
+            {% for order in orders %}
+            <tr class="order-header">
+                <td class="order-title">{{ order.title }}</td>
+                <td class="tracking-number" colspan="4">{{ order.delivery_tracking_number }}</td>
+            </tr>
+            {% for item in order.items.all %}
+            <tr class="order-item">
+                <td>{{ item.product.article }}</td>
+                <td>{{ item.product.partnumber }}</td>
+                <td>{{ item.product.title }}</td>
+                <td class="quantity">{{ item.quantity }}&nbsp;шт.</td>
+                <td class="price">{{ item.cost }}&nbsp;руб.</td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+        </table>
+    </body>
+</html>

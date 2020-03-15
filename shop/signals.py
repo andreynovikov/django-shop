@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
+from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.cache import InvalidCacheBackendError, caches
@@ -65,16 +66,21 @@ def order_saved(sender, **kwargs):
                 notify_user_order_delivered.delay(order.id)
 
         if order.status == Order.STATUS_DONE or order.status == Order.STATUS_FINISHED:
-            if order.total >= 30000 and order.user.discount < 10:
+            total = 0
+            complete_orders = order.user.orders.filter(Q(status=Order.STATUS_DONE) | Q(status=Order.STATUS_FINISHED))
+            for complete_order in complete_orders:
+                total += complete_order.total
+            if total >= 30000 and order.user.discount < 10:
                 order.user.discount = 10
                 order.user.save()
-            if order.total >= 3000 and order.user.discount < 5:
+            if total >= 3000 and order.user.discount < 5:
                 order.user.discount = 5
                 order.user.save()
             if order.status == Order.STATUS_DONE:
                 notify_user_order_done.delay(order.id)
-                next_week = timezone.now() + timedelta(days=7)
-                notify_user_review_products.apply_async((order.id,), eta=next_week)
+                if order.site == Site.objects.get(domain='www.sewing-world.ru') or order.site == Site.objects.get(domain='market.yandex.ru'):
+                    next_week = timezone.now() + timedelta(days=7)
+                    notify_user_review_products.apply_async((order.id,), eta=next_week)
 
         print(order.tracker.changed())
 
