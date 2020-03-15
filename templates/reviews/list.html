@@ -1,67 +1,31 @@
 {% load site reviews %}
 {% load spirit_tags %}{# for get_gravatar_url, shortnaturaltime #}
-<style>
-#reviews dt {
-  font-size: 14px;
-  font-weight: normal;
-  clear: both;
-}
-#reviews dd {
-  margin-bottom: 14px;
-  padding-left: 74px;
-  border-bottom: #eeeeee 1px solid;
-}
-#reviews .review-rating {
-  display: block;
-  margin-top: 8px;
-}
-#reviews .review-rating > .gl-star-rating-stars {
-  vertical-align: text-top;
-}
-#reviews .gl-star-rating-stars > span {
-  width: 14px; height: 14px; background-size: 14px; margin: 0 1px 0 0;
-}
-#reviews .review-rating > .rating-text {
-  padding-left: 8px;
-  font-weight: bold;
-  color: #888;
-}
-#reviews .review-avatar {
-  width: 50px; /* temp */
-  float: left;
-  margin-right: 24px;
-  border-radius: 25px;
-}
-#reviews .review-published {
-  float: right;
-}
-</style>
-<dl id="reviews">
-  {% for review in review_list %}
-    <dt id="r{{ review.id }}">
-      <img src="{% get_gravatar_url user=review.user size=50 %}" class="review-avatar" alt="{{ review.user.get_full_name }}" />
-      {{ review.user.get_full_name }}
-      <time class="review-published" datetime="{{ review.submit_date|date:"c" }}" title="{{ review.submit_date }}">
-        {{ review.submit_date|shortnaturaltime }}
-      </time>
-    </dt>
-    <dd>
-      <span class="review-rating">
-      {% render_rating_value review.rating %}
-      {% with review.rating|add:"-1" as idx %}
-        {% with rating_choices|get_list_item:idx as choice %}
-          <span class="rating-text">{{ choice.1 }}
-            {% if review.weight > 1 and review.weight < 10 %}
-              &mdash; отзыв покупателя
-            {% endif %}
-            {% if review.weight > 10 %}
-              &mdash; отзыв эксперта
-            {% endif %}
-          </span>
-        {% endwith %}
-      {% endwith %}
-      </span>
-      {{ review.comment|linebreaks }}
-    </dd>
-  {% endfor %}
-</dl>
+{% for review in review_list %}
+            <!-- Review-->
+            <div class="product-review pb-4 mb-4{% if not forloop.last %} border-bottom{% endif %}" id="r{{ review.id }}">
+              <div class="d-flex mb-3">
+                <div class="media media-ie-fix align-items-center mr-4 pr-2"><img class="rounded-circle" width="50" src="{% get_gravatar_url user=review.user size=50 %}" alt="{{ review.user.get_full_name }}"/>
+                  <div class="media-body pl-3">
+                    <h6 class="font-size-sm mb-0">{{ review.user.get_full_name }}</h6><span class="font-size-ms text-muted">{{ review.submit_date|shortnaturaltime }}</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="star-rating">{% render_rating_value review.rating %}</div>
+                  <div class="font-size-ms text-muted">
+                    {% with review.rating|add:"-1" as idx %}
+                    {% with rating_choices|get_list_item:idx as choice %}
+                    {{ choice.1 }}
+                    {% if review.weight > 1 and review.weight <= 10 %}
+                    &mdash; отзыв покупателя
+                    {% endif %}
+                    {% if review.weight > 10 %}
+                    &mdash; отзыв эксперта
+                    {% endif %}
+                    {% endwith %}
+                    {% endwith %}
+                  </div>
+                </div>
+              </div>
+              <p class="font-size-md mb-2">{{ review.comment|linebreaks }}</p>
+            </div>
+{% endfor %}

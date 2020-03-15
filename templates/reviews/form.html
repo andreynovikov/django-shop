@@ -1,0 +1,80 @@
+{% load reviews %}
+{% load widget_tweaks %}
+{% if not request.user.username %}
+<div class="modal" tabindex="-1" role="dialog" id="sw-user-update-modal">
+    <div class="modal-dialog" role="document">
+        <form id="sw-update-user-form" class="modal-content needs-validation{% if invalid %} was-validated{% endif %}" method="post" novalidate action="{% url 'shop:profile' %}">
+            <div class="modal-body">
+                <div class="text-center">
+                    <div class="spinner-border" role="status"><span class="sr-only">Загрузка...</span></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Закрыть</button>
+                <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="alert alert-warning alert-with-icon" role="alert" id="sw-user-update-warning">
+    <div class="alert-icon-box">
+        <i class="alert-icon czi-announcement"></i>
+    </div>
+    Вы можете <a class="alert-link" id="sw-user-update-link" data-toggle="modal" href="#" data-target="#sw-user-update-modal">указать</a> псевдоним, если не хотите, чтобы отображалось Ваше реальное имя.
+</div>
+{% endif %}
+<form class="needs-validation" method="post" novalidate action="{% review_form_target %}">{% csrf_token %}
+  {% if next %}
+    <input type="hidden" name="next" value="{{ next }}"/>
+  {% endif %}
+  {% for field in form %}
+    {% if field.is_hidden %}
+      {{ field }}
+    {% else %}
+      <div class="form-group{% if field.errors %} error{% endif %}"{% ifequal field.name "honeypot" %} style="display:none;"{% endifequal %}>
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span class="text-danger">*</span>{% endif %}</label>
+        {% render_field field class="form-control" %}
+        <div class="invalid-feedback">Необходимо заполнить поле!</div>
+        {% if field.errors %}<div class="text-danger">{{ field.errors }}</div>{% endif %}
+      </div>
+    {% endif %}
+  {% endfor %}
+  <button class="btn btn-primary btn-shadow btn-block" type="submit">Опубликовать отзыв</button>
+</form>
+
+<script>
+(function () {
+    'use strict';
+
+    var addFormSumbitListener = function() {
+        var form = document.getElementById("id_phone").form;
+        form.addEventListener('submit', function(event) {
+            var $form = $(form);
+            var data = $form.serialize() + '&ajax=1';
+            $.post($form.attr('action'), data, function(data) {
+                $('#sw-user-update-modal').find('.modal-body').html(data.html);
+                addFormSumbitListener();
+            }, 'json');
+            event.preventDefault();
+            event.stopPropagation();
+        }, false);
+
+        if (form.checkValidity() && form.username.value) {
+            $('#sw-user-update-modal').modal('hide');
+            $('#sw-user-update-warning').addClass('d-none');
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        $('#sw-user-update-modal').on('show.bs.modal', function() {
+            if (!document.getElementById("id_phone")) {
+                $.get('{% url 'shop:profile' %}?ajax=1', function(data) {
+                    $('#sw-user-update-modal').find('.modal-body').html(data.html);
+                    addFormSumbitListener();
+                });
+            }
+        });
+    });
+}());
+</script>

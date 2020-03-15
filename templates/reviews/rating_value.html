@@ -1,0 +1,1 @@
+{% for choice in rating_choices %}<i class="sr-star czi-star{% if forloop.counter <= rating_value %}-filled {{ color|default:'active' }} {% endif %} {{ font_size }} {{ mr }}" data-value="{{ choice.0 }}" data-text="{{ choice.1 }}"></i>{% endfor %}

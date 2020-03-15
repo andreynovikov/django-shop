@@ -1,8 +1,10 @@
-{% extends "base.html" %}
+{% extends "page.html" %}
 {% load reviews %}
 {% block title %}Спасибо за ваш отзыв{% endblock %}
+{% block content_title %}Спасибо за ваш отзыв{% endblock %}
 {% block content %}
-<h1>Спасибо за ваш отзыв</h1>
-<p>Ваш отзыв о товаре {{ review.target }} будет опубликован после проверки модератором и доступен по ссылке:
-<a href="{% get_review_permalink review "#r%(id)s" %}">{% get_review_permalink review "#r%(id)s" %}</a></p>
+<div class="container py-5 mb-2 mb-md-4">
+<div>Ваш отзыв о товаре {{ review.target }} будет опубликован после проверки модератором и доступен по ссылке:
+<a href="{% get_review_permalink review "#r%(id)s" %}">{% get_review_permalink review "#r%(id)s" %}</a></div>
+</div>
 {% endblock %}
