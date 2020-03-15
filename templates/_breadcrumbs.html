@@ -1,14 +1,12 @@
-<ol class="breadcrumb sw-breadcrumb">
-    {% for url, label in breadcrumbs %}
-        <li>
-            {% ifnotequal forloop.counter breadcrumbs_total %}
-                <a href="{{ url }}">{{ label|safe }}</a>
-            {% else %}
-                <a href="{{ url }}" id="cname">{{ label|safe }}</a>
-            {% endifnotequal %}
-            {% if not forloop.last %}
-                <!-- <span class="divider">/</span> -->
-            {% endif %}
-        </li>
-    {% endfor %}
-</ol>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb {% block breadcrumb_color %}{% endblock %}flex-lg-nowrap justify-content-center justify-content-lg-start">
+              <li class="breadcrumb-item"><a class="text-nowrap" href="/"><i class="czi-home"></i>К первой странице</a></li>
+              {% for url, label in breadcrumbs %}
+              {% if forloop.last %}
+              <li class="breadcrumb-item text-nowrap active" aria-current="page">{{ label|safe }}</li>
+              {% else %}
+              <li class="breadcrumb-item"><a class="text-nowrap" href="{{ url }}">{{ label|safe }}</a></li>
+              {% endif %}
+              {% endfor %}
+            </ol>
+          </nav>

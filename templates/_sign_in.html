@@ -1,0 +1,46 @@
+    <!-- Sign in / sign up modal-->
+    <div class="modal fade" id="signin-modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <ul class="nav nav-tabs card-header-tabs" role="tablist">
+              <li class="nav-item"><a class="nav-link active" href="#signin-tab" data-toggle="tab" role="tab" aria-selected="true"><i class="czi-unlocked mr-2 mt-n1"></i>Вход</a></li>
+              <li class="nav-item"><a class="nav-link" href="#signup-tab" data-toggle="tab" role="tab" aria-selected="false"><i class="czi-user mr-2 mt-n1"></i>Регистрация</a></li>
+            </ul>
+            <button class="close" type="button" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          </div>
+          <div class="modal-body tab-content py-4">
+            <div class="tab-pane fade show active" id="signin-tab">
+              {% include "shop/user/_login_form.html" with embedded=True ctx="login" %}
+            </div>
+            <div class="tab-pane fade" id="signup-tab">
+              {% include "shop/user/_registration_form.html" with embedded=True %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript">
+    (function() {
+        'use strict';
+        var addFormSumbitListener = function(formId, tabId) {
+            var form = document.getElementById(formId);
+            form.addEventListener('submit', function(event) {
+                var $form = $(form);
+                var data = $form.serialize() + '&ajax=1';
+                $.post($form.attr('action'), data, function(data) {
+                    if (data.authenticated) {
+                        location.reload();
+                    } else {
+                        $(document.getElementById(tabId)).html(data.html);
+                        addFormSumbitListener(formId, tabId);
+                    }
+                }, 'json');
+                event.preventDefault();
+                event.stopPropagation();
+            }, false);
+        };
+        addFormSumbitListener('sw-login-form', 'signin-tab');
+        addFormSumbitListener('sw-reg-form', 'signup-tab');
+    })();
+    </script>

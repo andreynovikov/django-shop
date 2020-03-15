@@ -1,0 +1,5 @@
+{% extends "page.html" %}
+{% load django_bootstrap_breadcrumbs %}
+{% block page_title_bg_color %}dark{% endblock %}
+{% block page_title_header_color %}light{% endblock %}
+{% block render_breadcrumbs %}{% render_breadcrumbs "_breadcrumbs_dark.html" %}{% endblock %}
