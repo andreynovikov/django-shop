@@ -1,5 +1,14 @@
-{% load staticfiles %}
-{% load rupluralize %}
-{% if count %}
-<a href="{% url 'compare' %}" rel="nofollow"><img src="{% static 'i/diag.svg' %}" alt="Сравнение" height="24" style="padding-right: 4px">В сравнении {{ count }} {{count|rupluralize:"товар,товара,товаров"}}</a>
-{% endif %}
+({{ count }})
+<script type="text/javascript">
+(function() {
+    'use strict';
+    var link = document.getElementById("compare-notice").parentElement;
+    if (link)
+        link.classList.{% if count %}add{% else %}remove{% endif %}("d-md-inline-block");
+    var dropdownCount = document.getElementById("dropdown-compare-count");
+    if (dropdownCount) {
+        dropdownCount.textContent = "{{ count }}";
+        dropdownCount.parentElement.classList.{% if count %}remove{% else %}add{% endif %}("d-none");
+    }
+})();
+</script>

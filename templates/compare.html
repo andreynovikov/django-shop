@@ -1,225 +1,224 @@
-{% extends "base.html" %}
-{% load staticfiles %}
+{% extends "page_dark.html" %}
+{% load django_bootstrap_breadcrumbs %}
+{% load thumbnail %}
+{% load site %}
 {% load decimals %}
 {% load shop_filters %}
-{% load site %}
-{% block css %}
-<style>
-    #comparison { margin: 0px auto; }
-    #comparison .sw-pc-f th { padding: 6px 3px; border-top: 1px solid #eee; font-weight: normal; font-size: 80%; color: #666; text-transform: uppercase; }
-    #comparison .sw-pc-ph td { width: 300px; min-width: 210px; padding: 3px 3px 8px; text-align: left; }
-    #comparison .sw-pc-pr td { width: 300px; min-width: 210px; padding: 0px 3px 10px; text-align: left; vertical-align: top; }
-    #comparison .sw-p-l-name { min-height: 32px; }
-    #comparison .differ { background-color: #fffbe6; }
-    #comparison .sw-pc-f th img { vertical-align: text-bottom; }
-</style>
-{% endblock %}
+{% load reviews %}
 {% block title %}Сравнение товаров{% endblock %}
-{% block compare_notice %}
+{% block breadcrumbs %}
+    {{ block.super }}
+    {% breadcrumb 'Сравнение товаров' '' %}
 {% endblock %}
+{% block content_title %}Сравнение товаров{% endblock %}
 {% block content %}
-<div class="container">
-<h1>Сравнение товаров</h1>
-<h2>
-{% if kinds|length > 1 %}
-    {% for k in kinds %}
-    <a class="btn btn-sm {% if kind == k %}btn-warning{% else %}btn-default{% endif %}" href="{% url 'compare_kind' k.pk %}">{{ k.name }}</a>
-    {% endfor %}
-{% else %}
-{{ kind.name }}
-{% endif %}
-</h2>
-<div id="comparison_selector">
-<a class="btn btn-default btn-xs" id="diff_link">различающиеся характеристики</a> <a class="btn btn-default btn-xs" id="full_link">все характеристики</a>
-</div>
-{% if products|length == 1 %}
-<h3>Добавьте ещё как минимум один товар в сравнение</h3>
-{% endif %}
-</div>
-<table id="comparison">
-    <tr class="sw-pc-ph">
-    {% for product in products %}
-    <td>
-        <div style="position: relative" class="mfp-close-btn-in"><div style="position: absolute; top: 10px; right: 10px; width: 16px">
-                <button type="button" class="uncompareProduct close" data-id="{{ product.id }}" data-href="{% url 'uncompare_product' product.code %}"
-                        title="Удалить из сравнения" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        </div></div>
-<div class="sw-p-l-image text-center">
-        <a href="{% url 'product' product.code %}">
-        {% if product.image_prefix|add:'.s.jpg'|file_exists %}
-        <img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" /><br/>
-        {% endif %}
-        </a>
-</div>
-<div class="sw-p-l-name">
-<div class="sw-p-l-action">
-{% if product.isnew %}
-<span class="label sw-new">Новинка</span>
-{% endif %}
-{% if product.recomended %}
-<span class="label sw-recomended">Рекомендуем</span>
-{% endif %}
-{% for action in product.get_sales_actions %}
-{% if action.notice %}
-<span class="label sw-action">{{ action.notice }}</span>
-{% endif %}
-{% endfor %}
-</div>
-<h3 class="sw-p-l-name-h"><a href="{% url 'product' product.code %}">{{ product.title }}</a></h3>
-</div>
-    </td>
-    {% endfor %}
-    </tr>
-    <tr class="sw-pc-ph">
-    {% for product in products %}
-    <td>
-{% if product.price > 0 %}
-<div class="sw-p-l-prices">
-{% if product.discount > 0 %}
-<div><s class="sw-p-l-oldprice">{{ product.price|quantize:"1" }}</s>&nbsp;руб.</div>
-{% endif %}
-<div><span class="sw-p-l-price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.</div>
-</div>
-<div class="sw-p-l-buy">
-{% if product.instock > 0 %}
-<a href="{% url 'shop:add' product.id %}"
-class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}" onclick="var VK_add_to_cart_Params = {'products': [{'id': '{{ product.id }}'}]};
-    VK.Retargeting.ProductEvent(3195, 'add_to_cart', VK_add_to_cart_Params); dataLayer.push({'event': 'addToCart','ecommerce': {'currencyCode': 'RUB','add': {'products': [{'name':'{{ product.partnumber}} {{ product.title }}','id':'{{ product.id }}','category':'{{ category.name }}','brand':'{{ product.manufacturer.code }}','price':'{{ product.cost|quantize:"1" }}','quantity': 1}]}}});">Купить</a>
-{% endif %}
-</div>
-{% endif %}
-    </td>
-    {% endfor %}
-    </tr>
-{% for field in kind.comparison %}
-    <tr class="sw-pc-f">
-    {% with field_name=field_map|get_dict_item:field|parse_field_name %}
-    <th colspan="{{ products|length }}">{{ field_name.0 }}{% include '_field_help.html' %}</th>
-    </tr><tr class="sw-pc-pr">
-    {% for product in products %}
-        {% with field_value=product|get_field:field %}
-        <td>{% if field_value %}{{ field_value|prettify|safe }}{{ field_name.1 }}{% endif %}</td>
-        {% endwith %}
-    {% endfor %}
-    {% endwith %}
-    </tr>
-{% endfor %}
-</table>
-{% endblock content %}
+    <div class="container py-5 mb-2">
+      {% if kinds|length > 1 %}
+      <div class="btn-group btn-group-lg mb-5" role="group" id="kind-selector">
+        {% for k in kinds %}
+        <a class="btn btn-{% if kind == k %}dark{% else %}secondary{% endif %}" href="{% url 'compare_kind' k.pk %}">{{ k.name }}</a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <h2 class="h3 pb-3">{{ kind.name }}</h2>
+      {% endif %}
+
+      <div class="alert alert-secondary mb-5{% if products|length > 1 %} d-none{% endif %}" role="alert" id="one-product-alert">Добавьте ещё как минимум один товар в сравнение</div>
+      <div class="alert alert-danger d-none" role="alert" id="no-products-alert">Отсутствуют товары для сравнения</div>
+
+      <div class="table-responsive">
+        <table class="table table-bordered table-fixed font-size-sm" style="min-width: 45rem;" id="comparison">
+          <thead>
+            <tr>
+              <td class="align-middle">
+                <div class="custom-control custom-switch">
+                  <input class="custom-control-input" type="checkbox" id="differences" checked>
+                  <label class="custom-control-label" for="differences">Только различия</label>
+                </div>
+              </td>
+              {% for product in products %}
+              <td class="text-center px-4 pb-4"><button class="btn btn-sm btn-block text-danger mb-2 uncompare-product" data-id="{{ product.id }}" data-href="{% url 'uncompare_product' product.code %}"><i class="czi-trash mr-1"></i>Удалить</button><a class="d-inline-block mb-3" href="{% url 'product' product.code %}">{% if product.image_prefix|add:'.jpg'|file_exists %}{% thumbnail product.image_prefix|add:'.jpg' '80x80' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}"/>{% endthumbnail %}{% else %}<i class="d-inline-block czi-camera text-muted" style="width: 80px; height: 80px; font-size: 40px; padding: 20px"></i>{% endif %}</a>
+                <h3 class="product-title font-size-sm"><a href="{% url 'product' product.code %}">{{ product.title }}</a></h3>
+                {% if product.instock > 0 %}
+                <a class="btn btn-primary btn-sm add-to-cart" href="{% url 'shop:add' product.id %}" data-id="{{ product.id }}">{% if product.variations %}Выбрать{% else %}Купить{% endif %}</a>
+                {% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for field in kind.comparison %}
+            {% with field_name=field_map|get_dict_item:field|parse_field_name %}
+            <tr>
+              <th class="text-dark">{{ field_name.0 }}{% include '_field_help.html' %}</th>
+              {% for product in products %}
+              {% with field_value=product|get_field:field %}
+              <td>{% if field_value %}{{ field_value|prettify|safe }}{{ field_name.1 }}{% endif %}</td>
+              {% endwith %}
+              {% endfor %}
+            </tr>
+            {% endwith %}
+            {% endfor %}
+            <tr>
+              <th class="text-dark">Цена</th>
+              {% for product in products %}
+              <td>
+              {% if product.price > 0 %}
+              <span class="text-accent">{{ product.cost|quantize:"1" }}<small>&nbsp;руб</small></span>
+              {% if product.discount > 0 %}
+              <del class="font-size-xs text-muted">{{ product.price|quantize:"1" }}<small>&nbsp;руб</small></del>
+              {% endif %}
+              {% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+            <tr>
+              <th class="text-dark">Рейтинг</th>
+              {% for product in products %}
+              <td>
+              {% if product.allow_reviews %}
+              {% get_rating for product as product_rating %}
+              {% if product_rating %}
+              {{ product_rating|prettify }}/5
+              {% endif %}
+              {% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+            <tr class="no-compare">
+              <th></th>
+              {% for product in products %}
+              <td>
+                {% if product.instock > 0 %}
+                <a class="btn btn-primary btn-block add-to-cart" href="{% url 'shop:add' product.id %}" data-id="{{ product.id }}">{% if product.variations %}Выбрать{% else %}Купить{% endif %}</a>
+                {% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+{% endblock %}
+
 {% block javascript %}
-<script>
-  $(function() {
-    var is_full = false;
+<script type="text/javascript">
+(function() {
+    'use strict';
 
-    function prepareComparison(full) {
-      is_full = full;
-      var table = document.getElementById("comparison");
-      for (var i = 2, row, header; header = table.rows[i], row = table.rows[i+1]; i+=2) {
-        var differ = false, value = row.cells[0].textContent;
-        for (var j = 1, col; col = row.cells[j]; j++) {
-          var val = col.textContent;
-          if (val != value) {
-            differ = true;
-            break;
-          }
-        }
-        if (differ) {
-          if (full) {
-            header.classList.add("differ");
-            row.classList.add("differ");
-          } else {
-            header.classList.remove("differ");
-            row.classList.remove("differ");
-          }
-        } else {
-          if (!full || value == "") {
-            header.style.display = 'none';
-            row.style.display = 'none';
-          } else {
-            header.style.display = '';
-            row.style.display = '';
-          }
-        }
-      }
-      var fullLink = document.getElementById("full_link");
-      var diffLink = document.getElementById("diff_link");
-      if (full) {
-        fullLink.classList.remove("btn-default")
-        fullLink.classList.add("btn-info");
-        diffLink.classList.remove("btn-info")
-        diffLink.classList.add("btn-default");
-      } else {
-        fullLink.classList.remove("btn-info")
-        fullLink.classList.add("btn-default");
-        diffLink.classList.remove("btn-default")
-        diffLink.classList.add("btn-info");
-      }
-    }
+    var diffSwitch = document.getElementById("differences");
 
-    prepareComparison(is_full);
-
-    $("#diff_link").on("click", function() {
-      prepareComparison(false);
-    });
-
-    $("#full_link").on("click", function() {
-      prepareComparison(true);
-    });
-
-  function updateLocation(id) {
-    var href = window.location.href;
-    var reg = new RegExp("\/([0-9,]+)\/$");
-    var string = reg.exec(href);
-    if (string) {
-      var ureg = new RegExp(id + ',?');
-      var ids = string[1].replace(ureg, "");
-      ids = ids.replace(/,$/, "");
-      ids = ids ? "/" + ids + "/" : "/";
-      href = href.replace(reg, ids);
-      window.history.pushState(id, document.title, href);
-    }
-  }
-
-  function uncompareProduct() {
-      var $btn = $(this);
-      $.ajax({
-        type: "GET",
-        url: $btn.data("href"),
-        success: function(theResponse) {
-          var $td = $btn.closest("td");
-          var col = $td.index();
-          var $table = $td.closest("table");
-          var cols = -1;
-          $table.find('tr:first').children().each(function(){
-            cols++;
-          });
-          var $rows = $table.find("tr");
-          var len = $rows.length;
-          $rows.each(function(index) {
-            var $tr = $(this);
-            $tr.find("th").attr('colspan', cols);
-            $tr.find("td").eq(col).fadeOut("fast", function() {
-              $(this).remove();
-              if (index === (len - 1)) {
-                if (cols > 0) {
-                  prepareComparison(is_full);
+    function prepareComparison() {
+        var full = !diffSwitch.checked;
+        var cnt = 0;
+        var table = document.getElementById("comparison");
+        for (var i = 1, row; row = table.rows[i]; i++) {
+            if (row.classList.contains("no-compare"))
+                continue;
+            var differ = false, value = row.cells[1].textContent;
+            for (var j = 2, col; col = row.cells[j]; j++) {
+                var val = col.textContent;
+                if (val != value) {
+                    differ = true;
+                    cnt++;
+                    break;
                 }
-                updateLocation($btn.data("id"));
-              }
-            });
-          });
-          if (cols == 0) {
-            $table.fadeOut("fast", function() { $table.remove(); });
-            $("#comparison_selector").fadeOut("fast", function() { $(this).remove(); });
-          }
-        },
-        error: function(theResponse) {
+            }
+            if (differ) {
+                if (full)
+                    row.classList.add("table-warning");
+                else
+                    row.classList.remove("table-warning");
+            } else {
+                if (!full || value == "")
+                    row.classList.add("d-none");
+                else
+                    row.classList.remove("d-none");
+            }
         }
-      });
-      return false;
+        if (full)
+            table.rows[table.rows.length-1].classList.remove("d-none");
+        else if (cnt < 5)
+            table.rows[table.rows.length-1].classList.add("d-none");
     }
 
-    $('.uncompareProduct').click(uncompareProduct);
-  });
+    prepareComparison();
+
+    diffSwitch.addEventListener("change", function() {
+        prepareComparison();
+    });
+
+    function updateLocation(id) {
+        var href = window.location.href;
+        var reg = new RegExp("\/([0-9,]+)\/$");
+        var string = reg.exec(href);
+        if (string) {
+            var ureg = new RegExp(id + ',?');
+            var ids = string[1].replace(ureg, "");
+            ids = ids.replace(/,$/, "");
+            ids = ids ? "/" + ids + "/" : "/";
+            href = href.replace(reg, ids);
+            window.history.pushState(id, document.title, href);
+        }
+    }
+
+    function uncompareProduct() {
+        var btn = this;
+
+        var xhr = new XMLHttpRequest();
+        xhr.onload = function () {
+            var td = btn.parentElement;
+            var tr = td.parentElement;
+            var cols = tr.cells.length - 2;
+
+            // find column index
+            var idx;
+            for (var j = 1, col; col = tr.cells[j]; j++) {
+                if (col === td) {
+                    idx = j;
+                    break;
+                }
+            }
+
+            // find parent table
+            var table = td;
+            while ((table = table.parentElement) && table.nodeName.toUpperCase() !== 'TABLE');
+
+            for (var i = 0, row; row = table.rows[i]; i++)
+                row.deleteCell(idx);
+
+            updateLocation(btn.getAttribute("data-id"));
+
+            if (cols > 0)
+                prepareComparison();
+
+            if (cols == 1)
+                document.getElementById("one-product-alert").classList.remove("d-none");
+
+            if (cols == 0) {
+                var kindSelector = document.getElementById("kind-selector");
+                if (kindSelector) {
+                    var c = kindSelector.children;
+                    for (var i = 0; i < c.length; i++) {
+                        if (c[i].classList.contains("btn-secondary")) {
+                            window.location.href = c[i].href;
+                            break;
+                        }
+                    }
+                } else {
+                    table.parentElement.remove(table);
+                    document.getElementById("one-product-alert").classList.add("d-none");
+                    document.getElementById("no-products-alert").classList.remove("d-none");
+                }
+            }
+        };
+        xhr.open("GET", btn.getAttribute("data-href"));
+        xhr.send(null);
+    }
+
+    var removers = document.getElementsByClassName("uncompare-product");
+    for (var i = 0; i < removers.length; i++)
+        removers[i].addEventListener("click", uncompareProduct);
+})();
 </script>
-{% endblock javascript %}
+{% endblock %}
