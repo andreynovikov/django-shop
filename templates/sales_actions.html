@@ -1,18 +1,21 @@
-{% extends "base.html" %}
+{% extends "page.html" %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}Все акции{% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
-    {% breadcrumb "К первой странице" "/" %}
+    {% breadcrumb 'Акции' '' %}
 {% endblock %}
+{% block content_title %}Акции сети магазинов "Швейный Мир"{% endblock %}
 {% block content %}
-<div class="container">
-<div class="product-page">
-<h1>Акции сети магазинов "Швейный Мир"</h1>
+<div class="container pb-5 mb-2 mb-md-4">
 {% for action in actions %}
-<h2>{{ action.name }}</h2>
-<p><a href="{% url 'sales_action' action.slug %}"><img style="display:block;" class="img-responsive" src="{{ action.image.url }}" width="{{ action.image.width }}" height="{{ action.image.height }}"/></a></p>
-{% endfor %}
+<h2 class="h4 pt-5 mb-3">{{ action.name }}</h2>
+<div class="position-relative{% if not forloop.last %} border-bottom pb-4{% endif %}">
+  <div class="pb-3">
+    <img class="rounded-lg img-responsive" src="{{ action.image.url }}" width="{{ action.image.width }}" height="{{ action.image.height }}"/>
+  </div>
+  <a class="btn btn-primary btn-shadow stretched-link" href="{% url 'sales_action' action.slug %}">Подробнее</a>
 </div>
+{% endfor %}
 </div>
 {% endblock %}
