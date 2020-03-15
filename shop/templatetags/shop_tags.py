@@ -1,4 +1,3 @@
-from django.conf import settings
 from django import template
 
 from shop.models import Order
@@ -20,3 +19,10 @@ def get_unpaid_order(context):
                     (order.payment in [Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_CREDIT]):
                 return order
     return None
+
+
+@register.simple_tag(takes_context=True)
+def get_order_count(context):
+    if hasattr(context, 'request') and context.request.user.is_authenticated:
+        return Order.objects.filter(user=context.request.user.id).count()
+    return 0
