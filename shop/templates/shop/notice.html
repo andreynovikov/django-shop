@@ -1,7 +1,30 @@
 {% load staticfiles %}
-{% load rupluralize %}
+{% load thumbnail %}
+{% load shop_filters %}
 {% if basket %}
-<span id="cartinfo"><a href="{% url 'shop:basket' %}"><img src="{% static 'i/cart.svg' %}" alt="Корзина" height="24">В корзине <span class="sw-top-navbar-numbers" style="font-weight:bold;color:#204070;font-size:12pt;">{{ basket.quantity }}</span> {{basket.quantity|rupluralize:"товар,товара,товаров"}} на <span class="sw-top-navbar-numbers" style="font-weight:bold;color:#204070;font-size:12pt;">{{ basket.total|floatformat }}</span>&nbsp;руб</a></span> <a class="btn btn-success btn-xs" style="visibility: visible;" href="{% url 'shop:basket' %}" role="button" id="topbasketbutton">Оформить заказ</a>
+              <div class="navbar-tool ml-3 dropdown"><a class="navbar-tool-icon-box bg-secondary dropdown-toggle" href="{% url 'shop:basket' %}"><span class="navbar-tool-label">{{ basket.quantity }}</span><i class="navbar-tool-icon czi-cart"></i></a><a class="navbar-tool-text" href="{% url 'shop:basket' %}"><small>Корзина</small>{{ basket.total|floatformat }}<small class="d-inline">&nbsp;руб</small></a>
+                <!-- Cart dropdown-->
+                <div class="dropdown-menu dropdown-menu-right" style="width: 25rem;">
+                  <div class="widget widget-cart px-3 pt-2 pb-3">
+                    <div style="height: 15rem;" data-simplebar data-simplebar-auto-hide="false">
+                      {% for item in basket.items.all %}
+                      <div class="widget-cart-item p{% if forloop.first %}b{% else %}y{% endif %}-2 border-bottom">
+                        <a class="close text-danger remove-from-cart" href="{% url 'shop:delete' item.product.id %}" data-name="{{ item.product.partnumber}} {{ item.product.title }}" data-id="{{ item.product.id }}" data-brand="{{ item.product.manufacturer.code }}" data-price="{{ item.price }}" aria-label="Remove"><span aria-hidden="true">&times;</span></a>
+                        <div class="media align-items-center"><a class="d-block ml-2 mr-4" href="{% url 'product' item.product.code %}">{% thumbnail item.product.image_prefix|add:'.jpg' '64x64' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="Товар"/>{% endthumbnail %}</a>
+                          <div class="media-body">
+                            <h6 class="widget-product-title"><a href="{% url 'product' item.product.code %}">{{ item.product.title }}</a></h6>
+                            <div class="widget-product-meta"><span class="text-accent mr-2">{{ item.cost }}<small>&nbsp;руб</small></span><span class="text-muted">x {{ item.quantity }}</span>{% if item.product.instock < 1 %}<span class="font-size-lg ml-1"><sup><span class="badge badge-pill badge-warning">нет в наличии</span></sup></span>{% endif %}</div>
+                          </div>
+                        </div>
+                      </div>
+                      {% endfor %}
+                    </div>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center py-3">
+                      <div class="font-size-sm mr-2 py-2"><span class="text-muted">Всего:</span><span class="text-accent font-size-base ml-1">{{ basket.total|floatformat }}<small>&nbsp;руб</small></span></div><a class="btn btn-outline-secondary btn-sm" href="{% url 'shop:basket' %}">Открыть корзину<i class="czi-arrow-right ml-1 mr-n1"></i></a>
+                    </div><a class="btn btn-primary btn-sm btn-block" href="checkout-details.html"><i class="czi-card mr-2 font-size-base align-middle"></i>Оформить заказ</a>
+                  </div>
+                </div>
+              </div>
 {% else %}
-<span id="cartinfo"><img src="{% static 'i/cart.svg' %}" alt="Корзина" height="24">Корзина пуста</span>
+              <div class="navbar-tool ml-3"><span class="navbar-tool-icon-box bg-secondary" href="{% url 'shop:basket' %}"><i class="navbar-tool-icon czi-cart"></i></span><span class="navbar-tool-text" href="{% url 'shop:basket' %}"><small>Корзина</small>пуста</span></div>
 {% endif %}
