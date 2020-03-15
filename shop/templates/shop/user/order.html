@@ -1,0 +1,180 @@
+{% extends "shop/user/page.html" %}
+{% load decimals %}
+{% load django_bootstrap_breadcrumbs %}
+{% load thumbnail %}
+{% load shop_filters %}
+{% block title %}Заказ №{{ order.id }}{% endblock %}
+{% block content_title %}Заказ №{{ order.id }}{% endblock %}
+{% block breadcrumbs %}
+    {{ block.super }}
+    {% breadcrumb 'Заказы' 'shop:user_orders' %}
+    {% breadcrumb order.id '' %}
+{% endblock %}
+{% block toolbar %}
+          <div class="d-none d-lg-flex justify-content-between align-items-center pt-lg-3 pb-4 pb-lg-5 mb-lg-4">
+            <div class="d-flex w-100 text-light text-center mr-3">
+              <div class="font-size-ms px-3">
+                <div class="font-weight-medium">Дата оформления</div>
+                <div class="font-size-lg opacity-60">{{ order.created|date:"j E Y г" }}</div>
+              </div>
+              <div class="font-size-ms px-3">
+                <div class="font-weight-medium">Статус</div>
+                <div class="font-size-lg"><span class="badge badge-{{ order.status|order_color }} m-0">{{ order.get_status_display|capfirst }}{% if order.payment != order.PAYMENT_CASH and order.paid %},&nbsp;оплачен{% endif %}</span></div>
+              </div>
+              <div class="font-size-ms px-3">
+                <div class="font-weight-medium">Всего к оплате</div>
+                <div class="font-size-lg opacity-60">{{ order.total|quantize:'1' }}<small>&nbsp;руб</small></div>
+              </div>
+            </div>
+            {{ block.super }}
+          </div>
+          <!-- Order details (visible on mobile)-->
+          <div class="d-flex d-lg-none flex-wrap bg-secondary text-center rounded-lg pt-4 px-4 pb-1 mb-4">
+            <div class="font-size-sm px-3 pb-3">
+              <div class="font-weight-medium">Дата оформления</div>
+              <div class="font-size-lg text-muted">{{ order.created|date:"j E Y г" }}</div>
+            </div>
+            <div class="font-size-sm px-3 pb-3">
+              <div class="font-weight-medium">Статус</div>
+              <div class="font-size-lg text-muted"><span class="badge badge-{{ order.status|order_color }} m-0">{{ order.get_status_display|capfirst }}{% if order.payment != order.PAYMENT_CASH and order.paid %},&nbsp;оплачен{% endif %}</span></div>
+            </div>
+            <div class="font-size-sm px-3 pb-3">
+              <div class="font-weight-medium">Всего к оплате</div>
+              <div class="font-size-lg text-muted">{{ order.total|quantize:'1' }}<small>&nbsp;руб</small></div>
+            </div>
+          </div>
+{% endblock %}
+{% block user_content %}
+          <div class="bg-secondary rounded-lg px-4 pt-4 pb-2 mb-4">
+            <div class="row">
+              <div class="col-sm-6">
+                <h4 class="h6">Информация о доставке:</h4>
+                <ul class="list-unstyled font-size-sm">
+                {% if order.delivery_price %}
+                  <li><span class="text-muted">Стоимость доставки:</span>&nbsp;{{ order.delivery_price|quantize:'1' }}<small>&nbsp;руб</small></li>
+                {% endif %}
+                {% if order.delivery == order.DELIVERY_UNKNOWN%}
+                  <li>Способ доставки уточняется</li>
+                {% elif order.delivery == order.DELIVERY_SELF %}
+                  <li><span class="text-muted">Магазин самовывоза:</span>&nbsp;{% if order.store %}<a href="{% url 'store' order.store.pk %}">{{ order.store }}</a>{% if order.store.hours %} (часы работы: {{ order.store.hours }}){% endif %}{% else %}уточняется{% endif %}</li>
+                {% elif order.delivery == order.DELIVERY_YANDEX %}
+                  <li><span class="text-muted">Доставка службой доставки по адресу:</span>&nbsp;{{ order.address }}</li>
+                  {% if order.status == order.STATUS_DELIVERED_STORE %}
+                  <li>Заказ передан в службу доставки</li>
+                  <li style="width: 0px">
+                    <meta name="ydWidgetData" id="f526c05f4e50090a3bffbb04d40e07b3" content="" data-sender_id="15938" data-weight="0" data-cost="0"
+                          data-height="0" data-length="0" data-width="0" data-city_from="Москва" data-geo_id_from="213" data-css_name="tracking_tpl"
+                          data-tpl_name="tracking_tpl" data-container_tag_id="f96bae27a7dbbcfc794595702bd9024d" data-resource_id="21272"
+                          data-resource_key="1780931b94c77b42c08b895fb88747d2" data-tracking_method_key="43df8cf1b0d40baaef3a3363458314f1"
+                          data-autocomplete_method_key="fd34c231b276f9bea3db9b60ac09506e"></meta><!--[if lt IE 9]><script>document.createElement("msw");</script><![endif]-->
+                    <script src="https://delivery.yandex.ru/widget/widgetJsLoader?dataTagID=f526c05f4e50090a3bffbb04d40e07b3" charset="utf-8"></script>
+                    <msw id="f96bae27a7dbbcfc794595702bd9024d" class="yd-widget-container"></msw></li>
+                  {% endif %}
+                {% elif order.delivery == order.DELIVERY_COURIER or order.delivery == order.DELIVERY_CONSULTANT %}
+                  <li><span class="text-muted">Доставка курьером по адресу:</span>&nbsp;{{ order.address }}</li>
+                {% elif order.delivery == order.DELIVERY_TRANSPORT or order.delivery == order.DELIVERY_PICKPOINT %}
+                  <li><span class="text-muted">Доставка транспортной компанией по адресу:</span>&nbsp;{{ order.address }}</li>
+                  {% if order.delivery_tracking_number %}
+                  <li><span class="text-muted">Трек-код:</span>&nbsp;{{ order.delivery_tracking_number }}</li>
+                  {% endif %}
+                {% endif %}
+                {% if order.delivery_info %}
+                  <li>{{ order.delivery_info|linebreaks }}</li>
+                {% endif %}
+                {% if order.delivery_dispatch_date %}
+                  <li><span class="text-muted">Дата отправки:</span>&nbsp;{{ order.delivery_dispatch_date }}</li>
+                {% endif %}
+                {% if order.delivery_handing_date %}
+                  {% if order.delivery == order.DELIVERY_COURIER or order.delivery == order.DELIVERY_CONSULTANT %}
+                  <li><span class="text-muted">Дата доставки:</span>&nbsp;{{ order.delivery_handing_date }}
+                      {% if order.delivery_time_from %} с {{ order.delivery_time_from }}{% endif %}
+                      {% if order.delivery_time_till %} до {{ order.delivery_time_till }}{% endif %}
+                  </li>
+                  {% elif order.delivery == order.DELIVERY_SELF %}
+                  <li><span class="text-muted">Дата получения:</span>&nbsp;{{ order.delivery_handing_date }}
+                      {% if order.delivery_time_from %} после {{ order.delivery_time_from }}{% endif %}
+                  </li>
+                  {% else %}
+                  <li><span class="text-muted">Расчётная дата получения:</span>&nbsp;{{ order.delivery_handing_date }}</li>
+                  {% endif %}
+                {% endif %}
+                </ul>
+              </div>
+              <div class="col-sm-6">
+                <h4 class="h6">Оплата заказа:</h4>
+                <ul class="list-unstyled font-size-sm">
+                  <li><span class="text-muted">Способ оплаты:</span>&nbsp;{{ order.get_payment_display }}</li>
+                  {% if order.paid %}
+                  <li><span class="text-muted">Статус:</span>&nbsp;оплачен</li>
+                  {% else %}{# not paid #}
+                  {% if order.status == order.STATUS_COLLECTED %}
+                  {% if order.payment == order.PAYMENT_CARD or order.payment == order.PAYMENT_CREDIT %}
+                  <li><a class="btn btn-primary" href="{% url 'yandex_kassa:payment' order.id %}">{% if order.payment == order.PAYMENT_CREDIT %}<i class="czi-money-bag font-size-lg mr-2"></i>Оформить кредит{% else %}<i class="czi-card font-size-lg mr-2"></i>Оплатить заказ{% endif %}</a></li>
+                  {% elif order.payment == order.PAYMENT_TRANSFER %}
+                  <li><a href="{% url 'shop:order_document' order.id 'bill' %}" target="_blank"><i class="czi-clip mr-1"></i>Скачать счёт для оплаты в любом банке</a></li>
+                  {% endif %}
+                  {% else %}{# not collected #}
+                  {% if order.payment == order.PAYMENT_CARD or order.payment == order.PAYMENT_CREDIT or order.payment == order.PAYMENT_TRANSFER %}
+                  <li><div class="alert alert-accent alert-with-icon mt-3" role="alert">
+                    <div class="alert-icon-box"><i class="alert-icon czi-announcement"></i></div>
+                    <div class="mb-2">Возможность оплатить заказ онлайн или распечатать счет появится тут после согласования и завершения комплектования заказа.</div>
+                    <div>Вы получите сообщение об этом. Пожалуйста, посетите эту страницу позже.</div>
+                  </div></li>
+                  {% endif %}
+                  {% endif %}{# collected #}
+                  {% endif %}{# paid #}
+                </ul>
+              </div>
+              {% if order.is_firm %}
+              <div class="col-sm-6">
+                <h4 class="h6">Получатель:</h4>
+                <ul class="list-unstyled font-size-sm">
+                  <li><span class="text-muted">Название организации:</span>&nbsp;{{ order.firm_name }}</li>
+                  <li><span class="text-muted">Юридический адрес:</span>&nbsp;{{ order.firm_address }}</li>
+                  <li><span class="text-muted">Сведения об организации:</span>&nbsp;{{ order.firm_details }}</li>
+                  <li><span class="text-muted">Контактное лицо:</span>&nbsp;{{ order.name }}</li>
+                  <li><span class="text-muted">Телефон:</span>&nbsp;{{ order.phone|format_phone }}</li>
+                </ul>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% for item in order.items.all %}
+          <!-- Item-->
+          <div class="d-sm-flex justify-content-between my-4 p{% if forloop.first %}b{% else %}y{% endif %}-3{% if not forloop.last %} border-bottom{% endif %}">
+            <div class="media media-ie-fix d-block d-sm-flex text-center text-sm-left"><a class="d-inline-block mx-auto mr-sm-4" href="{% url 'product' item.product.code %}" style="width: 10rem;">{% if item.product.image_prefix|add:'.jpg'|file_exists %}{% thumbnail item.product.image_prefix|add:'.jpg' '160x160' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}"/>{% endthumbnail %}{% else %}<i class="d-inline-block czi-camera text-muted" style="width: 160px; height: 160px; font-size: 80px; padding: 40px"></i>{% endif %}</a>
+              <div class="media-body pt-2">
+                <h3 class="product-title font-size-base mb-2"><a href="{% url 'product' item.product.code %}">{{ item.product.title }}</a></h3>
+                {% if item.product.partnumber %}
+                <div class="font-size-sm"><span class="text-muted mr-2">Артикул:</span>{{ item.product.partnumber }}</div>
+                {% endif %}
+                {% if item.product.article %}
+                <div class="font-size-sm"><span class="text-muted mr-2">Код товара:</span>{{ item.product.article }}</div>
+                {% endif %}
+                <div class="font-size-sm"><span class="text-muted mr-2">Цена:</span>{{ item.product_price|quantize:'1' }}<small>&nbsp;руб</small></div>
+                {% if item.discount > 0 %}
+                <div class="font-size-sm"><span class="text-muted mr-2">Скидка:</span>{{ item.discount_text }}</div>
+                {% endif %}
+                <div class="font-size-lg text-accent pt-2">{{ item.price|quantize:'1' }}<small>&nbsp;руб</small></div>
+              </div>
+            </div>
+            <div class="pt-2 pt-sm-0 pl-sm-3 mx-auto mx-sm-0 text-center text-sm-right" style="max-width: 9rem;">
+              <p class="mb-0"><span class="text-muted font-size-sm">Количество:</span><span>&nbsp;{{ item.quantity }}</span></p>
+            </div>
+          </div>
+          {% endfor %}
+          <div class="alert alert-info alert-with-icon" role="alert">
+            <div class="alert-icon-box"><i class="alert-icon czi-bell"></i></div>
+            Если Вы хотите внести изменения в заказ, позвоните по телефону <a class="alert-link" href="tel:{{ shop_info.inet_phone_E164 }}">{{ shop_info.inet_phone }}</a>
+          </div>
+{% endblock %}
+{% block javascript %}
+{{ block.super }}
+{% if order.delivery == order.DELIVERY_YANDEX and order.status == order.STATUS_DELIVERED_STORE %}
+<script>
+$('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
+  $("#f96bae27a7dbbcfc794595702bd9024d").find(".w-input").val("{{ order.delivery_yd_order }}");
+});
+</script>
+{% endif %}
+{% endblock %}
