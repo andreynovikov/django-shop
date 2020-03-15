@@ -32,22 +32,20 @@ urlpatterns = [
     url(r'^basket/clear/(?P<basket_sign>\d+\:[\w_\-]+)/$', views.clear_basket, name='clear'),
     # ex: /shop/basket/unbind/
     url(r'^basket/unbind/$', views.unbind, name='unbind'),
-    # ex: /shop/basket/authorize/
-    url(r'^basket/authorize/$', views.authorize, name='authorize'),
     # ex: /shop/order/confirm/
     url(r'^order/confirm/$', views.confirm_order, name='confirm'),
     # ex: /shop/order/confirm/8/
     url(r'^order/confirm/(?P<order_id>\d+)/$', views.confirm_order, name='confirm'),
     # ex: /shop/order/update/
     url(r'^order/update/(?P<order_id>\d+)/$', views.update_order, name='update_order'),
+    # ex: /shop/user/profile/
+    url(r'^user/profile/$', views.profile, name='profile'),
     # ex: /shop/user/register/
     url(r'^user/register/$', views.register_user, name='register'),
     # ex: /shop/user/login/
     url(r'^user/login/$', views.login_user, name='login'),
     # ex: /shop/user/logout/
     url(r'^user/logout/$', views.logout_user, name='logout'),
-    # ex: /shop/user/update/
-    url(r'^user/update/$', views.update_user, name='update_user'),
     # ex: /shop/user/resetpassword/
     url(r'^user/resetpassword/$', views.reset_password, name='reset_password'),
     # ex: /shop/user/orders/

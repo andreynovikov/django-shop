@@ -1,0 +1,108 @@
+{% load widget_tweaks %}
+{% load shop_filters %}
+  {% csrf_token %}
+  <div class="row">
+  {% for field in form %}
+    {% if field.is_hidden %}
+      {{ field }}
+    {% else %}
+      <div class="col-{% if embedded %}12{% else %}md-6{% endif %}">
+        <div class="form-group{% if field.errors %} error{% endif %}">
+          <label for="{{ field.id_for_label }}">{{ field.label }}:</label>
+          {% ifequal field.name "phone" %}
+          <div class="input-group">
+            <div class="input-group-prepend"><span class="input-group-text bg-secondary">+7</span></div>
+            {% render_field field class="form-control" type="tel" placeholder="(999) 111-22-33" autocomplete="phone" required="1" %}
+            <div class="invalid-feedback" id="{{ field.id_for_label }}-error">{{ field.errors|striptags }}</div>
+          </div>
+          {% else %}
+          {% render_field field class="form-control" %}
+          {% if field.errors %}
+          <div class="invalid-feedback" id="{{ field.id_for_label }}-error">{{ field.errors|striptags }}</div>
+          {% endif %}
+          {% endifequal %}
+          {% if field.errors %}
+          <script type="text/javascript">
+          (function() {
+              'use strict';
+              var input = document.getElementById("{{ field.id_for_label }}");
+              var inputError = document.getElementById("{{ field.id_for_label }}-error");
+              input.setCustomValidity("invalid");
+              input.addEventListener("input", function (event) {
+                  if (inputError) {
+                      input.setCustomValidity("");
+                      {% if field.id_for_label != "id_phone" %}
+                      inputError.parentNode.removeChild(inputError);
+                      inputError = null;
+                      {% endif %}
+                  }
+              });
+          })();
+          </script>
+          {% endif %}
+          {% if field.help_text %}
+          <small class="form-text text-muted">{{ field.help_text }}</small>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  {% endfor %}
+  </div>
+
+<script type="text/javascript">
+(function() {
+    'use strict';
+    var initializeUpdateForm = function() {
+        var phoneInput = document.getElementById("id_phone");
+        var phoneInputError = document.getElementById("id_phone-error");
+
+        // https://github.com/RobinHerbots/Inputmask
+        Inputmask({
+            mask: ["(999) 999-99-99", "* (999) 999-99-99"],
+            definitions: {
+                "*": { validator: "[78]" }
+            },
+            onBeforePaste: function(pastedValue, opts) {
+                return pastedValue.replace("+7", "");
+            },
+            onBeforeMask: function(value, opts) {
+                return value.replace("+7", "");
+            },
+            oncomplete: function() {
+                var value = this.inputmask.unmaskedvalue();
+                if (value.length > 10) {
+                    value = value.substr(1);
+                    this.inputmask.setValue(value);
+                }
+                phoneInput.setCustomValidity("");
+            },
+            keepStatic: true
+        }).mask(phoneInput);
+
+        phoneInput.addEventListener("input", function (event) {
+            if (phoneInput.inputmask.isComplete()) {
+                phoneInput.setCustomValidity("");
+            } else {
+                phoneInputError.textContent = "Введите корректный номер";
+                phoneInput.setCustomValidity(phoneInputError.textContent);
+            }
+        });
+    };
+
+    // Check if form is included via Ajax or put directly on page
+    if (typeof Inputmask === "function")
+        initializeUpdateForm()
+    else
+        window.addEventListener('load', initializeUpdateForm, false);
+
+    var form = document.getElementById("id_phone").form;
+    form.addEventListener("submit", function(event) {
+        if (form.checkValidity() === false) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+            form.classList.add("was-validated");
+        }
+    }, false);
+})();
+</script>

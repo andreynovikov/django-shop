@@ -10,6 +10,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpRe
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
+from django.core.paginator import Paginator
 from django_ipgeobase.models import IPGeoBase
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
@@ -19,6 +20,7 @@ from django.urls import reverse
 from django.core.exceptions import MultipleObjectsReturned
 from django.db import IntegrityError
 from django.utils.formats import localize
+from django.utils.html import escape
 
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 from shop.models import Product, Basket, BasketItem, Order, ShopUser, ShopUserManager
@@ -135,8 +137,14 @@ def add_to_basket(request, product_id):
     product = get_object_or_404(Product, pk=product_id)
     basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
     item, created = basket.items.get_or_create(product=product)
-    if not created:
-        item.quantity += 1
+    try:
+        quantity = int(request.GET.get('quantity', '1'))
+    except ValueError:
+        quantity = 1
+    if created:
+        item.quantity = quantity
+    else:
+        item.quantity += quantity
     item.save()
     utm_source = request.GET.get('utm_source', None)
     if utm_source:
@@ -180,21 +188,25 @@ def update_basket(request, product_id):
 
     if basket.items.count() == 0:
         basket.delete()
+        basket = None
     if request.POST.get('ajax'):
-        if WHOLESALE:
-            qnt = Decimal('0.01')
-        else:
-            qnt = Decimal('1')
-        data = {
-            'quantity': quantity,
-            'fragments': {
-                '#total': '<span id="total">' + localize(basket.total.quantize(qnt, rounding=ROUND_HALF_EVEN)) + '</span>'
+        if basket:
+            if WHOLESALE:
+                qnt = Decimal('0.01')
+            else:
+                qnt = Decimal('1')
+            data = {
+                'quantity': quantity,
+                'fragments': {
+                    'total': localize(basket.total.quantize(qnt, rounding=ROUND_HALF_EVEN))
+                }
             }
-        }
-        if quantity > 0:
-            data['fragments']['#price_' + str(item.product.id)] = \
-                '<span id="price_' + str(item.product.id) + '">' + \
-                localize(item.price.quantize(qnt, rounding=ROUND_HALF_EVEN)) + '</span>'
+            if quantity > 0:
+                data['fragments']['price_' + str(item.product.id)] = localize(item.price.quantize(qnt, rounding=ROUND_HALF_EVEN))
+        else:
+            data = {
+                'location': reverse('shop:basket')
+            }
         return JsonResponse(data)
     else:
         return HttpResponseRedirect(reverse('shop:basket'))
@@ -213,7 +225,9 @@ def delete_from_basket(request, product_id):
     if basket.items.count() == 0:
         basket.delete()
         basket = None
-    if request.GET.get('ajax'):
+    if request.GET.get('silent'):
+        return HttpResponse(status=204)
+    elif request.GET.get('ajax'):
         if basket:
             if WHOLESALE:
                 qnt = Decimal('0.01')
@@ -221,7 +235,7 @@ def delete_from_basket(request, product_id):
                 qnt = Decimal('1')
             data = {
                 'fragments': {
-                    '#total': '<span id="total">' + localize(basket.total.quantize(qnt, rounding=ROUND_HALF_EVEN)) + '</span>'
+                    'total': localize(basket.total.quantize(qnt, rounding=ROUND_HALF_EVEN))
                 }
             }
         else:
@@ -269,75 +283,8 @@ def clear_basket(request, basket_sign):
     return HttpResponseRedirect(reverse('shop:basket'))
 
 
-@require_POST
-def authorize(request):
-    ensure_session(request)
-    basket = get_object_or_404(Basket, session_id=request.session.session_key)
-    phone = request.POST.get('phone')
-    password = request.POST.get('password')
-    data = None
-
-    if password:
-        norm_phone = ShopUserManager.normalize_phone(basket.phone)
-        user = authenticate(username=norm_phone, password=password)
-        if user and user.is_active:
-            login(request, user)
-            basket.update_session(request.session.session_key)
-            data = {
-                'user': user,
-            }
-        else:
-            """ Bad password """
-            data = {
-                'shop_user': ShopUser.objects.get(phone=norm_phone),
-                'wrong_password': True
-            }
-
-    if phone:
-        norm_phone = ShopUserManager.normalize_phone(phone)
-        basket.phone = norm_phone
-        basket.save()
-        user, created = ShopUser.objects.get_or_create(phone=norm_phone)
-        if not user.permanent_password:
-            """ Generate new password for user """
-            password = randint(1000, 9999)
-            user.set_password(password)
-            user.save()
-        if created:
-            """ Login new user """
-            user = authenticate(username=norm_phone, password=password)
-            login(request, user)
-            basket.update_session(request.session.session_key)
-            request.session['password'] = password
-        else:
-            """ User exists, request password """
-            if not user.permanent_password:
-                try:
-                    send_password.delay(norm_phone, password)
-                except Exception as e:
-                    mail_admins('Task error', 'Failed to send password: %s' % e, fail_silently=True)
-            data = {
-                'shop_user': user,
-            }
-
-    if request.user.is_authenticated and not data:
-        if request.POST.get('ajax'):
-            return JsonResponse({'location': reverse('shop:confirm')})
-        else:
-            return HttpResponseRedirect(reverse('shop:confirm'))
-    else:
-        if request.POST.get('ajax'):
-            data = {
-                'html': render_to_string('shop/_send_order.html', data, request),
-            }
-            return JsonResponse(data)
-        elif data and 'wrong_password' in data:
-            return HttpResponseRedirect(reverse('shop:basket') + '?wrong_password=1')
-        else:
-            return HttpResponseRedirect(reverse('shop:basket'))
-
-
 def register_user(request):
+    is_ajax = request.GET.get('ajax') or request.POST.get('ajax')
     if request.method == 'POST':
         phone = request.POST.get('phone')
         norm_phone = ShopUserManager.normalize_phone(phone)
@@ -364,7 +311,8 @@ def register_user(request):
                     params = {
                         'phone': norm_phone,
                         'next': next_url,
-                        'reg': 1
+                        'ctx': 'reg',
+                        'ajax': is_ajax
                     }
                     return HttpResponseRedirect(reverse('shop:login') + '?' + urlencode(params))
                 except IntegrityError:
@@ -381,37 +329,46 @@ def register_user(request):
         context = {
             'next': request.GET.get('next')
         }
-    return render(request, 'shop/register.html', context)
+    if is_ajax:
+        context['embedded'] = True
+        return JsonResponse({
+            'authenticated': False,
+            'html': render_to_string('shop/user/_registration_form.html', context, request),
+        })
+    else:
+        return render(request, 'shop/user/register.html', context)
 
 
 def login_user(request):
     """
     Login user preserving his basket
     """
+    is_ajax = request.GET.get('ajax') or request.POST.get('ajax')
+
     norm_phone = None
     password = None
-    reg = None
 
     if request.method == 'POST':
         phone = request.POST.get('phone')
         password = request.POST.get('password')
         next_url = request.POST.get('next')
-        reg = request.POST.get('reg')
+        ctx = escape(request.POST.get('ctx', 'login'))
     else:
         phone = request.GET.get('phone')
         next_url = request.GET.get('next')
-        reg = request.GET.get('reg')
+        ctx = escape(request.GET.get('ctx', 'login'))
+
+    try:
+        basket = Basket.objects.get(session_id=request.session.session_key)
+    except MultipleObjectsReturned:
+        basket = None
+    except Basket.DoesNotExist:
+        basket = None
 
     if phone:
         norm_phone = ShopUserManager.normalize_phone(phone)
 
     if norm_phone and password:
-        try:
-            basket = Basket.objects.get(session_id=request.session.session_key)
-        except MultipleObjectsReturned:
-            basket = None
-        except Basket.DoesNotExist:
-            basket = None
         user = authenticate(username=norm_phone, password=password)
         if user and user.is_active:
             permanent_password = request.POST.get('permanent_password')
@@ -424,7 +381,11 @@ def login_user(request):
                 basket.update_session(request.session.session_key)
                 basket.phone = user.phone
                 basket.save()
-            if next_url:
+            if is_ajax:
+                return JsonResponse({
+                    'authenticated': True
+                })
+            elif next_url:
                 return HttpResponseRedirect(next_url)
             else:
                 return HttpResponseRedirect(settings.LOGIN_REDIRECT_URL)
@@ -436,7 +397,7 @@ def login_user(request):
             'phone': phone,
             'shop_user': user,
             'next': next_url,
-            'reg': reg,
+            'ctx': ctx,
             'wrong_password': True
         }
     elif norm_phone:
@@ -454,22 +415,47 @@ def login_user(request):
             context = {
                 'phone': phone,
                 'shop_user': user,
-                'reg': reg,
+                'ctx': ctx,
                 'next': next_url
             }
         except ShopUser.DoesNotExist:
-            context = {
-                'phone': phone,
-                'next': next_url,
-                'reg': reg,
-                'error': 'Пользователь с таким телефоном не зарегистрирован'
-            }
+            if ctx == 'order':  # если новый покупатель логинится в корзине, то он сразу создаётся и авторизуется
+                user = ShopUser.objects.create(phone=norm_phone)
+                """ Generate new password for user """
+                password = randint(1000, 9999)
+                user.set_password(password)
+                user.save()
+                """ Login new user """
+                user = authenticate(username=norm_phone, password=password)
+                login(request, user)
+                if basket:
+                    basket.update_session(request.session.session_key)
+                    basket.phone = user.phone
+                    basket.save()
+                if is_ajax:
+                    return JsonResponse({'location': reverse('shop:confirm')})
+                else:
+                    return HttpResponseRedirect(reverse('shop:confirm'))
+            else:
+                context = {
+                    'phone': phone,
+                    'next': next_url,
+                    'ctx': ctx,
+                    'error': 'Пользователь с таким телефоном не зарегистрирован'
+                }
     else:
         context = {
-            'reg': reg,
+            'ctx': ctx,
             'next': request.GET.get('next')
         }
-    return render(request, 'shop/login.html', context)
+    if is_ajax:
+        context['embedded'] = True
+        return JsonResponse({
+            'authenticated': False,
+            'html': render_to_string('shop/user/_login_form.html', context, request),
+        })
+    else:
+        return render(request, 'shop/user/login.html', context)
 
 
 @login_required
@@ -500,7 +486,7 @@ def unbind(request):
     basket.phone = ''
     basket.save()
     if request.GET.get('ajax'):
-        return JsonResponse(None, safe=False)
+        return JsonResponse({}, safe=False)
     else:
         return HttpResponseRedirect(reverse('shop:basket'))
 
@@ -534,7 +520,7 @@ def reset_password(request):
         """ we can not reset password if phone is not known yet """
         return HttpResponseForbidden()
     if request.GET.get('ajax'):
-        return JsonResponse(None, safe=False)
+        return JsonResponse({}, safe=False)
     else:
         return HttpResponseRedirect(reverse('shop:basket'))
 
@@ -575,7 +561,7 @@ def confirm_order(request, order_id=None):
             try:
                 notify_manager.apply_async((order.id,), countdown=300)
                 notify_user_order_new_mail.apply_async((order.id,), countdown=300)
-                notify_user_order_new_sms.apply_async((order.id, request.session.get('password', None),), countdown=300)
+                notify_user_order_new_sms.apply_async((order.id,), countdown=300)
             except Exception as e:
                 mail_admins('Task error', 'Failed to send notification: %s' % e, fail_silently=True)
             basket.delete()
@@ -618,13 +604,13 @@ def update_order(request, order_id):
     except KeyError:
         pass
     context = {
-       'order': order,
-       'updated': True
-    }
-    data = {
-        'html': render_to_string('shop/_update_order.html', context, request),
+        'order': order,
+        'updated': True
     }
     if request.POST.get('ajax'):
+        data = {
+            'html': render_to_string('shop/_update_order.html', context, request),
+        }
         return JsonResponse(data)
     else:
         return HttpResponseRedirect(reverse('shop:confirm', args=[order.id]))
@@ -632,13 +618,38 @@ def update_order(request, order_id):
 
 @login_required
 def orders(request):
-    orders = Order.objects.order_by('-id').filter(user=request.user.id)
-    form = UserForm(user=request.user)
-    context = {
-        'orders': orders,
-        'user_form': form
+    filters = {
+        'user': request.user.id
     }
-    return render(request, 'shop/user_orders.html', context)
+    excludes = {}
+    order_filter = request.GET.get('filter', None)
+    if order_filter == 'done':
+        filters['status__in'] = [Order.STATUS_DONE, Order.STATUS_FINISHED]
+    elif order_filter == 'canceled':
+        filters['status'] = Order.STATUS_CANCELED
+    elif order_filter == 'active':
+        excludes['status__in'] = [Order.STATUS_DONE, Order.STATUS_FINISHED, Order.STATUS_CANCELED]
+    orders = Order.objects.order_by('-id').filter(**filters).exclude(**excludes)
+
+    paginator = Paginator(orders, 12)
+    page = request.GET.get('page')
+    orders_page = paginator.get_page(page)
+    # количество переключателей страниц лимитировано дизайном
+    page_range = 7 if orders_page.has_previous() and orders_page.has_next() else 10
+    min_page = orders_page.number - page_range + min(4, paginator.num_pages - orders_page.number)
+    if min_page < 4:
+        min_page = 1
+    max_page = orders_page.number + page_range - min(4, orders_page.number - 1)
+    if max_page > paginator.num_pages - 3:
+        max_page = paginator.num_pages
+
+    context = {
+        'orders': orders_page,
+        'min_page': min_page,
+        'max_page': max_page,
+        'filter': order_filter
+    }
+    return render(request, 'shop/user/orders.html', context)
 
 
 @login_required
@@ -650,7 +661,7 @@ def order(request, order_id):
     context = {
         'order': order
     }
-    return render(request, 'shop/order.html', context)
+    return render(request, 'shop/user/order.html', context)
 
 
 @login_required
@@ -665,8 +676,9 @@ def order_document(request, order_id, template_name):
     }
     return render(request, 'shop/order/' + template_name + '.html', context)
 
+
 @login_required
-def update_user(request):
+def profile(request):
     user = request.user
     if request.method == 'POST':
         form = UserForm(request.POST, user=user)
@@ -676,19 +688,21 @@ def update_user(request):
             user.email = form.cleaned_data['email']
             user.address = form.cleaned_data['address']
             user.username = form.cleaned_data['username']
-            user.save()
+            try:
+                user.save()
+            except IntegrityError:
+                user.refresh_from_db()
+                form.add_error('phone', "Пользователь с таким номером уже существует")
     else:
         form = UserForm(user=user)
-
     context = {
-        'user_form': form,
+        'form': form,
         'invalid': not form.is_valid(),
-        'update': not request.GET.get('update') is None
     }
     if request.GET.get('ajax') or request.POST.get('ajax'):
-        data = {
-            'html': render_to_string('shop/_update_user.html', context, request),
-        }
-        return JsonResponse(data)
+        context['embedded'] = True
+        return JsonResponse({
+            'html': render_to_string('shop/user/_update_form.html', context, request),
+        })
     else:
-        return render(request, 'shop/_update_user.html', context)
+        return render(request, 'shop/user/profile.html', context)
