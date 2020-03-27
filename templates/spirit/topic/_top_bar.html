@@ -1,15 +1,24 @@
 {% load i18n %}
-        {% for c in categories %}
-            <div><strong><a href="{{ c.get_absolute_url }}">{{ c.title }}</a></strong></div>
-        {% endfor %}
-        {% if categories %}
-            <div><strong><a href="{% url 'forum:index' %}">Архив форума</a></strong></div>
-        {% endif %}
-
-        <div class="new-topic">
-            {% if category %}
-                <a class="btn btn-sm btn-success button" href="{% url "spirit:topic:publish" category.pk %}">{% trans "Create Topic" %}</a>
-            {% else %}
-                <a class="btn btn-sm btn-success button" href="{% url "spirit:topic:publish" %}">{% trans "Create Topic" %}</a>
-            {% endif %}
+<div class="row pb-4">
+    {% if categories %}
+    <div class="col">
+        <div class="btn-group dropdown">
+            <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Разделы</button>
+            <div class="dropdown-menu">
+                {% for c in categories %}
+                <a href="{{ c.get_absolute_url }}" class="dropdown-item">{{ c.title }}</a>
+                {% endfor %}
+                <div class="dropdown-divider"></div>
+                <a href="{% url 'forum:index' %}" class="dropdown-item">Архив форума</a>
+            </div>
         </div>
+    </div>
+    {% endif %}
+    <div class="col text-right">
+        {% if category %}
+        <a class="btn btn-primary" href="{% url "spirit:topic:publish" category.pk %}">{% trans "Create Topic" %}</a>
+        {% else %}
+        <a class="btn btn-primary" href="{% url "spirit:topic:publish" %}">{% trans "Create Topic" %}</a>
+        {% endif %}
+    </div>
+</div>

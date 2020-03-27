@@ -1,0 +1,6 @@
+{% if user and not user.username and not user.name %}
+    <div class="alert alert-warning alert-with-icon float-left" role="alert" id="sw-user-update-warning">
+      <div class="alert-icon-box"><i class="alert-icon czi-announcement"></i></div>
+      <a class="alert-link" id="sw-user-update-link" href="#" data-toggle="modal" data-target="#sw-user-update-modal">Укажите имя пользователя или псевдоним</a>, иначе будет отображаться Ваш телефон: {{ user.get_full_name }}
+    </div>
+{% endif %}

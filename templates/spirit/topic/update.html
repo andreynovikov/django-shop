@@ -1,0 +1,18 @@
+{% extends "spirit/_base.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Update topic" %}{% endblock %}
+{% block content_title %}{% trans "Update topic" %}{% endblock %}
+
+{% block content %}
+    <div class="container py-5 mb-2 mb-md-4">
+        <form action="." method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+            {% include "spirit/_form.html" %}
+            <div class="text-right">
+                <button class="btn btn-primary reply-button" type="submit">{% trans "Update" %}</button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

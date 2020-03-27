@@ -1,0 +1,19 @@
+{% load i18n %}
+
+{% if page.num_pages > 1 %}
+<hr class="my-4">
+<ul class="pagination">
+    {% if page.number > 1 %}
+    <li class="page-item"><a class="page-link" href="?{{ page_var }}={{ page.previous_page_number }}{{ extra_query }}{{ hashtag }}"><i class="czi-arrow-left mr-2"></i>Пред<span class="d-none d-sm-inline d-md-none d-xl-inline">ыдущая</span></a>
+    {% endif %}
+
+    <li class="page-item d-sm-none"><span class="page-link page-link-static">{{ page.number }} / {{ page.num_pages }}</span></li>
+    {% for page_number in page.page_range %}
+    <li class="page-item d-none d-sm-block{% if page_number == page.number %} active{% endif %}"><a class="page-link" href="?{{ page_var }}={{ page_number }}{{ extra_query }}{{ hashtag }}">{{ page_number }}</a></li>
+    {% endfor %}
+
+    {% if page.number < page.num_pages %}
+    <li class="page-item"><a class="page-link" href="?{{ page_var }}={{ page.next_page_number }}{{ extra_query }}{{ hashtag }}">След<span class="d-none d-sm-inline d-md-none d-xl-inline">ующая</span><i class="czi-arrow-right ml-2"></i></a>
+    {% endif %}
+</ul>
+{% endif %}

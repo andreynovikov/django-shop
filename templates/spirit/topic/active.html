@@ -4,19 +4,17 @@
 {% load django_bootstrap_breadcrumbs %}
 
 {% block title %}{% trans "Latest active topics" %}{% endblock %}
-
+{% block content_title %}Форум{% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
-    {% breadcrumb "К первой странице" "index" %}
+    {% breadcrumb "Форум" "" %}
 {% endblock %}
-
 {% block content %}
-    <h1>Форум</h1>
+    {{ block.super }}
 
+    <div class="container py-5 mb-2 mb-md-4 spirit">
     {% include "spirit/topic/_top_bar.html" with category=None categories=categories %}
-
     {% include "spirit/topic/_render_list.html" %}
-
     {% render_paginator topics %}
-
+    </div>
 {% endblock %}

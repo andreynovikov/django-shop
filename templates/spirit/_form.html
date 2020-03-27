@@ -1,0 +1,30 @@
+{% load site %}
+{% load widget_tweaks %}
+
+{% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
+
+{{ form.non_field_errors }}
+
+{% for field in form.hidden_fields %}
+  {{ field.errors }}
+  {{ field }}
+{% endfor %}
+
+{% for field in form.visible_fields %}
+  {% get_class_name field.field as class %}
+  <div class="form-group{% if field.errors %} error{% endif %}{% if class == 'BooleanField' %} custom-control custom-switch{% endif %}">
+    {% if class == 'BooleanField' %}
+    {% render_field field class="custom-control-input" %}
+    <label for="{{ field.id_for_label }}" class="custom-control-label">{{ field.label }}</label>
+    {% else %}
+    <label for="{{ field.id_for_label }}">{{ field.label }}:</label>
+    {% render_field field class="form-control" %}
+    {% endif %}
+    {% if field.errors %}
+    <div class="invalid-feedback" id="{{ field.id_for_label }}-error">{{ field.errors|striptags }}</div>
+    {% endif %}
+    {% if field.help_text %}
+    <small class="form-text text-muted">{{ field.help_text }}</small>
+    {% endif %}
+  </div>
+{% endfor %}

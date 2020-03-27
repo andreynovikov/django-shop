@@ -1,29 +1,19 @@
-{% extends "base.html" %}
+{% extends "page.html" %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}{{ topic.title }}{% endblock %}
-{% block css %}
-<style>
-.comments { margin-bottom: 32px; }
-.comment { padding: 12px; border-top: #cecece 1px solid; }
-.comment:last-child { border-bottom: #cecece 1px solid; }
-.comment-date { color: #666; font-size: 80%; margin-bottom: 12px; text-align: right; }
-</style>
-{% endblock %}
+{% block content_title %}{{ topic.title }}{% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
-    {% breadcrumb "К первой странице" "index" %}
     {% breadcrumb "Форум" "spirit:topic:index-active" %}
     {% breadcrumb "Архив" "forum:index" %}
+    {% breadcrumb topic.title "" %}
 {% endblock %}
 {% block content %}
-<div class="container">
-<h1>{{ topic.title }}</h1>
-
-<ul>
+<div class="container py-5 mb-2 mb-md-4">
+<ul class="list-unstyled">
 {% for thread in threads %}
     <li><a href="{% url 'forum:thread' thread.id %}">{{ thread.title }}</a> &mdash; {{ thread.mtime|date:"SHORT_DATE_FORMAT" }}</li>
 {% endfor %}
 </ul>
-
 </div>
 {% endblock %}

@@ -1,0 +1,12 @@
+{% extends "spirit/user/profile_base.html" %}
+{% load spirit_tags %}
+
+{% block html_page %}{% with page_title="Лайки" %}{{ block.super }}{% endwith %}{% endblock %}
+
+{% block tab_content %}
+
+  {% include "spirit/user/_render_comments_list.html" %}
+
+  {% render_paginator comments %}
+
+{% endblock %}

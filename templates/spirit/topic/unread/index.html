@@ -1,0 +1,18 @@
+{% extends "spirit/_base.html" %}
+
+{% load spirit_tags i18n %}
+{% load django_bootstrap_breadcrumbs %}
+
+{% block title %}{% trans "Unread topics replies" %}{% endblock %}
+{% block content_title %}{% trans "Unread topics replies" %}{% endblock %}
+{% block breadcrumbs %}
+    {{ block.super }}
+    {% breadcrumb "Форум" "spirit:topic:index-active" %}
+    {% breadcrumb "Непрочитанное" "" %}
+{% endblock %}
+{% block content %}
+    <div class="container py-5 mb-2 mb-md-4 spirit">
+    {% include "spirit/topic/_render_list.html" with topics=page %}
+    {% render_paginator page %}
+    </div>
+{% endblock %}

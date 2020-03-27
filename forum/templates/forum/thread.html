@@ -1,33 +1,20 @@
-{% extends "base.html" %}
+{% extends "page.html" %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}{{ thread.title }}{% endblock %}
-{% block css %}
-<style>
-.comments { margin-bottom: 32px; }
-.comment { padding: 12px; border-top: #cecece 1px solid; }
-.comment:last-child { border-bottom: #cecece 1px solid; }
-.comment-date { color: #666; font-size: 80%; margin-bottom: 12px; text-align: right; }
-</style>
-{% endblock %}
+{% block content_title %}{{ thread.title }}{% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
-    {% breadcrumb "К первой странице" "index" %}
     {% breadcrumb "Форум" "spirit:topic:index-active" %}
     {% breadcrumb "Архив" "forum:index" %}
     {% breadcrumb thread.topic.title "forum:topic" thread.topic.pk %}
 {% endblock %}
 {% block content %}
-<div class="container">
-<h1>{{ thread.title }}</h1>
-
-<div class="comments">
-{% for opinion in opinions %}
-    <div class="comment">
-        <div class="comment-date">{{ opinion.post|date:"j b Y" }}</div>
-        <div class="comment-text">{{ opinion.text|safe }}</div>
+<div class="container py-5 mb-2 mb-md-4">
+    {% for opinion in opinions %}
+    <div class="py-2{% if not forloop.last %} border-bottom{% endif %}">
+        <div class="text-right font-size-xs text-muted pb-2">{{ opinion.post|date:"j b Y" }}</div>
+        <div>{{ opinion.text|safe }}</div>
     </div>
-{% endfor %}
-</div>
-
+    {% endfor %}
 </div>
 {% endblock %}

@@ -1,0 +1,35 @@
+{% extends "spirit/_base.html" %}
+
+{% load i18n %}
+{% load django_bootstrap_breadcrumbs %}
+
+{% block title %}{% trans "Publish comment" %}{% endblock %}
+{% block content_title %}{% trans "Publish comment" %}{% endblock %}
+{% block breadcrumbs %}
+    {{ block.super }}
+    {% breadcrumb "Форум" "spirit:topic:index-active" %}
+    {% if topic.category.parent_id %}
+        {% breadcrumb topic.category.parent.title topic.category.parent.get_absolute_url %}
+    {% endif %}
+    {% breadcrumb topic.category.title topic.category.get_absolute_url %}
+{% endblock %}
+
+{% block content %}
+    <div class="container py-5 mb-2 mb-md-4">
+      <h2 class="h3 py-4">Тема "{{ topic.title }}"</h2>
+
+      <form action="." method="post" class="js-reply needs-validation" novalidate>
+        {% csrf_token %}
+        {% include "spirit/_form.html" %}
+
+        <div class="container">
+          {% include "spirit/comment/_editor.html" %}
+          {% include "spirit/_no_username_alert.html" %}
+
+          <div class="text-right">
+            <button class="btn btn-primary" type="submit">{% trans "Publish" %}</button>
+          </div>
+        </div>
+      </form>
+    </div>
+{% endblock %}

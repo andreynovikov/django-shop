@@ -1,0 +1,34 @@
+{% load i18n %}
+{% load widget_tweaks %}
+<form action="{% url "spirit:comment:publish" topic_id %}" method="post" class="reply js-reply needs-validation" novalidate>
+  {% csrf_token %}
+  {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
+
+  {{ form.non_field_errors }}
+
+  {% for field in form %}
+    {{ field.errors }}
+    {% render_field field class="form-control" %}
+  {% endfor %}
+
+  <div class="container">
+    {% include "spirit/comment/_editor.html" %}
+    {% include "spirit/_no_username_alert.html" %}
+    <div class="text-right">
+      <button class="btn btn-primary" type="submit">{% trans "Publish" %}</button>
+    </div>
+  </div>
+</form>
+
+<script>
+(function () {
+    'use strict';
+
+    document.addEventListener('DOMContentLoaded', function() {
+        stModules.store(
+            document.querySelector('.reply').querySelector('textarea'),
+            'comment-thread-{{ topic_id }}'
+        );
+    });
+}());
+</script>

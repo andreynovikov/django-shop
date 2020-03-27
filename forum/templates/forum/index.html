@@ -1,21 +1,16 @@
-{% extends "base.html" %}
+{% extends "page.html" %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}Архив форума{% endblock %}
-{% block css %}
-<style>
-</style>
-{% endblock %}
+{% block content_title %}Архив форума{% endblock %}
 {% block breadcrumbs %}
     {{ block.super }}
-    {% breadcrumb "К первой странице" "/" %}
     {% breadcrumb "Форум" "spirit:topic:index-active" %}
+    {% breadcrumb "Архив форума" "" %}
 {% endblock %}
 {% block content %}
-<div class="container">
-<h1>Архив форума</h1>
-
-<h2>Разделы:</h2>
-<ul>
+<div class="container py-5 mb-2 mb-md-4">
+<h2 class="h3 pb-3">Разделы</h2>
+<ul class="list-unstyled">
 {% for topic in topics %}
     <li><a href="{% url 'forum:topic' topic.id %}">{{ topic.title }}</a></li>
 {% endfor %}

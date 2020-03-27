@@ -1,0 +1,11 @@
+{# django.contrib.messages #}
+{% if messages_grouped %}
+{% for level, messages in messages_grouped.items %}
+            {% for message in messages %}
+            <div class="alert alert-warning alert-with-icon fade show {{ level }}" role="alert">
+                <div class="alert-icon-box"><i class="alert-icon czi-bell"></i></div>
+                {{ message }}
+            </div>
+            {% endfor %}
+{% endfor %}
+{% endif %}

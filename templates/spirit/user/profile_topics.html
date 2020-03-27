@@ -1,0 +1,12 @@
+{% extends "spirit/user/profile_base.html" %}
+{% load spirit_tags %}
+
+{% block html_page %}{% with page_title="Темы" %}{{ block.super }}{% endwith %}{% endblock %}
+
+{% block tab_content %}
+
+  {% include "spirit/topic/_render_list.html" %}
+
+  {% render_paginator topics %}
+
+{% endblock %}

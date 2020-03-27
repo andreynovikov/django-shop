@@ -1,89 +1,95 @@
-{% extends "base.html" %}
+{% extends "page.html" %}
 {% load spirit_tags i18n %}
+{% load render_view %}
 {% load static from staticfiles %}
 {% block javascript %}
-    <script src="{% static "js/eldarion-ajax.min.js" %}"></script>
-    <script src="{% static "spirit/scripts/all.min.js" %}"></script>
+<script src="{% static "spirit/scripts/all.min.js" %}"></script>
+<script>
+(function () {
+    'use strict';
 
-    <script>
+    {% if user and not user.username and not user.name %}
+    var addFormSumbitListener = function() {
+        var form = document.getElementById("id_phone").form;
+        form.addEventListener('submit', function(event) {
+            var $form = $(form);
+            var data = $form.serialize() + '&ajax=1';
+            $.post($form.attr('action'), data, function(data) {
+                $('#sw-user-update-modal').find('.modal-body').html(data.html);
+                addFormSumbitListener();
+            }, 'json');
+            event.preventDefault();
+            event.stopPropagation();
+        }, false);
+
+        if (form.checkValidity() && (form.name.value || form.username.value)) {
+            $('#sw-user-update-modal').modal('hide');
+            $('#sw-user-update-warning').addClass('d-none');
+        }
+    };
+    {% endif %}
+
     document.addEventListener('DOMContentLoaded', function() {
-        stModules.tab(document.querySelectorAll('.js-tab'));
         stModules.postify(document.querySelectorAll('.js-post'), {
             csrfToken: "{{ csrf_token }}"
         });
         stModules.messages(document.querySelectorAll('.js-messages'));
-        {% if user.is_authenticated %}
-            stModules.notification(document.querySelectorAll('.js-tab-notification'), {
-                notificationUrl: "{% url "spirit:topic:notification:index-ajax" %}",
-                notificationListUrl: "{% url "spirit:topic:notification:index-unread" %}",
-                mentionTxt: "{% trans "{user} has mention you on {topic}" %}",
-                commentTxt: "{% trans "{user} has commented on {topic}" %}",
-                showAll: "{% trans "Show all" %}",
-                empty: "{% trans "No new notifications, yet" %}",
-                unread: "{% trans "unread" %}"
-            });
-        {% endif %}
-        var buttons = document.getElementsByClassName('button');
-        for (var i = 0; i < buttons.length; i++) {
-            buttons[i].classList.add('btn');
-            buttons[i].classList.add('btn-sm');
-            buttons[i].classList.add('btn-default');
-        }
-        buttons = document.getElementsByClassName('reply-button');
-        for (var i = 0; i < buttons.length; i++) {
-            buttons[i].classList.add('btn');
-            buttons[i].classList.add('btn-sm');
-            buttons[i].classList.add('btn-success');
-        }
-        buttons = document.getElementsByClassName('is-undo');
-        for (var i = 0; i < buttons.length; i++) {
-            buttons[i].classList.add('btn');
-            buttons[i].classList.add('btn-sm');
-            buttons[i].classList.add('btn-warning');
-        }
-    });
-    </script>
-{% endblock javascript %}
-{% block css %}
-    <link rel="stylesheet" href="{% static "spirit/stylesheets/vendors/font-awesome.min.css" %}">
-    <link rel="stylesheet" href="{% static "spirit/stylesheets/vendors/textcomplete.css" %}">
-    <link rel="stylesheet" href="{% static "spirit/stylesheets/styles.css" %}">
 
-    <!--[if (lt IE 9) & (!IEMobile)]>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/selectivizr/1.0.2/selectivizr-min.js"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.6/html5shiv.min.js"></script>
-    <![endif]-->
-{% endblock css %}
-{% block body_top %}<div class="js-tabs-container">{% endblock %}
-{% block body_bottom %}</div>{% endblock %}
-{% block content_wrapper %}
-{% load django_bootstrap_breadcrumbs %}
-{% block breadcrumbs %}
-    {% clear_breadcrumbs %}
+        {% if user and not user.username and not user.name %}
+        $('#sw-user-update-modal').on('show.bs.modal', function() {
+            if (!document.getElementById("id_phone")) {
+                $.get('{% url 'shop:profile' %}?ajax=1', function(data) {
+                    $('#sw-user-update-modal').find('.modal-body').html(data.html);
+                    addFormSumbitListener();
+                });
+            }
+        });
+        {% endif %}
+    });
+}());
+</script>
+{% endblock javascript %}
+{% block css_wrapper %}
+    <style>
+        .media-body blockquote { margin-left: 1rem; padding-left: 1rem; font-size: 80%; border-left: 3px solid #e3e9ef; }
+        .js-box-preview-content { padding:.5rem; border: 1px solid #e3e9ef; border-radius: .3125rem }
+        .media-body .list-inline-item.comment-date li { margin-left: 0.5rem; display: inline-block; }
+    </style>
+    <link rel="stylesheet" href="{% static "spirit/stylesheets/vendors/textcomplete.css" %}">
 {% endblock %}
-    <div class="container-fluid spirit">
-    {% render_breadcrumbs "_breadcrumbs.html" %}
-    <div class="container">
-    {% if user.is_authenticated %}
-        <div class="header-tab-content js-tab-content js-notifications-content"></div>
-        <div class="header-tab-content js-tab-content js-search-content">
-            <form method="get" action="/forum/search/">
-                <div class="field">
-                    <label for="id_q">Найти:</label> <input type="search" name="q" id="id_q">
-                </div>
-                <input class="button btn btn-sm btn-default" type="submit" value="Найти">
-            </form>
-        </div>
+{% block body_top %}
+    {% if user and not user.username and not user.name %}
+    <div class="modal" tabindex="-1" role="dialog" id="sw-user-update-modal">
+      <div class="modal-dialog" role="document">
+        <form id="sw-update-user-form" class="modal-content needs-validation{% if invalid %} was-validated{% endif %}" method="post" novalidate action="{% url 'shop:profile' %}">
+          <div class="modal-body">
+            <div class="text-center">
+              <div class="spinner-border" role="status"><span class="sr-only">Загрузка...</span></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Закрыть</button>
+            <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
     {% endif %}
+{% endblock body_top %}
+{% block content %}
+    <div class="container pt-5">
     {% render_messages messages %}
-    {% block content %}{% endblock %}
+    {% if user.is_authenticated %}
+      {% has_topic_notifications user as has_notifications %}
+      {% if has_notifications %}
+      {% view "spirit.topic.notification.views.index_unread" %}
+      <div class="mt-2 mb-5"><a class="btn btn-accent btn-sm" href="{% url "spirit:topic:notification:index" %}"><i class="czi-bell mr-2"></i>Все уведомления</a></div>
+      {% endif %}
+
+      <form class="input-group-overlay" method="get" action="/forum/search/">
+        <input class="form-control appended-form-control" type="search" name="q" placeholder="Поиск по форуму">
+        <div class="input-group-append-overlay"><span class="input-group-text"><i class="czi-search"></i></span></div>
+      </form>
+    {% endif %}
     </div>
-    </div>
-{% endblock content_wrapper %}
-{% block user_profile_links %}
-{% if user.is_authenticated %}
-{% has_topic_notifications user as has_notifications %}
-<a class="header-tab-link js-tab" href="/forum/search/" data-related=".js-search-content"><i class="fa fa-search"></i></a>
-<a class="header-tab-link js-tab-notification is-highlighted" href="/forum/topic/notification/" data-related=".js-notifications-content"><i class="fa fa-bell"></i></a>
-{% endif %}
-{% endblock user_profile_links %}
+{% endblock content %}
