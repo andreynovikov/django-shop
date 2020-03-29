@@ -1,0 +1,8 @@
+{% for entry in entries %}
+                <div class="mb-3">
+                  <h6 class="blog-entry-title font-size-sm mb-0"><a href="{{ entry.get_absolute_url }}">{{ entry.title }}</a></h6>
+                  {% with authors=entry.authors.all %}{% if authors|length %}
+                  <span class="font-size-ms text-muted">{% for author in authors %}{{ author }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+                  {% endif %}{% endwith %}
+                </div>
+{% endfor %}

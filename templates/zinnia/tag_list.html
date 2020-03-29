@@ -1,0 +1,22 @@
+{% extends "zinnia/base.html" %}
+{% load i18n %}
+
+{% block meta-description %}{% trans "Tag list" %}{% endblock meta-description %}
+
+{% block title %}{% trans "Tags" %}{% endblock title %}
+{% block content_title %}{% trans "Tag list" %}{% endblock content_title %}
+
+{% block content %}
+<ul class="list-style">
+    {% for object in object_list %}
+    <li class="row">
+        <a class="col-sm-3" href="{% url 'zinnia:tag_detail' object %}">#{{ object }}</a>
+        <span class="col-sm-9">{% blocktrans count entry_count=object.count %}{{ entry_count }} entry{% plural %}{{ entry_count }} entries{% endblocktrans %}</span>
+    </li>
+    {% empty %}
+    <li>
+        {% trans "No tags yet." %}
+    </li>
+    {% endfor %}
+</ul>
+{% endblock content %}

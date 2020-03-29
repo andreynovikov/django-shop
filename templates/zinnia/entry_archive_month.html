@@ -1,0 +1,36 @@
+{% extends "zinnia/entry_list.html" %}
+
+{% load i18n %}
+
+{% block meta-description %}{% trans "Archives" %} {{ month|date:"YEAR_MONTH_FORMAT" }}{% endblock meta-description %}
+
+{% block title %}{% trans "Archives" %} {{ month|date:"YEAR_MONTH_FORMAT" }}{% endblock title %}
+{% block content_title %}{% trans "Archives" %} {{ month|date:"YEAR_MONTH_FORMAT" }}{% endblock content_title %}
+
+{% block breadcrumbs %}
+  {{ block.super }}
+  {% load django_bootstrap_breadcrumbs %}
+  {% breadcrumb month|date:"Y" 'zinnia:entry_archive_year' month|date:"Y" %}
+  {% breadcrumb month|date:"F" "" %}
+{% endblock breadcrumbs %}
+
+{% block content-related %}
+<nav class="entry-navigation mt-5">
+  {% if previous_month %}
+  <a class="entry-navigation-link" href="{% url 'zinnia:entry_archive_month' previous_month|date:"Y" previous_month|date:"m" %}" data-toggle="tooltip" data-placement="top" title="{{ previous_month|date:"YEAR_MONTH_FORMAT" }}" rel="archives"><i class="czi-arrow-left mr-2"></i><span class="d-none d-sm-inline">Пред<span class="d-none d-md-inline">ыдущий</span> месяц</span></a>
+  {% endif %}
+  {% if date_list %}
+  <div class="entry-navigation-link dropup">
+    <a class="dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="czi-view-list mr-2"></i><span class="d-none d-sm-inline">{% trans "Daily archives" %}</span></a>
+    <div class="dropdown-menu">
+      {% for date in date_list %}
+      <a class="dropdown-item" href="{% url 'zinnia:entry_archive_day' date|date:"Y" date|date:"m" date|date:"d" %}" rel="archives">{{ date|date:"DATE_FORMAT" }}</a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  {% if next_month %}
+  <a class="entry-navigation-link" href="{% url 'zinnia:entry_archive_month' next_month|date:"Y" next_month|date:"m" %}" data-toggle="tooltip" data-placement="top" title="{{ next_month|date:"YEAR_MONTH_FORMAT" }}" rel="archives"><span class="d-none d-sm-inline">След<span class="d-none d-md-inline">ующий</span> месяц</span><i class="czi-arrow-right ml-2"></i></a>
+  {% endif %}
+</nav>
+{% endblock content-related %}

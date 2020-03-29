@@ -1,0 +1,80 @@
+{% load i18n %}
+{% load zinnia %}
+{% load spirit_tags %}
+          {% if continue_reading %}<!-- Entry-->{% else %}<!-- Post meta-->{% endif %}
+          <article class="{% if continue_reading %}blog-list {% endif %}pb-4" id="entry-{{ object.pk }}" itemscope itemtype="http://schema.org/Article">
+            <meta itemprop="wordCount" content="{{ object.word_count }}" />
+            <meta itemprop="dateCreated" content="{{ object.creation_date|date:"c" }}" />
+            <meta itemprop="keywords" content="{{ object.tags }}" />
+            <meta itemprop="commentCount" content="{{ object.comment_count }}" />
+            <meta itemprop="discussionUrl" content="{{ object.get_absolute_url }}#comments" />
+            <div class="{% if continue_reading %}left-column{% else %}d-flex flex-wrap justify-content-between align-items-center pb-4 mt-n1{% endif %}">
+              <div class="d-flex align-items-center font-size-sm {% if continue_reading %}pb-2 mb-1{% else %}mb-2{% endif %}">
+                {% with authors=object.authors.all %}
+                <span class="blog-entry-meta-link" itemprop="author">
+                {% for author in authors %}
+                {% if forloop.first %}<div class="blog-entry-author-ava"><img src="{% get_gravatar_url user=author size=50 %}" alt="{{ author }}"></div>{% endif %}
+                {{ author }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>{% if authors|length %}<span class="blog-entry-meta-divider"></span>{% endif %}
+                <time class="blog-entry-meta-link" datetime="{{ object.publication_date|date:"c" }}" itemprop="datePublished">{{ object.publication_date|shortnaturaltime }}</time>
+                {% endwith %}
+              </div>
+              {% if continue_reading %}
+              <h2 class="h5 blog-entry-title" itemprop="name"><a href="{{ object.get_absolute_url }}" rel="bookmark" itemprop="url">{{ object.title }}</a></h2>
+              {% else %}
+              {% with comment_count=object.comment_count %}{% if comment_count %}
+              <div class="font-size-sm mb-2"><a class="blog-entry-meta-link text-nowrap" href="#comments" data-scroll><i class="czi-message"></i>{{ comment_count }}</a></div>
+              {% endif %}{% endwith %}
+              {% endif %}
+            </div>
+            {% if continue_reading %}
+            <div class="right-column">
+              {% if object.image %}
+              <a class="blog-entry-thumb mb-3" href="{{ object.get_absolute_url }}" rel="bookmark">
+                  <figure itemprop="image" itemscope itemtype="http://schema.org/ImageObject">
+                      <img src="{{ object.image.url }}" alt="{{ object.image_caption|default:object.title }}" itemprop="contentUrl">
+                      {% if object.image_caption %}<figcaption itemprop="caption">{{ object.image_caption }}</figcaption>{% endif %}
+                  </figure>
+              </a>
+              {% endif %}
+              <div class="d-flex justify-content-between mb-1">
+                <div class="font-size-sm text-muted pr-2 mb-2">
+                  {% with categories=object.categories.all %}{% if categories|length %}в {% for category in categories %}
+                  <a href="{{ category.get_absolute_url }}" class="blog-entry-meta-link" data-toggle="tooltip" data-placement="top" title="{% blocktrans %}Show all entries in {{ category }}{% endblocktrans %}" rel="tag category" itemprop="articleSection">{{ category }}</a>{% if not forloop.last %}, {% endif %}
+                  {% endfor %}{% endif %}{% endwith %}
+                </div>
+                <div class="font-size-sm mb-2">
+                  {% for tag in object.tags_list %}<a class="btn-tag ml-2" href="{% url 'zinnia:tag_detail' tag %}" data-toggle="tooltip" data-placement="top" title="{% blocktrans %}Show all entries tagged by {{ tag }}{% endblocktrans %}" rel="tag" itemprop="articleSection">#{{ tag }}</a>
+                  {% endfor %}
+                  {% with comment_count=object.comment_count %}{% if comment_count %}
+                  <a class="blog-entry-meta-link text-nowrap ml-2" href="{{ object.get_absolute_url }}#comments"><i class="czi-message"></i>{{ comment_count }}</a>
+                  {% endif %}{% endwith %}
+                </div>
+              </div>
+              <div class="font-size-sm">
+                <p itemprop="articleBody">
+                  {{ object.excerpt|safe|truncatewords_html:50 }}
+                  {% if continue_reading and object_content.has_more %}
+                  <a href="{{ object.get_absolute_url }}" class="blog-entry-meta-link font-weight-medium" rel="bookmark" itemprop="url" data-toggle="tooltip" data-placement="top" title="Осталось прочитать {{ object_content.remaining_percent|floatformat:0 }}%">[{% trans "Continue reading" %}]</a>
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+            {% else %}
+            {% if object.lead %}
+            <p class="lead" itemprop="headline">
+            {{ object.html_lead|safe }}
+            </p>
+            {% endif %}
+            <div class="article-content" itemprop="articleBody">
+            {{ object_content|safe }}
+            </div>
+            <!-- Post tags + sharing-->
+            <div class="d-flex flex-wrap justify-content-between pt-2 pb-4 mb-1">
+              <div class="mt-3 mr-3">
+              {% for tag in object.tags_list %}<a class="btn-tag mr-2 mb-2" href="{% url 'zinnia:tag_detail' tag %}" data-toggle="tooltip" data-placement="top" title="{% blocktrans %}Show all entries tagged by {{ tag }}{% endblocktrans %}" rel="tag" itemprop="articleSection">#{{ tag }}</a>
+              {% endfor %}
+              </div>
+              <div class="mt-3"><span class="d-inline-block align-middle text-muted font-size-sm mr-3 mb-2">Share post:</span><a class="social-btn sb-facebook mr-2 mb-2" href="#"><i class="czi-facebook"></i></a><a class="social-btn sb-twitter mr-2 mb-2" href="#"><i class="czi-twitter"></i></a><a class="social-btn sb-pinterest mr-2 mb-2" href="#"><i class="czi-pinterest"></i></a></div>
+            </div>
+            {% endif %}
+          </article>

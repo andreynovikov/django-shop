@@ -1,0 +1,38 @@
+{% load spirit_tags %}
+{% if entries %}
+      <!-- Featured posts carousel-->
+      <div class="featured-posts-carousel cz-carousel pt-5">
+        <div class="cz-carousel-inner" data-carousel-options="{&quot;items&quot;: 2, &quot;nav&quot;: false, &quot;autoHeight&quot;: true, &quot;responsive&quot;: {&quot;0&quot;:{&quot;items&quot;:1},&quot;750&quot;:{&quot;items&quot;:2, &quot;gutter&quot;: 20},&quot;991&quot;:{&quot;items&quot;:2, &quot;gutter&quot;: 30}}}">
+          {% for entry in entries %}
+          <article><a class="blog-entry-thumb mb-3" href="{{ entry.get_absolute_url }}"><span class="blog-entry-meta-label font-size-sm"><i class="czi-time"></i>{{ entry.publication_date|shortnaturaltime }}</span><img src="{% if entry.image %}{{ entry.image.url }}{% else %}https://demo.createx.studio/cartzilla/img/blog/featured/03.jpg{% endif %}" alt="{{ entry.title }}"></a>
+            <div class="d-flex justify-content-between mb-2 pt-1">
+              <h2 class="h5 blog-entry-title mb-0"><a href="{{ entry.get_absolute_url }}">{{ entry.title }}</a></h2>
+              {% with comment_count=object.comment_count %}{% if comment_count %}
+              <a class="blog-entry-meta-link font-size-sm text-nowrap ml-3 pt-1" href="blog-single.html#comments"><i class="czi-message"></i>{{ comment_count }}</a>
+              {% endif %}{% endwith %}
+            </div>
+            {% with categories=entry.categories.all authors=entry.authors.all%}
+            <div class="d-flex align-items-center font-size-sm">
+              {% for author in authors %}
+              <span class="blog-entry-meta-link">
+                <div class="blog-entry-author-ava"><img src="{% get_gravatar_url user=author size=50 %}" alt="{{ author }}"></div>{{ author }}{% if not forloop.last %}, {% endif %}
+              </span>
+              {% endfor %}
+              {% if categories|length %}
+              {% if authors|length %}
+              <span class="blog-entry-meta-divider"></span>
+              {% endif %}
+              <div class="font-size-sm text-muted">в
+                {% for category in categories %}
+                <a href="{{ category.get_absolute_url }}" class="blog-entry-meta-link">{{ category }}</a>{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+              </div>
+              {% endif %}
+            </div>
+            {% endwith %}
+          </article>
+          {% endfor %}
+        </div>
+      </div>
+      <hr class="mt-5">
+{% endif %}

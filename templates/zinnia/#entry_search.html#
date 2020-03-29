@@ -1,0 +1,46 @@
+{% extends "zinnia/entry_list.html" %}
+{% load i18n %}
+{% load zinnia %}
+
+{% block title %}{% blocktrans %}Search results for '{{ pattern }}'{% endblocktrans %}{% endblock title %}
+
+{% block meta-description %}{% blocktrans %}Search results for '{{ pattern }}'{% endblocktrans %}{% endblock meta-description %}
+
+{% block link %}
+{{ block.super }}
+{% if not error %}
+<link rel="alternate" type="application/rss+xml" title="{% blocktrans %}RSS feed of search results for '{{ pattern }}'{% endblocktrans %}" href="{% url 'zinnia:entry_search_feed' %}?pattern={{ pattern }}" />
+{% endif %}
+{% endblock link %}
+
+{% block breadcrumbs %}
+  {{ block.super }}
+  {% load django_bootstrap_breadcrumbs %}
+  {% breadcrumb "G" "" %}
+{% endblock breadcrumbs %}
+
+{% block content_title %}{% blocktrans %}Search results for '{{ pattern }}'{% endblocktrans %}{% endblock content_title %}
+
+{% block content_title_addon %}
+{% if object_list %}
+<div class="mt-1">{% blocktrans count entry_count=paginator.count %}{{ entry_count }} entry found{% plural %}{{ entry_count }} entries found{% endblocktrans %}</div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{% if error %}
+<div class="alert alert-warning" role="alert">{{ error }}</div>
+{% endif %}
+{{ block.super }}
+{% endblock content %}
+
+{% block content-loop %}
+{% if not error %}
+{% for object in object_list %}
+{% zinnia_loop_template object.content_template as template %}
+{% include template with object_content=object.html_preview continue_reading=1 %}
+{% empty %}
+<p class="lead">{% trans "Nothing found." %}</p>
+{% endfor %}
+{% endif %}
+{% endblock content-loop %}

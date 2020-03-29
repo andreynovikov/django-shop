@@ -1,0 +1,7 @@
+{% load i18n %}
+
+{% for tag in tags %}
+<a class="btn-tag{% if tag.name == context_tag.name %} active{% endif %} mr-2 mb-2" data-toggle="tooltip" data-placement="top"
+   title="{% blocktrans count entry_count=tag.count %}{{ entry_count }} entry tagged by {{ tag }}{% plural %}{{ entry_count }} entries tagged by {{ tag }}{% endblocktrans %}"
+   href="{% url 'zinnia:tag_detail' tag.name %}">#{{ tag }}</a>
+{% endfor %}

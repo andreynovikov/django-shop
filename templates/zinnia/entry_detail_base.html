@@ -1,37 +1,49 @@
 {% extends "zinnia/base.html" %}
 {% load i18n %}
 {% load zinnia %}
+{% load spirit_tags %}
 {% load comments %}
 
 {% block title %}{{ object.title }}{% endblock title %}
+{% block content_title %}{{ object.title }}{% endblock content_title %}
 
 {% block meta-description %}{{ object.excerpt|safe }}{% endblock meta-description %}
 
 {% block meta-keywords %}{% if object.tags %}{{ object.tags }}{% else %}{{ block.super }}{% endif %}{% endblock meta-keywords %}
 
 {% block link %}
-  {{ block.super }}
-  {% with previous_entry=object.previous_entry %}{% if previous_entry %}
-  <link rel="prev" title="{{ previous_entry.title }}" href="{{ previous_entry.get_absolute_url }}" />
-  {% endif %}{% endwith %}
-  {% with next_entry=object.next_entry %}{% if next_entry %}
-  <link rel="next" title="{{ next_entry.title }}" href="{{ next_entry.get_absolute_url }}" />
-  {% endif %}{% endwith %}
-  <link rel="shortlink" href="{{ object.short_url }}" />
-  <link rel="canonical" href="{{ object.get_absolute_url }}" />
-  {% with year=object.publication_date|date:"Y" month=object.publication_date|date:"m" day=object.publication_date|date:"d" %}
-  <link rel="alternate" type="application/rss+xml" title="{% blocktrans with object=object.title %}RSS feed of discussions on {{ object }}{% endblocktrans %}"
-        href="{% url 'zinnia:entry_discussion_feed' year month day object.slug %}" />
-  <link rel="alternate" type="application/rss+xml" title="{% blocktrans with object=object.title %}RSS feed of comments on {{ object }}{% endblocktrans %}"
-        href="{% url 'zinnia:entry_comment_feed' year month day object.slug %}" />
-  <link rel="alternate" type="application/rss+xml" title="{% blocktrans with object=object.title %}RSS feed of pingbacks on {{ object }}{% endblocktrans %}"
-        href="{% url 'zinnia:entry_pingback_feed' year month day object.slug %}" />
-  <link rel="alternate" type="application/rss+xml" title="{% blocktrans with object=object.title %}RSS feed of trackbacks on {{ object }}{% endblocktrans %}"
-        href="{% url 'zinnia:entry_trackback_feed' year month day object.slug %}" />
-  {% endwith %}
+    {{ block.super }}
+    {% with previous_entry=object.previous_entry %}{% if previous_entry %}
+    <link rel="prev" title="{{ previous_entry.title }}" href="{{ previous_entry.get_absolute_url }}" />
+    {% endif %}{% endwith %}
+    {% with next_entry=object.next_entry %}{% if next_entry %}
+    <link rel="next" title="{{ next_entry.title }}" href="{{ next_entry.get_absolute_url }}" />
+    {% endif %}{% endwith %}
+    <link rel="shortlink" href="{{ object.short_url }}" />
+    <link rel="canonical" href="{{ object.get_absolute_url }}" />
+    {% with year=object.publication_date|date:"Y" month=object.publication_date|date:"m" day=object.publication_date|date:"d" %}
+    <link rel="alternate" type="application/rss+xml" title="{% blocktrans with object=object.title %}RSS feed of discussions on {{ object }}{% endblocktrans %}"
+          href="{% url 'zinnia:entry_discussion_feed' year month day object.slug %}" />
+    <link rel="alternate" type="application/rss+xml" title="{% blocktrans with object=object.title %}RSS feed of comments on {{ object }}{% endblocktrans %}"
+          href="{% url 'zinnia:entry_comment_feed' year month day object.slug %}" />
+    <link rel="alternate" type="application/rss+xml" title="{% blocktrans with object=object.title %}RSS feed of pingbacks on {{ object }}{% endblocktrans %}"
+          href="{% url 'zinnia:entry_pingback_feed' year month day object.slug %}" />
+    <link rel="alternate" type="application/rss+xml" title="{% blocktrans with object=object.title %}RSS feed of trackbacks on {{ object }}{% endblocktrans %}"
+          href="{% url 'zinnia:entry_trackback_feed' year month day object.slug %}" />
+    {% endwith %}
 {% endblock link %}
 
-{% block body-class %}entry entry-{{ object.pk }}{% if object.featured %} featured{% endif %} year-{{ object.publication_date|date:"Y" }} month-{{ object.publication_date|date:"m" }} week-{{ object.publication_date|date:"W" }} day-{{ object.publication_date|date:"d" }}{% endblock body-class %}
+{% block breadcrumbs %}
+  {{ block.super }}
+  {% load django_bootstrap_breadcrumbs %}
+  {% with categories=object.categories.all %}{% if categories|length %}{% for category in categories %}{% if forloop.first %}
+  {% breadcrumb category category.get_absolute_url %}
+  {% endif %}{% endfor %}{% else %}
+  {% breadcrumb object.publication_date|date:"Y" 'zinnia:entry_archive_year' year %}
+  {% breadcrumb object.publication_date|date:"F" 'zinnia:entry_archive_month' year month %}
+  {% breadcrumb object.publication_date|date:"d" 'zinnia:entry_archive_day' year month day %}
+  {% endif %}{% endwith %}
+{% endblock breadcrumbs %}
 
 {% block content %}
 
@@ -39,62 +51,23 @@
   {% include object.content_template with object_content=object.html_content %}
 {% endblock entry-content %}
 
-{% block entry-widgets %}
-<aside role="complementary" class="entry-widgets">
-  {% block entry-next-entry %}
-  {% with next_entry=object.next_entry %}
-  {% if next_entry %}
-  <div class="entry-next">
-    <h3>{% trans "Next entry" %}</h3>
-    <p>
-      <a href="{{ next_entry.get_absolute_url }}" title="{{ next_entry.title }}" rel="next">
-        {{ next_entry.title }}
-      </a>
-    </p>
-  </div>
-  {% endif %}
-  {% endwith %}
-  {% endblock entry-next-entry %}
-  {% block entry-previous-entry %}
-  {% with previous_entry=object.previous_entry %}
-  {% if previous_entry %}
-  <div class="entry-previous">
-    <h3>{% trans "Previous entry" %}</h3>
-    <p>
-      <a href="{{ previous_entry.get_absolute_url }}" title="{{ previous_entry.title }}" rel="prev">
-        {{ previous_entry.title }}
-      </a>
-    </p>
-  </div>
-  {% endif %}
-  {% endwith %}
-  {% endblock entry-previous-entry %}
-  {% block entry-related-entries %}
-  {% with entry_related=object.related_published %}
-  {% if entry_related %}
-  <div class="entry-related">
-    <h3>{% trans "Related entries" %}</h3>
-    <ul>
-      {% for entry in entry_related %}
-      <li>
-	<a href="{{ entry.get_absolute_url }}" title="{{ entry.title }}" rel="bookmark">{{ entry.title }}</a>
-      </li>
-      {% endfor %}
-    </ul>
-  </div>
-  {% endif %}
-  {% endwith %}
-  {% endblock entry-related-entries %}
-  {% block entry-similar-entries %}
-  <div class="entry-similar">
-    <h3>{% trans "Similar entries" %}</h3>
-    {% get_similar_entries %}
-  </div>
-  {% endblock entry-similar-entries %}
-</aside>
-{% endblock entry-widgets %}
+          <!-- Post navigation-->
+          <nav class="entry-navigation">
+            {% with previous_entry=object.previous_entry %}
+            {% if previous_entry %}
+            <a class="entry-navigation-link" href="{{ previous_entry.get_absolute_url }}" data-toggle="popover" data-placement="top" data-trigger="hover" data-html="true" data-content="&lt;h6 class=&quot;font-size-sm font-weight-semibold mb-0&quot;&gt;{{ previous_entry.title }}&lt;/h6&gt;{% with authors=previous_entry.authors.all %}{% if authors|length %}&lt;span class=&quot;d-block font-size-xs text-muted&quot;&gt;{% for author in authors %}{{ author }}{% if not forloop.last %}, {% endif %}{% endfor %}&lt;/span&gt;{% endif %}{% endwith %}" rel="prev"><i class="czi-arrow-left mr-2"></i><span class="d-none d-sm-inline">Пред<span class="d-none d-md-inline">ыдующая</span> запись</span></a>
+            {% endif %}
+            {% endwith %}
+            <a class="entry-navigation-link" href="{% url 'zinnia:entry_archive_index' %}"><i class="czi-view-list mr-2"></i><span class="d-none d-sm-inline">Все записи</span></a>
+            {% with next_entry=object.next_entry %}
+            {% if next_entry %}
+            <a class="entry-navigation-link" href="{{ next_entry.get_absolute_url }}" data-toggle="popover" data-placement="top" data-trigger="hover" data-html="true" data-content="&lt;h6 class=&quot;font-size-sm font-weight-semibold mb-0&quot;&gt;{{ next_entry.title }}&lt;/h6&gt;{% with authors=next_entry.authors.all %}{% if authors|length %}&lt;span class=&quot;d-block font-size-xs text-muted&quot;&gt;{% for author in authors %}{{ author }}{% if not forloop.last %}, {% endif %}{% endfor %}&lt;/span&gt;{% endif %}{% endwith %}" rel="next"><span class="d-none d-sm-inline">След<span class="d-none d-md-inline">ующая</span> запись</span><i class="czi-arrow-right ml-2"></i></a></nav>
+            {% endif %}
+            {% endwith %}
+          </nav>
 
 {% block entry-pingbacks %}
+{% if object.pingback_count or object.pingbacks_are_open %}
 <section id="pingbacks">
   <h3>{% trans "Pingbacks" %}</h3>
   {% if object.pingback_count %}
@@ -105,15 +78,17 @@
     <li id="pingback-{{ pingback.pk }}" class="pingback vcard {% cycle 'box1' 'box2' %}">
       {% block pingback-info %}
       <p class="pingback-info">
-	<a href="{{ pingback.url }}" rel="external nofollow"
-           class="fn url org">{{ pingback.name }}</a>
-	{% trans "on" context "on date" %}
-        <time class="pingback-published" datetime="{{ pingback.submit_date|date:"c" }}">
-          {{ pingback.submit_date|date:"SHORT_DATETIME_FORMAT" }}
+        {% blocktrans with pingback_url=pingback.url pingback_name=pingback.name pingback_human_date=pingback.submit_date|date:"SHORT_DATETIME_FORMAT" pingback_technical_date=pingback.submit_date|date:"c" pingback_pk=pingback.pk trimmed %}
+	<a href="{{ pingback_url }}" rel="external nofollow"
+           class="fn url org">{{ pingback_name }}</a>
+	on
+        <time class="pingback-published" datetime="{{ pingback_technical_date }}">
+          {{ pingback_human_date }}
         </time>
-        <a href="#pingback-{{ pingback.pk }}"
-           id="c{{ pingback.pk }}" class="anchor-link"
-           title="{% trans "Direct link to this pingback" %}">#</a>
+        <a href="#pingback-{{ pingback_pk }}"
+           id="c{{ pingback_pk }}" class="anchor-link"
+           title="Direct link to this pingback">#</a>
+        {% endblocktrans %}
       </p>
       {% endblock pingback-info %}
       {% block pingback-content %}
@@ -135,6 +110,7 @@
   {% endif %}
   {% endblock pingbacks-status %}
 </section>
+{% endif %}
 {% endblock entry-pingbacks %}
 
 {% block entry-trackbacks %}
@@ -149,15 +125,17 @@
     <li id="trackback-{{ trackback.pk }}" class="trackback vcard {% cycle 'box1' 'box2' %}">
       {% block trackback-info %}
       <p class="trackback-info">
-	<a href="{{ trackback.url }}" rel="external nofollow"
-           class="fn url org">{{ trackback.name }}</a>
-	{% trans "on" context "on date" %}
-        <time class="trackback-published" datetime="{{ trackback.submit_date|date:"c" }}">
-          {{ trackback.submit_date|date:"SHORT_DATETIME_FORMAT" }}
+        {% blocktrans with trackback_url=trackback.url trackback_name=trackback.name trackback_human_date=trackback.submit_date|date:"SHORT_DATETIME_FORMAT" trackback_technical_date=trackback.submit_date|date:"c" trackback_pk=trackback.pk trimmed %}
+	<a href="{{ trackback_url }}" rel="external nofollow"
+           class="fn url org">{{ trackback_name }}</a>
+	on
+        <time class="trackback-published" datetime="{{ trackback_technical_date }}">
+          {{ trackback_human_date }}
         </time>
-        <a href="#trackback-{{ trackback.pk }}"
-           id="c{{ trackback.pk }}" class="anchor-link"
-           title="{% trans "Direct link to this trackback" %}">#</a>
+        <a href="#trackback-{{ trackback_pk }}"
+           id="c{{ trackback_pk }}" class="anchor-link"
+           title="Direct link to this trackback">#</a>
+        {% endblocktrans %}
       </p>
       {% endblock trackback-info %}
       {% block trackback-content %}
@@ -184,6 +162,7 @@
 {% endblock entry-trackbacks %}
 
 {% block entry-comments %}
+{% if object.comments_are_open or object.comment_count %}
 <section id="comments">
   <h3>{% trans "Comments" %}</h3>
   {% if object.comment_count %}
@@ -199,19 +178,17 @@
       {% endblock comment-image %}
       {% block comment-info %}
       <p class="comment-info">
-	{% if comment.url %}
-	<a href="{{ comment.url }}" rel="external nofollow"
-           class="fn url">{{ comment.name }}</a>
-	{% else %}
-	<span class="fn">{{ comment.name }}</span>
-	{% endif %}
-	{% trans "on" context "on date" %}
-        <time class="comment-published" datetime="{{ comment.submit_date|date:"c" }}">
-          {{ comment.submit_date|date:"SHORT_DATETIME_FORMAT" }}
+        {% blocktrans with comment_url=comment.url|default:"#" comment_name=comment.name comment_human_date=comment.submit_date|date:"SHORT_DATETIME_FORMAT" comment_technical_date=comment.submit_date|date:"c" comment_pk=comment.pk comment_author_slug=comment.user_name|slugify trimmed %}
+        <a href="{{ comment_url }}" rel="external nofollow"
+           class="fn url">{{ comment_name }}</a>
+        on
+        <time class="comment-published" datetime="{{ comment_technical_date }}">
+          {{ comment_human_date }}
         </time>
-        <a href="#comment-{{ comment.pk }}-by-{{ comment.user_name|slugify }}"
-           id="c{{ comment.pk }}" class="anchor-link"
-           title="{% trans "Direct link to this comment" %}">#</a>
+        <a href="#comment-{{ comment_pk }}-by-{{ comment_author_slug }}"
+           id="c{{ comment_pk }}" class="anchor-link"
+           title="Direct link to this comment">#</a>
+        {% endblocktrans %}
       </p>
       {% endblock comment-info %}
       {% block comment-content %}
@@ -233,6 +210,7 @@
     {% endif %}
   {% endif %}
 </section>
+{% endif %}
 {% endblock entry-comments %}
 
 {% block entry-comments-form %}
@@ -245,10 +223,34 @@
 
 {% block admin-tools %}
 {% if perms.zinnia.change_entry %}
-<li>
-  <a href="{% url 'admin:zinnia_entry_change' object.pk %}" title="{% trans "Edit the entry" %}">
-    {% trans "Edit the entry" %}
-  </a>
-</li>
+                  <li class="widget-list-item"><a class="widget-list-link" href="{% url 'admin:zinnia_entry_change' object.pk %}">{% trans "Edit the entry" %}</a></li>
 {% endif %}
 {% endblock admin-tools %}
+
+{% block page-content-related %}
+    <!-- Related posts-->
+    <div class="bg-secondary py-5">
+      <div class="container py-3">
+        <h2 class="h4 text-center pb-4">Вам также может понравиться</h2>
+        <div class="cz-carousel">
+          <div class="cz-carousel-inner" data-carousel-options="{&quot;items&quot;: 2, &quot;controls&quot;: false, &quot;autoHeight&quot;: true, &quot;responsive&quot;: {&quot;0&quot;:{&quot;items&quot;:1},&quot;740&quot;:{&quot;items&quot;:2, &quot;gutter&quot;: 20},&quot;900&quot;:{&quot;items&quot;:3, &quot;gutter&quot;: 20}, &quot;1100&quot;:{&quot;items&quot;:3, &quot;gutter&quot;: 30}}}">
+            {% with entry_related=object.related_published %}
+            {% if entry_related %}
+            {% for entry in entry_related %}
+            <!-- article-->
+            <article><a class="blog-entry-thumb mb-3" href="{{ entry.get_absolute_url }}"><img class="rounded" src="https://demo.createx.studio/cartzilla/img/blog/02.jpg" alt="{{ entry.title }}"></a>
+              <div class="d-flex align-items-center font-size-sm mb-2">
+              {% with authors=entry.authors.all%}{% if authors|length %}<span class="blog-entry-meta-link">{% for author in authors %}{{ author }}{% if not forloop.last %}, {% endif %}{% endfor %}</span><span class="blog-entry-meta-divider"></span>{% endif %}{% endwith %}
+              <span class="blog-entry-meta-link">{{ entry.publication_date|shortnaturaltime }}</a></div>
+              <h3 class="h6 blog-entry-title"><a href="{{ entry.get_absolute_url }}">{{ entry.title }}</a></h3>
+            </article>
+            {% endfor %}
+            {% else %}
+            {% get_similar_entries %}
+            {% endif %}
+            {% endwith %}
+          </div>
+        </div>
+      </div>
+    </div>
+{% endblock page-content-related %}

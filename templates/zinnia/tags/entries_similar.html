@@ -1,0 +1,10 @@
+{% load spirit_tags %}
+{% for entry in entries %}
+            <!-- article-->
+            <article><a class="blog-entry-thumb mb-3" href="{{ entry.get_absolute_url }}"><img class="rounded" src="https://demo.createx.studio/cartzilla/img/blog/02.jpg" alt="{{ entry.title }}"></a>
+              <div class="d-flex align-items-center font-size-sm mb-2">
+              {% with authors=entry.authors.all%}{% if authors|length %}<span class="blog-entry-meta-link">{% for author in authors %}{{ author }}{% if not forloop.last %}, {% endif %}{% endfor %}</span><span class="blog-entry-meta-divider"></span>{% endif %}{% endwith %}
+              <span class="blog-entry-meta-link">{{ entry.publication_date|shortnaturaltime }}</a></div>
+              <h3 class="h6 blog-entry-title"><a href="{{ entry.get_absolute_url }}">{{ entry.title }}</a></h3>
+            </article>
+{% endfor %}

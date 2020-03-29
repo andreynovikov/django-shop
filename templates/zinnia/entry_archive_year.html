@@ -1,0 +1,33 @@
+{% extends "zinnia/entry_list.html" %}
+
+{% load i18n %}
+
+{% block meta-description %}{% trans "Archives" %} {{ year|date:"Y" }}{% endblock meta-description %}
+
+{% block title %}{% trans "Archives" %} {{ year|date:"Y" }}{% endblock title %}
+{% block content_title %}{% trans "Archives" %} {{ year|date:"Y" }}{% endblock content_title %}
+
+{% block breadcrumbs %}
+  {{ block.super }}
+  {% load django_bootstrap_breadcrumbs %}
+  {% breadcrumb year|date:"Y" "" %}
+{% endblock breadcrumbs %}
+
+{% block content-related %}
+<nav class="entry-navigation mt-5">
+  {% if previous_year %}
+  <a class="entry-navigation-link" href="{% url 'zinnia:entry_archive_year' previous_year|date:"Y" %}" data-toggle="tooltip" data-placement="top" title="{{ previous_year|date:"Y" }}" rel="archives"><i class="czi-arrow-left mr-2"></i><span class="d-none d-sm-inline">Пред<span class="d-none d-md-inline">ыдущий</span> год</span></a>
+  {% endif %}
+  <div class="entry-navigation-link dropup">
+    <a class="dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="czi-view-list mr-2"></i><span class="d-none d-sm-inline">{% trans "Monthly archives" %}</span></a>
+    <div class="dropdown-menu">
+      {% for date in date_list %}
+      <a class="dropdown-item" href="{% url 'zinnia:entry_archive_month' date|date:"Y" date|date:"m" %}" rel="archives">{{ date|date:"YEAR_MONTH_FORMAT" }}</a>
+      {% endfor %}
+    </div>
+  </div>
+  {% if next_year %}
+  <a class="entry-navigation-link" href="{% url 'zinnia:entry_archive_year' next_year|date:"Y" %}" data-toggle="tooltip" data-placement="top" title="{{ next_year|date:"Y" }}" rel="archives"><span class="d-none d-sm-inline">След<span class="d-none d-md-inline">ующий</span> год</span><i class="czi-arrow-right ml-2"></i></a>
+  {% endif %}
+</nav>
+{% endblock content-related %}

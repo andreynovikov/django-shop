@@ -5,5 +5,21 @@
 {% block meta-description %}{% trans "Last entries" %}{% endblock meta-description %}
 
 {% block title %}Последние записи{% endblock title %}
+{% block content_title %}Последние записи{% endblock content_title %}
 
-{% block body-class %}{{ block.super }} archive index {% now "\y\e\a\r-Y \m\o\n\t\h-m \w\e\ek-W \d\a\y-d" %}{% endblock body-class %}
+{% block slider %}
+{% get_featured_entries template="zinnia/tags/entries_slider.html" %}
+{% endblock slider %}
+
+{% block sidebar-addons %}
+{% if date_list %}
+              <div class="widget widget-links mb-grid-gutter pt-grid-gutter border-top">
+                <h3 class="widget-title">{% trans "Yearly archives" %}</h3>
+                <ul class="widget-list">
+                  {% for date in date_list %}
+                  <li class="widget-list-item"><a class="widget-list-link" href="{% url 'zinnia:entry_archive_year' date|date:"Y" %}">{{ date|date:"Y" }}</a></li>
+                  {% endfor %}
+                </ul>
+              </div>
+{% endif %}
+{% endblock sidebar-addons %}

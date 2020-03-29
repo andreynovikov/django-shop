@@ -18,17 +18,18 @@
             </ul>
           </div>
           <div class="d-none d-md-block ml-3 text-nowrap"><a class="topbar-link d-none d-md-inline-block" href="account-wishlist.html"><i class="czi-heart mt-n1"></i>Wishlist (3)</a><a class="topbar-link ml-3 pl-3 border-left border-light d-none d-md-inline-block" href="{% url 'compare' %}" rel="nofollow"><i class="czi-compare mt-n1"></i>Сравнение <span id="compare-notice">{% view "sewingworld.views.compare_notice" %}</span></a><a class="topbar-link ml-3 border-left border-light pl-3 d-none d-md-inline-block" href="{% url 'shop:user_orders' %}"><i class="czi-delivery mt-n1"></i>Отслеживание заказа</a></div>
-          </div>
         </div>
       </div>
       <!-- Remove "navbar-sticky" class to make navigation bar scrollable with the page.-->
       <div class="navbar-sticky bg-light">
         <div class="navbar navbar-expand-lg navbar-light">
             <div class="container"><a class="navbar-brand d-none d-lg-block mr-3 flex-shrink-0" href="/" style="min-width: 7rem;"><img src="{% static 'i/logo.svg' %}" alt="Швейный Мир - всероссийская сеть швейных супермаркетов.&#10; Швейные машинки, вышивальные и вязальные машины, оверлоки и аксессуары."/></a><a class="navbar-brand d-lg-none mr-2" href="/" style="min-width: 2.125rem;"><img width="34" src="{% static 'i/logo-icon.svg' %}" alt="Швейный Мир - всероссийская сеть швейных супермаркетов.&#10; Швейные машинки, вышивальные и вязальные машины, оверлоки и аксессуары."/></a>
-            <div class="input-group-overlay d-none d-lg-flex mx-4">
-              <input class="form-control appended-form-control" type="text" placeholder="Поиск товаров">
+            {% if not hide_search_form %}
+            <form class="input-group-overlay d-none d-lg-flex mx-4" action="{% url 'search' %}">
+              <input class="form-control appended-form-control product-search" name="text" type="text" placeholder="Поиск товаров" autocomplete="off">
               <div class="input-group-append-overlay"><span class="input-group-text"><i class="czi-search"></i></span></div>
-            </div>
+            </form>
+            {% endif %}
             <div class="navbar-toolbar d-flex flex-shrink-0 align-items-center">
               <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse3"><span class="navbar-toggler-icon"></span></button><a class="navbar-tool navbar-stuck-toggler ml-1 mr-2" href="#">
                 <div class="navbar-tool-icon-box"><i class="navbar-tool-icon czi-menu"></i></div>
@@ -44,11 +45,13 @@
         <div class="navbar navbar-expand-lg navbar-light navbar-stuck-menu mt-n2 pt-0 pb-2">
           <div class="container">
             <div class="collapse navbar-collapse" id="navbarCollapse3">
+              {% if not hide_search_form %}
               <!-- Search-->
-              <div class="input-group-overlay d-lg-none my-3">
+              <form class="input-group-overlay d-lg-none my-3" action="{% url 'search' %}">
                 <div class="input-group-prepend-overlay"><span class="input-group-text"><i class="czi-search"></i></span></div>
-                <input class="form-control prepended-form-control" type="text" placeholder="Поиск товаров">
-              </div>
+                <input class="form-control prepended-form-control" name="text" type="text" placeholder="Поиск товаров" autocomplete="off">
+              </form>
+              {% endif %}
               <!-- Departments menu-->
               {% get_categories_root as categories_root %}
               <ul class="navbar-nav mega-nav pr-lg-2 mr-lg-2">
@@ -86,7 +89,7 @@
                 <li class="nav-item d-md-none"><a class="nav-link" href="{% url 'stores' %}">Магазины</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'sales_actions' %}">Акции</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'django.contrib.flatpages.views.flatpage' url='articles/' %}">Справочные материалы</a></li>
-                <li class="nav-item"><a class="nav-link" href="{% url 'sales_actions' %}">Блог</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'zinnia:entry_archive_index' %}">Блог</a></li>
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown">Форум</a>
                   <ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="{% url "spirit:topic:unread:index" %}">Непрочитанные темы</a></li>

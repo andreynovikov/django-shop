@@ -5,82 +5,56 @@
     <link rel="pingback" href="/xmlrpc/" />
     <link rel="home" href="{% url 'zinnia:entry_archive_index' %}" />
 {% endblock link %}
-{% block css %}
-    <link rel="stylesheet" type="text/css" media="screen, projection" href="{% static "zinnia/theme/css/screen.css" %}" />
-    <link rel="stylesheet" type="text/css" media="print" href="{% static "zinnia/theme/css/print.css" %}" />
-
-    <!--[if lt IE 8]>
-        <link rel="stylesheet" type="text/css" media="screen, projection" href="{% static "zinnia/theme/css/ie.css" %}" />
-    <![endif]-->
-
+{% block css_wrapper %}
     <style>
-        .zinnia .complementary {
-            font-size: 80%;
-        }
-        .zinnia .entry-content img {
-            padding: 0;
-        }
-        .zinnia .breadcrumbs li:last-child {
-        display: none;
-        }
-        .zinnia .breadcrumbs li:nth-last-child(2):after {
-        content: "";
-        }
+        article .article-content img { margin: 0.4rem }
     </style>
-{% endblock css %}
-{% block script %}{% endblock script %}
+{% endblock css_wrapper %}
 {% block content_wrapper %}
-<div class="container-fluid zinnia">
-<!-- ------------------------------------------------------------------------------------------------------------ -->
-<div class="row">
-<div class="col-md-18 hfeed" role="main">
-{% block breadcrumbs %}
-{% endblock breadcrumbs %}
-{% block slider %}{% endblock slider %}
-{% block content %}
-        <div class="links">
-          <h2>{% trans "Useful links" %}</h2>
-          <ul>
-            <li>
-              <a href="{% url 'zinnia:entry_archive_index' %}" title="{% trans "Weblog index" %}">
-                {% trans "Weblog index" %}
-              </a>
-            </li>
-            <li>
-              <a href="{% url 'zinnia:sitemap' %}" title="{% trans "Sitemap" %}">
-                {% trans "Sitemap" %}
-              </a>
-            </li>
-          </ul>
+    <!-- Page Title -->
+    <div class="bg-{% block page_title_bg_color %}secondary{% endblock %} {% block page_title_class %}py-4{% endblock %}">
+      <div class="container d-lg-flex justify-content-between py-2 py-lg-3">
+        {% load django_bootstrap_breadcrumbs %}
+        {% block breadcrumbs %}
+        {% clear_breadcrumbs %}
+        {% endblock %}
+        <div class="order-lg-2 mb-3 mb-lg-0 pt-lg-2">
+          {% block render_breadcrumbs %}{% render_breadcrumbs "_breadcrumbs.html" %}{% endblock %}
         </div>
-        <div class="search">
-          <h2>{% trans "Search" %}</h2>
-          {% include "zinnia/tags/search_form.html" %}
+        <div class="order-lg-1 pr-lg-4 text-center text-lg-left">
+          <h1 class="h3 mb-0 text-{% block page_title_header_color %}dark{% endblock %}">{% block content_title %}{% endblock %}</h1>
+          {% block content_title_addon %}{% endblock %}
         </div>
-
+      </div>
     </div>
-{% endblock %}
-</div>
-<div class="col-md-6 complementary" role="complementary">
-        <h3>Поиск по блогу</h3>
-        <form method="get" action="{% url 'zinnia:entry_search' %}" class="form-inline">
-            <input type="text" name="pattern" class="form-control input-sm" placeholder="{% trans "Keywords..." %}" {% if pattern %}value="{{ pattern }}"{% endif %} />
-            <input type="submit" class="btn btn-sm btn-default" value="Искать" />
-        </form>
-          <ul class="top-navigation">
-            <li>
-              <a href="{% url 'zinnia:sitemap' %}" title="{% trans "Sitemap" %}" class="sitemap" rel="sitemap">
-                {% trans "Sitemap" %}
-              </a>
-            </li>
-            <li>
-              <a href="{% url 'zinnia:entry_feed' %}" title="{% trans "RSS feed of last entries" %}" class="feeds">
-                {% trans "RSS feed" %}
-              </a>
-            </li>
-          </ul>
-        {% block sidebar %}
-        {% endblock sidebar %}
-</div>
-</div> <!-- /container-fluid -->
+    <!-- Page Content-->
+    <div class="container pb-5 mb-2 mb-md-4">
+      {% block slider %}{% endblock slider %}
+      <div class="row pt-5 mt-2">
+        <!-- Entries list-->
+        <section class="col-lg-8">
+        {{ block.super }}
+        </section>
+        <aside class="col-lg-4">
+          <!-- Sidebar--><a class="cz-sidebar-toggler" href="#blog-sidebar" data-toggle="sidebar"><i class="czi-menu"></i>
+            <div class="font-size-xs mt-n1">Панель</div></a>
+          <div class="cz-sidebar border-left ml-lg-auto" id="blog-sidebar">
+            <div class="cz-sidebar-header box-shadow-sm">
+              <button class="close ml-auto" type="button" data-dismiss="sidebar" aria-label="Закрыть"><span class="d-inline-block font-size-xs font-weight-normal align-middle">Закрыть панель</span><span class="d-inline-block align-middle ml-2" aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="cz-sidebar-body py-lg-1" data-simplebar data-simplebar-auto-hide="true">
+              <div class="widget mb-grid-gutter">
+                <h3 class="widget-title">Поиск по блогу</h3>
+                <form class="input-group-overlay" method="get" action="{% url 'zinnia:entry_search' %}">
+                  <input class="form-control appended-form-control form-control-sm" type="text" name="pattern" placeholder="{% trans "Keywords..." %}"{% if pattern %} value="{{ pattern }}"{% endif %}>
+                  <div class="input-group-append-overlay"><span class="input-group-text"><i class="czi-search"></i></span></div>
+                </form>
+              </div>
+              {% block sidebar %}{% endblock sidebar %}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+    {% block page-content-related %}{% endblock page-content-related %}
 {% endblock %}
