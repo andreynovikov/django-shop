@@ -694,6 +694,10 @@ class Product(models.Model):
         return None
 
     @property
+    def markup(self):
+        return int((self.price - self.sp_price) / self.price * 100)
+
+    @property
     def cost(self):
         return self.price - self.discount
 
