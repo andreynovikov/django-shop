@@ -530,8 +530,8 @@ class Product(models.Model):
     dealertxt = models.TextField('Текст про официального дилера', blank=True)
     num = models.IntegerField('в наличии', default=-1, db_column=settings.SHOP_STOCK_DB_COLUMN)
     if settings.SHOP_STOCK_DB_COLUMN == 'num':
-        spb_num = models.SmallIntegerField('в наличии СПб', default=-1)
-        ws_num = models.SmallIntegerField('в наличии Опт', default=-1)
+        spb_num = models.IntegerField('в наличии СПб', default=-1)
+        ws_num = models.IntegerField('в наличии Опт', default=-1)
     stock = models.ManyToManyField(Supplier, through='Stock')
     pack_factor = models.SmallIntegerField('Количество в упаковке', default=1)
     shortdescr = models.TextField('Характеристика', blank=True)
