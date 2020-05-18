@@ -312,7 +312,7 @@ def import1c(file):
         for order in frozen_orders:
             for item in order.items.all():
                 quantity = 0
-                stock = Stock.objects.filter(product=item.product)
+                stock = Stock.objects.filter(supplier__count_in_stock=True, product=item.product)
                 if stock.exists():
                     for s in stock:
                         quantity = quantity + s.quantity + s.correction
