@@ -196,7 +196,10 @@ gtm_products = [];
 {% endfor %}
 {% endwith %}
 {% if product.article %}
-<div style="color:#888888;"><small>Код товара: {{ product.article }}</small></div>
+<div style="color:#888888"><small>Код товара: {{ product.article }}</small></div>
+{% endif %}
+{% if perms.shop_change_order %}
+<div style="color:#880000">{{ product.markup }}%</div>
 {% endif %}
 </div>
 {% else %}
