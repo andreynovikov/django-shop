@@ -19,7 +19,6 @@ window.vkAsyncInit = function() {
     return;
   vkInitHasBeenCalled = true;
   VK.Retargeting.Init("VK-RTRG-335957-1YsJG");
-  VK.Widgets.Group("vk_groups", {mode: 0, width: "234", height: "200"}, 38122758);
   {% block vk_retargeting_event %}
   VK.Retargeting.ProductEvent(3195, "view_other");
   {% endblock %}
