@@ -18,8 +18,10 @@
        <label class="control-label lead" for="email-input">E-mail для уведомлений:</label>
        <input type="text" name="email"   class="form-control input-lg" id="email-input" value="{{ user.email|force_escape }}" size="20" autocomplete="email" /><br/>
        <label class="control-label lead" for="address-input">Адрес доставки:</label>
+       <input type="hidden" name="postcode" id="postcode-input" />
+       <input type="hidden" name="city" id="city-input" />
        <input type="text" name="address" class="form-control input-lg" id="address-input"
-          value="{% firstof order.address|force_escape user.address|force_escape %}" size="20" autocomplete="postal-code address-level2 street-address" /><br/>
+          value="{% firstof order.address|force_escape user.address|force_escape %}" size="20" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" /><br/>
        <label class="control-label lead" for="comment-input">Комментарии к заказу:</label>
        <textarea name="comment" class="form-control input-lg" id="comment-input"
           value="{{ order.comment }}" rows="3"/></textarea><br/>

@@ -1,5 +1,9 @@
 {% extends "shop/base.html" %}
+{% load staticfiles %}
 {% block title %}Оформление заказа{% endblock %}
+{% block css %}
+<link href="{% static 'css/suggestions.min.css' %}" rel="stylesheet" />
+{% endblock css %}
 {% block content %}
 
     {% include "shop/_update_order.html" %}
@@ -11,8 +15,20 @@
 {% endblock %}
 
 {% block javascript %}
+    <script src="{% static 'js/jquery.suggestions.min.js' %}"></script>
     <script type="text/javascript">
         $(document).ready(function () {
+
+            $("#address-input").suggestions({
+                token: "c806020ea7ad70f8577ea4d570e231e09a1d55d0",
+                type: "ADDRESS",
+                /* Вызывается, когда пользователь выбирает одну из подсказок */
+                onSelect: function(suggestion) {
+                    $("#postcode-input").val(suggestion.data.postal_code);
+                    $("#city-input").val(suggestion.data.city);
+                }
+            });
+
 //            window.dataLayer = window.dataLayer || [];
             dataLayer.push({
               "ecommerce": {

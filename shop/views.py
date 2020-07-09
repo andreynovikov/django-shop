@@ -616,6 +616,9 @@ def update_order(request, order_id):
     if not request.user.address:
         request.user.address = request.POST.get('address')
     order.address = request.POST.get('address') or request.user.address
+    if request.POST.get('city'):
+        order.city = request.POST.get('city')
+    order.postcode = request.POST.get('postcode')
     order.comment = request.POST.get('comment')
     order.save()
     request.user.save()
@@ -625,8 +628,8 @@ def update_order(request, order_id):
     except KeyError:
         pass
     context = {
-       'order': order,
-       'updated': True
+        'order': order,
+        'updated': True
     }
     data = {
         'html': render_to_string('shop/_update_order.html', context, request),
