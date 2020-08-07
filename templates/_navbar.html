@@ -1,6 +1,5 @@
 {% load staticfiles %}
 {% load site %}
-{% load partition %}
 {% load render_view %}
       <!-- Topbar-->
       <div class="topbar topbar-dark bg-dark">
@@ -33,9 +32,16 @@
             <div class="navbar-toolbar d-flex flex-shrink-0 align-items-center">
               <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse3"><span class="navbar-toggler-icon"></span></button><a class="navbar-tool navbar-stuck-toggler ml-1 mr-2" href="#">
                 <div class="navbar-tool-icon-box"><i class="navbar-tool-icon czi-menu"></i></div>
-                <div class="navbar-tool-text ml-n3">Меню</div></a>{% if not hide_sign_in %}<a class="navbar-tool ml-1 ml-lg-0 mr-n1 mr-lg-2" href="#signin-modal" data-toggle="modal">
-                <div class="navbar-tool-icon-box"><i class="navbar-tool-icon czi-user"></i></div>
-                <div class="navbar-tool-text ml-n2">{% if request.user.is_authenticated %}<small>{{ request.user.get_full_name }}</small>личный кабинет{% else %}<small>Вход в</small>аккаунт{% endif %}</div></a>{% endif %}
+                <div class="navbar-tool-text ml-n3">Меню</div></a>
+              {% if not hide_sign_in %}
+              <div class="navbar-tool ml-1 ml-lg-0 mr-n1 mr-lg-2{% if request.user.is_authenticated %} dropdown{% endif %}"><a class="navbar-tool-icon-box d-block{% if request.user.is_authenticated %} dropdown-toggle{% endif %}"{% if request.user.is_authenticated %} href="{% url 'shop:user_orders' %}"{% else %} href="#signin-modal" data-toggle="modal"{% endif %}><i class="navbar-tool-icon czi-user"></i></a><a class="navbar-tool-text ml-n3"{% if not request.user.is_authenticated %} href="#signin-modal" data-toggle="modal"{% endif %}>{% if request.user.is_authenticated %}<small>{{ request.user.get_full_name }}</small>личный кабинет{% else %}<small>Вход в</small>аккаунт{% endif %}</a>
+                <div class="dropdown-menu dropdown-menu-right">
+                  <a class="dropdown-item" href="{% url 'shop:user_orders' %}">Заказы</a>
+                  <a class="dropdown-item" href="{% url 'shop:profile' %}">Профиль</a>
+                  {% block user_profile_links %}{% endblock %}
+                </div>
+              </div>
+              {% endif %}
               {% if not hide_cart_notice %}
               <div id="cart-holder">{% view "shop.views.view_basket_notice" %}</div>
               {% endif %}
@@ -56,32 +62,7 @@
               {% get_categories_root as categories_root %}
               <ul class="navbar-nav mega-nav pr-lg-2 mr-lg-2">
                 <li class="nav-item dropdown"><a class="nav-link dropdown-toggle pl-0" href="#" data-toggle="dropdown"><i class="czi-menu align-middle mt-n1 mr-2"></i>Каталог</a>
-                  <ul class="dropdown-menu">
-                    {% for category in categories_root.get_children|filter_qs:"active"|filter_qs:"!hidden" %}
-                    <li class="dropdown mega-dropdown"><a class="dropdown-item dropdown-toggle" href="{% url 'category' category.get_path %}" data-toggle="dropdown"><i class="czi-printer opacity-60 font-size-lg mt-n1 mr-2"></i>{{ category.name }}</a>
-                      <div class="dropdown-menu p-0">
-                        <div class="d-flex flex-wrap flex-md-nowrap px-2">
-                          {% for row in category.get_children|filter_qs:"active"|filter_qs:"!hidden"|rows_limited:14 %}
-                          <div class="mega-dropdown-column py-4 px-3">
-                            <div class="widget widget-links">
-                              <ul class="widget-list">
-                                <li class="widget-list-item product-title font-weight-medium pb-1"><a href="{% url 'category' category.get_path %}">Все {{ category.name|lower }}<i class="czi-arrow-right font-size-xs ml-1"></i></a></li>
-                                <li class="dropdown-divider pb-1"></li>
-                                {% for subcategory in row %}
-                                <li class="widget-list-item pb-1"><a class="widget-list-link" href="{% url 'category' subcategory.get_path %}">{{ subcategory.name }}</a></li>
-                                {% endfor %}
-                              </ul>
-                            </div>
-                          </div>
-                          {% endfor %}
-                          <div class="mega-dropdown-column d-none d-lg-block py-4 text-center"><a class="d-block mb-2" href="#"><img src="/static/img/shop/departments/07.jpg" alt="Computers & Accessories"/></a>
-                            <div class="font-size-sm mb-3">Starting from <span class='font-weight-medium'>$149.<small>80</small></span></div><a class="btn btn-primary btn-shadow btn-sm" href="#">See offers<i class="czi-arrow-right font-size-xs ml-1"></i></a>
-                          </div>
-                        </div>
-                      </div>
-                    </li>
-                    {% endfor %}
-                  </ul>
+                  {% include '_catalog.html' %}
                 </li>
               </ul>
               <!-- Primary menu-->
