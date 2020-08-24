@@ -494,6 +494,7 @@ class Product(models.Model):
     if settings.SHOP_SHOW_DB_COLUMN == 'show_on_sw':
         spb_show_in_catalog = models.BooleanField('витрина СПб', default=True, db_index=True)
     gift = models.BooleanField('Годится в подарок', default=False)
+    merchant = models.BooleanField('мерчант', default=False, db_index=True)
     market = models.BooleanField('маркет', default=False, db_index=True, db_column=settings.SHOP_MARKET_DB_COLUMN)
     if settings.SHOP_MARKET_DB_COLUMN == 'market':
         spb_market = models.BooleanField('маркет СПб', default=False, db_index=True)

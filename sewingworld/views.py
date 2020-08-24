@@ -93,7 +93,7 @@ def search(request):
 def products_stream(request, templates, filter_type):
     root = Category.objects.get(slug=settings.MPTT_ROOT)
     children = root.get_children()
-    if filter_type in ['yandex', 'beru']:
+    if filter_type in ['yandex', 'beru', 'google']:
         children = children.filter(ya_active=True)
     categories = {}
     for child in children:
@@ -116,6 +116,9 @@ def products_stream(request, templates, filter_type):
         'variations__exact': '',
         'categories__in': root.get_descendants(include_self=True)
     }
+    if filter_type == 'google':
+        filters['merchant'] = True
+        filters['num__gt'] = 0
     if filter_type == 'yandex':
         filters['market'] = True
         filters['num__gt'] = 0
