@@ -33,6 +33,9 @@ table thead th.sorted .sortoptions { padding: 0 }
 <th{% if o == 'product__title' %} class="sorted"{% endif %}><a href="?o=product__title">Название</a>
 {% if o == 'product__title' %}<div class="sortoptions"><a href="?o=product__title" class="toggle ascending"></a></div>{% endif %}
 </th>
+<th{% if o == 'quantity' %} class="sorted"{% endif %}><a href="?o=quantity">Кол-во</a>
+{% if o == 'quantity' %}<div class="sortoptions"><a href="?o=quantity" class="toggle ascending"></a></div>{% endif %}
+</th>
 <th{% if o == 'correction' %} class="sorted"{% endif %}><a href="?o=correction">Коррекция</a>
 {% if o == 'correction' %}<div class="sortoptions"><a href="?o=correction" class="toggle ascending"></a></div>{% endif %}
 </th>
@@ -50,6 +53,7 @@ table thead th.sorted .sortoptions { padding: 0 }
 <td>{{ item.product.article }}</td>
 <td>{{ item.product.partnumber }}</td>
 <td><a href="/admin/shop/product/{{ item.product.id }}/">{{ item.product.title }}</a></td>
+<td style="text-align: right">{{ item.quantity|floatformat }}</td>
 <td style="text-align: right">{{ item.correction|floatformat }}</td>
 <td>{{ item.reason }}</td>
 <td>{{ item.supplier }}</td>
