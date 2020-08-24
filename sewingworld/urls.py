@@ -43,7 +43,7 @@ urlpatterns = [
     # ex: /beru.xml
     url(r'^beru\.xml$', views.products, {'templates': 'beru', 'filters': 'beru'}, name='beru'),
     # ex: /google.xml
-    url(r'^google\.xml$', views.products, {'templates': 'google', 'filters': 'yandex'}, name='google'),
+    url(r'^google\.xml$', views.products, {'templates': 'google', 'filters': 'google'}, name='google'),
     # ex: /cc-prym.xml
     url(r'^cc-prym\.xml$', views.products, {'templates': 'prym', 'filters': 'prym'}, name='cc-prym'),
     # ex: /search/
