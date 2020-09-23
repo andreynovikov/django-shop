@@ -2,6 +2,25 @@
 {% block meta-keywords %}Швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов Швейный Мир, швейная, швейные, вышивальная, вышивальные, вязальная, вязальные, машинка, машина, машинки, машины, оверлок, оверлоки,  шитье, вышивка, вязание, купить, интернет, магазин, pfaff, brother, janome, bernina, husqvarna, huskystar, viking, оверлок, строчка, петля, челнок, стежок, ткань, рукав{% endblock %}
 {% block meta-description %}Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары{% endblock %}
 {% block body_header %}
+    <div class="modal-quick-view modal fade" id="quick-view" tabindex="-1">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4 class="modal-title product-title"><a href="#" data-toggle="tooltip" data-placement="right" title="Перейти на страницу описания товара"><span>{{ product.title }}</span><i class="czi-arrow-right font-size-lg ml-2"></i></a></h4>
+            <button class="close" type="button" data-dismiss="modal" aria-label="Закрыть"><span aria-hidden="true">&times;</span></button>
+          </div>
+          <div class="modal-body">
+            <div class="text-center">
+              <div class="spinner-border" role="status"><span class="sr-only">Загрузка...</span></div>
+            </div>
+          </div>
+          <div class="modal-footer d-flex justify-content-between">
+            <div><a class="nav-link-style font-size-ms" href="#" id="prev-quick-view-link"><i class="czi-arrow-left mr-2"></i><span class="d-none d-sm-inline">Предыдущий товар</span></a></div>
+            <div><a class="nav-link-style font-size-ms" href="#" id="next-quick-view-link"><span class="d-none d-sm-inline">Следующий товар</span><i class="czi-arrow-right ml-2"></i></a></div>
+          </div>
+        </div>
+      </div>
+    </div>
 {% if not hide_sign_in %}{% include '_sign_in.html' %}{% endif %}
 {% include '_navbar.html' %}
 {% endblock body_header %}
@@ -14,6 +33,16 @@
 {% endblock %}
 {% block body_underground %}
     <!-- Back To Top Button--><a class="btn-scroll-top" href="#top" data-scroll><span class="btn-scroll-top-tooltip text-muted font-size-sm mr-2">Начало</span><i class="btn-scroll-top-icon czi-arrow-up">   </i></a>
+    <!-- Toast: Added to Cart-->
+    <div class="toast-container toast-bottom-center">
+      <div class="toast mb-3" id="cart-toast" data-delay="5000" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-success text-white"><i class="czi-check-circle mr-2"></i>
+          <h6 class="font-size-sm text-white mb-0 mr-auto">Added to cart!</h6>
+          <button class="close text-white ml-2 mb-1" type="button" data-dismiss="toast" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="toast-body">This item has been added to your cart.</div>
+      </div>
+    </div>
 {% endblock %}
 {% block javascript_wrapper %}
 {% block javascript %}{% endblock %}

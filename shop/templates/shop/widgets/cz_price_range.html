@@ -1,0 +1,22 @@
+<div class="cz-range-slider"
+     data-start-min="{{ widget.subwidgets.0.value }}"
+     data-start-max="{{ widget.subwidgets.1.value }}"
+     data-min="{{ widget.attrs.min_value }}"
+     data-max="{{ widget.attrs.max_value }}"
+     data-step="{{ widget.attrs.step }}">
+  <div class="cz-range-slider-ui"></div>
+  <div class="d-flex pb-1">
+    <div class="w-50 pr-2 mr-2">
+      <div class="input-group input-group-sm">
+        <input class="form-control cz-range-slider-value-min" type="text" name="{{ widget.subwidgets.0.name }}"{% include "django/forms/widgets/attrs.html" with widget=widget.subwidgets.0 %}>
+        <div class="input-group-append"><span class="input-group-text">руб</span></div>
+      </div>
+    </div>
+    <div class="w-50 pl-2">
+      <div class="input-group input-group-sm">
+        <input class="form-control cz-range-slider-value-max" type="text" name="{{ widget.subwidgets.1.name }}"{% include "django/forms/widgets/attrs.html" with widget=widget.subwidgets.1 %}>
+        <div class="input-group-append"><span class="input-group-text">руб</span></div>
+      </div>
+    </div>
+  </div>
+</div>

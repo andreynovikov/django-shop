@@ -94,7 +94,7 @@
     document.addEventListener("DOMContentLoaded", function() {
         ymaps.ready(function() {
             var coords = [{{ store.latitude|unlocalize }}, {{ store.longitude|unlocalize }}];
-            var myMap = new ymaps.Map('map-container', {center: coords, zoom: 14, controls: ['zoomControl', 'typeSelector',  'fullscreenControl', 'geolocationControl', 'rulerControl']});
+            var myMap = new ymaps.Map('map-container', {center: coords, zoom: 14, controls: ['zoomControl', 'typeSelector',  'fullscreenControl', 'geolocationControl']});
             var myPlacemark = new ymaps.Placemark(coords, {}, {preset: 'islands#blueStarCircleIcon'});
             myMap.geoObjects.add(myPlacemark);
         });

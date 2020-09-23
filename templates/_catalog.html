@@ -1,34 +1,83 @@
 {% load site %}
 {% load partition %}
-                  <ul class="dropdown-menu">
-                    {% for category in categories_root.get_children|filter_qs:"active"|filter_qs:"!hidden" %}
+            <div class="container" style="position: relative">
+            <div class="collapse card border-0 box-shadow" id="catalogCollapse" style="position: absolute; left: 0; right: 0; top: 0; z-index: 1000">
+              <div class="card-body">
+
+                <div class="d-flex flex-wrap flex-md-nowrap justify-content-between mb-4">
+                  {% get_object "shop.Category" "339" as category %}
+                  <a class="media w-100 align-items-center bg-faded-info rounded-lg py-2 pl-2 mb-4 mx-2" href="{% url 'category' category.get_path %}">
+                    <img src="/media/cache/aa/a0/aaa0178369c842e19ba0512cb7ff4c01.jpg" width="120" heigth="120">
+                    <div class="media-body py-4 px-3">
+                      <div class="h5 mb-3">{{ category.name }}</div>
+                      <div class="text-info font-size-sm">Посмотреть все<i class="czi-arrow-right font-size-xs ml-1"></i></div>
+                    </div>
+                  </a>
+                  {% get_object "shop.Category" "473" as category %}
+                  <a class="media w-100 align-items-center bg-faded-warning rounded-lg py-2 pl-2 mb-4 mx-2" href="{% url 'category' category.get_path %}">
+                    <img src="/media/cache/3d/2c/3d2cd1a4aeb5f20bde61ed0f97b849b8.jpg" width="120" heigth="120">
+                    <div class="media-body py-4 px-3">
+                      <div class="h5 mb-2">{{ category.name }}</div>
+                      <div class="text-warning font-size-sm">Посмотреть все<i class="czi-arrow-right font-size-xs ml-1"></i></div>
+                    </div>
+                  </a>
+                </div>
+
+                {% for row in categories_root.get_children|filter_qs:"active"|filter_qs:"!hidden"|filter_qs_by_pk:"14,15,16,17"|columns:2 %}
+                <div class="d-flex flex-wrap flex-md-nowrap">
+                  {% for category in row %}
+                  <div class="w-100 mb-3 mx-4">
+                    <div class="h6 mb-3"><a href="{% url 'category' category.get_path %}"><i class="czi-printer opacity-60 font-size-lg mt-n1 mr-2"></i>{{ category.name }}</a></div>
                     {% if category.get_children|filter_qs:"active"|filter_qs:"!hidden"|length %}
-                    <li class="dropdown mega-dropdown"><a class="dropdown-item dropdown-toggle" href="{% url 'category' category.get_path %}" data-toggle="dropdown"><i class="czi-printer opacity-60 font-size-lg mt-n1 mr-2"></i>{{ category.name }}</a>
-                      <div class="dropdown-menu p-0">
-                        <div class="d-flex flex-wrap flex-md-nowrap px-2">
-                          {% for row in category.get_children|filter_qs:"active"|filter_qs:"!hidden"|rows_limited:13 %}
-                          <div class="mega-dropdown-column py-md-4{% if forloop.first %} pt-4{% endif %}{% if forloop.last %} pb-4{% endif %} px-3">
-                            <div class="widget widget-links">
-                              <ul class="widget-list">
-                                {% if forloop.first %}
-                                <li class="widget-list-item product-title font-weight-medium pb-1"><a href="{% url 'category' category.get_path %}">Все {{ category.name|lower }}<i class="czi-arrow-right font-size-xs ml-1"></i></a></li>
-                                <li class="dropdown-divider pb-1"></li>
-                                {% endif %}
-                                {% for subcategory in row %}
-                                <li class="widget-list-item pb-1"><a class="widget-list-link" href="{% url 'category' subcategory.get_path %}">{{ subcategory.name }}</a></li>
-                                {% endfor %}
-                              </ul>
-                            </div>
-                          </div>
+                    <div class="ml-4">
+                      <div class="widget widget-links">
+                        <ul class="widget-list">
+                          {% for subcategory in category.get_children|filter_qs:"active"|filter_qs:"!hidden" %}
+                          <li class="widget-list-item pb-1"><a class="widget-list-link" href="{% url 'category' subcategory.get_path %}">{{ subcategory.name }}</a></li>
                           {% endfor %}
-                          <div class="mega-dropdown-column d-none d-lg-block py-4 text-center"><a class="d-block mb-2" href="#"><img src="https://demo.createx.studio/cartzilla/img/shop/departments/07.jpg" alt="Computers & Accessories"/></a>
-                            <div class="font-size-sm mb-3">Starting from <span class='font-weight-medium'>$149.<small>80</small></span></div><a class="btn btn-primary btn-shadow btn-sm" href="#">See offers<i class="czi-arrow-right font-size-xs ml-1"></i></a>
-                          </div>
-                        </div>
+                        </ul>
                       </div>
-                    </li>
-                    {% else %}
-                    <li class="dropdown"><a class="dropdown-item" href="{% url 'category' category.get_path %}"><i class="czi-printer opacity-60 font-size-lg mt-n1 mr-2"></i>{{ category.name }}</a></li>
+                    </div>
                     {% endif %}
+                  </div>
+                  {% endfor %}
+                </div>
+                {% endfor %}
+
+                {% for category in categories_root.get_children|filter_qs:"active"|filter_qs:"!hidden"|filter_qs_by_pk:"!339,473,324,14,15,16,17" %}
+                <div class="mx-4 mb-3{% if forloop.first %} mt-4{% endif %}">
+                  <div class="h7 mb-3"><a href="{% url 'category' category.get_path %}"><i class="czi-printer opacity-60 font-size-lg mt-n1 mr-2"></i>{{ category.name }}</a></div>
+                  {% if category.get_children|filter_qs:"active"|filter_qs:"!hidden"|length %}
+                  <div class="d-flex flex-wrap flex-md-nowrap">
+                    {% for row in category.get_children|filter_qs:"active"|filter_qs:"!hidden"|rows:2 %}
+                    <div class="w-100{% if forloop.last %} pb-2{% endif %} mx-4">
+                      <div class="widget widget-links{% if forloop.last %} ml-md-4{% endif %}">
+                        <ul class="widget-list">
+                          {% for subcategory in row %}
+                          <li class="widget-list-item pb-1 mb-1"><a class="widget-list-link" href="{% url 'category' subcategory.get_path %}">{{ subcategory.name }}</a></li>
+                          {% endfor %}
+                        </ul>
+                      </div>
+                    </div>
                     {% endfor %}
-                  </ul>
+                  </div>
+                  {% endif %}
+                </div>
+                {% endfor %}
+
+                <div class="d-flex flex-wrap flex-md-nowrap justify-content-between mt-4">
+                  {% get_object "shop.Category" "324" as category %}
+                  <a class="media w-100 align-items-center bg-faded-success rounded-lg py-2 pl-2 mb-4 mx-4" href="{% url 'category' category.get_path %}">
+                    <img src="/media/cache/e9/48/e948b23d3ad751fa16b35c561e1be1e9.jpg" width="120" heigth="120">
+                    <div class="media-body py-4 px-3">
+                      <div class="h5 mb-2">{{ category.name }}</div>
+                      <div class="text-success font-size-sm">Посмотреть все<i class="czi-arrow-right font-size-xs ml-1"></i></div>
+                    </div>
+                  </a>
+                  <div class="w-100"></div>
+                </div>
+
+            </div>
+            </div>
+            </div>
+

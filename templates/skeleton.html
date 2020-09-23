@@ -1,73 +1,47 @@
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE|default:'ru' }}">
 {% load staticfiles %}
+{% block html_page %}
 <head>
-<!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-NNFBJP');</script>
-<!-- End Google Tag Manager -->
-    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>{% block title %}{% endblock title %}{% block title-page %}{% endblock title-page %} - Швейный Мир</title>
     <meta name="description" content="{% block meta-description %}{% endblock meta-description %}{% block meta-description-page %}{% endblock meta-description-page %}" />
     <meta name="keywords" content="{% block meta-keywords %}{% endblock meta-keywords %}" />
     <meta name="google-site-verification" content="HVT2yGaI68QX1ZwiLnTV6rVQiAZCCfg7Qfj5HuEP9bE" />
     <meta name="yandex-verification" content="54fc37eb003d8618" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="theme-color" content="#ffffff">
     {% block meta %}{% endblock meta %}
-    <title>{% block title %}{% endblock title %}{% block title-page %}{% endblock title-page %} - Швейный Мир</title>
+    <link rel="stylesheet" media="screen" href="{% static 'css/vendor.min.css' %}">
+    <link rel="stylesheet" media="screen" id="main-styles" href="{% static 'css/theme.min.css' %}">
     {% block link %}{% endblock link %}
-<link rel="stylesheet" href="{% static 'css/jquery-ui-1.10.3.custom.min.css' %}"/>
-<link rel="stylesheet" href="{% static 'css/magnific-popup.css' %}">
-<link rel="stylesheet" href="{% static 'reviews/css/reviews.css' %}"/>
-<link rel="stylesheet" href="{% static 'reviews/css/star-rating.css' %}"/>
-<link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
-<style>
-.sw-p-l-rating {
-  text-align: right;
-  padding-right: 65px;
-}
-.sw-p-l-rating > .gl-star-rating-stars {
-  position: absolute;
-  z-index: 1;
-}
-.sw-p-l-rating > .gl-star-rating-stars > span {
-  width: 12px; height: 12px; background-size: 12px; margin: 0 1px 0 0;
-}
-</style>
-{% block css_wrapper %}
-{% endblock %}
-<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-<!--[if lt IE 9]>
-    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-<![endif]-->
+    <style>
+        .white-popup-block img { margin: 10px }
+        div.product-card > div.card-body > div > ul { padding-left: 20px }
+        div.product-spec span.border-bottom { line-height: 1.1 }
+        div.product-spec span.border-bottom > span { background: #fff }
+        .opener-ajax > [class^="czi-"], .opener-ajax > [class*=" czi-"], .opener-html > [class^="czi-"], .opener-html > [class*=" czi-"] { opacity: .5 }
+        .opener-ajax:hover > [class^="czi-"], .opener-ajax:hover > [class*=" czi-"], .opener-html:hover > [class^="czi-"], .opener-html:hover > [class*=" czi-"] { opacity: 1 }
+    </style>
+    {% block css_wrapper %}{% endblock %}
 </head>
 <body>
-{% block body_top %}
-{% endblock %}
-<header>
-{% block body_header %}
-{% endblock %}
+{% block body_top %}{% endblock %}
+<header class="box-shadow-sm">
+{% block body_header %}{% endblock %}
 </header>
-{% block content_wrapper %}
-{% endblock %}
-{% block body_footer %}
-{% endblock %}
-<script src="{% static 'js/jquery-2.1.1.min.js' %}"></script>
-<script src="{% static 'js/jquery-ui-1.10.3.custom.min.js' %}"></script>
-<script src="{% static 'js/inputmask.min.js' %}"></script>
-<script src="{% static 'js/inputmask.extensions.min.js' %}"></script>
-<script src="{% static 'js/jquery.inputmask.min.js' %}"></script>
-<script src="{% static 'js/jquery.magnific-popup.min.js' %}"></script>
-<script src="{% static 'js/jquery.dump.js' %}"></script>
-<script src="{% static 'js/js.cookie.js' %}"></script>
-<script src="{% static 'bootstrap/js/bootstrap.min.js' %}"></script>
-<script src="{% static 'js/site.js' %}?190725"></script>
-{% block javascript_wrapper %}
-{% endblock %}
-{% block body_bottom %}
-{% endblock %}
+{% block content_wrapper %}{% endblock %}
+<footer class="bg-dark pt-5">
+{% block body_footer %}{% endblock %}
+</footer>
+{% block body_underground %}{% endblock %}
+    <script src="{% static 'js/vendor.min.js' %}"></script>
+    <script src="{% static 'js/theme.min.js' %}"></script>
+    <script src="{% static 'js/inputmask.min.js' %}"></script>
+    <script src="{% static 'js/site.js' %}"></script>
+    <script src="{% static 'js/shop.js' %}"></script>
+{% block javascript_wrapper %}{% endblock %}
+{% block body_bottom %}{% endblock %}
 </body>
+{% endblock html_page %}
 </html>

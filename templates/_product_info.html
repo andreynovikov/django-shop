@@ -38,6 +38,6 @@
     {% else %}
     <a class="btn btn-secondary btn-sm btn-block mb-2" href="{% url 'product' product.code %}">Подробное описание</a>
     {% endif %}
-    <div class="text-center"><a class="nav-link-style font-size-ms" href="#quick-view" data-toggle="modal"><i class="czi-eye align-middle mr-1"></i>Quick view</a></div>
+    <div class="text-center"><a class="nav-link-style font-size-ms product-quick-view" href="{% url 'product_quick_view' product.code %}" data-href="{% url 'product' product.code %}" data-title="{{ product.title }}"><i class="czi-eye align-middle mr-1"></i>Быстрый просмотр</a></div>
   </div>
 </div>

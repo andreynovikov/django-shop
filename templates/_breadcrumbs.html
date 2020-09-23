@@ -1,5 +1,5 @@
           <nav aria-label="breadcrumb">
-            <ol class="breadcrumb {% block breadcrumb_color %}{% endblock %}flex-lg-nowrap justify-content-center justify-content-lg-start">
+            <ol class="breadcrumb {% block breadcrumb_color %}{% endblock %}flex-lg-nowrap justify-content-center justify-content-lg-start{% if breadcrumbs.0.1 == 'Каталог' %} d-lg-block{% endif %}">
               <li class="breadcrumb-item"><a class="text-nowrap" href="/"><i class="czi-home"></i>К первой странице</a></li>
               {% for url, label in breadcrumbs %}
               {% if forloop.last %}

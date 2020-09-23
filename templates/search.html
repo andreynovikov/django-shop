@@ -1,250 +1,127 @@
-{% extends "base.html" %}
-{% load staticfiles %}
-{% block title %}Поиск{% endblock %}
-{% block css %}
-  <style>
-    .sw-header-lower-block { display: none }
-    #filters { margin: 10px 0 0 10px }
-  </style>
+{% extends "page_overlapped.html" %}
+{% load django_bootstrap_breadcrumbs %}
+{% load site %}
+{% load rupluralize %}
+{% block title %}Поиск товаров{% endblock %}
+{% block content_title %}Поиск товаров{% endblock %}
+{% block body_header %}
+{% with hide_search_form=True %}
+{{ block.super }}
+{% endwith %}
+{% endblock %}
+{% block breadcrumbs %}
+    {{ block.super }}
+    {% breadcrumb "Поиск" "" %}
 {% endblock %}
 {% block content %}
-<h1>Поиск</h1>
-<div id="filters" class="panel panel-default pull-right"><div class="panel-body">
-  <form id="filtersForm" class="form-inline">
-    <div class="checkbox">
-      <label><input autocomplete="off" name="sort" value="aprice" type="checkbox"/>
-      Сортировать по цене</label>
-    </div>
-    <div>
-      <div>Цена</div>
-      <input name="priceLow" autocomplete="off" placeholder="от"/><input name="priceHigh" autocomplete="off" placeholder="до"/>
-    </div>
-    <div class="checkbox">
-      <label><input autocomplete="off" name="available" value="true" type="checkbox">
-      Есть в наличии</label>
-    </div>
-    <div id="filterCategories">
-    </div>
-    <button type="submit" class="btn">Применить</button>
-  </form>
-</div></div>
+    <!-- Page Content-->
+    <div class="container pb-5 mb-2 mb-md-4">
+      <div class="row">
+        <!-- Sidebar-->
+        <aside class="col-lg-4 pt-4 pt-lg-0">
+          <!-- Sidebar--><a class="cz-sidebar-toggler" href="#shop-sidebar" data-toggle="sidebar"><i class="czi-menu"></i>
+            <div class="font-size-xs mt-n1">Панель</div></a>
+          <div class="cz-sidebar rounded-lg box-shadow-lg" id="shop-sidebar">
+            <div class="cz-sidebar-header box-shadow-sm">
+              <button class="close ml-auto" type="button" data-dismiss="sidebar" aria-label="Закрыть"><span class="d-inline-block font-size-xs font-weight-normal align-middle">Закрыть панель</span><span class="d-inline-block align-middle ml-2" aria-hidden="true">&times;</span></button>
+            </div>
+            <div class="cz-sidebar-body" data-simplebar data-simplebar-auto-hide="true">
+              <form method="get" action="{% url 'search' %}" id="sw-search-form">
+                <div class="widget mb-4 pb-4 border-bottom">
+                  <input class="form-control font-weight-bold" name="text" type="text" value="{{ search_text }}" autocomplete="off">
+                </div>
+                {% if product_filter %}
+                {% load widget_tweaks %}
+                {{ product_filter.form.non_field_errors }}
 
-<div id="documents"></div>
-<ul id="pages"></ul>
+                {% for hidden_field in product_filter.form.hidden_fields %}
+                  {{ hidden_field.errors }}
+                  {{ hidden_field }}
+                {% endfor %}
 
-{% verbatim %}
-<script id="documentTemplate" type="text/x-jsrender">
-<div class="sw-p-l panel panel-default">
-  <div class="panel-body">
-    <div class="sw-p-l-image text-center">{{if snippet}}<a href="{{:url}}"><img src="{{:snippet}}" alt="{{:name}}"/></a>{{/if}}</div>
-    <div class="sw-p-l-name">
-      <h3 class="sw-p-l-name-h"><a href="{{:url}}">{{:name}}</a></h3>
-      <div class="sw-p-l-brif">
-      {{:description}}
+                {% for field in product_filter.form.visible_fields %}
+                {% get_class_name field.field as class %}
+                {% if not class == 'MultipleChoiceField' or not field.field.choices|length < 2 %}{# do not show filters with only one choice #}
+                {% with field_name=field.label|parse_field_name %}
+                <div class="widget mb-4 pb-4 border-bottom">
+                  <label class="d-block widget-title" for="{{ field.id_for_label }}">{{ field_name.0 }}</label>
+                  {# field.errors #}
+                  {# field is BoundField, field.field is field itself #}
+                  {# if class == 'RangeField' or class == 'DecimalField' #}
+                  {# render_field field class="slider_input ajaxclick" size="2" autocomplete="off" #}
+                  {# else #}
+                  {% render_field field class="ajaxclick" %}
+                  {# endif #}
+                  {% if field.name != 'price' %}
+                  {% if field_name.1 %}<label>{{ field_name.1 }}</label>{% endif %}{{ field.help_text }}
+                  {% endif %}
+                </div>
+                {% endwith %}
+                {% endif %}
+                {% endfor %}
+                {% endif %}
+                <button class="btn btn-primary btn-block" type="submit">Искать</button>
+              </form>
+            </div>
+          </div>
+        </aside>
+        <!-- Content  -->
+        <section class="col-lg-8">
+          <!-- Toolbar-->
+          <div class="d-flex justify-content-center justify-content-sm-between align-items-center pt-lg-2 pb-4 pb-sm-5 mt-n2 mt-lg-0">
+            <div class="d-flex flex-wrap">
+              <div class="form-inline flex-nowrap mr-3 mr-sm-4 pb-3">
+                <span class="font-size-sm text-light opacity-75 text-nowrap ml-2 d-none d-md-block">{{ products.paginator.count|rupluralize:"Найден,Найдено,Найдено" }} {{ products.paginator.count }} {{ products.paginator.count|rupluralize:"товар,товара,товаров" }}</span>
+              </div>
+            </div>
+            {% if products.has_other_pages %}
+            <div class="d-flex pb-3">{% if products.has_previous %}<a class="nav-link-style nav-link-light mr-3" href="?{% query_transform request page=products.previous_page_number %}"><i class="czi-arrow-left"></i></a>{% endif %}<span class="font-size-md text-light">{{ products.number }} / {{ products.paginator.num_pages }}</span>{% if products.has_next %}<a class="nav-link-style nav-link-light ml-3" href="?{% query_transform request page=products.next_page_number %}"><i class="czi-arrow-right"></i></a>{% endif %}</div>
+            {% endif %}
+            <div class="d-none d-sm-flex pb-3"><a class="btn btn-icon nav-link-style bg-light text-dark disabled opacity-100 mr-2" href="#"><i class="czi-view-grid"></i></a><a class="btn btn-icon nav-link-style nav-link-light" href="shop-list-ls.html"><i class="czi-view-list"></i></a></div>
+          </div>
+          <!-- Products grid-->
+          <div class="row mx-n2">
+            {% for product in products %}
+            <!-- Product-->
+            <div class="col-md-4 col-sm-6 px-2 mb-4">
+              {% include "_product_info.html" %}
+              <hr class="d-sm-none">
+            </div>
+            {% endfor %}
+          </div>
+          {% if products.has_other_pages %}
+          <hr class="my-3">
+          <!-- Pagination-->
+          <nav class="d-flex justify-content-between pt-2" aria-label="Переключение страниц">
+            <ul class="pagination">
+              {% if products.has_previous %}
+              <li class="page-item"><a class="page-link" href="?{% query_transform request page=products.previous_page_number %}"><i class="czi-arrow-left mr-2"></i>Пред<span class="d-none d-sm-inline d-md-none d-xl-inline">ыдущая</span></a></li>
+              {% endif %}
+            </ul>
+            <ul class="pagination">
+              {% for page in products.paginator.page_range %}
+              {% if page == products.number %}
+              <li class="page-item d-md-none"><span class="page-link page-link-static">{{ products.number }} / {{ products.paginator.num_pages }}</span></li>
+              <li class="page-item active d-none d-md-block" aria-current="page"><span class="page-link">{{ products.number }}<span class="sr-only">(текущая)</span></span></li>
+              {% elif page >= min_page and page <= max_page or page == 1 or page == products.paginator.num_pages %}
+              {% if max_page < products.paginator.num_pages and page == products.paginator.num_pages %}
+              <li class="page-item d-none d-md-block">&hellip;</li>
+              {% endif %}
+              <li class="page-item d-none d-md-block"><a class="page-link" href="?{% query_transform request page=page %}">{{ page }}</a></li>
+              {% if min_page > 1 and page == 1 %}
+              <li class="page-item d-none d-md-block">&hellip;</li>
+              {% endif %}
+              {% endif %}
+              {% endfor %}
+            </ul>
+            <ul class="pagination">
+              {% if products.has_next %}
+              <li class="page-item"><a class="page-link" href="?{% query_transform request page=products.next_page_number %}">След<span class="d-none d-sm-inline d-md-none d-xl-inline">ующая</span><i class="czi-arrow-right ml-2"></i></a></li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
+        </section>
       </div>
     </div>
-    <div class="sw-p-l-prices" style="display:block; text-align:center; width:100%">
-      <span class="sw-p-l-price">{{:price}}</span>&nbsp;руб.
-    </div>
-    <!--
-    {{if available == true}}
-    <div class="product-nal-true" style="text-align:center; width:100%">В наличии</div>
-    {{else}}
-    <div class="product-nal-false" style="text-align:center; width:100%">Закончились</div>
-    {{/if}}
-    -->
-    <div class="sw-p-l-buy" style="display:block; text-align:center; width:100%">
-    <!--
-      {{if available == true}}
-      <a href="/shop/basket/add/{{:id}}/"
-      class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{:id}}">Купить</a>
-      {{else}}
-      <a href="/shop/basket/add/{{:id}}/"
-      class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{:id}}">Сообщить о поступлении</a>
-      {{/if}}
-    -->
-    </div>
-  </div>
-</div>
-</script>
-<script id="categoryTemplate" type="text/x-jsrender">
-  <div><div class="radio">
-    <label><input name="categoryId" autocomplete="off" value="{{:id}}" type="radio">
-    {{:value}}</label>
-  </div></div>
-</script>
-{% endverbatim %}
-{% endblock %}
-{% block javascript %}
-<script src="{% static 'js/jsrender.min.js' %}"></script>
-<!-- http://esimakin.github.io/twbs-pagination/ -->
-<script src="{% static 'js/jquery.twbsPagination.min.js' %}"></script>
-<script>
-(function() {
-  var yandexAPI = "https://catalogapi.site.yandex.net/v1.0";
-  var apiKey = "067e33cf-0ff4-4dbc-851b-0861a04c7af8";
-
-  var categoryFilter = 0;
-
-  var $documents = $("#documents");
-  var $categories = $("#filterCategories");
-  var $pages = $("#pages");
-  var $form = $("#filtersForm");
-  var $topForm = $("#topSearchForm");
-  var $searchText = $("#topSearchText");
-
-  var documentTemplate = $.templates("#documentTemplate");
-  var categoryTemplate = $.templates("#categoryTemplate");
-
-  var defaultOpts = {
-    initiateStartPageClick: false,
-    hideOnlyOnePage: true,
-    first: '<span aria-hidden="true">&laquo;</span>',
-    prev: '<span aria-hidden="true">&lsaquo;</span>',
-    next: '<span aria-hidden="true">&rsaquo;</span>',
-    last: '<span aria-hidden="true">&raquo; {{total_pages}}</span>'
-  };
-  $pages.twbsPagination(defaultOpts);
-
-  /**
-   * Get the value of a querystring
-   * @param  {String} field The field to get the value of
-   * @param  {String} url   The URL to get the value from (optional)
-   * @return {String}       The field value
-   */
-  var getQueryString = function(field, url) {
-    var href = url ? url : window.location.href;
-    var reg = new RegExp('[?&]' + field + '=([^&#]*)', 'i');
-    var string = reg.exec(href);
-    return string ? decodeURIComponent(string[1].replace(/\+/g, " ")) : null;
-  };
-
-  var updateQueryString = function(queryString, key, value) {
-    if (typeof value === 'string')
-      value = value.replace(/\s/g, "+");
-    newParam = key + '=' + value;
-
-    if (queryString) {
-      var updateRegex = new RegExp('([\?&])' + key + '[^&]*');
-      var removeRegex = new RegExp('([\?&])' + key + '=[^&;]+[&;]?');
-
-      if (typeof value == 'undefined' || value == null || value == '' || value == '0') { // Remove param if value is empty
-        params = queryString.replace(removeRegex, "$1");
-        params = params.replace( /[&;]$/, "" );
-      } else if (queryString.match(updateRegex) !== null) { // If param exists already, update it
-        params = queryString.replace(updateRegex, "$1" + newParam);
-      } else { // Otherwise, add it to end of query string
-        params = queryString + '&' + newParam;
-      }
-    }
-
-    return params;
-  };
-
-  var callSearch = function(text, page, category) {
-    page = page || 1;
-    page--;
-    perPage = 10;
-
-    var request = {
-      apikey: apiKey,
-      searchid: "2316299",
-      text: text,
-      page: page,
-      perPage: perPage
-    };
-
-    var queryString = window.location.search;
-    queryString = updateQueryString(queryString, "text", text);
-
-    categoryFilter = $("input[name=categoryId]:checked").val() || category || 0;
-    if (categoryFilter > 0)
-      request["category_id"] = categoryFilter;
-    queryString = updateQueryString(queryString, "category_id", categoryFilter);
-    var priceLowFilter = Number($("input[name=priceLow]").val());
-    if (priceLowFilter > 0)
-      request["price_low"] = priceLowFilter;
-    queryString = updateQueryString(queryString, "price_low", priceLowFilter);
-    var priceHighFilter = Number($("input[name=priceHigh]").val());
-    if (priceHighFilter > 0)
-      request["price_high"] = priceHighFilter;
-    queryString = updateQueryString(queryString, "price_high", priceHighFilter);
-    var availableFilter = $("input[name=available]:checked").val();
-    if (availableFilter)
-      request["available"] = availableFilter;
-    queryString = updateQueryString(queryString, "available", availableFilter);
-    var sortFilter = $("input[name=sort]:checked").val();
-    if (sortFilter)
-      request["how"] = sortFilter;
-    queryString = updateQueryString(queryString, "how", sortFilter);
-    if (page > 0)
-      queryString = queryString + '#' + (page + 1);
-
-    history.pushState(null, null, queryString);
-    //$.getJSON(yandexAPI, request).done(function(data) {
-    $.ajax({dataType: "json", url: yandexAPI, data: request}).done(function(data) {
-      //$result.text(JSON.stringify(data, null, '\t'));
-
-      $categories.empty();
-      $categories.append(categoryTemplate.render({id: 0, value: "Все разделы"}));
-      $.each(data.categoryList, function(i, category) {
-	$categories.append(categoryTemplate.render(category));
-      });
-      $("input[name=categoryId]").val([categoryFilter]);
-
-      $pages.twbsPagination('destroy');
-
-      if (! data.documents) {
-        $documents.text("По вашему запросу ничего не нашлось. Попробуйте сократить запрос или задать его по-другому. Убедитесь, что название бренда и модели написано правильно.");
-        return;
-      }
-      $documents.empty();
-      $.each(data.documents, function(i, document) {
-        //$( "<p>" ).attr( "src", item.media.m ).appendTo( "#documents" );
-        document["snippet"] = document["snippet"].replace(/^http:\/\//i, 'https://');
-	$documents.append(documentTemplate.render(document));
-      });
-      $('.addProduct').each(addProduct);
-
-      $pages.twbsPagination($.extend({}, defaultOpts, {
-        startPage: data.page + 1,
-        totalPages: Math.ceil(data.docsTotal / data.perPage),
-        onPageClick: function (evt, page) {
-          // initiateStartPageClick: false + hideOnlyOnePage: true do not work together
-          if (page != data.page + 1)
-            callSearch(text, page);
-        }
-      }));
-    });
-  };
-
-  $topForm.on("submit", function() {
-     $form.submit();
-     return false;
-  });
-
-  $form.on("submit", function() {
-     callSearch($searchText.val());
-     return false;
-  });
-
-  var text = getQueryString('text');
-  if (text != null) {
-    $searchText.val(text);
-    var category = getQueryString('category_id');
-    $("input[name=priceLow]").val(getQueryString('price_low'));
-    $("input[name=priceHigh]").val(getQueryString('price_high'));
-    $("input[name=available]").prop('checked', getQueryString('available') == 'true');
-    $("input[name=sort]:checked").prop('checked', getQueryString('how') == 'aprice');
-    page = 1;
-    var hash = location.hash.substr(1);
-    if (hash > 0)
-        page = hash;
-    callSearch(text, page, category);
-  }
-})();
-</script>
-{% endblock javascript %}
-{% block vk_retargeting_event %}
-  VK.Retargeting.ProductEvent(3195, "view_search");
 {% endblock %}

@@ -1,6 +1,13 @@
-{% extends "base.html" %}
+{% extends "page.html" %}
 {% block title %}{{ flatpage.title }}{% endblock %}
+{% load django_bootstrap_breadcrumbs %}
+{% block breadcrumbs %}
+    {{ block.super }}
+    {% breadcrumb flatpage.title '' %}
+{% endblock %}
+{% block content_title %}{{ flatpage.title }}{% endblock %}
 {% block content %}
-<h1>{{ flatpage.title }}</h1>
+<div class="container py-5 mb-2 mb-md-4">
 {{ flatpage.content }}
+</div>
 {% endblock %}

@@ -60,13 +60,11 @@
               {% endif %}
               <!-- Departments menu-->
               {% get_categories_root as categories_root %}
-              <ul class="navbar-nav mega-nav pr-lg-2 mr-lg-2">
-                <li class="nav-item dropdown"><a class="nav-link dropdown-toggle pl-0" href="#" data-toggle="dropdown"><i class="czi-menu align-middle mt-n1 mr-2"></i>Каталог</a>
-                  {% include '_catalog.html' %}
-                </li>
+              <ul class="navbar-nav pr-lg-2 mr-lg-2">
+                <li class="nav-item"><a class="btn btn-outline-primary dropdown-toggle" href="#catalogCollapse" role="button" data-toggle="collapse" aria-expanded="false" aria-controls="catalogCollapse"><i class="czi-menu align-middle mt-n1 mr-2" id="catalogCollapseIcon"></i>Каталог</a></li>
               </ul>
               <!-- Primary menu-->
-              <ul class="navbar-nav">
+              <ul class="navbar-nav d-lg-flex" id="mainNavbar">
                 <li class="nav-item d-md-none"><a class="nav-link" href="{% url 'stores' %}">Магазины</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'sales_actions' %}">Акции</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'django.contrib.flatpages.views.flatpage' url='articles/' %}">Справочные материалы</a></li>
@@ -85,3 +83,4 @@
           </div>
         </div>
       </div>
+      {% include '_catalog.html' %}
