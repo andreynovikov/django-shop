@@ -19,6 +19,7 @@ def index(request):
         'top_adverts': Advert.objects.filter(active=True, place='index_top', sites=site).order_by('order'),
         'middle_adverts': Advert.objects.filter(active=True, place='index_middle', sites=site).order_by('order'),
         'bottom_adverts': Advert.objects.filter(active=True, place='index_bottom', sites=site).order_by('order'),
+        'ground_adverts': Advert.objects.filter(active=True, place='index_ground', sites=site).order_by('order'),
         'actions': SalesAction.objects.filter(active=True, sites=site).order_by('order'),
         'gift_products': Product.objects.filter(enabled=True, show_on_sw=True, gift=True).order_by('-price')[:25],
         'recomended_products': Product.objects.filter(enabled=True, show_on_sw=True, recomended=True).order_by('-price')[:25],
