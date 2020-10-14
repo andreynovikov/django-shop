@@ -371,7 +371,7 @@ def register_user(request):
                     params = {
                         'phone': norm_phone,
                         'next': next_url,
-                        'reg': 1
+                        'reg': request.POST.get('reg') or '1'
                     }
                     return HttpResponseRedirect(reverse('shop:login') + '?' + urlencode(params))
                 except IntegrityError:
@@ -455,7 +455,8 @@ def login_user(request):
                 user.set_password(password)
                 user.save()
                 try:
-                    send_password.delay(norm_phone, password)
+                    if reg != '1':
+                        send_password.delay(norm_phone, password)
                 except Exception as e:
                     mail_admins('Task error', 'Failed to send password: %s' % e, fail_silently=True)
             context = {
