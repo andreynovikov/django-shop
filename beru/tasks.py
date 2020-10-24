@@ -140,3 +140,29 @@ def get_beru_order_details(order_id):
         error = json.loads(content.decode('utf-8'))
         message = error.get('error', {}).get('message', 'Неизвестная ошибка взаимодействия с Беру!')
         raise TaskFailure(message) from e
+
+
+def get_beru_labels_data(order_id):
+    order = Order.objects.get(id=order_id)
+    beru_order = order.delivery_tracking_number
+    if not beru_order:
+        raise TaskFailure('Order {} does not have beru order number'.format(order_id))
+
+    reload_maybe()
+
+    url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}/delivery/labels/data.json'.format(campaignId=config.sw_beru_campaign, orderId=beru_order)
+    headers = {
+        'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=config.sw_beru_token, oauth_application=config.sw_beru_application)
+    }
+    request = Request(url, None, headers)
+    try:
+        response = urlopen(request)
+        result = json.loads(response.read().decode('utf-8'))
+        import sys
+        print(result, file=sys.stderr)
+        return result.get('result', {})
+    except HTTPError as e:
+        content = e.read()
+        error = json.loads(content.decode('utf-8'))
+        message = error.get('error', {}).get('message', 'Неизвестная ошибка взаимодействия с Беру!')
+        raise TaskFailure(message) from e

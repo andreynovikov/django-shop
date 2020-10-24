@@ -494,7 +494,7 @@ class OrderAdmin(LockableModelAdmin):
         if obj and not request.user.is_superuser:
             readonly_fields += ['site']
         if obj and obj.is_beru:
-            readonly_fields += ['delivery_tracking_number', 'delivery_handing_date']
+            readonly_fields += ['delivery_handing_date']
         return readonly_fields
 
     def changelist_view(self, request, extra_context=None):
@@ -954,7 +954,7 @@ class OrderAdmin(LockableModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied
 
-        from beru.tasks import get_beru_order_details
+        from beru.tasks import get_beru_labels_data
         import barcode
 
         context = self.admin_site.each_context(request)
@@ -971,8 +971,8 @@ class OrderAdmin(LockableModelAdmin):
         context['orders'] = []
         try:
             for order in orders:
-                beru_order = get_beru_order_details(order.id)
-                beru_order_id = str(beru_order.get('id', 0))
+                beru_order = get_beru_labels_data(order.id)
+                beru_order_id = str(beru_order.get('orderId', 0))
 
                 CODE128 = barcode.get_barcode_class('code128')
                 order_barcode = CODE128(str(order.id)).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
@@ -980,27 +980,29 @@ class OrderAdmin(LockableModelAdmin):
                 beru_order_barcode = CODE128(beru_order_id).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
                 beru_order_barcode = re.sub(r'^.*(?=<svg)', '', beru_order_barcode)
 
+                boxes = order.boxes.all()
                 count = 0
                 shipments = []
-                delivery = beru_order.get('delivery', {})
-                for box in order.boxes.all():
+                for label in beru_order.get('parcelBoxLabels', []):
+                    box = boxes[count]
                     count += 1
-                    code = '%d-%d' % (order.id, count)
+                    code = label.get('fulfilmentId', '')
                     item_barcode = CODE128(code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
                     item_barcode = re.sub(r'^.*(?=<svg)', '', item_barcode)
                     shipments.append({
                         'id': code,
                         'code': box.code,
+                        'place': label.get('place', ''),
                         'barcode': mark_safe(item_barcode),
                         'products': box.products.all(),
-                        'weight': box.weight
+                        'weight': label.get('weight', ''),
+                        'delivery_service_name': label.get('deliveryServiceName', ''),
+                        'delivery_service_id': label.get('deliveryServiceId', '')
                     })
 
                 context['orders'].append({
                     'beru_order': beru_order,
                     'order': order,
-                    'delivery_service_name': delivery.get('serviceName', ''),
-                    'delivery_service_id': delivery.get('deliveryServiceId', ''),
                     'beru_barcode': mark_safe(beru_order_barcode),
                     'barcode': mark_safe(order_barcode),
                     'shipments': shipments

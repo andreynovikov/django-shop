@@ -21,7 +21,7 @@ from shop.models import Supplier, Product, Order, OrderItem, ShopUser, Box, ActO
 from shop.tasks import import1c
 
 from .widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
-    OrderItemProductLink, ListTextWidget, YandexDeliveryWidget
+    OrderItemProductLink, ListTextWidget, YandexDeliveryWidget, DeliveryTrackingNumberWidget
 
 
 class CategoryAdminForm(forms.ModelForm):
@@ -253,6 +253,7 @@ class OrderAdminForm(forms.ModelForm):
             instance = kwargs['instance']
             self.fields['user_tags'].initial = instance.user.tags
             self.fields['user_tags'].widget = TagAutoComplete(model=type(instance.user), attrs=self.fields['user_tags'].widget.attrs)
+            self.fields['delivery_tracking_number'].widget = DeliveryTrackingNumberWidget(instance.id, instance.is_beru, config.sw_beru_campaign)
             self.fields['delivery_yd_order'].widget = YandexDeliveryWidget(instance.id)
         except (KeyError, AttributeError):
             pass
