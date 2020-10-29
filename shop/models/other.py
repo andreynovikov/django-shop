@@ -366,6 +366,9 @@ class ServiceCenter(models.Model):
         verbose_name_plural = 'сервис-центры'
         ordering = ('city', 'address')
 
+    def phones_as_list(self):
+        return [x.strip() for x in self.phone.split(',')]
+
     @staticmethod
     def autocomplete_search_fields():
         return ['address__icontains', 'city__name__icontains']
@@ -472,7 +475,7 @@ class Product(models.Model):
     kind = models.ManyToManyField('shop.ProductKind', verbose_name='тип', related_name='products',
                                   related_query_name='product', blank=True)
     categories = TreeManyToManyField('shop.Category', related_name='products',
-                                     related_query_name='product', verbose_name='категории', blank=True)
+                                     related_query_name='product', verbose_name='категория', blank=True)
     tags = TagField('теги')
     forbid_price_import = models.BooleanField('не импортировать цену', default=False)
     if settings.SHOP_PRICE_DB_COLUMN == 'price':
