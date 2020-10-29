@@ -2,6 +2,7 @@ from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse, J
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.files.storage import default_storage
+from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from django.contrib.sites.models import Site
 from django.template import loader
@@ -28,8 +29,65 @@ def index(request):
 
 
 def search(request):
-    context = {}
-    return render(request, 'search.html', context)
+    root = Category.objects.get(slug=settings.MPTT_ROOT)
+
+    text = request.GET.get('text', request.GET.get('q', ''))
+    typeahead  = request.GET.get('ta', None) or request.GET.get('q', None)
+
+    from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+    language = 'russian'
+    search_vector = SearchVector('title', 'whatis', config=language)
+    search_query = SearchQuery(text, config=language)
+    search_rank = SearchRank(search_vector, search_query)
+
+    filters = {
+        'categories__in': root.get_descendants(include_self=True),
+        'rank__gte': 0.001
+    }
+
+    products = Product.objects.annotate(
+        rank=search_rank
+    ).filter(
+        **filters
+    ).order_by(
+        '-enabled',
+        '-rank'
+    )
+
+    # from django.db.models import F
+    # rank=SearchRank(F('search_vector'), query)
+
+    # http://logan.tw/posts/2017/12/30/full-text-search-with-django-and-postgresql/
+
+    # search_vector = SearchVectorField(null=True, editable=False)
+
+    if typeahead:
+        products = products.values_list('title', flat=True)
+        return JsonResponse(list(products), safe=False)
+    else:
+        fields = ['price', 'manufacturer']
+        product_filter = get_product_filter(request.GET, queryset=products, fields=fields, request=request)
+        products = product_filter.qs.distinct()
+
+        paginator = Paginator(products, 12)
+        page = request.GET.get('page')
+        products_page = paginator.get_page(page)
+        # количество переключателей страниц лимитировано дизайном
+        page_range = 7 if products_page.has_previous() and products_page.has_next() else 10
+        min_page = products_page.number - page_range + min(4, paginator.num_pages - products_page.number)
+        if min_page < 4:
+            min_page = 1
+        max_page = products_page.number + page_range - min(4, products_page.number - 1)
+        if max_page > paginator.num_pages - 3:
+            max_page = paginator.num_pages
+        context = {
+            'product_filter': product_filter,
+            'products': products_page,
+            'min_page': min_page,
+            'max_page': max_page,
+            'search_text': text
+        }
+        return render(request, 'search.html', context)
 
 
 def products_stream(request, templates, filter_type):
@@ -199,10 +257,23 @@ def category(request, path, instance):
         product_filter = get_product_filter(request.GET, queryset=products, fields=fields, request=request)
         products = product_filter.qs
 
+    paginator = Paginator(products, 12)
+    page = request.GET.get('page')
+    products_page = paginator.get_page(page)
+    # количество переключателей страниц лимитировано дизайном
+    page_range = 7 if products_page.has_previous() and products_page.has_next() else 10
+    min_page = products_page.number - page_range + min(4, paginator.num_pages - products_page.number)
+    if min_page < 4:
+        min_page = 1
+    max_page = products_page.number + page_range - min(4, products_page.number - 1)
+    if max_page > paginator.num_pages - 3:
+        max_page = paginator.num_pages
     context = {
         'category': instance,
         'product_filter': product_filter,
-        'products': products,
+        'products': products_page,
+        'min_page': min_page,
+        'max_page': max_page,
         'gtm_list': gtm_list
     }
     return render(request, 'category.html', context)
@@ -218,8 +289,8 @@ def product(request, code):
             dirs, files = default_storage.listdir(product.image_prefix)
             if files is not None:
                 for file in sorted(files):
-                    if file.endswith('.s.jpg'):
-                        product.images.append(file[:-6])
+                    if file.endswith('.jpg') and not file.endswith('.s.jpg'):
+                        product.images.append(file[:-4])
         except NotADirectoryError:
             pass
     category = None
@@ -258,9 +329,34 @@ def product(request, code):
     return render(request, 'product.html', context)
 
 
+def product_quick_view(request, code):
+    product = get_object_or_404(Product, code=code)
+    if product.categories.exists() and not product.breadcrumbs:
+        raise Http404("Product does not exist")
+    product.images = []
+    if default_storage.exists(product.image_prefix):
+        try:
+            dirs, files = default_storage.listdir(product.image_prefix)
+            if files is not None:
+                for file in sorted(files):
+                    if file.endswith('.jpg'):
+                        product.images.append(file[:-4])
+        except NotADirectoryError:
+            pass
+
+    # temporary
+    if not product.categories.exists():
+        product.enabled = False
+
+    context = {
+        'product': product,
+    }
+    return render(request, '_product_quick_view.html', context)
+
+
 def product_stock(request, code):
-    if not request.is_ajax():
-        return HttpResponseForbidden()
+    #if not request.is_ajax():
+    #    return HttpResponseForbidden()
 
     product = get_object_or_404(Product, code=code)
     if product.categories.exists() and not product.breadcrumbs:
@@ -319,9 +415,6 @@ def product_stock(request, code):
 
 
 def compare_product(request, code):
-    if not request.is_ajax():
-        return HttpResponseForbidden()
-
     product = get_object_or_404(Product, code=code)
     if product.categories.exists() and not product.breadcrumbs:
         raise Http404("Product does not exist")
@@ -339,9 +432,6 @@ def compare_product(request, code):
 
 
 def uncompare_product(request, code):
-    if not request.is_ajax():
-        return HttpResponseForbidden()
-
     product = get_object_or_404(Product, code=code)
     if product.categories.exists() and not product.breadcrumbs:
         raise Http404("Product does not exist")
@@ -364,8 +454,11 @@ def compare_products(request, compare=None, kind=None):
         if kind:
             kind = get_object_or_404(ProductKind, pk=kind)
         else:
-            product = Product.objects.get(pk=product_ids[-1])
-            kind = product.kind.all()[0]
+            try:
+                product = Product.objects.get(pk=product_ids[-1])
+                kind = product.kind.all()[0]
+            except Product.DoesNotExist:
+                kind = 0
         products = Product.objects.filter(pk__in=product_ids, kind=kind).values_list('id', flat=True)
         if products:
             return redirect('compare_products', compare=','.join(map(str, products)))

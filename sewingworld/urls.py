@@ -54,6 +54,8 @@ urlpatterns = [
     url(r'^catalog/(?P<path>.*)', mptt_urls.view(model='shop.models.Category', view='sewingworld.views.category', slug_field='slug', root=settings.MPTT_ROOT), name='category'),
     # ex: /products/JanomeEQ60.html
     url(r'^products/(?P<code>[-\.\w]+)\.html$', views.product, name='product'),
+    # ex: /products/JanomeEQ60/quickview/
+    url(r'^products/(?P<code>[-\.\w]+)/quickview/$', views.product_quick_view, name='product_quick_view'),
     # ex: /products/JanomeEQ60/stock/
     url(r'^products/(?P<code>[-\.\w]+)/stock/$', views.product_stock, name='product_stock'),
     # ex: /products/JanomeEQ60/review/
