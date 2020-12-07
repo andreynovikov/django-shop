@@ -10,7 +10,7 @@ from django.utils.text import capfirst
 
 from sewingworld.models import SiteProfile
 from shop.models import Category, Product, ProductRelation, ProductSet, ProductKind, Manufacturer, \
-    Advert, SalesAction, City, Store, ServiceCenter, Stock
+    Advert, SalesAction, City, Store, ServiceCenter, Stock, Favorites
 from shop.filters import get_product_filter
 
 
@@ -271,10 +271,17 @@ def category(request, path, instance):
     max_page = products_page.number + page_range - min(4, products_page.number - 1)
     if max_page > paginator.num_pages - 3:
         max_page = paginator.num_pages
+
+    if request.user.is_authenticated:
+        favorites = Favorites.objects.filter(user=request.user).values_list('product', flat=True)
+    else:
+        favorites = []
+
     context = {
         'category': instance,
         'product_filter': product_filter,
         'products': products_page,
+        'favorites': favorites,
         'min_page': min_page,
         'max_page': max_page,
         'gtm_list': gtm_list
@@ -319,6 +326,8 @@ def product(request, code):
 
     comparison_list = list(map(int, request.session.get('comparison_list', '0').split(',')))
 
+    favorite = request.user.is_authenticated and Favorites.objects.filter(user=request.user, product=product).exists()
+
     context = {
         'category': category,
         'product': product,
@@ -327,7 +336,8 @@ def product(request, code):
         'similar': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR),
         'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT),
         'utm_source': request.GET.get('utm_source', None),
-        'is_compared': product.id in comparison_list
+        'is_compared': product.id in comparison_list,
+        'is_favorite': favorite
     }
     return render(request, 'product.html', context)
 

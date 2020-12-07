@@ -7,11 +7,19 @@
 {% load render_as_template %}
 {% load shop_filters %}
 {% load reviews %}
+{% load l10n %}
 {% block link %}
 {% if request.META.QUERY_STRING %}
     <link rel="canonical" href="https://www.sewing-world.ru{% url 'product' product.code %}" />
 {% endif %}
 {% endblock link %}
+{% block css_wrapper %}
+<style>
+#yaDeliveryWidget #ymarket-affiliate #a article {
+    border: none !important;
+}
+</style>
+{% endblock %}
 {% block title %}{{ product.title }}{% endblock %}
 {% block content_title %}{{ product.title }}{% endblock %}
 {% block content_title_addon %}
@@ -34,26 +42,17 @@
             <div class="col-lg-7 pr-lg-0">
               {% if product.image_prefix|add:'.jpg'|file_exists %}
               <!-- Product gallery-->
-              <div class="cz-product-gallery d-block">{# added d-block #}
-                <div class="cz-preview ml-0">{# added ml-0, removed order-sm-2 #}
-                  <div class="cz-preview-item active" id="preview0"><img class="cz-image-zoom" src="{{ MEDIA_URL }}{{ product.image_prefix }}.jpg" alt="{{ product.title }} {{ product.whatis }}" itemprop="image" data-zoom="{{ MEDIA_URL }}{{ product.image_prefix }}{% if product.image_prefix|add:'.b.jpg'|file_exists %}.b{% endif %}.jpg">
-                    <div class="cz-image-zoom-pane"></div>
-                  </div>
+              <div class="d-block cz-gallery">
+                <a href="{{ MEDIA_URL }}{{ product.image_prefix }}{% if product.image_prefix|add:'.b.jpg'|file_exists %}.b{% endif %}.jpg" class="gallery-item" data-sub-html="{{ product.title }} {{ product.whatis }}">
+                  <img class="" src="{{ MEDIA_URL }}{{ product.image_prefix }}.jpg" alt="{{ product.title }} {{ product.whatis }}" itemprop="image">
+                </a>
+                <div class="d-flex flex-wrap my-2">
                   {% for image in product.images %}
-                  <div class="cz-preview-item" id="preview{{ forloop.counter }}"><img class="cz-image-zoom" src="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.jpg" data-zoom="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.jpg" alt="{{ product.title }} - фото №{{ forloop.counter }}">
-                    <div class="cz-image-zoom-pane"></div>
-                  </div>
+                  <a href="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.jpg" class="gallery-item rounded border mr-4 mb-4" data-sub-html="{{ product.title }} {{ product.whatis }}">
+                    {% thumbnail product.image_prefix|add:'/'|add:image|add:'.jpg' '80x80' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} - фото №{{ forloop.counter }}"/>{% endthumbnail %}
+                  </a>
                   {% endfor %}
                 </div>
-                {% for image in product.images %}
-                {% if forloop.first %}
-                <div class="cz-thumblist d-flex flex-wrap">{# added d-flex flex-wrap, removed order-sm-1 #}<a class="cz-thumblist-item active" href="#preview0">{% thumbnail product.image_prefix|add:'.jpg' '80x80' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="Product thumb">{% endthumbnail %}</a>
-                {% endif %}
-                    <a class="cz-thumblist-item" href="#preview{{ forloop.counter }}">{% thumbnail product.image_prefix|add:'/'|add:image|add:'.jpg' '80x80' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="Product thumb"/>{% endthumbnail %}</a>
-                {% if forloop.last %}
-                </div>
-                {% endif %}
-                {% endfor %}
               </div>
               {% else %}
               <div class="d-none d-lg-block"><i class="czi-camera text-muted d-block mx-auto" style="width: 300px; font-size: 300px"></i></div>
@@ -116,7 +115,7 @@
                   {% if product.instock > 0 %}
                   <a class="btn btn-primary btn-shadow btn-block add-to-cart" href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}" data-id="{{ product.id }}"><span class="d-none spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span><i class="czi-cart font-size-lg mr-2"></i>Купить</a>
                   {% else %}
-                  <a class="btn btn-primary btn-shadow btn-block add-to-cart" href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}" data-id="{{ product.id }}"><span class="d-none spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span><i class="czi-delivery font-size-lg mr-2"></i>Сообщить о поступлении</a>
+                  <a class="btn btn-primary btn-shadow btn-block add-to-cart" href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}" data-id="{{ product.id }}"><span class="d-none spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span><i class="czi-loudspeaker font-size-lg mr-2"></i>Сообщить о поступлении</a>
                   {% endif %}
                 </div>
                 {% endif %}
@@ -127,7 +126,7 @@
                 <div class="d-flex mb-4">
                   {% if product.enabled %}
                   <div class="w-100">
-                    <button class="btn btn-secondary btn-block" type="button"><i class="czi-heart font-size-lg mr-2"></i><span class='d-none d-sm-inline'>Add to </span>Wishlist</button>
+                    <a class="btn btn-{% if is_favorite %}accent{% else %}secondary{% endif %} btn-block{% if request.user.is_authenticated %} favoritize-product{% endif %}" data-id="{{ product.id }}"{% if not is_favorite %} data-favorites-link="{% url 'shop:favorites' %}"{% endif %} {% if request.user.is_authenticated %}href="{% if is_favorite %}{% url 'shop:favorites' %}{% else %}{% url 'shop:favoritize' product.id %}{% endif %}"{% else %}data-toggle="modal" data-target="#favorites-signin-modal"{% endif %} rel="nofollow"><i class="czi-heart font-size-lg mr-2"></i><span>{% if is_favorite %}В избранном{% else %}Отложить{% endif %}</span></a>
                   </div>
                   {% endif %}
                   {% if product.kind.all %}
@@ -195,6 +194,19 @@
                       </div>
                     </div>
                   </div>
+                  {% if product.width and product.height and product.length and product.weight > 0.1 %}
+                  <div class="card">
+                    <div class="card-header">
+                      <h3 class="accordion-heading"><a class="collapsed" href="#delivery" role="button" data-toggle="collapse" aria-expanded="true" aria-controls="delivery"><i class="czi-delivery text-muted font-size-lg align-middle mt-n1 mr-2"></i>Доставка<span class="accordion-indicator"><i data-feather="chevron-up"></i></span></a></h3>
+                    </div>
+                    <div class="collapse" id="delivery" data-parent="#productPanels">
+                      <div class="card-body">
+                        <div id="yaDeliveryWidget"></div>
+                        <div class="text-center"><div class="spinner-border" role="status"><span class="sr-only">Загрузка...</span></div></div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endif %}
                   {% endif %}
                   {% if product.manuals %}
                   <div class="card">
@@ -224,9 +236,6 @@
                 {% endfor %}
                 {% endwith %}
                 {% endif %}{# enabled #}
-
-                <!-- Sharing-->
-                <h6 class="d-inline-block align-middle font-size-base my-2 mr-2">Share:</h6><a class="share-btn sb-twitter mr-2 my-2" href="#"><i class="czi-twitter"></i>Twitter</a><a class="share-btn sb-instagram mr-2 my-2" href="#"><i class="czi-instagram"></i>Instagram</a><a class="share-btn sb-facebook my-2" href="#"><i class="czi-facebook"></i>Facebook</a>
               </div>
             </div>
           </div>
@@ -359,13 +368,75 @@
     {% endif %}
 {% endblock content %}
 {% block javascript %}
+<script async src="https://widgets.delivery.yandex.ru/script/api"></script>
 <script>
+    function startYaDeliveryWidget() {
+        document.removeEventListener('YaDeliveryLoad', startYaDeliveryWidget);
+
+        var params = {
+            apiKey: '84ea0e4b-de7f-4cd5-861c-dc603fd8b48c',
+            senderId: 500002552, // Идентификатор магазина в системе Яндекс.Доставки
+            dimensions: {
+                width: {{ product.width|unlocalize }},
+                height: {{ product.height|unlocalize }},
+                length: {{ product.length|unlocalize }},
+                weight: {{ product.weight|unlocalize }},
+            },
+            themeId: 1,  // Вид отображения виджета — всегда 1
+            deliveryTypes: ['COURIER', 'PICKUP']
+        };
+
+        // Service uses client address if it is not directly specified
+        var url = "https://suggestions.dadata.ru/suggestions/api/4_1/rs/iplocate/address";
+        var token = "c806020ea7ad70f8577ea4d570e231e09a1d55d0";
+
+        var options = {
+            method: "GET",
+            mode: "cors",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Authorization": "Token " + token
+            }
+        }
+
+        fetch(url, options)
+        .then(response => response.json())
+        .then(result => {
+            if (result.location && result.location.data.postal_code) {
+                console.log(result.location.data);
+                params.postalCode = result.location.data.postal_code;
+                params.deliveryTypes.push('POST');
+            }
+            YaDelivery.createWidget({
+                containerId: 'yaDeliveryWidget',
+                type: 'deliveryCard', // Тип виджета — всегда deliveryInfo
+                params: params
+            });
+        })
+        .catch(error => {
+            console.log("error", error)
+        });
+
+        var t = setInterval(function () {
+            if ($('#yaDeliveryWidget').children().length > 0) {
+                clearInterval(t);
+                $('#delivery').find('.spinner-border').parent().remove();
+            }
+        }, 50);
+    }
+
     $('#productPanels').on('show.bs.collapse', function(e) {
         if ($(e.target).has('.spinner-border').length == 0)
             return;
         var itemId = $(e.target).attr('id');
-        if (itemId == 'localStore')
+        if (itemId == 'localStore') {
             $(e.target).find('.card-body').load('{% url 'product_stock' product.code %}', function(){});
+        } else if (itemId == 'delivery') {
+
+            YaDelivery ? startYaDeliveryWidget() : document.addEventListener('YaDeliveryLoad', startYaDeliveryWidget);
+
+        }
     });
 </script>
 {% endblock %}

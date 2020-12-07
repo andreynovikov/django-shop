@@ -25,7 +25,8 @@
             <ul class="list-unstyled mb-0">
               {% url 'shop:user_orders' as url %}
               <li class="border-bottom mb-0"><a class="nav-link-style d-flex align-items-center px-4 py-3{% if request.get_full_path == url %} active{% endif %}" href="{{ url }}"><i class="czi-bag opacity-60 mr-2"></i>Заказы<span class="font-size-sm text-muted ml-auto">{% get_order_count %}</span></a></li>
-              <li class="border-bottom mb-0"><a class="nav-link-style d-flex align-items-center px-4 py-3" href="account-wishlist.html"><i class="czi-heart opacity-60 mr-2"></i>Wishlist<span class="font-size-sm text-muted ml-auto">3</span></a></li>
+              {% url 'shop:favorites' as url %}
+              <li class="border-bottom mb-0"><a class="nav-link-style d-flex align-items-center px-4 py-3{% if request.get_full_path == url %} active{% endif %}" href="{{ url }}"><i class="czi-heart opacity-60 mr-2"></i>Избранное<span class="font-size-sm text-muted ml-auto" id="sw-favorites-count">{% get_favorites_count %}</span></a></li>
             </ul>
             <ul class="list-unstyled mb-0">
               {% url 'shop:profile' as url %}

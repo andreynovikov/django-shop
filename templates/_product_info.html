@@ -4,26 +4,31 @@
 {% load shop_filters %}
 <!-- Product card (Grid) -->
 <div class="card product-card">
+  {% if product.enabled %}
+  <span class="badge">
   {% if product.isnew %}
-  <span class="badge badge-info badge-shadow">Новинка</span>
+  <span class="sw-badge badge-info badge-shadow">Новинка</span>
   {% endif %}
   {% if product.recomended %}
-  <span class="badge badge-warning badge-shadow">Рекомендуем</span>
+  <span class="sw-badge badge-warning badge-shadow">Рекомендуем</span>
   {% endif %}
   {% for action in product.get_sales_actions %}{% if action.notice %}
-  <span class="badge badge-danger badge-shadow">{{ action.notice }}</span>
-  {% endif %}{% endfor %}
-  <button class="btn-wishlist btn-sm" type="button" data-toggle="tooltip" data-placement="left" title="Add to wishlist"><i class="czi-heart"></i></button><a class="d-inline-block mx-auto pt-3 overflow-hidden" href="{% url 'product' product.code %}">{% if product.image_prefix|add:'.jpg'|file_exists %}{% thumbnail product.image_prefix|add:'.jpg' '200x200' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}"/>{% endthumbnail %}{% else %}<i class="d-inline-block czi-camera text-muted" style="width: 200px; height: 200px; font-size: 100px; padding: 50px"></i>{% endif %}</a>
+  <span class="sw-badge badge-danger badge-shadow">{{ action.notice }}</span>
+  {% endif %}{% endfor %}</span>{% endif %}
+  <button type="button" class="btn-wishlist btn-sm{% if request.user.is_authenticated %} favoritize-product{% endif %}{% if product.id in favorites %} bg-accent text-light{% endif %}" data-id="{{ product.id }}"{% if product.id not in favorites %} data-favorites-link="{% url 'shop:favorites' %}"{% endif %} {% if request.user.is_authenticated %}href="{% if product.id in favorites %}{% url 'shop:favorites' %}{% else %}{% url 'shop:favoritize' product.id %}{% endif %}"{% else %}data-toggle="modal" data-target="#favorites-signin-modal"{% endif %} rel="nofollow"><span data-toggle="tooltip" data-placement="left" title="{% if product.id in favorites %}В избранном{% else %}Отложить{% endif %}"><i class="czi-heart"></i></span></button><a class="d-inline-block mx-auto pt-3 overflow-hidden" href="{% url 'product' product.code %}">{% if product.image_prefix|add:'.jpg'|file_exists %}{% thumbnail product.image_prefix|add:'.jpg' '200x200' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}"/>{% endthumbnail %}{% else %}<i class="d-inline-block czi-camera text-muted" style="width: 200px; height: 200px; font-size: 100px; padding: 50px"></i>{% endif %}</a>
   <div class="card-body py-2"><a class="product-meta d-block font-size-xs pb-1" href="{% url 'product' product.code %}">{{ product.whatis }} {{ product.partnumber }}</a>
     <h3 class="product-title font-size-sm"><a href="{% url 'product' product.code %}">{{ product.title }}</a></h3>
     <div class="d-flex justify-content-between">
-      {% if product.price > 0 %}
-      <div class="product-price"><span class="text-accent">{{ product.cost|quantize:"1" }}<small>&nbsp;руб</small></span>
-      {% if product.discount > 0 %}
-      <del class="font-size-sm text-muted">{{ product.price|quantize:"1" }}<small>&nbsp;руб</small></del>
+      <div class="product-price">
+      {% if not product.enabled %}
+        <span class="text-accent"><small>товар снят с продажи</small></span>
+      {% elif product.price > 0 %}
+        {% if product.discount > 0 %}
+          <del class="font-size-sm text-muted">{{ product.price|quantize:"1" }}<small>&nbsp;руб</small></del><br>
+        {% endif %}
+	<span class="text-accent">{{ product.cost|quantize:"1" }}<small>&nbsp;руб</small></span>
       {% endif %}
       </div>
-      {% endif %}
     </div>
   </div>
   <div class="card-body card-body-hidden">

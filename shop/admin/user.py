@@ -9,7 +9,7 @@ from import_export import resources
 from import_export.admin import ExportMixin
 from django_admin_listfilter_dropdown.filters import SimpleDropdownFilter, DropdownFilter
 
-from shop.models import ShopUser
+from shop.models import ShopUser, Favorites
 
 from .widgets import TagAutoComplete
 
@@ -129,6 +129,14 @@ class ShopUserAdmin(ExportMixin, UserAdmin):
         if request.user.is_superuser:
             fieldsets.append(('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}))
         return fieldsets
+
+
+@admin.register(Favorites)
+class FavoritesAdmin(admin.ModelAdmin):
+    model = Favorites
+    list_display = ('user', 'product')
+    search_fields = ('user', 'product')
+    ordering = ('user', 'product')
 
 
 # Now register the new UserAdmin...

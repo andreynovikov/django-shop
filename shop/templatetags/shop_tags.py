@@ -1,6 +1,6 @@
 from django import template
 
-from shop.models import Order
+from shop.models import Order, Favorites
 
 
 register = template.Library()
@@ -25,4 +25,11 @@ def get_unpaid_order(context):
 def get_order_count(context):
     if hasattr(context, 'request') and context.request.user.is_authenticated:
         return Order.objects.filter(user=context.request.user.id).count()
+    return 0
+
+
+@register.simple_tag(takes_context=True)
+def get_favorites_count(context):
+    if hasattr(context, 'request') and context.request.user.is_authenticated:
+        return Favorites.objects.filter(user=context.request.user.id).count()
     return 0

@@ -6,7 +6,7 @@ from decimal import Decimal, ROUND_HALF_EVEN
 from urllib.parse import urlencode
 
 from django.conf import settings
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, HttpResponseServerError, HttpResponseNotFound
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, HttpResponseServerError, HttpResponseNotFound, Http404
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
@@ -23,7 +23,7 @@ from django.utils.formats import localize
 from django.utils.html import escape
 
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
-from shop.models import Product, Basket, BasketItem, Order, ShopUser, ShopUserManager
+from shop.models import Product, Basket, BasketItem, Order, ShopUser, ShopUserManager, Favorites
 from shop.forms import UserForm
 
 import logging
@@ -685,7 +685,8 @@ def profile(request):
     user = request.user
     if request.method == 'POST':
         form = UserForm(request.POST, user=user)
-        if form.is_valid():
+        is_valid = form.is_valid()
+        if is_valid:
             user.name = form.cleaned_data['name']
             user.phone = ShopUserManager.normalize_phone(form.cleaned_data['phone'])
             user.email = form.cleaned_data['email']
@@ -698,9 +699,10 @@ def profile(request):
                 form.add_error('phone', "Пользователь с таким номером уже существует")
     else:
         form = UserForm(user=user)
+        is_valid = True
     context = {
         'form': form,
-        'invalid': not form.is_valid(),
+        'invalid': not is_valid
     }
     if request.GET.get('ajax') or request.POST.get('ajax'):
         context['embedded'] = True
@@ -709,3 +711,51 @@ def profile(request):
         })
     else:
         return render(request, 'shop/user/profile.html', context)
+
+
+@login_required
+def favorites(request):
+    products = Favorites.objects.filter(user=request.user).values_list('product', flat=True)
+    context = {
+        'favorites': Product.objects.filter(pk__in=products),
+    }
+    return render(request, 'shop/user/favorites.html', context)
+
+
+@login_required
+def favorites_notice(request):
+    count = Favorites.objects.filter(user=request.user).count()
+    context = {
+        'count': count,
+    }
+    return render(request, 'shop/user/favorites_notice.html', context)
+
+
+@login_required
+def favoritize(request, product_id):
+    product = get_object_or_404(Product, pk=product_id)
+    if product.categories.exists() and not product.breadcrumbs:
+        raise Http404("Product does not exist")
+
+    favorite = Favorites.objects.filter(user=request.user, product=product)
+    if not favorite.exists():
+        favorite = Favorites(user=request.user, product=product)
+        favorite.save()
+
+    return JsonResponse({})
+
+
+@login_required
+def unfavoritize(request, product_id):
+    product = get_object_or_404(Product, pk=product_id)
+    if product.categories.exists() and not product.breadcrumbs:
+        raise Http404("Product does not exist")
+
+    favorite = Favorites.objects.filter(user=request.user, product=product)
+    favorite.delete()
+
+    count = Favorites.objects.filter(user=request.user).count()
+    context = {
+        'count': count,
+    }
+    return JsonResponse(context)

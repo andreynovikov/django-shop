@@ -2,21 +2,23 @@
 {% load site %}
 {% load render_view %}
       <!-- Topbar-->
-      <div class="topbar topbar-dark bg-dark">
+      <div class="topbar topbar-light sw-bg-light">
         <div class="container">
           <div>
             <div class="topbar-text text-nowrap d-none d-md-inline-block"><i class="czi-support mt-n1"></i><span class="text-muted d-none d-lg-inline mr-1">Интернет-магазин</span><a class="topbar-link" href="tel:{{ shop_info.inet_phone_E164 }}">{{ shop_info.inet_phone }}</a></div>
             <div class="topbar-text text-nowrap d-none d-md-inline-block border-left border-light pl-3 ml-3"><i class="czi-location mt-n1"></i><span class="text-muted mr-1"><a class="topbar-link" href="{% url 'stores' %}">Адреса магазинов</a></span></div>
           </div>
-          <div class="topbar-text dropdown d-md-none ml-auto"><a class="topbar-link dropdown-toggle" href="#" data-toggle="dropdown">Wishlist / Compare / Track</a>
+          <div class="topbar-text dropdown d-md-none ml-auto"><a class="topbar-link dropdown-toggle" href="#" data-toggle="dropdown">{% if request.user.is_authenticated %}Избранное / {% endif %}Сравнение / Отслеживание</a>
             <ul class="dropdown-menu dropdown-menu-right">
-              <li><a class="dropdown-item" href="tel:{{ shop_info.inet_phone_E164 }}"><i class="czi-support text-muted mr-2"></i>{{ shop_info.inet_phone }}</a></li>
-              <li><a class="dropdown-item" href="account-wishlist.html"><i class="czi-heart text-muted mr-2"></i>Wishlist (3)</a></li>
+              <li><a class="dropdown-item" href="tel:{{ shop_info.inet_phone_E164 }}" rel="nofollow"><i class="czi-support text-muted mr-2"></i>{{ shop_info.inet_phone }}</a></li>
+              {% if request.user.is_authenticated %}
+              <li><a class="dropdown-item" href="{% url 'shop:favorites' %}" rel="nofollow"><i class="czi-heart text-muted mr-2"></i>Избранное (<span id="dropdown-favorites-count"></span>)</a></li>
+              {% endif %}
               <li><a class="dropdown-item" href="{% url 'compare' %}" rel="nofollow"><i class="czi-compare text-muted mr-2"></i>Сравнение (<span id="dropdown-compare-count"></span>)</a></li>
-              <li><a class="dropdown-item" href="{% url 'shop:user_orders' %}"><i class="czi-delivery text-muted mr-2"></i>Отслеживание заказа</a></li>
+              <li><a class="dropdown-item" href="{% url 'shop:user_orders' %}" rel="nofollow"><i class="czi-delivery text-muted mr-2"></i>Отслеживание заказа</a></li>
             </ul>
           </div>
-          <div class="d-none d-md-block ml-3 text-nowrap"><a class="topbar-link d-none d-md-inline-block" href="account-wishlist.html"><i class="czi-heart mt-n1"></i>Wishlist (3)</a><a class="topbar-link ml-3 pl-3 border-left border-light d-none d-md-inline-block" href="{% url 'compare' %}" rel="nofollow"><i class="czi-compare mt-n1"></i>Сравнение <span id="compare-notice">{% view "sewingworld.views.compare_notice" %}</span></a><a class="topbar-link ml-3 border-left border-light pl-3 d-none d-md-inline-block" href="{% url 'shop:user_orders' %}"><i class="czi-delivery mt-n1"></i>Отслеживание заказа</a></div>
+          <div class="d-none d-md-block ml-3 text-nowrap">{% if request.user.is_authenticated %}<a class="topbar-link d-none d-md-inline-block" href="{% url 'shop:favorites' %}" rel="nofollow"><i class="czi-heart mt-n1"></i>Избранное <span id="favorites-notice">{% view "shop.views.favorites_notice" %}</span></a>{% endif %}<a class="topbar-link ml-3 pl-3 border-left border-light d-none d-md-inline-block" href="{% url 'compare' %}" rel="nofollow"><i class="czi-compare mt-n1"></i>Сравнение <span id="compare-notice">{% view "sewingworld.views.compare_notice" %}</span></a><a class="topbar-link ml-3 border-left border-light pl-3 d-none d-md-inline-block" href="{% url 'shop:user_orders' %}" rel="nofollow"><i class="czi-delivery mt-n1"></i>Отслеживание заказа</a></div>
         </div>
       </div>
       <!-- Remove "navbar-sticky" class to make navigation bar scrollable with the page.-->
@@ -65,7 +67,6 @@
               </ul>
               <!-- Primary menu-->
               <ul class="navbar-nav d-lg-flex" id="mainNavbar">
-                <li class="nav-item d-md-none"><a class="nav-link" href="{% url 'stores' %}">Магазины</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'sales_actions' %}">Акции</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'django.contrib.flatpages.views.flatpage' url='articles/' %}">Справочные материалы</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'zinnia:entry_archive_index' %}">Блог</a></li>
@@ -76,6 +77,7 @@
                     <li><a class="dropdown-item" href="{% url 'forum:index' %}">Архив</a></li>
                   </ul>
                 </li>
+                <li class="nav-item dd-md-none"><a class="nav-link" href="{% url 'stores' %}">Магазины</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'service' %}">Сервисные центры</a></li>
                 <li class="nav-item"><a class="nav-link" href="{% url 'django.contrib.flatpages.views.flatpage' url='delivery/' %}">Доставка и оплата</a></li>
               </ul>

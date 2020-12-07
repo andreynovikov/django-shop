@@ -54,4 +54,12 @@ urlpatterns = [
     url(r'^user/orders/(?P<order_id>\d+)/$', views.order, name='order'),
     # ex: /shop/user/orders/8/bill/
     url(r'^user/orders/(?P<order_id>\d+)/(?P<template_name>[a-z]+)/$', views.order_document, name='order_document'),
+    # ex: /shop/favorites/
+    url(r'^favorites/$', views.favorites, name='favorites'),
+    # ex: /shop/favorites/notice/
+    url(r'^favorites/notice/$', views.favorites_notice, name='favorites_notice'),
+    # ex: /shop/favorites/add/5/
+    url(r'^favorites/add/(?P<product_id>\d+)/$', views.favoritize, name='favoritize'),
+    # ex: /shop/favorites/delete/5/
+    url(r'^favorites/delete/(?P<product_id>\d+)/$', views.unfavoritize, name='unfavoritize'),
 ]

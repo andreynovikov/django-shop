@@ -25,8 +25,8 @@ from model_field_list import ModelFieldListField
 __all__ = [
     'ShopUserManager', 'ShopUser', 'Category', 'Currency', 'Country', 'Region', 'City',
     'Supplier', 'Store', 'ServiceCenter', 'Manufacturer', 'Advert', 'SalesAction',
-    'Product', 'ProductRelation', 'ProductSet', 'ProductKind', 'Stock', 'ProductReview',
-    'Basket', 'BasketItem'
+    'Product', 'ProductRelation', 'ProductSet', 'ProductKind', 'Stock', 'Favorites',
+    'ProductReview', 'Basket', 'BasketItem'
 ]
 
 logger = logging.getLogger(__name__)
@@ -845,6 +845,16 @@ class Stock(models.Model):
         verbose_name = 'запас'
         verbose_name_plural = 'запасы'
         unique_together = ('product', 'supplier')
+
+
+class Favorites(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    user = models.ForeignKey(ShopUser, on_delete=models.CASCADE, related_name='favorites')
+
+    class Meta:
+        verbose_name = 'избранное'
+        verbose_name_plural = 'избранные'
+        unique_together = ('product', 'user')
 
 
 class ProductReview(UserReviewAbstractModel):
