@@ -1,4 +1,3 @@
-{% load staticfiles %}
 {% load thumbnail %}
 {% load decimals %}
 {% load shop_filters %}
@@ -6,10 +5,10 @@
 <div class="card product-card">
   {% if product.enabled %}
   <span class="badge">
-  {% if product.isnew %}
+  {% if product.isnew and not limitedBadges %}
   <span class="sw-badge badge-info badge-shadow">Новинка</span>
   {% endif %}
-  {% if product.recomended %}
+  {% if product.recomended and not limitedBadges %}
   <span class="sw-badge badge-warning badge-shadow">Рекомендуем</span>
   {% endif %}
   {% for action in product.get_sales_actions %}{% if action.notice %}

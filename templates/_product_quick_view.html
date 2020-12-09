@@ -8,31 +8,12 @@
             <div class="row">
               <div class="col-lg-7 pr-lg-0">
                 {% if product.image_prefix|add:'.jpg'|file_exists %}
-                <!-- Product gallery-->
-                <div class="{#cz-product-gallery #}d-block">{# added d-block #}
-                  <div class="{#cz-preview #}ml-0">{# added ml-0, removed order-sm-2 #}
-                    <div class="{#cz-preview-item #}active text-center" id="preview0"><img class="cz-image-zoom" src="{{ MEDIA_URL }}{{ product.image_prefix }}.jpg" alt="{{ product.title }} {{ product.whatis }}" itemprop="image" data-zoom="{{ MEDIA_URL }}{{ product.image_prefix }}{% if product.image_prefix|add:'.b.jpg'|file_exists %}.b{% endif %}.jpg">
-                      {#<div class="cz-image-zoom-pane"></div>#}
+                <!-- Product image -->
+                <div class="d-block">{# added d-block #}
+                  <div class="ml-0">{# added ml-0, removed order-sm-2 #}
+                    <div class="active text-center" id="preview0"><img src="{{ MEDIA_URL }}{{ product.image_prefix }}.jpg" alt="{{ product.title }} {{ product.whatis }}" itemprop="image" data-zoom="{{ MEDIA_URL }}{{ product.image_prefix }}{% if product.image_prefix|add:'.b.jpg'|file_exists %}.b{% endif %}.jpg">
                     </div>
-                    <!--
-                    {% for image in product.images %}
-                    <div class="cz-preview-item" id="preview{{ forloop.counter }}"><img class="cz-image-zoom" src="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.jpg" data-zoom="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.jpg" alt="{{ product.title }} - фото №{{ forloop.counter }}">
-                      <div class="cz-image-zoom-pane"></div>
-                    </div>
-                    {% endfor %}
-                    -->
                   </div>
-                  <!--
-                  {% for image in product.images %}
-                  {% if forloop.first %}
-                  <div class="cz-thumblist d-flex flex-wrap">{# added d-flex flex-wrap, removed order-sm-1 #}<a class="cz-thumblist-item active" href="#preview0">{% thumbnail product.image_prefix|add:'.jpg' '80x80' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="Product thumb">{% endthumbnail %}</a>
-                  {% endif %}
-                      <a class="cz-thumblist-item" href="#preview{{ forloop.counter }}">{% thumbnail product.image_prefix|add:'/'|add:image|add:'.jpg' '80x80' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="Product thumb"/>{% endthumbnail %}</a>
-                  {% if forloop.last %}
-                  </div>
-                  {% endif %}
-                  {% endfor %}
-                  -->
                 </div>
                 {% else %}
                 <div class="d-none d-lg-block"><i class="czi-camera text-muted d-block mx-auto" style="width: 300px; font-size: 300px"></i></div>
@@ -47,12 +28,12 @@
                       {% get_rating for product as product_rating %}
                       {% if product_rating %}
                       <div class="star-rating">
-                        <a href="#reviews" data-scroll>{% render_rating_value product_rating %}<span class="d-inline-block font-size-sm text-body align-middle mt-1 ml-1">{% get_review_count for product as review_count %}{{ review_count }} {{ review_count|rupluralize:"обзор,обзора,обзоров"}}</span></a>
+                        {% render_rating_value product_rating %}<span class="d-inline-block font-size-sm text-body align-middle mt-1 ml-1">{% get_review_count for product as review_count %}{{ review_count }} {{ review_count|rupluralize:"обзор,обзора,обзоров"}}</span>
                       </div>
                       {% endif %}
                       {% endif %}
                     </div>
-                    <button class="btn-wishlist" type="button" data-toggle="tooltip" title="Add to wishlist"><i class="czi-heart"></i></button>
+                    <button type="button" class="btn-wishlist{% if request.user.is_authenticated %} favoritize-product{% endif %}{% if is_favorite %} bg-accent text-light{% endif %}" data-id="{{ product.id }}"{% if not is_favorite %} data-favorites-link="{% url 'shop:favorites' %}"{% endif %} {% if request.user.is_authenticated %}href="{% if is_favorite %}{% url 'shop:favorites' %}{% else %}{% url 'shop:favoritize' product.id %}{% endif %}"{% else %}data-toggle="modal" data-target="#favorites-signin-modal"{% endif %} rel="nofollow"><span data-toggle="tooltip" data-placement="left" title="{% if is_favorite %}В избранном{% else %}Отложить{% endif %}"><i class="czi-heart"></i></span></button>
                   </div>
 
                   {% if product.enabled and product.cost > 0 %}
