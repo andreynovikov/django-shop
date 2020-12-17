@@ -29,7 +29,7 @@ from django_admin_listfilter_dropdown.filters import ChoiceDropdownFilter
 from lock_tokens.admin import LockableModelAdmin
 from tagging.utils import parse_tag_input
 
-from yandex_delivery.api import DeliveryClient
+from yandex_delivery.tasks import create_delivery_draft_order, get_delivery_options
 
 from shop.models import ShopUserManager, ShopUser, Supplier, Order, OrderItem, Box, \
     Act, ActOrder
@@ -67,10 +67,14 @@ class OrderItemInline(admin.TabularInline):
     readonly_fields = ['product_codes', 'product_stock', 'item_cost']
 
     def get_fields(self, request, obj=None):
+        fields = ['product_codes', 'product']
         if obj and obj.is_beru:
-            return ['product_codes', 'product', 'val_discount', 'quantity', 'total', 'product_stock', 'box']
+            fields.extend(['val_discount', 'quantity', 'total', 'product_stock'])
         else:
-            return ['product_codes', 'product', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'total', 'product_stock']
+            fields.extend(['product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'total', 'product_stock'])
+        if obj and (obj.is_beru or obj.delivery == Order.DELIVERY_YANDEX):
+            fields.append('box')
+        return fields
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = [elem for elem in self.readonly_fields]
@@ -475,7 +479,14 @@ class OrderAdmin(LockableModelAdmin):
 
     def get_formsets_with_inlines(self, request, obj=None):
         for inline in self.get_inline_instances(request, obj):
-            if obj and obj.is_beru or not inline.model == Box:
+            # показываем встроенную форму коробок только для заказов Беру и Яндекс.Доставки:
+            # тут немного сложная логика, так как этот метод вызывается и при показе формы, и при сохранении
+            # и надо правильно отработать ситуацию, когда способ доставки уже поменяли, а встроенной формы
+            # с коробками ещё не было
+            is_beru = obj and obj.is_beru
+            is_yandex_delivery = obj and obj.delivery == Order.DELIVERY_YANDEX
+            has_boxes_form = 'boxes-TOTAL_FORMS' in request.POST
+            if not inline.model == Box or is_beru or (is_yandex_delivery and (has_boxes_form or request.method == 'GET')):
                 yield inline.get_formset(request, obj), inline
 
     def lookup_allowed(self, lookup, value):
@@ -510,7 +521,7 @@ class OrderAdmin(LockableModelAdmin):
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
-        if not form.instance.is_beru:
+        if not form.instance.is_beru and not form.instance.delivery == Order.DELIVERY_YANDEX:
             return
         boxes = defaultdict(dict)
         for formset in filter(lambda f: isinstance(f.empty_form.instance, OrderItem), formsets):
@@ -763,6 +774,9 @@ class OrderAdmin(LockableModelAdmin):
         else:
             form = YandexDeliveryForm(request.POST)
             is_popup = request.POST.get('_popup', 0)
+            for item in order.items.all():
+                if item.box is None:
+                    form.add_error(None, "{} не упакован в коробку".format(item.product.code))
             if form.is_valid():
                 try:
                     fio_last = form.cleaned_data['fio_last']
@@ -784,46 +798,7 @@ class OrderAdmin(LockableModelAdmin):
                         else:
                             last_name, first_name, middle_name = fio
 
-                    yd = DeliveryClient(
-                        settings.YD_CLIENT['client']['id'],
-                        settings.YD_CLIENT['senders'][0]['id'],
-                        list(map(lambda x: x['id'], settings.YD_CLIENT['warehouses'])),
-                        list(map(lambda x: x['id'], settings.YD_CLIENT['requisites'])),
-                        settings.YD_METHODS
-                    )
-
-                    order_items = []
-                    for item in order.items.all():
-                        if item.quantity > 1:
-                            title = '{} ({} шт.)'.format(item.product.title, item.quantity)
-                        else:
-                            title = item.product.title
-                        order_items.append({
-                            'orderitem_id': item.product.id,
-                            'orderitem_article': item.product.code,
-                            'orderitem_name': title,
-                            'orderitem_cost': item.price,
-                            'orderitem_quantity': 1
-                        })
-
-                    result = yd.create_order(
-                        order_num=order.id,
-                        order_warehouse=warehouse,
-                        order_items=order_items,
-                        recipient={
-                            'first_name': first_name,
-                            'middle_name': middle_name,
-                            'last_name': last_name,
-                            'phone': order.phone,
-                            'email': order.email
-                        },
-                        deliverypoint={
-                            'city': order.city,
-                            'street': order.address,
-                            'index': order.postcode
-                        }
-                    )
-                    yd_order = result['data']['order']['full_num']
+                    yd_order = create_delivery_draft_order(order.id, warehouse, first_name, middle_name, last_name)
 
                     return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
                                         '<script type="text/javascript">opener.dismissYandexDeliveryPopup(window, "%s", "%s");</script>'
@@ -853,23 +828,16 @@ class OrderAdmin(LockableModelAdmin):
         context['is_popup'] = request.GET.get('_popup', 0)
         context['title'] = "Варианты доставки"
         context['order'] = order
-        context['city'] = request.GET.get('city', order.city)
+        context['city'] = request.GET.get('city', '{} {}'.format(order.postcode, order.city))
         context['weight'] = request.GET.get('weight', 10)
         context['height'] = request.GET.get('height', 27)
         context['length'] = request.GET.get('length', 50)
         context['width'] = request.GET.get('width', 40)
 
         try:
-            yd = DeliveryClient(
-                settings.YD_CLIENT['client']['id'],
-                settings.YD_CLIENT['senders'][0]['id'],
-                list(map(lambda x: x['id'], settings.YD_CLIENT['warehouses'])),
-                list(map(lambda x: x['id'], settings.YD_CLIENT['requisites'])),
-                settings.YD_METHODS
-            )
-            result = yd.search_delivery_list('Москва', context['city'], context['weight'], context['width'],
-                                             context['height'], context['length'], order_cost=order.total,
-                                             total_cost=order.total)
+            results = get_delivery_options(order.total, order.paid, settings.YANDEX_DOSTAVKA['warehouses'][0]['id'], context['city'],
+                                          context['weight'], context['width'], context['height'], context['length'])
+
             colors = [
                 '#1E98FF',  # blue
                 '#1BAD03',  # darkGreen
@@ -889,23 +857,24 @@ class OrderAdmin(LockableModelAdmin):
             ]
             deliveries = {}
             i = 0
-            for delivery in result['data']:
+            for result in results:
+                delivery = result['delivery']
                 delivery_type = deliveries.get(delivery['type'], None)
                 if delivery_type is None:
                     delivery_type = []
                     deliveries[delivery['type']] = delivery_type
-                shop_cost = delivery['costWithRules']
+                #shop_cost = delivery['costWithRules']
                 required_services = []
                 optional_services = []
-                for service in delivery['services']:
-                    if service['optional']:
-                        optional_services.append(service)
-                    else:
-                        required_services.append(service)
-                        shop_cost = shop_cost + service['cost']
+                for service in result['services']:
+                    #if service['optional']:
+                    #    optional_services.append(service)
+                    #else:
+                    required_services.append(service)
+                    #shop_cost = shop_cost + service['cost']
                 delivery['required_services'] = required_services
                 delivery['optional_services'] = optional_services
-                delivery['shop_cost'] = shop_cost
+                delivery['cost'] = result['cost']
                 pickup_points = delivery.get('pickupPoints', [])
                 if len(pickup_points):
                     delivery['color'] = colors[i]
@@ -943,7 +912,7 @@ class OrderAdmin(LockableModelAdmin):
                 delivery_type.append(delivery)
 
             context['deliveries'] = deliveries
-            context['result'] = result['data']
+            context['result'] = results
 
         except Exception as e:
             context['error'] = str(e)
