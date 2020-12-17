@@ -72,8 +72,8 @@ class SendSmsForm(forms.Form):
 
 
 class YandexDeliveryForm(forms.Form):
-    yd_client = getattr(settings, 'YD_CLIENT', {})
-    warehouses = yd_client.get('warehouses', [])
+    yd = getattr(settings, 'YANDEX_DOSTAVKA', {})
+    warehouses = yd.get('warehouses', [])
     fio = forms.CharField(label='ФИО', required=True)
     fio_last = forms.BooleanField(label='Фамилия в конце', required=False)
     warehouse = forms.ChoiceField(label='Склад', choices=map(lambda x: (x['id'], x['name']), warehouses))
@@ -264,7 +264,7 @@ class OrderAdminForm(forms.ModelForm):
             else:
                 beru_campaign = ''
             self.fields['delivery_tracking_number'].widget = DeliveryTrackingNumberWidget(instance.id, instance.is_beru, beru_campaign)
-            self.fields['delivery_yd_order'].widget = YandexDeliveryWidget(instance.id)
+            self.fields['delivery_yd_order'].widget = YandexDeliveryWidget(instance.id, config.sw_yd_campaign)
         except (KeyError, AttributeError):
             pass
 
