@@ -14,7 +14,8 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.encoding import force_text
 
-from yandex_checkout import Configuration, Payment, WebhookNotification
+from yookassa import Configuration, Payment
+from yookassa.domain.notification import WebhookNotification
 
 import uuid
 
@@ -29,18 +30,23 @@ logger = logging.getLogger('yandex_kassa')
 CANCELLATION_REASONS = {
     '3d_secure_failed': 'не пройдена аутентификация по 3-D Secure',
     'call_issuer': 'оплата данным платежным средством отклонена по неизвестным причинам',
+    'canceled_by_merchant': 'платеж отменен по API при оплате в две стадии',
     'card_expired': 'истек срок действия банковской карты',
     'country_forbidden': 'нельзя заплатить банковской картой, выпущенной в этой стране',
+    'expired_on_capture': 'истек срок списания оплаты у двухстадийного платежа',
+    'expired_on_confirmation': 'пользователь не подтвердил платеж за время, отведенное на оплату выбранным способом',
     'fraud_suspected': 'платеж заблокирован из-за подозрения в мошенничестве',
     'general_decline': 'причина не детализирована',
     'identification_required': 'превышены ограничения на платежи для кошелька в Яндекс.Деньгах',
     'insufficient_funds': 'не хватает денег для оплаты',
+    'internal_timeout': 'технические неполадки на стороне ЮKassa',
     'invalid_card_number': 'неправильно указан номер карты',
     'invalid_csc': 'неправильно указан код CVV2 (CVC2, CID)',
     'issuer_unavailable': 'организация, выпустившая платежное средство, недоступна',
     'payment_method_limit_exceeded': 'исчерпан лимит платежей для данного платежного средства или вашего магазина',
     'payment_method_restricted': 'запрещены операции данным платежным средством',
-    'permission_revoked': 'нельзя провести безакцептное списание, пользователь отозвал разрешение на автоплатежи'
+    'permission_revoked': 'нельзя провести безакцептное списание, пользователь отозвал разрешение на автоплатежи',
+    'unsupported_mobile_operator': 'нельзя заплатить с номера телефона этого мобильного оператора'
 }
 
 
