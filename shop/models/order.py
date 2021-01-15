@@ -52,6 +52,7 @@ class Manager(models.Model):
 class Courier(models.Model):
     name = models.CharField('имя', max_length=100)
     color = ColorField(default='#000000')
+    pos_id = models.CharField('идентификатор кассы', max_length=100, blank=True)
 
     class Meta:
         verbose_name = 'курьер'
@@ -178,7 +179,7 @@ class Order(models.Model):
     delivery = models.SmallIntegerField('доставка', choices=DELIVERY_CHOICES, default=DELIVERY_UNKNOWN, db_index=True)
     delivery_price = models.DecimalField('стоимость доставки', max_digits=8, decimal_places=2, default=0)
     delivery_info = models.TextField('ТК, ТТН, курьер', blank=True)
-    delivery_tracking_number = models.CharField('трек-код', max_length=30, blank=True, db_index=True)
+    delivery_tracking_number = models.CharField('трек-код', max_length=50, blank=True, db_index=True)
     delivery_dispatch_date = models.DateField('дата отправки', blank=True, null=True)
     delivery_handing_date = models.DateField('дата получения', blank=True, null=True)
     delivery_time_from = models.TimeField('от', blank=True, null=True)

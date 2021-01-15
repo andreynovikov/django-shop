@@ -1,3 +1,4 @@
+{% load shop_tags %}
 <!DOCTYPE html>
 <html>
 <head><title>Сопроводительный лист</title>
@@ -25,9 +26,32 @@ table    { border-collapse:collapse; width:800px; }
 </head>
 <body>
 
+<table>
+<tr>
+<td>
 <h1>Заказ {{ order.id }}</h1>
+</td>
+<td class="right">
+{% barcode order.id %}
+</td>
+</tr>
+</table>
 
 <table class="address">
+<tr>
+<td>
+Оплата:
+</td>
+<td>
+{% if order.paid %}
+ОПЛАЧЕН!
+{% elif order.payment == order.PAYMENT_POS %}
+ТЕРМИНАЛ!
+{% else %}
+{{ order.get_payment_display }}
+{% endif %}
+</td>
+</tr>
 <tr>
 <td>
 Комментарии менеджера:
@@ -42,7 +66,7 @@ table    { border-collapse:collapse; width:800px; }
 Доставка:
 </td>
 <td>
-{% if order.delivery_dispatch_date %}{{ order.delivery_dispatch_date }}{% endif %}<br>
+{% if order.delivery_dispatch_date %}{{ order.delivery_dispatch_date }}<br>{% endif %}
 {% if order.delivery_time_from %}{{ order.delivery_time_from }}{% endif %} - {% if order.delivery_time_till %}{{ order.delivery_time_till }}{% endif %}
 </td>
 </tr>
