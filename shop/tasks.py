@@ -449,9 +449,6 @@ def notify_abandoned_basket(self, basket_id, email, phone):
         sw_default_site.domain,
         reverse('shop:clear', args=[signer.sign(basket.id)])
     )
-    import sys
-    print(restore_url, file=sys.stderr)
-    print(clear_url, file=sys.stderr)
 
     unisender = Unisender(api_key=settings.UNISENDER_KEY)
     if email:
@@ -520,7 +517,7 @@ def notify_abandoned_baskets(first_try=True):
         if phone is None and basket.phone:
             phone = basket.phone
 
-        if email or phone:
+        if email:  # or phone: отключили отправку смс
             notify_abandoned_basket.delay(basket.id, email, phone)
             num = num + 1
     log.info('Sent notifications for %d abandoned baskets' % num)
