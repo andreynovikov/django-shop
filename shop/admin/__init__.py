@@ -133,7 +133,7 @@ class AdvertAdmin(SortableAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'place', get_sites, 'active']
     list_display_links = ['name']
     search_fields = ['name']
-    list_filter = ['active']
+    list_filter = ['active', 'place']
     form = AdvertAdminForm
 
 
@@ -277,11 +277,11 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     form = ProductAdminForm
     change_list_template = 'admin/shop/product/change_list.html'
     resource_class = ProductResource
-    list_display = ['product_codes', 'title', 'weight', 'prom_weight', 'length', 'width', 'height', 'combined_price',
-                    'combined_discount', 'enabled', 'show_on_sw', 'beru', 'market', 'spb_market', 'product_stock',
+    list_display = ['product_codes', 'title', 'weight', 'prom_weight', 'length', 'width', 'height', 'combined_price', 'beru_price',
+                    'combined_discount', 'enabled', 'show_on_sw', 'beru', 'market', 'spb_market', 'merchant', 'product_stock',
                     'orders_link', 'product_link']
     list_display_links = ['title']
-    list_editable = ['enabled', 'show_on_sw', 'beru', 'market', 'spb_market', 'weight', 'prom_weight', 'length', 'width', 'height']
+    list_editable = ['enabled', 'show_on_sw', 'beru', 'market', 'spb_market', 'merchant', 'weight', 'prom_weight', 'length', 'width', 'height']
     list_filter = ['enabled', 'show_on_sw', 'beru', 'market', 'isnew', 'recomended',
                    'cur_code', ('pct_discount', DropdownFilter), ('val_discount', DropdownFilter),
                    ('categories', RelatedDropdownFilter), ('manufacturer', RelatedDropdownFilter)]
@@ -289,6 +289,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     search_fields = ['code', 'article', 'partnumber', 'title', 'tags']
     readonly_fields = ['price', 'ws_price', 'sp_price']
     save_as = True
+    save_on_top = True
     view_on_site = True
     inlines = (ProductSetInline, ProductRelationInline, StockInline,)
     filter_vertical = ('categories',)
@@ -319,7 +320,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         }),
         ('Маркетинг', {
             'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
-            'fields': (('enabled', 'show_on_sw', 'firstpage'), ('market', 'beru'), ('isnew', 'recomended', 'gift'), 'credit_allowed', 'deshevle',
+            'fields': (('enabled', 'show_on_sw', 'firstpage'), ('merchant', 'market', 'beru'), ('isnew', 'recomended', 'gift'), 'credit_allowed', 'deshevle',
                        'sales_notes', 'present', 'delivery', 'sales_actions', 'tags')
         }),
         spb_fieldset,
