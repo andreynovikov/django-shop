@@ -558,7 +558,7 @@ class CourierAdmin(admin.ModelAdmin):
     colorbar.admin_order_field = 'color'
     colorbar.short_description = 'цвет'
 
-    list_display = ['name', 'colorbar']
+    list_display = ['name', 'colorbar', 'pos_id']
     list_display_links = ['name']
     search_fields = ['name']
     ordering = ['name']

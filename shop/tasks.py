@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import base64
 import csv
 import datetime
 import logging
@@ -8,6 +9,7 @@ from collections import defaultdict
 from importlib import import_module
 from decimal import Decimal, ROUND_HALF_EVEN
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError
 
 from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.contenttypes.models import ContentType
@@ -61,6 +63,47 @@ def get_site_for_order(order):
         return sw_default_site
     else:
         return order.site
+
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Decimal):
+            return str(o)
+        return super(DecimalEncoder, self).default(o)
+
+
+@shared_task(bind=True, autoretry_for=(DatabaseError,), retry_backoff=300, retry_jitter=False)
+def update_order(self, order_id, data):
+    order = Order.objects.get(id=order_id)
+    SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
+    session = SessionStore()
+    session.create()
+    try:
+        lock_for_session(order, session)
+    except AlreadyLockedError:
+        raise self.retry(countdown=600, max_retries=24)  # 10 minutes
+    changed = {}
+    change_message = 'unchanged'
+    for attr, val in data.items():
+        field = order._meta.get_field(attr)
+        if field.editable and not field.primary_key and not isinstance(field, (ForeignObjectRel, RelatedField)):
+            if val != getattr(order, attr):
+                setattr(order, attr, val)
+                changed[attr] = val
+    if changed:
+        order.save(update_fields=changed.keys())
+        change_message = ', '.join(map(lambda item: '{}: {}'.format(item[0], item[1]), changed.items()))
+        LogEntry.objects.log_action(
+            user_id=order.user.id,
+            content_type_id=ContentType.objects.get_for_model(order).pk,
+            object_id=order.pk,
+            object_repr=force_text(order),
+            action_flag=CHANGE,
+            change_message=change_message
+        )
+    unlock_for_session(order, session)
+    session.delete()
+    return change_message
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
@@ -524,38 +567,95 @@ def notify_abandoned_baskets(first_try=True):
     return num
 
 
-@shared_task(bind=True, autoretry_for=(DatabaseError,), retry_backoff=300, retry_jitter=False)
-def update_order(self, order_id, data):
+@shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
+def create_modulpos_order(self, order_id):
     order = Order.objects.get(id=order_id)
-    SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
-    session = SessionStore()
-    session.create()
+    if not order.courier:
+        return 'Отсутствует привязка курьера'
+    if not order.courier.pos_id:
+        return 'Отсутствует привязка кассы к курьеру'
+    items = []
+    for item in order.items.all():
+        items.append({
+            'name': item.product.title,
+            'measure': 'pcs',
+            'quantity': item.quantity,
+            'vatSum': 0,
+            'vatTag': '1105',
+            'sumWithVat': item.price
+        })
+    data = {
+        'documentNumber': str(order.id),
+        'documentType': 'SALE',
+        'documentDateTime': timezone.localtime(order.created).strftime('%Y-%m-%dT%H:%M:%S%z'),
+        'description': order.manager_comment,
+        'customerContact': str(order.user.phone),
+        'clientInformation': {
+            'name': order.user.get_short_name()
+        },
+        'prepaid': order.paid,
+        'inventPositions': items
+    }
+    data_encoded = json.dumps(data, cls=DecimalEncoder).encode('utf-8')
+
+    reload_maybe()
+
+    url = 'https://service.modulpos.ru/api/v2/retail-point/{}/order'.format(order.courier.pos_id)
+    headers = {
+        'Authorization': 'Basic {token}'.format(token=base64.standard_b64encode('{}:{}'.format(config.sw_modulkassa_login, config.sw_modulkassa_password).encode('utf-8')).decode('utf-8')),
+        'Content-Type': 'application/json; charset=utf-8'
+    }
+    request = Request(url, data_encoded, headers, method='POST')
     try:
-        lock_for_session(order, session)
-    except AlreadyLockedError:
-        raise self.retry(countdown=600, max_retries=24)  # 10 minutes
-    changed = {}
-    change_message = 'unchanged'
-    for attr, val in data.items():
-        field = order._meta.get_field(attr)
-        if field.editable and not field.primary_key and not isinstance(field, (ForeignObjectRel, RelatedField)):
-            if val != getattr(order, attr):
-                setattr(order, attr, val)
-                changed[attr] = val
-    if changed:
-        order.save(update_fields=changed.keys())
-        change_message = ', '.join(map(lambda item: '{}: {}'.format(item[0], item[1]), changed.items()))
-        LogEntry.objects.log_action(
-            user_id=order.user.id,
-            content_type_id=ContentType.objects.get_for_model(order).pk,
-            object_id=order.pk,
-            object_repr=force_text(order),
-            action_flag=CHANGE,
-            change_message=change_message
-        )
-    unlock_for_session(order, session)
-    session.delete()
-    return change_message
+        response = urlopen(request)
+        result = json.loads(response.read().decode('utf-8'))
+        order_id = result.get('id', '')
+        update_order.delay(order.pk, {'delivery_tracking_number': order_id})
+        return order_id
+    except HTTPError as e:
+        content = e.read()
+        error = json.loads(content.decode('utf-8'))
+        message = error.get('message', 'Неизвестная ошибка взаимодействия с МодульКасса')
+        order.status = Order.STATUS_PROBLEM
+        if order.delivery_info:
+            order.delivery_info = '\n'.join([order.delivery_info, message])
+        else:
+            order.delivery_info = message
+        order.save()
+        raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
+
+
+@shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
+def delete_modulpos_order(self, order_id):
+    order = Order.objects.get(id=order_id)
+    if not order.courier:
+        return 'Отсутствует привязка курьера'
+    if not order.courier.pos_id:
+        return 'Отсутствует привязка кассы к курьеру'
+
+    reload_maybe()
+
+    url = 'https://service.modulpos.ru/api/v2/retail-point/{}/order/{}'.format(order.courier.pos_id, order.delivery_tracking_number)
+    headers = {
+        'Authorization': 'Basic {token}'.format(token=base64.standard_b64encode('{}:{}'.format(config.sw_modulkassa_login, config.sw_modulkassa_password).encode('utf-8')).decode('utf-8')),
+        'Content-Type': 'application/json; charset=utf-8'
+    }
+    request = Request(url, None, headers, method='DELETE')
+    try:
+        urlopen(request)
+        update_order.delay(order.pk, {'delivery_tracking_number': ''})
+        return order.delivery_tracking_number
+    except HTTPError as e:
+        content = e.read()
+        error = json.loads(content.decode('utf-8'))
+        message = error.get('message', 'Неизвестная ошибка взаимодействия с МодульКасса')
+        order.status = Order.STATUS_PROBLEM
+        if order.delivery_info:
+            order.delivery_info = '\n'.join([order.delivery_info, message])
+        else:
+            order.delivery_info = message
+        order.save()
+        raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
 
 
 @shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
