@@ -17,3 +17,6 @@ class SWConfigForm(ConfigForm):
     sw_beru_campaign = forms.CharField(label='Идентификатор кампании Беру!')
     sw_beru_application = forms.CharField(label='ID OAuth-приложения магазина Беру!', help_text='<a href="https://oauth.yandex.ru">https://oauth.yandex.ru</a>')
     sw_beru_token = forms.CharField(label='OAuth-токен магазина Беру!')
+
+    sw_modulkassa_login = forms.CharField(label='Логин МодульКасса')
+    sw_modulkassa_password = forms.CharField(label='Пароль МодульКасса')

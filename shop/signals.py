@@ -16,7 +16,7 @@ from reviews.signals import review_was_posted
 from shop.models import Product, Order
 from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, \
     notify_user_order_delivered, notify_user_order_done, notify_user_review_products, \
-    notify_review_posted
+    notify_review_posted, create_modulpos_order, delete_modulpos_order
 
 
 @receiver(post_save, sender=Product, dispatch_uid='product_saved_receiver')
@@ -53,6 +53,14 @@ def order_saved(sender, **kwargs):
                 if item.product.tags:
                     tags = parse_tag_input(item.product.tags)
                     order.append_user_tags(tags)
+
+        if order.status == Order.STATUS_SENT:
+            if order.delivery == Order.DELIVERY_COURIER and order.courier and order.courier.pos_id:
+                create_modulpos_order.delay(order.id)
+
+        if order.tracker.previous('status') == Order.STATUS_SENT:
+            if order.delivery == Order.DELIVERY_COURIER and order.courier and order.courier.pos_id and order.delivery_tracking_number:
+                delete_modulpos_order.delay(order.id)
 
         if order.status == Order.STATUS_COLLECTED:
             if order.payment == Order.PAYMENT_CARD or order.payment == Order.PAYMENT_TRANSFER:
