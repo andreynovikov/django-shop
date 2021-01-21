@@ -182,7 +182,7 @@ class Order(models.Model):
     delivery = models.SmallIntegerField('доставка', choices=DELIVERY_CHOICES, default=DELIVERY_UNKNOWN, db_index=True)
     delivery_price = models.DecimalField('стоимость доставки', max_digits=8, decimal_places=2, default=0)
     delivery_info = models.TextField('ТК, ТТН, курьер', blank=True)
-    delivery_tracking_number = models.CharField('трек-код', max_length=50, blank=True, db_index=True)
+    delivery_tracking_number = models.CharField('трек-код', max_length=30, blank=True, db_index=True)
     delivery_dispatch_date = models.DateField('дата отправки', blank=True, null=True)
     delivery_handing_date = models.DateField('дата получения', blank=True, null=True)
     delivery_time_from = models.TimeField('от', blank=True, null=True)
@@ -216,6 +216,7 @@ class Order(models.Model):
     # state
     created = models.DateTimeField('создан', auto_now_add=True)
     status = models.PositiveIntegerField('статус', choices=STATUS_CHOICES, default=STATUS_NEW, db_index=True)
+    hidden_tracking_number = models.CharField(max_length=50, blank=True, db_index=True)
 
     tracker = FieldTracker(fields=['status'])
 

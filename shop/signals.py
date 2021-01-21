@@ -59,7 +59,7 @@ def order_saved(sender, **kwargs):
                 create_modulpos_order.delay(order.id)
 
         if order.tracker.previous('status') == Order.STATUS_SENT:
-            if order.delivery == Order.DELIVERY_COURIER and order.courier and order.courier.pos_id and order.delivery_tracking_number:
+            if order.delivery == Order.DELIVERY_COURIER and order.courier and order.courier.pos_id and order.hidden_tracking_number:
                 delete_modulpos_order.delay(order.id)
 
         if order.status == Order.STATUS_COLLECTED:

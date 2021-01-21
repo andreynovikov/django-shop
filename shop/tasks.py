@@ -579,16 +579,26 @@ def create_modulpos_order(self, order_id):
         items.append({
             'name': item.product.title,
             'measure': 'pcs',
+            'inventoryType': 'INVENTORY',
             'quantity': item.quantity,
             'vatSum': 0,
             'vatTag': '1105',
             'sumWithVat': item.price
         })
+    if order.delivery_price > 0:
+        items.append({
+            'name': "Доставка",
+            'measure': 'other',
+            'inventoryType': 'SERVICE',
+            'quantity': 1,
+            'vatSum': 0,
+            'vatTag': '1105',
+            'sumWithVat': str(order.delivery_price.quantize(Decimal('1'), rounding=ROUND_HALF_EVEN))
+        })
     data = {
         'documentNumber': str(order.id),
         'documentType': 'SALE',
         'documentDateTime': timezone.localtime(order.created).strftime('%Y-%m-%dT%H:%M:%S%z'),
-        'description': order.manager_comment,
         'customerContact': str(order.user.phone),
         'clientInformation': {
             'name': order.user.get_short_name()
@@ -610,7 +620,7 @@ def create_modulpos_order(self, order_id):
         response = urlopen(request)
         result = json.loads(response.read().decode('utf-8'))
         order_id = result.get('id', '')
-        update_order.delay(order.pk, {'delivery_tracking_number': order_id})
+        update_order.delay(order.pk, {'hidden_tracking_number': order_id})
         return order_id
     except HTTPError as e:
         content = e.read()
@@ -632,10 +642,12 @@ def delete_modulpos_order(self, order_id):
         return 'Отсутствует привязка курьера'
     if not order.courier.pos_id:
         return 'Отсутствует привязка кассы к курьеру'
+    if not order.hidden_tracking_number:
+        return 'Отсутствует ID документа в кассе'
 
     reload_maybe()
 
-    url = 'https://service.modulpos.ru/api/v2/retail-point/{}/order/{}'.format(order.courier.pos_id, order.delivery_tracking_number)
+    url = 'https://service.modulpos.ru/api/v2/retail-point/{}/order/{}'.format(order.courier.pos_id, order.hidden_tracking_number)
     headers = {
         'Authorization': 'Basic {token}'.format(token=base64.standard_b64encode('{}:{}'.format(config.sw_modulkassa_login, config.sw_modulkassa_password).encode('utf-8')).decode('utf-8')),
         'Content-Type': 'application/json; charset=utf-8'
@@ -643,8 +655,8 @@ def delete_modulpos_order(self, order_id):
     request = Request(url, None, headers, method='DELETE')
     try:
         urlopen(request)
-        update_order.delay(order.pk, {'delivery_tracking_number': ''})
-        return order.delivery_tracking_number
+        update_order.delay(order.pk, {'hidden_tracking_number': ''})
+        return order.hidden_tracking_number
     except HTTPError as e:
         content = e.read()
         error = json.loads(content.decode('utf-8'))
