@@ -344,7 +344,10 @@ class OrderAdmin(LockableModelAdmin):
             datetime = datetime + '-' + date_format(obj.delivery_time_till, "TIME_FORMAT")
         courier = ''
         if obj.courier:
-            courier = ': %s' % obj.courier.name
+            if obj.hidden_tracking_number:
+                courier = ': %s&nbsp;<span style="color: blue; font-weight: bold" title="%s">&#10003;</span>' % (obj.courier.name, obj.hidden_tracking_number)
+            else:
+                courier = ': %s' % obj.courier.name
         return '%s%s<br/>%s' % (obj.get_delivery_display(), courier, datetime)
     combined_delivery.admin_order_field = 'delivery_dispatch_date'
     combined_delivery.short_description = 'Доставка'
@@ -424,9 +427,17 @@ class OrderAdmin(LockableModelAdmin):
             return 'нет'
     credit_notice.short_description = 'кредит'
 
+    @mark_safe
+    def pos_status(self, obj):
+        if obj.hidden_tracking_number:
+            return '<span style="color: blue; font-weight: bold" title="{}">&#10003;</span>'.format(obj.hidden_tracking_number)
+        else:
+            return ''
+    pos_status.short_description = 'касса'
+
     list_display = ['order_name', 'name_and_phone', 'city', 'total_cost', 'combined_payment', 'combined_delivery',
                     'colored_status', 'combined_comments']
-    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders',
+    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'pos_status',
                        'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
                        'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
     list_filter = [OrderStatusListFilter, ('site', SiteListFilter), ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter),
@@ -472,6 +483,8 @@ class OrderAdmin(LockableModelAdmin):
             fieldsets[0][1]['fields'][5].extend(('delivery_time_from', 'delivery_time_till'))
             fieldsets[2][1]['fields'].extend((('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux', 'email'),
                                               'address', ('city', 'postcode'), 'comment', ('firm_name', 'is_firm')))
+            if obj and obj.hidden_tracking_number:
+                fieldsets[0][1]['fields'][1].append('pos_status')
             if obj is None or obj.is_firm:
                 fieldsets[2][1]['fields'].extend(('firm_address', 'firm_details'))
             fieldsets[2][1]['fields'].append('user_tags')
