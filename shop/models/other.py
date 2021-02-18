@@ -455,6 +455,7 @@ class Product(models.Model):
     sp_cur_price = models.DecimalField('цена СП, вал', max_digits=10, decimal_places=2, default=0)
     sp_cur_code = models.ForeignKey(Currency, verbose_name='СП валюта', related_name="spprice", on_delete=models.PROTECT, default=643)
     beru_price = models.DecimalField('цена Беру, руб', max_digits=10, decimal_places=2, default=0)
+    avito_price = models.DecimalField('цена Авито, руб', max_digits=10, decimal_places=2, default=0)
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
     ws_pct_discount = models.PositiveSmallIntegerField('опт. скидка, %', default=0)
@@ -490,6 +491,7 @@ class Product(models.Model):
     if settings.SHOP_MARKET_DB_COLUMN == 'market':
         spb_market = models.BooleanField('маркет СПб', default=False, db_index=True)
     beru = models.BooleanField('выгружать в Беру', default=False, db_index=True)
+    avito = models.BooleanField('выгружать в Авито', default=False, db_index=True)
     manufacturer = models.ForeignKey(Manufacturer, verbose_name="Производитель", on_delete=models.PROTECT, default=49)
     country = models.ForeignKey(Country, verbose_name="Страна производства", on_delete=models.PROTECT, default=1)
     developer_country = models.ForeignKey(Country, verbose_name="Страна разработки", on_delete=models.PROTECT, related_name="developed_product", default=1)
