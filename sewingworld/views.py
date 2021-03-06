@@ -66,6 +66,8 @@ def products_stream(request, templates, filter_type):
         filters['num__gt'] = 0
     if filter_type == 'beru':
         filters['beru'] = True
+    if filter_type == 'taxi':
+        filters['taxi'] = True
     if filter_type == 'avito':
         filters['avito'] = True
     if filter_type == 'prym':
