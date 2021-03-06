@@ -10,6 +10,10 @@
     <price>{{ product.cost|quantize:"1" }}</price>
     {% endif %}
     <currencyId>RUR</currencyId>
+    <vat>NO_VAT</vat>
+    <shipment-options>
+      <option days="1" />
+    </shipment-options>
 {% for category in product.categories.all %}
 {% with top_category=category_map|get_dict_item:category.pk %}
 {% if top_category %}
@@ -33,6 +37,9 @@
     <description>{{ product.whatis|safe }} {{ product.yandexdescr|safe }} {{ product.descr|striptags }}</description>
     {% if product.manufacturer_warranty %}
     <manufacturer_warranty>true</manufacturer_warranty>
+    {% endif %}
+    {% if product.country and product.country.enabled %}
+    <country_of_origin>{{ product.country }}</country_of_origin>
     {% endif %}
     <shop-sku>{{ product.article }}</shop-sku>
     <weight>{{ product.prom_weight|unlocalize }}</weight>
