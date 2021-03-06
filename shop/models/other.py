@@ -492,6 +492,7 @@ class Product(models.Model):
         spb_market = models.BooleanField('маркет СПб', default=False, db_index=True)
     beru = models.BooleanField('выгружать в Беру', default=False, db_index=True)
     avito = models.BooleanField('выгружать в Авито', default=False, db_index=True)
+    taxi = models.BooleanField('выгружать в Яндекс.Такси', default=False, db_index=True)
     manufacturer = models.ForeignKey(Manufacturer, verbose_name="Производитель", on_delete=models.PROTECT, default=49)
     country = models.ForeignKey(Country, verbose_name="Страна производства", on_delete=models.PROTECT, default=1)
     developer_country = models.ForeignKey(Country, verbose_name="Страна разработки", on_delete=models.PROTECT, related_name="developed_product", default=1)

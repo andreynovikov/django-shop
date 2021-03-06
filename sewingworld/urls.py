@@ -44,6 +44,8 @@ urlpatterns = [
     url(r'^avito\.xml$', views.products, {'templates': 'avito', 'filters': 'avito'}, name='avito'),
     # ex: /beru.xml
     url(r'^beru\.xml$', views.products, {'templates': 'beru', 'filters': 'beru'}, name='beru'),
+    # ex: /taxi.xml
+    url(r'^taxi\.xml$', views.products, {'templates': 'beru', 'filters': 'taxi'}, name='taxi'),
     # ex: /google.xml
     url(r'^google\.xml$', views.products, {'templates': 'google', 'filters': 'google'}, name='google'),
     # ex: /cc-prym.xml
