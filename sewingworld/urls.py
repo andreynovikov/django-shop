@@ -48,6 +48,8 @@ urlpatterns = [
     url(r'^google\.xml$', views.products, {'templates': 'google', 'filters': 'google'}, name='google'),
     # ex: /cc-prym.xml
     url(r'^cc-prym\.xml$', views.products, {'templates': 'prym', 'filters': 'prym'}, name='cc-prym'),
+    # ex: /stock_avito.csv
+    url(r'^stock_avito\.csv$', views.stock, name='stock'),
     # ex: /search/
     url(r'^search/$', views.search, name='search'),
     # ex: /catalog/
