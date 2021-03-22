@@ -241,6 +241,7 @@ def order_status(request):
         order.payment = BERU_PAYMENT_METHODS.get(payment, Order.PAYMENT_UNKNOWN)
         order.save()
     except Order.DoesNotExist:
-        return HttpResponseBadRequest("Не существует внутреннего заказа с заказом Беру №{}".format(order_id))
+        return HttpResponse("Не существует внутреннего заказа с заказом Беру №{}".format(order_id))
+        # return HttpResponseBadRequest("Не существует внутреннего заказа с заказом Беру №{}".format(order_id))
 
     return HttpResponse('')

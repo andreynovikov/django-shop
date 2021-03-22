@@ -41,7 +41,7 @@ def notify_beru_order_status(self, order_id, status, substatus):
                         'count': item.quantity
                     })
             boxes.append({
-                'fulfilmentId': '%d-%d' % (order.id, count),
+                'fulfilmentId': '%s-%d' % (beru_order_id, count),
                 'weight': int(box.weight * 1000),
                 'width': int(box.width),
                 'height': int(box.height),
