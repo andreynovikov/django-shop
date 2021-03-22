@@ -262,7 +262,7 @@ class Order(models.Model):
 
     @cached_property
     def is_beru(self):
-        return self.site == Site.objects.get(domain='beru.ru')
+        return self.site == Site.objects.get(domain='beru.ru') or self.site == Site.objects.get(domain='taxi.beru.ru')
 
     @cached_property
     def is_from_market(self):
@@ -277,6 +277,8 @@ class Order(models.Model):
             site = Site.objects.get(domain='market.yandex.ru')
         elif basket.utm_source == 'beru':
             site = Site.objects.get(domain='beru.ru')
+        elif basket.utm_source == 'taxi':
+            site = Site.objects.get(domain='taxi.beru.ru')
         else:
             site = Site.objects.get_current()
         order = Order.objects.create(user=user, site=site)
@@ -296,7 +298,7 @@ class Order(models.Model):
         # добавляем в заказ все элементы корзины
         for item in basket.items.all():
             # если это Беру, то указываем только рублёвую скидку, предоставленную Беру
-            if order.utm_source == 'beru':
+            if order.utm_source in ('beru', 'taxi'):
                 pct_discount = 0
                 val_discount = item.ext_discount
                 price = item.product.price

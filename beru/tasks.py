@@ -25,6 +25,9 @@ def notify_beru_order_status(self, order_id, status, substatus):
         return '{}: {} {} (already set)'.format(order_id, status, substatus)
 
     reload_maybe()
+    campaign_id = getattr(config, 'sw_{}_campaign'.format(order.utm_source))
+    oauth_application = getattr(config, 'sw_{}_application'.format(order.utm_source))
+    oauth_token = getattr(config, 'sw_{}_token'.format(order.utm_source))
 
     beru_order_id = str(beru_order.get('id', 0))
     if status == 'PROCESSING' and substatus == 'READY_TO_SHIP':
@@ -56,9 +59,9 @@ def notify_beru_order_status(self, order_id, status, substatus):
         if not shipments:
             raise self.retry(countdown=60 * 60, max_retries=12)  # 60 minutes
         shipment_id = str(shipments[0].get('id', 0))
-        url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}/delivery/shipments/{shipmentId}/boxes.[format]json'.format(campaignId=config.sw_beru_campaign, orderId=beru_order_id, shipmentId=shipment_id)
+        url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}/delivery/shipments/{shipmentId}/boxes.json'.format(campaignId=campaign_id, orderId=beru_order_id, shipmentId=shipment_id)
         headers = {
-            'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=config.sw_beru_token, oauth_application=config.sw_beru_application),
+            'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=oauth_token, oauth_application=oauth_application),
             'Content-Type': 'application/json; charset=utf-8'
         }
         request = Request(url, data_encoded, headers, method='PUT')
@@ -83,9 +86,9 @@ def notify_beru_order_status(self, order_id, status, substatus):
     data = {"order": {"status": status, "substatus": substatus}}
     data_encoded = json.dumps(data).encode('utf-8')
 
-    url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}/status.json'.format(campaignId=config.sw_beru_campaign, orderId=beru_order_id)
+    url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}/status.json'.format(campaignId=campaign_id, orderId=beru_order_id)
     headers = {
-        'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=config.sw_beru_token, oauth_application=config.sw_beru_application),
+        'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=oauth_token, oauth_application=oauth_application),
         'Content-Type': 'application/json; charset=utf-8'
     }
     request = Request(url, data_encoded, headers, method='PUT')
@@ -120,10 +123,13 @@ def get_beru_order_details(order_id):
         raise TaskFailure('Order {} does not have beru order number'.format(order_id))
 
     reload_maybe()
+    campaign_id = getattr(config, 'sw_{}_campaign'.format(order.utm_source))
+    oauth_application = getattr(config, 'sw_{}_application'.format(order.utm_source))
+    oauth_token = getattr(config, 'sw_{}_token'.format(order.utm_source))
 
-    url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}.json'.format(campaignId=config.sw_beru_campaign, orderId=beru_order)
+    url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}.json'.format(campaignId=campaign_id, orderId=beru_order)
     headers = {
-        'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=config.sw_beru_token, oauth_application=config.sw_beru_application)
+        'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=oauth_token, oauth_application=oauth_application)
     }
     request = Request(url, None, headers)
     try:

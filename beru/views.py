@@ -17,13 +17,16 @@ from shop.models import Product, Basket, Order, ShopUser
 
 logger = logging.getLogger('beru')
 
-BERU_TOKEN = getattr(settings, 'BERU_TOKEN', '')
+TOKENS = {
+    'beru': getattr(settings, 'BERU_TOKEN', ''),
+    'taxi': getattr(settings, 'TAXI_TOKEN', '')
+}
 
 
 def token_required(func):
     @wraps(func)
     def _wrapped_view(request, *args, **kwargs):
-        if request.META.get('HTTP_AUTHORIZATION', None) != BERU_TOKEN:
+        if request.META.get('HTTP_AUTHORIZATION', None) != TOKENS[kwargs['account']]:
             return HttpResponseForbidden()
         return func(request, *args, **kwargs)
     return _wrapped_view
@@ -32,7 +35,7 @@ def token_required(func):
 @require_POST
 @csrf_exempt
 @token_required
-def stocks(request):
+def stocks(request, account='beru'):
     if request.body:
         data = json.loads(request.body.decode('utf-8'))
     else:
@@ -45,7 +48,7 @@ def stocks(request):
     for sku in data.get('skus', []):
         try:
             product = Product.objects.get(article=sku)
-            count = max(int(product.get_stock('beru')), 0)
+            count = max(int(product.get_stock(account)), 0)
             skus.append({
                 'sku': sku,
                 'warehouseId': str(warehouseId),
@@ -65,7 +68,7 @@ def stocks(request):
 @require_POST
 @csrf_exempt
 @token_required
-def cart(request):
+def cart(request, account='beru'):
     if request.body:
         data = json.loads(request.body.decode('utf-8'))
     else:
@@ -83,7 +86,7 @@ def cart(request):
             response['cart']['items'].append({
                 'feedId': item.get('feedId', 0),
                 'offerId': sku,
-                'count': min(item.get('count', 0), max(product.get_stock('beru'), 0)),
+                'count': min(item.get('count', 0), max(product.get_stock(account), 0)),
                 'price': int(price.to_integral_value(rounding=decimal.ROUND_UP)),
                 'delivery': True
             })
@@ -96,7 +99,7 @@ def cart(request):
 @require_POST
 @csrf_exempt
 @token_required
-def accept_order(request):
+def accept_order(request, account='beru'):
     if request.body:
         data = json.loads(request.body.decode('utf-8'))
     else:
@@ -114,7 +117,7 @@ def accept_order(request):
         request.session.modified = True
     request.session[SESSION_KEY] = user._meta.pk.value_to_string(user)
     request.session.save()
-    basket = Basket.objects.create(session_id=request.session.session_key, utm_source='beru', secondary=True)
+    basket = Basket.objects.create(session_id=request.session.session_key, utm_source=account, secondary=True)
 
     for beru_item in beru_order.get('items', []):
         try:
@@ -188,7 +191,7 @@ BERU_PAYMENT_METHODS = {
 @require_POST
 @csrf_exempt
 @token_required
-def order_status(request):
+def order_status(request, account='beru'):
     if request.body:
         data = json.loads(request.body.decode('utf-8'))
     else:
