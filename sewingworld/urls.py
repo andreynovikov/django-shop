@@ -89,6 +89,7 @@ urlpatterns = [
     # /shop/*
     url(r'^shop/', include('shop.urls')),
     url(r'^beru/', include('beru.urls')),
+    url(r'^taxi/', include('beru.urls'), {'account': 'taxi'}),
     url(r'^kassa/', include('yandex_kassa.urls')),
     url(r'^blog/', include('zinnia.urls')),
     url(r'^comments/', include('django_comments.urls')),

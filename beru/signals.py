@@ -12,7 +12,7 @@ def order_saved(sender, **kwargs):
     order = kwargs['instance']
     print("Post save emited for", order)
 
-    if order.site != Site.objects.get(domain='beru.ru'):
+    if order.site not in (Site.objects.get(domain='beru.ru'), Site.objects.get(domain='taxi.beru.ru')):
         return
 
     if order.tracker.has_changed('status'):
