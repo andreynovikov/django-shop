@@ -293,6 +293,7 @@ class Supplier(models.Model):
     spb_count_in_stock = models.SmallIntegerField('учитывать в наличии СПб', choices=COUNT_CHOICES, default=COUNT_NONE)
     ws_count_in_stock = models.SmallIntegerField('учитывать в наличии Опт', choices=COUNT_CHOICES, default=COUNT_NONE)
     beru_count_in_stock = models.SmallIntegerField('учитывать в наличии Беру', choices=COUNT_CHOICES, default=COUNT_NONE)
+    taxi_count_in_stock = models.SmallIntegerField('учитывать в наличии Такси', choices=COUNT_CHOICES, default=COUNT_NONE)
     order = models.PositiveIntegerField()
 
     class Meta:
@@ -746,6 +747,9 @@ class Product(models.Model):
             elif which == 'beru':
                 suppliers = self.stock.filter(beru_count_in_stock=Supplier.COUNT_STOCK)
                 site_addon = '<> 6'
+            elif which == 'taxi':
+                suppliers = self.stock.filter(taxi_count_in_stock=Supplier.COUNT_STOCK)
+                site_addon = '<> 6'
             else:
                 suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
                 site_addon = '<> 6'
@@ -756,9 +760,7 @@ class Product(models.Model):
 
             # reserve 2 items for retail
             if num > 0 and which == 'ws_num':
-                num = num - 2
-                if num < 0:
-                    num = 0
+                num = max(0, num - 2)
 
             if num > 0:
                 cursor = connection.cursor()
