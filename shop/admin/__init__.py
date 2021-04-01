@@ -46,7 +46,7 @@ class CategoryAdmin(DraggableMPTTAdmin):
 @admin.register(Supplier)
 class SupplierAdmin(SortableAdminMixin, admin.ModelAdmin):
     list_display = ['code', 'name', 'show_in_order', 'count_in_stock', 'spb_count_in_stock',
-                    'ws_count_in_stock', 'beru_count_in_stock']
+                    'ws_count_in_stock', 'beru_count_in_stock', 'taxi_count_in_stock']
     list_display_links = ['name']
     search_fields = ['code', 'code1c', 'name']
 
@@ -277,11 +277,10 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     form = ProductAdminForm
     change_list_template = 'admin/shop/product/change_list.html'
     resource_class = ProductResource
-    list_display = ['product_codes', 'title', 'weight', 'prom_weight', 'length', 'width', 'height', 'combined_price', 'beru_price',
-                    'combined_discount', 'enabled', 'show_on_sw', 'avito', 'beru', 'market', 'spb_market', 'merchant', 'product_stock',
-                    'orders_link', 'product_link']
+    list_display = ['product_codes', 'title', 'combined_price', 'beru_price', 'combined_discount', 'enabled', 'show_on_sw', 'avito', 'beru', 'taxi',
+                    'market', 'spb_market', 'merchant', 'product_stock', 'orders_link', 'product_link']
     list_display_links = ['title']
-    list_editable = ['enabled', 'show_on_sw', 'avito', 'beru', 'market', 'spb_market', 'merchant', 'weight', 'prom_weight', 'length', 'width', 'height']
+    list_editable = ['enabled', 'show_on_sw', 'avito', 'beru', 'taxi', 'market', 'spb_market', 'merchant']
     list_filter = ['enabled', 'show_on_sw', 'avito', 'beru', 'taxi', 'market', 'isnew', 'recomended',
                    'cur_code', ('pct_discount', DropdownFilter), ('val_discount', DropdownFilter),
                    ('categories', RelatedDropdownFilter), ('manufacturer', RelatedDropdownFilter)]
