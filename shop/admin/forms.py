@@ -99,6 +99,12 @@ class SelectTagForm(forms.Form):
 
 class SelectSupplierForm(forms.Form):
     supplier = forms.ModelChoiceField(label='Поставщик', queryset=Supplier.objects.order_by('order'), required=True, empty_label=None)
+    aux_supplier = forms.ModelChoiceField(label='Дополнительный поставщик', queryset=Supplier.objects.order_by('order'), required=False)
+
+    class Media:
+        css = {
+            'all': ('admin/css/forms.css',)
+        }
 
 
 class StockInlineForm(forms.ModelForm):
@@ -253,7 +259,11 @@ class OrderAdminForm(forms.ModelForm):
             instance = kwargs['instance']
             self.fields['user_tags'].initial = instance.user.tags
             self.fields['user_tags'].widget = TagAutoComplete(model=type(instance.user), attrs=self.fields['user_tags'].widget.attrs)
-            self.fields['delivery_tracking_number'].widget = DeliveryTrackingNumberWidget(instance.id, instance.is_beru, config.sw_beru_campaign)
+            if instance.is_beru:
+                beru_campaign = getattr(config, 'sw_{}_campaign'.format(instance.utm_source))
+            else:
+                beru_campaign = ''
+            self.fields['delivery_tracking_number'].widget = DeliveryTrackingNumberWidget(instance.id, instance.is_beru, beru_campaign)
             self.fields['delivery_yd_order'].widget = YandexDeliveryWidget(instance.id)
         except (KeyError, AttributeError):
             pass

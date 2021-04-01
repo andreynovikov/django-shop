@@ -707,6 +707,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
 
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['is_popup'] = is_popup
@@ -753,6 +754,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
 
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['is_popup'] = is_popup
@@ -846,6 +848,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
 
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['is_popup'] = is_popup
@@ -1047,6 +1050,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
 
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['is_popup'] = is_popup
@@ -1099,6 +1103,10 @@ class OrderAdmin(LockableModelAdmin):
         if 'show_stock' in request.POST:
             supplier_ur = Supplier.objects.get(code='Ур')
             supplier = Supplier.objects.get(pk=request.POST.get('supplier'))
+            if request.POST.get('aux_supplier'):
+                aux_supplier = Supplier.objects.get(pk=request.POST.get('aux_supplier'))
+            else:
+                aux_supplier = None
             selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
             cursor = connection.cursor()
             inner_cursor = connection.cursor()
@@ -1110,24 +1118,34 @@ class OrderAdmin(LockableModelAdmin):
                               WHERE shop_order.id IN (""" + ','.join(selected) + """)
                               GROUP BY shop_product.id ORDER BY shop_product.article""")
             products = []
+            suppliers = [supplier_ur.id, supplier.id]
+            if aux_supplier:
+                suppliers.append(aux_supplier.id)
+            supplier_ids = ','.join(map(str, suppliers))
             for row in cursor.fetchall():
                 columns = (x[0] for x in cursor.description)
                 product = dict(zip(columns, row))
                 stock = ''
                 inner_cursor.execute("""SELECT supplier_id, quantity, correction FROM shop_stock
                                         LEFT JOIN shop_supplier ON (shop_supplier.id = supplier_id)
-                                        WHERE product_id = %s AND supplier_id IN (%s, %s)
-                                        ORDER BY shop_supplier.order""", (product['product_id'], supplier_ur.id, supplier.id))
+                                        WHERE product_id = %s AND supplier_id IN (""" + supplier_ids + """)
+                                        ORDER BY shop_supplier.order""", (product['product_id'],))
                 quantity = float(product['quantity'])
                 stock = 0
+                aux_stock = 0
                 if inner_cursor.rowcount:
                     for row in inner_cursor.fetchall():
                         if row[0] == supplier_ur.id:
                             quantity = quantity - row[1] - row[2]
                         if row[0] == supplier.id:
                             stock = row[1] + row[2]
-                if quantity > 0 and stock > 0:
-                    product['stock'] = Decimal(quantity).quantize(Decimal('1'), rounding=ROUND_UP)
+                        if aux_supplier and row[0] == aux_supplier.id:
+                            aux_stock = row[1] + row[2]
+                if quantity > 0:
+                    if stock > 0:
+                        product['stock'] = Decimal(quantity).quantize(Decimal('1'), rounding=ROUND_UP)
+                    if aux_stock > 0 and quantity - stock > 0:
+                        product['aux_stock'] = Decimal(quantity-stock).quantize(Decimal('1'), rounding=ROUND_UP)
                     products.append(product)
             cursor.close()
             inner_cursor.close()
@@ -1141,9 +1159,22 @@ class OrderAdmin(LockableModelAdmin):
                 output = io.BytesIO()
                 workbook = xlsxwriter.Workbook(output)
                 sheet = workbook.add_worksheet(supplier.name)
-                for idx, product in enumerate(products):
-                    sheet.write(idx, 0, product['article'])
-                    sheet.write(idx, 1, product['stock'])
+                idx = 0
+                for product in products:
+                    stock = product.get('stock', None)
+                    if stock:
+                        sheet.write(idx, 0, product['article'])
+                        sheet.write(idx, 1, product['stock'])
+                        idx += 1
+                if aux_supplier:
+                    sheet = workbook.add_worksheet(aux_supplier.name)
+                    idx = 0
+                    for product in products:
+                        aux_stock = product.get('aux_stock', None)
+                        if aux_stock:
+                            sheet.write(idx, 0, product['article'])
+                            sheet.write(idx, 1, aux_stock)
+                            idx += 1
                 workbook.close()
 
                 response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -1155,6 +1186,7 @@ class OrderAdmin(LockableModelAdmin):
 
         form = SelectSupplierForm(initial={'supplier': Supplier.objects.get(code='С3').pk})
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['queryset'] = queryset
@@ -1229,6 +1261,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
         """
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['queryset'] = queryset
