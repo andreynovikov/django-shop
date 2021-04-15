@@ -1,1 +1,1 @@
-from .janome import *
+from .linefamily import *
