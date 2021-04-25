@@ -1,14 +1,14 @@
 from django.forms import ModelForm, TextInput
 from django.urls import reverse
 from django.db.models import PositiveSmallIntegerField, PositiveIntegerField, \
-    DecimalField, FloatField, Q
+    DecimalField, FloatField, ImageField, Q
 from django.core.exceptions import PermissionDenied
 from django.contrib import admin
 from django.template.response import TemplateResponse
 from django.conf.urls import url
 from django.utils.safestring import mark_safe
 
-from adminsortable2.admin import SortableAdminMixin
+from adminsortable2.admin import SortableAdminMixin, SortableInlineAdminMixin
 from django_admin_listfilter_dropdown.filters import DropdownFilter, RelatedDropdownFilter
 from mptt.admin import DraggableMPTTAdmin
 from reviews.admin import ReviewAdmin
@@ -18,10 +18,11 @@ from import_export.admin import ImportExportMixin
 
 from sewingworld.admin import get_sites
 from sewingworld.widgets import AutosizedTextarea
-from shop.models import Category, Supplier, Contractor, \
-    Currency, Country, Region, City, Store, ServiceCenter, Manufacturer, Advert, \
-    Product, ProductRelation, ProductSet, ProductKind, SalesAction, Stock, ProductReview, \
+from shop.models import Category, Supplier, Contractor, Currency, Country, Region, City, \
+    Store, StoreImage, ServiceCenter, Manufacturer, Advert, SalesAction, \
+    Product, ProductRelation, ProductSet, ProductKind, Stock, ProductReview, \
     Manager, Courier, Order
+from .widgets import ImageWidget
 from .forms import ProductImportForm, ProductConfirmImportForm, ProductExportForm, \
     ProductAdminForm, ProductKindForm, StockInlineForm, CategoryAdminForm
 from .decorators import admin_changelist_link
@@ -86,13 +87,43 @@ class CityAdmin(admin.ModelAdmin):
     ordering = ['name']
 
 
+class StoreImageInline(SortableInlineAdminMixin, admin.TabularInline):
+    model = StoreImage
+    exclude = ('image_width', 'image_height')
+    formfield_overrides = {
+        ImageField: {
+            'widget': ImageWidget
+        }
+    }
+    extra = 2
+
+
 @admin.register(Store)
 class StoreAdmin(admin.ModelAdmin):
     list_display = ['city', 'address', 'name', 'supplier', 'enabled', 'latitude', 'longitude']
     list_display_links = ['address', 'name']
-    list_filter = [('city', RelatedDropdownFilter), 'enabled']
+    list_filter = [('city', RelatedDropdownFilter), 'enabled', 'publish']
     search_fields = ['name', 'address', 'address2']
     ordering = ['city', 'address']
+    inlines = [StoreImageInline]
+
+    def get_urls(self):
+        urls = super().get_urls()
+        my_urls = [
+            url(r'^yandexmapfeed/$', self.admin_site.admin_view(self.yandex_map_feed_view), name='%s_%s_yandexmapfeed' % (self.model._meta.app_label, self.model._meta.model_name))
+        ]
+        return my_urls + urls
+
+    def yandex_map_feed_view(self, request):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        stores = Store.objects.filter(publish=True)
+        context = {
+            'stores': stores,
+            'cl': self,
+            **self.admin_site.each_context(request)
+        }
+        return TemplateResponse(request, 'admin/shop/store/yandex_map_feed.xml', context, content_type='text/xml')
 
 
 @admin.register(ServiceCenter)

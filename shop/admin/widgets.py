@@ -262,6 +262,14 @@ class TagAutoComplete(widgets.AdminTextInputWidget):
     """
 
 
+class ImageWidget(widgets.AdminFileWidget):
+    def render(self, name, value, attrs=None, renderer=None):
+        output = [super().render(name, value, attrs, renderer)]
+        if value and getattr(value, 'url', None):
+            output.append('<a href="{0}" target="_blank"><img src="{0}" alt="{1}" width="150" height="150" style="object-fit: contain;"/></a>'.format(value.url, str(value)))
+        return mark_safe('\n'.join(output))
+
+
 class StockInlineForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
