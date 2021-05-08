@@ -122,7 +122,21 @@
 				<li class="list-inline-item"><a href="{% url 'shop:add' product.id %}" class="btn btn-success mb-1" type="submit"> <i class="fa fa-shopping-cart mr-2"></i>Сообщить о поступлении</a></li>
 				{% endif %}
 			  {% endif %}
-                <li class="list-inline-item"><a class="btn btn-outline-secondary mb-1" href=""> <i class="far fa-heart mr-2"></i>Сравнить</a></li>
+             <li class="list-inline-item"><a class="btn btn-outline-secondary mb-1" href=""> <i class="far fa-heart mr-2"></i>Сравнить</a></li>
+
+
+{% if product.kind.all %}
+<li style="margin-top: 8px">
+    <i class="glyphicon glyphicon-stats" aria-hidden="true"></i>
+    {% if is_compared %}
+    <a class="compareProduct" data-id="{{ product.id }}" href="{% url 'compare' %}" rel="nofollow">Сравнить</a>
+    {% else %}
+    <a class="compareProduct" data-id="{{ product.id }}" data-comparison-link="{% url 'compare' %}" href="{% url 'compare_product' product.code %}" rel="nofollow">Добавить в сравнение</a>
+    {% endif %}
+</li>
+{% endif %}
+
+                          
               </ul>
           </div>
         </div>
