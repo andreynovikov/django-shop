@@ -2,27 +2,22 @@
 <html lang="{{ LANGUAGE_CODE|default:'ru' }}">
 {% load staticfiles %}
 <head>
-<!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','GTM-NNFBJP');</script>
-<!-- End Google Tag Manager -->
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <meta name="description" content="{% block meta-description %}{% endblock meta-description %}{% block meta-description-page %}{% endblock meta-description-page %}" />
     <meta name="keywords" content="{% block meta-keywords %}{% endblock meta-keywords %}" />
     <meta name="google-site-verification" content="HVT2yGaI68QX1ZwiLnTV6rVQiAZCCfg7Qfj5HuEP9bE" />
+    <meta name="facebook-domain-verification" content="1wi52480oe6k2cdr8r04dr1cbrhpm6" />
     <meta name="yandex-verification" content="54fc37eb003d8618" />
     {% block meta %}{% endblock meta %}
     <title>{% block title %}{% endblock title %}{% block title-page %}{% endblock title-page %} - Швейный Мир</title>
     {% block link %}{% endblock link %}
-<link rel="stylesheet" href="{% static 'css/jquery-ui-1.10.3.custom.min.css' %}"/>
-<link rel="stylesheet" href="{% static 'css/magnific-popup.css' %}">
-<link rel="stylesheet" href="{% static 'reviews/css/reviews.css' %}"/>
-<link rel="stylesheet" href="{% static 'reviews/css/star-rating.css' %}"/>
-<link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
+    <link rel="stylesheet" href="{% static 'css/jquery-ui-1.10.3.custom.min.css' %}"/>
+    <link rel="stylesheet" href="{% static 'css/magnific-popup.css' %}">
+    <link rel="stylesheet" href="{% static 'reviews/css/reviews.css' %}"/>
+    <link rel="stylesheet" href="{% static 'reviews/css/star-rating.css' %}"/>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}"/>
+
 <style>
 .sw-p-l-rating {
   text-align: right;
