@@ -1,6 +1,19 @@
 {% extends "admin/change_list.html" %}
 {% load shop_admin %}
-
+{% block extrahead %}
+{{ block.super }}
+<script>
+    (function($) {
+        $(document).ready(function() {
+            $("#result_list tr .field-order_name a b").each(function(index, element) {
+                if ($(element).text().startsWith("Т-")) {
+                    $(element).closest("tr").css('background-color', '#fff8dc');
+                }
+            });
+        });
+    })(django.jQuery);
+</script>
+{% endblock %}
 {% block extrastyle %}
     {{ block.super }}
     <style>
