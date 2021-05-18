@@ -117,7 +117,7 @@ class StoreAdmin(admin.ModelAdmin):
     def yandex_map_feed_view(self, request):
         if not request.user.is_staff:
             raise PermissionDenied
-        stores = Store.objects.filter(publish=True)
+        stores = Store.objects.filter(enabled=True, publish=True)
         context = {
             'stores': stores,
             'cl': self,
