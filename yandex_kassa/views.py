@@ -138,12 +138,11 @@ def callback(request):
         update = {
             'paid': order.paid or payment.paid
         }
-        if payment.paid and not order.paid:
-            change_message = "Получено уведомление об оплате"
-        if payment.status == 'canceled':
-            if order.paid:
-                update['alert'] = "Неудачная попытка оплаты уже оплаченного заказа"
-            else:
+        change_message = None
+        if not order.paid:
+            if payment.paid:
+                change_message = "Получено уведомление об оплате"
+            if payment.status == 'canceled':
                 if payment.cancellation_details:
                     change_message = "Оплата отклонена: {}".format(CANCELLATION_REASONS.get(payment.cancellation_details.reason, "неизвестная причина"))
                 else:
