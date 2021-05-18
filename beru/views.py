@@ -26,7 +26,7 @@ TOKENS = {
 def token_required(func):
     @wraps(func)
     def _wrapped_view(request, *args, **kwargs):
-        if request.META.get('HTTP_AUTHORIZATION', None) != TOKENS[kwargs['account']]:
+        if request.META.get('HTTP_AUTHORIZATION', None) != TOKENS[kwargs.get('account', 'beru')]:
             return HttpResponseForbidden()
         return func(request, *args, **kwargs)
     return _wrapped_view
@@ -75,7 +75,7 @@ def cart(request, account='beru'):
         data = json.loads("""
         {"cart": {"currency": "RUR", "delivery": {"region": {"parent": {"parent": {"parent": {"name": "Россия", "id": 225, "type": "COUNTRY"}, "name": "Центральный федеральный округ", "id": 3, "type": "COUNTRY_DISTRICT"}, "name": "Москва и Московская область", "id": 1, "type": "SUBJECT_FEDERATION"}, "name": "Москва", "id": 213, "type": "CITY"}}, "items": [{"sku": "1808809720", "shopSku": "ЦБ-0200637", "params": "Цвет товара: белый/серый", "offerName": "Швейная машина Singer Confidence 7640 Q, белый/серый", "offerId": "ЦБ-0200637", "count": 1, "feedId": 614439, "fulfilmentShopId": 575686}]}}
         """)
-    logger.info(request.path)
+    logger.info('>>> ' + request.path)
     logger.debug(data)
     response = {'cart': {'items': []}}
     for item in data.get('cart', {}).get('items', []):
@@ -106,7 +106,7 @@ def accept_order(request, account='beru'):
         data = json.loads("""
         {"order":{"id":8920689,"fake":true,"currency":"RUR","paymentType":"POSTPAID","paymentMethod":"CASH_ON_DELIVERY","taxSystem":"USN","delivery":{"type":"DELIVERY","price":249,"vat":"VAT_20","serviceName":"Доставка","id":"vujQrQNMAdM1cYADVSGnQEsID4jiUVQLGGXCp2U/4KBoJORjzponBenm38cqEfeS6ebfxyoR95LZPDROqLDWylb8Jw+EOb6MmQh4GTRzKtU=","hash":"vujQrQNMAdM1cYADVSGnQEsID4jiUVQLGGXCp2U/4KBoJORjzponBenm38cqEfeS6ebfxyoR95LZPDROqLDWylb8Jw+EOb6MmQh4GTRzKtU=","deliveryServiceId":1003937,"deliveryPartnerType":"YANDEX_MARKET","dates":{"fromDate":"29-09-2019","toDate":"29-09-2019"},"region":{"id":213,"name":"Москва","type":"CITY","parent":{"id":1,"name":"Москва и Московская область","type":"SUBJECT_FEDERATION","parent":{"id":3,"name":"Центральный федеральный округ","type":"COUNTRY_DISTRICT","parent":{"id":225,"name":"Россия","type":"COUNTRY"}}}}},"items":[{"id":15296429,"feedId":614439,"offerId":"ЦБ-0200642","offerName":"Швейная машина Singer Studio 12, белый","price":11990,"buyer-price":11990,"count":1,"delivery":true,"params":"Цвет товара: белый","vat":"NO_VAT","fulfilmentShopId":575686,"sku":"1808809549","shopSku":"ЦБ-0200642"}]}}
         """)
-    logger.info(request.path)
+    logger.info('>>> ' + request.path)
     logger.debug(data)
     beru_order = data.get('order', {})
 
@@ -198,7 +198,7 @@ def order_status(request, account='beru'):
         data = json.loads("""
         {'order': {'substatus': 'STARTED', 'delivery': {'serviceName': 'Доставка', 'deliveryPartnerType': 'YANDEX_MARKET', 'price': 249, 'type': 'DELIVERY', 'shipments': [{'height': 52, 'width': 21, 'depth': 67, 'status': 'NEW', 'weight': 1001}], 'region': {'id': 2, 'parent': {'id': 10174, 'parent': {'id': 17, 'parent': {'id': 225, 'name': 'Россия', 'type': 'COUNTRY'}, 'name': 'Северо-Западный федеральный округ', 'type': 'COUNTRY_DISTRICT'}, 'name': 'Санкт-Петербург и Ленинградская область', 'type': 'SUBJECT_FEDERATION'}, 'name': 'Санкт-Петербург', 'type': 'CITY'}, 'deliveryServiceId': 1003937, 'vat': 'VAT_20', 'dates': {'fromDate': '30-09-2019', 'toDate': '30-09-2019'}}, 'total': 20049, 'paymentMethod': 'CASH_ON_DELIVERY', 'currency': 'RUR', 'status': 'PROCESSING', 'itemsTotal': 19800, 'creationDate': '26-09-2019 17:50:21', 'taxSystem': 'USN', 'paymentType': 'POSTPAID', 'fake': True, 'items': [{'count': 1, 'offerName': 'Швейная машина Singer Confidence 7640 Q, белый/серый', 'feedId': 614439, 'buyer-price': 19800, 'offerId': 'ЦБ-0200637', 'sku': '1808809720', 'price': 19800, 'shopSku': 'ЦБ-0200637', 'params': 'Цвет товара: белый/серый', 'id': 15350984, 'fulfilmentShopId': 575686, 'vat': 'NO_VAT'}], 'id': 8943125}}
         """)
-    logger.info(request.path)
+    logger.info('>>> ' + request.path)
     logger.debug(data)
     beru_order = data.get('order', {})
     order_id = str(beru_order.get('id', 0))

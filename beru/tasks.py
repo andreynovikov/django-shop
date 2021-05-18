@@ -1,12 +1,16 @@
+import json
+import logging
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
-import json
 
 import django.db
 from celery import shared_task
 from djconfig import config, reload_maybe
 
 from shop.models import Order
+
+
+logger = logging.getLogger('beru')
 
 
 class TaskFailure(Exception):
@@ -52,8 +56,6 @@ def notify_beru_order_status(self, order_id, status, substatus):
                 'items': items
             })
         data = {'boxes': boxes}
-        import sys
-        print(json.dumps(data), file=sys.stderr)
         data_encoded = json.dumps(data).encode('utf-8')
         shipments = beru_order.get('delivery', {}).get('shipments', [])
         if not shipments:
@@ -132,11 +134,11 @@ def get_beru_order_details(order_id):
         'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=oauth_token, oauth_application=oauth_application)
     }
     request = Request(url, None, headers)
+    logger.info('<<< ' + request.full_url)
     try:
         response = urlopen(request)
         result = json.loads(response.read().decode('utf-8'))
-        import sys
-        print(result, file=sys.stderr)
+        logger.debug(result)
         return result.get('order', {})
     except HTTPError as e:
         content = e.read()
@@ -144,6 +146,7 @@ def get_beru_order_details(order_id):
         {"error":{"code":400,"message":"status update is not allowed if there are items unassigned to boxes"},"errors":[{"code":"BAD_REQUEST","message":"status update is not allowed if there are items unassigned to boxes"}],"status":"ERROR"}
         """
         error = json.loads(content.decode('utf-8'))
+        logger.error(error)
         message = error.get('error', {}).get('message', 'Неизвестная ошибка взаимодействия с Беру!')
         raise TaskFailure(message) from e
 
@@ -155,20 +158,24 @@ def get_beru_labels_data(order_id):
         raise TaskFailure('Order {} does not have beru order number'.format(order_id))
 
     reload_maybe()
+    campaign_id = getattr(config, 'sw_{}_campaign'.format(order.utm_source))
+    oauth_application = getattr(config, 'sw_{}_application'.format(order.utm_source))
+    oauth_token = getattr(config, 'sw_{}_token'.format(order.utm_source))
 
-    url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}/delivery/labels/data.json'.format(campaignId=config.sw_beru_campaign, orderId=beru_order)
+    url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}/delivery/labels/data.json'.format(campaignId=campaign_id, orderId=beru_order)
     headers = {
-        'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=config.sw_beru_token, oauth_application=config.sw_beru_application)
+        'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=oauth_token, oauth_application=oauth_application)
     }
     request = Request(url, None, headers)
+    logger.info('<<< ' + request.full_url)
     try:
         response = urlopen(request)
         result = json.loads(response.read().decode('utf-8'))
-        import sys
-        print(result, file=sys.stderr)
+        logger.debug(result)
         return result.get('result', {})
     except HTTPError as e:
         content = e.read()
         error = json.loads(content.decode('utf-8'))
+        logger.error(error)
         message = error.get('error', {}).get('message', 'Неизвестная ошибка взаимодействия с Беру!')
         raise TaskFailure(message) from e
