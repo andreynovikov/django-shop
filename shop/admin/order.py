@@ -539,7 +539,7 @@ class OrderAdmin(LockableModelAdmin):
         boxes = defaultdict(dict)
         for formset in filter(lambda f: isinstance(f.empty_form.instance, OrderItem), formsets):
             for inline in formset:
-                if inline.cleaned_data['box'] is not None:
+                if inline.cleaned_data.get('box', None) is not None:
                     product = inline.cleaned_data['product']
                     quantity = inline.instance.quantity
                     box = boxes[inline.cleaned_data['box']]
@@ -797,7 +797,7 @@ class OrderAdmin(LockableModelAdmin):
                     fio_last = form.cleaned_data['fio_last']
                     warehouse = form.cleaned_data['warehouse']
 
-                    fio = order.name.split(' ')
+                    fio = order.name.split()
                     first_name = ''
                     middle_name = ''
                     last_name = ''
