@@ -19,6 +19,7 @@ def index(request):
         'top_adverts': Advert.objects.filter(active=True, place='index_top', sites=site).order_by('order'),
         'middle_adverts': Advert.objects.filter(active=True, place='index_middle', sites=site).order_by('order'),
         'bottom_adverts': Advert.objects.filter(active=True, place='index_bottom', sites=site).order_by('order'),
+        'ground_adverts': Advert.objects.filter(active=True, place='index_ground', sites=site).order_by('order'),
         'actions': SalesAction.objects.filter(active=True, sites=site).order_by('order'),
         'gift_products': Product.objects.filter(enabled=True, show_on_sw=True, gift=True).order_by('-price')[:25],
         'recomended_products': Product.objects.filter(enabled=True, show_on_sw=True, recomended=True).order_by('-price')[:25],
@@ -90,6 +91,23 @@ def products_stream(request, templates, filter_type):
 
 def products(request, templates, filters):
     return StreamingHttpResponse(products_stream(request, templates, filters), content_type='text/xml; charset=utf-8')
+
+
+def stock(request):
+    root = Category.objects.get(slug=settings.MPTT_ROOT)
+    filters = {
+        'enabled': True,
+        'price__gt': 0,
+        'variations__exact': '',
+        'categories__in': root.get_descendants(include_self=True),
+        'avito': True
+    }
+    products = Product.objects.filter(**filters).distinct()
+    products = map(lambda p: (p, max(int(p.get_stock('beru')), 0)), products)
+    context = {
+        'products': products
+    }
+    return render(request, 'stock.csv', context, content_type='text/csv')
 
 
 def sales_actions(request):

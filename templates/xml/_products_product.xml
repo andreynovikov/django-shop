@@ -36,4 +36,7 @@
     {% if product.manufacturer_warranty %}
     <manufacturer_warranty>true</manufacturer_warranty>
     {% endif %}
+    {% if product.isnew %}
+    <param name="Новинка">true</param>
+    {% endif %}
 </offer>

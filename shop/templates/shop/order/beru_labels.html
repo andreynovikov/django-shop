@@ -19,14 +19,14 @@ td {padding:2.5mm}
 <table style="width:95mm;height:134mm;border:0.4mm solid black;padding:0" class="pagebreak">
 <tr>
 <td colspan="2" style="vertical-align:top;text-align:center">
-<img src="{% static 'i/beru_logo.svg' %}" style="width:33.5mm;height:12.88mm">
+<img src="{% static 'i/ymlogo.svg' %}" style="width:50mm;height:10mm">
 </td>
 </tr>
 <tr>
 <td style="vertical-align:top;text-align:left;width:28mm; border-bottom:0.2mm solid black">
 <p>
 <span style="font-size:7pt">Перевозчик</span><br>
-<span style="font-size:10pt">АО "ДПД РУС"<!--{{ order.delivery_service_name }}--></span>
+<span style="font-size:10pt">{{ item.delivery_service_name }}</span>
 </p>
 </td>
 <td style="vertical-align:top;text-align:center; border-bottom:0.2mm solid black">
@@ -46,19 +46,19 @@ td {padding:2.5mm}
 <td style="border-right:0.2mm solid black; width:21mm">
 <p>
 <span style="font-size:7pt">Кол-во мест</span><br>
-<span style="font-size:10pt">{{ forloop.counter }}/{{ order.shipments|length }}</span>
+<span style="font-size:10pt">{{ item.place }}</span>
 </p>
 </td>
 <td style="border-right:0.2mm solid black;width:21mm">
 <p>
 <span style="font-size:7pt">Вес</span><br>
-<span style="font-size:10pt">{{ item.weight }} кг</span>
+<span style="font-size:10pt">{{ item.weight }}</span>
 </p>
 </td>
 <td style="width:50mm">
 <p>
 <span style="font-size:7pt">Перевозчик</span><br>
-<span style="font-size:10pt">{{ order.delivery_service_id }}</span>
+<span style="font-size:10pt">{{ item.delivery_service_id }}</span>
 </p>
 </td>
 </tr>
@@ -71,7 +71,7 @@ td {padding:2.5mm}
 <td style="vertical-align:top;text-align:left;width:28mm">
 <p>
 <span style="font-size:7pt">Продавец</span><br>
-<span style="font-size:10pt">{{ owner_info.full_name }}</span>
+<span style="font-size:10pt">{{ owner_info.beru_seller }}</span>
 </p>
 </td>
 <td style="vertical-align:top;text-align:center">

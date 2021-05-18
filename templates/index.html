@@ -132,6 +132,36 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 </script>
 {% endfor %}
 
+{% if ground_adverts %}
+<div id="ground_slides" class="carousel slide" data-ride="carousel" data-interval="6000">
+  <!-- Indicators -->
+  <ol class="carousel-indicators sw-carousel-indicators">
+  {% for advert in ground_adverts %}
+    <li data-target="#ground_slides" data-slide-to="{{ forloop.counter0 }}"{% if forloop.first %} class="active"{% endif %}></li>
+  {% endfor %}
+  </ol>
+
+  <!-- Wrapper for slides -->
+  <div class="carousel-inner" role="listbox">
+  {% for advert in ground_adverts %}
+    <div class="item{% if forloop.first %} active{% endif %}">
+      {{ advert.content|safe }}
+    </div>
+  {% endfor %}
+  </div>
+
+  <!-- Controls -->
+  <a class="left carousel-control" href="#ground_slides" role="button" data-slide="prev">
+    <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+    <span class="sr-only">Предыдущий</span>
+  </a>
+  <a class="right carousel-control" href="#ground_slides" role="button" data-slide="next">
+    <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+    <span class="sr-only">Следующий</span>
+  </a>
+</div>
+{% endif %}
+
 <br style="clear: left"/>
 <h2>Учебный центр "Радость рукоделия"</h2>
 <p><img src="/images/Husqvarna/HusqvarnaDesignerSE.s.jpg" align="left" border="0" hspace="2" vspace="2">

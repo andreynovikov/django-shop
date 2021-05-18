@@ -316,6 +316,12 @@ def notify_manager(order_id):
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
+def notify_manager_sms(order_id):
+    reload_maybe()
+    return send_sms(config.sw_sms_manager, "Новый заказ №%s" % order_id)
+
+
+@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_review_posted(review_id):
     review = reviews.get_review_model().objects.get(id=review_id)
 
@@ -492,9 +498,6 @@ def notify_abandoned_basket(self, basket_id, email, phone):
         sw_default_site.domain,
         reverse('shop:clear', args=[signer.sign(basket.id)])
     )
-    import sys
-    print(restore_url, file=sys.stderr)
-    print(clear_url, file=sys.stderr)
 
     unisender = Unisender(api_key=settings.UNISENDER_KEY)
     if email:
@@ -563,7 +566,7 @@ def notify_abandoned_baskets(first_try=True):
         if phone is None and basket.phone:
             phone = basket.phone
 
-        if email or phone:
+        if email:  # or phone: отключили отправку смс
             notify_abandoned_basket.delay(basket.id, email, phone)
             num = num + 1
     log.info('Sent notifications for %d abandoned baskets' % num)
@@ -629,12 +632,16 @@ def create_modulpos_order(self, order_id):
         content = e.read()
         error = json.loads(content.decode('utf-8'))
         message = error.get('message', 'Неизвестная ошибка взаимодействия с МодульКасса')
-        order.status = Order.STATUS_PROBLEM
-        if order.delivery_info:
-            order.delivery_info = '\n'.join([order.delivery_info, message])
+        update = {}
+        if message != 'object-already-exists':
+            update['status'] = Order.STATUS_PROBLEM
+        if order.manager_comment:
+            update['manager_comment'] = '\n'.join([order.manager_comment, message])
         else:
-            order.delivery_info = message
-        order.save()
+            update['manager_comment'] = message
+        update_order.delay(order.pk, update)
+        if message == 'object-already-exists':
+            return message
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
 
 
@@ -664,12 +671,13 @@ def delete_modulpos_order(self, order_id):
         content = e.read()
         error = json.loads(content.decode('utf-8'))
         message = error.get('message', 'Неизвестная ошибка взаимодействия с МодульКасса')
-        order.status = Order.STATUS_PROBLEM
-        if order.delivery_info:
-            order.delivery_info = '\n'.join([order.delivery_info, message])
+        update = {}
+        update['status'] = Order.STATUS_PROBLEM
+        if order.manager_comment:
+            update['manager_comment'] = '\n'.join([order.manager_comment, message])
         else:
-            order.delivery_info = message
-        order.save()
+            update['manager_comment'] = message
+        update_order.delay(order.pk, update)
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
 
 

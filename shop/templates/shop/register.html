@@ -39,6 +39,7 @@
         <input type="text" class="form-control input-lg sw-username-input" name="username" id="username-input" value="{{ username }}" size="20"/>
     </div>
     <div>
+    <input type="hidden" id="reg-flag" name="reg" value="1" />
     <input type="submit" id="registration-submit" class="btn btn-success btn-lg" value="Продолжить" />
     </div>
 </form>
@@ -47,6 +48,7 @@
 {% block javascript %}
     <script type="text/javascript">
         $(document).ready(function () {
+            $("#reg-flag").val("2");
             $("#registration-submit").prop("disabled", true);
 
             $("#registration-form").on("submit", function() {

@@ -735,7 +735,10 @@ class Product(models.Model):
 
     @property
     def markup(self):
-        return int((self.price - self.sp_price) / self.price * 100)
+        if self.price > 0 and self.sp_price > 0:
+            return int((self.price - self.sp_price) / self.price * 100)
+        else:
+            return 0
 
     @property
     def cost(self):

@@ -518,7 +518,7 @@ class OrderAdmin(LockableModelAdmin):
         if obj and not request.user.is_superuser:
             readonly_fields += ['site']
         if obj and obj.is_beru:
-            readonly_fields += ['delivery_tracking_number', 'delivery_handing_date']
+            readonly_fields += ['delivery_handing_date']
         return readonly_fields
 
     def changelist_view(self, request, extra_context=None):
@@ -539,7 +539,7 @@ class OrderAdmin(LockableModelAdmin):
         boxes = defaultdict(dict)
         for formset in filter(lambda f: isinstance(f.empty_form.instance, OrderItem), formsets):
             for inline in formset:
-                if inline.cleaned_data['box'] is not None:
+                if inline.cleaned_data.get('box', None) is not None:
                     product = inline.cleaned_data['product']
                     quantity = inline.instance.quantity
                     box = boxes[inline.cleaned_data['box']]
@@ -718,6 +718,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
 
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['is_popup'] = is_popup
@@ -764,6 +765,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
 
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['is_popup'] = is_popup
@@ -795,7 +797,7 @@ class OrderAdmin(LockableModelAdmin):
                     fio_last = form.cleaned_data['fio_last']
                     warehouse = form.cleaned_data['warehouse']
 
-                    fio = order.name.split(' ')
+                    fio = order.name.split()
                     first_name = ''
                     middle_name = ''
                     last_name = ''
@@ -821,6 +823,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
 
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['is_popup'] = is_popup
@@ -936,7 +939,7 @@ class OrderAdmin(LockableModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied
 
-        from beru.tasks import get_beru_order_details
+        from beru.tasks import get_beru_labels_data
         import barcode
 
         context = self.admin_site.each_context(request)
@@ -953,8 +956,8 @@ class OrderAdmin(LockableModelAdmin):
         context['orders'] = []
         try:
             for order in orders:
-                beru_order = get_beru_order_details(order.id)
-                beru_order_id = str(beru_order.get('id', 0))
+                beru_order = get_beru_labels_data(order.id)
+                beru_order_id = str(beru_order.get('orderId', 0))
 
                 CODE128 = barcode.get_barcode_class('code128')
                 order_barcode = CODE128(str(order.id)).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
@@ -962,27 +965,29 @@ class OrderAdmin(LockableModelAdmin):
                 beru_order_barcode = CODE128(beru_order_id).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
                 beru_order_barcode = re.sub(r'^.*(?=<svg)', '', beru_order_barcode)
 
+                boxes = order.boxes.all()
                 count = 0
                 shipments = []
-                delivery = beru_order.get('delivery', {})
-                for box in order.boxes.all():
+                for label in beru_order.get('parcelBoxLabels', []):
+                    box = boxes[count]
                     count += 1
-                    code = '%d-%d' % (order.id, count)
+                    code = label.get('fulfilmentId', '')
                     item_barcode = CODE128(code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
                     item_barcode = re.sub(r'^.*(?=<svg)', '', item_barcode)
                     shipments.append({
                         'id': code,
                         'code': box.code,
+                        'place': label.get('place', ''),
                         'barcode': mark_safe(item_barcode),
                         'products': box.products.all(),
-                        'weight': box.weight
+                        'weight': label.get('weight', ''),
+                        'delivery_service_name': label.get('deliveryServiceName', ''),
+                        'delivery_service_id': label.get('deliveryServiceId', '')
                     })
 
                 context['orders'].append({
                     'beru_order': beru_order,
                     'order': order,
-                    'delivery_service_name': delivery.get('serviceName', ''),
-                    'delivery_service_id': delivery.get('deliveryServiceId', ''),
                     'beru_barcode': mark_safe(beru_order_barcode),
                     'barcode': mark_safe(order_barcode),
                     'shipments': shipments
@@ -1014,6 +1019,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
 
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['is_popup'] = is_popup
@@ -1066,6 +1072,10 @@ class OrderAdmin(LockableModelAdmin):
         if 'show_stock' in request.POST:
             supplier_ur = Supplier.objects.get(code='Ур')
             supplier = Supplier.objects.get(pk=request.POST.get('supplier'))
+            if request.POST.get('aux_supplier'):
+                aux_supplier = Supplier.objects.get(pk=request.POST.get('aux_supplier'))
+            else:
+                aux_supplier = None
             selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
             cursor = connection.cursor()
             inner_cursor = connection.cursor()
@@ -1077,24 +1087,34 @@ class OrderAdmin(LockableModelAdmin):
                               WHERE shop_order.id IN (""" + ','.join(selected) + """)
                               GROUP BY shop_product.id ORDER BY shop_product.article""")
             products = []
+            suppliers = [supplier_ur.id, supplier.id]
+            if aux_supplier:
+                suppliers.append(aux_supplier.id)
+            supplier_ids = ','.join(map(str, suppliers))
             for row in cursor.fetchall():
                 columns = (x[0] for x in cursor.description)
                 product = dict(zip(columns, row))
                 stock = ''
                 inner_cursor.execute("""SELECT supplier_id, quantity, correction FROM shop_stock
                                         LEFT JOIN shop_supplier ON (shop_supplier.id = supplier_id)
-                                        WHERE product_id = %s AND supplier_id IN (%s, %s)
-                                        ORDER BY shop_supplier.order""", (product['product_id'], supplier_ur.id, supplier.id))
+                                        WHERE product_id = %s AND supplier_id IN (""" + supplier_ids + """)
+                                        ORDER BY shop_supplier.order""", (product['product_id'],))
                 quantity = float(product['quantity'])
                 stock = 0
+                aux_stock = 0
                 if inner_cursor.rowcount:
                     for row in inner_cursor.fetchall():
                         if row[0] == supplier_ur.id:
                             quantity = quantity - row[1] - row[2]
                         if row[0] == supplier.id:
                             stock = row[1] + row[2]
-                if quantity > 0 and stock > 0:
-                    product['stock'] = Decimal(quantity).quantize(Decimal('1'), rounding=ROUND_UP)
+                        if aux_supplier and row[0] == aux_supplier.id:
+                            aux_stock = row[1] + row[2]
+                if quantity > 0:
+                    if stock > 0:
+                        product['stock'] = Decimal(quantity).quantize(Decimal('1'), rounding=ROUND_UP)
+                    if aux_stock > 0 and quantity - stock > 0:
+                        product['aux_stock'] = Decimal(quantity-stock).quantize(Decimal('1'), rounding=ROUND_UP)
                     products.append(product)
             cursor.close()
             inner_cursor.close()
@@ -1108,9 +1128,22 @@ class OrderAdmin(LockableModelAdmin):
                 output = io.BytesIO()
                 workbook = xlsxwriter.Workbook(output)
                 sheet = workbook.add_worksheet(supplier.name)
-                for idx, product in enumerate(products):
-                    sheet.write(idx, 0, product['article'])
-                    sheet.write(idx, 1, product['stock'])
+                idx = 0
+                for product in products:
+                    stock = product.get('stock', None)
+                    if stock:
+                        sheet.write(idx, 0, product['article'])
+                        sheet.write(idx, 1, product['stock'])
+                        idx += 1
+                if aux_supplier:
+                    sheet = workbook.add_worksheet(aux_supplier.name)
+                    idx = 0
+                    for product in products:
+                        aux_stock = product.get('aux_stock', None)
+                        if aux_stock:
+                            sheet.write(idx, 0, product['article'])
+                            sheet.write(idx, 1, aux_stock)
+                            idx += 1
                 workbook.close()
 
                 response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -1122,6 +1155,7 @@ class OrderAdmin(LockableModelAdmin):
 
         form = SelectSupplierForm(initial={'supplier': Supplier.objects.get(code='С3').pk})
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['queryset'] = queryset
@@ -1196,6 +1230,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
         """
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['queryset'] = queryset
