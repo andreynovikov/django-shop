@@ -16,7 +16,13 @@ from reviews.signals import review_was_posted
 from shop.models import Product, Order
 from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, \
     notify_user_order_delivered, notify_user_order_done, notify_user_review_products, \
-    notify_review_posted, create_modulpos_order, delete_modulpos_order
+    notify_review_posted, create_modulpos_order, delete_modulpos_order, notify_manager_sms
+
+
+SITE_SW = Site.objects.get(domain='www.sewing-world.ru')
+SITE_BERU = Site.objects.get(domain='beru.ru')
+SITE_TAXI = Site.objects.get(domain='taxi.beru.ru')
+SITE_YANDEX = Site.objects.get(domain='market.yandex.ru')
 
 
 @receiver(post_save, sender=Product, dispatch_uid='product_saved_receiver')
@@ -44,10 +50,17 @@ def order_saved(sender, **kwargs):
         item.product.ws_num = -1
         item.product.save()
 
-    if order.site == Site.objects.get(domain='beru.ru'):
+    if order.site == SITE_BERU:
         return
 
     if order.tracker.has_changed('status'):
+        if not order.status:  # new order
+            if order.site == SITE_TAXI:
+                notify_manager_sms.delay(order.id)
+
+        if order.site == SITE_TAXI:
+            return
+
         if order.status == Order.STATUS_ACCEPTED:
             for item in order.items.all():
                 if item.product.tags:
@@ -55,11 +68,11 @@ def order_saved(sender, **kwargs):
                     order.append_user_tags(tags)
 
         if order.status == Order.STATUS_SENT:
-            if order.delivery == Order.DELIVERY_COURIER and order.courier and order.courier.pos_id:
+            if order.courier and order.courier.pos_id:
                 create_modulpos_order.delay(order.id)
 
         if order.tracker.previous('status') == Order.STATUS_SENT:
-            if order.delivery == Order.DELIVERY_COURIER and order.courier and order.courier.pos_id and order.hidden_tracking_number:
+            if order.courier and order.courier.pos_id and order.hidden_tracking_number:
                 delete_modulpos_order.delay(order.id)
 
         if order.status == Order.STATUS_COLLECTED:
@@ -86,11 +99,9 @@ def order_saved(sender, **kwargs):
                 order.user.save()
             if order.status == Order.STATUS_DONE:
                 notify_user_order_done.delay(order.id)
-                if order.site == Site.objects.get(domain='www.sewing-world.ru') or order.site == Site.objects.get(domain='market.yandex.ru'):
+                if order.site == SITE_SW or order.site == SITE_YANDEX:
                     next_week = timezone.now() + timedelta(days=7)
                     notify_user_review_products.apply_async((order.id,), eta=next_week)
-
-        print(order.tracker.changed())
 
 
 @receiver(review_was_posted, sender=get_review_model(), dispatch_uid='review_posted_receiver')
