@@ -17,16 +17,13 @@ from shop.models import Product, Basket, Order, ShopUser
 
 logger = logging.getLogger('beru')
 
-TOKENS = {
-    'beru': getattr(settings, 'BERU_TOKEN', ''),
-    'taxi': getattr(settings, 'TAXI_TOKEN', '')
-}
+YANDEX_BERU = getattr(settings, 'YANDEX_BERU', {})
 
 
 def token_required(func):
     @wraps(func)
     def _wrapped_view(request, *args, **kwargs):
-        if request.META.get('HTTP_AUTHORIZATION', None) != TOKENS[kwargs.get('account', 'beru')]:
+        if request.META.get('HTTP_AUTHORIZATION', None) != YANDEX_BERU.get(kwargs.get('account', 'beru'), {}).get('token', ''):
             return HttpResponseForbidden()
         return func(request, *args, **kwargs)
     return _wrapped_view
