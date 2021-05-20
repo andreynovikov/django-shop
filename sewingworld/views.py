@@ -69,6 +69,8 @@ def products_stream(request, templates, filter_type):
         filters['beru'] = True
     if filter_type == 'taxi':
         filters['taxi'] = True
+    if filter_type == 'mdbs':
+        filters['mdbs'] = True
     if filter_type == 'avito':
         filters['avito'] = True
     if filter_type == 'prym':
