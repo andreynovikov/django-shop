@@ -15,13 +15,5 @@ class SWConfigForm(ConfigForm):
     sw_yd_sender = forms.CharField(label='Идентификатор магазина Яндекс.Доставка')
     sw_yd_token = forms.CharField(label='OAuth-токен магазина Яндекс.Доставка')
 
-    sw_beru_campaign = forms.CharField(label='Идентификатор кампании Беру!')
-    sw_beru_application = forms.CharField(label='ID OAuth-приложения магазина Беру!', help_text='<a href="https://oauth.yandex.ru">https://oauth.yandex.ru</a>')
-    sw_beru_token = forms.CharField(label='OAuth-токен магазина Беру!')
-
-    sw_taxi_campaign = forms.CharField(label='Идентификатор кампании Такси!')
-    sw_taxi_application = forms.CharField(label='ID OAuth-приложения магазина Такси!', help_text='<a href="https://oauth.yandex.ru">https://oauth.yandex.ru</a>')
-    sw_taxi_token = forms.CharField(label='OAuth-токен магазина Такси!')
-
     sw_modulkassa_login = forms.CharField(label='Логин МодульКасса')
     sw_modulkassa_password = forms.CharField(label='Пароль МодульКасса')
