@@ -7,12 +7,17 @@ from shop.models import Order
 from .tasks import notify_beru_order_status
 
 
+SITE_BERU = Site.objects.get(domain='beru.ru')
+SITE_TAXI = Site.objects.get(domain='taxi.beru.ru')
+SITE_MDBS = Site.objects.get(domain='mdbs.beru.ru')
+
+
 @receiver(post_save, sender=Order, dispatch_uid='order_saved_beru_receiver')
 def order_saved(sender, **kwargs):
     order = kwargs['instance']
     print("Post save emited for", order)
 
-    if order.site not in (Site.objects.get(domain='beru.ru'), Site.objects.get(domain='taxi.beru.ru')):
+    if order.site not in (SITE_BERU, SITE_TAXI, SITE_MDBS):
         return
 
     if order.tracker.has_changed('status'):

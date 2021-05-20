@@ -11,8 +11,6 @@ import spirit.urls
 from zinnia.sitemaps import EntrySitemap
 from forum.sitemaps import ThreadSitemap
 
-import shop
-
 from . import views
 from .sitemaps import StaticViewSitemap, ProductSitemap, CategorySitemap, SalesActionSitemap, StoreSitemap, FlatPageSitemap
 
@@ -33,7 +31,7 @@ urlpatterns = [
     # ex: /
     url(r'^$', views.index, name='index'),
     # ex: /sitemap.xml
-    url(r'^sitemap\.xml$', sitemap, {'sitemaps' : sitemaps}, name='sitemap'),
+    url(r'^sitemap\.xml$', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     # ex: /search.xml
     url(r'^search\.xml$', views.products, {'templates': 'search', 'filters': None}, name='search_xml'),
     # ex: /full.xml
@@ -46,6 +44,8 @@ urlpatterns = [
     url(r'^beru\.xml$', views.products, {'templates': 'beru', 'filters': 'beru'}, name='beru'),
     # ex: /taxi.xml
     url(r'^taxi\.xml$', views.products, {'templates': 'beru', 'filters': 'taxi'}, name='taxi'),
+    # ex: /mdbs.xml
+    url(r'^mdbs\.xml$', views.products, {'templates': 'beru', 'filters': 'mdbs'}, name='mdbs'),
     # ex: /google.xml
     url(r'^google\.xml$', views.products, {'templates': 'google', 'filters': 'google'}, name='google'),
     # ex: /cc-prym.xml
@@ -90,8 +90,9 @@ urlpatterns = [
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*
     url(r'^shop/', include('shop.urls')),
-    url(r'^beru/', include('beru.urls')),
+    url(r'^beru/', include('beru.urls'), {'account': 'beru'}),
     url(r'^taxi/', include('beru.urls'), {'account': 'taxi'}),
+    url(r'^mdbs/', include('beru.urls'), {'account': 'mdbs'}),
     url(r'^kassa/', include('yandex_kassa.urls')),
     url(r'^blog/', include('zinnia.urls')),
     url(r'^comments/', include('django_comments.urls')),
@@ -108,5 +109,5 @@ urlpatterns += staticfiles_urlpatterns()
 
 if settings.DEBUG:
     import debug_toolbar
-    urlpatterns += [ path('__debug__/', include(debug_toolbar.urls)) ]
+    urlpatterns += [path('__debug__/', include(debug_toolbar.urls))]
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

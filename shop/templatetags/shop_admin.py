@@ -1,6 +1,6 @@
 from django import template
 
-from shop.admin import product_stock_view
+from shop.admin.product import product_stock_view
 from shop.models import Order
 
 register = template.Library()
