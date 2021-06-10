@@ -158,10 +158,10 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     change_list_template = 'admin/shop/product/change_list.html'
     resource_class = ProductResource
     list_display = ['product_codes', 'title', 'combined_price', 'beru_price', 'combined_discount', 'enabled', 'show_on_sw', 'beru', 'taxi',
-                    'mdbs', 'market', 'spb_market', 'merchant', 'product_stock', 'orders_link', 'product_link']
+                    'mdbs', 'sber', 'market', 'spb_market', 'merchant', 'product_stock', 'orders_link', 'product_link']
     list_display_links = ['title']
-    list_editable = ['enabled', 'show_on_sw', 'beru', 'taxi', 'mdbs', 'market', 'spb_market', 'merchant']
-    list_filter = ['enabled', 'show_on_sw', 'avito', 'beru', 'taxi', 'mdbs', 'market', 'isnew', 'recomended',
+    list_editable = ['enabled', 'show_on_sw', 'beru', 'taxi', 'mdbs', 'sber', 'market', 'spb_market', 'merchant']
+    list_filter = ['enabled', 'show_on_sw', 'avito', 'beru', 'taxi', 'mdbs', 'sber', 'market', 'isnew', 'recomended',
                    'cur_code', ('pct_discount', DropdownFilter), ('val_discount', DropdownFilter),
                    ('categories', RelatedDropdownFilter), ('manufacturer', RelatedDropdownFilter)]
     exclude = ['image_prefix']
@@ -194,12 +194,12 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
             'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
             'fields': (('cur_price', 'cur_code', 'price'), ('pct_discount', 'val_discount', 'max_discount', 'max_val_discount'),
                        ('ws_cur_price', 'ws_cur_code', 'ws_price'), 'ws_pack_only', ('ws_pct_discount', 'ws_max_discount'),
-                       ('sp_cur_price', 'sp_cur_code', 'sp_price'), ('beru_price', 'avito_price'), 'consultant_delivery_price',
+                       ('sp_cur_price', 'sp_cur_code', 'sp_price'), ('beru_price', 'sber_price', 'avito_price'), 'consultant_delivery_price',
                        ('forbid_price_import', 'forbid_ws_price_import'))
         }),
         ('Маркетинг', {
             'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
-            'fields': (('enabled', 'show_on_sw', 'firstpage'), ('merchant', 'market', 'beru', 'taxi', 'mdbs', 'avito'), ('isnew', 'recomended', 'gift'), 'credit_allowed', 'deshevle',
+            'fields': (('enabled', 'show_on_sw', 'firstpage'), ('merchant', 'market', 'beru', 'taxi', 'mdbs', 'sber', 'avito'), ('isnew', 'recomended', 'gift'), 'credit_allowed', 'deshevle',
                        'sales_notes', 'present', 'delivery', 'sales_actions', 'tags')
         }),
         spb_fieldset,

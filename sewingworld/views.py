@@ -71,6 +71,8 @@ def products_stream(request, templates, filter_type):
         filters['taxi'] = True
     if filter_type == 'mdbs':
         filters['mdbs'] = True
+    if filter_type == 'sber':
+        filters['sber'] = True
     if filter_type == 'avito':
         filters['avito'] = True
     if filter_type == 'prym':
