@@ -84,9 +84,12 @@ def products_stream(request, templates, filter_type):
     products = Product.objects.filter(**filters).distinct()
     for product in products:
         context['product'] = product
+        if filter_type == 'mdbs':
+            context['stock'] = product.get_stock(filter_type)
         yield t.render(context, request)
 
     context.pop('product', None)
+    context.pop('stock', None)
     t = loader.get_template('xml/_{}_footer.xml'.format(templates))
     yield t.render(context, request)
 
