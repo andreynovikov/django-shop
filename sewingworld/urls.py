@@ -46,6 +46,8 @@ urlpatterns = [
     url(r'^taxi\.xml$', views.products, {'templates': 'beru', 'filters': 'taxi'}, name='taxi'),
     # ex: /mdbs.xml
     url(r'^mdbs\.xml$', views.products, {'templates': 'beru', 'filters': 'mdbs'}, name='mdbs'),
+    # ex: /sber.xml
+    url(r'^sber\.xml$', views.products, {'templates': 'sber', 'filters': 'sber'}, name='sber'),
     # ex: /google.xml
     url(r'^google\.xml$', views.products, {'templates': 'google', 'filters': 'google'}, name='google'),
     # ex: /cc-prym.xml
@@ -93,6 +95,7 @@ urlpatterns = [
     url(r'^beru/', include('beru.urls'), {'account': 'beru'}),
     url(r'^taxi/', include('beru.urls'), {'account': 'taxi'}),
     url(r'^mdbs/', include('beru.urls'), {'account': 'mdbs'}),
+    url(r'^sber/', include('sber.urls')),
     url(r'^kassa/', include('yandex_kassa.urls')),
     url(r'^blog/', include('zinnia.urls')),
     url(r'^comments/', include('django_comments.urls')),
