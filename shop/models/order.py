@@ -279,6 +279,8 @@ class Order(models.Model):
             site = Site.objects.get(domain='beru.ru')
         elif basket.utm_source == 'taxi':
             site = Site.objects.get(domain='taxi.beru.ru')
+        elif basket.utm_source == 'sber':
+            site = Site.objects.get(domain='sbermegamarket.ru')
         else:
             site = Site.objects.get_current()
         order = Order.objects.create(user=user, site=site)
