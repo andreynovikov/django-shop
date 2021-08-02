@@ -10,6 +10,9 @@
     <price>{{ product.cost|quantize:"1" }}</price>
     {% endif %}
     <currencyId>RUR</currencyId>
+    {% if stock is not None %}
+    <count>{{ stock|quantize:"1" }}</count>
+    {% endif %}
 {% for category in product.categories.all %}
 {% with top_category=category_map|get_dict_item:category.pk %}
 {% if top_category %}

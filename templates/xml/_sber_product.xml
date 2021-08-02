@@ -1,7 +1,8 @@
 {% load static %}
 {% load site %}
 {% load decimals %}
-<offer id="{{ product.id }}" type="vendor.model">
+{% load l10n %}
+<offer id="{{ product.id }}" type="vendor.model" available="{% if stock %}true{% else %}false{% endif %}">
     <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=sber&amp;utm_term={{ product.id }}</url>
     {% if product.sber_price > 0 %}
     <price>{{ product.sber_price|quantize:"1" }}</price>
@@ -9,6 +10,11 @@
     <price>{{ product.cost|quantize:"1" }}</price>
     {% endif %}
     <currencyId>RUR</currencyId>
+    {% if stock is not None %}
+    <outlets>
+      <outlet id="0" instock="{{ stock|quantize:"1" }}" />
+    </outlets>
+    {% endif %}
 {% for category in product.categories.all %}
 {% with top_category=category_map|get_dict_item:category.pk %}
 {% if top_category %}
