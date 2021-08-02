@@ -89,7 +89,12 @@ def cart(request, account='beru'):
             })
         except Exception as e:
             logger.exception(e)
-            item['delivery'] = False
+            response['cart']['items'].append({
+                'feedId': item.get('feedId', 0),
+                'offerId': sku,
+                'count': 0,
+                'delivery': False
+            })
     return JsonResponse(response)
 
 
