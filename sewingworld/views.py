@@ -86,6 +86,8 @@ def products_stream(request, templates, filter_type):
     products = Product.objects.filter(**filters).distinct()
     for product in products:
         context['product'] = product
+        if filter_type in ('mdbs', 'sber'):
+            context['stock'] = product.get_stock(filter_type)
         yield t.render(context, request)
 
     context.pop('product', None)
