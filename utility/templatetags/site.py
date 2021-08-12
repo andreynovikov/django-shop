@@ -119,3 +119,17 @@ def query_transform(request, **kwargs):
     for k, v in kwargs.items():
         updated[k] = v
     return updated.urlencode()
+
+
+@register.filter
+def rebootstrap(value):
+    if not isinstance(value, str):
+        return value
+    value = value.replace('col-md-8', 'col-md-4')
+    value = value.replace('col-md-10', 'col-md-5')
+    value = value.replace('col-md-12', 'col-md-6')
+    value = value.replace('<h3>', '<h5>')
+    value = value.replace('</h3>', '</h5>')
+    value = value.replace('<h4>', '<h6>')
+    value = value.replace('</h4>', '</h6>')
+    return value
