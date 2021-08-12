@@ -16,6 +16,14 @@ def site_url_prefix(context):
 
 
 @register.simple_tag
+def get_object(model_name, pk):
+    from django.apps import apps
+    app, name = model_name.split('.', 1)
+    model = apps.get_model(app_label=app, model_name=name)
+    return model.objects.get(pk=int(pk))
+
+
+@register.simple_tag
 def get_categories_root():
     try:
         return Category.objects.get(slug=settings.MPTT_ROOT)
@@ -37,6 +45,22 @@ def filter_qs(queryset, field):
             field = field[1:]
         kwargs = {field: criteria}
         return queryset.filter(**kwargs)
+    else:
+        return None
+
+
+@register.filter
+def filter_qs_by_pk(queryset, ids):
+    if isinstance(queryset, QuerySet):
+        exclude = False
+        if ids[0] == '!':
+            exclude = True
+            ids = ids[1:]
+        kwargs = {'pk__in': ids.split(',')}
+        if exclude:
+            return queryset.exclude(**kwargs)
+        else:
+            return queryset.filter(**kwargs)
     else:
         return None
 
@@ -87,3 +111,11 @@ def prettify(value):
     if isinstance(value, str):
         return value.strip()
     return value
+
+
+@register.simple_tag
+def query_transform(request, **kwargs):
+    updated = request.GET.copy()
+    for k, v in kwargs.items():
+        updated[k] = v
+    return updated.urlencode()
