@@ -3,6 +3,7 @@ import logging
 from decimal import Decimal, ROUND_UP, ROUND_DOWN, ROUND_HALF_EVEN
 
 from django.conf import settings
+from django.contrib.postgres.fields import JSONField
 from django.contrib.sites.models import Site
 from django.db import models
 from django.db.models.signals import pre_save
@@ -178,6 +179,7 @@ class Order(models.Model):
     manager = models.ForeignKey(Manager, verbose_name='менеджер', blank=True, null=True, on_delete=models.SET_NULL)
     manager_comment = models.TextField('комментарий менеджера', blank=True)
     alert = models.CharField('тревога', max_length=255, blank=True, db_index=True)
+    meta = JSONField(null=True, blank=True, editable=False)
     # delivery
     delivery = models.SmallIntegerField('доставка', choices=DELIVERY_CHOICES, default=DELIVERY_UNKNOWN, db_index=True)
     delivery_price = models.DecimalField('стоимость доставки', max_digits=8, decimal_places=2, default=0)
@@ -320,7 +322,8 @@ class Order(models.Model):
                                    product_price=price.quantize(qnt, rounding=ROUND_UP),
                                    pct_discount=pct_discount,
                                    val_discount=val_discount,
-                                   quantity=item.quantity)
+                                   quantity=item.quantity,
+                                   meta=item.meta)
             # если это комплект, то добавляем элементы комплекта отдельно
             else:
                 full_discount = val_discount
@@ -372,7 +375,8 @@ class Order(models.Model):
                                            pct_discount=pct_discount,
                                            val_discount=val_discount,
                                            quantity=item.quantity * itm.quantity,
-                                           total=item_total)
+                                           total=item_total,
+                                           meta=item.meta)
                     # в данный момент, если цена позиции равна нулю, то она принудительно устанавливается в цену товара
                     # todo: можно перенести эту логику в admin, и тогда можно будет избавиться от двойного сохранения
                     if not item_price:
@@ -436,6 +440,7 @@ class OrderItem(models.Model):
     total = models.DecimalField('сумма', max_digits=10, decimal_places=2, default=0)
     serial_number = models.CharField('SN', max_length=30, blank=True)
     box = models.ForeignKey(Box, blank=True, null=True, related_name='products', related_query_name='box', verbose_name='коробка', on_delete=models.SET_NULL)
+    meta = JSONField(null=True, blank=True, editable=False)
 
     @property
     def price(self):
