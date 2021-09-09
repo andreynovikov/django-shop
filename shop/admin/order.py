@@ -981,7 +981,7 @@ class OrderAdmin(LockableModelAdmin):
                         'barcode': mark_safe(item_barcode),
                         'products': box.products.all(),
                         'weight': label.get('weight', ''),
-                        'delivery_service_name': label.get('deliveryServiceName', ''),
+                        'delivery_service_name': label.get('deliveryServiceName', '').replace('INDIVIDUAL_ENTREPRENEURSHIP', 'ИП'),
                         'delivery_service_id': label.get('deliveryServiceId', '')
                     })
 
