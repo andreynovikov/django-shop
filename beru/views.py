@@ -245,7 +245,11 @@ def order_status(request, account='beru'):
         payment = beru_order.get('paymentMethod', 'CASH_ON_DELIVERY')
         order.payment = BERU_PAYMENT_METHODS.get(payment, Order.PAYMENT_UNKNOWN)
         order.save()
+    except Order.MultipleObjectsReturned:
+        logger.error("Ошибка поиска внутреннего заказа с заказом Беру №{}".format(order_id))
+        return HttpResponse("Ошибка поиска внутреннего заказа с заказом Беру №{}".format(order_id))
     except Order.DoesNotExist:
+        logger.error("Не существует внутреннего заказа с заказом Беру №{}".format(order_id))
         return HttpResponse("Не существует внутреннего заказа с заказом Беру №{}".format(order_id))
         # return HttpResponseBadRequest("Не существует внутреннего заказа с заказом Беру №{}".format(order_id))
 
