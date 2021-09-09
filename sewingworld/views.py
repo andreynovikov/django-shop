@@ -73,6 +73,8 @@ def products_stream(request, templates, filter_type):
         filters['mdbs'] = True
     if filter_type == 'sber':
         filters['sber'] = True
+    if filter_type == 'ali':
+        filters['ali'] = True
     if filter_type == 'avito':
         filters['avito'] = True
     if filter_type == 'prym':
@@ -86,7 +88,7 @@ def products_stream(request, templates, filter_type):
     products = Product.objects.filter(**filters).distinct()
     for product in products:
         context['product'] = product
-        if filter_type in ('mdbs', 'sber'):
+        if filter_type in ('mdbs', 'sber', 'ali'):
             context['stock'] = product.get_stock(filter_type)
         yield t.render(context, request)
 
