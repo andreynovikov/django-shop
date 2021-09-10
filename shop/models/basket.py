@@ -3,6 +3,7 @@ import datetime
 from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
 from django.conf import settings
+from django.contrib.humanize.templatetags.humanize import intcomma
 from django.contrib.postgres.fields import JSONField
 from django.contrib.sessions.models import Session
 from django.db import models
@@ -65,7 +66,7 @@ class Basket(models.Model):
     def product_discount_text(self, product):
         """ Provides human readable discount string. """
         pd = Decimal(0)
-        pdv = 0
+        pdv = Decimal(0)
         pdt = False
         pct = self.product_pct_discount(product)
         if pct > 0:
@@ -76,7 +77,7 @@ class Basket(models.Model):
                 price = product.price.quantize(Decimal('1'), rounding=ROUND_UP)
                 qnt = Decimal('1')
             pd = (price * Decimal(pct / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
-            pdv = pct
+            pdv = Decimal(pct)
             pdt = True
         if not WHOLESALE and product.val_discount > pd:
             pd = product.val_discount
@@ -87,7 +88,7 @@ class Basket(models.Model):
         pds = ' руб.'
         if pdt:
             pds = '%'
-        return '%d%s' % (pdv, pds)
+        return '{}{}'.format(intcomma(pdv.quantize(Decimal('1'), rounding=ROUND_UP)), pds)
 
     @property
     def total(self):
