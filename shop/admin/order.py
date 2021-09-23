@@ -510,7 +510,7 @@ class OrderAdmin(LockableModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if not request.user.is_superuser and request.user.has_perm('shop.change_order_spb'):
-            qs = qs.filter(site=6)
+            qs = qs.filter(site__in=[6, 14])
         return qs
 
     def get_readonly_fields(self, request, obj=None):

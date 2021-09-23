@@ -85,6 +85,7 @@ class Product(models.Model):
         spb_market = models.BooleanField('маркет СПб', default=False, db_index=True)
     beru = models.BooleanField('выгружать в Беру', default=False, db_index=True)
     taxi = models.BooleanField('выгружать в Яндекс.Такси', default=False, db_index=True)
+    tax2 = models.BooleanField('выгружать в Яндекс.Такси СПб', default=False, db_index=True)
     mdbs = models.BooleanField('выгружать в Маркет.DBS', default=False, db_index=True)
     sber = models.BooleanField('выгружать в СберМаркет', default=False, db_index=True)
     avito = models.BooleanField('выгружать в Авито', default=False, db_index=True)
@@ -338,19 +339,22 @@ class Product(models.Model):
         if self.constituents.count() == 0:
             if which == 'spb_num':
                 suppliers = self.stock.filter(spb_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = '= 6'
+                site_addon = 'IN (6,14)'
+            elif which == 'tax2':
+                suppliers = self.stock.filter(tax2_count_in_stock=Supplier.COUNT_STOCK)
+                site_addon = 'IN (6,14)'
             elif which == 'ws_num':
                 suppliers = self.stock.filter(ws_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = '<> 6'
+                site_addon = 'NOT IN (6,14)'
             elif which in ('beru', 'mdbs'):
                 suppliers = self.stock.filter(beru_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = '<> 6'
+                site_addon = 'NOT IN (6,14)'
             elif which == 'taxi':
                 suppliers = self.stock.filter(taxi_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = '<> 6'
+                site_addon = 'NOT IN (6,14)'
             else:
                 suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = '<> 6'
+                site_addon = 'NOT IN (6,14)'
             if suppliers.exists():
                 for supplier in suppliers:
                     stock = Stock.objects.get(product=self, supplier=supplier)

@@ -45,6 +45,7 @@ def products_stream(request, templates, filter_type):
         for descendant in descendants:
             categories[descendant.pk] = child.pk
     context = {
+        'filter_type': filter_type,
         'children': children,
         'category_map': categories
     }
@@ -69,6 +70,8 @@ def products_stream(request, templates, filter_type):
         filters['beru'] = True
     if filter_type == 'taxi':
         filters['taxi'] = True
+    if filter_type == 'tax2':
+        filters['tax2'] = True
     if filter_type == 'mdbs':
         filters['mdbs'] = True
     if filter_type == 'sber':

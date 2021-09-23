@@ -322,6 +322,12 @@ def notify_manager_sms(order_id):
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
+def notify_spb_manager_sms(order_id):
+    reload_maybe()
+    return send_sms(config.sw_sms_manager_spb, "Новый заказ №%s" % order_id)
+
+
+@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_review_posted(review_id):
     review = reviews.get_review_model().objects.get(id=review_id)
 
