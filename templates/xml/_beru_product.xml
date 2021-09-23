@@ -3,7 +3,7 @@
 {% load decimals %}
 {% load l10n %}
 <offer id="{{ product.id }}" type="vendor.model">
-    <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=beru&amp;utm_term={{ product.id }}</url>
+    <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source={{ filter_type }}&amp;utm_term={{ product.id }}</url>
     {% if product.beru_price > 0 %}
     <price>{{ product.beru_price|quantize:"1" }}</price>
     {% else %}

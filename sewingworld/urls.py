@@ -44,6 +44,8 @@ urlpatterns = [
     url(r'^beru\.xml$', views.products, {'templates': 'beru', 'filters': 'beru'}, name='beru'),
     # ex: /taxi.xml
     url(r'^taxi\.xml$', views.products, {'templates': 'beru', 'filters': 'taxi'}, name='taxi'),
+    # ex: /taxi_spb.xml
+    url(r'^taxi_spb\.xml$', views.products, {'templates': 'beru', 'filters': 'tax2'}, name='tax2'),
     # ex: /mdbs.xml
     url(r'^mdbs\.xml$', views.products, {'templates': 'beru', 'filters': 'mdbs'}, name='mdbs'),
     # ex: /sber.xml
@@ -94,6 +96,7 @@ urlpatterns = [
     url(r'^shop/', include('shop.urls')),
     url(r'^beru/', include('beru.urls'), {'account': 'beru'}),
     url(r'^taxi/', include('beru.urls'), {'account': 'taxi'}),
+    url(r'^tax2/', include('beru.urls'), {'account': 'tax2'}),
     url(r'^mdbs/', include('beru.urls'), {'account': 'mdbs'}),
     url(r'^sber/', include('sber.urls')),
     url(r'^kassa/', include('yandex_kassa.urls')),

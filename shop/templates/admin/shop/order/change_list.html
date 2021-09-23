@@ -6,7 +6,7 @@
     (function($) {
         $(document).ready(function() {
             $("#result_list tr .field-order_name a b").each(function(index, element) {
-                if ($(element).text().startsWith("Т-")) {
+                if ($(element).text().startsWith("Т-") || $(element).text().startsWith("ТСПб-")) {
                     $(element).closest("tr").css('background-color', '#fff8dc');
                 }
             });
