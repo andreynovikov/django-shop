@@ -3,8 +3,11 @@ from __future__ import absolute_import
 import base64
 import csv
 import datetime
-import logging
+import hashlib
+import io
 import json
+import logging
+
 from collections import defaultdict
 from importlib import import_module
 from decimal import Decimal, ROUND_HALF_EVEN
@@ -41,7 +44,7 @@ from unisender import Unisender
 from sewingworld.models import SiteProfile
 from sewingworld.sms import send_sms
 
-from shop.models import ShopUser, Supplier, Currency, Product, Stock, Basket, Order
+from shop.models import ShopUser, ShopUserManager, Supplier, Currency, Product, Stock, Basket, Order
 
 
 log = logging.getLogger('shop')
@@ -701,3 +704,51 @@ def update_cbrf_currencies(self):
     else:
         raise self.retry(countdown=3600, max_retries=4)  # 1 hour
     return rate
+
+
+@shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
+def update_user_bonuses(self):
+    reload_maybe()
+    url = 'https://cloud-api.yandex.net/v1/disk/resources?path=disk%3A%2F%D0%91%D0%BE%D0%BD%D1%83%D1%81%D0%BD%D1%8B%D0%B5%D0%91%D0%B0%D0%BB%D0%BB%D1%8B.txt'
+    headers = {
+        'Authorization': 'OAuth {token}'.format(token=config.sw_bonuses_ydisk_token),
+        'Content-Type': 'application/json; charset=utf-8'
+    }
+    request = Request(url, None, headers)
+    try:
+        response = urlopen(request)
+        result = json.loads(response.read().decode('utf-8'))
+        bonus_file = result.get('file', None)
+        bonus_md5 = result.get('md5', None)
+        if not bonus_file:
+            log.error('No file')
+            raise self.retry(countdown=3600, max_retries=4)  # 1 hour
+        request = Request(bonus_file, None, headers)
+        response = urlopen(request)
+        result = response.read()
+        md5 = hashlib.md5(result).hexdigest()
+        if md5 != bonus_md5:
+            log.error('MD5 checksums differ')
+            raise self.retry(countdown=3600, max_retries=4)  # 1 hour
+        num = 0
+        records = csv.DictReader(io.StringIO(result.decode('windows-1251')), delimiter=';')
+        for line in records:
+            try:
+                if line['ШтрихКод'] and line['КоличествоБаллов']:
+                    bonuses = float(line['КоличествоБаллов'].replace('\xA0', '').replace(',', '.'))
+                    user = ShopUser.objects.get(phone=ShopUserManager.normalize_phone(line['ШтрихКод']))
+                    user.bonuses = int(bonuses)
+                    user.save()
+                    num = num + 1
+            except ValueError:
+                log.error("Wrong bonus number '%s' for '%s'" % (line['КоличествоБаллов'], line['ШтрихКод']))
+            except ObjectDoesNotExist:
+                pass
+        return num
+    except HTTPError as e:
+        content = e.read()
+        error = json.loads(content.decode('utf-8'))
+        message = error.get('message', 'Неизвестная ошибка взаимодействия с Яндекс.Диском')
+        log.error(message)
+        raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
+    return 0
