@@ -20,3 +20,5 @@ class SWConfigForm(ConfigForm):
 
     sw_modulkassa_login = forms.CharField(label='Логин МодульКасса')
     sw_modulkassa_password = forms.CharField(label='Пароль МодульКасса')
+
+    sw_bonuses_ydisk_token = forms.CharField(label='OAuth токен Яндекс.Диск для бонусов')
