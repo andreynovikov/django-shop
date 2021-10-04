@@ -15,9 +15,28 @@
 
 {% block content %}
 <h1>Кабинет покупателя</h1>
-<div class="sw-p-l panel panel-default sw-widepan" style="border:none; box-shadow:none;">
+<div class="row">
+    <div class="col-md-6 col-md-push-12">
+
+<div class="panel panel-default">
 <div class="panel-body">
-<h2>Нажмите на номер,<br> чтобы узнать состояние заказа:</h2>
+<h2 style="margin-top: 0">Регистрационные данные</h2>
+{% include "shop/_update_user.html" %}
+</div>
+</div>
+
+{% if user.bonuses %}
+<div class="panel panel-default">
+<div class="panel-body">
+<h2 style="margin-top: 0">Накопленные бонусы</h2>
+<div class="alert alert-info lead" style="display: inline-block; margin-bottom: 0">{{ user.bonuses }}</div>
+</div>
+</div>
+{% endif %}
+
+    </div>
+    <div class="col-md-12 col-md-pull-6">
+<h2>Нажмите на номер, чтобы узнать состояние заказа:</h2>
 {% if orders %}
 <ul class="sw-orders-list">
 {% for order in orders %}
@@ -28,14 +47,9 @@
 {% else %}
 <p>У вас нет оформленных заказов.</p>
 {% endif %}
-</div>
-</div>
 
-<div class="sw-p-l panel panel-default sw-widepan">
-<div class="panel-body">
-<h2>Регистрационные данные</h2>
-{% include "shop/_update_user.html" %}
-</div>
+    </div>
+
 </div>
 
 {% endblock %}
