@@ -44,7 +44,10 @@ class ShopUserManager(BaseUserManager):
     def normalize_phone(phone):
         phone = re.sub(r"[^0-9\+]", "", phone)
         if not phone.startswith("+"):
-            phone = "+7" + phone
+            if phone.startswith("7") and len(phone) == 11:
+                phone = "+" + phone
+            else:
+                phone = "+7" + phone
         return phone
 
     @staticmethod
@@ -98,7 +101,7 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
     city = models.CharField('город', max_length=255, blank=True)
     address = models.CharField('адрес', max_length=255, blank=True)
     discount = models.PositiveSmallIntegerField('скидка, %', default=0)
-    bonuses = models.PositiveSmallIntegerField('бонусы', default=0)
+    bonuses = models.PositiveIntegerField('бонусы', default=0)
     is_active = models.BooleanField('активный', default=True)
     is_staff = models.BooleanField('сотрудник', default=False)
     permanent_password = models.BooleanField('постоянный пароль', default=False)
