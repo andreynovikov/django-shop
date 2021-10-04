@@ -408,6 +408,11 @@ class OrderAdmin(LockableModelAdmin):
     link_to_orders.short_description = 'заказы'
 
     @mark_safe
+    def user_bonuses(self, obj):
+        return '<span>%d</span>' % obj.user.bonuses
+    user_bonuses.short_description = 'бонусы'
+
+    @mark_safe
     def credit_notice(self, obj):
         credit_allowed = False
         for item in obj.items.all():
@@ -437,7 +442,7 @@ class OrderAdmin(LockableModelAdmin):
 
     list_display = ['order_name', 'name_and_phone', 'city', 'total_cost', 'combined_payment', 'combined_delivery',
                     'colored_status', 'combined_comments']
-    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'pos_status',
+    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'user_bonuses', 'pos_status',
                        'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
                        'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
     list_filter = [OrderStatusListFilter, ('site', SiteListFilter), ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter),
@@ -481,7 +486,7 @@ class OrderAdmin(LockableModelAdmin):
             fieldsets[0][1]['fields'][1].append('courier')
             fieldsets[0][1]['fields'][3].append('delivery_yd_order')
             fieldsets[0][1]['fields'][5].extend(('delivery_time_from', 'delivery_time_till'))
-            fieldsets[2][1]['fields'].extend((('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux', 'email'),
+            fieldsets[2][1]['fields'].extend((('name', 'user', 'link_to_user', 'link_to_orders', 'user_bonuses'), ('phone', 'phone_aux', 'email'),
                                               'address', ('city', 'postcode'), 'comment', ('firm_name', 'is_firm')))
             if obj and obj.hidden_tracking_number:
                 fieldsets[0][1]['fields'][1].append('pos_status')
