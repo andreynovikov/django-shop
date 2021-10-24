@@ -370,12 +370,15 @@ class OrderAdmin(LockableModelAdmin):
     def combined_payment(self, obj):
         style = ''
         checkmark = ''
-        if obj.paid:
+        if obj.paid and obj.has_fiscal:
             style = '; color: green'
-            checkmark = '<span style="display: table-cell; padding-left: 5px; color: green; font-weight: bold">&#10003;</span>'
+            checkmark = '<a href="https://receipt.taxcom.ru/v01/show?fp=%s&s=%s" target="_blank" style="color: green; font-size: 150%%">&#128457;</a>' % (obj.meta['fiscalInfo']['fnDocMark'], obj.meta['fiscalInfo']['sum'])
+        elif obj.paid:
+            style = 'color: green'
+            checkmark = '<span style="color: green; font-size: 120%%">&#10003;</span>'
         elif obj.payment in [Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_CREDIT]:
-            style = '; color: red'
-        return '<div style="display: table"><span style="display: table-cell%s">%s</span>%s</div>' % (style, obj.get_payment_display(), checkmark)
+            style = 'color: red'
+        return '<span style="display: grid; grid-template-columns: min-content auto; column-gap: 5px"><span style="%s">%s</span>%s</span>' % (style, obj.get_payment_display(), checkmark)
     combined_payment.admin_order_field = 'payment'
     combined_payment.short_description = 'оплата'
 
@@ -524,6 +527,8 @@ class OrderAdmin(LockableModelAdmin):
             readonly_fields += ['site']
         if obj and obj.is_beru:
             readonly_fields += ['delivery_handing_date']
+        if obj and obj.paid and obj.meta and 'fiscalInfo' in obj.meta:
+            readonly_fields += ['paid']
         return readonly_fields
 
     def changelist_view(self, request, extra_context=None):
@@ -950,7 +955,6 @@ class OrderAdmin(LockableModelAdmin):
         context = self.admin_site.each_context(request)
         context['opts'] = self.model._meta
         context['is_popup'] = request.GET.get('_popup', 0)
-        context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
 
         # this method is called both from order change form with single id argument and order list with selected orders queryset
         if isinstance(arg, str):
@@ -987,7 +991,8 @@ class OrderAdmin(LockableModelAdmin):
                         'products': box.products.all(),
                         'weight': label.get('weight', ''),
                         'delivery_service_name': label.get('deliveryServiceName', '').replace('INDIVIDUAL_ENTREPRENEURSHIP', 'ИП'),
-                        'delivery_service_id': label.get('deliveryServiceId', '')
+                        'delivery_service_id': label.get('deliveryServiceId', ''),
+                        'supplier_name': label.get('supplierName', '')
                     })
 
                 context['orders'].append({

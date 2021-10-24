@@ -265,6 +265,10 @@ class Order(models.Model):
             weight += item.product.prom_weight
         return weight
 
+    @property
+    def has_fiscal(self):
+        return self.meta and 'fiscalInfo' in self.meta
+
     @cached_property
     def is_beru(self):
         return self.site in (

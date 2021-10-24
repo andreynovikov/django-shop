@@ -1,6 +1,7 @@
 {% extends "shop/base.html" %}
 {% load staticfiles %}
 {% load decimals %}
+{% load humanize %}
 {% load site %}
 {% load shop_filters %}
 {% block title %}Заказ №{{ order.id }}{% endblock %}
@@ -37,6 +38,9 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
 {% if order.delivery == order.DELIVERY_YANDEX and order.status == order.STATUS_DELIVERED_STORE or order.store or order.delivery_tracking_number or order.delivery_info or order.delivery_dispatch_date or order.delivery_time_from or order.delivery_time_till or order.delivery_handing_date %}
 <dt>Информация о доставке:</dt>
 {% if order.delivery == order.DELIVERY_YANDEX and order.status == order.STATUS_DELIVERED_STORE %}
+<dd>заказ доставляется</dd>
+{% endif %}
+{% if False and order.delivery == order.DELIVERY_YANDEX and order.status == order.STATUS_DELIVERED_STORE %}
 <dd style="width: 0px">
 <meta name="ydWidgetData" id="f526c05f4e50090a3bffbb04d40e07b3" content="" data-sender_id="15938" data-weight="0" data-cost="0" data-height="0" data-length="0" data-width="0" data-city_from="Москва" data-geo_id_from="213" data-css_name="tracking_tpl" data-tpl_name="tracking_tpl" data-container_tag_id="f96bae27a7dbbcfc794595702bd9024d" data-resource_id="21272" data-resource_key="1780931b94c77b42c08b895fb88747d2" data-tracking_method_key="43df8cf1b0d40baaef3a3363458314f1" data-autocomplete_method_key="fd34c231b276f9bea3db9b60ac09506e"></meta><!--[if lt IE 9]><script>document.createElement("msw");</script><![endif]-->
 <script src="https://delivery.yandex.ru/widget/widgetJsLoader?dataTagID=f526c05f4e50090a3bffbb04d40e07b3" charset="utf-8"></script>
@@ -75,7 +79,38 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
 <dt>Способ оплаты:</dt> <dd>{{ order.get_payment_display }}
 </dd>
 </dl>
-{% if not order.paid %}
+{% if order.paid %}
+{% if order.meta %}
+{% if order.has_fiscal %}
+<a class="btn btn-success" href="https://receipt.taxcom.ru/v01/show?fp={{ order.meta.fiscalInfo.fnDocMark }}&s={{ order.meta.fiscalInfo.sum }}" id="receipt-check-link" target="_blank">Посмотреть кассовый чек</a>
+{% elif order.meta.yookassa %}
+<a class="btn btn-success hide" href="" id="receipt-check-link" target="_blank">Посмотреть кассовый чек</a>
+<script type="text/javascript">
+(function() {
+    'use strict';
+
+    var yookassa_id = '{{ order.meta.yookassa }}';
+    if (yookassa_id !== '') {
+        var xhr = new XMLHttpRequest();
+        xhr.responseType = 'json';
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 400) {
+                var data = xhr.response;
+                if (data.registration === "succeeded") {
+                    var link = document.getElementById("receipt-check-link");
+                    link.href = "https://receipt.taxcom.ru/v01/show?fp=" + data.fnDocMark + "&s=" + data.sum;
+                    link.classList.remove("hide");
+                }
+            }
+        };
+        xhr.open('GET', '{% url 'yandex_kassa:receipt' order.id %}', true);
+        xhr.send();
+    }
+})();
+</script>
+{% endif %}
+{% endif %}
+{% else %} {# not paid #}
 {% if order.status == order.STATUS_COLLECTED %}
 {% if order.payment == order.PAYMENT_CARD or order.payment == order.PAYMENT_CREDIT %}
 <a class="btn btn-success" href="{% url 'yandex_kassa:payment' order.id %}">{% if order.payment == order.PAYMENT_CREDIT %}Оформить кредит{% else %}Оплатить заказ{% endif %}</a>
@@ -152,19 +187,19 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
                 {{ item.product.title }}
             </td>
             <td>
-                {{ item.product_price|quantize:'1' }}
+                {{ item.product_price|quantize:'1'|intcomma }}
             </td>
             <td>
                 {{ item.discount }}
             </td>
             <td>
-                {{ item.cost|quantize:'1' }}
+                {{ item.cost|quantize:'1'|intcomma }}
             </td>
             <td>
                 {{ item.quantity }}
             </td>
             <td>
-                {{ item.price|quantize:'1' }}
+                {{ item.price|quantize:'1'|intcomma }}
             </td>
         </tr>
         {% endfor %}
@@ -173,7 +208,7 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
                 Доставка ({{ order.get_delivery_display }}):
             </td>
             <td>
-                {{ order.delivery_price|quantize:'1' }}&nbsp;руб.
+                {{ order.delivery_price|quantize:'1'|intcomma }}&nbsp;руб.
             </td>
         </tr>
         <tr>
@@ -181,7 +216,7 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
                 Всего к оплате:
             </td>
             <td class="lead">
-                {{ order.total|quantize:'1' }}&nbsp;руб.
+                {{ order.total|quantize:'1'|intcomma }}&nbsp;руб.
             </td>
         </tr>
     </table>
