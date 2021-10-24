@@ -102,6 +102,7 @@ class Order(models.Model):
     )
     STATUS_NEW = 0x0
     STATUS_ACCEPTED = 0x00000001
+    STATUS_WAITING = 0x00000002
     STATUS_COLLECTING = 0x00000004
     STATUS_CANCELED = 0x00000008
     STATUS_FROZEN = 0x00000010
@@ -121,6 +122,7 @@ class Order(models.Model):
     STATUS_CHOICES = (
         (STATUS_NEW, 'новый заказ'),
         (STATUS_ACCEPTED, 'принят в работу'),
+        (STATUS_WAITING, 'ожидает подтверждения'),
         (STATUS_COLLECTING, 'комплектуется'),
         (STATUS_CANCELED, 'отменен'),
         (STATUS_FROZEN, 'заморожен'),
@@ -141,6 +143,7 @@ class Order(models.Model):
     STATUS_COLORS = {
         STATUS_NEW: 'red',
         STATUS_ACCEPTED: 'orange',
+        STATUS_WAITING: 'gray',
         STATUS_COLLECTING: 'limegreen',
         STATUS_CANCELED: 'pink',
         STATUS_FROZEN: 'lightblue',
