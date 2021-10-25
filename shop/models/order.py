@@ -89,6 +89,8 @@ class Order(models.Model):
     DELIVERY_PICKPOINT = 5
     DELIVERY_YANDEX = 6
     DELIVERY_TRANSIT = 7
+    DELIVERY_POST = 8
+    DELIVERY_OZON = 9
     DELIVERY_UNKNOWN = 99
     DELIVERY_CHOICES = (
         (DELIVERY_UNKNOWN, 'уточняется'),
@@ -96,6 +98,8 @@ class Order(models.Model):
         (DELIVERY_CONSULTANT, 'консультант'),
         (DELIVERY_SELF, 'получу сам в магазине'),
         (DELIVERY_TRANSPORT, 'транспортная компания'),
+        (DELIVERY_POST, 'почта России'),
+        (DELIVERY_OZON, 'OZON'),
         (DELIVERY_PICKPOINT, 'PickPoint'),
         (DELIVERY_YANDEX, 'Яндекс.Доставка'),
         (DELIVERY_TRANSIT, 'транзит'),

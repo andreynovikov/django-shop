@@ -87,7 +87,7 @@ def order_saved(sender, **kwargs):
             notify_user_order_delivered_shop.delay(order.id)
 
         if order.status == Order.STATUS_DELIVERED:
-            if order.delivery == Order.DELIVERY_TRANSPORT or order.delivery == Order.DELIVERY_PICKPOINT:
+            if order.delivery in (Order.DELIVERY_TRANSPORT, Order.DELIVERY_POST, Order.DELIVERY_OZON, Order.DELIVERY_PICKPOINT):
                 notify_user_order_delivered.delay(order.id)
 
         if order.status == Order.STATUS_DONE or order.status == Order.STATUS_FINISHED:
