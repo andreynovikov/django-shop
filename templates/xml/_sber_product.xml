@@ -12,7 +12,7 @@
     <currencyId>RUR</currencyId>
     {% if stock is not None %}
     <outlets>
-      <outlet id="0" instock="{{ stock|quantize:"1" }}" />
+      <outlet id="0" instock="{% if stock > 10 %}10{% else %}{{ stock|quantize:"1" }}{% endif %}" />
     </outlets>
     {% endif %}
 {% for category in product.categories.all %}
