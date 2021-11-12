@@ -11,6 +11,8 @@ from django.contrib.auth import SESSION_KEY
 from django.http import HttpResponse, JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from django.utils.formats import date_format
 
 from shop.models import Product, Basket, Order, ShopUser
 
@@ -214,7 +216,15 @@ def order_status(request, account='beru'):
         elif status == 'PICKUP':  # заказ доставлен в пункт самовывоза
             order.status = Order.STATUS_DELIVERED
         elif status == 'DELIVERED':  # заказ получен покупателем
-            order.status = Order.STATUS_DONE
+            is_taxi = YANDEX_BERU.get(account, {}).get('is_taxi', False)
+            if is_taxi:
+                info = 'Доставлен покупателю в {}'.format(date_format(timezone.localtime(timezone.now()), "DATETIME_FORMAT"))
+                if order.delivery_info:
+                    order.delivery_info = '\n'.join([order.delivery_info, info])
+                else:
+                    order.delivery_info = info
+            else:
+                order.status = Order.STATUS_DONE
         elif status == 'CANCELLED':  # заказ отменен
             substatus = beru_order.get('substatus', '')
             info = BERU_ORDER_SUBSTATUS.get(substatus, "Неизвестная причина отмены заказа")
