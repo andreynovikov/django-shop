@@ -16,6 +16,7 @@
 {% block content %}
 {% load staticfiles %}
 {% load decimals %}
+{% load humanize %}
 {% load shop_filters %}
 <h1>Оформление заказа</h1>
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
@@ -36,11 +37,11 @@
           </div>
           <div class="text-center">
              {% if item.discount > 0 %}
-                 {{ item.product.price|quantize:'1' }}&nbsp;руб.
+                 {{ item.product.price|quantize:'1'|intcomma }}&nbsp;руб.
                  - {{ item.discount_text }}
-                 = {{ item.cost }}&nbsp;руб.
+                 = {{ item.cost|intcomma }}&nbsp;руб.
              {% else %}
-                 {{ item.product.price|quantize:'1' }}&nbsp;руб.
+                 {{ item.product.price|quantize:'1'|intcomma }}&nbsp;руб.
              {% endif %}
              <form class="update form-inline ajax" action="{% url 'shop:update' item.product.id %}" method="post">
              {% csrf_token %}
@@ -52,7 +53,7 @@
              </form>
           <div class="sw-p-l-quantity-notice"><span id="notice_{{item.product.id}}">{% if item.quantity > item.product.instock and item.product.instock > 0 %}Не всё количество есть на складе{% endif %}</span></div>
           <div>
-            <span class="sw-p-l-price"><span id="price_{{item.product.id}}">{{ item.price }}</span></span>&nbsp;руб.
+            <span class="sw-p-l-price"><span id="price_{{item.product.id}}">{{ item.price|intcomma }}</span></span>&nbsp;руб.
           </div>
           <a href="{% url 'shop:delete' item.product.id %}" class="delete ajax" data-name="{{ item.product.partnumber}} {{ item.product.title }}"
              data-id="{{ item.product.id }}" data-brand="{{ item.product.manufacturer.code }}" data-price="{{ item.price }}">Удалить</a>
@@ -61,7 +62,7 @@
     </div>
     {% endfor %}
 
-    <p class="sw-basket-total lead">Итого, без учета стоимости доставки: <span id="total">{{ basket.total }}</span>&nbsp;руб.</p>
+    <p class="sw-basket-total lead">Итого, без учета стоимости доставки: <span id="total">{{ basket.total|intcomma }}</span>&nbsp;руб.</p>
 
     {% include "shop/_send_order.html" %}
 

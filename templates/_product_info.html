@@ -1,6 +1,7 @@
 {% load staticfiles %}
 {% load thumbnail %}
 {% load decimals %}
+{% load humanize %}
 {% load shop_filters %}
 <!-- product -->
 <div class="sw-p-l panel panel-default">
@@ -55,9 +56,9 @@
 {% if product.price > 0 %}
 <div class="sw-p-l-prices">
 {% if product.discount > 0 %}
-<div><s class="sw-p-l-oldprice">{{ product.price|quantize:"1" }}</s>&nbsp;руб.</div>
+<div><s class="sw-p-l-oldprice">{{ product.price|quantize:"1"|intcomma }}</s>&nbsp;руб.</div>
 {% endif %}
-<div><span class="sw-p-l-price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.</div>
+<div><span class="sw-p-l-price">{{ product.cost|quantize:"1"|intcomma }}</span>&nbsp;руб.</div>
 </div>
 
 <div class="sw-p-l-buy">
