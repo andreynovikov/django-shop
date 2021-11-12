@@ -1,3 +1,5 @@
+{% load l10n %}
+{% localize off %}
 {% load lock_tokens_tags %}
 {% lock_tokens_api_client %}
 <script type="text/javascript">
@@ -51,3 +53,4 @@
         }
     });
 </script>
+{% endlocalize %}
