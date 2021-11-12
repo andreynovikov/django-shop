@@ -744,7 +744,7 @@ def update_cbrf_currencies(self):
 @shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def update_user_bonuses(self):
     reload_maybe()
-    bonused_users = list(ShopUser.objects.filter(bonuses__gt=0).values_list('id', flat=True))
+    bonused_users = set(ShopUser.objects.filter(bonuses__gt=0).values_list('id', flat=True))
     url = 'https://cloud-api.yandex.net/v1/disk/resources?path=disk%3A%2F%D0%91%D0%BE%D0%BD%D1%83%D1%81%D0%BD%D1%8B%D0%B5%D0%91%D0%B0%D0%BB%D0%BB%D1%8B.txt'
     headers = {
         'Authorization': 'OAuth {token}'.format(token=config.sw_bonuses_ydisk_token),
@@ -779,7 +779,7 @@ def update_user_bonuses(self):
                     user, created = ShopUser.objects.get_or_create(phone=ShopUserManager.normalize_phone(line['ШтрихКод']))
                     user.bonuses = int(bonuses)
                     if not created:
-                        bonused_users.remove(user.id)
+                        bonused_users.discard(user.id)
                     user.save()
                     num = num + 1
             except ValueError:
