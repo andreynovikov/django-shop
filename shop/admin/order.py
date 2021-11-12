@@ -335,13 +335,9 @@ class OrderAdmin(LockableModelAdmin):
     def combined_delivery(self, obj):
         datetime = ''
         if obj.delivery_dispatch_date:
-            datetime = date_format(obj.delivery_dispatch_date, "SHORT_DATE_FORMAT")
-        if obj.delivery_time_from:
-            if datetime:
-                datetime = datetime + ' '
-            datetime = datetime + date_format(obj.delivery_time_from, "TIME_FORMAT")
-        if obj.delivery_time_till:
-            datetime = datetime + '-' + date_format(obj.delivery_time_till, "TIME_FORMAT")
+            datetime = date_format(obj.delivery_dispatch_date, "d.m")
+        if obj.delivery_handing_date:
+            datetime = datetime + '<span style="color:#21baba">&#8594;' + date_format(obj.delivery_handing_date, "d.m") + '</span>'
         courier = ''
         if obj.courier:
             if obj.hidden_tracking_number:
