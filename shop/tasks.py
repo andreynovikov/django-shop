@@ -16,6 +16,7 @@ from urllib.error import HTTPError
 
 from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.postgres.fields import JSONField
 from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from django.core.mail import send_mail
@@ -87,12 +88,17 @@ def update_order(self, order_id, data):
         raise self.retry(countdown=600, max_retries=24)  # 10 minutes
     changed = {}
     change_message = 'unchanged'
-    for attr, val in data.items():
+    for attr, new_val in data.items():
         field = order._meta.get_field(attr)
-        if field.editable and not field.primary_key and not isinstance(field, (ForeignObjectRel, RelatedField)):
-            if val != getattr(order, attr):
-                setattr(order, attr, val)
-                changed[attr] = val
+        if field.primary_key or isinstance(field, (ForeignObjectRel, RelatedField)):
+            continue
+        old_val = getattr(order, attr)
+        if old_val != new_val:
+            if isinstance(field, JSONField):  # json fields are merged for purpose
+                if old_val:
+                    new_val = {**old_val, **new_val}
+            setattr(order, attr, new_val)
+            changed[attr] = new_val
     if changed:
         order.save(update_fields=changed.keys())
         change_message = ', '.join(map(lambda item: '{}: {}'.format(item[0], item[1]), changed.items()))
@@ -666,6 +672,35 @@ def delete_modulpos_order(self, order_id):
 
     reload_maybe()
 
+    # get fiscal info
+    url = 'https://service.modulpos.ru/api/v1/retail-point/{}/cashdocs?count=1&q=linkedDocId=={}'.format(order.courier.pos_id, order.hidden_tracking_number)
+    headers = {
+        'Authorization': 'Basic {token}'.format(token=base64.standard_b64encode('{}:{}'.format(config.sw_modulkassa_login, config.sw_modulkassa_password).encode('utf-8')).decode('utf-8')),
+        'Content-Type': 'application/json; charset=utf-8'
+    }
+    request = Request(url, None, headers, method='GET')
+    try:
+        response = urlopen(request)
+        result = json.loads(response.read().decode('utf-8'))
+        log.error(str(result))
+        fiscalInfo = result.get('data', [{}])[0].get('fiscalInfo')
+        log.error(str(fiscalInfo))
+        if fiscalInfo:
+            update_order.delay(order.pk, {'meta': {'fiscalInfo': fiscalInfo}})
+    except HTTPError as e:
+        content = e.read()
+        error = json.loads(content.decode('utf-8'))
+        message = error.get('message', 'Неизвестная ошибка взаимодействия с МодульКасса')
+        update = {}
+        update['status'] = Order.STATUS_PROBLEM
+        if order.manager_comment:
+            update['manager_comment'] = '\n'.join([order.manager_comment, message])
+        else:
+            update['manager_comment'] = message
+        update_order.delay(order.pk, update)
+        raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
+
+    # delete order from pos terminal
     url = 'https://service.modulpos.ru/api/v2/retail-point/{}/order/{}'.format(order.courier.pos_id, order.hidden_tracking_number)
     headers = {
         'Authorization': 'Basic {token}'.format(token=base64.standard_b64encode('{}:{}'.format(config.sw_modulkassa_login, config.sw_modulkassa_password).encode('utf-8')).decode('utf-8')),
@@ -709,7 +744,7 @@ def update_cbrf_currencies(self):
 @shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def update_user_bonuses(self):
     reload_maybe()
-    bonused_users = list(ShopUser.objects.filter(bonuses__gt=0).values_list('id', flat=True))
+    bonused_users = set(ShopUser.objects.filter(bonuses__gt=0).values_list('id', flat=True))
     url = 'https://cloud-api.yandex.net/v1/disk/resources?path=disk%3A%2F%D0%91%D0%BE%D0%BD%D1%83%D1%81%D0%BD%D1%8B%D0%B5%D0%91%D0%B0%D0%BB%D0%BB%D1%8B.txt'
     headers = {
         'Authorization': 'OAuth {token}'.format(token=config.sw_bonuses_ydisk_token),
@@ -744,7 +779,7 @@ def update_user_bonuses(self):
                     user, created = ShopUser.objects.get_or_create(phone=ShopUserManager.normalize_phone(line['ШтрихКод']))
                     user.bonuses = int(bonuses)
                     if not created:
-                        bonused_users.remove(user.id)
+                        bonused_users.discard(user.id)
                     user.save()
                     num = num + 1
             except ValueError:

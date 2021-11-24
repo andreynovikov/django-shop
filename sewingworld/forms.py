@@ -12,9 +12,7 @@ class SWConfigForm(ConfigForm):
     sw_sms_manager = forms.CharField(label='Телефон менеджера заказов Яндекс.Такси')
     sw_sms_manager_spb = forms.CharField(label='Телефон менеджера заказов Яндекс.Такси СПб')
 
-    sw_yd_campaign = forms.CharField(label='Идентификатор кампании Яндекс.Доставка')
-    sw_yd_sender = forms.CharField(label='Идентификатор магазина Яндекс.Доставка')
-    sw_yd_token = forms.CharField(label='OAuth-токен магазина Яндекс.Доставка')
+    sw_beru_delivery = forms.CharField(label='Доставщик Беру')
 
     sw_yd_campaign = forms.CharField(label='Идентификатор кампании Яндекс.Доставка')
     sw_yd_sender = forms.CharField(label='Идентификатор магазина Яндекс.Доставка')

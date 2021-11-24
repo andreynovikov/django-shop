@@ -7,20 +7,22 @@ from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.encoding import force_text
 
-from yookassa import Configuration, Payment
+from yookassa import Configuration, Payment, Receipt
 from yookassa.domain.notification import WebhookNotification
 
 import uuid
 
 from shop.models import Order, ShopUser
 from shop.tasks import update_order
+
+from .tasks import get_receipt
 
 KASSA_ACCOUNT_ID = getattr(settings, 'KASSA_ACCOUNT_ID', 0)
 KASSA_SECRET_KEY = getattr(settings, 'KASSA_SECRET_KEY', '')
@@ -111,6 +113,8 @@ def payment(request, order_id):
         'capture': True,
         'description': 'Заказ №{}'.format(order.id)
     }
+    if order.email:
+        payment_details['receipt']['customer']['email'] = order.email
     if order.payment == order.PAYMENT_CREDIT:
         payment_details['payment_method_data'] = {'type': 'installments'}
 
@@ -136,7 +140,8 @@ def callback(request):
         if order.user.id != user.id:
             raise Exception()
         update = {
-            'paid': order.paid or payment.paid
+            'paid': order.paid or payment.paid,
+            'meta': {'yookassa': payment.id}
         }
         change_message = None
         if not order.paid:
@@ -157,7 +162,50 @@ def callback(request):
                 change_message=change_message
             )
         update_order.delay(order.pk, update)
+        get_receipt.delay(order.pk, payment.id)
     except Exception:
         logger.exception("Failed to process payment status")
         return HttpResponseForbidden()
     return HttpResponse('')
+
+
+@login_required
+def receipt(request, order_id):
+    order = get_object_or_404(Order, pk=order_id)
+    if order.user.id != request.user.id:
+        """ This is not the user's order, someone tries to hack us """
+        return HttpResponseForbidden()
+
+    if not order.meta:
+        return JsonResponse({})
+
+    payment_id = order.meta.get('yookassa')
+    if not payment_id:
+        return JsonResponse({})
+
+    Configuration.account_id = KASSA_ACCOUNT_ID
+    Configuration.secret_key = KASSA_SECRET_KEY
+
+    receipts = Receipt.list({'payment_id': payment_id})
+
+    logger.error(receipts.items[0])
+    if not receipts.items:
+        return JsonResponse({})
+
+    receipt = receipts.items[0]
+    total = Decimal('0')
+    for item in receipt.items:
+        total = total + item.quantity * item.amount.value
+    fiscalInfo = {
+        'providerId': receipt.fiscal_provider_id,
+        'fnNumber': receipt.fiscal_storage_number,
+        'date': receipt.registered_at,
+        'checkType': receipt.type,
+        'fnDocMark': receipt.fiscal_attribute,
+        'sum': total.quantize(Decimal('1'), rounding=ROUND_HALF_EVEN),
+        'fnDocNumber': receipt.fiscal_document_number,
+        'registration': receipt.receipt_registration
+    }
+    update_order.delay(order.pk, {'meta': {'fiscalInfo': fiscalInfo}})
+
+    return JsonResponse(fiscalInfo)

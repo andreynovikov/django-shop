@@ -2,6 +2,7 @@
 {% load staticfiles %}
 {% load site %}
 {% load decimals %}
+{% load humanize %}
 {% load render_as_template %}
 {% load shop_filters %}
 {% load mptt_tags %}
@@ -127,14 +128,14 @@ gtm_products = [];
 <div itemprop="offers" itemscope itemtype="http://schema.org/Offer">
 {% if product.cost > 0 %}
 {% if product.discount > 0 %}
-<p class="oldprice">{{ product.price|quantize:"1" }}&nbsp;руб. <a href="#dialog_discount" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
+<p class="oldprice">{{ product.price|quantize:"1"|intcomma }}&nbsp;руб. <a href="#dialog_discount" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
 <div id="dialog_discount" class="mfp-hide white-popup-block">
 <h4>Скидка!</h4>
-<p>Базовая цена в магазинах &laquo;Швейный Мир&raquo; без учета скидок <b>{{ product.price|quantize:"1" }}&nbsp;руб.</b></p>
+<p>Базовая цена в магазинах &laquo;Швейный Мир&raquo; без учета скидок <b>{{ product.price|quantize:"1"|intcomma }}&nbsp;руб.</b></p>
 <p>Скидка при покупке в интернет-магазине составляет <b>{{ product.discount }}&nbsp;руб.</b></p>
 </div>
 {% endif %}{# discount > 0 #}
-<p class="price"><span itemprop="price">{{ product.cost|quantize:"1" }}</span>&nbsp;руб.
+<p class="price"><span itemprop="price">{{ product.cost|quantize:"1"|intcomma }}</span>&nbsp;руб.
 {% if product.instock > 0 %}
 <a href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}" class="addProduct btn btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
 {% else %}
@@ -159,7 +160,7 @@ gtm_products = [];
 <span class="product-nal-true">Мало</span>
 {% endif %}
 {% if product.instock < 1 %}
-<span class="product-nal-false">Нет</span>
+<span class="product-nal-false" style="color: red">Нет, но может быть в розничных магазинах:</span>
 {% endif %}
 {% if product.cost > 0 %}
 <a class="product-nal-store-link opener-ajax" href="{% url 'product_stock' product.code %}" rel="nofollow">Проверить наличие в розничных магазинах</a>

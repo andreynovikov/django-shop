@@ -50,6 +50,8 @@ urlpatterns = [
     url(r'^mdbs\.xml$', views.products, {'templates': 'beru', 'filters': 'mdbs'}, name='mdbs'),
     # ex: /sber.xml
     url(r'^sber\.xml$', views.products, {'templates': 'sber', 'filters': 'sber'}, name='sber'),
+    # ex: /ali.xml
+    url(r'^ali\.xml$', views.products, {'templates': 'ali', 'filters': 'ali'}, name='ali'),
     # ex: /google.xml
     url(r'^google\.xml$', views.products, {'templates': 'google', 'filters': 'google'}, name='google'),
     # ex: /cc-prym.xml

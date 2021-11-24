@@ -126,7 +126,18 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
 
     @mark_safe
     def combined_discount(self, obj):
-        return '%s&nbsp;руб<br/>%s%%' % (obj.val_discount, obj.pct_discount)
+        result = '<span style="color: '
+        if obj.val_discount > 0:
+            result = result + 'black'
+        else:
+            result = result + 'grey'
+        result = result + '">%s&nbsp;руб<br/><span style="color: ' % obj.val_discount
+        if obj.pct_discount > 0:
+            result = result + 'black'
+        else:
+            result = result + 'grey'
+        result = result + '">%s%%</span>' % obj.pct_discount
+        return result
     combined_discount.short_description = 'скидка'
 
     def product_stock(self, obj):

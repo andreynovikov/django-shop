@@ -89,6 +89,8 @@ class Order(models.Model):
     DELIVERY_PICKPOINT = 5
     DELIVERY_YANDEX = 6
     DELIVERY_TRANSIT = 7
+    DELIVERY_POST = 8
+    DELIVERY_OZON = 9
     DELIVERY_UNKNOWN = 99
     DELIVERY_CHOICES = (
         (DELIVERY_UNKNOWN, 'уточняется'),
@@ -96,12 +98,15 @@ class Order(models.Model):
         (DELIVERY_CONSULTANT, 'консультант'),
         (DELIVERY_SELF, 'получу сам в магазине'),
         (DELIVERY_TRANSPORT, 'транспортная компания'),
+        (DELIVERY_POST, 'почта России'),
+        (DELIVERY_OZON, 'OZON'),
         (DELIVERY_PICKPOINT, 'PickPoint'),
         (DELIVERY_YANDEX, 'Яндекс.Доставка'),
         (DELIVERY_TRANSIT, 'транзит'),
     )
     STATUS_NEW = 0x0
     STATUS_ACCEPTED = 0x00000001
+    STATUS_WAITING = 0x00000002
     STATUS_COLLECTING = 0x00000004
     STATUS_CANCELED = 0x00000008
     STATUS_FROZEN = 0x00000010
@@ -121,6 +126,7 @@ class Order(models.Model):
     STATUS_CHOICES = (
         (STATUS_NEW, 'новый'),
         (STATUS_ACCEPTED, 'принят в работу'),
+        (STATUS_WAITING, 'ожидает подтверждения'),
         (STATUS_COLLECTING, 'комплектуется'),
         (STATUS_CANCELED, 'отменен'),
         (STATUS_FROZEN, 'заморожен'),
@@ -141,6 +147,7 @@ class Order(models.Model):
     STATUS_COLORS = {
         STATUS_NEW: 'red',
         STATUS_ACCEPTED: 'orange',
+        STATUS_WAITING: 'gray',
         STATUS_COLLECTING: 'limegreen',
         STATUS_CANCELED: 'pink',
         STATUS_FROZEN: 'lightblue',
@@ -261,6 +268,10 @@ class Order(models.Model):
                 return None
             weight += item.product.prom_weight
         return weight
+
+    @property
+    def has_fiscal(self):
+        return self.meta and 'fiscalInfo' in self.meta
 
     @cached_property
     def is_beru(self):

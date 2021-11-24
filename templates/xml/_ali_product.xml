@@ -2,18 +2,16 @@
 {% load site %}
 {% load decimals %}
 {% load l10n %}
-<offer id="{{ product.id }}" type="vendor.model" available="{% if stock %}true{% else %}false{% endif %}">
-    <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=sber&amp;utm_term={{ product.id }}</url>
-    {% if product.sber_price > 0 %}
-    <price>{{ product.sber_price|quantize:"1" }}</price>
+<offer id="{{ product.id }}" type="vendor.model">
+    <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=ali&amp;utm_term={{ product.id }}</url>
+    {% if product.ali_price > 0 %}
+    <price>{{ product.ali_price|quantize:"1" }}</price>
     {% else %}
     <price>{{ product.cost|quantize:"1" }}</price>
     {% endif %}
     <currencyId>RUR</currencyId>
     {% if stock is not None %}
-    <outlets>
-      <outlet id="0" instock="{% if stock > 10 %}10{% else %}{{ stock|quantize:"1" }}{% endif %}" />
-    </outlets>
+    <quantity>{% if stock > 3 %}3{% else %}{{ stock|quantize:"1" }}{% endif %}</quantity>
     {% endif %}
 {% for category in product.categories.all %}
 {% with top_category=category_map|get_dict_item:category.pk %}
@@ -41,5 +39,7 @@
     {% endif %}
     <shop-sku>{{ product.article }}</shop-sku>
     <weight>{{ product.prom_weight|unlocalize }}</weight>
-    <dimensions>{{ product.length|unlocalize }}/{{ product.width|unlocalize }}/{{product.height|unlocalize }}</dimensions>
+    <length>{{ product.length|unlocalize }}</length>
+    <width>{{ product.width|unlocalize }}</width>
+    <height>{{product.height|unlocalize }}</height>
 </offer>
