@@ -33,12 +33,14 @@ class CategoryAdminForm(forms.ModelForm):
 
 
 class OneSImportForm(forms.Form):
-    file = forms.ChoiceField(label="CSV файл 1С", required=True)
+    file = forms.ChoiceField(label="CSV файл 1С", required=True, widget=forms.RadioSelect)
 
     def __init__(self, *args, **kwargs):
         super(OneSImportForm, self).__init__(*args, **kwargs)
-        import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
-        files = [(f, f) for f in filter(lambda x: x.endswith('.txt'), os.listdir(import_dir))]
+        self.import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
+        self.date_reg = re.compile(r"\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}:\d{2}")
+
+        files = [(f, self.with_date(f)) for f in filter(lambda x: x.endswith('.csv'), os.listdir(self.import_dir))]
         self.fields['file'].choices = files
         if len(files):
             self.fields['file'].initial = files[0]
@@ -46,6 +48,21 @@ class OneSImportForm(forms.Form):
     def save(self):
         import1c.delay(self.cleaned_data['file'])
         return 'Импорт запущен в фоновом режиме, результат придёт на адрес %s' % config.sw_email_managers
+
+    def with_date(self, file):
+        filepath = self.import_dir + '/' + file
+        with open(filepath) as csvfile:
+            line = csvfile.readline().strip()
+            if line[0] == '\ufeff':
+                line = line[1:]  # trim the BOM away
+            if self.date_reg.match(line):
+                file = '{} ({})'.format(file, line)
+        return file
+
+    class Media:
+        css = {
+            'all': ('admin/css/forms.css',)
+        }
 
 
 class WarrantyCardPrintForm(forms.Form):
@@ -175,9 +192,9 @@ class ProductAdminForm(forms.ModelForm):
             cleaned_data[field] = fragment
 
         code = cleaned_data.get('code')
-        reg = re.compile('^[-\.\w]+$')
+        reg = re.compile(r'[-\.\w]+')
         # test for code presence is required for mass edit
-        if code and not reg.match(code):
+        if code and not reg.fullmatch(code):
             self.add_error('code', forms.ValidationError("Код товара содержит недопустимые символы"))
         return cleaned_data
 

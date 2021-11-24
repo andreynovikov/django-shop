@@ -351,6 +351,53 @@ def notify_review_posted(review_id):
     )
 
 
+@shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
+def update_1c_stocks(self):
+    reload_maybe()
+    url = 'https://cloud-api.yandex.net/v1/disk/resources?path=disk%3A%2F%D0%92%D1%8B%D0%B3%D1%80%D1%83%D0%B7%D0%BA%D0%B0%D0%9D%D0%B0%D0%A1%D0%B0%D0%B9%D1%82%D0%9F%D0%BE%D0%92%D1%81%D0%B5%D0%BC%D0%A1%D0%BA%D0%BB%D0%B0%D0%B4%D0%B0%D0%BC.csv'
+    headers = {
+        'Authorization': 'OAuth {token}'.format(token=config.sw_bonuses_ydisk_token),
+        'Content-Type': 'application/json; charset=utf-8'
+    }
+    request = Request(url, None, headers)
+    try:
+        response = urlopen(request)
+        result = json.loads(response.read().decode('utf-8'))
+        bonus_file = result.get('file', None)
+        bonus_md5 = result.get('md5', None)
+        if not bonus_file:
+            log.error('No file')
+            raise self.retry(countdown=3600, max_retries=4)  # 1 hour
+        log.info('Getting file %s' % bonus_file)
+        request = Request(bonus_file, None, headers)
+        response = urlopen(request)
+        result = response.read()
+        md5 = hashlib.md5(result).hexdigest()
+        if md5 != bonus_md5:
+            log.error('MD5 checksums differ')
+            raise self.retry(countdown=3600, max_retries=4)  # 1 hour
+
+        import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
+        filepath = import_dir + '/' + 'ВыгрузкаНаСайтПоВсемСкладам.csv'
+        f = open(filepath, 'wb')
+        f.write(result)
+        f.close()
+
+        num = 0
+        # records = csv.DictReader(io.StringIO(result.decode('windows-1251')), delimiter=';')
+        # log.info('Processing file')
+        # for line in records:
+
+        return num
+    except HTTPError as e:
+        content = e.read()
+        error = json.loads(content.decode('utf-8'))
+        message = error.get('message', 'Неизвестная ошибка взаимодействия с Яндекс.Диском')
+        log.error(message)
+        raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
+    return 0
+
+
 class fragile(object):
     class Break(Exception):
         """Break out of the with statement"""
@@ -417,8 +464,16 @@ def import1c(file):
         records = csv.DictReader(csvfile, delimiter=';', fieldnames=csv_fields, restkey='suppliers')
         for line in records:
             imported = imported + 1
+
+            # if imported > 20:
+            #     raise fragile.Break
+
             try:
-                product = Product.objects.get(article=line['article'])
+                product = Product.objects.only(
+                    'forbid_ws_price_import',
+                    'forbid_price_import',
+                    'cur_code'
+                ).get(article=line['article'])
                 if line['sp_cur_code'] != '0':
                     try:
                         sp_cur_price = float(line['sp_cur_price'].replace('\xA0', ''))
