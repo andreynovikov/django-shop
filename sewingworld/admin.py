@@ -60,10 +60,6 @@ def configure_admin():
     admin.site.unregister(Tag)
     admin.site.register(Tag, SWTagAdmin)
 
-    from lock_tokens.admin import LockTokenAdmin
-    from lock_tokens.models import LockToken
-    admin.site.register(LockToken, LockTokenAdmin)
-
     from django.contrib.flatpages.admin import FlatPageAdmin
     from django.contrib.flatpages.models import FlatPage
     SWFlatPageAdmin = type('SWFlatPageAdmin', (FlatPageAdmin,), {

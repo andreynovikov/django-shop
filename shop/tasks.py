@@ -35,9 +35,6 @@ from celery import shared_task
 
 from djconfig import config, reload_maybe
 
-from lock_tokens.exceptions import AlreadyLockedError
-from lock_tokens.sessions import lock_for_session, unlock_for_session
-
 import reviews
 
 from unisender import Unisender
@@ -79,13 +76,10 @@ class DecimalEncoder(json.JSONEncoder):
 @shared_task(bind=True, autoretry_for=(DatabaseError,), retry_backoff=300, retry_jitter=False)
 def update_order(self, order_id, data):
     order = Order.objects.get(id=order_id)
-    SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
-    session = SessionStore()
-    session.create()
-    try:
-        lock_for_session(order, session)
-    except AlreadyLockedError:
+    if order.owner:
         raise self.retry(countdown=600, max_retries=24)  # 10 minutes
+    order.owner = ShopUser.objects.get(phone='000')
+    order.save()
     changed = {}
     change_message = 'unchanged'
     for attr, new_val in data.items():
@@ -110,8 +104,8 @@ def update_order(self, order_id, data):
             action_flag=CHANGE,
             change_message=change_message
         )
-    unlock_for_session(order, session)
-    session.delete()
+    order.owner = None
+    order.save()
     return change_message
 
 

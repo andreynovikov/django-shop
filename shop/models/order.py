@@ -226,6 +226,7 @@ class Order(models.Model):
     created = models.DateTimeField('создан', auto_now_add=True)
     status = models.PositiveIntegerField('статус', choices=STATUS_CHOICES, default=STATUS_NEW, db_index=True)
     hidden_tracking_number = models.CharField(max_length=50, blank=True, db_index=True)
+    owner = models.ForeignKey(ShopUser, verbose_name='владелец', blank=True, null=True, related_name='owned_orders', on_delete=models.SET_NULL)
 
     tracker = FieldTracker(fields=['status'])
 

@@ -1,5 +1,5 @@
 {% extends "admin/change_form.html" %}
-{% load i18n admin_urls admin_modify lock_tokens_tags %}
+{% load i18n admin_urls admin_modify %}
 
 {% block extrastyle %}{{ block.super }}
     <style>
@@ -67,7 +67,6 @@
     $(document).ready(function() {
         var $SaveButton = $("input[name='_save']");
         var $ContinueButton = $("input[name='_continue']");
-        $SaveButton.val("Сохранить");
         $SaveButton.attr('name', '_continue');
         $ContinueButton.val("Сохранить и выйти");
         $ContinueButton.attr('name', '_save');
@@ -130,9 +129,6 @@
 
 {% block content %}
     {{ block.super }}
-    {% if lock_token %}
-        {% admin_lock_handler opts.app_label opts.model_name original.id lock_token %}
-    {% endif %}
 <div id="documentbox" class="documentbox module" style="display: none; position: absolute">
     <ul class="documentlist">
     {% url opts|admin_urlname:'document' original.pk 'stock'|admin_urlquote as stock_url %}
@@ -169,8 +165,11 @@
     <p class="documentlist-cancel"><a href="#">{% trans "Cancel" %}</a></p>
 </div>
 {% endblock %}
-{% block submit_buttons_top %}{% if not original.pk or lock_token %}{% submit_row %}{% endif %}{% endblock %}
-{% block submit_buttons_bottom %}{% if not original.pk or lock_token %}{% submit_row %}{% endif %}{% endblock %}
+{% block submit_buttons_top %}
+{% if original.owner != request.user %}<div class="errornote" style="background: #ffdfdf">Заказ редактирует: {{ original.owner }}</div>{% endif %}
+{% if not original.pk or original.owner == request.user %}{% submit_row %}{% endif %}
+{% endblock %}
+{% block submit_buttons_bottom %}{% if not original.pk or original.owner == request.user %}{% submit_row %}{% endif %}{% endblock %}
 
 {% block object-tools-items %}
     {% if original.is_beru and original.status == original.STATUS_COLLECTED %}
@@ -179,8 +178,8 @@
             <span>{% trans "Наклейки Беру!" %}</span></a></li>
     {% endif %}
     <li><a id="documentboxlink" href="#" class="related-widget-wrapper-link">Документы</a></li>
+    {% if original.owner == request.user and not original.is_beru %}
     {% url opts|admin_urlname:'combine' original.pk|admin_urlquote as combine_url %}
-    {% if not original.is_beru %}
     <li><a href="{% add_preserved_filters combine_url %}?_popup=1" class="related-widget-wrapper-link">
             <span>{% trans "Объединение заказов" %}</span></a></li>
     {% url opts|admin_urlname:'discount' original.pk|admin_urlquote as discount_url %}
