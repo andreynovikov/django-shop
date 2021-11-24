@@ -26,7 +26,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from daterangefilter.filters import FutureDateRangeFilter, PastDateRangeFilter
 from django_admin_listfilter_dropdown.filters import ChoiceDropdownFilter
-from lock_tokens.admin import LockableModelAdmin
 from tagging.utils import parse_tag_input
 
 from yandex_delivery.tasks import create_delivery_draft_order, get_delivery_options
@@ -301,7 +300,7 @@ class SiteListFilter(admin.filters.RelatedFieldListFilter):
 
 
 @admin.register(Order)
-class OrderAdmin(LockableModelAdmin):
+class OrderAdmin(admin.ModelAdmin):
     @mark_safe
     def order_name(self, obj):
         manager = ''
@@ -451,7 +450,6 @@ class OrderAdmin(LockableModelAdmin):
                      'delivery_yd_order', 'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
                      'item__serial_number']
     inlines = [OrderItemInline, BoxInline]
-    change_form_template = 'admin/shop/order/change_form.html'  # we do not need this by default but lockable model overrides it
     form = OrderAdminForm
     autocomplete_fields = ('store', 'user')
     formfield_overrides = {
@@ -536,7 +534,21 @@ class OrderAdmin(LockableModelAdmin):
                 # '0' is special case for 'all'
                 post.update({admin.ACTION_CHECKBOX_NAME: '0'})
                 request._set_post(post)
-        return super(OrderAdmin, self).changelist_view(request, extra_context)
+        return super().changelist_view(request, extra_context)
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        order = Order.objects.get(pk=object_id)
+        if not order.owner:
+            order.owner = request.user
+            order.save()
+        return super().change_view(request, object_id, form_url, extra_context)
+
+    def save_model(self, request, obj, form, change):
+        if "_save" in request.POST:
+            obj.owner = None
+        super().save_model(request, obj, form, change)
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)

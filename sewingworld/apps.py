@@ -1,8 +1,6 @@
 from django.apps import AppConfig
 from django.contrib.admin.apps import AdminConfig
 
-from lock_tokens.apps import LockTokensConfig
-
 
 class SWAppConfig(AppConfig):
     name = 'sewingworld'
@@ -19,7 +17,3 @@ class SWAppConfig(AppConfig):
 
 class SWAdminConfig(AdminConfig):
     default_site = 'sewingworld.admin.SWAdminSite'
-
-
-class SWLockTokensConfig(LockTokensConfig):
-    verbose_name = "Блокировки"
