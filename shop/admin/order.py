@@ -546,6 +546,10 @@ class OrderAdmin(admin.ModelAdmin):
         return super().change_view(request, object_id, form_url, extra_context)
 
     def save_model(self, request, obj, form, change):
+        if "_unlock" in request.POST:
+            obj.owner = None
+            obj.save()
+            return
         if "_save" in request.POST:
             obj.owner = None
         super().save_model(request, obj, form, change)
@@ -595,6 +599,7 @@ class OrderAdmin(admin.ModelAdmin):
             url(r'(\d+)/yandex_delivery/$', self.admin_site.admin_view(self.yandex_delivery_form), name='shop_order_yandex_delivery'),
             url(r'(\d+)/yandex_delivery_estimate/$', self.admin_site.admin_view(self.yandex_delivery_estimate), name='shop_order_yandex_delivery_estimate'),
             url(r'(\d+)/beru_labels/$', self.admin_site.admin_view(self.beru_labels), name='shop_order_beru_labels'),
+            url(r'(\d+)/unlock/$', self.admin_site.admin_view(self.unlock), name='shop_order_unlock'),
             url(r'sms/(\+\d+)/$', self.admin_site.admin_view(self.send_sms_form), name='shop_order_send_sms'),
         ]
         return my_urls + urls
@@ -1046,6 +1051,15 @@ class OrderAdmin(admin.ModelAdmin):
         context['action_title'] = "Отправить"
 
         return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+
+    def unlock(self, request, id):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        order = Order.objects.get(pk=id)
+        if order.owner == request.user:
+            order.owner = None
+            order.save()
+        return HttpResponse('<!DOCTYPE html><html/>')
 
     def order_1c_action(self, request, queryset):
         if not request.user.is_staff:

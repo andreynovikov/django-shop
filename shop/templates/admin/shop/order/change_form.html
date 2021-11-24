@@ -65,11 +65,13 @@
 <script>
 (function($) {
     $(document).ready(function() {
+{% if not original.pk or original.owner == request.user %}
         var $SaveButton = $("input[name='_save']");
         var $ContinueButton = $("input[name='_continue']");
         $SaveButton.attr('name', '_continue');
         $ContinueButton.val("Сохранить и выйти");
         $ContinueButton.attr('name', '_save');
+{% endif %}
         var Delivery_Price = $("input[name='delivery_price']").val();
         var Products_Price = $("div.field-products_price > div > div.readonly").html();
         var Total = $("div.field-total > div > div.readonly").html();
@@ -85,6 +87,24 @@
             }
         });
     });
+
+{% if not original.pk or original.owner == request.user %}
+    var submitting = false;
+    var form = document.getElementById("order_form");
+    form.addEventListener("submit", function(e) {
+        submitting = true;
+    });
+
+    window.addEventListener("pagehide", function(e) {
+        if (!submitting) {
+            {% url opts|admin_urlname:'unlock' original.pk|admin_urlquote as unlock_url %}
+            var csrftoken = $("[name=csrfmiddlewaretoken]").val();
+            var params = new FormData();
+            params.append('csrfmiddlewaretoken', csrftoken);
+            navigator.sendBeacon('{{ unlock_url }}', params);
+       }
+    }, false);
+{% endif %}
 
     var documentBoxLink = document.getElementById("documentboxlink");
     documentBoxLink.addEventListener('click', function(e) {
@@ -166,7 +186,11 @@
 </div>
 {% endblock %}
 {% block submit_buttons_top %}
-{% if original.owner != request.user %}<div class="errornote" style="background: #ffdfdf">Заказ редактирует: {{ original.owner }}</div>{% endif %}
+{% if original.owner != request.user %}<div class="submit-row" style="display: flex; align-items: center; text-align: left; background: #ffdfdf">
+    <div style="color: #ba2121; font-weight: bold">Заказ редактирует: {{ original.owner }}</div>
+    <input type="hidden" name="_continue" value="yes">
+    <input type="submit" value="Разблокировать" style="margin-left: auto; text-transform: uppercase; background: #ba2121" name="_unlock">
+    </div>{% endif %}
 {% if not original.pk or original.owner == request.user %}{% submit_row %}{% endif %}
 {% endblock %}
 {% block submit_buttons_bottom %}{% if not original.pk or original.owner == request.user %}{% submit_row %}{% endif %}{% endblock %}
