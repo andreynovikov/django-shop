@@ -283,6 +283,10 @@ class Order(models.Model):
         )
 
     @cached_property
+    def is_sber(self):
+        return self.site == Site.objects.get(domain='sbermegamarket.ru')
+
+    @cached_property
     def is_from_market(self):
         return self.site == Site.objects.get(domain='market.yandex.ru')
 
