@@ -67,25 +67,25 @@ class OrderItemInline(admin.TabularInline):
 
     def get_fields(self, request, obj=None):
         fields = ['product_codes', 'product']
-        if obj and obj.is_beru:
+        if obj and (obj.is_beru or obj.is_sber):
             fields.extend(['val_discount', 'quantity', 'total', 'product_stock'])
         else:
             fields.extend(['product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'total', 'product_stock'])
-        if obj and (obj.is_beru or obj.delivery == Order.DELIVERY_YANDEX):
+        if obj and (obj.is_beru or obj.is_sber or obj.delivery == Order.DELIVERY_YANDEX):
             fields.append('box')
         return fields
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = [elem for elem in self.readonly_fields]
-        if obj and obj.is_beru:
+        if obj and (obj.is_beru or obj.is_sber):
             readonly_fields += ['val_discount', 'quantity']
         return readonly_fields
 
     def has_add_permission(self, request, obj=None):
-        return not obj or not obj.is_beru
+        return not obj or (not obj.is_beru and not obj.is_sber)
 
     def has_delete_permission(self, request, obj=None):
-        return obj and not obj.is_beru
+        return obj and not obj.is_beru and not obj.is_sber
 
 
 class BoxInline(admin.TabularInline):
@@ -316,7 +316,7 @@ class OrderAdmin(admin.ModelAdmin):
         comment = []
         if obj.alert:
             comment.append('<span style="color:#ba2121">{}</span><br/>'.format(obj.alert))
-        if obj.is_beru:
+        if obj.is_beru or obj.is_sber:
             comment.append('<span style="color:#2121ba">№{}</span> '.format(obj.delivery_tracking_number))
         else:
             if obj.delivery_yd_order:
@@ -475,7 +475,7 @@ class OrderAdmin(admin.ModelAdmin):
             #                           ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
             ('Покупатель', {'fields': []})
         )
-        if obj and obj.is_beru:
+        if obj and (obj.is_beru or obj.is_sber):
             fieldsets[2][1]['fields'].extend((('user', 'link_to_orders'), 'address', ('city', 'postcode')))
         else:
             fieldsets[0][1]['fields'].append('store')
@@ -499,9 +499,10 @@ class OrderAdmin(admin.ModelAdmin):
             # и надо правильно отработать ситуацию, когда способ доставки уже поменяли, а встроенной формы
             # с коробками ещё не было
             is_beru = obj and obj.is_beru
+            is_sber = obj and obj.is_sber
             is_yandex_delivery = obj and obj.delivery == Order.DELIVERY_YANDEX
             has_boxes_form = 'boxes-TOTAL_FORMS' in request.POST
-            if not inline.model == Box or is_beru or (is_yandex_delivery and (has_boxes_form or request.method == 'GET')):
+            if not inline.model == Box or is_beru or is_sber or (is_yandex_delivery and (has_boxes_form or request.method == 'GET')):
                 yield inline.get_formset(request, obj), inline
 
     def lookup_allowed(self, lookup, value):
@@ -519,7 +520,7 @@ class OrderAdmin(admin.ModelAdmin):
         readonly_fields = [elem for elem in self.readonly_fields]
         if obj and not request.user.is_superuser:
             readonly_fields += ['site']
-        if obj and obj.is_beru:
+        if obj and (obj.is_beru or obj.is_sber):
             readonly_fields += ['delivery_handing_date']
         if obj and obj.paid and obj.meta and 'fiscalInfo' in obj.meta:
             readonly_fields += ['paid']
@@ -556,7 +557,7 @@ class OrderAdmin(admin.ModelAdmin):
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
-        if not form.instance.is_beru and not form.instance.delivery == Order.DELIVERY_YANDEX:
+        if not form.instance.is_beru and not form.instance.is_sber and not form.instance.delivery == Order.DELIVERY_YANDEX:
             return
         boxes = defaultdict(dict)
         for formset in filter(lambda f: isinstance(f.empty_form.instance, OrderItem), formsets):
