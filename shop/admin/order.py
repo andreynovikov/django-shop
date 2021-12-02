@@ -7,10 +7,9 @@ from django import forms
 from django.urls import reverse
 from django.db import connection
 from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, \
-    DateTimeField, DecimalField
+    DateTimeField, DecimalField, Q
 from django.core.exceptions import PermissionDenied
 from django.contrib import admin, messages
-from django.contrib.sites.models import Site
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template.loader import get_template
 from django.template.defaultfilters import floatformat
@@ -276,27 +275,47 @@ class SiteListFilter(admin.filters.RelatedFieldListFilter):
     template = 'django_admin_listfilter_dropdown/dropdown_filter.html'
 
     def __init__(self, field, request, params, model, model_admin, field_path):
-        self.beru = Site.objects.get(domain='beru.ru')
-        return super().__init__(field, request, params, model, model_admin, field_path)
+        self.lookup_kwarg_integrated = 'not__%s__%s__in' % (field_path, field.target_field.name)
+        self.lookup_val_integrated = params.get(self.lookup_kwarg_integrated)
+        super().__init__(field, request, params, model, model_admin, field_path)
+
+    def expected_parameters(self):
+        return [self.lookup_kwarg, self.lookup_kwarg_isnull, self.lookup_kwarg_integrated]
 
     def queryset(self, request, queryset):
-        if self.lookup_val:
-            value = int(self.lookup_val)
-            if value < 0:
-                exclude = {self.lookup_kwarg: -value}
-                return queryset.exclude(**exclude)
-        return super().queryset(request, queryset)
+        excludes = {}
+        for key in list(self.used_parameters.keys()):
+            if key.startswith('not__'):
+                excludes[key[5:]] = self.used_parameters[key]
+                del self.used_parameters[key]
+        qs = super().queryset(request, queryset)
+        if excludes:
+            qs = qs.filter(~Q(**excludes))
+        return qs
 
     def choices(self, changelist):
-        choice_list = list(super().choices(changelist))
-        yield choice_list[0]
         yield {
-            'selected': self.lookup_val == str(-self.beru.pk),
-            'query_string': changelist.get_query_string({self.lookup_kwarg: -self.beru.pk}, [self.lookup_kwarg_isnull]),
-            'display': 'Кроме {}'.format(self.beru.domain),
+            'selected': self.lookup_val is None and self.lookup_val_integrated is None and not self.lookup_val_isnull,
+            'query_string': changelist.get_query_string(remove=[self.lookup_kwarg, self.lookup_kwarg_isnull, self.lookup_kwarg_integrated]),
+            'display': _('All'),
         }
-        for c in choice_list[1:]:
-            yield c
+        yield {
+            'selected': bool(self.lookup_val_integrated),
+            'query_string': changelist.get_query_string({self.lookup_kwarg_integrated: '8,5,10,11,12,9'}, [self.lookup_kwarg, self.lookup_kwarg_isnull]),
+            'display': 'Кроме интеграций'
+        }
+        for pk_val, val in self.lookup_choices:
+            yield {
+                'selected': self.lookup_val == str(pk_val),
+                'query_string': changelist.get_query_string({self.lookup_kwarg: pk_val}, [self.lookup_kwarg_isnull, self.lookup_kwarg_integrated]),
+                'display': val,
+            }
+        if self.include_empty_choice:
+            yield {
+                'selected': bool(self.lookup_val_isnull),
+                'query_string': changelist.get_query_string({self.lookup_kwarg_isnull: 'True'}, [self.lookup_kwarg, self.lookup_kwarg_integrated]),
+                'display': self.empty_value_display,
+            }
 
 
 @admin.register(Order)
