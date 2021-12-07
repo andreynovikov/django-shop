@@ -10,6 +10,7 @@ from .tasks import notify_beru_order_status
 SITE_BERU = Site.objects.get(domain='beru.ru')
 SITE_TAXI = Site.objects.get(domain='taxi.beru.ru')
 SITE_TAX2 = Site.objects.get(domain='tax2.beru.ru')
+SITE_TAX3 = Site.objects.get(domain='tax3.beru.ru')
 SITE_MDBS = Site.objects.get(domain='mdbs.beru.ru')
 
 
@@ -18,7 +19,7 @@ def order_saved(sender, **kwargs):
     order = kwargs['instance']
     print("Post save emited for", order)
 
-    if order.site not in (SITE_BERU, SITE_TAXI, SITE_TAX2, SITE_MDBS):
+    if order.site not in (SITE_BERU, SITE_TAXI, SITE_TAX2, SITE_TAX3, SITE_MDBS):
         return
 
     if order.tracker.has_changed('status'):
