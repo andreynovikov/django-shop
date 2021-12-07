@@ -7,6 +7,7 @@ import hashlib
 import io
 import json
 import logging
+import tempfile
 
 from collections import defaultdict
 from importlib import import_module
@@ -22,7 +23,8 @@ from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, 
 from django.core.mail import send_mail
 from django.core.validators import EmailValidator
 from django.conf import settings
-from django.db import Error as DatabaseError
+from django.db import connection, Error as DatabaseError
+from django.db.models import Q
 from django.db.models.fields.related import RelatedField
 from django.db.models.fields.reverse_related import ForeignObjectRel
 from django.template.loader import render_to_string
@@ -424,8 +426,20 @@ def import1c(file):
                 if quantity <= 0:
                     frozen_products[item.product].append(order)
 
+    stocks = list(Stock.objects.filter(~Q(correction=0)).values_list('product', 'supplier', 'correction', 'reason'))
+    corrected_stocks = {s[0]: {s[1]: (s[2], s[3])} for s in stocks}
+
     import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
     filepath = import_dir + '/' + file
+
+    src_file = open(filepath, mode='rt')
+    tmp_file = tempfile.TemporaryFile(mode='r+t')
+    for line in src_file:
+        tmp_file.write(line)
+    src_file.close()
+    tmp_file.seek(0)
+
+    table_copy = tempfile.TemporaryFile(mode='r+t')
 
     imported = 0
     updated = 0
@@ -433,7 +447,7 @@ def import1c(file):
     orders = set()
     suppliers = []
     currencies = Currency.objects.all()
-    with fragile(open(filepath)) as csvfile:
+    with fragile(tmp_file) as csvfile:  # https://stackoverflow.com/a/23665658
         next(csvfile)
         next(csvfile)
         line = csvfile.readline().strip()
@@ -458,10 +472,6 @@ def import1c(file):
         records = csv.DictReader(csvfile, delimiter=';', fieldnames=csv_fields, restkey='suppliers')
         for line in records:
             imported = imported + 1
-
-            # if imported > 20:
-            #     raise fragile.Break
-
             try:
                 product = Product.objects.only(
                     'forbid_ws_price_import',
@@ -496,6 +506,16 @@ def import1c(file):
                         continue
                     try:
                         quantity = float(quantity.replace('\xA0', '').replace(',', '.'))
+                        correction, reason = corrected_stocks.get(product.id, {}).get(suppliers[idx].id, (0, ''))
+                        if (quantity or correction) and product.article != 'г66356':
+                            table_copy.write('{}\t{}\t{}\t{}\t{}\n'.format(quantity, product.id, suppliers[idx].id, correction, reason))
+                        try:
+                            del corrected_stocks[product.id][suppliers[idx].id]
+                            if not corrected_stocks[product.id]:
+                                del corrected_stocks[product.id]
+                        except KeyError:
+                            pass
+                        """
                         count = Stock.objects.filter(product=product, supplier=suppliers[idx]).update(quantity=quantity)
                         if count and quantity == 0.0:
                             s = Stock.objects.get(product=product, supplier=suppliers[idx])
@@ -503,6 +523,7 @@ def import1c(file):
                                 s.delete()
                         if not count and quantity > 0.0:
                             s = Stock.objects.create(product=product, supplier=suppliers[idx], quantity=quantity)
+                        """
                     except ValueError:
                         errors.append("%s: состояние складa" % line['article'])
                     except IndexError:
@@ -519,6 +540,18 @@ def import1c(file):
             except ObjectDoesNotExist:
                 # errors.append("%s: товар отсутсвует" % line['article'])
                 pass
+        for product, stocks in corrected_stocks.items():
+            for stock, (correction, reason) in stocks.items():
+                table_copy.write('{}\t{}\t{}\t{}\t{}\n'.format(0, product, stock, correction, reason))
+        table_copy.seek(0)
+        with connection.cursor() as cursor:
+            cursor.execute("BEGIN")
+            cursor.execute("TRUNCATE TABLE shop_stock RESTART IDENTITY")
+            cursor.copy_from(table_copy, 'shop_stock', columns=('quantity', 'product_id', 'supplier_id', 'correction', 'reason'))
+            cursor.execute("COMMIT")
+
+    table_copy.close()
+    tmp_file.close()
 
     reload_maybe()
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
