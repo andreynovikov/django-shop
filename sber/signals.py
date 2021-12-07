@@ -5,7 +5,8 @@ from django.dispatch import receiver
 from shop.models import Order
 
 from .tasks import confirm_sber_order, reject_sber_order, \
-    notify_sber_order_packed, notify_sber_order_shipped
+    notify_sber_order_packed, notify_sber_order_shipped, \
+    get_sber_order_details
 
 
 SITE_SBER = Site.objects.get(domain='sbermegamarket.ru')
@@ -22,6 +23,7 @@ def order_saved(sender, **kwargs):
     if order.tracker.has_changed('status'):
         if order.status == Order.STATUS_ACCEPTED:
             confirm_sber_order.delay(order.id)
+            get_sber_order_details.delay(order.id)  # дату доставки можно получить только из расширенной информации о заказе
         if order.status == Order.STATUS_CANCELED:
             reject_sber_order.delay(order.id)
         if order.status == Order.STATUS_COLLECTED:

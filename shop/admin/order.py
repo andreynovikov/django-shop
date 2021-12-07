@@ -497,8 +497,10 @@ class OrderAdmin(admin.ModelAdmin):
             #                           ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
             ('Покупатель', {'fields': []})
         )
-        if obj and (obj.is_beru or obj.is_sber):
-            fieldsets[2][1]['fields'].extend((('user', 'link_to_orders'), 'address', ('city', 'postcode')))
+        if obj and obj.is_beru:
+            fieldsets[2][1]['fields'].extend(('address', ('city', 'postcode')))
+        elif obj and obj.is_sber:
+            fieldsets[2][1]['fields'].extend(('name', 'address', ('city', 'postcode')))
         else:
             fieldsets[0][1]['fields'].append('store')
             fieldsets[0][1]['fields'][0].append('credit_notice')
