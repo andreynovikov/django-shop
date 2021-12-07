@@ -99,6 +99,7 @@ urlpatterns = [
     url(r'^beru/', include('beru.urls'), {'account': 'beru'}),
     url(r'^taxi/', include('beru.urls'), {'account': 'taxi'}),
     url(r'^tax2/', include('beru.urls'), {'account': 'tax2'}),
+    url(r'^tax3/', include('beru.urls'), {'account': 'tax3'}),
     url(r'^mdbs/', include('beru.urls'), {'account': 'mdbs'}),
     url(r'^sber/', include('sber.urls')),
     url(r'^kassa/', include('yandex_kassa.urls')),

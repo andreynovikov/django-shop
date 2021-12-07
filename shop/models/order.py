@@ -279,7 +279,8 @@ class Order(models.Model):
         return self.site in (
             Site.objects.get(domain='beru.ru'),
             Site.objects.get(domain='taxi.beru.ru'),
-            Site.objects.get(domain='tax2.beru.ru')
+            Site.objects.get(domain='tax2.beru.ru'),
+            Site.objects.get(domain='tax3.beru.ru')
         )
 
     @cached_property
@@ -303,6 +304,8 @@ class Order(models.Model):
             site = Site.objects.get(domain='taxi.beru.ru')
         elif basket.utm_source == 'tax2':
             site = Site.objects.get(domain='tax2.beru.ru')
+        elif basket.utm_source == 'tax3':
+            site = Site.objects.get(domain='tax3.beru.ru')
         elif basket.utm_source == 'sber':
             site = Site.objects.get(domain='sbermegamarket.ru')
         else:
@@ -324,7 +327,7 @@ class Order(models.Model):
         # добавляем в заказ все элементы корзины
         for item in basket.items.all():
             # если это Беру, то указываем только рублёвую скидку, предоставленную Беру
-            if order.utm_source in ('beru', 'taxi', 'tax2'):
+            if order.utm_source in ('beru', 'taxi', 'tax2', 'tax3'):
                 pct_discount = 0
                 val_discount = item.ext_discount
                 price = item.product.price

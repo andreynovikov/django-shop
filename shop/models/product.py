@@ -86,6 +86,7 @@ class Product(models.Model):
     beru = models.BooleanField('выгружать в Беру', default=False, db_index=True)
     taxi = models.BooleanField('выгружать в Яндекс.Такси', default=False, db_index=True)
     tax2 = models.BooleanField('выгружать в Яндекс.Такси СПб', default=False, db_index=True)
+    tax3 = models.BooleanField('выгружать в Яндекс.Такси НН', default=False, db_index=True)
     mdbs = models.BooleanField('выгружать в Маркет.DBS', default=False, db_index=True)
     sber = models.BooleanField('выгружать в СберМаркет', default=False, db_index=True)
     avito = models.BooleanField('выгружать в Авито', default=False, db_index=True)
@@ -351,6 +352,9 @@ class Product(models.Model):
                 site_addon = 'NOT IN (6,14)'
             elif which == 'taxi':
                 suppliers = self.stock.filter(taxi_count_in_stock=Supplier.COUNT_STOCK)
+                site_addon = 'NOT IN (6,14)'
+            elif which == 'tax3':
+                suppliers = self.stock.filter(tax3_count_in_stock=Supplier.COUNT_STOCK)
                 site_addon = 'NOT IN (6,14)'
             else:
                 suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)

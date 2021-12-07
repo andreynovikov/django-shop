@@ -278,6 +278,7 @@ class Supplier(models.Model):
     beru_count_in_stock = models.SmallIntegerField('учитывать в наличии Беру', choices=COUNT_CHOICES, default=COUNT_NONE)
     taxi_count_in_stock = models.SmallIntegerField('учитывать в наличии Такси', choices=COUNT_CHOICES, default=COUNT_NONE)
     tax2_count_in_stock = models.SmallIntegerField('учитывать в наличии Такси СПб', choices=COUNT_CHOICES, default=COUNT_NONE)
+    tax3_count_in_stock = models.SmallIntegerField('учитывать в наличии Такси НН', choices=COUNT_CHOICES, default=COUNT_NONE)
     order = models.PositiveIntegerField()
 
     class Meta:

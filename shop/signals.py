@@ -17,13 +17,14 @@ from shop.models import Product, Order
 from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, \
     notify_user_order_delivered, notify_user_order_done, notify_user_review_products, \
     notify_review_posted, create_modulpos_order, delete_modulpos_order, notify_manager_sms, \
-    notify_spb_manager_sms
+    notify_spb_manager_sms, notify_nn_manager_sms
 
 
 SITE_SW = Site.objects.get(domain='www.sewing-world.ru')
 SITE_BERU = Site.objects.get(domain='beru.ru')
 SITE_TAXI = Site.objects.get(domain='taxi.beru.ru')
 SITE_TAX2 = Site.objects.get(domain='tax2.beru.ru')
+SITE_TAX3 = Site.objects.get(domain='tax3.beru.ru')
 SITE_YANDEX = Site.objects.get(domain='market.yandex.ru')
 
 
@@ -61,8 +62,10 @@ def order_saved(sender, **kwargs):
                 notify_manager_sms.delay(order.id)
             if order.site == SITE_TAX2:
                 notify_spb_manager_sms.delay(order.id)
+            if order.site == SITE_TAX3:
+                notify_nn_manager_sms.delay(order.id)
 
-        if order.site in (SITE_TAXI, SITE_TAX2):
+        if order.site in (SITE_TAXI, SITE_TAX2, SITE_TAX3):
             return
 
         if order.status == Order.STATUS_ACCEPTED:
