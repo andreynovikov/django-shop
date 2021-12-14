@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import base64
 import csv
 import datetime
+import functools
 import hashlib
 import io
 import json
@@ -18,6 +19,7 @@ from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.postgres.fields import JSONField
 from django.core import signing
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from django.core.mail import send_mail
 from django.core.validators import EmailValidator
@@ -48,6 +50,20 @@ from shop.models import ShopUser, ShopUserManager, Supplier, Currency, Product, 
 log = logging.getLogger('shop')
 
 sw_default_site = Site.objects.get_current()
+
+
+def single_instance_task(timeout):
+    def task_exc(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            lock_id = "celery-single-instance-" + func.__name__
+            if cache.add(lock_id, "true", timeout):
+                try:
+                    return func(*args, **kwargs)
+                finally:
+                    cache.delete(lock_id)
+        return wrapper
+    return task_exc
 
 
 def validate_email(email):
@@ -369,6 +385,7 @@ class fragile(object):
 
 
 @shared_task(time_limit=7200, autoretry_for=(Exception,), retry_backoff=True)
+@single_instance_task(60 * 20)
 def import1c(file):
     frozen_orders = Order.objects.filter(status=Order.STATUS_FROZEN)
     frozen_products = defaultdict(list)
