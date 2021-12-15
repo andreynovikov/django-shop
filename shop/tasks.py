@@ -2,17 +2,20 @@ from __future__ import absolute_import
 
 import base64
 import csv
-import datetime
 import functools
 import hashlib
 import io
 import json
 import logging
+import os.path
+import re
 import tempfile
 
 from collections import defaultdict
+from datetime import datetime, timedelta
 from importlib import import_module
 from decimal import Decimal, ROUND_HALF_EVEN
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
@@ -31,7 +34,7 @@ from django.db.models.fields.related import RelatedField
 from django.db.models.fields.reverse_related import ForeignObjectRel
 from django.template.loader import render_to_string
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import dateparse, timezone
 from django.utils.encoding import force_text
 from django.contrib.sites.models import Site
 
@@ -372,7 +375,8 @@ def notify_review_posted(review_id):
 @shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def update_1c_stocks(self):
     reload_maybe()
-    url = 'https://cloud-api.yandex.net/v1/disk/resources?path=disk%3A%2F%D0%92%D1%8B%D0%B3%D1%80%D1%83%D0%B7%D0%BA%D0%B0%D0%9D%D0%B0%D0%A1%D0%B0%D0%B9%D1%82%D0%9F%D0%BE%D0%92%D1%81%D0%B5%D0%BC%D0%A1%D0%BA%D0%BB%D0%B0%D0%B4%D0%B0%D0%BC.csv'
+    filename = 'ВыгрузкаНаСайтПоВсемСкладам.csv'
+    url = 'https://cloud-api.yandex.net/v1/disk/resources?path={}'.format(quote('disk:/' + filename))
     headers = {
         'Authorization': 'OAuth {token}'.format(token=config.sw_bonuses_ydisk_token),
         'Content-Type': 'application/json; charset=utf-8'
@@ -383,9 +387,20 @@ def update_1c_stocks(self):
         result = json.loads(response.read().decode('utf-8'))
         bonus_file = result.get('file', None)
         bonus_md5 = result.get('md5', None)
+        modified = result.get('modified', None)
         if not bonus_file:
             log.error('No file')
-            raise self.retry(countdown=3600, max_retries=4)  # 1 hour
+            raise self.retry(countdown=600, max_retries=4)  # 10 minutes
+
+        import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
+        filepath = os.path.join(import_dir, filename)
+        if modified:
+            mdate = dateparse.parse_datetime(modified)
+            fdate = timezone.make_aware(datetime.fromtimestamp(os.path.getmtime(filepath)))
+            if mdate < fdate:
+                log.info('File is not modified since last update: {} < {}'.format(mdate, fdate))
+                return None
+
         log.info('Getting file %s' % bonus_file)
         request = Request(bonus_file, None, headers)
         response = urlopen(request)
@@ -393,26 +408,20 @@ def update_1c_stocks(self):
         md5 = hashlib.md5(result).hexdigest()
         if md5 != bonus_md5:
             log.error('MD5 checksums differ')
-            raise self.retry(countdown=3600, max_retries=4)  # 1 hour
+            raise self.retry(countdown=600, max_retries=4)  # 10 minutes
 
-        import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
-        filepath = import_dir + '/' + 'ВыгрузкаНаСайтПоВсемСкладам.csv'
         f = open(filepath, 'wb')
         f.write(result)
         f.close()
 
-        num = 0
-        # records = csv.DictReader(io.StringIO(result.decode('windows-1251')), delimiter=';')
-        # log.info('Processing file')
-        # for line in records:
-
-        return num
+        import1c.delay(filename)
+        return modified
     except HTTPError as e:
         content = e.read()
         error = json.loads(content.decode('utf-8'))
         message = error.get('message', 'Неизвестная ошибка взаимодействия с Яндекс.Диском')
         log.error(message)
-        raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
+        raise self.retry(countdown=600, max_retries=12, exc=e)  # 10 minutes
     return 0
 
 
@@ -470,8 +479,14 @@ def import1c(file):
     orders = set()
     suppliers = []
     currencies = Currency.objects.all()
+    date_reg = re.compile(r"\d{1,2}\.\d{2}\.\d{4} \d{1,2}:\d{2}:\d{2}")
+    date = None
     with fragile(tmp_file) as csvfile:  # https://stackoverflow.com/a/23665658
-        next(csvfile)
+        line = csvfile.readline().strip()
+        if line[0] == '\ufeff':
+            line = line[1:]  # trim the BOM away
+        if date_reg.match(line):
+            date = line
         next(csvfile)
         line = csvfile.readline().strip()
         if line != '//Список складов':
@@ -578,7 +593,7 @@ def import1c(file):
 
     reload_maybe()
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
-                                 {'file': file, 'imported': imported, 'updated': updated, 'errors': errors,
+                                 {'file': file, 'date': date, 'imported': imported, 'updated': updated, 'errors': errors,
                                   'orders': orders, 'opts': Order._meta})
     send_mail(
         'Импорт 1С из %s' % file,
@@ -587,10 +602,12 @@ def import1c(file):
         config.sw_email_managers.split(','),
     )
 
+    return date
+
 
 @shared_task(autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
 def remove_outdated_baskets():
-    threshold = timezone.now() - datetime.timedelta(seconds=settings.SESSION_COOKIE_AGE)
+    threshold = timezone.now() - timedelta(seconds=settings.SESSION_COOKIE_AGE)
     baskets = Basket.objects.filter(created__lt=threshold)
     num = len(baskets)
     for basket in baskets.all():
@@ -661,11 +678,11 @@ def notify_abandoned_baskets(first_try=True):
     SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
 
     if first_try:
-        lt = timezone.now() - datetime.timedelta(hours=3)
-        gt = lt - datetime.timedelta(hours=1)
+        lt = timezone.now() - timedelta(hours=3)
+        gt = lt - timedelta(hours=1)
     else:
-        lt = timezone.now() - datetime.timedelta(days=3)
-        gt = lt - datetime.timedelta(days=1)
+        lt = timezone.now() - timedelta(days=3)
+        gt = lt - timedelta(days=1)
     baskets = Basket.objects.filter(secondary=False, created__lt=lt, created__gte=gt)
     num = 0
     for basket in baskets.all():
