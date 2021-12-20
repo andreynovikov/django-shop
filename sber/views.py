@@ -68,7 +68,7 @@ def new_order(request):
                 item_index = sber_item.get('itemIndex', '-1')
                 offer_id = sber_item.get('offerId', '#NO_SKU#')
                 product = Product.objects.get(pk=offer_id)
-                price = sber_item.get('finalPrice', sber_item.get('price', 0))
+                price = sber_item.get('price', 0)
                 quantity = sber_item.get('quantity', 0)
                 item = BasketItem(basket=basket, product=product, quantity=quantity, meta={'itemIndex': item_index})
                 if product.price > price:
