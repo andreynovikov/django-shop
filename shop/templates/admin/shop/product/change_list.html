@@ -37,6 +37,7 @@
 {% endblock %}
 {% block object-tools-items %}
 {% load admin_urls %}
+<li><a href="{% url opts|admin_urlname:'import_1c' %}?_popup=1" onclick="window.open(this.href, 'Импорт 1С', 'height=500,width=800,resizable=yes,scrollbars=yes').focus(); return false;">Импорт 1С</a></li>
 <li><a href="{% url opts|admin_urlname:'stock_correction' %}">Коррекция склада</a></li>
 {{ block.super }}
 {% endblock %}

@@ -17,7 +17,7 @@ from import_export.admin import ImportExportMixin
 from shop.models import Product, ProductRelation, ProductSet, ProductKind, ProductReview, \
     Stock, Order
 from .forms import ProductImportForm, ProductConfirmImportForm, ProductExportForm, \
-    ProductAdminForm, ProductKindForm, StockInlineForm
+    ProductAdminForm, ProductKindForm, StockInlineForm, OneSImportForm
 from .decorators import admin_changelist_link
 from .views import product_stock_view
 
@@ -348,14 +348,16 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
 
     # обновляем кеш наличия при сохранении
     def save_model(self, request, obj, form, change):
+        """
         if change:
             obj.num = obj.get_stock('num')
             obj.spb_num = obj.get_stock('spb_num')
             obj.ws_num = obj.get_stock('ws_num')
         else:
-            obj.num = -1
-            obj.spb_num = -1
-            obj.ws_num = -1
+        """
+        obj.num = -1
+        obj.spb_num = -1
+        obj.ws_num = -1
         super().save_model(request, obj, form, change)
 
     def save_related(self, request, form, formsets, change):
@@ -373,6 +375,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         my_urls = [
             url(r'(\d+)/stock/$', self.admin_site.admin_view(self.stock_view), name='%s_%s_stock' % info),
             url(r'^stock/correction/$', self.admin_site.admin_view(self.stock_correction_view), name='%s_%s_stock_correction' % info),
+            url(r'^import1c/$', self.admin_site.admin_view(self.import_1c_view), name='%s_%s_import_1c' % info),
         ]
         return my_urls + urls
 
@@ -404,6 +407,28 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
             **self.admin_site.each_context(request)
         }
         return TemplateResponse(request, 'admin/shop/product/stock_correction.html', context)
+
+    def import_1c_view(self, request):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        context = {
+            'title': "Импорт 1С",
+            'cl': self,
+            **self.admin_site.each_context(request)
+        }
+        if request.method == 'POST':
+            form = OneSImportForm(request.POST, request.FILES)
+            if form.is_valid():
+                result = form.save()
+                context['result'] = result
+            else:
+                context['form'] = form
+            context['is_popup'] = request.POST.get('_popup', 0)
+        else:
+            form = OneSImportForm()
+            context['form'] = form
+            context['is_popup'] = request.GET.get('_popup', 0)
+        return TemplateResponse(request, 'admin/shop/import_1c.html', context)
 
 
 @admin.register(ProductKind)

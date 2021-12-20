@@ -46,6 +46,8 @@ urlpatterns = [
     url(r'^taxi\.xml$', views.products, {'templates': 'beru', 'filters': 'taxi'}, name='taxi'),
     # ex: /taxi_spb.xml
     url(r'^taxi_spb\.xml$', views.products, {'templates': 'beru', 'filters': 'tax2'}, name='tax2'),
+    # ex: /taxi_nn.xml
+    url(r'^taxi_nn\.xml$', views.products, {'templates': 'beru', 'filters': 'tax3'}, name='tax3'),
     # ex: /mdbs.xml
     url(r'^mdbs\.xml$', views.products, {'templates': 'beru', 'filters': 'mdbs'}, name='mdbs'),
     # ex: /sber.xml

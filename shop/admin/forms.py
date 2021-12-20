@@ -6,6 +6,7 @@ from tidylib import tidy_fragment
 from django import forms
 from django.conf import settings
 from django.contrib.admin.widgets import FilteredSelectMultiple
+from django.core.cache import cache
 from django.utils.encoding import smart_text
 from django.utils.html import conditional_escape, mark_safe
 
@@ -38,7 +39,7 @@ class OneSImportForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super(OneSImportForm, self).__init__(*args, **kwargs)
         self.import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
-        self.date_reg = re.compile(r"\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}:\d{2}")
+        self.date_reg = re.compile(r"\d{1,2}\.\d{2}\.\d{4} \d{1,2}:\d{2}:\d{2}")
 
         files = [(f, self.with_date(f)) for f in filter(lambda x: x.endswith('.csv'), os.listdir(self.import_dir))]
         self.fields['file'].choices = files
@@ -196,6 +197,9 @@ class ProductAdminForm(forms.ModelForm):
         # test for code presence is required for mass edit
         if code and not reg.fullmatch(code):
             self.add_error('code', forms.ValidationError("Код товара содержит недопустимые символы"))
+        # detect import lock - do not allow save during import
+        if cache.get("celery-single-instance-import1c") is not None:
+            self.add_error(None, forms.ValidationError("Сохранение невозможно во время импорта склада, попробуйте позже."))
         return cleaned_data
 
 
