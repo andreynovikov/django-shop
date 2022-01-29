@@ -41,6 +41,12 @@ urlpatterns = [
     url(r'^compare/(?P<compare>[\d,]+)/$', views.compare_products, name='compare_products'),
     # ex: /compare/
     url(r'^compare/$', views.compare_products, name='compare'),
+    # ex: /service/
+    url(r'^service/$', views.service, name='service'),
+    # ex: /stores/
+    url(r'^stores/$', views.stores, name='stores'),
+    # ex: /stores/1/
+    url(r'^stores/(?P<id>\d+)/$', views.store, name='store'),
     # /pages/*
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*

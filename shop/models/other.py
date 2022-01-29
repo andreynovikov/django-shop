@@ -25,7 +25,7 @@ from model_field_list import ModelFieldListField
 __all__ = [
     'ShopUserManager', 'ShopUser', 'Category', 'Currency', 'Country', 'Region', 'City',
     'Supplier', 'Store', 'ServiceCenter', 'Manufacturer', 'Advert', 'SalesAction',
-    'Product', 'ProductRelation', 'ProductSet', 'ProductKind', 'Stock',
+    'Product', 'ProductRelation', 'ProductSet', 'ProductKind', 'ProductReview', 'Stock',
     'Basket', 'BasketItem'
 ]
 
