@@ -20,6 +20,7 @@ from django.core.exceptions import MultipleObjectsReturned
 from django.db import IntegrityError
 from django.utils.formats import localize
 
+from facebook.tasks import notify_add_to_cart, notify_initiate_checkout, notify_purchase
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 from shop.models import Product, Basket, BasketItem, Order, ShopUser, ShopUserManager
 from shop.forms import UserForm
@@ -113,13 +114,17 @@ def view_basket(request):
     phone = basket.phone
     full_phone = None
     user = None
+    user_id = None
     if phone:
         norm_phone = ShopUserManager.normalize_phone(phone)
         full_phone = ShopUserManager.format_phone(phone)
         try:
             user = ShopUser.objects.get(phone=norm_phone)
+            user_id = user.id
         except ShopUser.DoesNotExist:
             pass
+
+    notify_initiate_checkout.delay(basket.id, user_id, request.build_absolute_uri(), request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
     context = {
         'basket': basket,
         'shop_user': user,
@@ -142,6 +147,9 @@ def add_to_basket(request, product_id):
     if utm_source:
         basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source)  # ASCII only regex
         basket.save()
+
+    notify_add_to_cart.delay(product.id, request.build_absolute_uri(), request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
+
     # as soon as user starts gethering new basket "forget" last order
     try:
         del request.session['last_order']
@@ -587,6 +595,8 @@ def confirm_order(request, order_id=None):
             except Exception as e:
                 mail_admins('Task error', 'Failed to send notification: %s' % e, fail_silently=True)
             basket.delete()
+
+            notify_purchase.delay(order.id, request.build_absolute_uri(), request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
             """ clear promo discount """
             try:
                 del request.session['discount']
@@ -675,6 +685,7 @@ def order_document(request, order_id, template_name):
         'order': order
     }
     return render(request, 'shop/order/' + template_name + '.html', context)
+
 
 @login_required
 def update_user(request):
