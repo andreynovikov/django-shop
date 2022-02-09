@@ -445,6 +445,7 @@ class fragile(object):
 @shared_task(time_limit=7200, autoretry_for=(Exception,), retry_backoff=True)
 @single_instance_task(60 * 20)
 def import1c(file):
+    log.error('Import1C')
     frozen_orders = Order.objects.filter(status=Order.STATUS_FROZEN)
     frozen_products = defaultdict(list)
     if frozen_orders.exists():
@@ -456,7 +457,9 @@ def import1c(file):
                     for s in stock:
                         quantity = quantity + s.quantity + s.correction
                 if quantity <= 0:
-                    frozen_products[item.product].append(order)
+                    frozen_products[item.product.id].append(order)
+
+    log.info('Frozen products %s' % str(frozen_products.keys()))
 
     stocks = list(Stock.objects.filter(~Q(correction=0)).values_list('product', 'supplier', 'correction', 'reason'))
     corrected_stocks = {s[0]: {s[1]: (s[2], s[3])} for s in stocks}
@@ -476,6 +479,7 @@ def import1c(file):
     imported = 0
     updated = 0
     errors = []
+    products = set()
     orders = set()
     suppliers = []
     currencies = Currency.objects.all()
@@ -539,6 +543,7 @@ def import1c(file):
                     except ValueError:
                         errors.append("%s: розничная цена" % line['article'])
                 product.save()
+                products.add(product.id)
                 for idx, quantity in enumerate(line['suppliers']):
                     if suppliers[idx] is None:
                         continue
@@ -566,12 +571,6 @@ def import1c(file):
                         errors.append("%s: состояние складa" % line['article'])
                     except IndexError:
                         errors.append("%s: неправильное количество складов" % line['article'])
-                product.num = -1
-                product.spb_num = -1
-                product.ws_num = -1
-                product.save()
-                if product in frozen_products.keys() and product.instock > 0:
-                    orders.update(frozen_products[product])
                 updated = updated + 1
             except MultipleObjectsReturned:
                 errors.append("%s: артикль не уникален" % line['article'])
@@ -587,9 +586,22 @@ def import1c(file):
             cursor.execute("TRUNCATE TABLE shop_stock RESTART IDENTITY")
             cursor.copy_from(table_copy, 'shop_stock', columns=('quantity', 'product_id', 'supplier_id', 'correction', 'reason'))
             cursor.execute("COMMIT")
-
     table_copy.close()
     tmp_file.close()
+
+    for product_id in products:
+        product = Product.objects.only(
+            'num',
+            'spb_num',
+            'ws_num'
+        ).get(id=product_id)
+        product.num = -1
+        product.spb_num = -1
+        product.ws_num = -1
+        product.save()
+        log.error('%d %d' % (product.id, product.num))
+        if product_id in frozen_products.keys() and product.instock > 0:
+            orders.update(frozen_products[product])
 
     reload_maybe()
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
