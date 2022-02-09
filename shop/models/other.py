@@ -102,6 +102,8 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
     address = models.CharField('адрес', max_length=255, blank=True)
     discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     bonuses = models.PositiveIntegerField('бонусы', default=0)
+    expiring_bonuses = models.PositiveIntegerField('сгорающие бонусы', default=0)
+    expiration_date = models.DateTimeField('дата сгорания бонусов', blank=True, null=True)
     is_active = models.BooleanField('активный', default=True)
     is_staff = models.BooleanField('сотрудник', default=False)
     permanent_password = models.BooleanField('постоянный пароль', default=False)

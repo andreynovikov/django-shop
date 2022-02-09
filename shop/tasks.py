@@ -879,7 +879,8 @@ def update_cbrf_currencies(self):
 def update_user_bonuses(self):
     reload_maybe()
     bonused_users = set(ShopUser.objects.filter(bonuses__gt=0).values_list('id', flat=True))
-    url = 'https://cloud-api.yandex.net/v1/disk/resources?path=disk%3A%2F%D0%91%D0%BE%D0%BD%D1%83%D1%81%D0%BD%D1%8B%D0%B5%D0%91%D0%B0%D0%BB%D0%BB%D1%8B.txt'
+    filename = 'БонусныеБаллыИнфо.txt'
+    url = 'https://cloud-api.yandex.net/v1/disk/resources?path={}'.format(quote('disk:/' + filename))
     headers = {
         'Authorization': 'OAuth {token}'.format(token=config.sw_bonuses_ydisk_token),
         'Content-Type': 'application/json; charset=utf-8'
@@ -914,6 +915,17 @@ def update_user_bonuses(self):
                     user.bonuses = int(bonuses)
                     if not created:
                         bonused_users.discard(user.id)
+                    if line['КСписанию']:
+                        expiring_bonuses = float(line['КСписанию'].replace('\xA0', '').replace(' ', '').replace(',', '.'))
+                        user.expiring_bonuses = int(expiring_bonuses)
+                        if line['ДатаСписания']:
+                            expiration_date = datetime.datetime.strptime(line['ДатаСписания'], '%d.%m.%Y %H:%M:%S')
+                            user.expiration_date = timezone.make_aware(expiration_date)
+                    if not user.name:
+                        name = line['ФИО']
+                        if name and not name.startswith('Держатель карты'):
+                            name = re.sub(r'[:,]?\s?(?:Штрихкод)?:?\s?\d+', '', name)
+                            user.name = name.title()
                     user.save()
                     num = num + 1
             except ValueError:
