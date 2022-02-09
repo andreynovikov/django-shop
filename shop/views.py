@@ -568,8 +568,8 @@ def confirm_order(request, order_id=None):
             order_id = request.session.get('last_order', None)
         order = get_object_or_404(Order, pk=order_id)
         if order.user.id != request.user.id:
-            """ This is not the user's order, someone tries to hack us """
-            return HttpResponseForbidden()
+            """ This is not the user's order """
+            return HttpResponseRedirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
         context = {
             'order': order,
             'updated': request.session.get('last_order_updated', False)
@@ -616,8 +616,8 @@ def confirm_order(request, order_id=None):
 def update_order(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
     if order.user.id != request.user.id:
-        """ This is not the user's order, someone tries to hack us """
-        return HttpResponseForbidden()
+        """ This is not the user's order """
+        return HttpResponseRedirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
     if not request.user.name:
         request.user.name = request.POST.get('name')
     order.name = request.POST.get('name') or request.user.name
@@ -666,8 +666,8 @@ def orders(request):
 def order(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
     if order.user.id != request.user.id:
-        """ This is not the user's order, someone tries to hack us """
-        return HttpResponseForbidden()
+        """ This is not the user's order """
+        return HttpResponseRedirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
     context = {
         'order': order
     }
@@ -679,7 +679,7 @@ def order_document(request, order_id, template_name):
     order = get_object_or_404(Order, pk=order_id)
     if order.user.id != request.user.id:
         """ This is not the user's order, someone tries to hack us """
-        return HttpResponseForbidden()
+        return HttpResponseRedirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
     context = {
         'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
         'order': order
