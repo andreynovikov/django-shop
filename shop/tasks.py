@@ -33,6 +33,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_text
+from django.utils.formats import date_format
 from django.contrib.sites.models import Site
 
 from celery import shared_task
@@ -45,9 +46,13 @@ from unisender import Unisender
 
 from sewingworld.models import SiteProfile
 from sewingworld.sms import send_sms
+from utility.templatetags.rupluralize import rupluralize
 
 from shop.models import ShopUser, ShopUserManager, Supplier, Currency, Product, Stock, Basket, Order
 
+
+SINGLE_DATE_FORMAT = 'j E'
+SINGLE_DATE_FORMAT_WITH_YEAR = 'j E Y'
 
 log = logging.getLogger('shop')
 
@@ -828,3 +833,34 @@ def update_user_bonuses(self):
         log.error(message)
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
     return 0
+
+
+@shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
+def notify_expiring_bonus(self, phone, total, expiring, expiration_date):
+    today = datetime.datetime.today()
+    base_format = SINGLE_DATE_FORMAT if today.year == expiration_date.year else SINGLE_DATE_FORMAT_WITH_YEAR
+    text = "%d ваших %s действуют до %s. В Швейном Мире вы можете оплатить бонусами до 20%% от стоимости покупки! https://%s" % (
+        expiring,
+        rupluralize(expiring, "бонус,бонуса,бонусов"),
+        date_format(expiration_date, format=base_format),
+        sw_default_site.domain
+    )
+    result = send_sms(phone, text)
+    try:
+        return result['descr']
+    except Exception:
+        return result
+
+
+@shared_task(autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
+def notify_expiring_bonuses():
+    lt = timezone.now() + datetime.timedelta(days=10)
+    gt = lt - datetime.timedelta(days=1)
+    users = ShopUser.objects.filter(expiring_bonuses__gt=0, expiration_date__lt=lt, expiration_date__gte=gt)
+    num = 0
+    for user in users.all():
+        if user.phone:
+            notify_expiring_bonus.delay(user.phone, user.bonuses, user.expiring_bonuses, user.expiration_date)
+            num = num + 1
+    log.info('Sent notifications for %d expiring bonuses' % num)
+    return num
