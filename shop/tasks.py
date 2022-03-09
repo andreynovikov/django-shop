@@ -462,7 +462,9 @@ def import1c(file):
     log.info('Frozen products %s' % str(frozen_products.keys()))
 
     stocks = list(Stock.objects.filter(~Q(correction=0)).values_list('product', 'supplier', 'correction', 'reason'))
-    corrected_stocks = {s[0]: {s[1]: (s[2], s[3])} for s in stocks}
+    corrected_stocks = defaultdict(dict)
+    for s in stocks:
+        corrected_stocks[s[0]][s[1]] = (s[2], s[3])
 
     import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
     filepath = import_dir + '/' + file
@@ -599,9 +601,12 @@ def import1c(file):
         product.spb_num = -1
         product.ws_num = -1
         product.save()
-        log.error('%d %d' % (product.id, product.num))
         if product_id in frozen_products.keys() and product.instock > 0:
-            orders.update(frozen_products[product])
+            orders.update(frozen_products[product_id])
+        if product_id in frozen_products.keys():
+            log.error('F %d %d' % (product.id, product.instock))
+
+    log.info('Frozen orders %s' % str(orders))
 
     reload_maybe()
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
@@ -780,6 +785,25 @@ def create_modulpos_order(self, order_id):
     except HTTPError as e:
         content = e.read()
         error = json.loads(content.decode('utf-8'))
+        """
+        {
+            'errors': [
+                {
+                    'defaultMessage': 'Переданное значение не соответствует допустимому формату',
+                    'rejectedValue': '+375298882111',
+                    'code': 'Contact',
+                    'objectName': 'orderDto',
+                    'field': 'customerContact'
+                }
+            ],
+            'status': 400,
+            'error': 'Bad Request',
+            'path': '/v2/retail-point/c3b58ef5-5d26-482f-8f25-b92c33302e1f/order',
+            'message': "Validation failed for object='orderDto'. Error count: 1",
+            'timestamp': '2022-03-04T11:25:22+00:00'
+        }
+        """
+        log.error(error)
         message = error.get('message', 'Неизвестная ошибка взаимодействия с МодульКасса')
         update = {}
         if message != 'object-already-exists':
@@ -919,7 +943,7 @@ def update_user_bonuses(self):
                         expiring_bonuses = float(line['КСписанию'].replace('\xA0', '').replace(' ', '').replace(',', '.'))
                         user.expiring_bonuses = int(expiring_bonuses)
                         if line['ДатаСписания']:
-                            expiration_date = datetime.datetime.strptime(line['ДатаСписания'], '%d.%m.%Y %H:%M:%S')
+                            expiration_date = datetime.strptime(line['ДатаСписания'], '%d.%m.%Y %H:%M:%S')
                             user.expiration_date = timezone.make_aware(expiration_date)
                     if not user.name:
                         name = line['ФИО']
