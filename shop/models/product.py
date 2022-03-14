@@ -104,6 +104,7 @@ class Product(models.Model):
     not_for_sale = models.BooleanField('Не показывать кнопку заказа', default=False)
     firstpage = models.BooleanField('Показать на первой странице', default=False)
     suspend = models.BooleanField('Готовится к выпуску', default=False)
+    preorder = models.BooleanField('предзаказ', default=False)
     order = models.IntegerField('позиция сортировки', default=0, db_index=True)
     opinion = models.CharField('Ссылка на обсуждение модели', max_length=255, blank=True)
     allow_reviews = models.BooleanField('Разрешить обзоры', default=True)
@@ -226,6 +227,7 @@ class Product(models.Model):
     class Meta:
         verbose_name = 'товар'
         verbose_name_plural = 'товары'
+        # ordering = ['title']
 
     def get_absolute_url(self):
         return reverse('product', args=[str(self.code)])
@@ -340,25 +342,50 @@ class Product(models.Model):
         if self.constituents.count() == 0:
             if which == 'spb_num':
                 suppliers = self.stock.filter(spb_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = 'IN (6,14)'
+                site_addon = 'IN ({})'.format(','.join(map(str, Site.objects.filter(domain__in=[
+                    'spb.sewing-world.ru',
+                    'tax2.beru.ru'
+                ]).values_list('id', flat=True))))
             elif which == 'tax2':
                 suppliers = self.stock.filter(tax2_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = 'IN (6,14)'
+                site_addon = 'IN ({})'.format(','.join(map(str, Site.objects.filter(domain__in=[
+                    'spb.sewing-world.ru',
+                    'tax2.beru.ru'
+                ]).values_list('id', flat=True))))
             elif which == 'ws_num':
                 suppliers = self.stock.filter(ws_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = 'NOT IN (6,14)'
+                site_addon = 'NOT IN ({})'.format(','.join(map(str, Site.objects.filter(domain__in=[
+                    'spb.sewing-world.ru',
+                    'tax2.beru.ru',
+                    'tax3.beru.ru'
+                ]).values_list('id', flat=True))))
             elif which in ('beru', 'mdbs'):
                 suppliers = self.stock.filter(beru_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = 'NOT IN (6,14)'
+                site_addon = 'NOT IN ({})'.format(','.join(map(str, Site.objects.filter(domain__in=[
+                    'spb.sewing-world.ru',
+                    'tax2.beru.ru',
+                    'tax3.beru.ru'
+                ]).values_list('id', flat=True))))
             elif which == 'taxi':
                 suppliers = self.stock.filter(taxi_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = 'NOT IN (6,14)'
+                site_addon = 'NOT IN ({})'.format(','.join(map(str, Site.objects.filter(domain__in=[
+                    'spb.sewing-world.ru',
+                    'tax2.beru.ru',
+                    'tax3.beru.ru'
+                ]).values_list('id', flat=True))))
             elif which == 'tax3':
                 suppliers = self.stock.filter(tax3_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = 'NOT IN (6,14)'
+                site_addon = 'IN ({})'.format(','.join(map(str, Site.objects.filter(domain__in=[
+                    'tax3.beru.ru'
+                ]).values_list('id', flat=True))))
             else:
                 suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = 'NOT IN (6,14)'
+                # сделать флаг "региональный магазин"
+                site_addon = 'NOT IN ({})'.format(','.join(map(str, Site.objects.filter(domain__in=[
+                    'spb.sewing-world.ru',
+                    'tax2.beru.ru',
+                    'tax3.beru.ru'
+                ]).values_list('id', flat=True))))
             if suppliers.exists():
                 for supplier in suppliers:
                     stock = Stock.objects.get(product=self, supplier=supplier)
