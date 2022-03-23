@@ -20,7 +20,7 @@ from django.core.exceptions import MultipleObjectsReturned
 from django.db import IntegrityError
 from django.utils.formats import localize
 
-from facebook.tasks import notify_add_to_cart, notify_initiate_checkout, notify_purchase
+from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 from shop.models import Product, Basket, BasketItem, Order, ShopUser, ShopUserManager
 from shop.forms import UserForm
@@ -124,7 +124,9 @@ def view_basket(request):
         except ShopUser.DoesNotExist:
             pass
 
-    notify_initiate_checkout.delay(basket.id, user_id, request.build_absolute_uri(), request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
+    if FACEBOOK_TRACKING:
+        notify_initiate_checkout.delay(basket.id, user_id, request.build_absolute_uri(),
+                                       request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
     context = {
         'basket': basket,
         'shop_user': user,
@@ -148,7 +150,9 @@ def add_to_basket(request, product_id):
         basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source)  # ASCII only regex
         basket.save()
 
-    notify_add_to_cart.delay(product.id, request.build_absolute_uri(), request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
+    if FACEBOOK_TRACKING:
+        notify_add_to_cart.delay(product.id, request.build_absolute_uri(),
+                                 request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
 
     # as soon as user starts gethering new basket "forget" last order
     try:
@@ -596,7 +600,9 @@ def confirm_order(request, order_id=None):
                 mail_admins('Task error', 'Failed to send notification: %s' % e, fail_silently=True)
             basket.delete()
 
-            notify_purchase.delay(order.id, request.build_absolute_uri(), request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
+            if FACEBOOK_TRACKING:
+                notify_purchase.delay(order.id, request.build_absolute_uri(),
+                                      request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
             """ clear promo discount """
             try:
                 del request.session['discount']

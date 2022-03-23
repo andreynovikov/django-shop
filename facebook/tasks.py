@@ -22,6 +22,7 @@ from facebook_business.api import FacebookAdsApi
 
 log = logging.getLogger('shop')
 
+FACEBOOK_TRACKING = getattr(settings, 'FACEBOOK_TRACKING', False)
 FACEBOOK_PIXEL_ID = getattr(settings, 'FACEBOOK_PIXEL_ID', '')
 FACEBOOK_TOKEN = getattr(settings, 'FACEBOOK_TOKEN', '')
 
@@ -31,7 +32,6 @@ FacebookAdsApi.init(access_token=FACEBOOK_TOKEN)
 
 @shared_task(ignore_result=True)
 def notify_view_content(product_id, url, remote_address, user_agent):
-    log.error('{} {} {}'.format(product_id, url, remote_address))
     user_data = UserData(
         # It is recommended to send Client IP and User Agent for Conversions API Events.
         client_ip_address=remote_address,
@@ -63,12 +63,10 @@ def notify_view_content(product_id, url, remote_address, user_agent):
     )
 
     event_response = event_request.execute()
-    log.error(event_response)
 
 
 @shared_task(ignore_result=True, store_errors_even_if_ignored=True)
 def notify_add_to_cart(product_id, url, remote_address, user_agent):
-    log.error('{} {} {}'.format(product_id, url, remote_address))
     product = Product.objects.get(id=product_id)
 
     user_data = UserData(
