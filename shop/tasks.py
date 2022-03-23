@@ -904,7 +904,7 @@ def update_cbrf_currencies(self):
     return rate
 
 
-@shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
+@shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=600, retry_jitter=False)
 def update_user_bonuses(self):
     reload_maybe()
     bonused_users = set(ShopUser.objects.filter(bonuses__gt=0).values_list('id', flat=True))
@@ -975,16 +975,17 @@ def update_user_bonuses(self):
 
 
 @shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
-def notify_expiring_bonus(self, phone, total, expiring, expiration_date):
-    today = datetime.datetime.today()
-    base_format = SINGLE_DATE_FORMAT if today.year == expiration_date.year else SINGLE_DATE_FORMAT_WITH_YEAR
+def notify_expiring_bonus(self, phone):
+    user = ShopUser.objects.get(phone=phone)
+    today = datetime.today()
+    base_format = SINGLE_DATE_FORMAT if today.year == user.expiration_date.year else SINGLE_DATE_FORMAT_WITH_YEAR
     text = "%d ваших %s действуют до %s. В Швейном Мире вы можете оплатить бонусами до 20%% от стоимости покупки! https://%s" % (
-        expiring,
-        rupluralize(expiring, "бонус,бонуса,бонусов"),
-        date_format(expiration_date, format=base_format),
+        user.expiring_bonuses,
+        rupluralize(user.expiring_bonuses, "бонус,бонуса,бонусов"),
+        date_format(user.expiration_date, format=base_format),
         sw_default_site.domain
     )
-    result = send_sms(phone, text)
+    result = send_sms(user.phone, text)
     try:
         return result['descr']
     except Exception:
@@ -993,13 +994,13 @@ def notify_expiring_bonus(self, phone, total, expiring, expiration_date):
 
 @shared_task(autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
 def notify_expiring_bonuses():
-    lt = timezone.now() + datetime.timedelta(days=10)
-    gt = lt - datetime.timedelta(days=1)
-    users = ShopUser.objects.filter(expiring_bonuses__gt=0, expiration_date__lt=lt, expiration_date__gte=gt)
+    lt = timezone.now() + timedelta(days=10)
+    gt = lt - timedelta(days=1)
+    users = ShopUser.objects.filter(expiring_bonuses__gte=100, expiration_date__lt=lt, expiration_date__gte=gt)
     num = 0
     for user in users.all():
         if user.phone:
-            notify_expiring_bonus.delay(user.phone, user.bonuses, user.expiring_bonuses, user.expiration_date)
+            notify_expiring_bonus.delay(user.phone)
             num = num + 1
     log.info('Sent notifications for %d expiring bonuses' % num)
     return num
