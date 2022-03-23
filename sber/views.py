@@ -127,17 +127,19 @@ def cancel_order(request):
         shipment_id = shipment.get('shipmentId', None)
         try:
             order = Order.objects.get(delivery_tracking_number=shipment_id)
+            deleted_items = []
             for sber_item in shipment.get('items', []):
                 item_index = sber_item.get('itemIndex', '-1')
                 offer_id = sber_item.get('offerId', '#NO_SKU#')
                 item = order.items.get(meta__itemIndex=item_index)
                 if str(item.product.id) != offer_id:
                     raise Exception('Wrong product SKU')
-                item.delete()  # Сбер поддерживает частичную отмену заказа
-            if order.items.count() == 0:
+                deleted_items.append(item)  # Сбер поддерживает частичную отмену заказа
+            if order.items.count() == len(deleted_items):
                 order.alert = 'Заказ отменён'
             else:
-                order.alert = 'Удалены некоторые позиции заказа'
+                codes = ', '.join([item.product.code for item in deleted_items])
+                order.alert = 'Удалены некоторые позиции заказа: {}'.format(codes)
             order.save()
         except Exception as e:
             logger.exception(e)
