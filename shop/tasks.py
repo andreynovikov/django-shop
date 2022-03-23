@@ -2,15 +2,17 @@ from __future__ import absolute_import
 
 import base64
 import csv
-import datetime
 import functools
 import hashlib
 import io
 import json
 import logging
+import os.path
 import re
+import tempfile
 
 from collections import defaultdict
+from datetime import datetime, timedelta
 from importlib import import_module
 from decimal import Decimal, ROUND_HALF_EVEN
 from urllib.parse import quote
@@ -26,12 +28,13 @@ from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, 
 from django.core.mail import send_mail
 from django.core.validators import EmailValidator
 from django.conf import settings
-from django.db import Error as DatabaseError
+from django.db import connection, Error as DatabaseError
+from django.db.models import Q
 from django.db.models.fields.related import RelatedField
 from django.db.models.fields.reverse_related import ForeignObjectRel
 from django.template.loader import render_to_string
 from django.urls import reverse
-from django.utils import timezone
+from django.utils import dateparse, timezone
 from django.utils.encoding import force_text
 from django.utils.formats import date_format
 from django.contrib.sites.models import Site
@@ -374,6 +377,59 @@ def notify_review_posted(review_id):
     )
 
 
+@shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
+def update_1c_stocks(self):
+    reload_maybe()
+    filename = 'ВыгрузкаНаСайтПоВсемСкладам.csv'
+    url = 'https://cloud-api.yandex.net/v1/disk/resources?path={}'.format(quote('disk:/' + filename))
+    headers = {
+        'Authorization': 'OAuth {token}'.format(token=config.sw_bonuses_ydisk_token),
+        'Content-Type': 'application/json; charset=utf-8'
+    }
+    request = Request(url, None, headers)
+    try:
+        response = urlopen(request)
+        result = json.loads(response.read().decode('utf-8'))
+        bonus_file = result.get('file', None)
+        bonus_md5 = result.get('md5', None)
+        modified = result.get('modified', None)
+        if not bonus_file:
+            log.error('No file')
+            raise self.retry(countdown=600, max_retries=4)  # 10 minutes
+
+        import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
+        filepath = os.path.join(import_dir, filename)
+        if modified:
+            mdate = dateparse.parse_datetime(modified)
+            fdate = timezone.make_aware(datetime.fromtimestamp(os.path.getmtime(filepath)))
+            if mdate < fdate:
+                log.info('File is not modified since last update: {} < {}'.format(mdate, fdate))
+                return None
+
+        log.info('Getting file %s' % bonus_file)
+        request = Request(bonus_file, None, headers)
+        response = urlopen(request)
+        result = response.read()
+        md5 = hashlib.md5(result).hexdigest()
+        if md5 != bonus_md5:
+            log.error('MD5 checksums differ')
+            raise self.retry(countdown=600, max_retries=4)  # 10 minutes
+
+        f = open(filepath, 'wb')
+        f.write(result)
+        f.close()
+
+        import1c.delay(filename)
+        return modified
+    except HTTPError as e:
+        content = e.read()
+        error = json.loads(content.decode('utf-8'))
+        message = error.get('message', 'Неизвестная ошибка взаимодействия с Яндекс.Диском')
+        log.error(message)
+        raise self.retry(countdown=600, max_retries=12, exc=e)  # 10 minutes
+    return 0
+
+
 class fragile(object):
     class Break(Exception):
         """Break out of the with statement"""
@@ -394,6 +450,7 @@ class fragile(object):
 @shared_task(time_limit=7200, autoretry_for=(Exception,), retry_backoff=True)
 @single_instance_task(60 * 20)
 def import1c(file):
+    log.error('Import1C')
     frozen_orders = Order.objects.filter(status=Order.STATUS_FROZEN)
     frozen_products = defaultdict(list)
     if frozen_orders.exists():
@@ -405,19 +462,42 @@ def import1c(file):
                     for s in stock:
                         quantity = quantity + s.quantity + s.correction
                 if quantity <= 0:
-                    frozen_products[item.product].append(order)
+                    frozen_products[item.product.id].append(order)
+
+    log.info('Frozen products %s' % str(frozen_products.keys()))
+
+    stocks = list(Stock.objects.filter(~Q(correction=0)).values_list('product', 'supplier', 'correction', 'reason'))
+    corrected_stocks = defaultdict(dict)
+    for s in stocks:
+        corrected_stocks[s[0]][s[1]] = (s[2], s[3])
 
     import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
     filepath = import_dir + '/' + file
 
+    src_file = open(filepath, mode='rt')
+    tmp_file = tempfile.TemporaryFile(mode='r+t')
+    for line in src_file:
+        tmp_file.write(line)
+    src_file.close()
+    tmp_file.seek(0)
+
+    table_copy = tempfile.TemporaryFile(mode='r+t')
+
     imported = 0
     updated = 0
     errors = []
+    products = set()
     orders = set()
     suppliers = []
     currencies = Currency.objects.all()
-    with fragile(open(filepath)) as csvfile:
-        next(csvfile)
+    date_reg = re.compile(r"\d{1,2}\.\d{2}\.\d{4} \d{1,2}:\d{2}:\d{2}")
+    date = None
+    with fragile(tmp_file) as csvfile:  # https://stackoverflow.com/a/23665658
+        line = csvfile.readline().strip()
+        if line[0] == '\ufeff':
+            line = line[1:]  # trim the BOM away
+        if date_reg.match(line):
+            date = line
         next(csvfile)
         line = csvfile.readline().strip()
         if line != '//Список складов':
@@ -442,7 +522,11 @@ def import1c(file):
         for line in records:
             imported = imported + 1
             try:
-                product = Product.objects.get(article=line['article'])
+                product = Product.objects.only(
+                    'forbid_ws_price_import',
+                    'forbid_price_import',
+                    'cur_code'
+                ).get(article=line['article'])
                 if line['sp_cur_code'] != '0':
                     try:
                         sp_cur_price = float(line['sp_cur_price'].replace('\xA0', ''))
@@ -466,11 +550,22 @@ def import1c(file):
                     except ValueError:
                         errors.append("%s: розничная цена" % line['article'])
                 product.save()
+                products.add(product.id)
                 for idx, quantity in enumerate(line['suppliers']):
                     if suppliers[idx] is None:
                         continue
                     try:
                         quantity = float(quantity.replace('\xA0', '').replace(',', '.'))
+                        correction, reason = corrected_stocks.get(product.id, {}).get(suppliers[idx].id, (0, ''))
+                        if (quantity or correction) and product.article != 'г66356':
+                            table_copy.write('{}\t{}\t{}\t{}\t{}\n'.format(quantity, product.id, suppliers[idx].id, correction, reason))
+                        try:
+                            del corrected_stocks[product.id][suppliers[idx].id]
+                            if not corrected_stocks[product.id]:
+                                del corrected_stocks[product.id]
+                        except KeyError:
+                            pass
+                        """
                         count = Stock.objects.filter(product=product, supplier=suppliers[idx]).update(quantity=quantity)
                         if count and quantity == 0.0:
                             s = Stock.objects.get(product=product, supplier=suppliers[idx])
@@ -478,26 +573,49 @@ def import1c(file):
                                 s.delete()
                         if not count and quantity > 0.0:
                             s = Stock.objects.create(product=product, supplier=suppliers[idx], quantity=quantity)
+                        """
                     except ValueError:
                         errors.append("%s: состояние складa" % line['article'])
                     except IndexError:
                         errors.append("%s: неправильное количество складов" % line['article'])
-                product.num = -1
-                product.spb_num = -1
-                product.ws_num = -1
-                product.save()
-                if product in frozen_products.keys() and product.instock > 0:
-                    orders.update(frozen_products[product])
                 updated = updated + 1
             except MultipleObjectsReturned:
                 errors.append("%s: артикль не уникален" % line['article'])
             except ObjectDoesNotExist:
                 # errors.append("%s: товар отсутсвует" % line['article'])
                 pass
+        for product, stocks in corrected_stocks.items():
+            for stock, (correction, reason) in stocks.items():
+                table_copy.write('{}\t{}\t{}\t{}\t{}\n'.format(0, product, stock, correction, reason))
+        table_copy.seek(0)
+        with connection.cursor() as cursor:
+            cursor.execute("BEGIN")
+            cursor.execute("TRUNCATE TABLE shop_stock RESTART IDENTITY")
+            cursor.copy_from(table_copy, 'shop_stock', columns=('quantity', 'product_id', 'supplier_id', 'correction', 'reason'))
+            cursor.execute("COMMIT")
+    table_copy.close()
+    tmp_file.close()
+
+    for product_id in products:
+        product = Product.objects.only(
+            'num',
+            'spb_num',
+            'ws_num'
+        ).get(id=product_id)
+        product.num = -1
+        product.spb_num = -1
+        product.ws_num = -1
+        product.save()
+        if product_id in frozen_products.keys() and product.instock > 0:
+            orders.update(frozen_products[product_id])
+        if product_id in frozen_products.keys():
+            log.error('F %d %d' % (product.id, product.instock))
+
+    log.info('Frozen orders %s' % str(orders))
 
     reload_maybe()
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
-                                 {'file': file, 'imported': imported, 'updated': updated, 'errors': errors,
+                                 {'file': file, 'date': date, 'imported': imported, 'updated': updated, 'errors': errors,
                                   'orders': orders, 'opts': Order._meta})
     send_mail(
         'Импорт 1С из %s' % file,
@@ -506,10 +624,12 @@ def import1c(file):
         config.sw_email_managers.split(','),
     )
 
+    return date
+
 
 @shared_task(autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
 def remove_outdated_baskets():
-    threshold = timezone.now() - datetime.timedelta(seconds=settings.SESSION_COOKIE_AGE)
+    threshold = timezone.now() - timedelta(seconds=settings.SESSION_COOKIE_AGE)
     baskets = Basket.objects.filter(created__lt=threshold)
     num = len(baskets)
     for basket in baskets.all():
@@ -580,11 +700,11 @@ def notify_abandoned_baskets(first_try=True):
     SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
 
     if first_try:
-        lt = timezone.now() - datetime.timedelta(hours=3)
-        gt = lt - datetime.timedelta(hours=1)
+        lt = timezone.now() - timedelta(hours=3)
+        gt = lt - timedelta(hours=1)
     else:
-        lt = timezone.now() - datetime.timedelta(days=3)
-        gt = lt - datetime.timedelta(days=1)
+        lt = timezone.now() - timedelta(days=3)
+        gt = lt - timedelta(days=1)
     baskets = Basket.objects.filter(secondary=False, created__lt=lt, created__gte=gt)
     num = 0
     for basket in baskets.all():
@@ -670,6 +790,25 @@ def create_modulpos_order(self, order_id):
     except HTTPError as e:
         content = e.read()
         error = json.loads(content.decode('utf-8'))
+        """
+        {
+            'errors': [
+                {
+                    'defaultMessage': 'Переданное значение не соответствует допустимому формату',
+                    'rejectedValue': '+375298882111',
+                    'code': 'Contact',
+                    'objectName': 'orderDto',
+                    'field': 'customerContact'
+                }
+            ],
+            'status': 400,
+            'error': 'Bad Request',
+            'path': '/v2/retail-point/c3b58ef5-5d26-482f-8f25-b92c33302e1f/order',
+            'message': "Validation failed for object='orderDto'. Error count: 1",
+            'timestamp': '2022-03-04T11:25:22+00:00'
+        }
+        """
+        log.error(error)
         message = error.get('message', 'Неизвестная ошибка взаимодействия с МодульКасса')
         update = {}
         if message != 'object-already-exists':
@@ -765,7 +904,7 @@ def update_cbrf_currencies(self):
     return rate
 
 
-@shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
+@shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=600, retry_jitter=False)
 def update_user_bonuses(self):
     reload_maybe()
     bonused_users = set(ShopUser.objects.filter(bonuses__gt=0).values_list('id', flat=True))
@@ -809,7 +948,7 @@ def update_user_bonuses(self):
                         expiring_bonuses = float(line['КСписанию'].replace('\xA0', '').replace(' ', '').replace(',', '.'))
                         user.expiring_bonuses = int(expiring_bonuses)
                         if line['ДатаСписания']:
-                            expiration_date = datetime.datetime.strptime(line['ДатаСписания'], '%d.%m.%Y %H:%M:%S')
+                            expiration_date = datetime.strptime(line['ДатаСписания'], '%d.%m.%Y %H:%M:%S')
                             user.expiration_date = timezone.make_aware(expiration_date)
                     if not user.name:
                         name = line['ФИО']
@@ -836,16 +975,17 @@ def update_user_bonuses(self):
 
 
 @shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
-def notify_expiring_bonus(self, phone, total, expiring, expiration_date):
-    today = datetime.datetime.today()
-    base_format = SINGLE_DATE_FORMAT if today.year == expiration_date.year else SINGLE_DATE_FORMAT_WITH_YEAR
+def notify_expiring_bonus(self, phone):
+    user = ShopUser.objects.get(phone=phone)
+    today = datetime.today()
+    base_format = SINGLE_DATE_FORMAT if today.year == user.expiration_date.year else SINGLE_DATE_FORMAT_WITH_YEAR
     text = "%d ваших %s действуют до %s. В Швейном Мире вы можете оплатить бонусами до 20%% от стоимости покупки! https://%s" % (
-        expiring,
-        rupluralize(expiring, "бонус,бонуса,бонусов"),
-        date_format(expiration_date, format=base_format),
+        user.expiring_bonuses,
+        rupluralize(user.expiring_bonuses, "бонус,бонуса,бонусов"),
+        date_format(user.expiration_date, format=base_format),
         sw_default_site.domain
     )
-    result = send_sms(phone, text)
+    result = send_sms(user.phone, text)
     try:
         return result['descr']
     except Exception:
@@ -854,13 +994,13 @@ def notify_expiring_bonus(self, phone, total, expiring, expiration_date):
 
 @shared_task(autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
 def notify_expiring_bonuses():
-    lt = timezone.now() + datetime.timedelta(days=10)
-    gt = lt - datetime.timedelta(days=1)
-    users = ShopUser.objects.filter(expiring_bonuses__gt=0, expiration_date__lt=lt, expiration_date__gte=gt)
+    lt = timezone.now() + timedelta(days=10)
+    gt = lt - timedelta(days=1)
+    users = ShopUser.objects.filter(expiring_bonuses__gte=100, expiration_date__lt=lt, expiration_date__gte=gt)
     num = 0
     for user in users.all():
         if user.phone:
-            notify_expiring_bonus.delay(user.phone, user.bonuses, user.expiring_bonuses, user.expiration_date)
+            notify_expiring_bonus.delay(user.phone)
             num = num + 1
     log.info('Sent notifications for %d expiring bonuses' % num)
     return num

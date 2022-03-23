@@ -8,6 +8,7 @@ from django.template import loader
 from django.utils.text import capfirst
 
 from sewingworld.models import SiteProfile
+from facebook.tasks import FACEBOOK_TRACKING, notify_view_content
 from shop.models import Category, Product, ProductRelation, ProductSet, ProductKind, Manufacturer, \
     Advert, SalesAction, City, Store, ServiceCenter, Stock
 from shop.filters import get_product_filter
@@ -283,6 +284,10 @@ def product(request, code):
         constituents = None
 
     comparison_list = list(map(int, request.session.get('comparison_list', '0').split(',')))
+
+    if FACEBOOK_TRACKING:
+        notify_view_content.delay(product.id, request.build_absolute_uri(),
+                                  request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
 
     context = {
         'category': category,

@@ -301,7 +301,7 @@ class SiteListFilter(admin.filters.RelatedFieldListFilter):
         }
         yield {
             'selected': bool(self.lookup_val_integrated),
-            'query_string': changelist.get_query_string({self.lookup_kwarg_integrated: '8,5,10,11,12,9'}, [self.lookup_kwarg, self.lookup_kwarg_isnull]),
+            'query_string': changelist.get_query_string({self.lookup_kwarg_integrated: '13,8,5,11,12,14,9'}, [self.lookup_kwarg, self.lookup_kwarg_isnull]),
             'display': 'Кроме интеграций'
         }
         for pk_val, val in self.lookup_choices:
@@ -325,8 +325,11 @@ class OrderAdmin(admin.ModelAdmin):
         manager = ''
         if obj.manager:
             manager = ' style="color: %s"' % obj.manager.color
-        return '<b%s>%s</b><br/><span style="white-space:nowrap">%s</span>' % \
-            (manager, obj.title, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
+        lock = ''
+        if obj.owner:
+            lock = '<span style="font-weight: 400" title="%s">&#9919;&nbsp;</span>' % str(obj.owner)
+        return '<span style="white-space:nowrap">%s<b%s>%s</b></span><br/><span style="white-space:nowrap">%s</span>' % \
+            (lock, manager, obj.title, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
     order_name.admin_order_field = 'id'
     order_name.short_description = 'заказ'
 
@@ -494,8 +497,10 @@ class OrderAdmin(admin.ModelAdmin):
             #                           ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
             ('Покупатель', {'fields': []})
         )
-        if obj and (obj.is_beru or obj.is_sber):
-            fieldsets[2][1]['fields'].extend((('user', 'link_to_orders'), 'address', ('city', 'postcode')))
+        if obj and obj.is_beru:
+            fieldsets[2][1]['fields'].extend(('address', ('city', 'postcode')))
+        elif obj and obj.is_sber:
+            fieldsets[2][1]['fields'].extend(('name', 'address', ('city', 'postcode')))
         else:
             fieldsets[0][1]['fields'].append('store')
             fieldsets[0][1]['fields'][0].append('credit_notice')

@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
@@ -244,4 +245,50 @@ def notify_sber_order_shipped(self, order_id):
         else:
             order.delivery_info = error
         order.save()
+        raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
+
+
+@shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=3, retry_jitter=False)
+def get_sber_order_details(self, order_id):
+    order = Order.objects.get(id=order_id)
+    sber_order = order.delivery_tracking_number
+    if not sber_order:
+        raise TaskFailure('Order {} does not have sber order number'.format(order_id))
+
+    data = {
+        'data': {
+            'token': SBER_MARKET.get('token', ''),
+            'shipments': [sber_order]
+        },
+        'meta': {}
+    }
+    data_encoded = json.dumps(data).encode('utf-8')
+    logger.info('>>> /order/get')
+    logger.info(data_encoded)
+
+    url = SBER_MARKET.get('api', '') + '/order/get'
+    headers = {
+        'Content-Type': 'application/json; charset=utf-8',
+        'User-Agent': 'Mozilla/5.0'  # грёбаный Сбер считает, что Python-urllib - это попытка взлома!
+    }
+    request = Request(url, data_encoded, headers, method='POST')
+    try:
+        response = urlopen(request)
+        result = json.loads(response.read().decode('utf-8'))
+        shipment = result.get('data', {}).get('shipments', [{}])[0]
+        delivery_date = shipment.get('deliveryDate')
+        delivery_method = shipment.get('deliveryMethodId')  # 'PICKUP', 'COURIER'
+        deposited_amount = shipment.get('depositedAmount')
+        logger.info('{} {} {}'.format(delivery_date, delivery_method, deposited_amount))
+        if delivery_date:
+            order.delivery_handing_date = datetime.strptime(delivery_date.split('T')[0], '%Y-%m-%d')
+        else:
+            raise self.retry(countdown=60 * 15, max_retries=6)  # 15 minutes
+        order.save()
+        status = result.get('success', None)
+        return '{}: {}'.format(order_id, status)
+    except HTTPError as e:
+        content = e.read()
+        error = content.decode('utf-8')
+        logger.error(error)
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes

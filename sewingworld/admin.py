@@ -16,8 +16,7 @@ class SWAdminSite(admin.AdminSite):
         import shop.admin.views  # prevent circular import
         urls = super().get_urls()
         urls = [
-            path('goto_order/', self.admin_view(shop.admin.views.goto_order), name='goto_order'),
-            path('import1c/', shop.admin.views.import_1c, name='import_1c')
+            path('goto_order/', self.admin_view(shop.admin.views.goto_order), name='goto_order')
         ] + urls
         return urls
 
@@ -75,7 +74,7 @@ def configure_admin():
                 ),
             }),
         ),
-        #form = SWFlatPageForm
+        # form = SWFlatPageForm
     })
     admin.site.unregister(FlatPage)
     admin.site.register(FlatPage, SWFlatPageAdmin)

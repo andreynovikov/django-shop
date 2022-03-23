@@ -20,6 +20,7 @@ from django.core.exceptions import MultipleObjectsReturned
 from django.db import IntegrityError
 from django.utils.formats import localize
 
+from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 from shop.models import Product, Basket, BasketItem, Order, ShopUser, ShopUserManager
 from shop.forms import UserForm
@@ -113,13 +114,19 @@ def view_basket(request):
     phone = basket.phone
     full_phone = None
     user = None
+    user_id = None
     if phone:
         norm_phone = ShopUserManager.normalize_phone(phone)
         full_phone = ShopUserManager.format_phone(phone)
         try:
             user = ShopUser.objects.get(phone=norm_phone)
+            user_id = user.id
         except ShopUser.DoesNotExist:
             pass
+
+    if FACEBOOK_TRACKING:
+        notify_initiate_checkout.delay(basket.id, user_id, request.build_absolute_uri(),
+                                       request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
     context = {
         'basket': basket,
         'shop_user': user,
@@ -142,6 +149,11 @@ def add_to_basket(request, product_id):
     if utm_source:
         basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source)  # ASCII only regex
         basket.save()
+
+    if FACEBOOK_TRACKING:
+        notify_add_to_cart.delay(product.id, request.build_absolute_uri(),
+                                 request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
+
     # as soon as user starts gethering new basket "forget" last order
     try:
         del request.session['last_order']
@@ -560,8 +572,8 @@ def confirm_order(request, order_id=None):
             order_id = request.session.get('last_order', None)
         order = get_object_or_404(Order, pk=order_id)
         if order.user.id != request.user.id:
-            """ This is not the user's order, someone tries to hack us """
-            return HttpResponseForbidden()
+            """ This is not the user's order """
+            return HttpResponseRedirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
         context = {
             'order': order,
             'updated': request.session.get('last_order_updated', False)
@@ -587,6 +599,10 @@ def confirm_order(request, order_id=None):
             except Exception as e:
                 mail_admins('Task error', 'Failed to send notification: %s' % e, fail_silently=True)
             basket.delete()
+
+            if FACEBOOK_TRACKING:
+                notify_purchase.delay(order.id, request.build_absolute_uri(),
+                                      request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
             """ clear promo discount """
             try:
                 del request.session['discount']
@@ -606,8 +622,8 @@ def confirm_order(request, order_id=None):
 def update_order(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
     if order.user.id != request.user.id:
-        """ This is not the user's order, someone tries to hack us """
-        return HttpResponseForbidden()
+        """ This is not the user's order """
+        return HttpResponseRedirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
     if not request.user.name:
         request.user.name = request.POST.get('name')
     order.name = request.POST.get('name') or request.user.name
@@ -656,8 +672,8 @@ def orders(request):
 def order(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
     if order.user.id != request.user.id:
-        """ This is not the user's order, someone tries to hack us """
-        return HttpResponseForbidden()
+        """ This is not the user's order """
+        return HttpResponseRedirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
     context = {
         'order': order
     }
@@ -669,12 +685,13 @@ def order_document(request, order_id, template_name):
     order = get_object_or_404(Order, pk=order_id)
     if order.user.id != request.user.id:
         """ This is not the user's order, someone tries to hack us """
-        return HttpResponseForbidden()
+        return HttpResponseRedirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
     context = {
         'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
         'order': order
     }
     return render(request, 'shop/order/' + template_name + '.html', context)
+
 
 @login_required
 def update_user(request):

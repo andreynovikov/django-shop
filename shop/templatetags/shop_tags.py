@@ -4,6 +4,9 @@ import barcode as bc
 from django import template
 from django.utils.safestring import mark_safe
 
+from celery import states
+from django_celery_results.models import TaskResult
+
 from shop.models import Order
 
 
@@ -36,3 +39,12 @@ def barcode(number, fmt='code128', width=0.5, height=15):
     code = CODE(str(number)).render(writer_options={'module_width': width, 'module_height': height, 'compress': True}).decode()
     code = re.sub(r'^.*(?=<svg)', '', code)
     return mark_safe(code)
+
+
+@register.simple_tag
+def last_1c_import():
+    try:
+        task = TaskResult.objects.filter(task_name='shop.tasks.import1c', status=states.SUCCESS).latest('date_done')
+        return task.result[1:-4]
+    except TaskResult.DoesNotExist:
+        return 'неизвестно'

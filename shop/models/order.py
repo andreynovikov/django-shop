@@ -327,7 +327,7 @@ class Order(models.Model):
         # добавляем в заказ все элементы корзины
         for item in basket.items.all():
             # если это Беру, то указываем только рублёвую скидку, предоставленную Беру
-            if order.utm_source in ('beru', 'taxi', 'tax2', 'tax3'):
+            if order.utm_source in ('beru', 'taxi', 'tax2', 'tax3', 'sber'):
                 pct_discount = 0
                 val_discount = item.ext_discount
                 price = item.product.price
