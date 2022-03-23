@@ -22,12 +22,13 @@
 {% endblock %}
 {% block object-tools-items %}
     {% get_alert_orders as orders %}
-    {% if orders|length > 10 %}
-        <li><a style="background: #ba2121" href="{% url 'admin:shop_order_changelist' %}?alert__gt=&status=all">&nbsp;</a></li>
-    {% else %}
+    {% if orders|length > 0 %}
+        {% if orders|length < 10 %}
         {% for order in orders %}
             <li><a style="background: #ba2121" href="{% url 'admin:shop_order_change' order.pk %}" title="{{ order.alert }}">{{ order.id }}</a></li>
         {% endfor %}
+        {% endif %}
+        <li><a style="background: #ba2121" href="{% url 'admin:shop_order_changelist' %}?alert__gt=&status=all">&nbsp;</a></li>
     {% endif %}
     {{ block.super }}
 {% endblock %}
