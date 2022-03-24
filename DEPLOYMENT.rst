@@ -10,15 +10,15 @@ The following packages are required:
     apt install ntpdate
     apt install exim4
     apt install rsync
-    apt install python3-dev
-    apt install python3-virtualenv
+    apt install python3
+    apt install python3-venv
     apt install postgresql
     apt install nginx
     apt install uwsgi
     apt install uwsgi-plugin-python3
     apt install memcached
     apt install redis-server
-    apt install letsencrypt
+    apt install certbot
     apt install git
 
 The following packages are optional:
@@ -35,10 +35,18 @@ Create three users in this particular order (to preserve uids):
 ::
     adduser andrey
     adduser nikolays
-    adduser import1c
 
-Add users ``andrey`` and ``nikolays`` to ``suduers`` and ``www-data`` groups. Disable interactive login for user ``import1c``
-(set shell to ``/bin/false``). Rename ``import1c`` group to ``sftponly``.
+Add users ``andrey`` and ``nikolays`` to ``suduers`` and ``www-data`` groups.
+
+Disable ssh root login:
+::
+    PermitRootLogin no
+    PasswordAuthentication yes
+
+Optionaly adjust ssh keep-alives:
+::
+    ClientAliveInterval 60
+    ClientAliveCountMax 8
 
 Setup correct timezone:
 ::
@@ -55,9 +63,89 @@ Enable time syncronization. Create ``/etc/cron.daily/ntpdate`` file:
 Nginx setup
 ***********
 
+Copy ``/etc/nginx/basic_auth`` and ``/etc/nginx/htpasswd`` from old server to new.
+Copy ``/etc/nginx/sites-available/*`` from old server to new. Set links to all configs in ``sites-enabled``.
+
+Adjust ``/etc/nginx/nginx.conf``:
+::
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    server_names_hash_bucket_size 64;
+    
+    include /etc/nginx/win-utf;
+
 ***********
 UWSGI setup
 ***********
+
+Create ``/etc/systemd/system/uwsgi@.socket``:
+::
+    [Unit]
+    Description=Socket for uWSGI app %i
+
+    [Socket]
+    ListenStream=/var/run/uwsgi/%i.socket
+    SocketUser=nikolays
+    SocketGroup=www-data
+    SocketMode=0660
+
+    [Install]
+    WantedBy=sockets.target
+
+Create ``/etc/systemd/system/uwsgi@.service``:
+::
+    [Unit]
+    Description=%i uWSGI app
+    After=syslog.target
+
+    [Service]
+    ExecStart=/usr/bin/uwsgi \
+            --ini /etc/uwsgi/apps-available/%i.ini \
+            --socket /var/run/uwsgi/%i.socket
+    User=nikolays
+    Group=www-data
+    Restart=on-failure
+    KillSignal=SIGQUIT
+    Type=notify
+    StandardError=syslog
+    NotifyAccess=all
+
+    [Install]
+    WantedBy=multi-user.target
+
+Copy ``/etc/uwsgi/apps-available/*`` from old server to new. **Do not** set any links in ``apps-enabled``.
+
+Typical application setup looks as follows:
+::
+    [uwsgi]
+    master = true
+    plugins = python3,logfile
+    chdir = /www/www.sewing-world.ru
+    virtualenv = /www/www.sewing-world.ru/env
+    module = sewingworld.wsgi:application
+    processes = 2
+    threads = 4
+    buffer-size = 8192
+    uid = nikolays
+    gid = www-data
+    chmod-socket = 660
+    env = PYTHONIOENCODING=UTF-8
+    env = DJANGO_SETTINGS_MODULE=sewingworld.settings.production
+    harakiri = 120
+    vacuum = true
+    max-requests = 5000
+    req-logger = file:/www/www.sewing-world.ru/logs/uwsgi_access.log
+    logger = file:/www/www.sewing-world.ru/logs/uwsgi_error.log
+    log-date = true
+
+Each application should be:
+::
+    systemctl enable uwsgi@app.socket
+    systemctl start uwsgi@app.socket
+    systemctl enable uwsgi@app
+    systemctl start uwsgi@app
+
+where ``app`` is the name of the uwsgi configuration file.
 
 ************
 Celery setup
@@ -88,13 +176,6 @@ file. So, general deployment scheme looks like this:
     mkdir st_search
     sudo chown nikolays:www-data st_search
 
-Import
-******
-
-Disable interactive login for user ``import1c``: set shell to ``/bin/false``.
-
-Create import folder ``/home/import1c/import``.
-
 Log rotation
 ************
 
@@ -109,7 +190,14 @@ who is master by presence of the ``/primary_server`` file.
 File replication
 ****************
 
-Files are replicated by ``rsync`` executed by ``cron`` on hourly basis.
+Files are replicated by ``rsync`` executed by ``cron`` on hourly basis. Create ``/etc/cron.hourly/rsync``:
+::
+    #!/bin/sh
+    test -f /primary_server && rsync -a -s -S -u --exclude "*.pyc" --exclude "*.log" --exclude "__pycache__/" -e "ssh -i /home/andrey/.ssh/id_rsa" --rsync-path="sudo rsync" --numeric-ids /www/ andrey@duo.sigalev.ru:/www/
+
+Disable sudo password for rsync on slave in ``/etc/sudoers``:
+::
+    andrey  ALL=NOPASSWD:/usr/bin/rsync
 
 Database replication
 ********************
