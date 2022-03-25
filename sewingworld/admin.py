@@ -43,6 +43,26 @@ class SWFlatPageForm(ModelForm):
 """
 
 
+class SiteProfileInline(admin.StackedInline):
+    model = SiteProfile
+    can_delete = False
+
+
+def get_site_prefix(obj):
+    return obj.profile.order_prefix
+get_site_prefix.short_description = 'префикс'
+
+
+def get_site_phone(obj):
+    return obj.profile.phone
+get_site_phone.short_description = 'телефон'
+
+
+def get_site_managers(obj):
+    return obj.profile.managers
+get_site_managers.short_description = 'менеджеры заказов'
+
+
 def get_sites(obj):
     'returns a list of site names for a FlatPage object'
     return ", ".join((site.name for site in obj.sites.all()))
@@ -51,7 +71,15 @@ get_sites.short_description = 'Sites'
 
 def configure_admin():
     djconfig.admin.register(SWConfig, SWConfigAdmin)
-    admin.site.register(SiteProfile, admin.ModelAdmin)
+
+    from django.contrib.sites.admin import SiteAdmin
+    from django.contrib.sites.models import Site
+    SWSiteAdmin = type('SWSiteAdmin', (SiteAdmin,), {
+        'list_display': ('domain', 'name', get_site_prefix, get_site_phone, get_site_managers),
+        'inlines': (SiteProfileInline,)
+    })
+    admin.site.unregister(Site)
+    admin.site.register(Site, SWSiteAdmin)
 
     from tagging.admin import TagAdmin
     from tagging.models import Tag
