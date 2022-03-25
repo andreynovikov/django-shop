@@ -7,7 +7,9 @@ from django.contrib import admin
 from django.template.response import TemplateResponse
 from django.conf.urls import url
 from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
 
+from django_admin_listfilter_dropdown.filters import SimpleDropdownFilter
 from django_admin_listfilter_dropdown.filters import DropdownFilter, RelatedDropdownFilter
 from reviews.admin import ReviewAdmin
 
@@ -15,9 +17,10 @@ from import_export import resources
 from import_export.admin import ImportExportMixin
 
 from shop.models import Product, ProductRelation, ProductSet, ProductKind, ProductReview, \
-    Stock, Order
+    Stock, Integration, Order
 from .forms import ProductImportForm, ProductConfirmImportForm, ProductExportForm, \
-    ProductAdminForm, ProductKindForm, StockInlineForm, OneSImportForm
+    ProductAdminForm, ProductListAdminForm, ProductKindForm, StockInlineForm, IntegrationInlineForm, \
+    OneSImportForm
 from .decorators import admin_changelist_link
 from .views import product_stock_view
 
@@ -50,13 +53,23 @@ class StockInline(admin.TabularInline):
     fields = ['supplier', 'quantity', 'correction', 'reason']
     extra = 0
     classes = ['collapse']
-    suit_classes = 'suit-tab suit-tab-stock'
     formfield_overrides = {
         FloatField: {'widget': TextInput(attrs={'style': 'width: 8em'})},
     }
 
     def has_delete_permission(self, request, obj=None):
         return obj is None  # False
+
+
+class IntegrationInline(admin.TabularInline):
+    model = Integration.products.through
+    form = IntegrationInlineForm
+    fields = ['integration', 'price']
+    ordering = ['integration__name']
+    extra = 0
+    classes = ['collapse']
+    verbose_name = "интеграция"
+    verbose_name_plural = "интеграции"
 
 
 class ProductSetInline(admin.TabularInline):
@@ -67,7 +80,6 @@ class ProductSetInline(admin.TabularInline):
     extra = 0
     verbose_name = "составляющая"
     verbose_name_plural = "составляющие"
-    suit_classes = 'suit-tab suit-tab-set'
 
 
 class ProductRelationInline(admin.TabularInline):
@@ -79,7 +91,6 @@ class ProductRelationInline(admin.TabularInline):
     verbose_name = "связанный товар"
     verbose_name_plural = "связанные товары"
     classes = ['collapse']
-    suit_classes = 'suit-tab suit-tab-related'
 
 
 class ProductResource(resources.ModelResource):
@@ -100,6 +111,20 @@ class ProductResource(resources.ModelResource):
     class Meta:
         model = Product
         exclude = ('categories', 'stock', 'num', 'spb_num', 'ws_num', 'related', 'constituents', 'image_prefix')
+
+
+class IntegrationsFilter(SimpleDropdownFilter):
+    title = _('интеграции')
+    parameter_name = 'integration'
+
+    def lookups(self, request, model_admin):
+        return [(i.id, i.name) for i in Integration.objects.all()]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(integration__exact=self.value())
+        else:
+            return queryset
 
 
 @admin.register(Product)
@@ -154,14 +179,18 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         return '<a href="%s" target="_blank"><i class="fas fa-external-link-alt"></i></a>' % url
     product_link.short_description = 'о'
 
+    def integrations(self, obj):
+        pass
+    integrations.short_description = 'внешние интеграции'
+
     form = ProductAdminForm
     change_list_template = 'admin/shop/product/change_list.html'
     resource_class = ProductResource
-    list_display = ['product_codes', 'title', 'combined_price', 'spb_price', 'combined_discount', 'enabled', 'show_on_sw', 'beru', 'taxi',
-                    'tax2', 'tax3', 'mdbs', 'sber', 'ali', 'market', 'spb_market', 'merchant', 'product_stock', 'orders_link', 'product_link']
+    list_display = ['product_codes', 'title', 'combined_price', 'spb_price', 'combined_discount', 'enabled', 'show_on_sw',
+                    'market', 'spb_market', 'integrations', 'product_stock', 'orders_link', 'product_link']
     list_display_links = ['title']
-    list_editable = ['enabled', 'show_on_sw', 'beru', 'taxi', 'tax2', 'tax3', 'mdbs', 'sber', 'ali', 'market', 'spb_market', 'merchant']
-    list_filter = ['enabled', 'preorder', 'show_on_sw', 'avito', 'beru', 'taxi', 'tax2', 'tax3', 'mdbs', 'sber', 'ali', 'market', 'isnew', 'recomended',
+    list_editable = ['enabled', 'show_on_sw', 'market', 'spb_market']  # , 'integrations']  #, 'beru', 'taxi', 'tax2', 'tax3', 'mdbs', 'sber', 'ali', 'market', 'spb_market', 'merchant']
+    list_filter = ['enabled', 'preorder', 'show_on_sw', IntegrationsFilter, 'market', 'isnew', 'recomended',
                    'forbid_price_import', 'cur_code', ('pct_discount', DropdownFilter), ('val_discount', DropdownFilter),
                    ('categories', RelatedDropdownFilter), ('manufacturer', RelatedDropdownFilter)]
     exclude = ['image_prefix']
@@ -170,7 +199,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     save_as = True
     save_on_top = True
     view_on_site = True
-    inlines = (ProductSetInline, ProductRelationInline, StockInline,)
+    inlines = (ProductSetInline, ProductRelationInline, IntegrationInline, StockInline)
     filter_vertical = ('categories',)
     autocomplete_fields = ('manufacturer',)
     formfield_overrides = {
@@ -180,39 +209,39 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         FloatField: {'widget': TextInput(attrs={'style': 'width: 4em'})},
     }
     spb_fieldset = ('С.Петербург', {
-        'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
+        'classes': ('collapse',),
         'fields': ('spb_price', 'forbid_spb_price_import', 'spb_show_in_catalog', 'spb_market')
     })
     fieldsets = (
         ('Основное', {
-            'classes': ('collapse', 'suit-tab', 'suit-tab-general'),
+            'classes': ('collapse',),
             'fields': (('code', 'article', 'partnumber'), 'title', 'runame', 'whatis', 'kind', 'categories', ('manufacturer', 'gtin'),
                        ('country', 'developer_country'), 'variations', 'spec', 'shortdescr', 'yandexdescr', 'descr', 'manuals', 'state',
                        'complect', 'dealertxt')
         }),
         ('Деньги', {
-            'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
+            'classes': ('collapse',),
             'fields': (('cur_price', 'cur_code', 'price'), ('pct_discount', 'val_discount', 'max_discount', 'max_val_discount'),
                        ('ws_cur_price', 'ws_cur_code', 'ws_price'), 'ws_pack_only', ('ws_pct_discount', 'ws_max_discount'),
                        ('sp_cur_price', 'sp_cur_code', 'sp_price'), ('beru_price', 'sber_price', 'avito_price', 'ali_price'), 'consultant_delivery_price',
                        ('forbid_price_import', 'forbid_ws_price_import'))
         }),
         ('Маркетинг', {
-            'classes': ('collapse', 'suit-tab', 'suit-tab-money'),
+            'classes': ('collapse',),
             'fields': (('enabled', 'show_on_sw', 'firstpage'), ('merchant', 'market', 'beru', 'taxi', 'tax2', 'tax3', 'mdbs', 'sber', 'avito', 'ali'), ('preorder', 'isnew', 'recomended', 'gift'), 'credit_allowed', 'deshevle',
                        'sales_notes', 'present', 'delivery', 'sales_actions', 'tags')
         }),
         spb_fieldset,
         ('Размеры', {
-            'classes': ('collapse', 'suit-tab', 'suit-tab-general'),
+            'classes': ('collapse',),
             'fields': (('measure', 'pack_factor'), ('weight', 'prom_weight'), ('length', 'width', 'height'))
         }),
         ('Вязальные машины', {
-            'classes': ('collapse', 'suit-tab', 'suit-tab-knittingmachines'),
+            'classes': ('collapse',),
             'fields': ('km_class', 'km_needles', 'km_font', 'km_prog', 'km_rapport')
         }),
         ('Швейные машины', {
-            'classes': ('collapse', 'suit-tab', 'suit-tab-sewingmachines'),
+            'classes': ('collapse',),
             'fields': ('stitches', 'fabric_verylite', 'fabric_lite', 'fabric_medium', 'fabric_hard', 'fabric_veryhard', 'fabric_stretch',
                        'fabric_leather', 'sm_shuttletype', 'sm_stitchwidth', 'sm_stitchlenght', 'sm_stitchquantity', 'sm_buttonhole', 'sm_dualtransporter',
                        'sm_platformlenght', 'sm_freearm', 'ov_freearm', 'sm_feedwidth', 'sm_footheight', 'sm_constant', 'sm_speedcontrol', 'sm_needleupdown',
@@ -251,11 +280,11 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
                        'sw_hoopsize')
         }),
         ('Гарантия', {
-            'classes': ('collapse', 'suit-tab', 'suit-tab-general'),
+            'classes': ('collapse',),
             'fields': ('warranty', 'extended_warranty', 'manufacturer_warranty')
         }),
         ('Остальное', {
-            'classes': ('collapse', 'suit-tab', 'suit-tab-other'),
+            'classes': ('collapse',),
             'fields': (
                 'order',
                 'swcode',
@@ -270,7 +299,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
             )
         }),
         ('Промышленные машины', {
-            'classes': ('collapse', 'suit-tab', 'suit-tab-prommachines'),
+            'classes': ('collapse',),
             'fields': (
                 'prom_transporter_type',
                 'prom_shuttle_type',
@@ -298,7 +327,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
             )
         }),
         ('Комплект', {
-            'classes': ('collapse', 'suit-tab', 'suit-tab-set'),
+            'classes': ('collapse',),
             'fields': ('recalculate_price', 'hide_contents')
         }),
     )
@@ -314,6 +343,9 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         for inline in self.get_inline_instances(request, obj):
             if request.user.is_superuser or not request.user.has_perm('shop.change_order_spb'):
                 yield inline.get_formset(request, obj), inline
+
+    def get_changelist_form(self, request, **kwargs):
+        return ProductListAdminForm
 
     def get_import_form(self):
         return ProductImportForm

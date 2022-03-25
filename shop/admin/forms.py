@@ -16,9 +16,9 @@ from model_field_list import ModelFieldListFormField
 
 from djconfig import config
 
-from sewingworld.widgets import AutosizedTextarea
+from sewingworld.widgets import AutosizedTextarea, JsonAutosizedTextarea
 
-from shop.models import Supplier, Product, Order, OrderItem, ShopUser, Box, ActOrder
+from shop.models import Supplier, Product, Order, OrderItem, ShopUser, Box, ActOrder, Integration
 from shop.tasks import import1c
 
 from .widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
@@ -30,6 +30,14 @@ class CategoryAdminForm(forms.ModelForm):
         widgets = {
             'brief': AutosizedTextarea(attrs={'rows': 3}),
             'description': AutosizedTextarea(attrs={'rows': 3}),
+        }
+
+
+class IntegrationAdminForm(forms.ModelForm):
+    class Meta:
+        widgets = {
+            'settings': JsonAutosizedTextarea(attrs={'rows': 1}),
+            'admin_user_fields': AutosizedTextarea(attrs={'rows': 1}),
         }
 
 
@@ -133,6 +141,12 @@ class StockInlineForm(forms.ModelForm):
             self.fields['quantity'].widget = ReadOnlyInput(self.instance.quantity)
 
 
+class IntegrationInlineForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['integration'].label = 'Интеграция'
+
+
 class SWTreeNodeMultipleChoiceField(TreeNodeMultipleChoiceField):
     def label_from_instance(self, obj):
         return mark_safe(conditional_escape(smart_text('/'.join([x['name'] for x in obj.get_ancestors(include_self=True).values()]))))
@@ -201,6 +215,30 @@ class ProductAdminForm(forms.ModelForm):
         if cache.get("celery-single-instance-import1c") is not None:
             self.add_error(None, forms.ValidationError("Сохранение невозможно во время импорта склада, попробуйте позже."))
         return cleaned_data
+
+
+class ProductListAdminForm(forms.ModelForm):
+    integrations = forms.ModelMultipleChoiceField(queryset=Integration.objects.all(), widget=forms.CheckboxSelectMultiple, required=False)
+
+    def __init__(self, *args, **kwargs):
+        instance = kwargs.get('instance')
+        if instance:
+            initial = kwargs.get('initial', {})
+            initial['integrations'] = instance.integrations.values_list("id", flat=True)
+            kwargs['initial'] = initial
+        super().__init__(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        integrations = self.cleaned_data['integrations']
+        import sys
+        print(integrations, file=sys.stderr)
+        if self.instance:
+            self.instance.integrations.set(self.cleaned_data['integrations'], through_defaults={'price': 0})
+        return super().save(*args, **kwargs)
+
+    class Meta:
+        model = Product
+        fields = '__all__'
 
 
 class ProductKindForm(forms.ModelForm):
@@ -280,11 +318,16 @@ class OrderAdminForm(forms.ModelForm):
             instance = kwargs['instance']
             self.fields['user_tags'].initial = instance.user.tags
             self.fields['user_tags'].widget = TagAutoComplete(model=type(instance.user), attrs=self.fields['user_tags'].widget.attrs)
+
             if instance.is_beru:
                 beru_campaign = getattr(config, 'sw_{}_campaign'.format(instance.utm_source))
+            # if instance.integration and instance.integration.settings:
+            #     ym_campaign = instance.integration.settings.get('ym_campaign', '')
             else:
                 beru_campaign = ''
-            self.fields['delivery_tracking_number'].widget = DeliveryTrackingNumberWidget(instance.id, instance.is_beru, beru_campaign)
+            #    ym_campaign = ''
+            self.fields['delivery_tracking_number'].widget = DeliveryTrackingNumberWidget(instance.id, beru_campaign)
+            # self.fields['delivery_tracking_number'].widget = DeliveryTrackingNumberWidget(instance.id, ym_campaign)
             self.fields['delivery_yd_order'].widget = YandexDeliveryWidget(instance.id, config.sw_yd_campaign)
         except (KeyError, AttributeError):
             pass
