@@ -131,19 +131,18 @@ class YandexDeliveryWidget(TextInput):
 
 
 class DeliveryTrackingNumberWidget(TextInput):
-    def __init__(self, order_id, is_beru, beru_campaign, attrs=None):
+    def __init__(self, order_id, ym_campaign, attrs=None):
         self.order_id = order_id
-        self.is_beru = is_beru
-        self.beru_campaign = beru_campaign
+        self.ym_campaign = ym_campaign
         super(DeliveryTrackingNumberWidget, self).__init__(attrs)
 
     def render(self, name, value, attrs=None, renderer=None):
         final_attrs = self.build_attrs(attrs)
         # Use provided id or generate hex to avoid collisions in document
         id = final_attrs.get('id', uuid.uuid4().hex)
-        if value and self.is_beru:
+        if value and self.ym_campaign:
             glyphicon = 'pencil-alt'
-            popup = 'https://partner.market.yandex.ru/supplier/{campaignId}/orders/{orderId}?id={campaignId}'.format(campaignId=self.beru_campaign, orderId=value)
+            popup = 'https://partner.market.yandex.ru/supplier/{campaignId}/orders/{orderId}?id={campaignId}'.format(campaignId=self.ym_campaign, orderId=value)
             link_class = ''
             final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
             #final_attrs['value'] = force_text(self.format_value(value))
@@ -302,7 +301,7 @@ class OrderItemProductLink(Widget):
 
     def render(self, name, value, attrs=None, renderer=None):
         final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
-        if self.object.order.site == Site.objects.get(domain='beru.ru') or self.object.order.delivery == self.object.order.DELIVERY_YANDEX:
+        if (self.object.order.integration and self.object.order.integration.uses_boxes) or self.object.order.delivery == self.object.order.DELIVERY_YANDEX:
             dimensions = mark_safe("<br/>{} кг {}&times;{}&times;{} см".format(
                 self.num(self.object.product.prom_weight), self.num(self.object.product.length), self.num(self.object.product.width),
                 self.num(self.object.product.height))

@@ -1,4 +1,33 @@
 {% extends "admin/import_export/change_list_import_export.html" %}
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .field-integrations ul {
+        margin-left: 0;
+        margin-top: 0;
+        padding-left: 0;
+        padding-right: 0;
+        position: relative;
+        top: -4px;
+    }
+    .field-integrations li {
+        padding-top: 0;
+        padding-bottom: 2px;
+        list-style-type: none;
+        white-space: nowrap;
+    }
+    .field-integrations input[type=checkbox] {
+        position: relative;
+        bottom: -2px;
+    }
+    .field-integrations li.unchecked {
+        display: none;
+    }
+    .field-integrations:hover li.unchecked {
+        display: block;
+    }
+</style>
+{% endblock %}
 {% block extrahead %}
 {{ block.super }}
 <script>
@@ -31,6 +60,15 @@
 
             $("#result_list th.column-orders_link div.text span").attr("title", "Заказы");
             $("#result_list th.column-product_link div.text span").attr("title", "Открыть на сайте");
+
+            $('.field-integrations li').has('input[type=checkbox]:not(:checked)').addClass('unchecked');
+            $('.field-integrations li input[type=checkbox]').change(function() {
+               if (this.checked) {
+                   $(this).closest('li').removeClass('unchecked');
+               } else {
+                   $(this).closest('li').addClass('unchecked');
+               }
+            });
         });
     })(django.jQuery);
 </script>
