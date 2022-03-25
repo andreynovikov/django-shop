@@ -229,6 +229,25 @@ to switch **from** *master* **to** *slave*. Actions on **master** should be take
 #. ...
 #. Switch DNS IP records for all sites in order of importance.
 
+********************
+Periodic maintenance
+********************
+
+Development database syncronization
+***********************************
+
+Simpliest way to sync development database with production is to recreate it.
+
+First:
+::
+    DROP DATABASE sworld_dev;
+    CREATE DATABASE sworld_dev OWNER andrey;
+    GRANT ALL PRIVILEGES ON DATABASE sworld_dev TO nikolays;
+    
+Then:
+::
+    pg_dump sworld | psql sworld_dev
+
 ****
 TODO
 ****
