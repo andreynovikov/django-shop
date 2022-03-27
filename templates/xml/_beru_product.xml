@@ -2,8 +2,12 @@
 {% load site %}
 {% load decimals %}
 <offer id="{{ product.id }}" type="vendor.model">
-    <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=beru&amp;utm_term={{ product.id }}</url>
-    <price>{{ product.beru_price|quantize:"1" }}</price>
+    <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source={{ filter_type }}&amp;utm_term={{ product.id }}</url>
+    {% if integration.price > 0 %}
+    <price>{{ integration.price|quantize:"1" }}</price>
+    {% else %}
+    <price>{{ product.cost|quantize:"1" }}</price>
+    {% endif %}
     <currencyId>RUR</currencyId>
 {% for category in product.categories.all %}
 {% with top_category=category_map|get_dict_item:category.pk %}
