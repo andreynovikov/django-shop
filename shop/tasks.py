@@ -39,7 +39,7 @@ def validate_email(email):
 
 
 def get_site_for_order(order):
-    if order.is_beru or order.is_from_market:
+    if order.is_integration:
         return sw_default_site
     else:
         return order.site
