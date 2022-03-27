@@ -1,4 +1,5 @@
 {% load site %}
+{% load l10n %}
 <offer id="{{ product.id }}" type="vendor.model" {% if product.instock > 10 %}available="10"{% else %}available="{{ product.instock }}"{% endif %}>
     <article>{{ product.article }}</article>
     <url>https://www.sewing-world.ru/products/{{ product.code }}.html</url>
@@ -32,4 +33,13 @@
     <vendorCode>{{ product.partnumber }}</vendorCode>
     {% endif %}
     <description>{{ product.whatis|safe }} {{ product.yandexdescr|safe }} {{ product.descr|striptags }}</description>
+    {% if product.country and product.country.enabled %}
+    <country_of_origin>{{ product.country }}</country_of_origin>
+    {% endif %}
+    {% if product.prom_weight %}
+    <weight>{{ product.prom_weight|unlocalize }}</weight>
+    {% endif %}
+    {% if product.length and product.width and product.height %}
+    <dimensions>{{ product.length|unlocalize }}/{{ product.width|unlocalize }}/{{product.height|unlocalize }}</dimensions>
+    {% endif %}
 </offer>
