@@ -10,7 +10,7 @@ from django.utils.text import capfirst
 from sewingworld.models import SiteProfile
 from facebook.tasks import FACEBOOK_TRACKING, notify_view_content
 from shop.models import Category, Product, ProductRelation, ProductSet, ProductKind, Manufacturer, \
-    Advert, SalesAction, City, Store, ServiceCenter, Stock
+    Advert, SalesAction, City, Store, ServiceCenter, Stock, Integration, ProductIntegration
 from shop.filters import get_product_filter
 
 
@@ -61,28 +61,17 @@ def products_stream(request, templates, filter_type):
         'variations__exact': '',
         'categories__in': root.get_descendants(include_self=True)
     }
+
+    integration = None
+    if filter_type in ('beru', 'ali', 'avito', 'sber', 'google', 'taxi', 'tax2', 'tax3', 'mdbs'):
+        integration = Integration.objects.filter(utm_source=filter_type).first()
+        filters['integration'] = integration
+
     if filter_type == 'google':
-        filters['merchant'] = True
         filters['num__gt'] = 0
     if filter_type == 'yandex':
         filters['market'] = True
         filters['num__gt'] = 0
-    if filter_type == 'beru':
-        filters['beru'] = True
-    if filter_type == 'taxi':
-        filters['taxi'] = True
-    if filter_type == 'tax2':
-        filters['tax2'] = True
-    if filter_type == 'tax3':
-        filters['tax3'] = True
-    if filter_type == 'mdbs':
-        filters['mdbs'] = True
-    if filter_type == 'sber':
-        filters['sber'] = True
-    if filter_type == 'ali':
-        filters['ali'] = True
-    if filter_type == 'avito':
-        filters['avito'] = True
     if filter_type == 'prym':
         filters['market'] = True
         filters['num__gt'] = 0
@@ -94,11 +83,14 @@ def products_stream(request, templates, filter_type):
     products = Product.objects.filter(**filters).distinct()
     for product in products:
         context['product'] = product
+        if integration:
+            context['integration'] = ProductIntegration.objects.get(product=product, integration=integration)
         if filter_type in ('mdbs', 'sber', 'ali'):
-            context['stock'] = product.get_stock(filter_type)
+            context['stock'] = product.get_stock(filter_type, integration=integration)
         yield t.render(context, request)
 
     context.pop('product', None)
+    context.pop('integration', None)
     context.pop('stock', None)
     t = loader.get_template('xml/_{}_footer.xml'.format(templates))
     yield t.render(context, request)
@@ -117,8 +109,9 @@ def stock(request):
         'categories__in': root.get_descendants(include_self=True),
         'avito': True
     }
+    integration = Integration.objects.filter(utm_source='avito').first()
     products = Product.objects.filter(**filters).distinct()
-    products = map(lambda p: (p, max(int(p.get_stock('beru')), 0)), products)
+    products = map(lambda p: (p, max(int(p.get_stock('avito', integration)), 0)), products)
     context = {
         'products': products
     }

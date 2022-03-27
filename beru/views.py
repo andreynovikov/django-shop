@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.utils.formats import date_format
 
-from shop.models import Product, Basket, Order, ShopUser, Integration
+from shop.models import Product, Basket, Order, ShopUser, Integration, ProductIntegration
 
 
 logger = logging.getLogger('beru')
@@ -41,13 +41,14 @@ def stocks(request, account='beru'):
         data = json.loads("""
         { "warehouseId": 1234, "skus": [ "01057", "00159" ] }
         """)
+    integration = Integration.objects.filter(utm_source=account).first()
     skus = []
     warehouseId = data.get('warehouseId', '')
     updatedAt = datetime.utcnow().replace(microsecond=0).isoformat() + '+00:00'
     for sku in data.get('skus', []):
         try:
             product = Product.objects.get(article=sku)
-            count = max(int(product.get_stock(account)), 0)
+            count = max(int(product.get_stock(account, integration=integration)), 0)
             skus.append({
                 'sku': sku,
                 'warehouseId': str(warehouseId),
@@ -76,16 +77,18 @@ def cart(request, account='beru'):
         """)
     logger.info('>>> ' + request.path)
     logger.debug(data)
+    integration = Integration.objects.filter(utm_source=account).first()
     response = {'cart': {'items': []}}
     for item in data.get('cart', {}).get('items', []):
         try:
             sku = item.get('offerId', '#NO_SKU#')
             product = Product.objects.get(article=sku)
-            price = product.beru_price if product.beru_price > 0 else product.price
+            product_integration = ProductIntegration.objects.filter(product=product, integration=integration).first()
+            price = product_integration.price if product_integration.price > 0 else product.price
             response['cart']['items'].append({
                 'feedId': item.get('feedId', 0),
                 'offerId': sku,
-                'count': min(item.get('count', 0), max(product.get_stock(account), 0)),
+                'count': min(item.get('count', 0), max(product.get_stock(account, integration), 0)),
                 'price': int(price.to_integral_value(rounding=decimal.ROUND_UP)),
                 'delivery': True
             })
