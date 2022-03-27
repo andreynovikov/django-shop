@@ -9,7 +9,6 @@ from django.db import models
 from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.formats import date_format
-from django.utils.functional import cached_property
 
 from model_utils import FieldTracker
 from colorfield.fields import ColorField
@@ -273,19 +272,6 @@ class Order(models.Model):
     @property
     def has_fiscal(self):
         return self.meta and 'fiscalInfo' in self.meta
-
-    @cached_property
-    def is_beru(self):
-        return self.site in (
-            Site.objects.get(domain='beru.ru'),
-            Site.objects.get(domain='taxi.beru.ru'),
-            Site.objects.get(domain='tax2.beru.ru'),
-            Site.objects.get(domain='tax3.beru.ru')
-        )
-
-    @cached_property
-    def is_sber(self):
-        return self.site == Site.objects.get(domain='sbermegamarket.ru')
 
     @staticmethod
     def register(basket):

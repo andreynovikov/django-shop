@@ -45,10 +45,6 @@ class Product(models.Model):
     sp_price = models.DecimalField('цена СП, руб', max_digits=10, decimal_places=2, default=0)
     sp_cur_price = models.DecimalField('цена СП, вал', max_digits=10, decimal_places=2, default=0)
     sp_cur_code = models.ForeignKey(Currency, verbose_name='СП валюта', related_name="spprice", on_delete=models.PROTECT, default=643)
-    beru_price = models.DecimalField('цена Беру, руб', max_digits=10, decimal_places=2, default=0)
-    sber_price = models.DecimalField('цена СберМаркет, руб', max_digits=10, decimal_places=2, default=0)
-    avito_price = models.DecimalField('цена Авито, руб', max_digits=10, decimal_places=2, default=0)
-    ali_price = models.DecimalField('цена Али, руб', max_digits=10, decimal_places=2, default=0)
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
     ws_pct_discount = models.PositiveSmallIntegerField('опт. скидка, %', default=0)
@@ -337,55 +333,18 @@ class Product(models.Model):
         super(Product, self).save()
         return self.num
 
-    def get_stock(self, which=settings.SHOP_STOCK_DB_COLUMN):
+    def get_stock(self, which=settings.SHOP_STOCK_DB_COLUMN, integration=None):
         num = 0
         if self.constituents.count() == 0:
-            if which == 'spb_num':
+            if integration is not None:
+                suppliers = self.stock.filter(pk__in=integration.suppliers.all())
+            elif which == 'spb_num':
                 suppliers = self.stock.filter(spb_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = 'IN ({})'.format(','.join(map(str, Site.objects.filter(domain__in=[
-                    'spb.sewing-world.ru',
-                    'tax2.beru.ru'
-                ]).values_list('id', flat=True))))
-            elif which == 'tax2':
-                suppliers = self.stock.filter(tax2_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = 'IN ({})'.format(','.join(map(str, Site.objects.filter(domain__in=[
-                    'spb.sewing-world.ru',
-                    'tax2.beru.ru'
-                ]).values_list('id', flat=True))))
             elif which == 'ws_num':
                 suppliers = self.stock.filter(ws_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = 'NOT IN ({})'.format(','.join(map(str, Site.objects.filter(domain__in=[
-                    'spb.sewing-world.ru',
-                    'tax2.beru.ru',
-                    'tax3.beru.ru'
-                ]).values_list('id', flat=True))))
-            elif which in ('beru', 'mdbs'):
-                suppliers = self.stock.filter(beru_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = 'NOT IN ({})'.format(','.join(map(str, Site.objects.filter(domain__in=[
-                    'spb.sewing-world.ru',
-                    'tax2.beru.ru',
-                    'tax3.beru.ru'
-                ]).values_list('id', flat=True))))
-            elif which == 'taxi':
-                suppliers = self.stock.filter(taxi_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = 'NOT IN ({})'.format(','.join(map(str, Site.objects.filter(domain__in=[
-                    'spb.sewing-world.ru',
-                    'tax2.beru.ru',
-                    'tax3.beru.ru'
-                ]).values_list('id', flat=True))))
-            elif which == 'tax3':
-                suppliers = self.stock.filter(tax3_count_in_stock=Supplier.COUNT_STOCK)
-                site_addon = 'IN ({})'.format(','.join(map(str, Site.objects.filter(domain__in=[
-                    'tax3.beru.ru'
-                ]).values_list('id', flat=True))))
             else:
                 suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
-                # сделать флаг "региональный магазин"
-                site_addon = 'NOT IN ({})'.format(','.join(map(str, Site.objects.filter(domain__in=[
-                    'spb.sewing-world.ru',
-                    'tax2.beru.ru',
-                    'tax3.beru.ru'
-                ]).values_list('id', flat=True))))
+
             if suppliers.exists():
                 for supplier in suppliers:
                     stock = Stock.objects.get(product=self, supplier=supplier)
@@ -396,6 +355,17 @@ class Product(models.Model):
                 num = max(0, num - 2)
 
             if num > 0:
+                sites = []
+                sites.extend(Site.objects.filter(integration__suppliers__in=suppliers).distinct().values_list('id', flat=True))
+                if Supplier.objects.filter(count_in_stock=Supplier.COUNT_STOCK, pk__in=suppliers).count():
+                    sites.extend(Site.objects.filter(integration__isnull=True).exclude(domain__in=['spb.sewing-world.ru', 'opt.sewing-world.ru']).values_list('id', flat=True))
+                if Supplier.objects.filter(spb_count_in_stock=Supplier.COUNT_STOCK, pk__in=suppliers).count():
+                    sites.extend(Site.objects.filter(domain='spb.sewing-world.ru').values_list('id', flat=True))
+                if Supplier.objects.filter(ws_count_in_stock=Supplier.COUNT_STOCK, pk__in=suppliers).count():
+                    sites.extend(Site.objects.filter(domain='opt.sewing-world.ru').values_list('id', flat=True))
+                site_addon = 'IN ({})'.format(','.join(map(str, sites)))
+                print(site_addon)
+
                 cursor = connection.cursor()
                 cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
                               INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)

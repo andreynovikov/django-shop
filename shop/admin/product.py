@@ -223,12 +223,12 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
             'classes': ('collapse',),
             'fields': (('cur_price', 'cur_code', 'price'), ('pct_discount', 'val_discount', 'max_discount', 'max_val_discount'),
                        ('ws_cur_price', 'ws_cur_code', 'ws_price'), 'ws_pack_only', ('ws_pct_discount', 'ws_max_discount'),
-                       ('sp_cur_price', 'sp_cur_code', 'sp_price'), ('beru_price', 'sber_price', 'avito_price', 'ali_price'), 'consultant_delivery_price',
+                       ('sp_cur_price', 'sp_cur_code', 'sp_price'), 'consultant_delivery_price',
                        ('forbid_price_import', 'forbid_ws_price_import'))
         }),
         ('Маркетинг', {
             'classes': ('collapse',),
-            'fields': (('enabled', 'show_on_sw', 'firstpage'), ('merchant', 'market', 'beru', 'taxi', 'tax2', 'tax3', 'mdbs', 'sber', 'avito', 'ali'), ('preorder', 'isnew', 'recomended', 'gift'), 'credit_allowed', 'deshevle',
+            'fields': (('enabled', 'show_on_sw', 'firstpage'), 'market', ('preorder', 'isnew', 'recomended', 'gift'), 'credit_allowed', 'deshevle',
                        'sales_notes', 'present', 'delivery', 'sales_actions', 'tags')
         }),
         spb_fieldset,
