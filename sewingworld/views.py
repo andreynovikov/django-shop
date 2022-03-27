@@ -5,7 +5,8 @@ from django.core.files.storage import default_storage
 from django.contrib.auth.decorators import login_required, permission_required
 from django.template import loader
 
-from shop.models import Category, Product, Basket
+from shop.models import Category, Product, Manufacturer, \
+    Basket, Integration, ProductIntegration
 
 
 def ensure_session(request):
@@ -45,16 +46,37 @@ def products_stream(request, templates, filter_type):
         'variations__exact': '',
         'categories__in': root.get_descendants(include_self=True)
     }
+
+    integration = None
+    if filter_type in ('beru', 'ali', 'avito', 'sber', 'google', 'taxi', 'tax2', 'tax3', 'mdbs'):
+        integration = Integration.objects.filter(utm_source=filter_type).first()
+        filters['integration'] = integration
+
+    if filter_type == 'google':
+        filters['num__gt'] = 0
     if filter_type == 'yandex':
         filters['market'] = True
         filters['num__gt'] = 0
+    if filter_type == 'prym':
+        filters['market'] = True
+        filters['num__gt'] = 0
+        try:
+            filters['manufacturer'] = Manufacturer.objects.get(code='Prym')
+        except Manufacturer.DoesNotExist:
+            pass
 
     products = Product.objects.filter(**filters).distinct()
     for product in products:
         context['product'] = product
+        if integration:
+            context['integration'] = ProductIntegration.objects.get(product=product, integration=integration)
+        if filter_type in ('mdbs', 'sber', 'ali'):
+            context['stock'] = product.get_stock(filter_type, integration=integration)
         yield t.render(context, request)
 
     context.pop('product', None)
+    context.pop('integration', None)
+    context.pop('stock', None)
     t = loader.get_template('xml/_{}_footer.xml'.format(templates))
     yield t.render(context, request)
 
