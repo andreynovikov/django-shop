@@ -1,4 +1,3 @@
-from django.contrib.sites.models import Site
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -7,19 +6,12 @@ from shop.models import Order
 from .tasks import notify_beru_order_status
 
 
-SITE_BERU = Site.objects.get(domain='beru.ru')
-SITE_TAXI = Site.objects.get(domain='taxi.beru.ru')
-SITE_TAX2 = Site.objects.get(domain='tax2.beru.ru')
-SITE_TAX3 = Site.objects.get(domain='tax3.beru.ru')
-SITE_MDBS = Site.objects.get(domain='mdbs.beru.ru')
-
-
 @receiver(post_save, sender=Order, dispatch_uid='order_saved_beru_receiver')
 def order_saved(sender, **kwargs):
     order = kwargs['instance']
-    print("Post save emited for", order)
 
-    if order.site not in (SITE_BERU, SITE_TAXI, SITE_TAX2, SITE_TAX3, SITE_MDBS):
+    if not order.integration or not order.integration.uses_api or \
+       not order.integration.settings or order.integration.settings.get('ym_campaign', None) is None:
         return
 
     if order.tracker.has_changed('status'):

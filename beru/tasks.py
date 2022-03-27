@@ -5,16 +5,12 @@ from urllib.error import HTTPError
 
 import django.db
 
-from django.conf import settings
-
 from celery import shared_task
 
 from shop.models import Order
 
 
 logger = logging.getLogger('beru')
-
-YANDEX_BERU = getattr(settings, 'YANDEX_BERU', {})
 
 
 class TaskFailure(Exception):
@@ -32,9 +28,9 @@ def notify_beru_order_status(self, order_id, status, substatus):
         # do not notify Beru if status already set (Beru raises error in that case)
         return '{}: {} {} (already set)'.format(order_id, status, substatus)
 
-    campaign_id = YANDEX_BERU.get(order.utm_source, {}).get('campaign', '')
-    oauth_application = YANDEX_BERU.get(order.utm_source, {}).get('application', '')
-    oauth_token = YANDEX_BERU.get(order.utm_source, {}).get('oauth_token', '')
+    campaign_id = order.integration.settings.get('campaign', '')
+    oauth_application = order.integration.settings.get('application', '')
+    oauth_token = order.integration.settings.get('oauth_token', '')
 
     beru_order_id = str(beru_order.get('id', 0))
     if status == 'PROCESSING' and substatus == 'READY_TO_SHIP':
@@ -127,9 +123,9 @@ def get_beru_order_details(order_id):
     if not beru_order:
         raise TaskFailure('Order {} does not have beru order number'.format(order_id))
 
-    campaign_id = YANDEX_BERU.get(order.utm_source, {}).get('campaign', '')
-    oauth_application = YANDEX_BERU.get(order.utm_source, {}).get('application', '')
-    oauth_token = YANDEX_BERU.get(order.utm_source, {}).get('oauth_token', '')
+    campaign_id = order.integration.settings.get('campaign', '')
+    oauth_application = order.integration.settings.get('application', '')
+    oauth_token = order.integration.settings.get('oauth_token', '')
 
     url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}.json'.format(campaignId=campaign_id, orderId=beru_order)
     headers = {
@@ -159,9 +155,9 @@ def get_beru_labels_data(order_id):
     if not beru_order:
         raise TaskFailure('Order {} does not have beru order number'.format(order_id))
 
-    campaign_id = YANDEX_BERU.get(order.utm_source, {}).get('campaign', '')
-    oauth_application = YANDEX_BERU.get(order.utm_source, {}).get('application', '')
-    oauth_token = YANDEX_BERU.get(order.utm_source, {}).get('oauth_token', '')
+    campaign_id = order.integration.settings.get('campaign', '')
+    oauth_application = order.integration.settings.get('application', '')
+    oauth_token = order.integration.settings.get('oauth_token', '')
 
     url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}/delivery/labels/data.json'.format(campaignId=campaign_id, orderId=beru_order)
     headers = {
