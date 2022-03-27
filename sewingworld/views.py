@@ -9,8 +9,8 @@ from haystack.forms import SearchForm
 from haystack.views import SearchView as BaseSearchView
 
 from sewingworld.models import SiteProfile
-from shop.models import Category, Product, Basket, ProductRelation, ProductSet, \
-    Manufacturer, SalesAction, Store, ServiceCenter
+from shop.models import Category, Product, ProductRelation, ProductSet, Manufacturer, \
+    SalesAction, Store, ServiceCenter, Integration, ProductIntegration, Basket
 from shop.filters import get_product_filter
 
 
@@ -66,11 +66,17 @@ def products_stream(request, templates, filter_type):
         'variations__exact': '',
         'categories__in': root.get_descendants(include_self=True)
     }
+
+    integration = None
+    if filter_type in ('beru', 'ali', 'avito', 'sber', 'google', 'taxi', 'tax2', 'tax3', 'mdbs'):
+        integration = Integration.objects.filter(utm_source=filter_type).first()
+        filters['integration'] = integration
+
+    if filter_type == 'google':
+        filters['num__gt'] = 0
     if filter_type == 'yandex':
         filters['market'] = True
         filters['num__gt'] = 0
-    if filter_type == 'beru':
-        filters['beru'] = True
     if filter_type == 'prym':
         filters['market'] = True
         filters['num__gt'] = 0
@@ -82,9 +88,15 @@ def products_stream(request, templates, filter_type):
     products = Product.objects.filter(**filters).distinct()
     for product in products:
         context['product'] = product
+        if integration:
+            context['integration'] = ProductIntegration.objects.get(product=product, integration=integration)
+        if filter_type in ('mdbs', 'sber', 'ali'):
+            context['stock'] = product.get_stock(filter_type, integration=integration)
         yield t.render(context, request)
 
     context.pop('product', None)
+    context.pop('integration', None)
+    context.pop('stock', None)
     t = loader.get_template('xml/_{}_footer.xml'.format(templates))
     yield t.render(context, request)
 
