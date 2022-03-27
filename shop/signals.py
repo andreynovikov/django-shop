@@ -11,7 +11,6 @@ from shop.tasks import notify_user_order_collected, notify_user_order_delivered_
 @receiver(post_save, sender=Order, dispatch_uid='order_saved_receiver')
 def order_saved(sender, **kwargs):
     order = kwargs['instance']
-    print("Post save emited for", order)
 
     for item in order.items.all():
         item.product.num = -1

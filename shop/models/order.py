@@ -13,7 +13,7 @@ from django.utils.functional import cached_property
 from model_utils import FieldTracker
 from colorfield.fields import ColorField
 
-from . import Product, ProductSet, Store, ShopUser
+from . import Product, ProductSet, Store, ShopUser, Integration
 
 __all__ = [
     'Contractor', 'Manager', 'Courier', 'Order', 'OrderItem', 'Box'
@@ -169,6 +169,7 @@ class Order(models.Model):
     comment = models.TextField('комментарий', blank=True)
     shop_name = models.CharField('магазин', max_length=20, blank=True)
     site = models.ForeignKey(Site, verbose_name='сайт', on_delete=models.PROTECT)
+    integration = models.ForeignKey(Integration, verbose_name='интеграция', blank=True, null=True, on_delete=models.PROTECT)
     payment = models.SmallIntegerField('оплата', choices=PAYMENT_CHOICES, default=PAYMENT_UNKNOWN)
     paid = models.BooleanField('оплачен', default=False)
     manager = models.ForeignKey(Manager, verbose_name='менеджер', blank=True, null=True, on_delete=models.SET_NULL)
@@ -253,22 +254,21 @@ class Order(models.Model):
     def is_beru(self):
         return self.site == Site.objects.get(domain='beru.ru')
 
-    @cached_property
-    def is_from_market(self):
-        return self.site == Site.objects.get(domain='market.yandex.ru')
-
     @staticmethod
     def register(basket):
         session_data = basket.session.get_decoded()
         uid = session_data.get('_auth_user_id')
         user = ShopUser.objects.get(id=uid)
-        if basket.utm_source == 'yamarket':
-            site = Site.objects.get(domain='market.yandex.ru')
-        elif basket.utm_source == 'beru':
-            site = Site.objects.get(domain='beru.ru')
-        else:
+        site = None
+        integration = None
+        if basket.utm_source:
+            integration = Integration.objects.filter(utm_source=basket.utm_source).first()
+            if integration.uses_api:
+                site = integration.site
+        if site is None:
             site = Site.objects.get_current()
         order = Order.objects.create(user=user, site=site)
+        order.integration = integration
         order.utm_source = basket.utm_source
         order.name = user.name
         order.postcode = user.postcode
@@ -284,8 +284,8 @@ class Order(models.Model):
 
         # добавляем в заказ все элементы корзины
         for item in basket.items.all():
-            # если это Беру, то указываем только рублёвую скидку, предоставленную Беру
-            if order.utm_source == 'beru':
+            # если это интеграция, то указываем только предоставленную рублёвую скидку
+            if integration is not None and integration.uses_api:
                 pct_discount = 0
                 val_discount = item.ext_discount
                 price = item.product.price
