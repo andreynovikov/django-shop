@@ -21,7 +21,6 @@ from shop.tasks import notify_user_order_collected, notify_user_order_delivered_
 
 
 SITE_SW = Site.objects.get(domain='www.sewing-world.ru')
-SITE_BERU = Site.objects.get(domain='beru.ru')
 SITE_TAXI = Site.objects.get(domain='taxi.beru.ru')
 SITE_TAX2 = Site.objects.get(domain='tax2.beru.ru')
 SITE_TAX3 = Site.objects.get(domain='tax3.beru.ru')
@@ -45,7 +44,6 @@ def product_saved(sender, **kwargs):
 @receiver(post_save, sender=Order, dispatch_uid='order_saved_receiver')
 def order_saved(sender, **kwargs):
     order = kwargs['instance']
-    print("Post save emited for", order)
 
     for item in order.items.all():
         item.product.num = -1
@@ -53,19 +51,16 @@ def order_saved(sender, **kwargs):
         item.product.ws_num = -1
         item.product.save()
 
-    if order.site == SITE_BERU:
-        return
-
     if order.tracker.has_changed('status'):
-        if not order.status:  # new order
-            if order.site == SITE_TAXI:
-                notify_manager_sms.delay(order.id)
-            if order.site == SITE_TAX2:
-                notify_spb_manager_sms.delay(order.id)
-            if order.site == SITE_TAX3:
-                notify_nn_manager_sms.delay(order.id)
-
-        if order.site in (SITE_TAXI, SITE_TAX2, SITE_TAX3):
+        if order.integration and order.integration.uses_api:
+            if order.integration.settings:
+                if not order.status:  # new order
+                    if order.site == SITE_TAXI:
+                        notify_manager_sms.delay(order.id)
+                    if order.site == SITE_TAX2:
+                        notify_spb_manager_sms.delay(order.id)
+                    if order.site == SITE_TAX3:
+                        notify_nn_manager_sms.delay(order.id)
             return
 
         if order.status == Order.STATUS_ACCEPTED:

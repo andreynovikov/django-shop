@@ -15,7 +15,6 @@ SITE_SBER = Site.objects.get(domain='sbermegamarket.ru')
 @receiver(post_save, sender=Order, dispatch_uid='order_saved_sber_receiver')
 def order_saved(sender, **kwargs):
     order = kwargs['instance']
-    print("Post save emited for", order)
 
     if order.site != SITE_SBER:
         return

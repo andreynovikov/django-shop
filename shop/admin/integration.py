@@ -21,7 +21,7 @@ class IntegrationAdmin(admin.ModelAdmin):
     inlines = [SupplierInline]
 
     def suppliers(self, obj):
-        suppliers = SupplierIntegration.objects.filter(integration=obj)
+        suppliers = SupplierIntegration.objects.filter(integration=obj).order_by('supplier__order')
         if suppliers:
             return ', '.join([s.supplier.name for s in suppliers])
         else:
