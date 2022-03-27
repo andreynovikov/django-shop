@@ -364,7 +364,6 @@ class Product(models.Model):
                 if Supplier.objects.filter(ws_count_in_stock=Supplier.COUNT_STOCK, pk__in=suppliers).count():
                     sites.extend(Site.objects.filter(domain='opt.sewing-world.ru').values_list('id', flat=True))
                 site_addon = 'IN ({})'.format(','.join(map(str, sites)))
-                print(site_addon)
 
                 cursor = connection.cursor()
                 cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
