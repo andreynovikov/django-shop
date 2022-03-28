@@ -3,7 +3,7 @@
 {% load decimals %}
 {% load l10n %}
 <offer id="{{ product.id }}" type="vendor.model">
-    <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=ali&amp;utm_term={{ product.id }}</url>
+    <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source={{ utm_source }}&amp;utm_term={{ product.id }}</url>
     {% if integration.price > 0 %}
     <price>{{ integration.price|quantize:"1" }}</price>
     {% else %}
