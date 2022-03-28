@@ -11,6 +11,8 @@ import spirit.urls
 from zinnia.sitemaps import EntrySitemap
 from forum.sitemaps import ThreadSitemap
 
+from shop.models.integration import Integration
+
 from . import views
 from .sitemaps import StaticViewSitemap, ProductSitemap, CategorySitemap, SalesActionSitemap, StoreSitemap, FlatPageSitemap
 
@@ -82,11 +84,7 @@ urlpatterns = [
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*
     url(r'^shop/', include('shop.urls')),
-    url(r'^beru/', include('beru.urls'), {'account': 'beru'}),
-    url(r'^taxi/', include('beru.urls'), {'account': 'taxi'}),
-    url(r'^tax2/', include('beru.urls'), {'account': 'tax2'}),
-    url(r'^tax3/', include('beru.urls'), {'account': 'tax3'}),
-    url(r'^mdbs/', include('beru.urls'), {'account': 'mdbs'}),
+
     url(r'^sber/', include('sber.urls')),
     url(r'^kassa/', include('yandex_kassa.urls')),
     url(r'^blog/', include('zinnia.urls')),
@@ -94,10 +92,18 @@ urlpatterns = [
     url(r'^forum/', include(spirit.urls)),
     url(r'^reviews/', include('reviews.urls')),
     url(r'^oldforum/', include('forum.urls')),
+
     path('admin/', admin.site.urls),
     url(r'^admin/', include('massadmin.urls')),
     url(r'^admin/', include('loginas.urls')),
 ]
+
+# Add Yandex integrations
+for integration in Integration.objects.filter(uses_api=True):
+    if integration.settings:
+        ym_campaign = integration.settings.get('ym_campaign', None)
+        if ym_campaign is not None:
+            urlpatterns.append(path(integration.utm_source + '/', include('beru.urls'), {'account': integration.utm_source}))
 
 urlpatterns += staticfiles_urlpatterns()
 
