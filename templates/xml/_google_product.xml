@@ -4,7 +4,7 @@
 <g:id>{{ product.id }}</g:id>
 <title>{{ product.title }}</title>
 <g:description>{{ product.whatis|safe }} {{ product.yandexdescr|safe }} {{ product.descr|striptags }}</g:description>
-<link>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=google&amp;utm_term={{ product.id }}</link>
+<link>{% site_url_prefix %}{% url 'product' product.code %}?utm_source={{ utm_source }}&amp;utm_term={{ product.id }}</link>
 <g:image_link>{% site_url_prefix %}{% get_media_prefix %}{{ product.image_prefix }}.jpg</g:image_link>
 {% if product.instock > 0 %}
 <g:availability>in stock</g:availability>

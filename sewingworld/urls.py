@@ -33,31 +33,15 @@ urlpatterns = [
     # ex: /sitemap.xml
     url(r'^sitemap\.xml$', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     # ex: /search.xml
-    url(r'^search\.xml$', views.products, {'templates': 'search', 'filters': None}, name='search_xml'),
+    url(r'^search\.xml$', views.products, {'template': 'search', 'filters': None}, name='search_xml'),
     # ex: /full.xml
-    url(r'^full\.xml$', views.products, {'templates': 'products', 'filters': None}, name='full'),
+    url(r'^full\.xml$', views.products, {'template': 'products', 'filters': None}, name='full'),
     # ex: /products.xml
-    url(r'^products\.xml$', views.products, {'templates': 'products', 'filters': 'yandex'}, name='products'),
-    # ex: /avito.xml
-    url(r'^avito\.xml$', views.products, {'templates': 'avito', 'filters': 'avito'}, name='avito'),
-    # ex: /beru.xml
-    url(r'^beru\.xml$', views.products, {'templates': 'beru', 'filters': 'beru'}, name='beru'),
-    # ex: /taxi.xml
-    url(r'^taxi\.xml$', views.products, {'templates': 'beru', 'filters': 'taxi'}, name='taxi'),
-    # ex: /taxi_spb.xml
-    url(r'^taxi_spb\.xml$', views.products, {'templates': 'beru', 'filters': 'tax2'}, name='tax2'),
-    # ex: /taxi_nn.xml
-    url(r'^taxi_nn\.xml$', views.products, {'templates': 'beru', 'filters': 'tax3'}, name='tax3'),
-    # ex: /mdbs.xml
-    url(r'^mdbs\.xml$', views.products, {'templates': 'beru', 'filters': 'mdbs'}, name='mdbs'),
-    # ex: /sber.xml
-    url(r'^sber\.xml$', views.products, {'templates': 'sber', 'filters': 'sber'}, name='sber'),
-    # ex: /ali.xml
-    url(r'^ali\.xml$', views.products, {'templates': 'ali', 'filters': 'ali'}, name='ali'),
-    # ex: /google.xml
-    url(r'^google\.xml$', views.products, {'templates': 'google', 'filters': 'google'}, name='google'),
+    url(r'^products\.xml$', views.products, {'template': 'products', 'filters': 'yandex'}, name='products'),
     # ex: /cc-prym.xml
-    url(r'^cc-prym\.xml$', views.products, {'templates': 'prym', 'filters': 'prym'}, name='cc-prym'),
+    url(r'^cc-prym\.xml$', views.products, {'template': 'prym', 'filters': 'prym'}, name='cc-prym'),
+    # ex: /beru.xml
+    path('<slug:integration>.xml', views.products),
     # ex: /stock_avito.csv
     url(r'^stock_avito\.csv$', views.stock, name='stock'),
     # ex: /search/
