@@ -210,9 +210,38 @@ Configure PostgreSql on master:
     wal_keep_segments = 16
     hot_standby = on
 
-Permit replication connection in ``/etc/postgresql/9.6/main/pg_hba.conf``:
+Permit replication connection in ``/etc/postgresql/X.X/main/pg_hba.conf`` on master:
 ::
     host     replication     replicator      193.19.119.252/32       md5
+and on slave:
+::
+    host     replication     replicator      46.229.213.124/32       md5
+
+Create ``replicator`` user on master:
+::
+    CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD '***';
+    SELECT pg_reload_conf();
+
+Configure PostgreSql on slave:
+::
+    listen_addresses = '*'
+    wal_level = replica
+    max_wal_senders = 3
+    wal_keep_size = 256
+    hot_standby = on
+    promote_trigger_file = '/primary_server'
+
+Copy current database state from master to slave (should be executer on slave):
+::
+    rm -rf /var/lib/postgresql/X.X/main/*
+    pg_basebackup -h 46.229.213.124 -U replicator -p 5432 -D /var/lib/postgresql/X.X/main -P -Xs -R
+
+Enable replication by creating the file ``/var/lib/postgresql/9.6/main/recovery.conf`` on slave:
+::
+standby_mode = 'on'
+primary_conninfo = 'user=replicator password=DataRep626 host=46.229.213.124 port=5432 sslmode=prefer sslcompression=1 krbsrvname=postgres'
+trigger_file = '/primary_server'
+
 
 ****************
 Failover actions
