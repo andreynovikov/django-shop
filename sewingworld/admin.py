@@ -53,14 +53,14 @@ def get_site_prefix(obj):
 get_site_prefix.short_description = 'префикс'
 
 
-def get_site_phone(obj):
-    return obj.profile.phone
-get_site_phone.short_description = 'телефон'
+def get_manager_phones(obj):
+    return obj.profile.manager_phones
+get_manager_phones.short_description = 'телефоны менеджеров'
 
 
-def get_site_managers(obj):
-    return obj.profile.managers
-get_site_managers.short_description = 'менеджеры заказов'
+def get_manager_emails(obj):
+    return obj.profile.manager_emails
+get_manager_emails.short_description = 'адреса менеджеров'
 
 
 def get_sites(obj):
@@ -75,7 +75,7 @@ def configure_admin():
     from django.contrib.sites.admin import SiteAdmin
     from django.contrib.sites.models import Site
     SWSiteAdmin = type('SWSiteAdmin', (SiteAdmin,), {
-        'list_display': ('domain', 'name', get_site_prefix, get_site_phone, get_site_managers),
+        'list_display': ('domain', 'name', get_site_prefix, get_manager_phones, get_manager_emails),
         'inlines': (SiteProfileInline,)
     })
     admin.site.unregister(Site)
