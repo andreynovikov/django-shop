@@ -8,7 +8,8 @@ from reviews.signals import review_was_posted
 
 from shop.models import Order
 from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, \
-    notify_user_order_delivered, notify_user_order_done, notify_review_posted
+    notify_user_order_delivered, notify_user_order_done, notify_review_posted, \
+    notify_manager, notify_manager_sms
 
 
 @receiver(post_save, sender=Order, dispatch_uid='order_saved_receiver')
@@ -21,6 +22,16 @@ def order_saved(sender, **kwargs):
         item.product.save()
 
     if order.tracker.has_changed('status'):
+        if not order.status:  # new order
+            if hasattr(order.site, 'profile') and order.site.profile.manager_phones:
+                for phone in order.site.profile.manager_phones.split(','):
+                    notify_manager_sms.delay(order.id, phone)
+            """ wait for 5 minutes to let user supply comments and other stuff """
+            notify_manager.apply_async((order.id,), countdown=300)
+
+        if order.integration and order.integration.uses_api:
+            return
+
         if order.status == Order.STATUS_ACCEPTED:
             for item in order.items.all():
                 if item.product.tags:

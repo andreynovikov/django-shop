@@ -21,7 +21,7 @@ from django.core.exceptions import MultipleObjectsReturned
 from django.db import IntegrityError
 from django.utils.formats import localize
 
-from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
+from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail
 from shop.models import Product, Basket, BasketItem, Order, ShopUser, ShopUserManager
 from shop.forms import UserForm
 
@@ -574,7 +574,6 @@ def confirm_order(request, order_id=None):
             request.session['last_order_updated'] = False
             """ wait for 5 minutes to let user supply comments and other stuff """
             try:
-                notify_manager.apply_async((order.id,), countdown=300)
                 notify_user_order_new_mail.apply_async((order.id,), countdown=300)
                 notify_user_order_new_sms.apply_async((order.id, request.session.get('password', None)), countdown=300)
             except Exception as e:
