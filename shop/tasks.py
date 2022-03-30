@@ -86,7 +86,7 @@ def validate_email(email):
 
 
 def get_site_for_order(order):
-    if order.is_integration:
+    if order.integration:
         return sw_default_site
     else:
         return order.site
@@ -103,6 +103,7 @@ class DecimalEncoder(json.JSONEncoder):
 def update_order(self, order_id, data):
     order = Order.objects.get(id=order_id)
     if order.owner:
+        log.info('Locked by %s, retrying' % order.owner)
         raise self.retry(countdown=600, max_retries=24)  # 10 minutes
     order.owner = ShopUser.objects.get(phone='000')
     order.save()

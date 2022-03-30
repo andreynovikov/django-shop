@@ -319,7 +319,7 @@ class OrderAdminForm(forms.ModelForm):
             self.fields['user_tags'].initial = instance.user.tags
             self.fields['user_tags'].widget = TagAutoComplete(model=type(instance.user), attrs=self.fields['user_tags'].widget.attrs)
 
-            if instance.integration and instance.integration.settings:
+            if instance.integration and instance.integration.uses_api and instance.integration.settings:
                 ym_campaign = instance.integration.settings.get('ym_campaign', '')
             else:
                 ym_campaign = ''
