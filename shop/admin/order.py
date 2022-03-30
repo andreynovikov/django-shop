@@ -275,7 +275,7 @@ class SiteListFilter(admin.filters.RelatedFieldListFilter):
     template = 'django_admin_listfilter_dropdown/dropdown_filter.html'
 
     def __init__(self, field, request, params, model, model_admin, field_path):
-        self.lookup_kwarg_integrated = 'not__%s__%s__in' % (field_path, field.target_field.name)
+        self.lookup_kwarg_integrated = 'integration__isnull'
         self.lookup_val_integrated = params.get(self.lookup_kwarg_integrated)
         super().__init__(field, request, params, model, model_admin, field_path)
 
@@ -301,7 +301,7 @@ class SiteListFilter(admin.filters.RelatedFieldListFilter):
         }
         yield {
             'selected': bool(self.lookup_val_integrated),
-            'query_string': changelist.get_query_string({self.lookup_kwarg_integrated: '13,8,5,11,12,14,9'}, [self.lookup_kwarg, self.lookup_kwarg_isnull]),
+            'query_string': changelist.get_query_string({self.lookup_kwarg_integrated: 'True'}, [self.lookup_kwarg, self.lookup_kwarg_isnull]),
             'display': 'Кроме интеграций'
         }
         for pk_val, val in self.lookup_choices:
