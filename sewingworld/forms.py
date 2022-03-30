@@ -8,10 +8,6 @@ class SWConfigForm(ConfigForm):
 
     sw_email_from = forms.CharField(label='Адрес эл.почты робота')
     sw_email_unisender = forms.CharField(label='Адрес эл.почты Unisender')
-    sw_email_managers = forms.CharField(label='Адрес эл.почты менеджера заказов', help_text='Можно несколько через запятую')
-    sw_sms_manager = forms.CharField(label='Телефон менеджера заказов Яндекс.Такси')
-    sw_sms_manager_spb = forms.CharField(label='Телефон менеджера заказов Яндекс.Такси СПб')
-    sw_sms_manager_nn = forms.CharField(label='Телефон менеджера заказов Яндекс.Такси НН')
 
     sw_beru_delivery = forms.CharField(label='Доставщик Беру')
 

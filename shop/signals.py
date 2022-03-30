@@ -16,14 +16,11 @@ from reviews.signals import review_was_posted
 from shop.models import Product, Order
 from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, \
     notify_user_order_delivered, notify_user_order_done, notify_user_review_products, \
-    notify_review_posted, create_modulpos_order, delete_modulpos_order, notify_manager_sms, \
-    notify_spb_manager_sms, notify_nn_manager_sms
+    notify_review_posted, create_modulpos_order, delete_modulpos_order, \
+    notify_manager, notify_manager_sms
 
 
 SITE_SW = Site.objects.get(domain='www.sewing-world.ru')
-SITE_TAXI = Site.objects.get(domain='taxi.beru.ru')
-SITE_TAX2 = Site.objects.get(domain='tax2.beru.ru')
-SITE_TAX3 = Site.objects.get(domain='tax3.beru.ru')
 SITE_YANDEX = Site.objects.get(domain='market.yandex.ru')
 
 
@@ -52,15 +49,14 @@ def order_saved(sender, **kwargs):
         item.product.save()
 
     if order.tracker.has_changed('status'):
+        if not order.status:  # new order
+            if hasattr(order.site, 'profile') and order.site.profile.manager_phones:
+                for phone in order.site.profile.manager_phones.split(','):
+                    notify_manager_sms.delay(order.id, phone)
+            """ wait for 5 minutes to let user supply comments and other stuff """
+            notify_manager.apply_async((order.id,), countdown=300)
+
         if order.integration and order.integration.uses_api:
-            if order.integration.settings:
-                if not order.status:  # new order
-                    if order.site == SITE_TAXI:
-                        notify_manager_sms.delay(order.id)
-                    if order.site == SITE_TAX2:
-                        notify_spb_manager_sms.delay(order.id)
-                    if order.site == SITE_TAX3:
-                        notify_nn_manager_sms.delay(order.id)
             return
 
         if order.status == Order.STATUS_ACCEPTED:

@@ -6,6 +6,7 @@ from tidylib import tidy_fragment
 from django import forms
 from django.conf import settings
 from django.contrib.admin.widgets import FilteredSelectMultiple
+from django.contrib.sites.models import Site
 from django.core.cache import cache
 from django.utils.encoding import smart_text
 from django.utils.html import conditional_escape, mark_safe
@@ -23,6 +24,9 @@ from shop.tasks import import1c
 
 from .widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
     OrderItemProductLink, ListTextWidget, YandexDeliveryWidget, DeliveryTrackingNumberWidget
+
+
+sw_default_site = Site.objects.get_current()
 
 
 class CategoryAdminForm(forms.ModelForm):
@@ -56,7 +60,7 @@ class OneSImportForm(forms.Form):
 
     def save(self):
         import1c.delay(self.cleaned_data['file'])
-        return 'Импорт запущен в фоновом режиме, результат придёт на адрес %s' % config.sw_email_managers
+        return 'Импорт запущен в фоновом режиме, результат придёт на адрес %s' % sw_default_site.profile.manager_emails
 
     def with_date(self, file):
         filepath = self.import_dir + '/' + file

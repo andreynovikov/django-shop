@@ -324,17 +324,19 @@ def notify_user_review_products(self, order_id):
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_manager(order_id):
     order = Order.objects.get(id=order_id)
-    site = get_site_for_order(order)
-    site_profile = SiteProfile.objects.get(site=site)
 
     reload_maybe()
     msg_plain = render_to_string('mail/shop/order_manager.txt', {'order': order})
     msg_html = render_to_string('mail/shop/order_manager.html', {'order': order})
 
     site_text = ''
-    if site != sw_default_site:
-        site_text = ' (%s)' % site.domain
-    managers = site_profile.managers or config.sw_email_managers
+    if order.site != sw_default_site:
+        site_text = ' (%s)' % order.site.domain
+
+    if hasattr(order.site, 'profile') and order.site.profile.manager_emails:
+        managers = order.site.profile.manager_emails
+    else:
+        managers = sw_default_site.profile.manager_emails
     send_mail(
         'Новый заказ №%s%s' % (order_id, site_text),
         msg_plain,
@@ -345,21 +347,8 @@ def notify_manager(order_id):
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
-def notify_manager_sms(order_id):
-    reload_maybe()
-    return send_sms(config.sw_sms_manager, "Новый заказ №%s" % order_id)
-
-
-@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
-def notify_spb_manager_sms(order_id):
-    reload_maybe()
-    return send_sms(config.sw_sms_manager_spb, "Новый заказ №%s" % order_id)
-
-
-@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
-def notify_nn_manager_sms(order_id):
-    reload_maybe()
-    return send_sms(config.sw_sms_manager_nn, "Новый заказ №%s" % order_id)
+def notify_manager_sms(order_id, phone):
+    return send_sms(phone, "Новый заказ №%s" % order_id)
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
@@ -621,7 +610,7 @@ def import1c(file):
         'Импорт 1С из %s' % file,
         msg_plain,
         config.sw_email_from,
-        config.sw_email_managers.split(','),
+        sw_default_site.profile.manager_emails.split(','),
     )
 
     return date
