@@ -327,9 +327,9 @@ class OrderAdmin(admin.ModelAdmin):
             manager = ' style="color: %s"' % obj.manager.color
         lock = ''
         if obj.owner:
-            lock = '<span style="font-weight: 400" title="%s">&#9919;&nbsp;</span>' % str(obj.owner)
-        return '<span style="white-space:nowrap">%s<b%s>%s</b></span><br/><span style="white-space:nowrap">%s</span>' % \
-            (lock, manager, obj.title, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
+            lock = '&nbsp;<span class="fas fa-lock fa-xs" title="%s" style="position: relative; top: -2px"></span>' % str(obj.owner)
+        return '<span style="white-space:nowrap"><b%s>%s</b>%s</span><br/><span style="white-space:nowrap">%s</span>' % \
+            (manager, obj.title, lock, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
     order_name.admin_order_field = 'id'
     order_name.short_description = 'заказ'
 
@@ -362,10 +362,10 @@ class OrderAdmin(admin.ModelAdmin):
         courier = ''
         if obj.courier:
             if obj.hidden_tracking_number:
-                courier = ': %s&nbsp;<span style="color: blue; font-weight: bold" title="%s">&#10003;</span>' % (obj.courier.name, obj.hidden_tracking_number)
+                courier = ': %s <span style="color: blue" title="%s" class="fas fa-check fa-xs"></span>' % (obj.courier.name, obj.hidden_tracking_number)
             else:
                 courier = ': %s' % obj.courier.name
-        return '%s%s<br/>%s' % (obj.get_delivery_display(), courier, datetime)
+        return '%s<span style="white-space:nowrap">%s</span><br/>%s' % (obj.get_delivery_display(), courier, datetime)
     combined_delivery.admin_order_field = 'delivery_dispatch_date'
     combined_delivery.short_description = 'Доставка'
 
@@ -389,10 +389,10 @@ class OrderAdmin(admin.ModelAdmin):
         checkmark = ''
         if obj.paid and obj.has_fiscal:
             style = '; color: green'
-            checkmark = '<a href="https://receipt.taxcom.ru/v01/show?fp=%s&s=%s" target="_blank" style="color: green; font-size: 150%%">&#128457;</a>' % (obj.meta['fiscalInfo']['fnDocMark'], obj.meta['fiscalInfo']['sum'])
+            checkmark = '<a href="https://receipt.taxcom.ru/v01/show?fp=%s&s=%s" target="_blank" style="color: green"><i class="fas fa-receipt fa-xs"></i></a>' % (obj.meta['fiscalInfo']['fnDocMark'], obj.meta['fiscalInfo']['sum'])
         elif obj.paid:
             style = 'color: green'
-            checkmark = '<span style="color: green; font-size: 120%%">&#10003;</span>'
+            checkmark = '<span style="color: green"><i class="fas fa-check fa-xs"></i></span>'
         elif obj.payment in [Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_CREDIT]:
             style = 'color: red'
         return '<span style="display: grid; grid-template-columns: min-content auto; column-gap: 5px"><span style="%s">%s</span>%s</span>' % (style, obj.get_payment_display(), checkmark)
