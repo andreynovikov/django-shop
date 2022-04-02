@@ -190,7 +190,7 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-    orid = models.ForeignKey(Order, db_column='orid', on_delete=models.CASCADE, related_name='item', primary_key=True)
+    orid = models.OneToOneField(Order, db_column='orid', on_delete=models.CASCADE, related_name='item', primary_key=True)
     pid = models.ForeignKey(Product, db_column='pid', on_delete=models.CASCADE)
     pq = models.IntegerField()
     pprice = models.FloatField()
