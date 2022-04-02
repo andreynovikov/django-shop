@@ -4,7 +4,6 @@ from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
 from django.conf import settings
 from django.contrib.humanize.templatetags.humanize import intcomma
-from django.contrib.postgres.fields import JSONField
 from django.contrib.sessions.models import Session
 from django.db import models
 from django.utils import timezone
@@ -146,7 +145,7 @@ class BasketItem(models.Model):
     product = models.ForeignKey(Product, related_name='+', on_delete=models.PROTECT)
     quantity = models.PositiveSmallIntegerField(default=1)
     ext_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    meta = JSONField(null=True, blank=True, editable=False)
+    meta = models.JSONField(null=True, blank=True, editable=False)
 
     @property
     def price(self):

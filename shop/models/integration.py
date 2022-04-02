@@ -1,4 +1,3 @@
-from django.contrib.postgres.fields import JSONField
 from django.contrib.sites.models import Site
 from django.db import models
 
@@ -18,8 +17,8 @@ class Integration(models.Model):
     output_stock = models.BooleanField('выгражать остатки', default=False)
     uses_api = models.BooleanField('использует API', default=False)
     uses_boxes = models.BooleanField('использует коробки', default=False)
-    settings = JSONField('настройки', null=True, blank=True)
-    admin_user_fields = JSONField('поля покупателя', null=True, blank=True)
+    settings = models.JSONField('настройки', null=True, blank=True)
+    admin_user_fields = models.JSONField('поля покупателя', null=True, blank=True)
     suppliers = models.ManyToManyField(Supplier, related_name='integrations', related_query_name='integration', verbose_name='поставщики', blank=True)
     products = models.ManyToManyField(Product, related_name='integrations', related_query_name='integration', through='ProductIntegration', blank=True)
 
