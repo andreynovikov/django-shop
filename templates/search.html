@@ -4,6 +4,7 @@
 {% block css %}
   <style>
     .sw-header-lower-block { display: none }
+    .sw-p-l-image img { max-width: 100%; max-height: 230px }
     #filters { margin: 10px 0 0 10px }
   </style>
 {% endblock %}
@@ -36,7 +37,7 @@
 <script id="documentTemplate" type="text/x-jsrender">
 <div class="sw-p-l panel panel-default">
   <div class="panel-body">
-    <div class="sw-p-l-image text-center">{{if snippet}}<a href="{{:url}}"><img src="{{:snippet}}" alt="{{:name}}"/></a>{{/if}}</div>
+    <div class="sw-p-l-image text-center">{{if origSnippet}}<a href="{{:url}}"><img src="{{:origSnippet}}" alt="{{:name}}"/></a>{{/if}}</div>
     <div class="sw-p-l-name">
       <h3 class="sw-p-l-name-h"><a href="{{:url}}">{{:name}}</a></h3>
       <div class="sw-p-l-brif">
@@ -201,7 +202,7 @@
       $documents.empty();
       $.each(data.documents, function(i, document) {
         //$( "<p>" ).attr( "src", item.media.m ).appendTo( "#documents" );
-        document["snippet"] = document["snippet"].replace(/^http:\/\//i, 'https://');
+        //document["snippet"] = document["snippet"].replace(/^http:\/\//i, 'https://');
 	$documents.append(documentTemplate.render(document));
       });
       $('.addProduct').each(addProduct);

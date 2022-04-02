@@ -48,7 +48,7 @@
 </form>
 {% endblock %}
 <div class="" style="display:inline-block;"><a href="/stores/" class="hidden-xs"><img src="{% static '/i/placemark.svg' %}" alt="Магазины" height="15"></a> <a href="/stores/" style="text-decoration:underline;">Адреса магазинов</a></div>
-<div class="" style="font-weight:bold; display:inline-block;"><small style="font-weight:normal;">Розничные магазины:</small> +7&nbsp;495&nbsp;744-00-87 <small style="font-weight:normal;">Интернет-магазин:</small> +7&nbsp;495&nbsp;766-56-75</div>
+<div class="" style="font-weight:bold; display:inline-block;"><small style="font-weight:normal;">Розничные магазины:</small>&nbsp;+7&nbsp;495&nbsp;744-00-87 <small style="font-weight:normal;">Интернет-магазин:</small>&nbsp;+7&nbsp;495&nbsp;766-56-75</div>
 </div>
 
 <div class="col-md-5" style="margin-top:20px; margin-bottom:5px;">
@@ -99,8 +99,8 @@
             <span class="icon-bar"></span>
           </button>
           <ul class="list-inline visible-xs sw-xsnavigation">
-                  <li><a href="/shop/user/orders/">Что с моим заказом?</a></li>
-                    </ul>
+            <li><a href="/shop/user/orders/">Состояние заказа</a></li>
+          </ul>
         </div>
         <div class="navbar-collapse collapse  text-center">
           <ul class="nav navbar-nav navbar-left">
@@ -112,14 +112,12 @@
               </ul>
             </li>
             <li class="visible-xs"><a href="/catalog/">Каталог товаров</a></li>
-<!--            <li><a href="/recipes/index.html">Рецепты</a></li> -->
             <li><a href="/pages/articles/">Статьи</a></li>
             <li><a href="/blog/">Блог</a></li>
-<!--            <li><a href="/cgi-bin/forum.cgi">Форум</a></li> -->
-            <li><a href="{% url "spirit:topic:index-active" %}">Форум</a></li>
+<!--        <li><a href="{% url "spirit:topic:index-active" %}">Форум</a></li>  -->
             <li><a href="/service/">Сервисные центры</a></li>
             <li><a href="/pages/delivery/">Доставка и оплата</a></li>
-            <li class="hidden-xs"><a href="{% url 'shop:user_orders' %}">Что с моим заказом?</a></li>
+            <li class="hidden-xs"><a href="{% url 'shop:user_orders' %}">Состояние заказа</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -127,8 +125,9 @@
 
 <div class="sw-header-lower-block" style="background:#fffaee;margin-bottom:10px;padding-bottom:4px;">
 <div class="center-block row hidden-xs" style="max-width:1200px;">
-
+<!--
 <div class="col-sm-3 text-center"><a href="/actions/"><img src="{% static '/i/categories/gifts.svg' %}" alt="Акции" height="75" width="75"><br>Акции</a></div>
+-->
 <div class="col-sm-3 text-center"><a href="/catalog/promo/"><img src="{% static '/i/categories/sale.svg' %}" alt="Специальные предложения" height="75" width="75"><br>Специальные предложения</a></div>
 <div class="col-sm-3 text-center"><a href="/catalog/sewing_machines/"><img src="{% static '/i/categories/compsewing.svg' %}" alt="Швейные машины" height="75" width="75"><br>Швейные машины</a></div>
 <div class="col-sm-3 text-center"><a href="/catalog/embroidery_machines/"><img src="{% static '/i/categories/embroidery.svg' %}" alt="Швейно-вышивальные машины" height="75" width="94"><br>Вышивальные машины</a></div>
@@ -142,7 +141,11 @@
 {% endblock %}
 {% block content_wrapper %}
 <div class="container-fluid">
-{# <div class="center-block"><p  class="text-center" style="color:red; font-weight:bold;">Уважаемые покупатели!<br> 31 декабря, 1 и 2 января интернет-магазин не работает.<br>Заказы, сделанные в праздничные дни, будут обработаны 3-4 января.<br>Розничные магазины не работают 1 и 2 января.<br> С Новым Годом!</p></div> #}
+<!--
+<div class="center-block"><p  class="text-center" style="color:red; font-weight:bold;">Уважаемые покупатели!<br> 3 марта интернет-магазин не работает.<br>
+Режим работы розничных магазинов можно узнать по <a href="https://www.sewing-world.ru/stores/">телефонам магазинов</a>
+</p></div>
+-->
 <!-- ------------------------------------------------------------------------------------------------------------ -->
 {% load django_bootstrap_breadcrumbs %}
 {% block breadcrumbs %}
@@ -231,7 +234,7 @@
 </tr>
 <tr>
 <td class="sw-bottom-phones-left"><a href="/service/">Ремонт швейных машин:</a></td>
-<td class="sw-bottom-phones-right">+7 495 718-86-02<br>+7 499 158-06-87</td>
+<td class="sw-bottom-phones-right">+7 495 744-00-87<br>+7 499 158-06-87</td>
 </tr>
 </table>
 </div>
@@ -255,8 +258,9 @@
     <div class="col-md-16 col-xs-16 text-left">
       <p>
         <a href="https://vk.com/sew.world"><img width="60" src="/media/images/social_vk.svg"></a><a href="https://vk.com/sew.world">@sew.world</a><br>
-        <a href="https://instagram.com/sew.world"><img width="60" src="/media/images/social_inst.svg"></a><a href="https://instagram.com/sew.world">@sew.world</a><br>
-        <a href="https://ru-ru.facebook.com/sewing.world.russia"><img width="60" src="/media/images/social_fb.svg"></a><a href="https://ru-ru.facebook.com/sewing.world.russia">@sewing.world.russia</a><br>
+        <a href="https://t.me/sewingworldrus"><img style="width:30px; height:30px; margin-left:15px; margin-right:15px" src="/media/images/social_tg.svg"></a><a href="https://t.me/sewingworldrus">@sewingworldrus</a><br>
+<!--    <a href="https://instagram.com/sew.world"><img width="60" src="/media/images/social_inst.svg"></a><a href="https://instagram.com/sew.world">@sew.world</a><br>
+        <a href="https://ru-ru.facebook.com/sewing.world.russia"><img width="60" src="/media/images/social_fb.svg"></a><a href="https://ru-ru.facebook.com/sewing.world.russia">@sewing.world.russia</a><br> -->
         <a href="https://youtube.com/ШвейныйМирРоссия"><img width="60" src="/media/images/social_yt.svg"></a><a href="https://youtube.com/ШвейныйМирРоссия">@ШвейныйМирРоссия</a>
      </p>
     </div>
