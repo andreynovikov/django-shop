@@ -306,7 +306,7 @@ def authorize(request):
             }
         else:
             """ Generate simple password for new user """
-            password = randint(1000, 9999)
+            password = str(randint(1000, 9999))
             request.session['password'] = password
             user.set_password(password)
             user.save()
@@ -464,7 +464,7 @@ def reset_password(request):
         if basket.phone:
             phone = basket.phone
     if phone:
-        password = randint(1000, 9999)
+        password = str(randint(1000, 9999))
         try:
             user = ShopUser.objects.get(phone=phone)
         except ShopUser.DoesNotExist:
