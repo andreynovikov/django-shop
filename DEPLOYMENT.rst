@@ -59,6 +59,10 @@ Enable time syncronization. Create ``/etc/cron.daily/ntpdate`` file:
     !#/bin/sh
     /usr/sbin/ntpdate -u ru.pool.ntp.org
 
+Reconfigure Exim for internet mode to be able to send mails:
+::
+    dpkg-reconfigure exim4-config
+
 ***********
 Nginx setup
 ***********
@@ -73,6 +77,17 @@ Adjust ``/etc/nginx/nginx.conf``:
     server_names_hash_bucket_size 64;
     
     include /etc/nginx/win-utf;
+
+****************
+PostgreSql setup
+****************
+
+::
+    CREATE ROLE andrey SUPERUSER;
+    CREATE ROLE nikolays SUPERUSER;
+    CREATE ROLE sworld;
+    CREATE DATABASE sworld OWNER andrey;
+    CREATE DATABASE sworld_dev OWNER andrey;
 
 ***********
 UWSGI setup
@@ -150,6 +165,52 @@ where ``app`` is the name of the uwsgi configuration file.
 ************
 Celery setup
 ************
+
+``/etc/systemd/system/celery@.service``
+::
+    [Unit]
+    Description=Celery worker for %I
+    Wants=redis-server.service
+    After=network.target redis-server.service
+
+    [Service]
+    User=nikolays
+    Group=www-data
+    Type=forking
+    EnvironmentFile=-/etc/celery/%I_worker
+    PIDFile=/run/celery/%I_worker.pid
+    ExecStart=/bin/sh -c "$$VIRTUALENV/bin/celery multi start $CELERYD_NODES --pidfile=/run/celery/%I_worker.pid $CELERYD_OPTS"
+    ExecStop=/bin/sh -c "$$VIRTUALENV/bin/celery multi stopwait $CELERYD_NODES --pidfile=/run/celery/%I_worker.pid"
+    ExecReload=/bin/sh -c "$$VIRTUALENV/bin/celery multi restart $CELERYD_NODES --pidfile=/run/celery/%I_worker.pid $CELERYD_OPTS"
+
+    [Install]
+    WantedBy=multi-user.target
+
+``/etc/systemd/system/celery_beat@.service``:
+    [Unit]
+    Description=Celery beat for %I
+    Wants=redis-server.service
+    After=network.target redis-server.service
+
+    [Service]
+    User=nikolays
+    Group=www-data
+    Type=forking
+    EnvironmentFile=-/etc/celery/%I_beat
+    PIDFile=/var/run/celery/%I_beat.pid
+    ExecStart=/bin/sh -c "($$VIRTUALENV/bin/celery beat --pidfile=/run/celery/%I_beat.pid $CELERYD_OPTS)& echo $!"
+    ExecStop=/bin/kill -s TERM /run/celery/%I_beat.pid
+
+    [Install]
+    WantedBy=multi-user.target
+
+``/etc/tmpfiles.d/celery.conf``:
+::
+    d /run/celery 0755 nikolays www-data -
+
+::
+    mkdir /run/celery
+    chown nikolays:www-data /run/celery
 
 *****************
 Environment setup
