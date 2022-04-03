@@ -301,7 +301,7 @@ def authorize(request):
         user, created = ShopUser.objects.get_or_create(phone=norm_phone)
         if not user.permanent_password:
             """ Generate new password for user """
-            password = randint(1000, 9999)
+            password = str(randint(1000, 9999))
             user.set_password(password)
             user.save()
         if created:
@@ -445,7 +445,7 @@ def login_user(request):
             user = ShopUser.objects.get(phone=norm_phone)
             if not user.permanent_password:
                 """ Generate new password for user """
-                password = randint(1000, 9999)
+                password = str(randint(1000, 9999))
                 user.set_password(password)
                 user.save()
                 try:
@@ -519,7 +519,7 @@ def reset_password(request):
         if basket.phone:
             phone = basket.phone
     if phone:
-        password = randint(1000, 9999)
+        password = str(randint(1000, 9999))
         try:
             user = ShopUser.objects.get(phone=phone)
         except ShopUser.DoesNotExist:
