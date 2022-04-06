@@ -12,7 +12,7 @@
 {% endblock %}
 
 {% block content %}
-{% load staticfiles %}
+{% load static %}
 {% load shop_filters %}
 <h1>Регистрация</h1>
 <form id="registration-form" class="form-inline jumbotron{% if wrong_password %} has-error{% endif %}" action="{% url 'shop:register' %}" method="post">
