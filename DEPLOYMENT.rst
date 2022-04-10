@@ -21,6 +21,15 @@ The following packages are required:
     apt install certbot
     apt install git
 
+The following packages are required for building python packages:
+::
+    apt install build-essential
+    apt install python3-dev
+    apt install libmemcached-dev
+    apt install libpq-dev
+    apt install libjpeg-dev
+    apt install libtidy5deb1
+
 The following packages are optional:
 ::
     apt install less
@@ -63,6 +72,23 @@ Reconfigure Exim for internet mode to be able to send mails:
 ::
     dpkg-reconfigure exim4-config
 
+Two factor authentication
+*************************
+
+Install required package:
+::
+    apt install libpam-google-authenticator
+
+Execute ``google-authenticator -t -d -f -r 3 -R 30 -W`` for every interactive user to generate OTP codes.
+
+Add the following line to the bottom of the ``/etc/pam.d/sshd``:
+::
+    auth required pam_google_authenticator.so
+
+Enable challenge response:
+::
+    ChallengeResponseAuthentication	yes
+
 ***********
 Nginx setup
 ***********
@@ -82,12 +108,21 @@ Adjust ``/etc/nginx/nginx.conf``:
 PostgreSql setup
 ****************
 
+Create necessary roles and databases:
 ::
     CREATE ROLE andrey SUPERUSER;
     CREATE ROLE nikolays SUPERUSER;
     CREATE ROLE sworld;
     CREATE DATABASE sworld OWNER andrey;
     CREATE DATABASE sworld_dev OWNER andrey;
+
+Permit database login without password to ``sworld`` in ``/etc/postgresql/13/main/pg_hba.conf``:
+::
+    local   all             sworld                                  trust
+
+Import data from backup:
+::
+    cat sworld.db | psql sworld
 
 ***********
 UWSGI setup
@@ -187,6 +222,7 @@ Celery setup
     WantedBy=multi-user.target
 
 ``/etc/systemd/system/celery_beat@.service``:
+::
     [Unit]
     Description=Celery beat for %I
     Wants=redis-server.service
@@ -208,6 +244,7 @@ Celery setup
 ::
     d /run/celery 0755 nikolays www-data -
 
+Set proper permissions, otherwise services will fail to start:
 ::
     mkdir /run/celery
     chown nikolays:www-data /run/celery
@@ -226,7 +263,7 @@ file. So, general deployment scheme looks like this:
     git clone git@github.com:andreynovikov/django-shop.git janome.club
     cd janome.club
     git checkout janome
-    python3 -m virtualenv -p python3 env
+    python3 -m venv env
     source env/bin/activate
     pip install -r requirements.txt
     deactivate
