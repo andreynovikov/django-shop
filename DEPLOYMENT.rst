@@ -274,9 +274,6 @@ file. So, general deployment scheme looks like this:
     mkdir st_search
     sudo chown nikolays:www-data st_search
 
-Log rotation
-************
-
 ************************
 Master/slave replication
 ************************
@@ -359,6 +356,46 @@ to switch **from** *master* **to** *slave*. Actions on **master** should be take
 ********************
 Periodic maintenance
 ********************
+
+Log rotation
+************
+
+Create ``/etc/logrotate.d/sewing-world``:
+::
+    /www/*/logs/nginx*.log
+    {
+      daily
+      missingok
+      rotate 7
+      compress
+      delaycompress
+      notifempty
+      su www-data www-data
+      create 0640 www-data www-data
+      sharedscripts
+      prerotate
+        if [ -d /etc/logrotate.d/httpd-prerotate ]; then \
+          run-parts /etc/logrotate.d/httpd-prerotate; \
+        fi \
+      endscript
+      postrotate
+        invoke-rc.d nginx rotate >/dev/null 2>&1
+      endscript
+    }
+
+    /www/*/logs/uwsgi*.log
+    /www/*/logs/django*.log
+    {
+      su nikolays www-data
+      create 644 nikolays www-data
+      copytruncate
+      daily
+      rotate 7
+      compress
+      delaycompress
+      missingok
+      notifempty
+    }
 
 Development database syncronization
 ***********************************
