@@ -110,9 +110,9 @@ PostgreSql setup
 
 Create necessary roles and databases:
 ::
-    CREATE ROLE andrey SUPERUSER;
-    CREATE ROLE nikolays SUPERUSER;
-    CREATE ROLE sworld;
+    CREATE ROLE andrey SUPERUSER LOGIN;
+    CREATE ROLE nikolays SUPERUSER LOGIN;
+    CREATE ROLE sworld LOGIN;
     CREATE DATABASE sworld OWNER andrey;
     CREATE DATABASE sworld_dev OWNER andrey;
 
