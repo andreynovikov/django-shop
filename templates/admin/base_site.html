@@ -6,22 +6,22 @@
 {# https://fontawesome.com/icons?d=gallery&m=free #}
 <style>
     @media (max-width: 1200px) {
-    #branding h1 { display: none }
+      #branding h1 { display: none }
     }
     @media (max-width: 1024px) {
-    #branding h1 { display: block }
-    #quick-links, #order-quick-link, #stocks_status { margin: 8px 0 0; }
+      #branding h1 { display: block }
     }
-    @media (min-width: 1024px) {
-    #quick-links, #order-quick-link, #stocks_status { margin: 0 0 0 20px }
-    }
-    #quick-links, #order-quick-link, #stocks_status { float: right }
+    #brandng { order: 1 }
+    #quick-links, #order-quick-link, #stocks_status { order: 2 }
     #quick-links { text-transform: uppercase }
+    #user-tools { order: 3 }
 </style>
 {% endblock %}
 {% block nav-global %}
-<div id="stocks_status">
-    Актуализация склада: {% last_1c_import %}
+<div id="order-quick-link">
+    <form action="{% url 'admin:goto_order' %}">
+        Заказ: <input type="text" name="order" size="5" autocomplete="off" />
+    </form>
 </div>
 <div id="quick-links">
     <a href="{% url 'admin:shop_order_changelist' %}">Заказы</a>
@@ -30,10 +30,8 @@
     /
     <a href="{% url 'admin:shop_shopuser_changelist' %}">Пользователи</a>
 </div>
-<div id="order-quick-link">
-    <form action="{% url 'admin:goto_order' %}">
-        Заказ: <input type="text" name="order" size="5" autocomplete="off" />
-    </form>
+<div id="stocks_status">
+    Актуализация склада: {% last_1c_import %}
 </div>
 {% endblock %}
 {% block userlinks %}
