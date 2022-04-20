@@ -2,7 +2,7 @@
 {% load shop_filters %}
 <form class="row update form-inline ajax" action="{% url 'shop:update' product.id %}" method="post">
 {% csrf_token %}
-<div class="col-md-8"><a class="expand-description" data-toggle="collapse" href="#descr_{{ product.id }}" aria-expanded="false" aria-controls="descr_{{ product.id }}">{{ product.title }}</a>
+<div class="col-md-8"><a class="expand-description" data-toggle="collapse" href="#descr_{{ product.id }}" aria-expanded="false" aria-controls="descr_{{ product.id }}">{% if product.partnumber %}[{{ product.partnumber }}]&nbsp;{% endif %}{{ product.title }}</a>
 <div class="small">
 {% if product.instock == 0 %}
 Нет в продаже
