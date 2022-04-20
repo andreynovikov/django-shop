@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE|default:'ru' }}">
-{% load staticfiles %}
+{% load static %}
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
@@ -13,6 +13,16 @@
     {% block meta %}{% endblock meta %}
     <title>{% block title %}{% endblock title %}{% block title-page %}{% endblock title-page %}</title>
     {% block link %}{% endblock link %}
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-25392458-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-25392458-2');
+</script>
+<!-- /Global site tag (gtag.js) - Google Analytics -->
 
 <link rel="icon" href="{% static 'images/favicon.png' %}" type="image/png" />
 <link rel="stylesheet" type="text/css" media="screen" href="{% static 'css/bootstrap.min.css' %}"/>
@@ -119,6 +129,7 @@ h3.sw-p-l-name-h      { max-width:240px; }
 </head>
 
 <body>
+
 <!-- Yandex.Metrika counter -->
 <script type="text/javascript" >
    (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
@@ -149,8 +160,7 @@ h3.sw-p-l-name-h      { max-width:240px; }
 
 <nav class="navbar navbar-default">
   <div class="container-fluid">
-    <!-- Brand and toggle get grouped for better mobile display -->
-    <div class="navbar-header">
+      <div class="navbar-header">
       <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
         <span class="sr-only">Toggle navigation</span>
         <span class="icon-bar"></span>
@@ -174,13 +184,14 @@ h3.sw-p-l-name-h      { max-width:240px; }
         </div>
         <button type="submit" class="btn btn-default">Найти</button>
       </form>{% endblock %}
-    </div><!-- /.navbar-collapse -->
-  </div><!-- /.container-fluid -->
+    </div>
+  </div>
 </nav>
 
 </div> <!-- .container -->
 
 <div class="container">
+<h2>Уважаемые покупатели, к сожалению, оптовые продажи остановлены. Надеемся, что это временно.</h2>
 {% load django_bootstrap_breadcrumbs %}
 {% block breadcrumbs %}
     {% clear_breadcrumbs %}
@@ -190,21 +201,23 @@ h3.sw-p-l-name-h      { max-width:240px; }
 <div id="main">
 {% block content %}
 {% endblock %}
-</div> <!-- #main -->
+</div>
+
 <footer>
 <nav class="navbar navbar-default">
   <div class="container-fluid">
     <div class="" id="bs-example-navbar-collapse-2">
       <ul class="nav navbar-nav">
-        <li><a href="http://www.dor-tak.com">&copy;2002-2019 Dor Tak Thread Manufacturing Ltd.</a></li>
+        <li><a href="http://www.dor-tak.com">&copy;2002-2021 Dor Tak Thread Manufacturing Ltd.</a></li>
         <li><a href="http://www.sewing-world.ru">Представитель в России - "Швейный Мир"</a></li>
         <li><a href="mailto:info@dor-tak.ru">info@dor-tak.ru</a></li>
         <li><a href="tel:+74957665675">+7 495 766-56-75</a></li>
       </ul>
-    </div><!-- /.navbar-collapse -->
-  </div><!-- /.container-fluid -->
+    </div>
+  </div>
 </nav>
 </footer>
+
 <script src="{% static 'js/jquery-3.2.1.min.js' %}"></script>
 <script src="{% static 'js/inputmask.min.js' %}"></script>
 <script src="{% static 'js/inputmask.extensions.min.js' %}"></script>

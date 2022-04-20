@@ -13,7 +13,7 @@
 {% endblock %}
 
 {% block content %}
-{% load staticfiles %}
+{% load static %}
 {% load decimals %}
 {% load shop_filters %}
 <h1>Оформление заказа</h1>
@@ -172,7 +172,7 @@
         });
 
         function initHandlers() {
-            $("#order-submit").prop("disabled", true);
+            // $("#order-submit").prop("disabled", true);
 
             $("#send-order").on("submit", function () {
                  var complete = $("#phone-input").inputmask("isComplete");

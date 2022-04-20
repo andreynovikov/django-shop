@@ -2,7 +2,6 @@ from http.client import HTTPSConnection
 from urllib.error import URLError
 from urllib.parse import urlencode
 
-import sys
 import json
 
 class Client(object):
@@ -25,7 +24,6 @@ class Client(object):
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
             }
-        print(values, file=sys.stderr)
         conn = HTTPSConnection(host)
         conn.request('POST', url, values, headers)
         response = conn.getresponse()
@@ -40,5 +38,4 @@ class Client(object):
         if check:
             args["check"] = "1"
         result = self._call(args)
-        print(result, file=sys.stderr)
         return result

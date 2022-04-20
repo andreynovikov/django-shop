@@ -10,7 +10,7 @@ class Client(object):
         202: "Неправильно указан получатель",
         203: "Нет текста сообщения",
         204: "Имя отправителя не согласовано с администрацией",
-        205: "Сообщение слишком длинное (превышает 8 СМС)", 
+        205: "Сообщение слишком длинное (превышает 8 СМС)",
         206: "Будет превышен или уже превышен дневной лимит на отправку сообщений",
         207: "На этот номер (или один из номеров) нельзя отправлять сообщения, либо указано более 100 номеров в списке получателей",
         208: "Параметр time указан неправильно",
@@ -53,10 +53,7 @@ class Client(object):
         args['from'] = 'SEWINGWORLD'
 
         url = "http://sms.ru/%s?%s" % (method, urlencode(args))
-        import sys
-        print(url, file=sys.stderr)
         res = urlopen(url).read().decode('utf-8')
-        print(res, file=sys.stderr)
         return res.strip().split('\n')
 
     def send(self, to, message, express=False, test=False):
@@ -73,7 +70,11 @@ class Client(object):
         res = self._call("sms/send", args)
         if res[0] != "100":
             res.append(None)
-        return int(res[0]), Client.SEND_STATUS.get(int(res[0]), "Unknown status"), res[1]
+        return {
+            'code': int(res[0]),
+            'descr': Client.SEND_STATUS.get(int(res[0]), "Unknown status"),
+            'msg': res[1]
+        }
 
     def status(self, msgid):
         """Returns message status."""

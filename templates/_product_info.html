@@ -1,4 +1,4 @@
-{% load staticfiles %}
+{% load static %}
 {% load decimals %}
 {% load string_filters %}
 {% load shop_filters %}
@@ -72,12 +72,8 @@
 </div>
 <div class="sw-p-l-prices">
 <span class="sw-p-l-price">{{ cost|floatformat:"-2" }}</span>&#8239;&#8381;{% if product.ws_pack_only %}/шт.{% endif %}
-{% if product.pack_factor != 1 %}
-{% if product.ws_pack_only %}
+{% if product.ws_pack_only and product.pack_factor != 1 %}
 Продажа упаковками по {{ product.pack_factor }} шт.
-{% else %}
-Упаковка: {{ product.pack_factor }} шт.
-{% endif %}
 {% endif %}
 </div>
 {% endif %}
