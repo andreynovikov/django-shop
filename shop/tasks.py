@@ -59,7 +59,7 @@ SINGLE_DATE_FORMAT_WITH_YEAR = 'j E Y'
 
 log = logging.getLogger('shop')
 
-sw_default_site = Site.objects.get_current()
+sw_default_site = Site.objects.get(domain='www.sewing-world.ru')
 
 
 def single_instance_task(timeout):
@@ -389,7 +389,7 @@ def update_1c_stocks(self):
 
         import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
         filepath = os.path.join(import_dir, filename)
-        if modified:
+        if modified and os.path.isfile(filename):
             mdate = dateparse.parse_datetime(modified)
             fdate = timezone.make_aware(datetime.fromtimestamp(os.path.getmtime(filepath)))
             if mdate < fdate:
