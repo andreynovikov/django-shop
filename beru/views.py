@@ -117,6 +117,11 @@ def accept_order(request, account='beru'):
     logger.debug(data)
     beru_order = data.get('order', {})
 
+    order_id = beru_order.get('id', None)
+    order = Order.objects.filter(delivery_tracking_number=order_id).first()  # Beru sometimes registers same order several times
+    if order is not None:
+        return JsonResponse({"order": {"accepted": True, "id": str(order.id)}})
+
     user = ShopUser.objects.get(phone='0000')
 
     if not request.session.session_key:
@@ -161,7 +166,7 @@ def accept_order(request, account='beru'):
     if date:
         order.delivery_dispatch_date = datetime.strptime(date, '%d-%m-%Y')
 
-    order.delivery_tracking_number = beru_order.get('id', None)
+    order.delivery_tracking_number = order_id
     order.comment = beru_order.get('notes', '')
     order.save()
 
