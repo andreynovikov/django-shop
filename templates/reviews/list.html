@@ -1,60 +1,13 @@
 {% load site reviews %}
-{% load spirit_tags %}{# for get_gravatar_url, shortnaturaltime #}
-<style>
-#reviews dt {
-  font-size: 14px;
-  font-weight: normal;
-  clear: both;
-}
-#reviews dd {
-  margin-bottom: 14px;
-  padding-left: 74px;
-  border-bottom: #eeeeee 1px solid;
-}
-#reviews .review-rating {
-  display: block;
-  margin-top: 8px;
-}
-#reviews .review-rating > .gl-star-rating-stars {
-  vertical-align: text-top;
-}
-#reviews .gl-star-rating-stars > span {
-  width: 14px; height: 14px; background-size: 14px; margin: 0 1px 0 0;
-}
-#reviews .review-rating > .rating-text {
-  padding-left: 8px;
-  font-weight: bold;
-  color: #888;
-}
-#reviews .review-avatar {
-  width: 50px; /* temp */
-  float: left;
-  margin-right: 24px;
-  border-radius: 25px;
-}
-#reviews .review-published {
-  float: right;
-}
-</style>
-<dl id="reviews">
+{# load spirit_tags #}{# for get_gravatar_url, shortnaturaltime #}
   {% for review in review_list %}
-    <dt id="r{{ review.id }}">
-      <img src="{% get_gravatar_url user=review.user size=50 %}" class="review-avatar" alt="{{ review.user.get_full_name }}" />
-      {{ review.user.get_full_name }}
-      <time class="review-published" datetime="{{ review.submit_date|date:"c" }}" title="{{ review.submit_date }}">
-        {{ review.submit_date|shortnaturaltime }}
-      </time>
-    </dt>
-    <dd>
-      <span class="review-rating">
-      {% render_rating_value review.rating %}
-      {% with review.rating|add:"-1" as idx %}
-        {% with rating_choices|get_list_item:idx as choice %}
-          <span class="rating-text">{{ choice.1 }}</span>
-        {% endwith %}
-      {% endwith %}
-      </span>
-      {{ review.comment|linebreaks }}
-    </dd>
+                <div class="media review" id="r{{ review.id }}">
+                  <div class="text-center mr-4 mr-xl-5">{#<img src="{% get_gravatar_url user=review.user size=120 %}" class="review-image" alt="{{ review.user.get_full_name }}">#}<span class="text-uppercase text-muted">{{ review.submit_date|shortnaturaltime }}</span></div>
+                  <div class="media-body">
+                    <h5 class="mt-2 mb-1">{{ review.user.get_full_name }}</h5>
+                    <div class="mb-2">{% render_rating_value review.rating %}</div>
+                    <p class="text-muted">{{ review.comment|linebreaks }}</p>
+                  </div>
+                </div>
+
   {% endfor %}
-</dl>

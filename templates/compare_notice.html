@@ -1,5 +1,17 @@
-{% load staticfiles %}
+{% load static %}
 {% load rupluralize %}
 {% if count %}
-<a href="{% url 'compare' %}" rel="nofollow"><img src="{% static 'i/diag.svg' %}" alt="Сравнение" height="24" style="padding-right: 4px">В сравнении {{ count }} {{count|rupluralize:"товар,товара,товаров"}}</a>
+<div class="nav-item">
+				<a class="navbar-icon-link" href="/compare/">
+				<svg class="svg-icon">
+ 				  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-labelledby="title" aria-describedby="desc" role="img" xmlns:xlink="http://www.w3.org/1999/xlink">
+					<title>Сравнить</title>
+					<path data-name="layer2" fill="none" stroke="#202020" stroke-miterlimit="10" stroke-width="2" d="M32 16v40m-10 0h20M28 12H12L2 32" stroke-linejoin="round" stroke-linecap="round"></path>
+					<circle data-name="layer2" cx="32" cy="12" r="4" fill="none" stroke="#202020" stroke-miterlimit="10" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></circle>
+					<path data-name="layer2" fill="none" stroke="#202020" stroke-miterlimit="10" stroke-width="2" d="M12 12l10 20m14-20h16l10 20M52 12L42 32" stroke-linejoin="round" stroke-linecap="round"></path>
+					<path data-name="layer1" d="M12 42a10 10 0 0 0 10-10H2a10 10 0 0 0 10 10zm40 0a10 10 0 0 1-10-10h20a10 10 0 0 1-10 10z" fill="none" stroke="#202020" stroke-miterlimit="10" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+				  </svg>
+                </svg><div id="compare-block" class="navbar-icon-link-badge"><span id="compare_notice">{{ count }}</span></div>
+				</a>
+</div>
 {% endif %}

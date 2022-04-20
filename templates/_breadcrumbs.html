@@ -1,14 +1,9 @@
-<ol class="breadcrumb sw-breadcrumb">
-    {% for url, label in breadcrumbs %}
-        <li>
-            {% ifnotequal forloop.counter breadcrumbs_total %}
-                <a href="{{ url }}">{{ label|safe }}</a>
-            {% else %}
-                <b><a href="{{ url }}" id="cname">{{ label|safe }}</a></b>
-            {% endifnotequal %}
-            {% if not forloop.last %}
-                <!-- <span class="divider">/</span> -->
-            {% endif %}
-        </li>
-    {% endfor %}
+<ol class="breadcrumb justify-content-center">
+{% for url, label in breadcrumbs %}
+	{% ifnotequal forloop.counter breadcrumbs_total %}
+	<li class="breadcrumb-item"><a href="{{ url }}">{{ label|safe }}</a></li>
+	{% else %}
+	<li class="breadcrumb-item active"><a href="{{ url }}" id="cname">{{ label|safe }}</a></li>
+	{% endifnotequal %}
+{% endfor %}
 </ol>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load staticfiles %}
+{% load static %}
 {% load decimals %}
 {% load shop_filters %}
 {% load site %}
@@ -18,24 +18,35 @@
 {% block compare_notice %}
 {% endblock %}
 {% block content %}
-<div class="container">
-<h1>Сравнение товаров</h1>
-<h2>
+    <section class="hero">
+      <div class="container">
+        <!-- Hero Content-->
+        <div class="hero-content pb-5 text-center">
+<h1 class="hero-heading display-4">Сравнение товаров</h1>
+{% if products|length == 1 %}
+<div class="alert alert-primary mt-5 mb-5" role="alert">
+  Добавьте ещё один товар в сравнение
+</div>
+{% endif %}
+
+<div id="comparison_selector">
+<a class="btn btn-outline" id="diff_link">различающиеся характеристики</a> <a class="btn btn-outline" id="full_link">все характеристики</a>
+</div>
+
 {% if kinds|length > 1 %}
     {% for k in kinds %}
-    <a class="btn btn-sm {% if kind == k %}btn-warning{% else %}btn-default{% endif %}" href="{% url 'compare_kind' k.pk %}">{{ k.name }}</a>
+    <a class="btn btn-sm mt-5 mb-5 {% if kind == k %}btn-warning{% else %}btn-default{% endif %}" href="{% url 'compare_kind' k.pk %}">{{ k.name }}</a>
     {% endfor %}
 {% else %}
-{{ kind.name }}
+<!-- {{ kind.name }} -->
 {% endif %}
-</h2>
-<div id="comparison_selector">
-<a class="btn btn-default btn-xs" id="diff_link">различающиеся характеристики</a> <a class="btn btn-default btn-xs" id="full_link">все характеристики</a>
-</div>
-{% if products|length == 1 %}
-<h3>Добавьте ещё как минимум один товар в сравнение</h3>
-{% endif %}
-</div>
+
+
+		</div>
+      </div>
+    </section>
+
+
 <table id="comparison">
     <tr class="sw-pc-ph">
     {% for product in products %}
@@ -65,7 +76,8 @@
 {% endif %}
 {% endfor %}
 </div>
-<h3 class="sw-p-l-name-h"><a href="{% url 'product' product.code %}">{{ product.title }}</a></h3>
+<h4 class="display-5 sw-p-l-name-h"><a href="{% url 'product' product.code %}">{{ product.title }}</a></h4>
+
 </div>
     </td>
     {% endfor %}
@@ -73,6 +85,7 @@
     <tr class="sw-pc-ph">
     {% for product in products %}
     <td>
+<!--	
 {% if product.price > 0 %}
 <div class="sw-p-l-prices">
 {% if product.discount > 0 %}
@@ -83,11 +96,11 @@
 <div class="sw-p-l-buy">
 {% if product.instock > 0 %}
 <a href="{% url 'shop:add' product.id %}"
-class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}" onclick="var VK_add_to_cart_Params = {'products': [{'id': '{{ product.id }}'}]};
-    VK.Retargeting.ProductEvent(3195, 'add_to_cart', VK_add_to_cart_Params); dataLayer.push({'event': 'addToCart','ecommerce': {'currencyCode': 'RUB','add': {'products': [{'name':'{{ product.partnumber}} {{ product.title }}','id':'{{ product.id }}','category':'{{ category.name }}','brand':'{{ product.manufacturer.code }}','price':'{{ product.cost|quantize:"1" }}','quantity': 1}]}}});">Купить</a>
+class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}">Купить</a>
 {% endif %}
 </div>
 {% endif %}
+-->
     </td>
     {% endfor %}
     </tr>

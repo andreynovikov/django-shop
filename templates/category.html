@@ -1,27 +1,41 @@
 {% extends "base.html" %}
-{% load staticfiles %}
+{% load static %}
 {% load mptt_tags %}
 {% load django_bootstrap_breadcrumbs %}
 {% load site %}
 {% block title %}{{ category.name }}{% endblock %}
-{% block breadcrumbs %}
-    {{ block.super }}
-    {% breadcrumb "К первой странице" "/" %}
-    {% breadcrumb "Каталог" "catalog" %}
-    {% for node,structure in category.get_ancestors|tree_info %}
-        {% if node.is_child_node %}
-            {% breadcrumb node "category" node.get_path %}
-        {% endif %}
-    {% endfor %}
-{% endblock %}
-{% block content %}
-<h1>{{ category.name }}</h1>
-<ul class="catalog">
-{% for child in category.get_children|filter_qs:"active"|filter_qs:"!hidden" %}
-    <li class="category"><a href="{% url 'category' child.get_path %}">{{ child }}</a></li>
-{% endfor %}
-</ul>
+
+{% block content %}	
+    <!-- Hero Section-->
+    <section class="hero">
+      <div class="container">
+        <!-- Hero Content-->
+        <div class="hero-content pb-5 text-center">
+          <h1 class="hero-heading mt-5">{{ category.name }}</h1>
+          <div class="row">   
+            <!-- <div class="col-xl-8 offset-xl-2"><p class="lead text-muted">Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt.</p></div> -->
+			<ul class="catalog">
+			{% for child in category.get_children|filter_qs:"active"|filter_qs:"!hidden" %}
+				<li class="category"><a href="{% url 'category' child.get_path %}">{{ child }}</a></li>
+			{% endfor %}
+			</ul>
+		  </div>
+
+        </div>
+      </div>
+    </section>
+
+	<main>
+      <div class="container">
+		<div class="row">
+		<div class="products-grid col-12 sidebar-none">
+		<div class="row">
 {% for product in products %}
 {% include "_product_info.html" %}
 {% endfor %}
+		</div>
+        </div>
+		</div>
+     </div>
+    </main>
 {% endblock %}

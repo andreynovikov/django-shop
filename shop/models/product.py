@@ -13,12 +13,14 @@ from mptt.models import TreeManyToManyField
 
 from tagging.fields import TagField
 
+from reviews.models import UserReviewAbstractModel, REVIEW_MAX_LENGTH
+
 from model_field_list import ModelFieldListField
 
 from . import Category, Country, Currency, Manufacturer, SalesAction, Supplier
 
 __all__ = [
-    'Product', 'ProductRelation', 'ProductSet', 'ProductKind', 'Stock'
+    'Product', 'ProductRelation', 'ProductSet', 'ProductKind', 'ProductReview', 'Stock'
 ]
 
 logger = logging.getLogger(__name__)
@@ -425,6 +427,10 @@ class ProductKind(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ProductReview(UserReviewAbstractModel):
+    comment = models.TextField('комментарий', max_length=REVIEW_MAX_LENGTH, blank=True)
 
 
 class Stock(models.Model):

@@ -1,21 +1,17 @@
 {% extends "base.html" %}
+{% block title %}Error 404{% endblock %}
 {% block css %}
-<style type="text/css">
-    h1 {
-      font-size: 48px;
-      font-weight: 700;
-      margin: 20px 0 30px;
-    }
-    h2 {
-      font-size: 48px;
-      color: rgba(0, 0, 0, .2);
-      text-shadow: 0 1px 0 rgba(255, 255, 255, 1);
-      margin: 0 0 20px;
-    }
-</style>
 {% endblock %}
 {% block content %}
-<h2 class="pull-right">Error 404</h2>
-<h1>Страница не найдена</h1>
-<div>К сожалению, запрашиваемая вами страница не найдена.</div>
+<section class="hero">
+<div class="container">
+<div class="hero-content pb-5 text-center">
+	<h2>Error 404</h2>
+	<h1 class="hero-heading">Страница не найдена</h1>
+	<div class="row">   
+		<div class="col-xl-8 offset-xl-2"><p class="lead text-muted">К сожалению, запрашиваемая вами страница не найдена.</p></div>
+	</div>
+</div>
+</div>
+</section>
 {% endblock %}

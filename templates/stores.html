@@ -1,93 +1,73 @@
 {% extends "base.html" %}
-{% load staticfiles %}
+{% load static %}
 {% load l10n %}
 {% load django_bootstrap_breadcrumbs %}
 {% load shop_filters %}
-{% block title %}Магазины{% endblock %}
-{% block breadcrumbs %}
-    {{ block.super }}
-    {% breadcrumb "К первой странице" "/" %}
+{% block title %}Где купить{% endblock %}
+{% block css %}
+<style type="text/css">
+        #my-listbox {
+            top: auto;
+            left: auto;
+        }
+</style>
 {% endblock %}
 {% block content %}
+    <section class="hero">
+      <div class="container">
+        <!-- Hero Content-->
+        <div class="hero-content pb-5 text-center">
+        <h1 class="hero-heading mt-5">Где купить машины Family</h1>
+		<div class="row">   
+            <div class="col-xl-8 offset-xl-2"><p class="lead mb-0">Эксклюзивное право представления и распространения продукции бренда “Family” в России и странах СНГ принадлежит компании “Торговый Дом Швейных Машин”.  Со списком проверенных официальных дилеров вы можете ознакомиться ниже:</p></div>
+        </div>
+		<div id="map" style="width: 100%; height: 400px"></div>
+        </div>
+      </div>
+    </section>
+
+
 <div class="container">
-<div class="product-page">
-<h1>Наши магазины рядом с Вами</h1>
-
-<p>
-<select style="font-size: 12pt" id="search_form">
-<option>Выберите город:</option>
-{% for country_group in store_groups %}
-<optgroup label="{{ country_group.country.name }}">
-{% for city_group in country_group.cities %}
-<option id="city_option_{{ city_group.city.id }}"{% if city_group.city.longitude %} data-longitude="{{ city_group.city.longitude|unlocalize }}"{% endif %}{% if city_group.city.latitude %} data-latitude="{{ city_group.city.latitude|unlocalize }}"{% endif %}>{{ city_group.city.name }}</option>
-{% endfor %}
-</optgroup>
-{% endfor %}
-</select>
-</p>
-<div id="map" class="sw-map"></div>
-
-<h1>Наши телефоны</h1>
-<table border="0" style="padding:3px"><tr>
-<td>Единая справочная розничной сети:</td>
-<td>+7 495 744-00-87</td>
-</tr><tr>
-<td>Интернет-магазин в Москве:</td>
-<td>+7 495 766-56-75</td>
-</tr><tr>
-<td>Интернет-магазин в Санкт-Петербурге:</td>
-<td>+7 812 536-22-92</td>
-</tr><tr>
-<td>Интернет-магазин в Казани:</td>
-<td>+7 843 518-75-75, +7 843 292-26-40, +7 843 229-72-54</td>
-</tr><tr>
-<td>Отдел промышленного оборудования:</td>
-<td>+7 499 158-06-87</td>
-</tr><tr>
-<td>e-mail:</td>
-<td>
-<a href="mailto:info@thsm.ru">info@thsm.ru</a>
-</td>
-</tr></table>
+<div class="row">
 
 {% for country_group in store_groups %}
-<a href="#" name="{{ country_group.country.name }}"></a><h2>{{ country_group.country.name }}</h2>
+
+<div class="products-grid col-12 sidebar-none">
+<header class="product-grid-header">
+<h3>{{ country_group.country.name }}</h3>
+</header>
+<div class="row">
 {% for city_group in country_group.cities %}
-<h3>{{ city_group.city.name }}</h3>
-<div>
+<div class="col-xl-3 col-lg-4 col-sm-6">
+
+<div class="block-header">
+<h6 class="text-uppercase mb-0">{{ city_group.city.name }}</h6>
+</div>
+
+<div class="block-body bg-light pt-1 mb-2">
 {% for store in city_group.stores %}
-<div class="shop-img">
-{% if store.logo and 'i/shoplogos/marks/'|add:store.logo|add:'.png'|static_file_exists %}
-<img src="{% static 'i/shoplogos/marks/'|add:store.logo|add:'.png' %}"/>
-{% else %}
-<img src="{% static 'i/shoplogos/marks/other.png' %}" />
+<p><strong>{{ store.name }}</strong><br />
+{% if store.address %}
+{{ store.address }}<br />
 {% endif %}
-</div>
-<div class="shop-info" itemscope itemtype="http://schema.org/Organization">
-{% if store.logo == 'sewingworld' %}
-<a href="{% url 'store' store.id %}"><span class="shop-name" itemprop="name">&quot;{{ store.name }}&quot; - {{ store.city.name }}</span></a><br>
-{% else %}
-<span class="shop-name" itemprop="name">&quot;{{ store.name }}&quot;</span><br>
+{% if store.address2 %}
+{{ store.address2 }}<br />
 {% endif %}
-<div  itemprop="address" itemscope itemtype="http://schema.org/PostalAddress">
-<span class="shop-address" itemprop="streetAddress">{{ store.address }}</span> <span class="shop-address2">{{ store.address2 }}</span>
-<span class="shop-city" itemprop="addressLocality">{{ store.city.name }}</span>
-<span class="shop-country" itemprop="addressCountry">{{ store.city.country.name }}</span>
-</div>
-{% if store.hours %}
-<span class="shop-hours">{{ store.hours}}</span><br>
+{% if store.phone %}
+{{ store.phone }}<br />
 {% endif %}
-<span class="shop-phone" itemprop="telephone">{{ store.phone }}</span> <span class="shop-phone2">{{ store.phone2 }}</span><br>
 {% if store.url %}
-<span class="shop-homepage"><a href="{{ store.url }}">{{ store.url }}</a></span><br>
+<a href="{{ store.url }}">{{ store.url }}</a><br />
 {% endif %}
-{% if store.description %}
-<p>{{ store.description|safe }}</p><br>
-{% endif %}
-</div>
+</p>
 {% endfor %}
 </div>
+
+</div>
 {% endfor %}
+
+</div>
+</div>
 {% endfor %}
 </div>
 </div>
@@ -96,56 +76,139 @@
 <script>
 $(document).ready(function() {
   ymaps.ready(function() {
-    var geolocation = ymaps.geolocation;
     {% if city %}
     var coords = [{{ city.latitude|unlocalize }}, {{ city.longitude|unlocalize }}];
     $("#search_form option[id='city_option_{{ city.id }}']").attr("selected", "selected");
     {% else %}
-    var coords = [geolocation.latitude, geolocation.longitude];
+    var coords = [55.76, 37.64];
     {% endif %}
-    myMap = new ymaps.Map('map', {center: coords, zoom: 10, behaviors:['default', 'scrollZoom']});
-    myMap.controls
-      .add('zoomControl', { left: 5, top: 5 })
-      .add('typeSelector')
-      .add('mapTools', { left: 35, top: 5 })
-      .add(new ymaps.control.MiniMap({type: 'yandex#publicMap'}));
+    myMap = new ymaps.Map('map', {center: coords, zoom: 10, controls: ['zoomControl', 'typeSelector',  'fullscreenControl', 'geolocationControl', 'rulerControl']});
 
-    $('#search_form').change(function () {
-      var latitude = $("select option:selected").data('latitude');
-      var longitude = $("select option:selected").data('longitude');
-      if (latitude != undefined && longitude != undefined) {
-        myMap.setCenter([latitude, longitude]);
-        myMap.setZoom(12);
-      } else {
-        var str = "";
-        $("select option:selected").each(function () {
-          str += "город" + $(this).text() + " ";
+        // Создадим собственный макет выпадающего списка.
+        ListBoxLayout = ymaps.templateLayoutFactory.createClass(
+            "<button id='my-listbox-header' class='btn btn-success dropdown-toggle' data-toggle='dropdown'>" +
+                "\{\{data.title\}\} <span class='caret'></span>" +
+            "</button>" +
+            // Этот элемент будет служить контейнером для элементов списка.
+            // В зависимости от того, свернут или развернут список, этот контейнер будет
+            // скрываться или показываться вместе с дочерними элементами.
+            "<ul id='my-listbox'" +
+                " class='dropdown-menu' role='menu' aria-labelledby='dropdownMenu'" +
+                " style='display: \{\% if state.expanded \%\}block\{\% else \%\}none\{\% endif \%\};'></ul>", {
+
+            build: function() {
+                // Вызываем метод build родительского класса перед выполнением
+                // дополнительных действий.
+                ListBoxLayout.superclass.build.call(this);
+
+                this.childContainerElement = $('#my-listbox').get(0);
+                // Генерируем специальное событие, оповещающее элемент управления
+                // о смене контейнера дочерних элементов.
+                this.events.fire('childcontainerchange', {
+                    newChildContainerElement: this.childContainerElement,
+                    oldChildContainerElement: null
+                });
+            },
+
+            // Переопределяем интерфейсный метод, возвращающий ссылку на
+            // контейнер дочерних элементов.
+            getChildContainerElement: function () {
+                return this.childContainerElement;
+            },
+
+            clear: function () {
+                // Заставим элемент управления перед очисткой макета
+                // откреплять дочерние элементы от родительского.
+                // Это защитит нас от неожиданных ошибок,
+                // связанных с уничтожением dom-элементов в ранних версиях ie.
+                this.events.fire('childcontainerchange', {
+                    newChildContainerElement: null,
+                    oldChildContainerElement: this.childContainerElement
+                });
+                this.childContainerElement = null;
+                // Вызываем метод clear родительского класса после выполнения
+                // дополнительных действий.
+                ListBoxLayout.superclass.clear.call(this);
+            }
+        }),
+
+        // Также создадим макет для отдельного элемента списка.
+        ListBoxItemLayout = ymaps.templateLayoutFactory.createClass(
+            "<li><a>\{\{data.content\}\}</a></li>"
+        ),
+
+        // Создадим выпадающий список
+        listBoxItems = [
+		{% for country_group in store_groups %}
+            {% for city_group in country_group.cities %}
+			{% if city_group.city.longitude %}
+			new ymaps.control.ListBoxItem({
+                data: {
+                    content: '{{ city_group.city.name }}',
+                    center: [{{ city_group.city.latitude|unlocalize }}, {{ city_group.city.longitude|unlocalize }}],
+                    zoom: 9
+                }
+            }),
+			{% endif %}
+			{% endfor %}
+		{% endfor %}
+        ],
+
+        listBox = new ymaps.control.ListBox({
+                items: listBoxItems,
+                data: {
+                    content: 'Выберите город'
+                },
+				options: {
+                    // С помощью опций можно задать как макет непосредственно для списка,
+                    //layout: ListBoxLayout,
+                    // так и макет для дочерних элементов списка. Для задания опций дочерних
+                    // элементов через родительский элемент необходимо добавлять префикс
+                    // 'item' к названиям опций.
+                    //itemLayout: ListBoxItemLayout
+                }
+            });
+
+        listBox.events.add('click', function (e) {
+            // Получаем ссылку на объект, по которому кликнули.
+            // События элементов списка пропагируются
+            // и их можно слушать на родительском элементе.
+            var item = e.get('target');
+            // Клик на заголовке выпадающего списка обрабатывать не надо.
+            if (item != listBox) {
+                myMap.setCenter(
+                    item.data.get('center'),
+                    item.data.get('zoom')
+                );
+            }
         });
-        var country =$("select option:selected").parent();
-        str += " " + country.attr("label");
-        ymaps.geocode(str, {results: 100}).then(function (res) {
-          myMap.setCenter(res.geoObjects.get(0).geometry.getCoordinates());
-          myMap.setZoom(12);
-        });
-      }
-      return false;
+
+    myMap.controls.add(listBox, {float: 'left'});
+
+    {% if not city %}
+    var location = ymaps.geolocation;
+    location.get({
+      provider: 'yandex'
+    }).then(function(result) {
+      var userCoodinates = result.geoObjects.get(0).geometry.getCoordinates();
+      myMap.setCenter(userCoodinates);
+    }, function(err) {
+      console.log('Ошибка: ' + err)
     });
+    {% endif %}
+
   {% for store in stores %}
   {% if store.latitude and store.longitude %}
     myMap.geoObjects.add(new ymaps.Placemark([{{ store.latitude|unlocalize }}, {{ store.longitude|unlocalize }}], {
-        balloonContentHeader: '{% if store.logo and 'i/shoplogos/marks/'|add:store.logo|add:'.png'|static_file_exists %}<img src="{% static 'i/shoplogos/marks/'|add:store.logo|add:'.png' %}"/>{% else %}<img src="{% static 'i/shoplogos/marks/other.png' %}" />{% endif %}<a href="{% url 'store' store.id %}">{{ store.name|escapejs }}</a>',
+        balloonContentHeader: '{{ store.name|escapejs }}',
         balloonContent: '{{ store.address|escapejs }}{% if store.address2 %}<br/>{{ store.address2|escapejs }}{% endif %}<br/>{% if store.hours %}{{ store.hours|escapejs }}<br/>{% endif %}{{ store.phone|escapejs }}{% if store.phone2 %}<br/>{{ store.phone2|escapejs }}{% endif %}{% if store.url %}<br/><a href="{{ store.url }}">{{ store.url }}</a>{% endif %}',
-        balloonContentFooter: '{% if store.logo != 'sewingworld' %}<small>*магазин-партнер.<br>Рекламные акции Швейного Мира<br>могут не действовать в этом магазине</small>{% endif %}'
-      },
-      {
-        iconLayout: 'default#image',
-        iconImageHref: '{% if store.logo and 'i/shoplogos/marks/'|add:store.logo|add:'.png'|static_file_exists %}{% static 'i/shoplogos/marks/'|add:store.logo|add:'.png' %}{% else %}{% static 'i/shoplogos/marks/other.png' %}{% endif %}',
-        iconImageSize: [27, 26], iconImageOffset: [-10, -23]
-      }));
+        balloonContentFooter: ''
+      },{preset: 'islands#redDotIcon'}
+      ));
   {% endif %}
   {% endfor %}
   });
 });
 </script>
-<script src="//api-maps.yandex.ru/2.0-stable/?load=package.standard&lang=ru-RU" type="text/javascript"></script>
+<script src="https://api-maps.yandex.ru/2.1/?apikey=d3198a9f-0921-4cce-8c77-83e21dd524ac&lang=ru_RU"></script>
 {% endblock %}

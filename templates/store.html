@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load staticfiles %}
+{% load static %}
 {% load l10n %}
 {% load django_bootstrap_breadcrumbs %}
 {% load shop_filters %}
@@ -12,7 +12,7 @@
 {% block content %}
 <div class="container">
 <div class="product-page">
-<h1>{{ store.name }} - {{ store.city.name }}</h1>
+<h1 class="mb-3 display-4 font-weight-bold">{{ store.name }} - {{ store.city.name }}</h1>
 <p>Продажа швейных машин, оверлоков, вязальных машин и аксессуаров для рукоделия в г. {{ store.city.name }}.</p>
 <ul>
 <li>{{ store.address }} {{ store.address2 }}</li>
@@ -28,11 +28,7 @@
 {% endif %}
 </ul>
 <p>{{ store.description|safe }}</p>
-<table border="0"><tr><td>
-{# <p><img src="/images/shops/@@id@@.jpg" title="Швейные машины и оверлоки в г. {{ store.city.name }}"></p> #}
-</td><td>
-<div id="map" style="width:400px;height:533px;border:1px solid gray;"></div>
-</td></tr></table>
+<div id="map" style="height:533px;border:1px solid gray;"></div>
 </div>
 </div>
 {% endblock %}
@@ -42,13 +38,8 @@
 $(document).ready(function() {
   ymaps.ready(function() {
     var coords = [{{ store.latitude|unlocalize }}, {{ store.longitude|unlocalize }}];
-    var myMap = new ymaps.Map('map', {center: coords, zoom: 14, behaviors:['default']});
-    myMap.controls
-      .add('zoomControl', { left: 5, top: 5 })
-      .add('typeSelector')
-      .add('mapTools', { left: 35, top: 5 })
-      .add(new ymaps.control.MiniMap({type: 'yandex#publicMap'}));
-    myMap.geoObjects.add(new ymaps.Placemark(coords, {
+    var myMap = new ymaps.Map('map', {center: coords, zoom: 14, controls: ['zoomControl', 'typeSelector',  'fullscreenControl', 'geolocationControl', 'rulerControl']});
+    var myPlacemark = new ymaps.Placemark(coords, {
         balloonContentHeader: '{% if store.logo and 'i/shoplogos/marks/'|add:store.logo|add:'.png'|static_file_exists %}<img src="{% static 'i/shoplogos/marks/'|add:store.logo|add:'.png' %}"/>{% else %}<img src="{% static 'i/shoplogos/marks/other.png' %}" />{% endif %}{{ store.name|escapejs }}',
         balloonContent: '{{ store.address|escapejs }}{% if store.address2 %}<br/>{{ store.address2|escapejs }}{% endif %}<br/>{% if store.hours %}{{ store.hours|escapejs }}<br/>{% endif %}{{ store.phone|escapejs }}{% if store.phone2 %}<br/>{{ store.phone2|escapejs }}{% endif %}{% if store.url %}<br/><a href="{{ store.url }}">{{ store.url }}</a>{% endif %}',
         balloonContentFooter: '{% if store.logo != 'sewingworld' %}<small>*магазин-партнер.<br>Рекламные акции Швейного Мира<br>могут не действовать в этом магазине</small>{% endif %}'
@@ -57,10 +48,12 @@ $(document).ready(function() {
         iconLayout: 'default#image',
         iconImageHref: '{% if store.logo and 'i/shoplogos/marks/'|add:store.logo|add:'.png'|static_file_exists %}{% static 'i/shoplogos/marks/'|add:store.logo|add:'.png' %}{% else %}{% static 'i/shoplogos/marks/other.png' %}{% endif %}',
         iconImageSize: [27, 26], iconImageOffset: [-10, -23]
-      }));
+      });
+    myMap.geoObjects.add(myPlacemark);
+    myPlacemark.balloon.open();
   });
 });
 </script>
-<script src="//api-maps.yandex.ru/2.0-stable/?load=package.standard&lang=ru-RU" type="text/javascript"></script>
+<script src="https://api-maps.yandex.ru/2.1/?apikey=d55e0ba4-d72b-4062-914c-94559697de16&lang=ru_RU"></script>
 {% endif %}
 {% endblock %}
