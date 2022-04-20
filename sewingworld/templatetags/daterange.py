@@ -9,7 +9,8 @@ SINGLE_DATE_FORMAT = 'j E'
 SINGLE_DATE_FORMAT_WITH_YEAR = 'j E Y'
 RANGE_FORMAT = '{}&thinsp;&ndash;&thinsp;{}'
 
-register=template.Library()
+register = template.Library()
+
 
 @register.filter
 def daterange(dates):

@@ -49,7 +49,7 @@ from unisender import Unisender
 
 from sewingworld.models import SiteProfile
 from sewingworld.sms import send_sms
-from utility.templatetags.rupluralize import rupluralize
+from sewingworld.templatetags.rupluralize import rupluralize
 
 from shop.models import ShopUser, ShopUserManager, Supplier, Currency, Product, Stock, Basket, Order
 

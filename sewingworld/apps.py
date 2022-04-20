@@ -7,6 +7,8 @@ class SWAppConfig(AppConfig):
     verbose_name = 'Швейный Мир'
 
     def ready(self):
+        import sewingworld.tasks  # noqa: F401
+
         import djconfig
         from .forms import SWConfigForm
         djconfig.register(SWConfigForm)
