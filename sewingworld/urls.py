@@ -7,7 +7,6 @@ from django.contrib.sitemaps.views import sitemap
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 import mptt_urls
-import spirit.urls
 from zinnia.sitemaps import EntrySitemap
 from forum.sitemaps import ThreadSitemap
 
@@ -89,7 +88,6 @@ urlpatterns = [
     url(r'^kassa/', include('yandex_kassa.urls')),
     url(r'^blog/', include('zinnia.urls')),
     url(r'^comments/', include('django_comments.urls')),
-    url(r'^forum/', include(spirit.urls)),
     url(r'^reviews/', include('reviews.urls')),
     url(r'^oldforum/', include('forum.urls')),
 
