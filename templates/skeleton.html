@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE|default:'ru' }}">
-{% load staticfiles %}
+{% load static %}
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -40,7 +40,7 @@
 <script src="{% static 'js/jquery.dump.js' %}"></script>
 <script src="{% static 'js/js.cookie.js' %}"></script>
 <script src="{% static 'bootstrap/js/bootstrap.min.js' %}"></script>
-<script src="{% static 'js/site.js' %}"></script>
+<script src="{% static 'js/site.js' %}?190725"></script>
 {% block javascript_wrapper %}
 {% endblock %}
 {% block body_bottom %}
