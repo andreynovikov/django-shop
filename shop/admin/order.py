@@ -556,10 +556,10 @@ class OrderAdmin(admin.ModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied
         if 'action' in request.POST and request.POST['action'] == 'order_product_list_action':
-            if not request.POST.getlist(admin.ACTION_CHECKBOX_NAME):
+            if not request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME):
                 post = request.POST.copy()
                 # '0' is special case for 'all'
-                post.update({admin.ACTION_CHECKBOX_NAME: '0'})
+                post.update({admin.helpers.ACTION_CHECKBOX_NAME: '0'})
                 request._set_post(post)
         return super().changelist_view(request, extra_context)
 
@@ -644,7 +644,7 @@ class OrderAdmin(admin.ModelAdmin):
     def order_product_list_action(self, request, queryset):
         if not request.user.is_staff:
             raise PermissionDenied
-        selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
+        selected = request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME)
         return HttpResponseRedirect("products/?orders=%s" % ",".join(selected))
     order_product_list_action.short_description = "Показать товары для выбранных заказов"
 
@@ -1135,7 +1135,7 @@ class OrderAdmin(admin.ModelAdmin):
                 aux_supplier = Supplier.objects.get(pk=request.POST.get('aux_supplier'))
             else:
                 aux_supplier = None
-            selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
+            selected = request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME)
             cursor = connection.cursor()
             inner_cursor = connection.cursor()
             cursor.execute("""SELECT shop_product.id AS product_id, shop_product.article,
@@ -1230,7 +1230,7 @@ class OrderAdmin(admin.ModelAdmin):
     def order_products_action(self, request, queryset):
         if not request.user.is_staff:
             raise PermissionDenied
-        selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
+        selected = request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME)
         cursor = connection.cursor()
         cursor.execute("""SELECT shop_orderitem.product_id, shop_product.article, SUM(shop_orderitem.quantity) AS quantity
                           FROM shop_orderitem INNER JOIN shop_product ON (shop_product.id = shop_orderitem.product_id)
