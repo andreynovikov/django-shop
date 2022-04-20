@@ -1,4 +1,4 @@
-{% load staticfiles %}
+{% load static %}
 {% if field == 'km_class' %}
 <a class="opener-ajax" href="{% url 'django.contrib.flatpages.views.flatpage' url='help/km_class/' %}"><img src="{% static 'i/icons/more_icon.png' %}"></a>
 {% endif %}
