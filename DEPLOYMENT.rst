@@ -45,7 +45,7 @@ Create three users in this particular order (to preserve uids):
     adduser andrey
     adduser nikolays
 
-Add users ``andrey`` and ``nikolays`` to ``suduers`` and ``www-data`` groups.
+Add users ``andrey`` and ``nikolays`` to ``sudu`` and ``www-data`` groups.
 
 Disable ssh root login:
 ::
@@ -65,7 +65,7 @@ Setup correct timezone:
 
 Enable time syncronization. Create ``/etc/cron.daily/ntpdate`` file:
 ::
-    !#/bin/sh
+    #!/bin/sh
     /usr/sbin/ntpdate -u ru.pool.ntp.org
 
 Reconfigure Exim for internet mode to be able to send mails:
@@ -288,11 +288,15 @@ File replication
 Files are replicated by ``rsync`` executed by ``cron`` on hourly basis. Create ``/etc/cron.hourly/rsync``:
 ::
     #!/bin/sh
-    test -f /primary_server && rsync -a -s -S -u --exclude "*.pyc" --exclude "*.log" --exclude "__pycache__/" -e "ssh -i /home/andrey/.ssh/id_rsa" --rsync-path="sudo rsync" --numeric-ids /www/ andrey@duo.sigalev.ru:/www/
+    test -f /primary_server && rsync -a -s -S -u --exclude "*.pyc" --exclude "logs/" --exclude "__pycache__/" -e "ssh -i /home/andrey/.ssh/id_rsa" --rsync-path="sudo rsync" --numeric-ids /www/ andrey@duo.sigalev.ru:/www/
 
-Disable sudo password for rsync on slave in ``/etc/sudoers``:
+Disable sudo password for rsync - create file ``/etc/sudoers.d/rsync`` on slave:
 ::
     andrey  ALL=NOPASSWD:/usr/bin/rsync
+
+Set proper permissions:
+::
+    chmod 440 /etc/sudoers.d/rsync
 
 Database replication
 ********************
