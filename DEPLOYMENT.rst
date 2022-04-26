@@ -116,7 +116,7 @@ Create necessary roles and databases:
     CREATE DATABASE sworld OWNER andrey;
     CREATE DATABASE sworld_dev OWNER andrey;
 
-Permit database login without password to ``sworld`` in ``/etc/postgresql/13/main/pg_hba.conf``:
+Permit database login without password to ``sworld`` in ``/etc/postgresql/*.*/main/pg_hba.conf``:
 ::
     local   all             sworld                                  trust
 
@@ -306,15 +306,14 @@ Configure PostgreSql on master:
     listen_addresses = '*'
     wal_level = replica
     max_wal_senders = 3
-    wal_keep_segments = 16
-    hot_standby = on
+    wal_keep_size = 256
 
 Permit replication connection in ``/etc/postgresql/X.X/main/pg_hba.conf`` on master:
 ::
-    host     replication     replicator      193.19.119.252/32       md5
+    host     replication     replicator      217.25.88.165/32        md5
 and on slave:
 ::
-    host     replication     replicator      46.229.213.124/32       md5
+    host     replication     replicator      92.53.104.6/32          md5
 
 Create ``replicator`` user on master:
 ::
@@ -330,17 +329,13 @@ Configure PostgreSql on slave:
     hot_standby = on
     promote_trigger_file = '/primary_server'
 
-Copy current database state from master to slave (should be executer on slave):
+Stop postgresql on slave, copy current database state from master to slave (should be executer on slave):
 ::
+    systemctl stop postgresql
     rm -rf /var/lib/postgresql/X.X/main/*
-    pg_basebackup -h 46.229.213.124 -U replicator -p 5432 -D /var/lib/postgresql/X.X/main -P -Xs -R
+    pg_basebackup -h 92.53.104.6 -U replicator -p 5432 -D /var/lib/postgresql/X.X/main -P -Xs -R
 
-Enable replication by creating the file ``/var/lib/postgresql/9.6/main/recovery.conf`` on slave:
-::
-standby_mode = 'on'
-primary_conninfo = 'user=replicator password=DataRep626 host=46.229.213.124 port=5432 sslmode=prefer sslcompression=1 krbsrvname=postgres'
-trigger_file = '/primary_server'
-
+This will also create required configuration files. Start postgresql to begin replication.
 
 ****************
 Failover actions
