@@ -433,6 +433,8 @@ class ProductReview(UserReviewAbstractModel):
     advantage = models.TextField('достоинства', max_length=REVIEW_MAX_LENGTH, blank=True)
     disadvantage = models.TextField('недостатки', max_length=REVIEW_MAX_LENGTH, blank=True)
     comment = models.TextField('комментарий', max_length=REVIEW_MAX_LENGTH, blank=True)
+    reviewer_name = models.CharField('имя пользователя', max_length=100, blank=True)
+    reviewer_avatar = models.CharField('аватар пользователя', max_length=255, blank=True)
 
 
 class Stock(models.Model):
