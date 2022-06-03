@@ -302,9 +302,12 @@ def authorize(request):
         if user and user.is_active:
             login(request, user)
             basket.update_session(request.session.session_key)
+            """
+            We disabled this because Nikolay wants order to be registered as soon as user authenticates
             data = {
                 'user': user,
             }
+            """
         else:
             """ Bad password """
             data = {
