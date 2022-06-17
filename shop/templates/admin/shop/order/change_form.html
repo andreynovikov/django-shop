@@ -1,5 +1,5 @@
 {% extends "admin/change_form.html" %}
-{% load i18n admin_urls admin_modify %}
+{% load i18n l10n admin_urls admin_modify %}
 
 {% block extrastyle %}{{ block.super }}
     <style>
@@ -72,6 +72,26 @@
         $ContinueButton.val("Сохранить и ОСВОБОДИТЬ");
         $ContinueButton.attr('name', '_save');
 {% endif %}
+        var Weight = 0;
+        var WeightError = false;
+{% for item in original.items.all %}
+        var weight{{ item.pk }} = '{{ item.product.prom_weight|unlocalize }}';
+        if (weight{{ item.pk }}.length > 0)
+            weight{{ item.pk }} = parseFloat(weight{{ item.pk }});
+        else
+            weight{{ item.pk }} = 0;
+        if (weight{{ item.pk }} > 0)
+            Weight += parseFloat(weight{{ item.pk }}) * {{ item.quantity }};
+        else
+            WeightError = true;
+{% endfor %}
+        var WeightStyle = '';
+        var WeightTitle = '';
+        if (WeightError) {
+            WeightStyle = '; color: #f00';
+            WeightTitle = ' title="Не все позиции имеют указанный вес!"';
+        }
+
         var Delivery_Price = $("input[name='delivery_price']").val();
         var Products_Price = $("div.field-products_price > div > div.readonly").html();
         var Total = $("div.field-total > div > div.readonly").html();
@@ -79,6 +99,7 @@
         $("#items-group").after("<div style=\"text-align:right;\" class=\"lead\">Итого: " + Total + "</div>");
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Доставка: " + Delivery_Price + "</div>");
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Всего: " + Products_Price + "</div>");
+        $("#items-group").after("<div style=\"text-align:right; margin-bottom:0"+ WeightStyle + "\" class=\"lead\"" + WeightTitle + ">Общий вес: " + Weight + "</div>");
         $("#content h1").append(' <b>' + Number + '</b>');
 
         $("select#id_status").on('change', function() {
