@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load static %}
 <html>
 <head>
   <title></title>
@@ -23,9 +24,9 @@ body     { font-size:9pt; font-family:Verdana,sans-serif; }
 <div class="wrapper">
 <table style="width:100%">
 <tr>
-<td style="text-align:center;"><img src="/static/i/husqvarna.svg" style="width:50mm"><br><b>www.husqvarnaviking.com</b></td>
+<td style="text-align:center;"><img src="{% static 'i/husqvarna.svg' %}" style="width:50mm"><br><b>www.husqvarnaviking.com</b></td>
 <td><h1>ГАРАНТИЙНАЯ КАРТОЧКА</h1></td>
-<td style="align:right;"><img src="/static/i/eac.svg" style="width:10mm"></td>
+<td style="align:right;"><img src="{% static 'i/eac.svg' %}" style="width:10mm"></td>
 </tr>
 </table>
 <p>Благодарим Вас за то, что Вы выбрали марку Husqvarna Viking! Уже более 140 лет мы производим швейную технику,
