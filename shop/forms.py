@@ -22,3 +22,9 @@ class UserForm(forms.Form):
         if ShopUser.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError("Такой псевдоним уже используется")
         return username
+
+
+class WarrantyCardForm(forms.Form):
+    number = forms.CharField(label='Серийный номер', max_length=100,
+                             help_text='Серийный номер можно найти на корпусе изделия или в гарантийном талоне',
+                             error_messages={'required': 'Укажите серийный номер изделия'})
