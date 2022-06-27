@@ -1,11 +1,12 @@
 {% if product.manufacturer.code == 'Pfaff' %}
-{% include "shop/warrantycards/pfaff.html" %}
+{% include "./pfaff.html" %}
 {% elif product.manufacturer.code == 'Husqvarna' %}
-{% include "shop/warrantycards/husqvarna.html" %}
+{% include "./husqvarna.html" %}
 {% elif product.manufacturer.code == 'Singer' %}
-{% include "shop/warrantycards/singer.html" %}
+{% include "./singer.html" %}
 {% else %}
 <!DOCTYPE html>
+{% load static %}
 <html>
 <head>
   <title></title>
@@ -30,9 +31,9 @@ body     { font-size:9pt; font-family:Verdana,sans-serif; }
 <div class="wrapper">
 <table style="width:100%">
 <tr>
-<td style="text-align:center;"><img src="/static/i/logo.svg" style="width:80mm"><br><b>www.sewing-world.ru</b></td>
+<td style="text-align:center;"><img src="{% static 'i/logo.svg' %}" style="width:80mm"><br><b>www.sewing-world.ru</b></td>
 <td><h1>Гарантийная карточка</h1></td>
-<td style="align:right;"><img src="/static/i/eac.svg" style="width:10mm"></td>
+<td style="align:right;"><img src="{% static 'i/eac.svg' %}" style="width:10mm"></td>
 </tr>
 </table>
 <table style="width:100%">
@@ -44,18 +45,19 @@ body     { font-size:9pt; font-family:Verdana,sans-serif; }
 </tr>
 <tr>
 <td>Торговая организация</td>
-<td colspan="3">
+<td colspan="{% if admin %}3{% else %}2{% endif %}">
 Интернет-магазин "Швейный Мир"<br>
 www.sewing-world.ru<br>
 {{ owner_info.full_name }}<br>
 ИНН {{ owner_info.inn }}<br>
 {{ owner_info.phone }}</td>
+{% if not admin %}<td><img src="{% static 'i/stamp.jpg' %}" width="150" height="150"></td>{% endif %}
 </tr>
 <tr>
 <td>Дата продажи</td>
 <td>{% if order.delivery_handing_date %}{{ order.delivery_handing_date }}{% else %}&laquo;_____&raquo;___________ 20___{% endif %}</td>
 <td>Продавец</td>
-<td>___________</td>
+<td>{% if admin %}___________{% else %}<img src="{% static 'i/script-dir.jpg' %}" width="137" height="75">{% endif %}</td>
 </tr>
 </table>
 
