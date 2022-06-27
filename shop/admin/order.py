@@ -473,7 +473,7 @@ class OrderAdmin(admin.ModelAdmin):
                    'paid', OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
                    ('delivery_handing_date', FutureDateRangeFilter), 'manager', 'courier']
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment', 'delivery_tracking_number',
-                     'delivery_yd_order', 'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
+                     'delivery_info', 'delivery_yd_order', 'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
                      'item__serial_number']
     inlines = [OrderItemInline, BoxInline]
     form = OrderAdminForm
