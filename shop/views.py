@@ -22,8 +22,8 @@ from django.utils.formats import localize
 
 from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail
-from shop.models import Product, Basket, BasketItem, Order, ShopUser, ShopUserManager
-from shop.forms import UserForm
+from shop.models import Product, Basket, BasketItem, Order, OrderItem, ShopUser, ShopUserManager
+from shop.forms import UserForm, WarrantyCardForm
 
 import logging
 
@@ -722,3 +722,30 @@ def update_user(request):
         return JsonResponse(data)
     else:
         return render(request, 'shop/_update_user.html', context)
+
+
+def print_warranty_card(request):
+    if request.method == 'POST':
+        form = WarrantyCardForm(request.POST)
+        if form.is_valid():
+            number = form.cleaned_data['number']
+            item = OrderItem.objects.filter(serial_number=number.strip()).order_by('-order__created').first()
+            if item is None:
+                form.add_error('number', 'Изделие с таким серийным номером не покупалось в нашем интернет-магазине')
+            else:
+                context = {
+                    'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
+                    'order': item.order,
+                    'product': item.product,
+                    'serial_number': item.serial_number,
+                    'admin': False
+                }
+                return render(request, 'shop/warrantycard/common.html', context)
+    else:
+        form = WarrantyCardForm()
+
+    context = {
+        'form': form,
+        'invalid': not form.is_valid()
+    }
+    return render(request, 'shop/warrantycard_form.html', context)

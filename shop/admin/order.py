@@ -717,9 +717,10 @@ class OrderAdmin(admin.ModelAdmin):
                         'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
                         'order': order,
                         'product': item.product,
-                        'serial_number': serial_number
+                        'serial_number': serial_number,
+                        'admin': True
                     }
-                    return TemplateResponse(request, 'shop/order/warrantycard.html', context)
+                    return TemplateResponse(request, 'shop/warrantycard/common.html', context)
 
                 except Exception:
                     # If save() raised, the form will a have a non
