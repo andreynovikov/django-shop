@@ -131,8 +131,9 @@ class YandexDeliveryWidget(TextInput):
 
 
 class DeliveryTrackingNumberWidget(TextInput):
-    def __init__(self, order_id, ym_campaign, attrs=None):
+    def __init__(self, order_id, utm_source, ym_campaign, attrs=None):
         self.order_id = order_id
+        self.utm_source = utm_source
         self.ym_campaign = ym_campaign
         super(DeliveryTrackingNumberWidget, self).__init__(attrs)
 
@@ -140,22 +141,29 @@ class DeliveryTrackingNumberWidget(TextInput):
         final_attrs = self.build_attrs(attrs)
         # Use provided id or generate hex to avoid collisions in document
         id = final_attrs.get('id', uuid.uuid4().hex)
-        if value and self.ym_campaign:
-            glyphicon = 'pencil-alt'
-            popup = 'https://partner.market.yandex.ru/supplier/{campaignId}/orders/{orderId}?id={campaignId}'.format(campaignId=self.ym_campaign, orderId=value)
-            link_class = ''
-            final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
-            #final_attrs['value'] = force_text(self.format_value(value))
-            #final_attrs['type'] = 'hidden'
-            output = ['<input{0} />№{1}'.format(flatatt(final_attrs), value)]
-            output.append('''<a class="button%(link_class)s" style="display: inline-block; margin-left: 7px"
-                             id="%(id)s_create_link" href="%(popup)s"><i class="fas fa-%(glyphicon)s"></i></a>''' % dict(
-                id=id,
-                glyphicon=glyphicon,
-                popup=popup,
-                link_class=link_class
-            ))
-        else:
+        output = None
+        if value:
+            if self.utm_source == 'ozon':
+                popup = 'https://seller.ozon.ru/app/postings/fbs/?postingDetails={postingId}'.format(postingId=value)
+            elif self.ym_campaign:
+                popup = 'https://partner.market.yandex.ru/supplier/{campaignId}/orders/{orderId}?id={campaignId}'.format(campaignId=self.ym_campaign, orderId=value)
+
+            if popup:
+                glyphicon = 'pencil-alt'
+                link_class = ''
+                final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
+                # final_attrs['value'] = force_text(self.format_value(value))
+                # final_attrs['type'] = 'hidden'
+                output = ['<input{0} />№{1}'.format(flatatt(final_attrs), value)]
+                output.append('''<a class="button%(link_class)s" style="display: inline-block; margin-left: 7px"
+                              id="%(id)s_create_link" href="%(popup)s"><i class="fas fa-%(glyphicon)s"></i></a>''' % dict(
+                    id=id,
+                    glyphicon=glyphicon,
+                    popup=popup,
+                    link_class=link_class
+                ))
+
+        if output is None:
             output = [super(DeliveryTrackingNumberWidget, self).render(name, value, attrs, renderer)]
 
         return mark_safe(''.join(output))

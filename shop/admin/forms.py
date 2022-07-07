@@ -324,10 +324,15 @@ class OrderAdminForm(forms.ModelForm):
             self.fields['user_tags'].widget = TagAutoComplete(model=type(instance.user), attrs=self.fields['user_tags'].widget.attrs)
 
             if instance.integration and instance.integration.uses_api and instance.integration.settings:
-                ym_campaign = instance.integration.settings.get('ym_campaign', '')
+                utm_source = instance.integration.utm_source
+                if instance.integration.settings:
+                    ym_campaign = instance.integration.settings.get('ym_campaign', '')
+                else:
+                    ym_campaign = ''
             else:
+                utm_source = ''
                 ym_campaign = ''
-            self.fields['delivery_tracking_number'].widget = DeliveryTrackingNumberWidget(instance.id, ym_campaign)
+            self.fields['delivery_tracking_number'].widget = DeliveryTrackingNumberWidget(instance.id, utm_source, ym_campaign)
             self.fields['delivery_yd_order'].widget = YandexDeliveryWidget(instance.id, config.sw_yd_campaign)
         except (KeyError, AttributeError):
             pass
