@@ -16,8 +16,7 @@ class SWAdminSite(admin.AdminSite):
         import shop.admin.views  # prevent circular import
         urls = super().get_urls()
         urls = [
-            path('goto_order/', self.admin_view(shop.admin.views.goto_order), name='goto_order'),
-            path('import1c/', shop.admin.views.import_1c, name='import_1c')
+            path('goto_order/', self.admin_view(shop.admin.views.goto_order), name='goto_order')
         ] + urls
         return urls
 
@@ -44,6 +43,26 @@ class SWFlatPageForm(ModelForm):
 """
 
 
+class SiteProfileInline(admin.StackedInline):
+    model = SiteProfile
+    can_delete = False
+
+
+def get_site_prefix(obj):
+    return obj.profile.order_prefix
+get_site_prefix.short_description = 'префикс'
+
+
+def get_manager_phones(obj):
+    return obj.profile.manager_phones
+get_manager_phones.short_description = 'телефоны менеджеров'
+
+
+def get_manager_emails(obj):
+    return obj.profile.manager_emails
+get_manager_emails.short_description = 'адреса менеджеров'
+
+
 def get_sites(obj):
     'returns a list of site names for a FlatPage object'
     return ", ".join((site.name for site in obj.sites.all()))
@@ -52,17 +71,21 @@ get_sites.short_description = 'Sites'
 
 def configure_admin():
     djconfig.admin.register(SWConfig, SWConfigAdmin)
-    admin.site.register(SiteProfile, admin.ModelAdmin)
+
+    from django.contrib.sites.admin import SiteAdmin
+    from django.contrib.sites.models import Site
+    SWSiteAdmin = type('SWSiteAdmin', (SiteAdmin,), {
+        'list_display': ('domain', 'name', get_site_prefix, get_manager_phones, get_manager_emails),
+        'inlines': (SiteProfileInline,)
+    })
+    admin.site.unregister(Site)
+    admin.site.register(Site, SWSiteAdmin)
 
     from tagging.admin import TagAdmin
     from tagging.models import Tag
     SWTagAdmin = type('SWTagAdmin', (TagAdmin,), {'search_fields': ['name'], 'ordering': ['name']})
     admin.site.unregister(Tag)
     admin.site.register(Tag, SWTagAdmin)
-
-    from lock_tokens.admin import LockTokenAdmin
-    from lock_tokens.models import LockToken
-    admin.site.register(LockToken, LockTokenAdmin)
 
     from django.contrib.flatpages.admin import FlatPageAdmin
     from django.contrib.flatpages.models import FlatPage
@@ -79,7 +102,7 @@ def configure_admin():
                 ),
             }),
         ),
-        #form = SWFlatPageForm
+        # form = SWFlatPageForm
     })
     admin.site.unregister(FlatPage)
     admin.site.register(FlatPage, SWFlatPageAdmin)

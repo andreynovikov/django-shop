@@ -1,41 +1,6 @@
-from __future__ import unicode_literals
-
 from django.db import models
 
-from spirit.category.models import Category
-from spirit.user.models import UserProfile
-from spirit.topic.models import Topic
-from spirit.comment.flag.models import CommentFlag
-
 from shop.models import Product
-
-
-class SpiritCategory(Category):
-    class Meta:
-        proxy = True
-        verbose_name = 'Категория'
-        verbose_name_plural = 'Категории'
-
-
-class SpiritUserProfile(UserProfile):
-    class Meta:
-        proxy = True
-        verbose_name = 'Профиль пользователя'
-        verbose_name_plural = 'Профили пользователя'
-
-
-class SpiritTopic(Topic):
-    class Meta:
-        proxy = True
-        verbose_name = 'Тема'
-        verbose_name_plural = 'Темы'
-
-
-class SpiritCommentFlag(CommentFlag):
-    class Meta:
-        proxy = True
-        verbose_name = 'Пометка'
-        verbose_name_plural = 'Пометки'
 
 
 class BassetUser(models.Model):
@@ -190,7 +155,7 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-    orid = models.ForeignKey(Order, db_column='orid', on_delete=models.CASCADE, related_name='item', primary_key=True)
+    orid = models.OneToOneField(Order, db_column='orid', on_delete=models.CASCADE, related_name='item', primary_key=True)
     pid = models.ForeignKey(Product, db_column='pid', on_delete=models.CASCADE)
     pq = models.IntegerField()
     pprice = models.FloatField()

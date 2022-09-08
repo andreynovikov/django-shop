@@ -9,8 +9,9 @@ from django.template import loader
 from django.utils.text import capfirst
 
 from sewingworld.models import SiteProfile
+from facebook.tasks import FACEBOOK_TRACKING, notify_view_content
 from shop.models import Category, Product, ProductRelation, ProductSet, ProductKind, Manufacturer, \
-    Advert, SalesAction, City, Store, ServiceCenter, Stock, Favorites
+    Advert, SalesAction, City, Store, ServiceCenter, Stock, Favorites, Integration, ProductIntegration
 from shop.filters import get_product_filter
 
 
@@ -26,6 +27,7 @@ def index(request):
         'top_adverts': Advert.objects.filter(active=True, place='index_top', sites=site).order_by('order'),
         'middle_adverts': Advert.objects.filter(active=True, place='index_middle', sites=site).order_by('order'),
         'bottom_adverts': Advert.objects.filter(active=True, place='index_bottom', sites=site).order_by('order'),
+        'ground_adverts': Advert.objects.filter(active=True, place='index_ground', sites=site).order_by('order'),
         'actions': SalesAction.objects.filter(active=True, sites=site).order_by('order'),
         'gift_products': Product.objects.filter(enabled=True, show_on_sw=True, gift=True).order_by('-price')[:25],
         'recomended_products': Product.objects.filter(enabled=True, show_on_sw=True, recomended=True).order_by('-price')[:25],
@@ -97,25 +99,34 @@ def search(request):
         return render(request, 'search.html', context)
 
 
-def products_stream(request, templates, filter_type):
+def products_stream(request, integration, template, filter_type):
     root = Category.objects.get(slug=settings.MPTT_ROOT)
     children = root.get_children()
-    if filter_type in ['yandex', 'beru', 'google']:
-        children = children.filter(ya_active=True)
+
+    if integration:
+        template = integration.output_template
+        utm_source = integration.utm_source
+        if integration.utm_source in ['yandex', 'beru', 'google', 'avito']:
+            children = children.filter(ya_active=True)
+    else:
+        utm_source = filter_type
+
     categories = {}
     for child in children:
         categories[child.pk] = child.pk
         descendants = child.get_descendants()
         for descendant in descendants:
             categories[descendant.pk] = child.pk
+
     context = {
+        'utm_source': utm_source,
         'children': children,
         'category_map': categories
     }
-    t = loader.get_template('xml/_{}_header.xml'.format(templates))
+    t = loader.get_template('xml/_{}_header.xml'.format(template))
     yield t.render(context, request)
 
-    t = loader.get_template('xml/_{}_product.xml'.format(templates))
+    t = loader.get_template('xml/_{}_product.xml'.format(template))
 
     filters = {
         'enabled': True,
@@ -123,14 +134,15 @@ def products_stream(request, templates, filter_type):
         'variations__exact': '',
         'categories__in': root.get_descendants(include_self=True)
     }
-    if filter_type == 'google':
-        filters['merchant'] = True
-        filters['num__gt'] = 0
+
+    if integration:
+        filters['integration'] = integration
+        if integration.output_available:
+            filters['num__gt'] = 0
+
     if filter_type == 'yandex':
         filters['market'] = True
         filters['num__gt'] = 0
-    if filter_type == 'beru':
-        filters['beru'] = True
     if filter_type == 'prym':
         filters['market'] = True
         filters['num__gt'] = 0
@@ -142,15 +154,43 @@ def products_stream(request, templates, filter_type):
     products = Product.objects.filter(**filters).distinct()
     for product in products:
         context['product'] = product
+        if integration:
+            context['integration'] = ProductIntegration.objects.get(product=product, integration=integration)
+            if integration.output_stock:
+                context['stock'] = product.get_stock(filter_type, integration=integration)
         yield t.render(context, request)
 
     context.pop('product', None)
-    t = loader.get_template('xml/_{}_footer.xml'.format(templates))
+    context.pop('integration', None)
+    context.pop('stock', None)
+    t = loader.get_template('xml/_{}_footer.xml'.format(template))
     yield t.render(context, request)
 
 
-def products(request, templates, filters):
-    return StreamingHttpResponse(products_stream(request, templates, filters), content_type='text/xml; charset=utf-8')
+def products(request, integration=None, template=None, filters=None):
+    if integration:
+        integration = Integration.objects.filter(utm_source=integration).first()
+        if integration is None:
+            raise Http404("Does not exist")
+    return StreamingHttpResponse(products_stream(request, integration, template, filters), content_type='text/xml; charset=utf-8')
+
+
+def stock(request):
+    root = Category.objects.get(slug=settings.MPTT_ROOT)
+    filters = {
+        'enabled': True,
+        'price__gt': 0,
+        'variations__exact': '',
+        'categories__in': root.get_descendants(include_self=True),
+        'avito': True
+    }
+    integration = Integration.objects.filter(utm_source='avito').first()
+    products = Product.objects.filter(**filters).distinct()
+    products = map(lambda p: (p, max(int(p.get_stock('avito', integration)), 0)), products)
+    context = {
+        'products': products
+    }
+    return render(request, 'stock.csv', context, content_type='text/csv')
 
 
 def sales_actions(request):
@@ -334,6 +374,10 @@ def product(request, code):
     comparison_list = list(map(int, request.session.get('comparison_list', '0').split(',')))
 
     favorite = request.user.is_authenticated and Favorites.objects.filter(user=request.user, product=product).exists()
+
+    if FACEBOOK_TRACKING:
+        notify_view_content.delay(product.id, request.build_absolute_uri(),
+                                  request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
 
     context = {
         'category': category,

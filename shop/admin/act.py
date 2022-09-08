@@ -4,6 +4,8 @@ from django.conf import settings
 from django.conf.urls import url
 from django.template.response import TemplateResponse
 
+from djconfig import config, reload_maybe
+
 from shop.models import Act, ActOrder
 from .forms import ActOrderInlineAdminForm
 
@@ -46,10 +48,14 @@ class ActAdmin(admin.ModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied
 
+        reload_maybe()
+
         context = self.admin_site.each_context(request)
         context['opts'] = self.model._meta
         context['is_popup'] = request.GET.get('_popup', 0)
         context['act'] = Act.objects.get(pk=id)
         context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
+        context['beru_delivery'] = config.sw_beru_delivery
+
 
         return TemplateResponse(request, 'shop/act/document.html', context)

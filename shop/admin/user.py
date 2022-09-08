@@ -98,7 +98,7 @@ class ShopUserAdmin(ExportMixin, UserAdmin):
     # The fields to be used in displaying the User model.
     # These override the definitions on the base UserAdmin
     # that reference specific fields on auth.User.
-    list_display = ('phone', 'name', 'email', 'discount', 'tags', 'is_staff', 'is_superuser')
+    list_display = ('phone', 'name', 'email', 'discount', 'bonuses', 'tags', 'is_staff', 'is_superuser')
     list_filter = (('discount', DropdownFilter), TagListFilter, 'groups', 'is_staff', 'is_superuser')
     # add_fieldsets is not a standard ModelAdmin attribute. UserAdmin
     # overrides get_fieldsets to use this attribute when creating a user.
@@ -121,7 +121,7 @@ class ShopUserAdmin(ExportMixin, UserAdmin):
         fieldsets = [
             (None, {'fields': ('phone', 'password', 'permanent_password')}),
             ('Personal info', {'fields': ('name', 'username', 'email', 'postcode', 'city', 'address')}),
-            ('Marketing', {'fields': ('discount', 'tags')}),
+            ('Marketing', {'fields': ('discount', 'bonuses', 'tags')}),
             ('Important dates', {'fields': ('last_login',)}),
         ]
         # if obj is None or obj.is_firm:

@@ -62,4 +62,6 @@ urlpatterns = [
     url(r'^favorites/add/(?P<product_id>\d+)/$', views.favoritize, name='favoritize'),
     # ex: /shop/favorites/delete/5/
     url(r'^favorites/delete/(?P<product_id>\d+)/$', views.unfavoritize, name='unfavoritize'),
+    # ex: /shop/warranty_card/
+    url(r'^warranty_card/$', views.print_warranty_card, name='warranty_card'),
 ]

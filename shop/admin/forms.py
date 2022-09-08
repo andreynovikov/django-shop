@@ -6,6 +6,8 @@ from tidylib import tidy_fragment
 from django import forms
 from django.conf import settings
 from django.contrib.admin.widgets import FilteredSelectMultiple
+from django.contrib.sites.models import Site
+from django.core.cache import cache
 from django.utils.encoding import smart_text
 from django.utils.html import conditional_escape, mark_safe
 
@@ -15,13 +17,16 @@ from model_field_list import ModelFieldListFormField
 
 from djconfig import config
 
-from sewingworld.widgets import AutosizedTextarea
+from sewingworld.widgets import AutosizedTextarea, JsonAutosizedTextarea
 
-from shop.models import Supplier, Product, Order, OrderItem, ShopUser, Box, ActOrder
+from shop.models import Supplier, Product, Order, OrderItem, ShopUser, Box, ActOrder, Integration
 from shop.tasks import import1c
 
 from .widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
-    OrderItemProductLink, ListTextWidget, YandexDeliveryWidget
+    OrderItemProductLink, ListTextWidget, YandexDeliveryWidget, DeliveryTrackingNumberWidget
+
+
+sw_default_site = Site.objects.get_current()
 
 
 class CategoryAdminForm(forms.ModelForm):
@@ -32,20 +37,45 @@ class CategoryAdminForm(forms.ModelForm):
         }
 
 
+class IntegrationAdminForm(forms.ModelForm):
+    class Meta:
+        widgets = {
+            'settings': JsonAutosizedTextarea(attrs={'rows': 1}),
+            'admin_user_fields': AutosizedTextarea(attrs={'rows': 1}),
+        }
+
+
 class OneSImportForm(forms.Form):
-    file = forms.ChoiceField(label="CSV файл 1С", required=True)
+    file = forms.ChoiceField(label="CSV файл 1С", required=True, widget=forms.RadioSelect)
 
     def __init__(self, *args, **kwargs):
         super(OneSImportForm, self).__init__(*args, **kwargs)
-        import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
-        files = [(f, f) for f in filter(lambda x: x.endswith('.txt'), os.listdir(import_dir))]
+        self.import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
+        self.date_reg = re.compile(r"\d{1,2}\.\d{2}\.\d{4} \d{1,2}:\d{2}:\d{2}")
+
+        files = [(f, self.with_date(f)) for f in filter(lambda x: x.endswith('.csv'), os.listdir(self.import_dir))]
         self.fields['file'].choices = files
         if len(files):
             self.fields['file'].initial = files[0]
 
     def save(self):
         import1c.delay(self.cleaned_data['file'])
-        return 'Импорт запущен в фоновом режиме, результат придёт на адрес %s' % config.sw_email_managers
+        return 'Импорт запущен в фоновом режиме, результат придёт на адрес %s' % sw_default_site.profile.manager_emails
+
+    def with_date(self, file):
+        filepath = self.import_dir + '/' + file
+        with open(filepath) as csvfile:
+            line = csvfile.readline().strip()
+            if line[0] == '\ufeff':
+                line = line[1:]  # trim the BOM away
+            if self.date_reg.match(line):
+                file = '{} ({})'.format(file, line)
+        return file
+
+    class Media:
+        css = {
+            'all': ('admin/css/forms.css',)
+        }
 
 
 class WarrantyCardPrintForm(forms.Form):
@@ -72,8 +102,8 @@ class SendSmsForm(forms.Form):
 
 
 class YandexDeliveryForm(forms.Form):
-    yd_client = getattr(settings, 'YD_CLIENT', {})
-    warehouses = yd_client.get('warehouses', [])
+    yd = getattr(settings, 'YANDEX_DOSTAVKA', {})
+    warehouses = yd.get('warehouses', [])
     fio = forms.CharField(label='ФИО', required=True)
     fio_last = forms.BooleanField(label='Фамилия в конце', required=False)
     warehouse = forms.ChoiceField(label='Склад', choices=map(lambda x: (x['id'], x['name']), warehouses))
@@ -99,6 +129,12 @@ class SelectTagForm(forms.Form):
 
 class SelectSupplierForm(forms.Form):
     supplier = forms.ModelChoiceField(label='Поставщик', queryset=Supplier.objects.order_by('order'), required=True, empty_label=None)
+    aux_supplier = forms.ModelChoiceField(label='Дополнительный поставщик', queryset=Supplier.objects.order_by('order'), required=False)
+
+    class Media:
+        css = {
+            'all': ('admin/css/forms.css',)
+        }
 
 
 class StockInlineForm(forms.ModelForm):
@@ -107,6 +143,12 @@ class StockInlineForm(forms.ModelForm):
         if self.instance.pk:
             self.fields['supplier'].widget = ReadOnlyInput(self.instance.supplier)
             self.fields['quantity'].widget = ReadOnlyInput(self.instance.quantity)
+
+
+class IntegrationInlineForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['integration'].label = 'Интеграция'
 
 
 class SWTreeNodeMultipleChoiceField(TreeNodeMultipleChoiceField):
@@ -169,11 +211,38 @@ class ProductAdminForm(forms.ModelForm):
             cleaned_data[field] = fragment
 
         code = cleaned_data.get('code')
-        reg = re.compile('^[-\.\w]+$')
+        reg = re.compile(r'[-\.\w]+')
         # test for code presence is required for mass edit
-        if code and not reg.match(code):
+        if code and not reg.fullmatch(code):
             self.add_error('code', forms.ValidationError("Код товара содержит недопустимые символы"))
+        # detect import lock - do not allow save during import
+        if cache.get("celery-single-instance-import1c") is not None:
+            self.add_error(None, forms.ValidationError("Сохранение невозможно во время импорта склада, попробуйте позже."))
         return cleaned_data
+
+
+class ProductListAdminForm(forms.ModelForm):
+    integrations = forms.ModelMultipleChoiceField(queryset=Integration.objects.all(), widget=forms.CheckboxSelectMultiple, required=False)
+
+    def __init__(self, *args, **kwargs):
+        instance = kwargs.get('instance')
+        if instance:
+            initial = kwargs.get('initial', {})
+            initial['integrations'] = instance.integrations.values_list("id", flat=True)
+            kwargs['initial'] = initial
+        super().__init__(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        integrations = self.cleaned_data['integrations']
+        import sys
+        print(integrations, file=sys.stderr)
+        if self.instance:
+            self.instance.integrations.set(self.cleaned_data['integrations'], through_defaults={'price': 0})
+        return super().save(*args, **kwargs)
+
+    class Meta:
+        model = Product
+        fields = '__all__'
 
 
 class ProductKindForm(forms.ModelForm):
@@ -253,7 +322,15 @@ class OrderAdminForm(forms.ModelForm):
             instance = kwargs['instance']
             self.fields['user_tags'].initial = instance.user.tags
             self.fields['user_tags'].widget = TagAutoComplete(model=type(instance.user), attrs=self.fields['user_tags'].widget.attrs)
-            self.fields['delivery_yd_order'].widget = YandexDeliveryWidget(instance.id)
+
+            if instance.integration and instance.integration.settings:
+                utm_source = instance.integration.utm_source
+                ym_campaign = instance.integration.settings.get('ym_campaign', '')
+            else:
+                utm_source = ''
+                ym_campaign = ''
+            self.fields['delivery_tracking_number'].widget = DeliveryTrackingNumberWidget(instance.id, utm_source, ym_campaign)
+            self.fields['delivery_yd_order'].widget = YandexDeliveryWidget(instance.id, config.sw_yd_campaign)
         except (KeyError, AttributeError):
             pass
 

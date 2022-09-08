@@ -7,11 +7,10 @@ from django.contrib.sitemaps.views import sitemap
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 import mptt_urls
-import spirit.urls
 from zinnia.sitemaps import EntrySitemap
 from forum.sitemaps import ThreadSitemap
 
-import shop
+from shop.models.integration import Integration
 
 from . import views
 from .sitemaps import StaticViewSitemap, ProductSitemap, CategorySitemap, SalesActionSitemap, StoreSitemap, FlatPageSitemap
@@ -33,19 +32,19 @@ urlpatterns = [
     # ex: /
     url(r'^$', views.index, name='index'),
     # ex: /sitemap.xml
-    url(r'^sitemap\.xml$', sitemap, {'sitemaps' : sitemaps}, name='sitemap'),
+    url(r'^sitemap\.xml$', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     # ex: /search.xml
-    url(r'^search\.xml$', views.products, {'templates': 'search', 'filters': None}, name='search_xml'),
+    url(r'^search\.xml$', views.products, {'template': 'search', 'filters': None}, name='search_xml'),
     # ex: /full.xml
-    url(r'^full\.xml$', views.products, {'templates': 'products', 'filters': None}, name='full'),
+    url(r'^full\.xml$', views.products, {'template': 'products', 'filters': None}, name='full'),
     # ex: /products.xml
-    url(r'^products\.xml$', views.products, {'templates': 'products', 'filters': 'yandex'}, name='products'),
-    # ex: /beru.xml
-    url(r'^beru\.xml$', views.products, {'templates': 'beru', 'filters': 'beru'}, name='beru'),
-    # ex: /google.xml
-    url(r'^google\.xml$', views.products, {'templates': 'google', 'filters': 'google'}, name='google'),
+    url(r'^products\.xml$', views.products, {'template': 'products', 'filters': 'yandex'}, name='products'),
     # ex: /cc-prym.xml
-    url(r'^cc-prym\.xml$', views.products, {'templates': 'prym', 'filters': 'prym'}, name='cc-prym'),
+    url(r'^cc-prym\.xml$', views.products, {'template': 'prym', 'filters': 'prym'}, name='cc-prym'),
+    # ex: /beru.xml
+    path('<slug:integration>.xml', views.products),
+    # ex: /stock_avito.csv
+    url(r'^stock_avito\.csv$', views.stock, name='stock'),
     # ex: /search/
     url(r'^search/$', views.search, name='search'),
     # ex: /catalog/
@@ -86,22 +85,29 @@ urlpatterns = [
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*
     url(r'^shop/', include('shop.urls')),
-    url(r'^beru/', include('beru.urls')),
+
+    url(r'^sber/', include('sber.urls')),
     url(r'^kassa/', include('yandex_kassa.urls')),
     url(r'^blog/', include('zinnia.urls')),
     url(r'^comments/', include('django_comments.urls')),
-    url(r'^forum/', include(spirit.urls)),
     url(r'^reviews/', include('reviews.urls')),
     url(r'^oldforum/', include('forum.urls')),
-    url(r'^lock_tokens/', include('lock_tokens.urls', namespace='lock-tokens')),
+
     path('admin/', admin.site.urls),
     url(r'^admin/', include('massadmin.urls')),
     url(r'^admin/', include('loginas.urls')),
 ]
 
+# Add Yandex integrations
+for integration in Integration.objects.filter(uses_api=True):
+    if integration.settings:
+        ym_campaign = integration.settings.get('ym_campaign', None)
+        if ym_campaign is not None:
+            urlpatterns.append(path(integration.utm_source + '/', include('beru.urls'), {'account': integration.utm_source}))
+
 urlpatterns += staticfiles_urlpatterns()
 
 if settings.DEBUG:
     import debug_toolbar
-    urlpatterns += [ path('__debug__/', include(debug_toolbar.urls)) ]
+    urlpatterns += [path('__debug__/', include(debug_toolbar.urls))]
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

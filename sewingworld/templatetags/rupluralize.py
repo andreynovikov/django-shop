@@ -2,11 +2,11 @@ from django import template
 from django.template.defaultfilters import stringfilter
 
 
-register=template.Library()
+register = template.Library()
 
 # pluralize for russian language
 # {{someval|rupluralize:"товар,товара,товаров"}}
-@register.filter(is_safe = False)
+@register.filter(is_safe=False)
 @stringfilter
 def rupluralize(value, endings):
     try:

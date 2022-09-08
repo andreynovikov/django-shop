@@ -2,15 +2,12 @@ from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.db import connection
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
 from django.template.defaultfilters import floatformat
 from django.urls import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
 from shop.models import Stock, Order
-
-from .forms import OneSImportForm
 
 
 @staff_member_required
@@ -25,23 +22,6 @@ def goto_order(request):
         except ValueError:
             messages.add_message(request, messages.WARNING, 'Укажите номер заказа')
     return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
-
-
-@staff_member_required
-def import_1c(request):
-    if request.method == 'POST':
-        form = OneSImportForm(request.POST, request.FILES)
-        if form.is_valid():
-            result = form.save()
-            context = {'result': result}
-        else:
-            context = {'form': form}
-        context['is_popup'] = request.POST.get('_popup', 0)
-    else:
-        form = OneSImportForm()
-        context = {'form': form, 'is_popup': request.GET.get('_popup', 0)}
-    context['title'] = "Импорт 1С"
-    return render(request, 'admin/shop/import_1c.html', context)
 
 
 def product_stock_view(product, order=None):

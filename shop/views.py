@@ -22,9 +22,10 @@ from django.db import IntegrityError
 from django.utils.formats import localize
 from django.utils.html import escape
 
+from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
-from shop.models import Product, Basket, BasketItem, Order, ShopUser, ShopUserManager, Favorites
-from shop.forms import UserForm
+from shop.models import Product, Basket, BasketItem, Order, OrderItem, ShopUser, ShopUserManager, Favorites
+from shop.forms import UserForm, WarrantyCardForm
 
 import logging
 
@@ -115,13 +116,19 @@ def view_basket(request):
     phone = basket.phone
     full_phone = None
     user = None
+    user_id = None
     if phone:
         norm_phone = ShopUserManager.normalize_phone(phone)
         full_phone = ShopUserManager.format_phone(phone)
         try:
             user = ShopUser.objects.get(phone=norm_phone)
+            user_id = user.id
         except ShopUser.DoesNotExist:
             pass
+
+    if FACEBOOK_TRACKING:
+        notify_initiate_checkout.delay(basket.id, user_id, request.build_absolute_uri(),
+                                       request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
     context = {
         'basket': basket,
         'shop_user': user,
@@ -150,6 +157,11 @@ def add_to_basket(request, product_id):
     if utm_source:
         basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source)  # ASCII only regex
         basket.save()
+
+    if FACEBOOK_TRACKING:
+        notify_add_to_cart.delay(product.id, request.build_absolute_uri(),
+                                 request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
+
     # as soon as user starts gethering new basket "forget" last order
     try:
         del request.session['last_order']
@@ -286,6 +298,77 @@ def clear_basket(request, basket_sign):
     return HttpResponseRedirect(reverse('shop:basket'))
 
 
+@require_POST
+def authorize(request):
+    ensure_session(request)
+    basket = get_object_or_404(Basket, session_id=request.session.session_key)
+    phone = request.POST.get('phone')
+    password = request.POST.get('password')
+    data = None
+
+    if password:
+        norm_phone = ShopUserManager.normalize_phone(basket.phone)
+        user = authenticate(username=norm_phone, password=password)
+        if user and user.is_active:
+            login(request, user)
+            basket.update_session(request.session.session_key)
+            """
+            We disabled this because Nikolay wants order to be registered as soon as user authenticates
+            data = {
+                'user': user,
+            }
+            """
+        else:
+            """ Bad password """
+            data = {
+                'shop_user': ShopUser.objects.get(phone=norm_phone),
+                'wrong_password': True
+            }
+
+    if phone:
+        norm_phone = ShopUserManager.normalize_phone(phone)
+        basket.phone = norm_phone
+        basket.save()
+        user, created = ShopUser.objects.get_or_create(phone=norm_phone)
+        if not user.permanent_password:
+            """ Generate new password for user """
+            password = str(randint(1000, 9999))
+            user.set_password(password)
+            user.save()
+        if created:
+            """ Login new user """
+            user = authenticate(username=norm_phone, password=password)
+            login(request, user)
+            basket.update_session(request.session.session_key)
+            request.session['password'] = password
+        else:
+            """ User exists, request password """
+            if not user.permanent_password:
+                try:
+                    send_password.delay(norm_phone, password)
+                except Exception as e:
+                    mail_admins('Task error', 'Failed to send password: %s' % e, fail_silently=True)
+            data = {
+                'shop_user': user,
+            }
+
+    if request.user.is_authenticated and not data:
+        if request.POST.get('ajax'):
+            return JsonResponse({'location': reverse('shop:confirm')})
+        else:
+            return HttpResponseRedirect(reverse('shop:confirm'))
+    else:
+        if request.POST.get('ajax'):
+            data = {
+                'html': render_to_string('shop/_send_order.html', data, request),
+            }
+            return JsonResponse(data)
+        elif data and 'wrong_password' in data:
+            return HttpResponseRedirect(reverse('shop:basket') + '?wrong_password=1')
+        else:
+            return HttpResponseRedirect(reverse('shop:basket'))
+
+
 def register_user(request):
     is_ajax = request.GET.get('ajax') or request.POST.get('ajax')
     if request.method == 'POST':
@@ -315,7 +398,8 @@ def register_user(request):
                         'phone': norm_phone,
                         'next': next_url,
                         'ctx': 'reg',
-                        'ajax': is_ajax
+                        'ajax': is_ajax,
+                        'reg': request.POST.get('reg') or '1'
                     }
                     return HttpResponseRedirect(reverse('shop:login') + '?' + urlencode(params))
                 except IntegrityError:
@@ -408,11 +492,12 @@ def login_user(request):
             user = ShopUser.objects.get(phone=norm_phone)
             if not user.permanent_password:
                 """ Generate new password for user """
-                password = randint(1000, 9999)
+                password = str(randint(1000, 9999))
                 user.set_password(password)
                 user.save()
                 try:
-                    send_password.delay(norm_phone, password)
+                    if reg != '1':
+                        send_password.delay(norm_phone, password)
                 except Exception as e:
                     mail_admins('Task error', 'Failed to send password: %s' % e, fail_silently=True)
             context = {
@@ -507,7 +592,7 @@ def reset_password(request):
         if basket.phone:
             phone = basket.phone
     if phone:
-        password = randint(1000, 9999)
+        password = str(randint(1000, 9999))
         try:
             user = ShopUser.objects.get(phone=phone)
         except ShopUser.DoesNotExist:
@@ -541,8 +626,8 @@ def confirm_order(request, order_id=None):
             order_id = request.session.get('last_order', None)
         order = get_object_or_404(Order, pk=order_id)
         if order.user.id != request.user.id:
-            """ This is not the user's order, someone tries to hack us """
-            return HttpResponseForbidden()
+            """ This is not the user's order """
+            return HttpResponseRedirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
         context = {
             'order': order,
             'updated': request.session.get('last_order_updated', False)
@@ -562,12 +647,15 @@ def confirm_order(request, order_id=None):
             request.session['last_order_updated'] = False
             """ wait for 5 minutes to let user supply comments and other stuff """
             try:
-                notify_manager.apply_async((order.id,), countdown=300)
                 notify_user_order_new_mail.apply_async((order.id,), countdown=300)
                 notify_user_order_new_sms.apply_async((order.id,), countdown=300)
             except Exception as e:
                 mail_admins('Task error', 'Failed to send notification: %s' % e, fail_silently=True)
             basket.delete()
+
+            if FACEBOOK_TRACKING:
+                notify_purchase.delay(order.id, request.build_absolute_uri(),
+                                      request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
             """ clear promo discount """
             try:
                 del request.session['discount']
@@ -587,8 +675,8 @@ def confirm_order(request, order_id=None):
 def update_order(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
     if order.user.id != request.user.id:
-        """ This is not the user's order, someone tries to hack us """
-        return HttpResponseForbidden()
+        """ This is not the user's order """
+        return HttpResponseRedirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
     if not request.user.name:
         request.user.name = request.POST.get('name')
     order.name = request.POST.get('name') or request.user.name
@@ -598,6 +686,9 @@ def update_order(request, order_id):
     if not request.user.address:
         request.user.address = request.POST.get('address')
     order.address = request.POST.get('address') or request.user.address
+    if request.POST.get('city'):
+        order.city = request.POST.get('city')
+    order.postcode = request.POST.get('postcode')
     order.comment = request.POST.get('comment')
     order.save()
     request.user.save()
@@ -609,6 +700,9 @@ def update_order(request, order_id):
     context = {
         'order': order,
         'updated': True
+    }
+    data = {
+        'html': render_to_string('shop/_update_order.html', context, request),
     }
     if request.POST.get('ajax'):
         data = {
@@ -659,8 +753,8 @@ def orders(request):
 def order(request, order_id):
     order = get_object_or_404(Order, pk=order_id)
     if order.user.id != request.user.id:
-        """ This is not the user's order, someone tries to hack us """
-        return HttpResponseForbidden()
+        """ This is not the user's order """
+        return HttpResponseRedirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
     context = {
         'order': order
     }
@@ -672,7 +766,7 @@ def order_document(request, order_id, template_name):
     order = get_object_or_404(Order, pk=order_id)
     if order.user.id != request.user.id:
         """ This is not the user's order, someone tries to hack us """
-        return HttpResponseForbidden()
+        return HttpResponseRedirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
     context = {
         'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
         'order': order
@@ -759,3 +853,30 @@ def unfavoritize(request, product_id):
         'count': count,
     }
     return JsonResponse(context)
+
+
+def print_warranty_card(request):
+    if request.method == 'POST':
+        form = WarrantyCardForm(request.POST)
+        if form.is_valid():
+            number = form.cleaned_data['number']
+            item = OrderItem.objects.filter(serial_number=number.strip()).order_by('-order__created').first()
+            if item is None:
+                form.add_error('number', 'Изделие с таким серийным номером не покупалось в нашем интернет-магазине')
+            else:
+                context = {
+                    'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
+                    'order': item.order,
+                    'product': item.product,
+                    'serial_number': item.serial_number,
+                    'admin': False
+                }
+                return render(request, 'shop/warrantycard/common.html', context)
+    else:
+        form = WarrantyCardForm()
+
+    context = {
+        'form': form,
+        'invalid': not form.is_valid()
+    }
+    return render(request, 'shop/warrantycard_form.html', context)

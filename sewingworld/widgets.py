@@ -1,3 +1,5 @@
+import json
+
 from django import forms
 from django.contrib.admin.widgets import AdminTextareaWidget
 from django.utils.safestring import mark_safe
@@ -32,3 +34,10 @@ class AutosizedTextarea(AdminTextareaWidget):
             """ % name
         )
         return output
+
+
+class JsonAutosizedTextarea(AutosizedTextarea):
+    def render(self, name, value, attrs=None, renderer=None):
+        json_value = json.loads(value)
+        pretty_value = json.dumps(json_value, indent=4)
+        return super(JsonAutosizedTextarea, self).render(name, pretty_value, attrs, renderer)

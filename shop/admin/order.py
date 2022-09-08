@@ -7,10 +7,9 @@ from django import forms
 from django.urls import reverse
 from django.db import connection
 from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, \
-    DateTimeField, DecimalField
+    DateTimeField, DecimalField, Q
 from django.core.exceptions import PermissionDenied
 from django.contrib import admin, messages
-from django.contrib.sites.models import Site
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template.loader import get_template
 from django.template.defaultfilters import floatformat
@@ -26,10 +25,9 @@ from django.utils.translation import ugettext_lazy as _
 
 from daterangefilter.filters import FutureDateRangeFilter, PastDateRangeFilter
 from django_admin_listfilter_dropdown.filters import ChoiceDropdownFilter
-from lock_tokens.admin import LockableModelAdmin
 from tagging.utils import parse_tag_input
 
-from yandex_delivery.api import DeliveryClient
+from yandex_delivery.tasks import create_delivery_draft_order, get_delivery_options
 
 from shop.models import ShopUserManager, ShopUser, Supplier, Order, OrderItem, Box, \
     Act, ActOrder
@@ -67,22 +65,26 @@ class OrderItemInline(admin.TabularInline):
     readonly_fields = ['product_codes', 'product_stock', 'item_cost']
 
     def get_fields(self, request, obj=None):
-        if obj and obj.is_beru:
-            return ['product_codes', 'product', 'val_discount', 'quantity', 'total', 'product_stock', 'box']
+        fields = ['product_codes', 'product']
+        if obj and obj.integration and obj.integration.uses_api:
+            fields.extend(['val_discount', 'quantity', 'total', 'product_stock'])
         else:
-            return ['product_codes', 'product', 'product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'total', 'product_stock']
+            fields.extend(['product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'total', 'product_stock'])
+        if obj and ((obj.integration and obj.integration.uses_boxes) or obj.delivery == Order.DELIVERY_YANDEX):
+            fields.append('box')
+        return fields
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = [elem for elem in self.readonly_fields]
-        if obj and obj.is_beru:
+        if obj and obj.integration and obj.integration.uses_api:
             readonly_fields += ['val_discount', 'quantity']
         return readonly_fields
 
     def has_add_permission(self, request, obj=None):
-        return not obj or not obj.is_beru
+        return not obj or not obj.integration or not obj.integration.uses_api
 
     def has_delete_permission(self, request, obj=None):
-        return obj and not obj.is_beru
+        return obj and not (obj.integration and obj.integration.uses_api)
 
 
 class BoxInline(admin.TabularInline):
@@ -273,38 +275,61 @@ class SiteListFilter(admin.filters.RelatedFieldListFilter):
     template = 'django_admin_listfilter_dropdown/dropdown_filter.html'
 
     def __init__(self, field, request, params, model, model_admin, field_path):
-        self.beru = Site.objects.get(domain='beru.ru')
-        return super().__init__(field, request, params, model, model_admin, field_path)
+        self.lookup_kwarg_integrated = 'integration__isnull'
+        self.lookup_val_integrated = params.get(self.lookup_kwarg_integrated)
+        super().__init__(field, request, params, model, model_admin, field_path)
+
+    def expected_parameters(self):
+        return [self.lookup_kwarg, self.lookup_kwarg_isnull, self.lookup_kwarg_integrated]
 
     def queryset(self, request, queryset):
-        if self.lookup_val:
-            value = int(self.lookup_val)
-            if value < 0:
-                exclude = {self.lookup_kwarg: -value}
-                return queryset.exclude(**exclude)
-        return super().queryset(request, queryset)
+        excludes = {}
+        for key in list(self.used_parameters.keys()):
+            if key.startswith('not__'):
+                excludes[key[5:]] = self.used_parameters[key]
+                del self.used_parameters[key]
+        qs = super().queryset(request, queryset)
+        if excludes:
+            qs = qs.filter(~Q(**excludes))
+        return qs
 
     def choices(self, changelist):
-        choice_list = list(super().choices(changelist))
-        yield choice_list[0]
         yield {
-            'selected': self.lookup_val == str(-self.beru.pk),
-            'query_string': changelist.get_query_string({self.lookup_kwarg: -self.beru.pk}, [self.lookup_kwarg_isnull]),
-            'display': 'Кроме {}'.format(self.beru.domain),
+            'selected': self.lookup_val is None and self.lookup_val_integrated is None and not self.lookup_val_isnull,
+            'query_string': changelist.get_query_string(remove=[self.lookup_kwarg, self.lookup_kwarg_isnull, self.lookup_kwarg_integrated]),
+            'display': _('All'),
         }
-        for c in choice_list[1:]:
-            yield c
+        yield {
+            'selected': bool(self.lookup_val_integrated),
+            'query_string': changelist.get_query_string({self.lookup_kwarg_integrated: 'True'}, [self.lookup_kwarg, self.lookup_kwarg_isnull]),
+            'display': 'Кроме интеграций'
+        }
+        for pk_val, val in self.lookup_choices:
+            yield {
+                'selected': self.lookup_val == str(pk_val),
+                'query_string': changelist.get_query_string({self.lookup_kwarg: pk_val}, [self.lookup_kwarg_isnull, self.lookup_kwarg_integrated]),
+                'display': val,
+            }
+        if self.include_empty_choice:
+            yield {
+                'selected': bool(self.lookup_val_isnull),
+                'query_string': changelist.get_query_string({self.lookup_kwarg_isnull: 'True'}, [self.lookup_kwarg, self.lookup_kwarg_integrated]),
+                'display': self.empty_value_display,
+            }
 
 
 @admin.register(Order)
-class OrderAdmin(LockableModelAdmin):
+class OrderAdmin(admin.ModelAdmin):
     @mark_safe
     def order_name(self, obj):
         manager = ''
         if obj.manager:
             manager = ' style="color: %s"' % obj.manager.color
-        return '<b%s>%s</b><br/><span style="white-space:nowrap">%s</span>' % \
-            (manager, obj.title, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
+        lock = ''
+        if obj.owner:
+            lock = '<span style="font-weight: 400" title="%s">&#9919;&nbsp;</span>' % str(obj.owner)
+        return '<span style="white-space:nowrap">%s<b%s>%s</b></span><br/><span style="white-space:nowrap">%s</span>' % \
+            (lock, manager, obj.title, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
     order_name.admin_order_field = 'id'
     order_name.short_description = 'заказ'
 
@@ -313,7 +338,7 @@ class OrderAdmin(LockableModelAdmin):
         comment = []
         if obj.alert:
             comment.append('<span style="color:#ba2121">{}</span><br/>'.format(obj.alert))
-        if obj.is_beru:
+        if obj.integration and obj.integration.uses_api:
             comment.append('<span style="color:#2121ba">№{}</span> '.format(obj.delivery_tracking_number))
         else:
             if obj.delivery_yd_order:
@@ -331,16 +356,15 @@ class OrderAdmin(LockableModelAdmin):
     def combined_delivery(self, obj):
         datetime = ''
         if obj.delivery_dispatch_date:
-            datetime = date_format(obj.delivery_dispatch_date, "SHORT_DATE_FORMAT")
-        if obj.delivery_time_from:
-            if datetime:
-                datetime = datetime + ' '
-            datetime = datetime + date_format(obj.delivery_time_from, "TIME_FORMAT")
-        if obj.delivery_time_till:
-            datetime = datetime + '-' + date_format(obj.delivery_time_till, "TIME_FORMAT")
+            datetime = date_format(obj.delivery_dispatch_date, "d.m")
+        if obj.delivery_handing_date:
+            datetime = datetime + '<span style="color:#21baba">&#8594;' + date_format(obj.delivery_handing_date, "d.m") + '</span>'
         courier = ''
         if obj.courier:
-            courier = ': %s' % obj.courier.name
+            if obj.hidden_tracking_number:
+                courier = ': %s&nbsp;<span style="color: blue; font-weight: bold" title="%s">&#10003;</span>' % (obj.courier.name, obj.hidden_tracking_number)
+            else:
+                courier = ': %s' % obj.courier.name
         return '%s%s<br/>%s' % (obj.get_delivery_display(), courier, datetime)
     combined_delivery.admin_order_field = 'delivery_dispatch_date'
     combined_delivery.short_description = 'Доставка'
@@ -363,12 +387,15 @@ class OrderAdmin(LockableModelAdmin):
     def combined_payment(self, obj):
         style = ''
         checkmark = ''
-        if obj.paid:
+        if obj.paid and obj.has_fiscal:
             style = '; color: green'
-            checkmark = '<span style="display: table-cell; padding-left: 5px; color: green; font-weight: bold">&#10003;</span>'
+            checkmark = '<a href="https://receipt.taxcom.ru/v01/show?fp=%s&s=%s" target="_blank" style="color: green; font-size: 150%%">&#128457;</a>' % (obj.meta['fiscalInfo']['fnDocMark'], obj.meta['fiscalInfo']['sum'])
+        elif obj.paid:
+            style = 'color: green'
+            checkmark = '<span style="color: green; font-size: 120%%">&#10003;</span>'
         elif obj.payment in [Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_CREDIT]:
-            style = '; color: red'
-        return '<div style="display: table"><span style="display: table-cell%s">%s</span>%s</div>' % (style, obj.get_payment_display(), checkmark)
+            style = 'color: red'
+        return '<span style="display: grid; grid-template-columns: min-content auto; column-gap: 5px"><span style="%s">%s</span>%s</span>' % (style, obj.get_payment_display(), checkmark)
     combined_payment.admin_order_field = 'payment'
     combined_payment.short_description = 'оплата'
 
@@ -401,6 +428,11 @@ class OrderAdmin(LockableModelAdmin):
     link_to_orders.short_description = 'заказы'
 
     @mark_safe
+    def user_bonuses(self, obj):
+        return '<span>%d</span>' % obj.user.bonuses
+    user_bonuses.short_description = 'бонусы'
+
+    @mark_safe
     def credit_notice(self, obj):
         credit_allowed = False
         for item in obj.items.all():
@@ -420,19 +452,26 @@ class OrderAdmin(LockableModelAdmin):
             return 'нет'
     credit_notice.short_description = 'кредит'
 
+    @mark_safe
+    def pos_status(self, obj):
+        if obj.hidden_tracking_number:
+            return '<span style="color: blue; font-weight: bold" title="{}">&#10003;</span>'.format(obj.hidden_tracking_number)
+        else:
+            return ''
+    pos_status.short_description = 'касса'
+
     list_display = ['order_name', 'name_and_phone', 'city', 'total_cost', 'combined_payment', 'combined_delivery',
                     'colored_status', 'combined_comments']
-    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders',
+    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'user_bonuses', 'pos_status',
                        'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
                        'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
     list_filter = [OrderStatusListFilter, ('site', SiteListFilter), ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter),
                    'paid', OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
                    ('delivery_handing_date', FutureDateRangeFilter), 'manager', 'courier']
-    search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment',
-                     'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
+    search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment', 'delivery_tracking_number',
+                     'delivery_yd_order', 'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
                      'item__serial_number']
     inlines = [OrderItemInline, BoxInline]
-    change_form_template = 'admin/shop/order/change_form.html'  # we do not need this by default but lockable model overrides it
     form = OrderAdminForm
     autocomplete_fields = ('store', 'user')
     formfield_overrides = {
@@ -449,7 +488,7 @@ class OrderAdmin(LockableModelAdmin):
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = (
-            (None, {'fields': [['status', 'payment', 'paid', 'manager', 'site'], ['delivery', 'delivery_price'],
+            (None, {'fields': [['status', 'manager', 'site', 'payment', 'paid'], ['delivery', 'delivery_price'],
                                'delivery_dispatch_date', ['delivery_tracking_number'], 'delivery_info',
                                ['delivery_handing_date'], 'manager_comment', 'alert',
                                'products_price', 'total', 'id']}),
@@ -458,16 +497,19 @@ class OrderAdmin(LockableModelAdmin):
             #                           ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
             ('Покупатель', {'fields': []})
         )
-        if obj and obj.is_beru:
-            fieldsets[2][1]['fields'].extend((('user', 'link_to_orders'), 'address', ('city', 'postcode')))
+        if obj and obj.integration and obj.integration.uses_api:
+            fieldsets[0][1]['fields'][0][2] = 'integration'
+            fieldsets[2][1]['fields'].extend(obj.integration.admin_user_fields)
         else:
             fieldsets[0][1]['fields'].append('store')
             fieldsets[0][1]['fields'][0].append('credit_notice')
             fieldsets[0][1]['fields'][1].append('courier')
             fieldsets[0][1]['fields'][3].append('delivery_yd_order')
             fieldsets[0][1]['fields'][5].extend(('delivery_time_from', 'delivery_time_till'))
-            fieldsets[2][1]['fields'].extend((('name', 'user', 'link_to_user', 'link_to_orders'), ('phone', 'phone_aux', 'email'),
+            fieldsets[2][1]['fields'].extend((('name', 'user', 'link_to_user', 'link_to_orders', 'user_bonuses'), ('phone', 'phone_aux', 'email'),
                                               'address', ('city', 'postcode'), 'comment', ('firm_name', 'is_firm')))
+            if obj and obj.hidden_tracking_number:
+                fieldsets[0][1]['fields'][1].append('pos_status')
             if obj is None or obj.is_firm:
                 fieldsets[2][1]['fields'].extend(('firm_address', 'firm_details'))
             fieldsets[2][1]['fields'].append('user_tags')
@@ -475,7 +517,14 @@ class OrderAdmin(LockableModelAdmin):
 
     def get_formsets_with_inlines(self, request, obj=None):
         for inline in self.get_inline_instances(request, obj):
-            if obj and obj.is_beru or not inline.model == Box:
+            # показываем встроенную форму коробок только для заказов Беру и Яндекс.Доставки:
+            # тут немного сложная логика, так как этот метод вызывается и при показе формы, и при сохранении
+            # и надо правильно отработать ситуацию, когда способ доставки уже поменяли, а встроенной формы
+            # с коробками ещё не было
+            is_integration_with_boxes = obj and obj.integration and obj.integration.uses_boxes
+            is_yandex_delivery = obj and obj.delivery == Order.DELIVERY_YANDEX
+            has_boxes_form = 'boxes-TOTAL_FORMS' in request.POST
+            if not inline.model == Box or is_integration_with_boxes or (is_yandex_delivery and (has_boxes_form or request.method == 'GET')):
                 yield inline.get_formset(request, obj), inline
 
     def lookup_allowed(self, lookup, value):
@@ -486,15 +535,17 @@ class OrderAdmin(LockableModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if not request.user.is_superuser and request.user.has_perm('shop.change_order_spb'):
-            qs = qs.filter(site=6)
+            qs = qs.filter(site__in=[6, 14])
         return qs
 
     def get_readonly_fields(self, request, obj=None):
         readonly_fields = [elem for elem in self.readonly_fields]
         if obj and not request.user.is_superuser:
             readonly_fields += ['site']
-        if obj and obj.is_beru:
-            readonly_fields += ['delivery_tracking_number', 'delivery_handing_date']
+        if obj and obj.integration and obj.integration.uses_api:
+            readonly_fields += ['delivery_handing_date']
+        if obj and obj.paid and obj.meta and 'fiscalInfo' in obj.meta:
+            readonly_fields += ['paid']
         return readonly_fields
 
     def changelist_view(self, request, extra_context=None):
@@ -506,16 +557,34 @@ class OrderAdmin(LockableModelAdmin):
                 # '0' is special case for 'all'
                 post.update({admin.ACTION_CHECKBOX_NAME: '0'})
                 request._set_post(post)
-        return super(OrderAdmin, self).changelist_view(request, extra_context)
+        return super().changelist_view(request, extra_context)
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        order = Order.objects.get(pk=object_id)
+        if not order.owner:
+            order.owner = request.user
+            order.save()
+        return super().change_view(request, object_id, form_url, extra_context)
+
+    def save_model(self, request, obj, form, change):
+        if "_unlock" in request.POST:
+            obj.owner = None
+            obj.save()
+            return
+        if "_save" in request.POST:
+            obj.owner = None
+        super().save_model(request, obj, form, change)
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
-        if not form.instance.is_beru:
+        if not (form.instance.integration and form.instance.integration.uses_api) and not form.instance.delivery == Order.DELIVERY_YANDEX:
             return
         boxes = defaultdict(dict)
         for formset in filter(lambda f: isinstance(f.empty_form.instance, OrderItem), formsets):
             for inline in formset:
-                if inline.cleaned_data['box'] is not None:
+                if inline.cleaned_data.get('box', None) is not None:
                     product = inline.cleaned_data['product']
                     quantity = inline.instance.quantity
                     box = boxes[inline.cleaned_data['box']]
@@ -553,6 +622,7 @@ class OrderAdmin(LockableModelAdmin):
             url(r'(\d+)/yandex_delivery/$', self.admin_site.admin_view(self.yandex_delivery_form), name='shop_order_yandex_delivery'),
             url(r'(\d+)/yandex_delivery_estimate/$', self.admin_site.admin_view(self.yandex_delivery_estimate), name='shop_order_yandex_delivery_estimate'),
             url(r'(\d+)/beru_labels/$', self.admin_site.admin_view(self.beru_labels), name='shop_order_beru_labels'),
+            url(r'(\d+)/unlock/$', self.admin_site.admin_view(self.unlock), name='shop_order_unlock'),
             url(r'sms/(\+\d+)/$', self.admin_site.admin_view(self.send_sms_form), name='shop_order_send_sms'),
         ]
         return my_urls + urls
@@ -647,9 +717,10 @@ class OrderAdmin(LockableModelAdmin):
                         'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
                         'order': order,
                         'product': item.product,
-                        'serial_number': serial_number
+                        'serial_number': serial_number,
+                        'admin': True
                     }
-                    return TemplateResponse(request, 'shop/order/warrantycard.html', context)
+                    return TemplateResponse(request, 'shop/warrantycard/common.html', context)
 
                 except Exception:
                     # If save() raised, the form will a have a non
@@ -694,6 +765,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
 
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['is_popup'] = is_popup
@@ -740,6 +812,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
 
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['is_popup'] = is_popup
@@ -763,12 +836,15 @@ class OrderAdmin(LockableModelAdmin):
         else:
             form = YandexDeliveryForm(request.POST)
             is_popup = request.POST.get('_popup', 0)
+            for item in order.items.all():
+                if item.box is None:
+                    form.add_error(None, "{} не упакован в коробку".format(item.product.code))
             if form.is_valid():
                 try:
                     fio_last = form.cleaned_data['fio_last']
                     warehouse = form.cleaned_data['warehouse']
 
-                    fio = order.name.split(' ')
+                    fio = order.name.split()
                     first_name = ''
                     middle_name = ''
                     last_name = ''
@@ -784,46 +860,7 @@ class OrderAdmin(LockableModelAdmin):
                         else:
                             last_name, first_name, middle_name = fio
 
-                    yd = DeliveryClient(
-                        settings.YD_CLIENT['client']['id'],
-                        settings.YD_CLIENT['senders'][0]['id'],
-                        list(map(lambda x: x['id'], settings.YD_CLIENT['warehouses'])),
-                        list(map(lambda x: x['id'], settings.YD_CLIENT['requisites'])),
-                        settings.YD_METHODS
-                    )
-
-                    order_items = []
-                    for item in order.items.all():
-                        if item.quantity > 1:
-                            title = '{} ({} шт.)'.format(item.product.title, item.quantity)
-                        else:
-                            title = item.product.title
-                        order_items.append({
-                            'orderitem_id': item.product.id,
-                            'orderitem_article': item.product.code,
-                            'orderitem_name': title,
-                            'orderitem_cost': item.price,
-                            'orderitem_quantity': 1
-                        })
-
-                    result = yd.create_order(
-                        order_num=order.id,
-                        order_warehouse=warehouse,
-                        order_items=order_items,
-                        recipient={
-                            'first_name': first_name,
-                            'middle_name': middle_name,
-                            'last_name': last_name,
-                            'phone': order.phone,
-                            'email': order.email
-                        },
-                        deliverypoint={
-                            'city': order.city,
-                            'street': order.address,
-                            'index': order.postcode
-                        }
-                    )
-                    yd_order = result['data']['order']['full_num']
+                    yd_order = create_delivery_draft_order(order.id, warehouse, first_name, middle_name, last_name)
 
                     return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
                                         '<script type="text/javascript">opener.dismissYandexDeliveryPopup(window, "%s", "%s");</script>'
@@ -833,6 +870,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
 
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['is_popup'] = is_popup
@@ -853,23 +891,16 @@ class OrderAdmin(LockableModelAdmin):
         context['is_popup'] = request.GET.get('_popup', 0)
         context['title'] = "Варианты доставки"
         context['order'] = order
-        context['city'] = request.GET.get('city', order.city)
+        context['city'] = request.GET.get('city', '{} {}'.format(order.postcode, order.city))
         context['weight'] = request.GET.get('weight', 10)
         context['height'] = request.GET.get('height', 27)
         context['length'] = request.GET.get('length', 50)
         context['width'] = request.GET.get('width', 40)
 
         try:
-            yd = DeliveryClient(
-                settings.YD_CLIENT['client']['id'],
-                settings.YD_CLIENT['senders'][0]['id'],
-                list(map(lambda x: x['id'], settings.YD_CLIENT['warehouses'])),
-                list(map(lambda x: x['id'], settings.YD_CLIENT['requisites'])),
-                settings.YD_METHODS
-            )
-            result = yd.search_delivery_list('Москва', context['city'], context['weight'], context['width'],
-                                             context['height'], context['length'], order_cost=order.total,
-                                             total_cost=order.total)
+            results = get_delivery_options(order.total, order.paid, settings.YANDEX_DOSTAVKA['warehouses'][0]['id'], context['city'],
+                                          context['weight'], context['width'], context['height'], context['length'])
+
             colors = [
                 '#1E98FF',  # blue
                 '#1BAD03',  # darkGreen
@@ -889,23 +920,24 @@ class OrderAdmin(LockableModelAdmin):
             ]
             deliveries = {}
             i = 0
-            for delivery in result['data']:
+            for result in results:
+                delivery = result['delivery']
                 delivery_type = deliveries.get(delivery['type'], None)
                 if delivery_type is None:
                     delivery_type = []
                     deliveries[delivery['type']] = delivery_type
-                shop_cost = delivery['costWithRules']
+                #shop_cost = delivery['costWithRules']
                 required_services = []
                 optional_services = []
-                for service in delivery['services']:
-                    if service['optional']:
-                        optional_services.append(service)
-                    else:
-                        required_services.append(service)
-                        shop_cost = shop_cost + service['cost']
+                for service in result['services']:
+                    #if service['optional']:
+                    #    optional_services.append(service)
+                    #else:
+                    required_services.append(service)
+                    #shop_cost = shop_cost + service['cost']
                 delivery['required_services'] = required_services
                 delivery['optional_services'] = optional_services
-                delivery['shop_cost'] = shop_cost
+                delivery['cost'] = result['cost']
                 pickup_points = delivery.get('pickupPoints', [])
                 if len(pickup_points):
                     delivery['color'] = colors[i]
@@ -943,7 +975,7 @@ class OrderAdmin(LockableModelAdmin):
                 delivery_type.append(delivery)
 
             context['deliveries'] = deliveries
-            context['result'] = result['data']
+            context['result'] = results
 
         except Exception as e:
             context['error'] = str(e)
@@ -954,13 +986,12 @@ class OrderAdmin(LockableModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied
 
-        from beru.tasks import get_beru_order_details
+        from beru.tasks import get_beru_labels_data
         import barcode
 
         context = self.admin_site.each_context(request)
         context['opts'] = self.model._meta
         context['is_popup'] = request.GET.get('_popup', 0)
-        context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
 
         # this method is called both from order change form with single id argument and order list with selected orders queryset
         if isinstance(arg, str):
@@ -971,8 +1002,8 @@ class OrderAdmin(LockableModelAdmin):
         context['orders'] = []
         try:
             for order in orders:
-                beru_order = get_beru_order_details(order.id)
-                beru_order_id = str(beru_order.get('id', 0))
+                beru_order = get_beru_labels_data(order.id)
+                beru_order_id = str(beru_order.get('orderId', 0))
 
                 CODE128 = barcode.get_barcode_class('code128')
                 order_barcode = CODE128(str(order.id)).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
@@ -980,27 +1011,30 @@ class OrderAdmin(LockableModelAdmin):
                 beru_order_barcode = CODE128(beru_order_id).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
                 beru_order_barcode = re.sub(r'^.*(?=<svg)', '', beru_order_barcode)
 
+                boxes = order.boxes.all()
                 count = 0
                 shipments = []
-                delivery = beru_order.get('delivery', {})
-                for box in order.boxes.all():
+                for label in beru_order.get('parcelBoxLabels', []):
+                    box = boxes[count]
                     count += 1
-                    code = '%d-%d' % (order.id, count)
+                    code = label.get('fulfilmentId', '')
                     item_barcode = CODE128(code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
                     item_barcode = re.sub(r'^.*(?=<svg)', '', item_barcode)
                     shipments.append({
                         'id': code,
                         'code': box.code,
+                        'place': label.get('place', ''),
                         'barcode': mark_safe(item_barcode),
                         'products': box.products.all(),
-                        'weight': box.weight
+                        'weight': label.get('weight', ''),
+                        'delivery_service_name': label.get('deliveryServiceName', '').replace('INDIVIDUAL_ENTREPRENEURSHIP', 'ИП'),
+                        'delivery_service_id': label.get('deliveryServiceId', ''),
+                        'supplier_name': label.get('supplierName', '')
                     })
 
                 context['orders'].append({
                     'beru_order': beru_order,
                     'order': order,
-                    'delivery_service_name': delivery.get('serviceName', ''),
-                    'delivery_service_id': delivery.get('deliveryServiceId', ''),
                     'beru_barcode': mark_safe(beru_order_barcode),
                     'barcode': mark_safe(order_barcode),
                     'shipments': shipments
@@ -1032,6 +1066,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
 
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['is_popup'] = is_popup
@@ -1040,6 +1075,15 @@ class OrderAdmin(LockableModelAdmin):
         context['action_title'] = "Отправить"
 
         return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+
+    def unlock(self, request, id):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        order = Order.objects.get(pk=id)
+        if order.owner == request.user:
+            order.owner = None
+            order.save()
+        return HttpResponse('<!DOCTYPE html><html/>')
 
     def order_1c_action(self, request, queryset):
         if not request.user.is_staff:
@@ -1084,6 +1128,10 @@ class OrderAdmin(LockableModelAdmin):
         if 'show_stock' in request.POST:
             supplier_ur = Supplier.objects.get(code='Ур')
             supplier = Supplier.objects.get(pk=request.POST.get('supplier'))
+            if request.POST.get('aux_supplier'):
+                aux_supplier = Supplier.objects.get(pk=request.POST.get('aux_supplier'))
+            else:
+                aux_supplier = None
             selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
             cursor = connection.cursor()
             inner_cursor = connection.cursor()
@@ -1095,24 +1143,34 @@ class OrderAdmin(LockableModelAdmin):
                               WHERE shop_order.id IN (""" + ','.join(selected) + """)
                               GROUP BY shop_product.id ORDER BY shop_product.article""")
             products = []
+            suppliers = [supplier_ur.id, supplier.id]
+            if aux_supplier:
+                suppliers.append(aux_supplier.id)
+            supplier_ids = ','.join(map(str, suppliers))
             for row in cursor.fetchall():
                 columns = (x[0] for x in cursor.description)
                 product = dict(zip(columns, row))
                 stock = ''
                 inner_cursor.execute("""SELECT supplier_id, quantity, correction FROM shop_stock
                                         LEFT JOIN shop_supplier ON (shop_supplier.id = supplier_id)
-                                        WHERE product_id = %s AND supplier_id IN (%s, %s)
-                                        ORDER BY shop_supplier.order""", (product['product_id'], supplier_ur.id, supplier.id))
+                                        WHERE product_id = %s AND supplier_id IN (""" + supplier_ids + """)
+                                        ORDER BY shop_supplier.order""", (product['product_id'],))
                 quantity = float(product['quantity'])
                 stock = 0
+                aux_stock = 0
                 if inner_cursor.rowcount:
                     for row in inner_cursor.fetchall():
                         if row[0] == supplier_ur.id:
                             quantity = quantity - row[1] - row[2]
                         if row[0] == supplier.id:
                             stock = row[1] + row[2]
-                if quantity > 0 and stock > 0:
-                    product['stock'] = Decimal(quantity).quantize(Decimal('1'), rounding=ROUND_UP)
+                        if aux_supplier and row[0] == aux_supplier.id:
+                            aux_stock = row[1] + row[2]
+                if quantity > 0:
+                    if stock > 0:
+                        product['stock'] = Decimal(quantity).quantize(Decimal('1'), rounding=ROUND_UP)
+                    if aux_stock > 0 and quantity - stock > 0:
+                        product['aux_stock'] = Decimal(quantity-stock).quantize(Decimal('1'), rounding=ROUND_UP)
                     products.append(product)
             cursor.close()
             inner_cursor.close()
@@ -1126,9 +1184,22 @@ class OrderAdmin(LockableModelAdmin):
                 output = io.BytesIO()
                 workbook = xlsxwriter.Workbook(output)
                 sheet = workbook.add_worksheet(supplier.name)
-                for idx, product in enumerate(products):
-                    sheet.write(idx, 0, product['article'])
-                    sheet.write(idx, 1, product['stock'])
+                idx = 0
+                for product in products:
+                    stock = product.get('stock', None)
+                    if stock:
+                        sheet.write(idx, 0, product['article'])
+                        sheet.write(idx, 1, product['stock'])
+                        idx += 1
+                if aux_supplier:
+                    sheet = workbook.add_worksheet(aux_supplier.name)
+                    idx = 0
+                    for product in products:
+                        aux_stock = product.get('aux_stock', None)
+                        if aux_stock:
+                            sheet.write(idx, 0, product['article'])
+                            sheet.write(idx, 1, aux_stock)
+                            idx += 1
                 workbook.close()
 
                 response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -1140,6 +1211,7 @@ class OrderAdmin(LockableModelAdmin):
 
         form = SelectSupplierForm(initial={'supplier': Supplier.objects.get(code='С3').pk})
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['queryset'] = queryset
@@ -1214,6 +1286,7 @@ class OrderAdmin(LockableModelAdmin):
                     form.errors['__all__'] = form.error_class([str(e)])
         """
         context = self.admin_site.each_context(request)
+        context['cl'] = self
         context['opts'] = self.model._meta
         context['form'] = form
         context['queryset'] = queryset

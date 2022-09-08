@@ -8,13 +8,12 @@ from django.db import models
 from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.formats import date_format
-from django.utils.functional import cached_property
 
 from model_utils import FieldTracker
 from colorfield.fields import ColorField
 from tagging.utils import parse_tag_input
 
-from . import Product, ProductSet, Store, ShopUser
+from . import Product, ProductSet, Store, ShopUser, Integration
 
 __all__ = [
     'Contractor', 'Manager', 'Courier', 'Order', 'OrderItem', 'Box'
@@ -53,6 +52,7 @@ class Manager(models.Model):
 class Courier(models.Model):
     name = models.CharField('имя', max_length=100)
     color = ColorField(default='#000000')
+    pos_id = models.CharField('идентификатор кассы', max_length=100, blank=True)
 
     class Meta:
         verbose_name = 'курьер'
@@ -87,6 +87,8 @@ class Order(models.Model):
     DELIVERY_PICKPOINT = 5
     DELIVERY_YANDEX = 6
     DELIVERY_TRANSIT = 7
+    DELIVERY_POST = 8
+    DELIVERY_OZON = 9
     DELIVERY_UNKNOWN = 99
     DELIVERY_CHOICES = (
         (DELIVERY_UNKNOWN, 'уточняется'),
@@ -94,12 +96,15 @@ class Order(models.Model):
         (DELIVERY_CONSULTANT, 'консультант'),
         (DELIVERY_SELF, 'получу сам в магазине'),
         (DELIVERY_TRANSPORT, 'транспортная компания'),
+        (DELIVERY_POST, 'почта России'),
+        (DELIVERY_OZON, 'OZON'),
         (DELIVERY_PICKPOINT, 'PickPoint'),
         (DELIVERY_YANDEX, 'Яндекс.Доставка'),
         (DELIVERY_TRANSIT, 'транзит'),
     )
     STATUS_NEW = 0x0
     STATUS_ACCEPTED = 0x00000001
+    STATUS_WAITING = 0x00000002
     STATUS_COLLECTING = 0x00000004
     STATUS_CANCELED = 0x00000008
     STATUS_FROZEN = 0x00000010
@@ -119,6 +124,7 @@ class Order(models.Model):
     STATUS_CHOICES = (
         (STATUS_NEW, 'новый'),
         (STATUS_ACCEPTED, 'принят в работу'),
+        (STATUS_WAITING, 'ожидает подтверждения'),
         (STATUS_COLLECTING, 'комплектуется'),
         (STATUS_CANCELED, 'отменен'),
         (STATUS_FROZEN, 'заморожен'),
@@ -139,6 +145,7 @@ class Order(models.Model):
     STATUS_COLORS = {
         STATUS_NEW: 'red',
         STATUS_ACCEPTED: 'orange',
+        STATUS_WAITING: 'gray',
         STATUS_COLLECTING: 'limegreen',
         STATUS_CANCELED: 'pink',
         STATUS_FROZEN: 'lightblue',
@@ -172,11 +179,13 @@ class Order(models.Model):
     comment = models.TextField('комментарий', blank=True)
     shop_name = models.CharField('магазин', max_length=20, blank=True)
     site = models.ForeignKey(Site, verbose_name='сайт', on_delete=models.PROTECT)
+    integration = models.ForeignKey(Integration, verbose_name='интеграция', blank=True, null=True, on_delete=models.PROTECT)
     payment = models.SmallIntegerField('оплата', choices=PAYMENT_CHOICES, default=PAYMENT_UNKNOWN)
     paid = models.BooleanField('оплачен', default=False)
     manager = models.ForeignKey(Manager, verbose_name='менеджер', blank=True, null=True, on_delete=models.SET_NULL)
     manager_comment = models.TextField('комментарий менеджера', blank=True)
     alert = models.CharField('тревога', max_length=255, blank=True, db_index=True)
+    meta = models.JSONField(null=True, blank=True, editable=False)
     # delivery
     delivery = models.SmallIntegerField('доставка', choices=DELIVERY_CHOICES, default=DELIVERY_UNKNOWN, db_index=True)
     delivery_price = models.DecimalField('стоимость доставки', max_digits=8, decimal_places=2, default=0)
@@ -215,6 +224,8 @@ class Order(models.Model):
     # state
     created = models.DateTimeField('создан', auto_now_add=True)
     status = models.PositiveIntegerField('статус', choices=STATUS_CHOICES, default=STATUS_NEW, db_index=True)
+    hidden_tracking_number = models.CharField(max_length=50, blank=True, db_index=True)
+    owner = models.ForeignKey(ShopUser, verbose_name='владелец', blank=True, null=True, related_name='owned_orders', on_delete=models.SET_NULL)
 
     tracker = FieldTracker(fields=['status'])
 
@@ -258,26 +269,25 @@ class Order(models.Model):
             weight += item.product.prom_weight
         return weight
 
-    @cached_property
-    def is_beru(self):
-        return self.site == Site.objects.get(domain='beru.ru')
-
-    @cached_property
-    def is_from_market(self):
-        return self.site == Site.objects.get(domain='market.yandex.ru')
+    @property
+    def has_fiscal(self):
+        return self.meta and 'fiscalInfo' in self.meta
 
     @staticmethod
     def register(basket):
         session_data = basket.session.get_decoded()
         uid = session_data.get('_auth_user_id')
         user = ShopUser.objects.get(id=uid)
-        if basket.utm_source == 'yamarket':
-            site = Site.objects.get(domain='market.yandex.ru')
-        elif basket.utm_source == 'beru':
-            site = Site.objects.get(domain='beru.ru')
-        else:
+        site = None
+        integration = None
+        if basket.utm_source:
+            integration = Integration.objects.filter(utm_source=basket.utm_source).first()
+            if integration.uses_api:
+                site = integration.site
+        if site is None:
             site = Site.objects.get_current()
         order = Order.objects.create(user=user, site=site)
+        order.integration = integration
         order.utm_source = basket.utm_source
         order.name = user.name
         order.postcode = user.postcode
@@ -293,8 +303,8 @@ class Order(models.Model):
 
         # добавляем в заказ все элементы корзины
         for item in basket.items.all():
-            # если это Беру, то указываем только рублёвую скидку, предоставленную Беру
-            if order.utm_source == 'beru':
+            # если это интеграция, то указываем только предоставленную рублёвую скидку
+            if integration is not None and integration.uses_api:
                 pct_discount = 0
                 val_discount = item.ext_discount
                 price = item.product.price
@@ -314,7 +324,8 @@ class Order(models.Model):
                                    product_price=price.quantize(qnt, rounding=ROUND_UP),
                                    pct_discount=pct_discount,
                                    val_discount=val_discount,
-                                   quantity=item.quantity)
+                                   quantity=item.quantity,
+                                   meta=item.meta)
             # если это комплект, то добавляем элементы комплекта отдельно
             else:
                 full_discount = val_discount
@@ -366,7 +377,8 @@ class Order(models.Model):
                                            pct_discount=pct_discount,
                                            val_discount=val_discount,
                                            quantity=item.quantity * itm.quantity,
-                                           total=item_total)
+                                           total=item_total,
+                                           meta=item.meta)
                     # в данный момент, если цена позиции равна нулю, то она принудительно устанавливается в цену товара
                     # todo: можно перенести эту логику в admin, и тогда можно будет избавиться от двойного сохранения
                     if not item_price:
@@ -430,6 +442,7 @@ class OrderItem(models.Model):
     total = models.DecimalField('сумма', max_digits=10, decimal_places=2, default=0)
     serial_number = models.CharField('SN', max_length=30, blank=True)
     box = models.ForeignKey(Box, blank=True, null=True, related_name='products', related_query_name='box', verbose_name='коробка', on_delete=models.SET_NULL)
+    meta = models.JSONField(null=True, blank=True, editable=False)
 
     @property
     def price(self):
