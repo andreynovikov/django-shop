@@ -70,18 +70,15 @@ def send_message(phone, message):
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=15, retry_backoff=True)
 def send_password(phone, password):
-    return send_sms(phone, "Пароль для доступа на сайт: %s" % password)
+    return send_sms(phone, "Код для доступа на сайт: %s" % password)
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
-def notify_user_order_new_sms(order_id, password=None):
+def notify_user_order_new_sms(order_id):
     order = Order.objects.get(id=order_id)
     site = get_site_for_order(order)
-    password_text = ""
-    if password:
-        password_text = " Пароль: %s" % password
-    return send_sms(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s %s"
-                                 % (order_id, site.domain, reverse('shop:user_orders'), password_text))
+    return send_sms(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s"
+                                 % (order_id, site.domain, reverse('shop:user_orders')))
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
