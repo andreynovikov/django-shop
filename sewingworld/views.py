@@ -16,6 +16,12 @@ from shop.filters import get_product_filter
 
 def index(request):
     site = Site.objects.get_current()
+
+    if request.user.is_authenticated:
+        favorites = Favorites.objects.filter(user=request.user).values_list('product', flat=True)
+    else:
+        favorites = []
+
     context = {
         'top_adverts': Advert.objects.filter(active=True, place='index_top', sites=site).order_by('order'),
         'middle_adverts': Advert.objects.filter(active=True, place='index_middle', sites=site).order_by('order'),
@@ -23,7 +29,8 @@ def index(request):
         'actions': SalesAction.objects.filter(active=True, sites=site).order_by('order'),
         'gift_products': Product.objects.filter(enabled=True, show_on_sw=True, gift=True).order_by('-price')[:25],
         'recomended_products': Product.objects.filter(enabled=True, show_on_sw=True, recomended=True).order_by('-price')[:25],
-        'first_page_products': Product.objects.filter(enabled=True, show_on_sw=True, firstpage=True).order_by('-price')[:25]
+        'first_page_products': Product.objects.filter(enabled=True, show_on_sw=True, firstpage=True).order_by('-price')[:25],
+        'favorites': favorites
     }
     return render(request, 'index.html', context)
 
@@ -361,8 +368,11 @@ def product_quick_view(request, code):
     if not product.categories.exists():
         product.enabled = False
 
+    favorite = request.user.is_authenticated and Favorites.objects.filter(user=request.user, product=product).exists()
+
     context = {
         'product': product,
+        'is_favorite': favorite
     }
     return render(request, '_product_quick_view.html', context)
 
