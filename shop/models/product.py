@@ -68,7 +68,7 @@ class Product(models.Model):
 
     swcode = models.CharField('Код товара в ШМ', max_length=20, blank=True)
     runame = models.CharField('Русское название', max_length=200, blank=True)
-    sales_notes = models.CharField('Yandex.Market Sales Notes', max_length=50, blank=True)
+    sales_notes = models.CharField('Yandex.Market Sales Notes', max_length=128, blank=True)
     bid = models.CharField('Ставка маркета для основной выдачи', max_length=10, blank=True)
     cbid = models.CharField('Ставка маркета для карточки модели', max_length=10, blank=True)
     show_on_sw = models.BooleanField('витрина', default=True, db_index=True, db_column=settings.SHOP_SHOW_DB_COLUMN)
