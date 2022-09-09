@@ -14,13 +14,7 @@ from tagging.fields import TagField
 
 __all__ = [
     'ShopUserManager', 'ShopUser', 'Category', 'Currency', 'Country', 'Region', 'City',
-<<<<<<< HEAD
-    'Supplier', 'Store', 'ServiceCenter', 'Manufacturer', 'Advert', 'SalesAction',
-    'Product', 'ProductRelation', 'ProductSet', 'ProductKind', 'Stock', 'Favorites',
-    'ProductReview', 'Basket', 'BasketItem'
-=======
     'Supplier', 'Store', 'StoreImage', 'ServiceCenter', 'Manufacturer', 'Advert', 'SalesAction'
->>>>>>> origin/master
 ]
 
 logger = logging.getLogger(__name__)
@@ -328,11 +322,7 @@ class Store(models.Model):
         ordering = ('city', 'address')
 
     def phones_as_list(self):
-<<<<<<< HEAD
-        return [self.phone] + [x.strip() for x in self.phone2.split(',')]
-=======
         return filter(lambda x: x, [self.phone] + [x.strip() for x in self.phone2.split(',')])
->>>>>>> origin/master
 
     def hours_as_list(self):
         return [x.strip() for x in self.hours.split(',')]

@@ -14,7 +14,7 @@ from . import Product, ShopUser, ShopUserManager
 WHOLESALE = getattr(settings, 'SHOP_WHOLESALE', False)
 
 __all__ = [
-    'Basket', 'BasketItem'
+    'Basket', 'BasketItem', 'Favorites'
 ]
 
 
@@ -169,3 +169,13 @@ class BasketItem(models.Model):
     def discount_text(self):
         """ Provides human readable discount string. """
         return self.basket.product_discount_text(self.product)
+
+
+class Favorites(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    user = models.ForeignKey(ShopUser, on_delete=models.CASCADE, related_name='favorites')
+
+    class Meta:
+        verbose_name = 'избранное'
+        verbose_name_plural = 'избранные'
+        unique_together = ('product', 'user')
