@@ -88,6 +88,9 @@ class Order(models.Model):
     DELIVERY_TRANSIT = 7
     DELIVERY_POST = 8
     DELIVERY_OZON = 9
+    DELIVERY_INTEGRAL = 10
+    DELIVERY_BOXBERRY = 11
+    DELIVERY_EXPRESS = 98
     DELIVERY_UNKNOWN = 99
     DELIVERY_CHOICES = (
         (DELIVERY_UNKNOWN, 'уточняется'),
@@ -98,8 +101,11 @@ class Order(models.Model):
         (DELIVERY_POST, 'почта России'),
         (DELIVERY_OZON, 'OZON'),
         (DELIVERY_PICKPOINT, 'PickPoint'),
+        (DELIVERY_INTEGRAL, 'Интеграл'),
+        (DELIVERY_BOXBERRY, 'Boxberry'),
         (DELIVERY_YANDEX, 'Яндекс.Доставка'),
         (DELIVERY_TRANSIT, 'транзит'),
+        (DELIVERY_EXPRESS, 'экспресс'),
     )
     STATUS_NEW = 0x0
     STATUS_ACCEPTED = 0x00000001
@@ -233,7 +239,10 @@ class Order(models.Model):
         shop_code = self.site.profile.order_prefix
         if shop_code:
             shop_code = shop_code + '-'
-        return '{}{}'.format(shop_code, self.id)
+        express = ''
+        if self.delivery == self.DELIVERY_EXPRESS:
+            express = '/Э'
+        return '{}{}{}'.format(shop_code, self.id, express)
 
     @property
     def total(self):

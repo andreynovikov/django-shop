@@ -135,7 +135,7 @@ def accept_order(request, account='beru'):
         try:
             sku = beru_item.get('offerId', '#NO_SKU#')
             product = Product.objects.get(article=sku)
-            price = beru_item.get('price', 0)
+            price = beru_item.get('price', 0) + beru_item.get('subsidy', 0)
             count = beru_item.get('count', 0)
             item, _ = basket.items.get_or_create(product=product)
             item.quantity = count
@@ -165,6 +165,10 @@ def accept_order(request, account='beru'):
     date = delivery.get('shipments', [{}])[0].get('shipmentDate', None)
     if date:
         order.delivery_dispatch_date = datetime.strptime(date, '%d-%m-%Y')
+
+    is_taxi = order.integration.settings.get('is_taxi', False)
+    if is_taxi:
+        order.delivery = Order.DELIVERY_EXPRESS
 
     order.delivery_tracking_number = order_id
     order.comment = beru_order.get('notes', '')

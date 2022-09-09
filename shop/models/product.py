@@ -325,7 +325,7 @@ class Product(models.Model):
         super(Product, self).save()
         return self.num
 
-    def get_stock(self, which=settings.SHOP_STOCK_DB_COLUMN, integration=None):
+    def get_stock(self, which=settings.SHOP_STOCK_DB_COLUMN, integration=None, express=False):
         num = 0
         if self.constituents.count() == 0:
             if integration is not None:
@@ -336,6 +336,9 @@ class Product(models.Model):
                 suppliers = self.stock.filter(ws_count_in_stock=Supplier.COUNT_STOCK)
             else:
                 suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
+
+            if express:
+                suppliers = suppliers.filter(express_count_in_stock=Supplier.COUNT_STOCK)
 
             if suppliers.exists():
                 for supplier in suppliers:

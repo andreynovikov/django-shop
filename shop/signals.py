@@ -50,7 +50,7 @@ def order_saved(sender, **kwargs):
 
     if order.tracker.has_changed('status'):
         if not order.status:  # new order
-            if hasattr(order.site, 'profile') and order.site.profile.manager_phones:
+            if order.delivery == Order.DELIVERY_EXPRESS and hasattr(order.site, 'profile') and order.site.profile.manager_phones:
                 for phone in order.site.profile.manager_phones.split(','):
                     notify_manager_sms.delay(order.id, phone)
             """ wait for 5 minutes to let user supply comments and other stuff """
