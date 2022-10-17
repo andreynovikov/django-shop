@@ -1,0 +1,16 @@
+{% load static %}
+{% load site %}
+{% load decimals %}
+{% load l10n %}
+<offer id="{{ product.article }}">
+    {% if integration.price > 0 %}
+    <price>{{ integration.price|quantize:"1" }}</price>
+    {% else %}
+    <price>{{ product.cost|quantize:"1" }}</price>
+    {% endif %}
+    {% if stock is not None %}
+    <outlets>
+      <outlet id="0" instock="{% if stock > 10 %}10{% else %}{{ stock|quantize:"1" }}{% endif %}" />
+    </outlets>
+    {% endif %}
+</offer>

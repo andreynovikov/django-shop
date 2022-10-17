@@ -30,7 +30,7 @@ def get_unfulfilled_orders(self):
     client_id = integration.settings.get('client_id', '')
     api_key = integration.settings.get('api_key', '')
 
-    url = 'https://api-seller.ozon.ru/v3/posting/fbs/unfulfilled/list'
+    url = 'https://api-seller.ozon.ru/v3/posting/fbs/list'
     headers = {
         'Client-Id': client_id,
         'Api-Key': api_key,
@@ -42,8 +42,8 @@ def get_unfulfilled_orders(self):
     data = {
         "dir": "ASC",
         "filter": {
-            "cutoff_from": week_ago.isoformat(),
-            "cutoff_to": now.isoformat(),
+            "since": week_ago.isoformat(),
+            "to": now.isoformat(),
             "status": "awaiting_packaging"
         },
         "limit": 1000,
@@ -98,6 +98,10 @@ def get_unfulfilled_orders(self):
             basket.save()
             order = Order.register(basket)
 
+            is_express = posting.get('is_express', False)
+            if is_express:
+                order.delivery = Order.DELIVERY_EXPRESS
+
             full_address = []
             analytics_data = posting.get('analytics_data', {})
             region = analytics_data.get('region', None)
@@ -111,6 +115,10 @@ def get_unfulfilled_orders(self):
             if full_address:
                 order.address = ', '.join(full_address)
 
+            date = analytics_data.get('delivery_date_end', '')
+            if date:
+                order.delivery_handing_date = datetime.strptime(date.split('T')[0], '%Y-%m-%d')
+
             date = posting.get('shipment_date', '')
             if date:
                 order.delivery_dispatch_date = datetime.strptime(date.split('T')[0], '%Y-%m-%d')
@@ -119,6 +127,62 @@ def get_unfulfilled_orders(self):
             order.save()
             num = num + 1
         return num
+    except HTTPError as e:
+        content = e.read()
+        error = json.loads(content.decode('utf-8'))
+        logger.error(error)
+        message = error.get('message', 'Неизвестная ошибка взаимодействия с Ozon!')
+        raise TaskFailure(message) from e
+
+
+@shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
+def notify_product_stocks(self, product_id):
+    integration = Integration.objects.get(utm_source='ozon')
+    client_id = integration.settings.get('client_id', '')
+    api_key = integration.settings.get('api_key', '')
+
+    url = 'https://api-seller.ozon.ru/v2/products/stocks'
+    headers = {
+        'Client-Id': client_id,
+        'Api-Key': api_key,
+        'Content-Type': 'application/json'
+    }
+    product = Product.objects.get(pk=product_id)
+
+    stock = min(10, int(product.get_stock(integration=integration)))
+    express_stock = min(10, int(product.get_stock(integration=integration, express=True)))
+
+    data = {
+        "stocks": []
+    }
+
+    for warehouse in integration.settings.get('warehouses', []):
+        if warehouse.get('is_express', False):
+            warehouse_stock = express_stock
+        else:
+            warehouse_stock = stock
+        data['stocks'].append({
+            "offer_id": product.article,
+            "stock": warehouse_stock,
+            "warehouse_id": warehouse.get('id', 0)
+        })
+
+    data_encoded = json.dumps(data).encode('utf-8')
+    request = Request(url, data_encoded, headers, method='POST')
+    logger.info('<<< ' + request.full_url)
+    logger.info(data_encoded)
+    try:
+        response = urlopen(request)
+        result = json.loads(response.read().decode('utf-8'))
+        logger.debug(result)
+        """
+        {'result': [
+            {'warehouse_id': 22936068942000, 'product_id': 0, 'offer_id': 'в92086', 'updated': False, 'errors': [
+                {'code': 'TOO_MANY_REQUESTS', 'message': 'too many requests'}
+            ]},
+            {'warehouse_id': 22933327211000, 'product_id': 297361812, 'offer_id': 'в92086', 'updated': True, 'errors': []}]}
+        """
+        return None
     except HTTPError as e:
         content = e.read()
         error = json.loads(content.decode('utf-8'))

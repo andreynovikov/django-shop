@@ -59,7 +59,7 @@ SINGLE_DATE_FORMAT_WITH_YEAR = 'j E Y'
 
 log = logging.getLogger('shop')
 
-sw_default_site = Site.objects.get_current()
+sw_default_site = Site.objects.get(domain='www.sewing-world.ru')
 
 
 def single_instance_task(timeout):
@@ -86,7 +86,7 @@ def validate_email(email):
 
 
 def get_site_for_order(order):
-    if order.is_integration:
+    if order.integration:
         return sw_default_site
     else:
         return order.site
@@ -103,6 +103,7 @@ class DecimalEncoder(json.JSONEncoder):
 def update_order(self, order_id, data):
     order = Order.objects.get(id=order_id)
     if order.owner:
+        log.info('Locked by %s, retrying' % order.owner)
         raise self.retry(countdown=600, max_retries=24)  # 10 minutes
     order.owner = ShopUser.objects.get(phone='000')
     order.save()
@@ -385,7 +386,7 @@ def update_1c_stocks(self):
 
         import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
         filepath = os.path.join(import_dir, filename)
-        if modified:
+        if modified and os.path.isfile(filename):
             mdate = dateparse.parse_datetime(modified)
             fdate = timezone.make_aware(datetime.fromtimestamp(os.path.getmtime(filepath)))
             if mdate < fdate:

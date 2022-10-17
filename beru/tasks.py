@@ -28,7 +28,7 @@ def notify_beru_order_status(self, order_id, status, substatus):
         # do not notify Beru if status already set (Beru raises error in that case)
         return '{}: {} {} (already set)'.format(order_id, status, substatus)
 
-    campaign_id = order.integration.settings.get('campaign', '')
+    campaign_id = order.integration.settings.get('ym_campaign', '')
     oauth_application = order.integration.settings.get('application', '')
     oauth_token = order.integration.settings.get('oauth_token', '')
 
@@ -123,7 +123,7 @@ def get_beru_order_details(order_id):
     if not beru_order:
         raise TaskFailure('Order {} does not have beru order number'.format(order_id))
 
-    campaign_id = order.integration.settings.get('campaign', '')
+    campaign_id = order.integration.settings.get('ym_campaign', '')
     oauth_application = order.integration.settings.get('application', '')
     oauth_token = order.integration.settings.get('oauth_token', '')
 
@@ -155,7 +155,7 @@ def get_beru_labels_data(order_id):
     if not beru_order:
         raise TaskFailure('Order {} does not have beru order number'.format(order_id))
 
-    campaign_id = order.integration.settings.get('campaign', '')
+    campaign_id = order.integration.settings.get('ym_campaign', '')
     oauth_application = order.integration.settings.get('application', '')
     oauth_token = order.integration.settings.get('oauth_token', '')
 
