@@ -164,8 +164,11 @@ class Category(MPTTModel):
     product_order = models.CharField('поле сортировки товаров', max_length=50, default='-price')
     ya_active = models.BooleanField('выдавать в Яндекс.Маркет', default=True)
 
+    def get_active_children(self):
+        return self.get_children().filter(active=True, hidden=False)
+
     def get_active_descendants(self):
-        return self.get_descendants().filter(active=True)
+        return self.get_descendants().filter(active=True, hidden=False)
 
     def get_absolute_url(self):
         return reverse('category', kwargs={'path': self.get_path()})

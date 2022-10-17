@@ -1,0 +1,26 @@
+{
+    "scripts": {
+        "dev": "next dev",
+        "dev-ssl": "(local-ssl-proxy --key privkey.pem --cert cert.pem --source 8080 --target 3000) & next dev",
+        "build": "next build",
+        "start": "next start -p 4000",
+        "lint": "next lint"
+    },
+    "dependencies": {
+        "axios": "^0.27.2",
+        "jsonwebtoken": "^8.5.1",
+        "next": "^12.2.5",
+        "next-auth": "^4.10.3",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "react-hook-form": "^7.35.0",
+        "react-query": "^3.39.2",
+        "simplebar-react": "^2.4.3"
+    },
+    "devDependencies": {
+        "eslint": "^8.25.0",
+        "eslint-config-next": "12.3.1",
+        "local-ssl-proxy": "^1.2.3",
+        "sass": "^1.54.9"
+    }
+}

@@ -1,0 +1,9 @@
+.catalog {
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 800
+}

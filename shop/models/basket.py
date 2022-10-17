@@ -31,10 +31,18 @@ class Basket(models.Model):
         else:
             return product.price - self.product_discount(product)
 
-    def product_pct_discount(self, product):
-        """ Calculates maximum percent discount based on product, user and maximum discount """
+    @classmethod
+    def product_cost_for_user(cls, product, user):
         if WHOLESALE:
-            pd = max(product.ws_pct_discount, self.user_discount)
+            return product.ws_price - cls.product_discount_with_user_discount(product, user.discount)
+        else:
+            return product.price - cls.product_discount_with_user_discount(product, user.discount)
+
+    @classmethod
+    def product_pct_discount(self, product, user_discount):
+        """ Calculates maximum percent discount based on product, user discount and maximum allowed discount """
+        if WHOLESALE:
+            pd = max(product.ws_pct_discount, user_discount)
             if pd > product.ws_max_discount:
                 pd = product.ws_max_discount
             pdp = round(product.ws_price * Decimal((100 - pd) / 100))
@@ -42,14 +50,16 @@ class Basket(models.Model):
                 d = product.ws_price - product.sp_price
                 pd = int(d / product.ws_price * 100)
         else:
-            pd = max(product.pct_discount, self.user_discount)
+            pd = max(product.pct_discount, user_discount)
             if pd > product.max_discount:
                 pd = product.max_discount
         return pd
 
-    def product_discount(self, product):
+    @classmethod
+    def product_discount_with_user_discount(cls, product, user_discount):
+        """ Calculates final product discount considering user discount """
         pd = Decimal(0)
-        pct = self.product_pct_discount(product)
+        pct = cls.product_pct_discount(product, user_discount)
         if pct > 0:
             if WHOLESALE:
                 price = product.ws_price
@@ -62,12 +72,16 @@ class Basket(models.Model):
             pd = product.val_discount
         return pd
 
+    def product_discount(self, product):
+        """ Provides discount for basket items using basket owner """
+        return self.product_discount_with_user_discount(product, self.user_discount)
+
     def product_discount_text(self, product):
         """ Provides human readable discount string. """
         pd = Decimal(0)
         pdv = Decimal(0)
         pdt = False
-        pct = self.product_pct_discount(product)
+        pct = self.product_pct_discount(product, self.user_discount)
         if pct > 0:
             if WHOLESALE:
                 price = product.ws_price
@@ -146,6 +160,9 @@ class BasketItem(models.Model):
     quantity = models.PositiveSmallIntegerField(default=1)
     ext_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     meta = models.JSONField(null=True, blank=True, editable=False)
+
+    class Meta:
+        ordering = ['id']
 
     @property
     def price(self):
