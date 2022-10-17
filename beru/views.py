@@ -117,6 +117,11 @@ def accept_order(request, account='beru'):
     logger.debug(data)
     beru_order = data.get('order', {})
 
+    order_id = beru_order.get('id', None)
+    order = Order.objects.filter(delivery_tracking_number=order_id).first()  # Beru sometimes registers same order several times
+    if order is not None:
+        return JsonResponse({"order": {"accepted": True, "id": str(order.id)}})
+
     user = ShopUser.objects.get(phone='0000')
 
     if not request.session.session_key:
@@ -130,7 +135,7 @@ def accept_order(request, account='beru'):
         try:
             sku = beru_item.get('offerId', '#NO_SKU#')
             product = Product.objects.get(article=sku)
-            price = beru_item.get('price', 0)
+            price = beru_item.get('price', 0) + beru_item.get('subsidy', 0)
             count = beru_item.get('count', 0)
             item, _ = basket.items.get_or_create(product=product)
             item.quantity = count
@@ -161,7 +166,11 @@ def accept_order(request, account='beru'):
     if date:
         order.delivery_dispatch_date = datetime.strptime(date, '%d-%m-%Y')
 
-    order.delivery_tracking_number = beru_order.get('id', None)
+    is_taxi = order.integration.settings.get('is_taxi', False)
+    if is_taxi:
+        order.delivery = Order.DELIVERY_EXPRESS
+
+    order.delivery_tracking_number = order_id
     order.comment = beru_order.get('notes', '')
     order.save()
 

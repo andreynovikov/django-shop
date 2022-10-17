@@ -143,6 +143,7 @@ class DeliveryTrackingNumberWidget(TextInput):
         id = final_attrs.get('id', uuid.uuid4().hex)
         output = None
         if value:
+            popup = None
             if self.utm_source == 'ozon':
                 popup = 'https://seller.ozon.ru/app/postings/fbs/?postingDetails={postingId}'.format(postingId=value)
             elif self.ym_campaign:

@@ -68,7 +68,7 @@ class Product(models.Model):
 
     swcode = models.CharField('Код товара в ШМ', max_length=20, blank=True)
     runame = models.CharField('Русское название', max_length=200, blank=True)
-    sales_notes = models.CharField('Yandex.Market Sales Notes', max_length=50, blank=True)
+    sales_notes = models.CharField('Yandex.Market Sales Notes', max_length=128, blank=True)
     bid = models.CharField('Ставка маркета для основной выдачи', max_length=10, blank=True)
     cbid = models.CharField('Ставка маркета для карточки модели', max_length=10, blank=True)
     show_on_sw = models.BooleanField('витрина', default=True, db_index=True, db_column=settings.SHOP_SHOW_DB_COLUMN)
@@ -325,7 +325,7 @@ class Product(models.Model):
         super(Product, self).save()
         return self.num
 
-    def get_stock(self, which=settings.SHOP_STOCK_DB_COLUMN, integration=None):
+    def get_stock(self, which=settings.SHOP_STOCK_DB_COLUMN, integration=None, express=False):
         num = 0
         if self.constituents.count() == 0:
             if integration is not None:
@@ -336,6 +336,9 @@ class Product(models.Model):
                 suppliers = self.stock.filter(ws_count_in_stock=Supplier.COUNT_STOCK)
             else:
                 suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
+
+            if express:
+                suppliers = suppliers.filter(express_count_in_stock=Supplier.COUNT_STOCK)
 
             if suppliers.exists():
                 for supplier in suppliers:
@@ -356,7 +359,6 @@ class Product(models.Model):
                 if Supplier.objects.filter(ws_count_in_stock=Supplier.COUNT_STOCK, pk__in=suppliers).count():
                     sites.extend(Site.objects.filter(domain='opt.sewing-world.ru').values_list('id', flat=True))
                 site_addon = 'IN ({})'.format(','.join(map(str, sites)))
-                print(site_addon)
 
                 cursor = connection.cursor()
                 cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
@@ -430,7 +432,11 @@ class ProductKind(models.Model):
 
 
 class ProductReview(UserReviewAbstractModel):
+    advantage = models.TextField('достоинства', max_length=REVIEW_MAX_LENGTH, blank=True)
+    disadvantage = models.TextField('недостатки', max_length=REVIEW_MAX_LENGTH, blank=True)
     comment = models.TextField('комментарий', max_length=REVIEW_MAX_LENGTH, blank=True)
+    reviewer_name = models.CharField('имя пользователя', max_length=100, blank=True)
+    reviewer_avatar = models.CharField('аватар пользователя', max_length=255, blank=True)
 
 
 class Stock(models.Model):

@@ -323,13 +323,17 @@ class OrderAdmin(admin.ModelAdmin):
     @mark_safe
     def order_name(self, obj):
         manager = ''
+        taxi = ''
         if obj.manager:
             manager = ' style="color: %s"' % obj.manager.color
         lock = ''
         if obj.owner:
-            lock = '<span style="font-weight: 400" title="%s">&#9919;&nbsp;</span>' % str(obj.owner)
-        return '<span style="white-space:nowrap">%s<b%s>%s</b></span><br/><span style="white-space:nowrap">%s</span>' % \
-            (lock, manager, obj.title, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
+            lock = '&nbsp;<span class="fas fa-lock fa-xs" title="%s" style="position: relative; top: -2px"></span>' % str(obj.owner)
+        if obj.integration and obj.integration.uses_api and obj.integration.settings:
+            if obj.integration.settings.get('is_taxi', False):
+                taxi = ' class="is-taxi"'
+        return '<span style="white-space:nowrap"%s><b%s>%s</b>%s</span><br/><span style="white-space:nowrap">%s</span>' % \
+            (taxi, manager, obj.title, lock, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
     order_name.admin_order_field = 'id'
     order_name.short_description = 'заказ'
 
@@ -362,10 +366,10 @@ class OrderAdmin(admin.ModelAdmin):
         courier = ''
         if obj.courier:
             if obj.hidden_tracking_number:
-                courier = ': %s&nbsp;<span style="color: blue; font-weight: bold" title="%s">&#10003;</span>' % (obj.courier.name, obj.hidden_tracking_number)
+                courier = ': %s <span style="color: blue" title="%s" class="fas fa-check fa-xs"></span>' % (obj.courier.name, obj.hidden_tracking_number)
             else:
                 courier = ': %s' % obj.courier.name
-        return '%s%s<br/>%s' % (obj.get_delivery_display(), courier, datetime)
+        return '%s<span style="white-space:nowrap">%s</span><br/>%s' % (obj.get_delivery_display(), courier, datetime)
     combined_delivery.admin_order_field = 'delivery_dispatch_date'
     combined_delivery.short_description = 'Доставка'
 
@@ -389,10 +393,10 @@ class OrderAdmin(admin.ModelAdmin):
         checkmark = ''
         if obj.paid and obj.has_fiscal:
             style = '; color: green'
-            checkmark = '<a href="https://receipt.taxcom.ru/v01/show?fp=%s&s=%s" target="_blank" style="color: green; font-size: 150%%">&#128457;</a>' % (obj.meta['fiscalInfo']['fnDocMark'], obj.meta['fiscalInfo']['sum'])
+            checkmark = '<a href="https://receipt.taxcom.ru/v01/show?fp=%s&s=%s" target="_blank" style="color: green"><i class="fas fa-receipt fa-xs"></i></a>' % (obj.meta['fiscalInfo']['fnDocMark'], obj.meta['fiscalInfo']['sum'])
         elif obj.paid:
             style = 'color: green'
-            checkmark = '<span style="color: green; font-size: 120%%">&#10003;</span>'
+            checkmark = '<span style="color: green"><i class="fas fa-check fa-xs"></i></span>'
         elif obj.payment in [Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_CREDIT]:
             style = 'color: red'
         return '<span style="display: grid; grid-template-columns: min-content auto; column-gap: 5px"><span style="%s">%s</span>%s</span>' % (style, obj.get_payment_display(), checkmark)
@@ -469,7 +473,7 @@ class OrderAdmin(admin.ModelAdmin):
                    'paid', OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
                    ('delivery_handing_date', FutureDateRangeFilter), 'manager', 'courier']
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment', 'delivery_tracking_number',
-                     'delivery_yd_order', 'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
+                     'delivery_info', 'delivery_yd_order', 'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
                      'item__serial_number']
     inlines = [OrderItemInline, BoxInline]
     form = OrderAdminForm
@@ -552,10 +556,10 @@ class OrderAdmin(admin.ModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied
         if 'action' in request.POST and request.POST['action'] == 'order_product_list_action':
-            if not request.POST.getlist(admin.ACTION_CHECKBOX_NAME):
+            if not request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME):
                 post = request.POST.copy()
                 # '0' is special case for 'all'
-                post.update({admin.ACTION_CHECKBOX_NAME: '0'})
+                post.update({admin.helpers.ACTION_CHECKBOX_NAME: '0'})
                 request._set_post(post)
         return super().changelist_view(request, extra_context)
 
@@ -640,7 +644,7 @@ class OrderAdmin(admin.ModelAdmin):
     def order_product_list_action(self, request, queryset):
         if not request.user.is_staff:
             raise PermissionDenied
-        selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
+        selected = request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME)
         return HttpResponseRedirect("products/?orders=%s" % ",".join(selected))
     order_product_list_action.short_description = "Показать товары для выбранных заказов"
 
@@ -1132,7 +1136,7 @@ class OrderAdmin(admin.ModelAdmin):
                 aux_supplier = Supplier.objects.get(pk=request.POST.get('aux_supplier'))
             else:
                 aux_supplier = None
-            selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
+            selected = request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME)
             cursor = connection.cursor()
             inner_cursor = connection.cursor()
             cursor.execute("""SELECT shop_product.id AS product_id, shop_product.article,
@@ -1227,7 +1231,7 @@ class OrderAdmin(admin.ModelAdmin):
     def order_products_action(self, request, queryset):
         if not request.user.is_staff:
             raise PermissionDenied
-        selected = request.POST.getlist(admin.ACTION_CHECKBOX_NAME)
+        selected = request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME)
         cursor = connection.cursor()
         cursor.execute("""SELECT shop_orderitem.product_id, shop_product.article, SUM(shop_orderitem.quantity) AS quantity
                           FROM shop_orderitem INNER JOIN shop_product ON (shop_product.id = shop_orderitem.product_id)

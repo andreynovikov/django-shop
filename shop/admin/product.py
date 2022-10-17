@@ -189,7 +189,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     list_display = ['product_codes', 'title', 'combined_price', 'spb_price', 'combined_discount', 'enabled', 'show_on_sw',
                     'market', 'spb_market', 'integrations', 'product_stock', 'orders_link', 'product_link']
     list_display_links = ['title']
-    list_editable = ['enabled', 'show_on_sw', 'market', 'spb_market']  # , 'integrations']  #, 'beru', 'taxi', 'tax2', 'tax3', 'mdbs', 'sber', 'ali', 'market', 'spb_market', 'merchant']
+    list_editable = ['enabled', 'show_on_sw', 'market', 'spb_market']
     list_filter = ['enabled', 'preorder', 'show_on_sw', IntegrationsFilter, 'market', 'isnew', 'recomended',
                    'forbid_price_import', 'cur_code', ('pct_discount', DropdownFilter), ('val_discount', DropdownFilter),
                    ('categories', RelatedDropdownFilter), ('manufacturer', RelatedDropdownFilter)]

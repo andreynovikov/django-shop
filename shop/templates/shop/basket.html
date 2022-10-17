@@ -18,9 +18,9 @@
 {% load decimals %}
 {% load humanize %}
 {% load shop_filters %}
+<div class="text-center">
 <h1>Оформление заказа</h1>
 {% if error_message %}<p><strong>{{ error_message }}</strong></p>{% endif %}
-<div class="text-center">
     {% for item in basket.items.all %}
     <div class="sw-p-l panel panel-default sw-product-row">
        <div class="panel-body">
@@ -240,7 +240,7 @@
         });
 
         function initHandlers() {
-            $("#order-submit").prop("disabled", true);
+            //$("#order-submit").prop("disabled", true);
 
             $("#send-order").on("submit", function () {
                  var complete = $("#phone-input").inputmask("isComplete");
