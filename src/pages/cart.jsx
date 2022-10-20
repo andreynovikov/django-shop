@@ -68,7 +68,7 @@ export default function Cart() {
                     <div className="py-2 px-xl-2">
                         <div className="text-center mb-4 pb-3 border-bottom">
                             <h2 className="h5 mb-3 pb-1">Итого</h2>
-                            <h3 className="fw-normal mb-0">{ basket.total }<small>&nbsp;руб</small></h3>
+                            <h3 className="fw-normal mb-0">{ basket.total.toLocaleString('ru') }<small>&nbsp;руб</small></h3>
                             <div className="fs-sm text-muted">без учета стоимости доставки</div>
                         </div>
 

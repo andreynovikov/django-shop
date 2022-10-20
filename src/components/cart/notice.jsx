@@ -28,7 +28,7 @@ export default function CartNotice() {
                 </a>
             </Link>
             <Link href="/cart">
-                <a className="navbar-tool-text"><small>Корзина</small>{ basket.total }<small className="d-inline">&nbsp;руб</small></a>
+                <a className="navbar-tool-text"><small>Корзина</small>{ basket.total.toLocaleString('ru') }<small className="d-inline">&nbsp;руб</small></a>
             </Link>
             <div className="dropdown-menu dropdown-menu-end">
                 <div className="widget widget-cart px-3 pt-2 pb-3" style={{width: "25rem"}}>
@@ -53,7 +53,7 @@ export default function CartNotice() {
                                     <div className="ps-2">
                                         <h6 className="widget-product-title"><a href="'product'">{ item.product.title }</a></h6>
                                         <div className="widget-product-meta">
-                                            <span className="text-accent me-2">{ item.cost }<small>&nbsp;руб</small></span>
+                                            <span className="text-accent me-2">{ item.cost.toLocaleString('ru') }<small>&nbsp;руб</small></span>
                                             <span className="text-muted">x { item.quantity }</span>
                                             { item.product.instock < 1 && <span className="fs-lg ms-1"><sup><span className="badge badge-pill badge-warning">нет в наличии</span></sup></span> }
                                         </div>
@@ -65,7 +65,7 @@ export default function CartNotice() {
                     <div className="d-flex flex-wrap justify-content-between align-items-center py-3">
                         <div className="fs-sm me-2 py-2">
                             <span className="text-muted">Всего:</span>
-                            <span className="text-accent fs-base ms-1">{ basket.total }<small>&nbsp;руб</small></span>
+                            <span className="text-accent fs-base ms-1">{ basket.total.toLocaleString('ru') }<small>&nbsp;руб</small></span>
                         </div>
                         <Link href="/cart">
                             <a className="btn btn-outline-secondary btn-sm">Открыть корзину<i className="ci-arrow-right ms-1 me-n1" /></a>

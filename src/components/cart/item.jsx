@@ -44,9 +44,9 @@ export default function CartItem({item, first, last, removeItem, setQuantity}) {
                     <h3 className="product-title fs-base mb-2">
                         <a href="'product' item.product.code">{ item.product.title }</a>
                     </h3>
-                    <div className="fs-sm"><span className="text-muted me-2">Цена:</span>{ item.product.price }<small>&nbsp;руб</small></div>
+                    <div className="fs-sm"><span className="text-muted me-2">Цена:</span>{ item.product.price.toLocaleString('ru') }<small>&nbsp;руб</small></div>
                     { item.discount > 0 && <div className="fs-sm"><span className="text-muted me-2">Скидка:</span>{ item.discount_text }</div> }
-                    <div className="fs-lg text-accent pt-2"><span>{ item.price }</span><small>&nbsp;руб</small></div>
+                    <div className="fs-lg text-accent pt-2"><span>{ item.price.toLocaleString('ru') }</span><small>&nbsp;руб</small></div>
                 </div>
             </div>
             <div className="pt-2 pt-sm-0 ps-sm-3 mx-auto mx-sm-0 text-center text-sm-start" style={{maxWidth: "9rem"}}>

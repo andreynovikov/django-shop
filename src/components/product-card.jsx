@@ -101,8 +101,8 @@ export default function ProductCard({product, limitedBadges}) {
                     { product.enabled ? (
                         cost > 0 && (
                             <div className="product-price">
-	                            <span className="text-accent">{ cost }<small>&nbsp;руб</small></span>
-                                { cost != product.price && <>{' '}<del className="fs-sm text-muted">{ product.price }<small>&nbsp;руб</small></del></> }
+	                            <span className="text-accent">{ cost.toLocaleString('ru') }<small>&nbsp;руб</small></span>
+                                { cost != product.price && <>{' '}<del className="fs-sm text-muted">{ product.price.toLocaleString('ru') }<small>&nbsp;руб</small></del></> }
                             </div>
                         )
                     ) : (
