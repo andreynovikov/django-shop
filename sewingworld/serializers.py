@@ -1,6 +1,7 @@
 import logging
 from collections import OrderedDict
 from random import randint
+from urllib.parse import urlparse
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import AnonymousUser
@@ -13,7 +14,7 @@ from sorl.thumbnail import get_thumbnail
 from django.contrib.flatpages.models import FlatPage
 
 from shop.filters import get_product_filter
-from shop.models import Basket, BasketItem, Category, Product, ShopUser, ShopUserManager
+from shop.models import Basket, BasketItem, Favorites, Category, Product, ShopUser, ShopUserManager
 
 logger = logging.getLogger("django")
 
@@ -83,10 +84,22 @@ class ProductListSerializer(NonNullModelSerializer):
     instock = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     thumbnail = serializers.SerializerMethodField()
+    sales = serializers.SerializerMethodField()
+    rank = serializers.ReadOnlyField()
 
     class Meta:
         model = Product
-        fields = ('id', 'code', 'article', 'partnumber', 'whatis', 'title', 'variations', 'price', 'cost', 'discount', 'instock', 'image', 'thumbnail')
+        fields = ('id', 'code', 'article', 'partnumber', 'whatis', 'title', 'variations', 'price',
+                  'cost', 'discount', 'instock', 'image', 'thumbnail', 'enabled', 'isnew', 'recomended',
+                  'sales', 'sales_notes', 'shortdescr', 'rank')
+
+    def to_representation(self, instance):
+        request = self.context.get('request')
+        typeahead = request.GET.get('ta', None)
+        if typeahead is not None:
+            return instance.title
+        else:
+            return super().to_representation(instance)
 
     def get_instock(self, obj):
         return obj.instock > 0
@@ -113,6 +126,15 @@ class ProductListSerializer(NonNullModelSerializer):
             }
         else:
             return None
+
+    def get_sales(self, obj):
+        request = self.context.get('request')
+        # TODO: put this in middleware
+        domain = urlparse(request.META.get('HTTP_REFERER', '')).hostname
+        if domain == 'cartzilla.sigalev.ru':  # TODO: put this in Sites config
+            domain = 'www.sewing-world.ru'
+        logger.error(request.META.get('HTTP_REFERER', ''))
+        return list(obj.sales_actions.filter(active=True).order_by('order').values_list('notice', flat=True)) # , sites__domain=domain).order_by('order')
 
 
 class ProductSerializer(NonNullModelSerializer):
@@ -193,6 +215,15 @@ class BasketItemActionSerializer(serializers.ModelSerializer):
         model = BasketItem
         fields = ('product', 'quantity')
         extra_kwargs = {'quantity': {'required': False}}
+
+
+class FavoritesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Favorites
+        exclude = ('id', 'user')
+
+    def to_representation(self, instance):
+        return instance.product.id
 
 
 class UserSerializer(serializers.ModelSerializer):

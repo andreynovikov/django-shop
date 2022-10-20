@@ -7,6 +7,7 @@ import { productKeys, loadProducts } from '@/lib/queries';
 import useCatalog from '@/lib/catalog';
 
 const filters = [
+    { field: 'enabled', value: 1},
     { field: 'gift', value: 1 },
     { field: 'show_on_sw', value: 1 }
 ];

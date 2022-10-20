@@ -1,15 +1,29 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 
 import CartNotice from '@/components/cart/notice';
 import Catalog from '@/components/catalog';
 import UserProfileLink from '@/components/user-profile-link';
+import ProductSearchInput from '@/components/product/search-input';
+
+import useFavorites from '@/lib/favorites';
 
 export default function Topbar({hideCartNotice}) {
     const [catalogVisible, setCatalogVisible] = useState(false);
+    const [searchText, setSearchText] = useState('');
     const { status } = useSession();
     const catalogButtonRef = useRef(null);
+
+    const router = useRouter();
+
+    useEffect(() => {
+        if (router.query.text !== undefined)
+            setSearchText(router.query.text);
+    }, [router.query.text]);
+
+    const { favorites } = useFavorites();
 
     const hide_search_form = false;
     const hide_sign_in = false;
@@ -90,12 +104,7 @@ export default function Topbar({hideCartNotice}) {
                                 <img src="/i/logo-icon.svg" alt={seoLogoAlt} width="34" />
                             </a>
                         </Link>
-                        { !hide_search_form && (
-                            <form className="input-group d-none d-lg-flex mx-4" action="'search'">
-                                <input className="form-control product-search rounded-end pe-5" name="text" type="text" placeholder="Поиск товаров" autoComplete="off" />
-                                <i className="ci-search position-absolute top-50 end-0 translate-middle-y text-muted fs-base me-3" />
-                            </form>
-                        )}
+                        { !hide_search_form && <ProductSearchInput /> }
                         <div className="navbar-toolbar d-flex flex-shrink-0 align-items-center">
                             <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
                                 <span className="navbar-toggler-icon" />
@@ -104,6 +113,17 @@ export default function Topbar({hideCartNotice}) {
                                 <div className="navbar-tool-icon-box"><i className="navbar-tool-icon ci-menu" /></div>
                                 <div className="navbar-tool-text ms-n3">Меню</div>
                             </a>
+                            { status === 'authenticated' && (
+                                <Link href="/user/favorites/">
+                                    <a className="navbar-tool d-none d-lg-flex">
+                                        <div className="navbar-tool-icon-box">
+                                            { favorites.length > 0 && <span className="navbar-tool-label">{ favorites.length }</span> }
+                                            <i className="navbar-tool-icon ci-heart" />
+                                        </div>
+                                        <span className="navbar-tool-tooltip">Избранное</span>
+                                    </a>
+                                </Link>
+                            )}
                             { !hide_sign_in && <UserProfileLink /> }
                             { !hideCartNotice && <CartNotice /> }
                         </div>
@@ -113,9 +133,16 @@ export default function Topbar({hideCartNotice}) {
                     <div className="container">
                         <div className="collapse navbar-collapse" id="navbarCollapse">
                             { !hide_search_form && (
-                                <form className="input-group d-lg-none my-3" action="'search'">
+                                <form className="input-group d-lg-none my-3" action="/search/">
                                     <i className="ci-search position-absolute top-50 start-0 translate-middle-y ms-3" />
-                                    <input className="form-control rounded-start" name="text" type="text" placeholder="Поиск товаров" autoComplete="off" />
+                                    <input
+                                        className="form-control rounded-start"
+                                        name="text"
+                                        type="text"
+                                        placeholder="Поиск товаров"
+                                        autoComplete="off"
+                                        value={searchText}
+                                        onChange={(e) => setSearchText(e.target.value)} />
                                 </form>
                             )}
                             <ul className="navbar-nav pe-lg-2 me-lg-2">

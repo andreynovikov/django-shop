@@ -11,7 +11,7 @@ import { withClient, categoryKeys, productKeys, loadCategories, loadCategory, lo
 import useCatalog from '@/lib/catalog';
 
 const baseFilters = [
-    { field: 'show_on_sw', value: 1 }
+    { field: 'enabled', value: 1}
 ];
 const defaultOrder = 'title';
 

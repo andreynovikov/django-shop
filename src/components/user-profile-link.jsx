@@ -18,7 +18,7 @@ export default function UserProfileLink() {
                 <a className="navbar-tool-text ms-n3">
                     <small>{ session.user?.name || session.user?.phone }</small>личный кабинет
                 </a>
-                <div className="dropdown-menu dropdown-menu-right">
+                <div className="dropdown-menu dropdown-menu-end">
                     <a className="dropdown-item" href="">Заказы</a>
                     <a className="dropdown-item" href="">Профиль</a>
                     <div className="dropdown-divider"></div>

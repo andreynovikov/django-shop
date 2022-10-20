@@ -3,6 +3,7 @@ from random import randint
 from urllib.parse import urlparse
 
 from django.contrib.auth import get_user_model, login, logout
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 
@@ -17,11 +18,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.flatpages.models import FlatPage
 
 from shop.filters import get_product_filter
-from shop.models import Category, Product, Basket, BasketItem, ShopUser, ShopUserManager
+from shop.models import Category, Product, Basket, BasketItem, Favorites, ShopUser, ShopUserManager
 from shop.tasks import send_password
 
 from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSerializer, ProductListSerializer, \
-    BasketSerializer, BasketItemActionSerializer, \
+    BasketSerializer, BasketItemActionSerializer, FavoritesSerializer, \
     UserSerializer, AnonymousUserSerializer, LoginSerializer, \
     FlatPageListSerializer, FlatPageSerializer
 
@@ -101,8 +102,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ('id', 'code', 'article', 'title', 'price')
-    filtering_fields = [f.name for f in Product._meta.get_fields()]
-    ordering = ('code',)
+    filtering_fields = [f.name for f in Product._meta.get_fields()] + ['text', 'instock']
     product_filter = None
 
     def get_serializer_class(self):
@@ -111,15 +111,43 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         return ProductSerializer
 
     def get_queryset(self):
-        queryset = Product.objects.filter(enabled=True)
+        queryset = Product.objects.all().order_by('code')
 
         for field, values in self.request.query_params.lists():
             base_field = field.split('__', 1)[0]
             if base_field not in self.filtering_fields:
                 continue
-            if field in ('show_on_sw', 'gift', 'recomended', 'firstpage'):
+            if field == 'text':  # full text search
+                # TODO: create fts index with weights:
+                # http://logan.tw/posts/2017/12/30/full-text-search-with-django-and-postgresql/
+                root = Category.objects.get(slug='sewing.world')  # TODO: remove hard coded root
+                language = 'russian'
+                search_vector = SearchVector('title', 'whatis', 'code', 'article', 'partnumber', config=language)
+                search_query = SearchQuery(values[0], config=language)
+                search_rank = SearchRank(search_vector, search_query)
+                queryset = queryset.annotate(
+                    rank=search_rank
+                ).filter(
+                    categories__in=root.get_descendants(include_self=True),
+                    rank__gte=0.001
+                ).order_by(
+                    '-enabled',
+                    '-rank'
+                )
+                filter_fields = ['manufacturer','price']
+                self.product_filter = get_product_filter(self.request.query_params, queryset=queryset, fields=filter_fields, request=self.request)
+                queryset = self.product_filter.qs
+            elif field in ('show_on_sw', 'gift', 'recomended', 'firstpage', 'enabled'):
                 key = '{}__exact'.format(field)
                 queryset = queryset.filter(**{key: int(values[0])})
+            elif field == 'title':
+                key = '{}__icontains'.format(field)
+                queryset = queryset.filter(**{key: values[0]})
+            elif field == 'instock':
+                if int(values[0]) > 0:
+                    queryset = queryset.filter(num__gt=0)
+                else:
+                    queryset = queryset.filter(num__exact=0)
             elif field == 'categories':
                 key = '{}__pk__exact'.format(field)
                 queryset = queryset.filter(**{key: values[0]})
@@ -267,6 +295,33 @@ class BasketViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class FavoritesViewSet(viewsets.ModelViewSet):
+    serializer_class = FavoritesSerializer
+    permission_classes=[IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Favorites.objects.filter(user=self.request.user)
+        return queryset
+
+    @action(detail=False, methods=['post'], url_path='add')
+    def add_item(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        favorite, created = Favorites.objects.get_or_create(user=request.user, product=serializer.validated_data['product'])
+        if created:
+            favorite.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['post'], url_path='remove')
+    def remove_item(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        favorite = Favorites.objects.filter(user=request.user, product=serializer.validated_data['product']).first()
+        if favorite is not None:
+            favorite.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):

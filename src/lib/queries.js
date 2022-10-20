@@ -13,9 +13,10 @@ export const productKeys = {
     all: ['products'],
     lists: () => [...productKeys.all, 'list'],
     list: (page, size, filters, ordering) => [...productKeys.lists(), { page, size, filters, ordering }],
+    suggestions: (text) => [...productKeys.lists(), 'suggestions', text],
     details: () => [...productKeys.all, 'detail'],
     detail: (id) => [...productKeys.details(), id],
-    price: (id) => [...productKeys.details(), 'price', { id }],
+    price: (id) => [...productKeys.details(), 'price', id],
 };
 
 export const basketKeys = {
@@ -30,6 +31,12 @@ export const userKeys = {
     detail: (phone) => [...userKeys.details(), phone],
     check: (phone) => [...userKeys.details(), 'check', phone],
     current: () => [...userKeys.details(), 'current'],
+};
+
+export const favoriteKeys = {
+    all: ['favorites'],
+    details: () => [...favoriteKeys.all, 'detail'],
+    detail: () => [...favoriteKeys.details(), ''],
 };
 
 export const pageKeys = {
@@ -59,7 +66,7 @@ export const apiClient = axios.create({
 apiClient.defaults.headers.common['Content-Type'] = 'application/json';
 
 apiClient.interceptors.request.use(function (config) {
-    if (!!!process.client)
+    if (typeof window === 'undefined') // set referrer when running on server
         config.headers['Referer'] = process.env.NEXT_PUBLIC_ORIGIN;
     return config;
 }, function (error) {
@@ -133,6 +140,25 @@ export async function updateBasketItem(basketId, product, quantity, client) {
     return response.data;
 }
 
+export async function loadFavorites(client) {
+    const response = await client.get('favorites/');
+    return response.data;
+}
+
+export async function addToFavorites(product, client) {
+    const response = await client.post('favorites/add/', {
+        product
+    });
+    return response.data;
+}
+
+export async function removeFromFavorites(product, client) {
+    const response = await client.post('favorites/remove/', {
+        product
+    });
+    return response.data;
+}
+
 export async function loadCategories(client) {
     const response = await client.get('categories/');
     return response.data;
@@ -165,6 +191,15 @@ export function loadProducts(page, pageSize, filters, ordering) {
             if (!response.ok) throw response;
             return response.json();
         });
+};
+
+export async function loadProductSuggestions(text, client) {
+    const url = new URL(API + 'products/');
+    url.searchParams.set('title', text);
+    url.searchParams.set('ta', 1);
+    url.searchParams.set('page_size', 10);
+    const response = await client.get(url);
+    return response.data;
 };
 
 export async function getProductPrice(id, client) {
