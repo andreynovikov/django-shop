@@ -9,6 +9,7 @@ from django.utils.decorators import method_decorator
 
 from rest_framework import generics, views, viewsets, filters, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
@@ -18,11 +19,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.flatpages.models import FlatPage
 
 from shop.filters import get_product_filter
-from shop.models import Category, Product, Basket, BasketItem, Favorites, ShopUser, ShopUserManager
+from shop.models import Category, Product, Basket, BasketItem, Order, Favorites, ShopUser, ShopUserManager
 from shop.tasks import send_password
 
 from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSerializer, ProductListSerializer, \
-    BasketSerializer, BasketItemActionSerializer, FavoritesSerializer, \
+    BasketSerializer, BasketItemActionSerializer, OrderListSerializer, OrderSerializer, FavoritesSerializer, \
     UserSerializer, AnonymousUserSerializer, LoginSerializer, \
     FlatPageListSerializer, FlatPageSerializer
 
@@ -47,7 +48,7 @@ class IsSelf(BasePermission):
 
 
 class StandardResultsSetPagination(PageNumberPagination):
-    page_size = 50
+    page_size = 20
     page_size_query_param = 'page_size'
     max_page_size = 1000
 
@@ -117,7 +118,9 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             base_field = field.split('__', 1)[0]
             if base_field not in self.filtering_fields:
                 continue
-            if field == 'text':  # full text search
+            if field == 'id':
+                queryset = queryset.filter(pk__in=values)
+            elif field == 'text':  # full text search
                 # TODO: create fts index with weights:
                 # http://logan.tw/posts/2017/12/30/full-text-search-with-django-and-postgresql/
                 root = Category.objects.get(slug='sewing.world')  # TODO: remove hard coded root
@@ -235,6 +238,12 @@ class BasketViewSet(viewsets.ModelViewSet):
         queryset = Basket.objects.filter(session_id=self.request.session.session_key)
         return queryset
 
+    def destroy(self, request):
+        raise MethodNotAllowed(request.method)
+
+    def update(self, request, *args, **kwargs):
+        raise MethodNotAllowed(request.method)
+
     @action(detail=True, methods=['post'], url_path='add')
     def add_item(self, request, pk=None):
         # TODO: check that basket belongs to current user
@@ -297,6 +306,31 @@ class BasketViewSet(viewsets.ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class OrderViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes=[IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return OrderListSerializer
+        return OrderSerializer
+
+    def get_queryset(self):
+        filters = {
+            'user': self.request.user
+        }
+        excludes = {}
+        order_filter = self.request.query_params.get('filter', None)
+        if order_filter == 'done':
+            filters['status__in'] = [Order.STATUS_DONE, Order.STATUS_FINISHED]
+        elif order_filter == 'canceled':
+            filters['status'] = Order.STATUS_CANCELED
+        elif order_filter == 'active':
+            excludes['status__in'] = [Order.STATUS_DONE, Order.STATUS_FINISHED, Order.STATUS_CANCELED]
+        queryset = Order.objects.order_by('-id').filter(**filters).exclude(**excludes)
+        return queryset
+
+
 class FavoritesViewSet(viewsets.ModelViewSet):
     serializer_class = FavoritesSerializer
     permission_classes=[IsAuthenticated]
@@ -304,6 +338,15 @@ class FavoritesViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Favorites.objects.filter(user=self.request.user)
         return queryset
+
+    def create(self, request):
+        raise MethodNotAllowed(request.method)
+
+    def destroy(self, request):
+        raise MethodNotAllowed(request.method)
+
+    def update(self, request, *args, **kwargs):
+        raise MethodNotAllowed(request.method)
 
     @action(detail=False, methods=['post'], url_path='add')
     def add_item(self, request):
@@ -324,11 +367,10 @@ class FavoritesViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
+class UserViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
     queryset = get_user_model().objects.all()
-    lookup_field = 'phone'
-    lookup_value_regex = '(:?\+\d+|current)'
+    lookup_value_regex = '(:?\+?\d+|current)'
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -341,13 +383,13 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         return UserSerializer
 
     def get_permissions(self):
-        # Only superuser can create, update, partial update, destroy, list
+        # Only superuser can create, destroy, list
         self.permission_classes = [IsSuperUser]
 
         logger.error(self.action)
-        if self.action == 'retrieve':
+        if self.action in ('retrieve', 'update', 'partial_update'):
             self.permission_classes = [IsSelf]
-        elif self.action in ('check', 'code', 'login'):
+        elif self.action in ('check', 'login', 'form'):
             self.permission_classes = []
 
         return super().get_permissions()
@@ -358,10 +400,21 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         if key == 'current':
             return self.request.user
 
+        if not key.isdigit():
+            instance = self.get_queryset().filter(phone=key).first()
+            if instance:
+                self.kwargs[self.lookup_field] = instance.pk
+
         return super().get_object()
 
+    def create(self, request):
+        raise MethodNotAllowed(request.method)
+
+    def destroy(self, request):
+        raise MethodNotAllowed(request.method)
+
     @action(detail=True, methods=['post'])
-    def check(self, request, phone=None):
+    def check(self, request, pk=None):
         user = self.get_object()
         permanent_password = getattr(user, 'permanent_password', False)
         reset = request.data.get('reset', False)
@@ -384,12 +437,9 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         login(request, user)
         refresh = RefreshToken.for_user(user)
         return Response({
-            "user": UserSerializer(user, context=self.get_serializer_context()).data,
-            "sjwt": {
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
-                "accessExpires": refresh.access_token['exp']
-            }
+            "id": user.id,
+            "refresh": str(refresh),
+            "access": str(refresh.access_token)
         })
 
     @action(detail=False, methods=['get'])
@@ -398,6 +448,28 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         return Response({
             "user": None,
         })
+
+    @action(detail=False, methods=['get'])
+    def form(self, request, *args, **kwargs):
+        from shop.forms import UserForm
+        form = UserForm()
+        fields = []
+        for field in form.visible_fields():
+            meta = {
+                'name': field.name,
+                'label': field.label,
+                'id': field.id_for_label,
+                'help': field.help_text,
+                'class': field.field.__class__.__name__,
+                'widget': field.field.widget.__class__.__name__,
+                'required': field.field.required
+            }
+            if hasattr(field.field, 'choices'):
+                meta['choices'] = field.field.choices
+            if field.field.widget.attrs:
+                meta['attrs'] = field.field.widget.attrs
+            fields.append(meta)
+        return Response(fields)
 
 
 class CsrfTokenView(views.APIView):

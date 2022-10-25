@@ -7,18 +7,18 @@ import { API, apiClient } from '@/lib/queries';
 
 async function refreshAccessToken(token) {
     try {
+        console.error("refreshAccessToken");
         // Get a new set of tokens
         const response = await apiClient.post(API + 'token/refresh/', {refresh: token.sjwt.refresh});
-        console.error(response.data);
 
-        const accessToken = jwt.verify(response.data.sjwt.access, process.env.NEXTAUTH_SECRET);
+        const accessToken = jwt.verify(response.data.access, process.env.NEXTAUTH_SECRET);  // TODO: check for error
 
         token = {
             ...token,
-            ...response.data,
             sjwt: {
-                //expires: new Date(accessToken.exp * 1000),
-                refresh: sjwt.refresh ?? token.sjwt.refresh // Fall back to old refresh token
+                ...token.sjwt,
+                ...response.data,
+                expires: accessToken.exp,
             },
             error: undefined
         }
@@ -28,7 +28,7 @@ async function refreshAccessToken(token) {
         console.error(error);
         return {
             ...token,
-            error: "RefreshAccessTokenError",
+            error: "RefreshAccessTokenError"
         }
     }
 }
@@ -46,13 +46,15 @@ const providers = [
                 const response = await apiClient.post(API + 'users/login/', credentials);
                 console.error(response.data);
 
-                if (!response.data.user)
-                    throw JSON.stringify(response);
+                const accessToken = jwt.verify(response.data.access, process.env.NEXTAUTH_SECRET); // TODO: check for error
 
-                // TODO: Do we need this?
-                const accessToken = jwt.verify(response.data.sjwt.access, process.env.NEXTAUTH_SECRET);
+                if (!response.data.id) // TODO: process error correctly
+                    throw response;
 
-                return response.data;
+                return {
+                    ...response.data,
+                    expires: accessToken.exp
+                }
             } catch (e) {
                 if (e.response) {
                     // The client was given an error response (5xx, 4xx)
@@ -78,12 +80,12 @@ const callbacks = {
         if (user) {
             return {
                 ...token,
-                ...user
+                sjwt: user
             }
         }
 
         // Return previous token if the access token has not expired yet
-        if (Math.floor(Date.now() / 1000) < token.sjwt.accessExpires) {
+        if (Math.floor(Date.now() / 1000) < token.sjwt.expires) {
             return token;
         }
 
@@ -91,17 +93,14 @@ const callbacks = {
         return refreshAccessToken(token);
     },
     session: async ({ session, token }) => {
+        // Pass accessToken to the client to be used in authentication with API
         session = {
             ...session,
-            ...token,
+            user: token.sjwt.id,
+            accessToken: token.sjwt.access,
+            accessTokenExpires: token.sjwt.expires,
+            error: token.error
         };
-        // Pass accessToken to the client to be used in authentication with your API
-        session.accessToken = token.sjwt.access;
-        session.accessTokenExpires = token.sjwt.accessExpires;
-        session.error = token.error;
-        // Remove internal data
-        delete session.sjwt;
-
         return session;
     },
 }
@@ -109,7 +108,13 @@ const callbacks = {
 export const options = {
     providers,
     callbacks,
-    debug: true
+    debug: true,
+    pages: {
+        signIn: '/login'
+    },
+    session: {
+        maxAge: 60 * 60 // must be synced to DRF JWT settings
+    }
 }
 
 export default NextAuth(options);

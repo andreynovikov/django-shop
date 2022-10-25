@@ -25,10 +25,19 @@ export const basketKeys = {
     detail: () => [...basketKeys.details(), ''],
 };
 
+export const orderKeys = {
+    all: ['orders'],
+    lists: () => [...orderKeys.all, 'list'],
+    list: (page, filter) => [...orderKeys.lists(), { page, filter }],
+    details: () => [...orderKeys.all, 'detail'],
+    detail: (id) => [...orderKeys.details(), id],
+};
+
 export const userKeys = {
     all: ['users'],
+    form: () => [...userKeys.all, 'form'],
     details: () => [...userKeys.all, 'detail'],
-    detail: (phone) => [...userKeys.details(), phone],
+    detail: (id) => [...userKeys.details(), id],
     check: (phone) => [...userKeys.details(), 'check', phone],
     current: () => [...userKeys.details(), 'current'],
 };
@@ -140,6 +149,21 @@ export async function updateBasketItem(basketId, product, quantity, client) {
     return response.data;
 }
 
+export async function loadOrders(page, filter, client) {
+    const url = new URL(API + 'orders/');
+    if (+page !== 1)
+        url.searchParams.set('page', page);
+    if (filter !== undefined && filter !== '')
+        url.searchParams.set('filter', filter);
+    const response = await client.get(url);
+    return response.data;
+};
+
+export async function loadOrder(id, client) {
+    const response = await client.get(`orders/${id}/`);
+    return response.data;
+}
+
 export async function loadFavorites(client) {
     const response = await client.get('favorites/');
     return response.data;
@@ -191,7 +215,7 @@ export function loadProducts(page, pageSize, filters, ordering) {
             if (!response.ok) throw response;
             return response.json();
         });
-};
+}
 
 export async function loadProductSuggestions(text, client) {
     const url = new URL(API + 'products/');
@@ -200,19 +224,34 @@ export async function loadProductSuggestions(text, client) {
     url.searchParams.set('page_size', 10);
     const response = await client.get(url);
     return response.data;
-};
+}
 
 export async function getProductPrice(id, client) {
     const response = await client.get(`products/${id}/price/`);
     return response.data;
-};
+}
 
 export async function checkUser(phone, reset) {
     const response = await apiClient.post('users/' + normalizePhone(phone) + '/check/', {
         reset
     });
     return response.data;
-};
+}
+
+export async function getUserForm() {
+    const response = await apiClient.get('users/form/');
+    return response.data;
+}
+
+export async function loadUser(id, client) {
+    const response = await client.get('users/' + id + '/');
+    return response.data;
+}
+
+export async function updateUser(id, data, client) {
+    const response = await client.put('users/' + id + '/', data);
+    return response.data;
+}
 
 export async function loadPages(client) {
     const response = await client.get('pages/');

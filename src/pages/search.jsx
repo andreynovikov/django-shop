@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useQuery } from 'react-query';
 
 import PageLayout from '@/components/layout/page';
-import ProductCard from '@/components/product-card';
+import ProductCard from '@/components/product/card';
 import BooleanFilter from '@/components/product/filters/boolean-filter';
 import MultipleChoiceFilter from '@/components/product/filters/multiple-choice-filter';
 import PriceFilter from '@/components/product/filters/price-filter';

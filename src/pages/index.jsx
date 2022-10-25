@@ -1,7 +1,7 @@
 import { dehydrate, QueryClient, useQuery } from 'react-query';
 
 import BaseLayout from '@/components/layout/base';
-import ProductCard from '@/components/product-card';
+import ProductCard from '@/components/product/card';
 
 import { productKeys, loadProducts } from '@/lib/queries';
 import useCatalog from '@/lib/catalog';

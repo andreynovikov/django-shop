@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
 import Script from 'next/script';
 import { signIn } from 'next-auth/react';
 import { useQuery, useQueryClient } from 'react-query';
@@ -18,6 +19,7 @@ export default function LoginForm({embedded, ctx, hideModal}) {
     const [delay, setDelay] = useState(-1);
     const [countdown, countdownText] = useCountdown(delay);
 
+    const router = useRouter();
     const queryClient = useQueryClient();
 
     const { data: shopUser, isSuccess, isFetching, refetch } = useQuery(
@@ -31,7 +33,6 @@ export default function LoginForm({embedded, ctx, hideModal}) {
                         // register user in background when making order
                         signIn('credentials', { redirect: false, phone: loginPhone, ctx })
                             .then(result => {
-                                console.log(result);
                                 if (result.ok) {
                                     if (embedded && hideModal)
                                         hideModal();
@@ -92,6 +93,8 @@ export default function LoginForm({embedded, ctx, hideModal}) {
                 if (result.ok) {
                     if (embedded && hideModal)
                         hideModal();
+                    else
+                        router.push(router.query.callbackUrl || '/');
                 } else {
                     try {
                         const error = JSON.parse(result.error);

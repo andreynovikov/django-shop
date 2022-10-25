@@ -6,7 +6,7 @@ import { ReactQueryDevtools } from 'react-query/devtools';
 
 import RefreshTokenHandler from '@/lib/refresh-token-handler';
 
-import { API, apiClient, categoryKeys, productKeys, pageKeys } from '@/lib/queries';
+import { API, apiClient, categoryKeys, productKeys, userKeys, pageKeys } from '@/lib/queries';
 
 import '@/vendor/nouislider.css';
 import '@/vendor/cartzilla/scss/theme.scss';
@@ -16,15 +16,16 @@ export default function App({ Component, pageProps: { session, ...pageProps }}) 
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
             queries: {
-                refetchOnWindowFocus: false,
-                retry: 1
-            },
-        },
+                refetchOnWindowFocus: process.env.NODE_ENV !== "development",
+                retry: process.env.NODE_ENV === "development" ? 1 : 3
+            }
+        }
     }));
 
-    queryClient.setQueryDefaults(categoryKeys.all, { staleTime: Infinity }); // mark fresh forever
+    queryClient.setQueryDefaults(categoryKeys.all, { cacheTime: 1000 * 60 * 10, staleTime: Infinity }); // cache for ten minutes, mark fresh forever
     queryClient.setQueryDefaults(productKeys.all, { staleTime: 1000 * 60 * 10 }); // mark fresh for ten minutes
-    queryClient.setQueryDefaults(pageKeys.all, { cacheTime: 1000 * 60 * 60, staleTime: Infinity }); // cache for one hour
+    queryClient.setQueryDefaults(userKeys.all, { cacheTime: 1000 * 60 * 60, staleTime: Infinity }); // cache for one hour, mark fresh forever
+    queryClient.setQueryDefaults(pageKeys.all, { staleTime: Infinity }); // mark fresh forever
 
     useEffect(() => {
         (async () => {

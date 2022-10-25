@@ -13,8 +13,11 @@ from sorl.thumbnail import get_thumbnail
 
 from django.contrib.flatpages.models import FlatPage
 
+from sewingworld.templatetags.gravatar import get_gravatar_url
+
 from shop.filters import get_product_filter
-from shop.models import Basket, BasketItem, Favorites, Category, Product, ShopUser, ShopUserManager
+from shop.models import Basket, BasketItem, Order, OrderItem, Favorites, \
+    Category, Product, ShopUser, ShopUserManager, City, Store
 
 logger = logging.getLogger("django")
 
@@ -149,7 +152,7 @@ class BasketItemProductSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Product
-        fields = ('id', 'title', 'whatis', 'price', 'thumbnail', 'thumbnail_small')
+        fields = ('id', 'title', 'whatis', 'partnumber', 'article', 'price', 'thumbnail', 'thumbnail_small')
 
     def get_thumbnail(self, obj):
         if not obj.image_prefix:
@@ -217,6 +220,77 @@ class BasketItemActionSerializer(serializers.ModelSerializer):
         extra_kwargs = {'quantity': {'required': False}}
 
 
+class CitySerializer(NonNullModelSerializer):
+    class Meta:
+        model = City
+        fields = '__all__'  # TODO refactor
+
+
+class StoreSerializer(NonNullModelSerializer):
+    city = CitySerializer(read_only=True)
+
+    class Meta:
+        model = Store
+        fields = '__all__'
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    product = BasketItemProductSerializer(read_only=True)
+    cost = serializers.ReadOnlyField()
+    discount = serializers.ReadOnlyField()
+    discount_text = serializers.ReadOnlyField()
+    price = serializers.ReadOnlyField()
+
+    class Meta:
+        model = OrderItem
+        fields = ('product', 'cost', 'price', 'product_price', 'quantity', 'total', 'discount', 'discount_text')
+
+
+class OrderListSerializer(serializers.ModelSerializer):
+    total = serializers.ReadOnlyField()
+    status_text = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = ('id', 'total', 'created', 'status', 'status_text')
+
+    def get_status_text(self, obj):
+        return obj.get_status_display()
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+    total = serializers.ReadOnlyField()
+    status_text = serializers.SerializerMethodField()
+    payment_text = serializers.SerializerMethodField()
+    store = StoreSerializer(read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ('id', 'created', 'status', 'status_text', 'payment', 'payment_text', 'paid', 'total',
+                  'delivery', 'delivery_price', 'delivery_tracking_number', 'delivery_info',
+                  'delivery_dispatch_date', 'delivery_handing_date', 'delivery_time_from', 'delivery_time_till',
+                  'store', 'name', 'phone', 'address', 'is_firm', 'firm_name', 'firm_address', 'firm_details',
+                  'items')
+
+    def get_status_text(self, obj):
+        return obj.get_status_display()
+
+    def get_payment_text(self, obj):
+        return obj.get_payment_display()
+
+    def create(self, validated_data):
+        """
+        request = self.context.get('request')
+        request.session.save()  # ensure session is persisted
+        request.session.modified = True
+        basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
+        basket.save(**validated_data)
+        return basket
+        """
+        pass
+
+
 class FavoritesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorites
@@ -227,9 +301,34 @@ class FavoritesSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    gravatar = serializers.SerializerMethodField()
+    discount = serializers.ReadOnlyField()
+    bonuses = serializers.ReadOnlyField()
+    expiring_bonuses = serializers.ReadOnlyField()
+    expiration_date = serializers.ReadOnlyField()
+    permanent_password = serializers.ReadOnlyField()
+    last_login = serializers.ReadOnlyField()
+    date_joined = serializers.ReadOnlyField()
+
     class Meta:
         model = ShopUser
-        exclude = ('groups', 'user_permissions', 'password', 'tags')
+        exclude = ('groups', 'user_permissions', 'password', 'tags', 'is_superuser', 'is_active', 'is_staff', 'first_name', 'last_name')
+
+    def get_gravatar(self, obj):
+        return get_gravatar_url(obj, 90)
+
+    def validate_phone(self, value):
+        norm_phone = ShopUserManager.normalize_phone(value)
+        another = ShopUser.objects.filter(phone=norm_phone).first()
+        if self.instance and another is not None and another.id != self.instance.id:
+            raise serializers.ValidationError("Пользователь с указанным номером уже зарегестрирован")
+        return norm_phone
+
+    def validate_email(self, value):
+        another = ShopUser.objects.filter(email=value).first()
+        if self.instance and another is not None and another.id != self.instance.id:
+            raise serializers.ValidationError("Пользователь с указанным адресом уже зарегестрирован")
+        return value
 
 
 class AnonymousUserSerializer(serializers.BaseSerializer):

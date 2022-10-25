@@ -26,7 +26,7 @@ export default forwardRef(function SignInModal(props, ref) {
     }));
 
     return (
-        <div className="modal fade" ref={modalRef} id="signin-modal" tabIndex="-1" role="dialog">
+        <div className="modal fade" ref={modalRef} id="sw-signin-modal" tabIndex="-1" role="dialog">
             <div className="modal-dialog modal-dialog-centered" role="document">
                 <div className="modal-content">
                     <div className="modal-header bg-secondary">
@@ -48,7 +48,7 @@ export default forwardRef(function SignInModal(props, ref) {
                     </div>
                     <div className="modal-body tab-content py-4">
                         <div className="tab-pane fade show active" id="signin-tab">
-                            <LoginForm embedded={true} ctx="login" hideModal={hideModal} />
+                            <LoginForm embedded ctx="login" hideModal={hideModal} />
                         </div>
                         <div className="tab-pane fade" id="signup-tab">
                             {/*

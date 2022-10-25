@@ -3,6 +3,8 @@ import Script from 'next/script';
 import { useSession } from 'next-auth/react';
 import { useQuery } from 'react-query';
 
+import ProductPrice from '@/components/product/price';
+
 import useBasket from '@/lib/basket';
 import useFavorites from '@/lib/favorites';
 import { withSession, productKeys, getProductPrice } from '@/lib/queries';
@@ -98,16 +100,7 @@ export default function ProductCard({product, limitedBadges}) {
                 <a className="product-meta d-block fs-xs pb-1" href="#">{ product.whatis } { product.partnumber }</a>
                 <h3 className="product-title fs-sm"><a href="#">{ product.title }</a></h3>
                 <div className="d-flex justify-content-between">
-                    { product.enabled ? (
-                        cost > 0 && (
-                            <div className="product-price">
-	                            <span className="text-accent">{ cost.toLocaleString('ru') }<small>&nbsp;руб</small></span>
-                                { cost != product.price && <>{' '}<del className="fs-sm text-muted">{ product.price.toLocaleString('ru') }<small>&nbsp;руб</small></del></> }
-                            </div>
-                        )
-                    ) : (
-                        <span className="text-accent"><small>товар снят с продажи</small></span>
-                    )}
+                    <div className="product-price text-accent"><ProductPrice product={product} /></div>
                     { /*
                     <div className="star-rating">
                         <i className="star-rating-icon ci-star-filled active"></i>
@@ -126,7 +119,7 @@ export default function ProductCard({product, limitedBadges}) {
                 <div className="d-flex mb-2">
                     { product.enabled && product.instock ? (
                         <button className="btn btn-primary btn-sm d-block w-100" type="button" onClick={handlePrimaryClick}>
-                            <i className="ci-cart fs-sm me-1"></i>
+                            <i className="ci-cart fs-sm me-1" />
                             { product.variations ? "Выбрать" : "Купить" }
                         </button>
                     ) : (

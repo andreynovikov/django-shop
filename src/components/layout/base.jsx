@@ -1,8 +1,8 @@
 import Head from 'next/head';
 
-import Topbar from '@/components/topbar';
+import Topbar from './topbar';
 
-export default function BaseLayout({ title, htmlTitle, hideCartNotice, contentWrapper, children, ...props }) {
+export default function BaseLayout({ title, htmlTitle, hideSignIn, hideCartNotice, contentWrapper, children, ...props }) {
     return (
         <>
             <Head>
@@ -11,7 +11,7 @@ export default function BaseLayout({ title, htmlTitle, hideCartNotice, contentWr
                 <meta name="keywords" content="швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов Швейный Мир, швейная, швейные, вышивальная, вышивальные, вязальная, вязальные, машинка, машина, машинки, машины, оверлок, оверлоки,  шитье, вышивка, вязание, купить, интернет, магазин, pfaff, brother, janome, bernina, husqvarna, huskystar, viking, оверлок, строчка, петля, челнок, стежок, ткань, рукав" />
             </Head>
             <main className="page-wrapper">
-                <Topbar hideCartNotice={hideCartNotice} />
+                <Topbar hideSignIn={hideSignIn} hideCartNotice={hideCartNotice} />
                 {contentWrapper({title, children, ...props})}
             </main>
 

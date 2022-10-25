@@ -5,12 +5,12 @@ import { useSession } from 'next-auth/react';
 
 import CartNotice from '@/components/cart/notice';
 import Catalog from '@/components/catalog';
-import UserProfileLink from '@/components/user-profile-link';
+import UserProfileLink from '@/components/user/profile-link';
 import ProductSearchInput from '@/components/product/search-input';
 
 import useFavorites from '@/lib/favorites';
 
-export default function Topbar({hideCartNotice}) {
+export default function Topbar({hideSignIn, hideCartNotice}) {
     const [catalogVisible, setCatalogVisible] = useState(false);
     const [searchText, setSearchText] = useState('');
     const { status } = useSession();
@@ -26,7 +26,6 @@ export default function Topbar({hideCartNotice}) {
     const { favorites } = useFavorites();
 
     const hide_search_form = false;
-    const hide_sign_in = false;
 
     const seoLogoAlt = "Швейный Мир - всероссийская сеть швейных супермаркетов.&#10; Швейные машинки, вышивальные и вязальные машины, оверлоки и аксессуары.";
 
@@ -114,7 +113,7 @@ export default function Topbar({hideCartNotice}) {
                                 <div className="navbar-tool-text ms-n3">Меню</div>
                             </a>
                             { status === 'authenticated' && (
-                                <Link href="/user/favorites/">
+                                <Link href="/user/favorites">
                                     <a className="navbar-tool d-none d-lg-flex">
                                         <div className="navbar-tool-icon-box">
                                             { favorites.length > 0 && <span className="navbar-tool-label">{ favorites.length }</span> }
@@ -124,7 +123,7 @@ export default function Topbar({hideCartNotice}) {
                                     </a>
                                 </Link>
                             )}
-                            { !hide_sign_in && <UserProfileLink /> }
+                            { !hideSignIn && <UserProfileLink /> }
                             { !hideCartNotice && <CartNotice /> }
                         </div>
                     </div>

@@ -9,6 +9,7 @@
     "dependencies": {
         "axios": "^0.27.2",
         "jsonwebtoken": "^8.5.1",
+        "moment": "^2.29.4",
         "next": "^12.2.5",
         "next-auth": "^4.10.3",
         "react": "^18.2.0",

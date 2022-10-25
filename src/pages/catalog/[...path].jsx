@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
 
 import PageLayout from '@/components/layout/page';
-import ProductCard from '@/components/product-card';
+import ProductCard from '@/components/product/card';
 import ProductFilter from '@/components/product/filter';
 
 import { withClient, categoryKeys, productKeys, loadCategories, loadCategory, loadProducts } from '@/lib/queries';

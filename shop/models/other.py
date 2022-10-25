@@ -109,8 +109,8 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
     permanent_password = models.BooleanField('постоянный пароль', default=False)
     date_joined = models.DateTimeField('дата регистрации', default=timezone.now)
     tags = TagField('теги')
-    first_name = AliasField(db_column='name')
-    last_name = AliasField(db_column='name')
+    first_name = AliasField(db_column='name', blank=True)
+    last_name = AliasField(db_column='name', blank=True)
 
     objects = ShopUserManager()
 
