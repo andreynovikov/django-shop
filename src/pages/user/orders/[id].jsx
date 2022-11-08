@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import Script from 'next/script';
-import { useSession } from 'next-auth/react';
 import { useQuery } from 'react-query';
 
-import { withSession, orderKeys, loadOrder } from '@/lib/queries';
+import { useSession } from '@/lib/session';
+import { orderKeys, loadOrder } from '@/lib/queries';
 import { formatPhone } from '@/lib/format';
 
 import UserPageLayout from '@/components/layout/user-page';
@@ -23,7 +24,6 @@ import {
     DELIVERY_TRANSPORT,
     DELIVERY_PICKPOINT,
     DELIVERY_UNKNOWN,
-    PAYMENT_CASH,
     PAYMENT_CARD,
     PAYMENT_CREDIT,
     PAYMENT_TRANSFER,
@@ -36,15 +36,22 @@ import 'moment/locale/ru';
 moment.locale('ru');
 
 export default function Order({id}) {
-    const {data: session, status} = useSession();
+    const [orderStatus, setOrderStatus] = useState(STATUS_NEW);
+    const { status } = useSession();
 
-    const { data: order, isSuccess, isLoading, isError } = useQuery(
+    const { data: order, isSuccess } = useQuery(
         orderKeys.detail(id),
-        () => withSession(session, loadOrder, id),
+        () => loadOrder(id),
         {
-            enabled: status === 'authenticated'
+            enabled: status === 'authenticated',
+            refetchInterval: [STATUS_NEW, STATUS_ACCEPTED].includes(orderStatus) ? 60 * 1000 : false // check for updates every minute
         }
     );
+
+    useEffect(() => {
+        if (order)
+            setOrderStatus(order.status);
+    }, [order]);
 
     const created = useMemo(() =>
         {
@@ -157,7 +164,7 @@ export default function Order({id}) {
                                                       data-tpl_name="tracking_tpl" data-container_tag_id="f96bae27a7dbbcfc794595702bd9024d" data-resource_id="21272"
                                                       data-resource_key="1780931b94c77b42c08b895fb88747d2" data-tracking_method_key="43df8cf1b0d40baaef3a3363458314f1"
                                                       data-autocomplete_method_key="fd34c231b276f9bea3db9b60ac09506e"></meta>
-                                                <script src="https://delivery.yandex.ru/widget/widgetJsLoader?dataTagID=f526c05f4e50090a3bffbb04d40e07b3" charSet="utf-8"></script>
+                                                <script src="https://delivery.yandex.ru/widget/widgetJsLoader?dataTagID=f526c05f4e50090a3bffbb04d40e07b3" charSet="utf-8" defer></script>
                                                 <msw id="f96bae27a7dbbcfc794595702bd9024d" className="yd-widget-container"></msw>
                                             </li>
                                         </>
@@ -289,20 +296,24 @@ export default function Order({id}) {
             {order.items.map((item, index) => (
                 <div className={"d-sm-flex justify-content-between pb-3 pb-sm-2 " + (index === 0 ? "mb-3" : "my-3") + (!(index === order.items.length - 1) && " border-bottom")} key={item.product.id}>
                     <div className="d-sm-flex text-center text-sm-start">
-                        <a className="d-inline-block flex-shrink-0 mx-auto" href="{% url 'product' item.product.code %}" style={{width: "10rem"}}>
-                            { item.product.thumbnail ? (
-                                <img
-                                    src={item.product.thumbnail.url}
-                                    width={item.product.thumbnail.width}
-                                    height={item.product.thumbnail.height}
-                                    alt={`${item.product.title} ${item.product.whatis}`} />
-                            ) : (
-                                <i className="d-inline-block ci-camera text-muted" style={{width: "160px", height: "160px", fontSize: "80px", padding: "40px"}} />
-                            )}
-                        </a>
+                        <Link href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
+                            <a className="d-inline-block flex-shrink-0 mx-auto" style={{width: "10rem"}}>
+                                { item.product.thumbnail ? (
+                                    <img
+                                        src={item.product.thumbnail.url}
+                                        width={item.product.thumbnail.width}
+                                        height={item.product.thumbnail.height}
+                                        alt={`${item.product.title} ${item.product.whatis}`} />
+                                ) : (
+                                    <i className="d-inline-block ci-camera text-muted" style={{width: "160px", height: "160px", fontSize: "80px", padding: "40px"}} />
+                                )}
+                            </a>
+                        </Link>
                         <div className="ps-sm-4 pt-2">
                             <h3 className="product-title fs-base mb-2">
-                                <a href="item.product.code">{ item.product.title }</a>
+                                <Link href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
+                                    <a>{ item.product.title }</a>
+                                </Link>
                             </h3>
                             { item.product.partnumber && (
                                 <div className="fs-sm">

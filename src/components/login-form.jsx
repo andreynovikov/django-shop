@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Script from 'next/script';
-import { signIn } from 'next-auth/react';
-import { useQuery, useQueryClient } from 'react-query';
+import { useQuery } from 'react-query';
 
+import { signIn } from '@/lib/session';
 import { userKeys, checkUser, normalizePhone } from '@/lib/queries';
 import { useCountdown } from '@/lib/countdown';
 
@@ -20,7 +20,6 @@ export default function LoginForm({embedded, ctx, hideModal}) {
     const [countdown, countdownText] = useCountdown(delay);
 
     const router = useRouter();
-    const queryClient = useQueryClient();
 
     const { data: shopUser, isSuccess, isFetching, refetch } = useQuery(
         userKeys.check(loginPhone),
@@ -31,7 +30,7 @@ export default function LoginForm({embedded, ctx, hideModal}) {
                 if (error.response?.status === 404) {
                     if (ctx === 'order') {
                         // register user in background when making order
-                        signIn('credentials', { redirect: false, phone: loginPhone, ctx })
+                        signIn({ phone: loginPhone, ctx })
                             .then(result => {
                                 if (result.ok) {
                                     if (embedded && hideModal)
@@ -64,12 +63,13 @@ export default function LoginForm({embedded, ctx, hideModal}) {
         if (reset) {
             refetch();
         }
+        /* eslint-disable react-hooks/exhaustive-deps */
     }, [reset]);
 
     const phoneRef = useRef(null);
     const passwordRef = useRef(null);
 
-    const validatePhone = (value) => {
+    const validatePhone = () => {
         return phoneRef.current && phoneRef.current.inputmask.isComplete();
     }
 
@@ -88,13 +88,14 @@ export default function LoginForm({embedded, ctx, hideModal}) {
             }
         } else if (e.target.elements.password) {
             if (validatePassword(e.target.elements.password.value)) {
-                const result = await signIn('credentials', { redirect: false, phone: loginPhone, password: password });
-                console.log(result);
+                const result = await signIn({phone: loginPhone, password});
                 if (result.ok) {
-                    if (embedded && hideModal)
-                        hideModal();
-                    else
+                    if (embedded) {
+                        if (hideModal)
+                            hideModal();
+                    } else {
                         router.push(router.query.callbackUrl || '/');
+                    }
                 } else {
                     try {
                         const error = JSON.parse(result.error);
@@ -139,10 +140,10 @@ export default function LoginForm({embedded, ctx, hideModal}) {
                 definitions: {
                     "*": { validator: "[78]" }
                 },
-                onBeforePaste: function(pastedValue, opts) {
+                onBeforePaste: function(pastedValue) {
                     return pastedValue.replace("+7", "");
                 },
-                onBeforeMask: function(value, opts) {
+                onBeforeMask: function(value) {
                     return value.replace("+7", "");
                 },
                 oncomplete: function() {
@@ -176,10 +177,11 @@ export default function LoginForm({embedded, ctx, hideModal}) {
                             style={embedded ? {} : {maxWidth: "20rem"}}
                             ref={passwordRef.current}
                             value={password}
-                            onChange={(e) => setPassword(event.target.value)}
+                            onChange={(e) => setPassword(e.target.value)}
                             id={`${ctx}-password-input`}
                             placeholder={ shopUser?.permanent_password ? "Пароль" : "Код из смс" }
-                            required />
+                            required
+                            autoFocus />
                         { error && <div className="invalid-feedback">{ error }</div> }
                         <div className="form-text">
                             { countdown > 180 && (

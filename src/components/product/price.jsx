@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useSession } from 'next-auth/react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from 'react-query';
 
-import { withSession, productKeys, getProductPrice } from '@/lib/queries';
+import { useSession } from '@/lib/session';
+import { productKeys, getProductPrice } from '@/lib/queries';
 
-export default function ProductPrice({product}) {
+export default function ProductPrice({product, delFs, ...props}) {
     const [cost, setCost] = useState(product.cost);
-    const { data: session, status } = useSession();
+    const { status } = useSession();
 
     const { data: userPrice } = useQuery(
         productKeys.price(product.id),
-        () => withSession(session, getProductPrice, product.id),
+        () => getProductPrice(product.id),
         {
             enabled: status === 'authenticated',
             onError: (error) => {
@@ -21,13 +21,21 @@ export default function ProductPrice({product}) {
 
     useEffect(() => {
         setCost(userPrice ? userPrice.cost : product.cost);
-    }, [userPrice]);
+    }, [userPrice, product.cost]);
 
     if (product.enabled && cost > 0)
         return (
             <>
-	            { cost.toLocaleString('ru') }<small>&nbsp;руб</small>
-                { cost != product.price && <>{' '}<del className="fs-sm text-muted">{ product.price.toLocaleString('ru') }<small>&nbsp;руб</small></del></> }
+	            <span {...props}>{ cost.toLocaleString('ru') }<small>&nbsp;руб</small></span>
+                { cost != product.price && (
+                    <>
+                        {" "}
+                        <del className={`fs-${delFs ? delFs : "sm"} text-muted`}>
+                            { product.price.toLocaleString('ru') }
+                            <small>&nbsp;руб</small>
+                        </del>
+                    </>
+                )}
             </>
         )
     else

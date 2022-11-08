@@ -1,18 +1,17 @@
 import { useState, useEffect } from 'react';
 import Script from 'next/script';
-import { SessionProvider } from 'next-auth/react';
 import { QueryClient, QueryClientProvider, Hydrate } from 'react-query';
 import { ReactQueryDevtools } from 'react-query/devtools';
 
-import RefreshTokenHandler from '@/lib/refresh-token-handler';
+import { SessionProvider } from '@/lib/session';
+import { apiClient, categoryKeys, productKeys, pageKeys } from '@/lib/queries';
 
-import { API, apiClient, categoryKeys, productKeys, userKeys, pageKeys } from '@/lib/queries';
-
-import '@/vendor/nouislider.css';
+import 'tiny-slider/dist/tiny-slider.css';
+import '@/vendor/nouislider.css';  // TODO: this breaks external font import
+import '@/vendor/lightgallery/css/lightgallery.css';
 import '@/vendor/cartzilla/scss/theme.scss';
 
 export default function App({ Component, pageProps: { session, ...pageProps }}) {
-    const [interval, setInterval] = useState(0);
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
             queries: {
@@ -24,12 +23,11 @@ export default function App({ Component, pageProps: { session, ...pageProps }}) 
 
     queryClient.setQueryDefaults(categoryKeys.all, { cacheTime: 1000 * 60 * 10, staleTime: Infinity }); // cache for ten minutes, mark fresh forever
     queryClient.setQueryDefaults(productKeys.all, { staleTime: 1000 * 60 * 10 }); // mark fresh for ten minutes
-    queryClient.setQueryDefaults(userKeys.all, { cacheTime: 1000 * 60 * 60, staleTime: Infinity }); // cache for one hour, mark fresh forever
     queryClient.setQueryDefaults(pageKeys.all, { staleTime: Infinity }); // mark fresh forever
 
     useEffect(() => {
         (async () => {
-            const response = await apiClient.get('csrf/');
+            await apiClient.get('csrf/');
         })();
     }, []);
 
@@ -39,10 +37,9 @@ export default function App({ Component, pageProps: { session, ...pageProps }}) 
     return (
         <QueryClientProvider client={queryClient}>
             <Hydrate state={pageProps.dehydratedState}>
-                <SessionProvider session={session} refetchInterval={interval}>
+                <SessionProvider session={session}>
                     <Script id="bootstrap" src="/js/bootstrap.bundle.js" />
                     { getLayout(<Component {...pageProps} />) }
-                    <RefreshTokenHandler setInterval={setInterval} />
                 </SessionProvider>
                 <ReactQueryDevtools initialIsOpen={false} />
             </Hydrate>

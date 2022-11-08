@@ -30,6 +30,7 @@ const useCountdown = (delay) => {
             if (interval !== null)
                 clearInterval(interval);
         }
+        /* eslint-disable react-hooks/exhaustive-deps */
     }, [delay]);
 
     if (delay > 0 && countdown >= 0)

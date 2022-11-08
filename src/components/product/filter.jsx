@@ -1,5 +1,3 @@
-import Script from 'next/script';
-
 import BooleanFilter from './filters/boolean-filter';
 import ChoiceFilter from './filters/choice-filter';
 import MultipleChoiceFilter from './filters/multiple-choice-filter';

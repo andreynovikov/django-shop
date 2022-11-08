@@ -17,7 +17,9 @@ from sewingworld.templatetags.gravatar import get_gravatar_url
 
 from shop.filters import get_product_filter
 from shop.models import Basket, BasketItem, Order, OrderItem, Favorites, \
-    Category, Product, ShopUser, ShopUserManager, City, Store
+    Category, Product, ProductRelation, ProductKind, ShopUser, ShopUserManager, Country, City, Store, \
+    SalesAction, Manufacturer
+
 
 logger = logging.getLogger("django")
 
@@ -35,6 +37,18 @@ class RecursiveField(serializers.Serializer):
     def to_representation(self, value):
         serializer = CategoryTreeSerializer(value, context=self.context)
         return serializer.data
+
+
+class CountrySerializer(NonNullModelSerializer):
+    class Meta:
+        model = Country
+        fields = ('name', 'enabled')
+
+
+class CitySerializer(NonNullModelSerializer):
+    class Meta:
+        model = City
+        fields = '__all__'  # TODO refactor
 
 
 class CategoryTreeSerializer(NonNullModelSerializer):
@@ -83,6 +97,24 @@ class CategorySerializer(NonNullModelSerializer):
         return filters
 
 
+class ProductKindSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductKind
+        fields = '__all__'
+
+
+class ManufacturerSerializer(NonNullModelSerializer):
+    class Meta:
+        model = Manufacturer
+        fields = '__all__'  # TODO: refactor
+
+
+class SalesActionSerializer(NonNullModelSerializer):
+    class Meta:
+        model = SalesAction
+        exclude = ('active', 'show_in_list', 'order', 'sites')
+
+
 class ProductListSerializer(NonNullModelSerializer):
     instock = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
@@ -98,11 +130,11 @@ class ProductListSerializer(NonNullModelSerializer):
 
     def to_representation(self, instance):
         request = self.context.get('request')
-        typeahead = request.GET.get('ta', None)
-        if typeahead is not None:
-            return instance.title
-        else:
-            return super().to_representation(instance)
+        if request is not None:
+            typeahead = request.GET.get('ta', None)
+            if typeahead is not None:
+                return instance.title
+        return super().to_representation(instance)
 
     def get_instock(self, obj):
         return obj.instock > 0
@@ -132,18 +164,133 @@ class ProductListSerializer(NonNullModelSerializer):
 
     def get_sales(self, obj):
         request = self.context.get('request')
+        if request is not None:
+            # TODO: put this in middleware
+            domain = urlparse(request.META.get('HTTP_REFERER', '')).hostname
+            if domain == 'cartzilla.sigalev.ru':  # TODO: put this in Sites config
+                domain = 'www.sewing-world.ru'
+            logger.error(request.META.get('HTTP_REFERER', ''))
+            return list(obj.sales_actions.filter(active=True).exclude(notice='').order_by('order').values_list('notice', flat=True)) # , sites__domain=domain).order_by('order')
+        return None
+
+
+class ProductSerializer(NonNullModelSerializer):
+    image = serializers.SerializerMethodField()
+    big_image = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
+    thumbnail = serializers.SerializerMethodField()
+    thumbnail_small = serializers.SerializerMethodField()
+    country = CountrySerializer(read_only=True)
+    developer_country = CountrySerializer(read_only=True)
+    manufacturer = ManufacturerSerializer(read_only=True)
+    constituents = ProductListSerializer(many=True, read_only=True)
+    instock = serializers.ReadOnlyField()
+    accessories = serializers.SerializerMethodField()
+    similar = serializers.SerializerMethodField()
+    gifts = serializers.SerializerMethodField()
+    sales = serializers.SerializerMethodField()
+    cost = serializers.ReadOnlyField()
+    discount = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Product
+        exclude = ('sp_price', 'sp_cur_price', 'cur_price', 'max_discount', 'ws_max_discount',
+                   'forbid_price_import', 'forbid_spb_price_import', 'forbid_ws_price_import',
+                   'show_on_sw', 'spb_show_in_catalog', 'market', 'spb_market', 'firstpage',
+                   'num', 'spb_num', 'ws_num', 'recalculate_price', 'cur_code', 'ws_cur_code',
+                   'sp_cur_code', 'sales_actions', 'categories', 'stock', 'related', 'image_prefix')
+
+    def get_instock(self, obj):
+        return obj.instock  # TODO: limit output
+
+    def get_image(self, obj):
+        if not obj.image_prefix:
+            return None
+        filepath = obj.image_prefix + '.jpg'
+        if default_storage.exists(filepath):
+            return default_storage.base_url + filepath
+        else:
+            return None
+
+    def get_big_image(self, obj):
+        if not obj.image_prefix:
+            return None
+        filepath = obj.image_prefix + '.b.jpg'
+        if default_storage.exists(filepath):
+            return default_storage.base_url + filepath
+        else:
+            return None
+
+    def get_images(self, obj):
+        images = []
+        if default_storage.exists(obj.image_prefix):
+            try:
+                dirs, files = default_storage.listdir(obj.image_prefix)
+                if files is not None:
+                    for image_file in sorted(files):
+                        if image_file.endswith('.jpg') and not image_file.endswith('.s.jpg'):
+                            image_path = obj.image_prefix + '/' + image_file
+                            thumbnail = get_thumbnail(image_path, '80x80', padding=True)
+                            images.append({
+                                'url': default_storage.base_url + image_path,
+                                'thumbnail': {
+                                    'url': thumbnail.url,
+                                    'width': thumbnail.width,
+                                    'height': thumbnail.height
+                                }
+                            })
+            except NotADirectoryError:
+                pass
+        return images
+
+    def get_thumbnail(self, obj):
+        if not obj.image_prefix:
+            return None
+        filepath = obj.image_prefix + '.jpg'
+        if default_storage.exists(filepath):
+            image = get_thumbnail(filepath, '200x200', padding=True)
+            return {
+                'url': image.url,
+                'width': image.width,
+                'height': image.height
+            }
+        else:
+            return None
+
+    def get_thumbnail_small(self, obj):
+        if not obj.image_prefix:
+            return None
+        filepath = obj.image_prefix + '.jpg'
+        if default_storage.exists(filepath):
+            image = get_thumbnail(filepath, '80x80', padding=True)
+            return {
+                'url': image.url,
+                'width': image.width,
+                'height': image.height
+            }
+        else:
+            return None
+
+    def get_accessories(self, obj):
+        accessories = obj.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_ACCESSORY)
+        return ProductListSerializer(accessories, many=True).data
+
+    def get_similar(self, obj):
+        similar = obj.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR)
+        return ProductListSerializer(similar, many=True).data
+
+    def get_gifts(self, obj):
+        gifts = obj.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT)
+        return ProductListSerializer(gifts, many=True).data
+
+    def get_sales(self, obj):
+        request = self.context.get('request')
         # TODO: put this in middleware
         domain = urlparse(request.META.get('HTTP_REFERER', '')).hostname
         if domain == 'cartzilla.sigalev.ru':  # TODO: put this in Sites config
             domain = 'www.sewing-world.ru'
-        logger.error(request.META.get('HTTP_REFERER', ''))
-        return list(obj.sales_actions.filter(active=True).order_by('order').values_list('notice', flat=True)) # , sites__domain=domain).order_by('order')
-
-
-class ProductSerializer(NonNullModelSerializer):
-    class Meta:
-        model = Product
-        fields = '__all__'
+        sales = obj.sales_actions.filter(active=True)  # , sites__domain=domain).order_by('order') - TODO!
+        return SalesActionSerializer(sales, many=True).data
 
 
 class BasketItemProductSerializer(NonNullModelSerializer):
@@ -152,7 +299,7 @@ class BasketItemProductSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Product
-        fields = ('id', 'title', 'whatis', 'partnumber', 'article', 'price', 'thumbnail', 'thumbnail_small')
+        fields = ('id', 'code', 'title', 'whatis', 'partnumber', 'article', 'price', 'thumbnail', 'thumbnail_small')
 
     def get_thumbnail(self, obj):
         if not obj.image_prefix:
@@ -220,12 +367,6 @@ class BasketItemActionSerializer(serializers.ModelSerializer):
         extra_kwargs = {'quantity': {'required': False}}
 
 
-class CitySerializer(NonNullModelSerializer):
-    class Meta:
-        model = City
-        fields = '__all__'  # TODO refactor
-
-
 class StoreSerializer(NonNullModelSerializer):
     city = CitySerializer(read_only=True)
 
@@ -279,16 +420,11 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_payment_text(self, obj):
         return obj.get_payment_display()
 
-    def create(self, validated_data):
-        """
-        request = self.context.get('request')
-        request.session.save()  # ensure session is persisted
-        request.session.modified = True
-        basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
-        basket.save(**validated_data)
-        return basket
-        """
-        pass
+
+class OrderActionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ('name', 'email', 'address', 'comment')
 
 
 class FavoritesSerializer(serializers.ModelSerializer):
@@ -298,6 +434,16 @@ class FavoritesSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         return instance.product.id
+
+
+class ComparisonSerializer(serializers.Serializer):
+    product = serializers.IntegerField()
+
+    def validate_product(self, value):
+        product = Product.objects.filter(pk=value).first()
+        if product is None:
+            raise serializers.ValidationError("Product does not exist")
+        return product
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -334,6 +480,7 @@ class UserSerializer(serializers.ModelSerializer):
 class AnonymousUserSerializer(serializers.BaseSerializer):
     def to_representation(self, instance):
         return {
+            'id': None,
             'is_anonymous': True
         }
 

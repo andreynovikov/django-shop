@@ -3,13 +3,13 @@ import { dehydrate, QueryClient, useQuery } from 'react-query';
 
 import PageLayout from '@/components/layout/page';
 
-import { withClient, pageKeys, loadPages, loadPage } from '@/lib/queries';
+import { pageKeys, loadPages, loadPage } from '@/lib/queries';
 
 export default function Page() {
     const router = useRouter();
     const { uri } = router.query;
 
-    const { data, isSuccess, isLoading, isError } = useQuery(pageKeys.detail(uri), () => withClient(loadPage, uri));
+    const { data, isSuccess } = useQuery(pageKeys.detail(uri), () => loadPage(uri));
 
     return (
         <div className="container py-5 mb-2 mb-md-4">
@@ -29,7 +29,7 @@ Page.getLayout = function getLayout(page) {
 export async function getStaticProps(context) {
     const uri = context.params?.uri;
     const queryClient = new QueryClient();
-    const data = await queryClient.fetchQuery(pageKeys.detail(uri), () => withClient(loadPage, uri));
+    const data = await queryClient.fetchQuery(pageKeys.detail(uri), () => loadPage(uri));
 
     return {
         props: {
@@ -40,9 +40,9 @@ export async function getStaticProps(context) {
 }
 
 export async function getStaticPaths() {
-    const pages = await withClient(loadPages);
-    const paths = pages.map((page) => ({
+    const pages = await loadPages();
+    const paths = pages.filter(page => !page.url.startsWith('/help/')).map((page) => ({
         params: { uri: page.url.slice(1, -1).split('/') },
-    }))
+    }));
     return { paths, fallback: false }
 }

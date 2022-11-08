@@ -1,22 +1,13 @@
-import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { useRef } from 'react';
 import Link from 'next/link';
-import { signOut, useSession } from 'next-auth/react';
-import { useQuery } from 'react-query';
 
-import { withSession, userKeys, loadUser } from '@/lib/queries';
+import { useSession, signOut } from '@/lib/session';
 
 import SignInModal from '@/components/sign-in-modal';
 
 export default function UserProfileLink() {
     const modalRef = useRef();
-    const { data: session, status } = useSession();
-    const { data: user } = useQuery(
-        userKeys.detail(session?.user),
-        () => withSession(session, loadUser, session?.user),
-        {
-            enabled: status === 'authenticated'
-        }
-    );
+    const { user, status } = useSession();
 
     if (status === 'authenticated') {
         return (
@@ -35,7 +26,7 @@ export default function UserProfileLink() {
                         <a className="dropdown-item">Профиль</a>
                     </Link>
                     <div className="dropdown-divider"></div>
-                    <a className="dropdown-item" onClick={() => signOut()} style={{cursor:'pointer'}}>Выйти</a>
+                    <a className="dropdown-item" onClick={signOut} style={{cursor:'pointer'}}>Выйти</a>
                 </div>
             </div>
         )

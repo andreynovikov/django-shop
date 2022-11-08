@@ -57,8 +57,7 @@ Index.getLayout = function getLayout(page) {
     )
 }
 
-export async function getStaticProps(context) {
-    // const id = context.params?.id;
+export async function getStaticProps() {
     const queryClient = new QueryClient();
 
     await queryClient.prefetchQuery(productKeys.list(null, null, filters, sort), () => loadProducts(null, null, filters, sort));

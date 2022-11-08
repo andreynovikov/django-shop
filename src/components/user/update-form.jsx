@@ -1,33 +1,23 @@
 import { useState, useEffect, useReducer, forwardRef, useImperativeHandle, useRef } from 'react';
-import { useRouter } from 'next/router';
 import Script from 'next/script';
-import { useSession } from 'next-auth/react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 
-import { withSession, userKeys, getUserForm, loadUser, updateUser } from '@/lib/queries';
+import { useSession } from '@/lib/session';
+import { userKeys, getUserForm, updateUser } from '@/lib/queries';
 
 export default forwardRef(function UpdateForm({embedded, onReady}, ref) {
     const [ready, setReady] = useState(false);
-    const [success, setSuccess] = useState(false);
+    const [updated, setUpdated] = useState(false);
     const [error, setError] = useState(false);
-    const router = useRouter();
     const queryClient = useQueryClient();
 
-    const { data: session, status } = useSession({
-        required: true,
-        onUnauthenticated() {
-            router.push({
-                pathname: '/login',
-                query: { callbackUrl: router.asPath }
-            });
-        },
-    });
+    const { user, status } = useSession();
 
     const [formData, setFormData] = useReducer((state, update) => {
         return {...state, ...update}
     }, {});
 
-    const { data: form, isSuccess: isFormSuccess } = useQuery(
+    const { data: form, isSuccess } = useQuery(
         userKeys.form(),
         () => getUserForm(),
         {
@@ -37,41 +27,35 @@ export default forwardRef(function UpdateForm({embedded, onReady}, ref) {
         }
     );
 
-    const { data: user, isSuccess: isUserSuccess } = useQuery(
-        userKeys.detail(session?.user),
-        () => withSession(session, loadUser, session?.user),
-        {
-            enabled: status === 'authenticated'
-        }
-    );
-
     useEffect(() => {
-        if (isUserSuccess && isFormSuccess) {
+        if (status === 'authenticated' && isSuccess) {
             const formDefaults = form.reduce((data, field) => {
                 data[field.name] = '';
                 return data;
             }, {});
             setFormData({...formDefaults, ...user, ...formData}); // otherwise form is reset on each window focus
         }
-    }, [user, isUserSuccess, form, isFormSuccess]);
+        /* eslint-disable react-hooks/exhaustive-deps */
+    }, [user, status, form, isSuccess]);
 
     useEffect(() => {
-        if (isFormSuccess && isUserSuccess && Object.keys(formData).length > 0) {
+        if (isSuccess && status === 'authenticated' && Object.keys(formData).length > 0) {
             setReady(true);
             onReady()
         }
-    }, [isFormSuccess, isUserSuccess, formData]);
+        /* eslint-disable react-hooks/exhaustive-deps */
+    }, [isSuccess, status, formData]);
 
     useEffect(() => {
-        if (success) {
-            const timer = setTimeout(() => setSuccess(false), 5 * 1000);
+        if (updated) {
+            const timer = setTimeout(() => setUpdated(false), 5 * 1000);
             return () => {
                 clearTimeout(timer);
             };
         }
-    }, [success]);
+    }, [updated]);
 
-    const updateUserMutation = useMutation(() => withSession(session, updateUser, session.user, formData), {
+    const updateUserMutation = useMutation(() => updateUser(user.id, formData), {
         onSuccess: () => {
             queryClient.invalidateQueries(userKeys.details());
         }
@@ -80,7 +64,7 @@ export default forwardRef(function UpdateForm({embedded, onReady}, ref) {
     const formRef = useRef();
     const phoneRef = useRef();
 
-    const validatePhone = (value) => {
+    const validatePhone = () => {
         return phoneRef.current && phoneRef.current.inputmask.isComplete();
     }
 
@@ -94,10 +78,8 @@ export default forwardRef(function UpdateForm({embedded, onReady}, ref) {
             setError({phone: ["Введите корректный номер"]});
         } else {
             updateUserMutation.mutate(undefined, {
-                onSuccess: (data) => {
-                    console.error("success");
-                    console.error(data);
-                    setSuccess(true);
+                onSuccess: () => {
+                    setUpdated(true);
                 },
                 onError: (error) => {
                     console.error(error);
@@ -119,10 +101,10 @@ export default forwardRef(function UpdateForm({embedded, onReady}, ref) {
                 definitions: {
                     "*": { validator: "[78]" }
                 },
-                onBeforePaste: function(pastedValue, opts) {
+                onBeforePaste: function(pastedValue) {
                     return pastedValue.replace("+7", "");
                 },
-                onBeforeMask: function(value, opts) {
+                onBeforeMask: function(value) {
                     return value.replace("+7", "");
                 },
                 oncomplete: function() {
@@ -142,7 +124,7 @@ export default forwardRef(function UpdateForm({embedded, onReady}, ref) {
 
     return (
         <form ref={formRef} noValidate>
-            { success && (
+            { updated && (
                 <div className="alert alert-success d-flex" role="alert">
                     <div className="alert-icon"><i className="ci-check-circle" /></div>
                     <div>Изменения успешно сохранены.</div>

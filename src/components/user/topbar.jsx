@@ -1,4 +1,4 @@
-import { signOut } from 'next-auth/react';
+import { signOut } from '@/lib/session';
 
 export default function TopSidebar({ children }) {
     return (

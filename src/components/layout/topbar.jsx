@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 
 import CartNotice from '@/components/cart/notice';
 import Catalog from '@/components/catalog';
+import CompareLink from '@/components/user/compare-link';
 import UserProfileLink from '@/components/user/profile-link';
 import ProductSearchInput from '@/components/product/search-input';
 
 import useFavorites from '@/lib/favorites';
+import { useSession } from '@/lib/session';
 
 export default function Topbar({hideSignIn, hideCartNotice}) {
     const [catalogVisible, setCatalogVisible] = useState(false);
@@ -48,7 +49,6 @@ export default function Topbar({hideSignIn, hideCartNotice}) {
                     </div>
                     <div className="topbar-text dropdown d-md-none ml-auto">
                         <a className="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                            { status === 'authenticated' && <>Избранное / </> }
                             Сравнение / Отслеживание
                         </a>
                         <ul className="dropdown-menu dropdown-menu-end">
@@ -57,15 +57,9 @@ export default function Topbar({hideSignIn, hideCartNotice}) {
                                     <i className="ci-support text-muted me-2" />shop_info.inet_phone
                                 </a>
                             </li>
-                            { /*
-              {% if request.user.is_authenticated %}
-              <li><a class="dropdown-item" href="{% url 'shop:favorites' %}" rel="nofollow"><i class="ci-heart text-muted me-2"></i>Избранное (<span id="dropdown-favorites-count"></span>)</a></li>
-              {% endif %}
-                              */
-                            }
                             <li>
                                 <a className="dropdown-item" href="'compare'" rel="nofollow">
-                                    <i className="ci-compare text-muted me-2" />Сравнение (<span id="dropdown-compare-count"></span>)
+                                    <CompareLink />
                                 </a>
                             </li>
                             <li>
@@ -76,17 +70,16 @@ export default function Topbar({hideSignIn, hideCartNotice}) {
                         </ul>
                     </div>
                     <div className="d-none d-md-block ml-3 text-nowrap">
-                        { status === 'authenticated' && (
-                            <a className="topbar-link d-none d-md-inline-block" href="'shop:favorites'" rel="nofollow">
-                                <i className="ci-heart mt-n1" />Избранное <span id="favorites-notice">{ /* view "shop.views.favorites_notice" */ }</span>
+                        <Link href="/compare">
+                            <a className="topbar-link ms-3 ps-3 border-start border-light d-none d-md-inline-block" rel="nofollow">
+                                <CompareLink />
                             </a>
-                        )}
-                        <a className="topbar-link ms-3 ps-3 border-start border-light d-none d-md-inline-block" href="'compare'" rel="nofollow">
-                            <i className="ci-compare mt-n1" />Сравнение <span id="compare-notice">{ /* view "sewingworld.views.compare_notice" */ }</span>
-                        </a>
-                        <a className="topbar-link ms-3 ps-3 border-start d-none d-md-inline-block" href="'shop:user_orders'" rel="nofollow">
-                            <i className="ci-delivery mt-n1"></i>Отслеживание заказа
-                        </a>
+                        </Link>
+                        <Link href="/user/orders?track">
+                            <a className="topbar-link ms-3 ps-3 border-start d-none d-md-inline-block" rel="nofollow">
+                                <i className="ci-delivery mt-n1" />Отслеживание заказа
+                            </a>
+                        </Link>
                     </div>
                 </div>
             </div>

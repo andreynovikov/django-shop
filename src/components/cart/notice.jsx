@@ -39,19 +39,25 @@ export default function CartNotice() {
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                                 <div className="d-flex align-items-center">
-                                    <a className="d-block flex-shrink-0" href="'product'">
-                                        { item.product.thumbnail_small ? (
-                                            <img
-                                                src={item.product.thumbnail_small.url}
-                                                width={item.product.thumbnail_small.width}
-                                                height={item.product.thumbnail_small.height}
-                                                alt={`${item.product.title} ${item.product.whatis}`} />
-                                        ) : (
-                                            <i className="d-inline-block ci-camera text-muted" style={{width: "64px", height: "64px", fontSize: "32px", padding: "16px"}} />
-                                        )}
-                                    </a>
+                                    <Link href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
+                                        <a className="d-block flex-shrink-0">
+                                            { item.product.thumbnail_small ? (
+                                                <img
+                                                    src={item.product.thumbnail_small.url}
+                                                    width={item.product.thumbnail_small.width}
+                                                    height={item.product.thumbnail_small.height}
+                                                    alt={`${item.product.title} ${item.product.whatis}`} />
+                                            ) : (
+                                                <i className="d-inline-block ci-camera text-muted" style={{width: "64px", height: "64px", fontSize: "32px", padding: "16px"}} />
+                                            )}
+                                        </a>
+                                    </Link>
                                     <div className="ps-2">
-                                        <h6 className="widget-product-title"><a href="'product'">{ item.product.title }</a></h6>
+                                        <h6 className="widget-product-title">
+                                            <Link href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
+                                                <a>{ item.product.title }</a>
+                                            </Link>
+                                        </h6>
                                         <div className="widget-product-meta">
                                             <span className="text-accent me-2">{ item.cost.toLocaleString('ru') }<small>&nbsp;руб</small></span>
                                             <span className="text-muted">x { item.quantity }</span>
@@ -71,7 +77,11 @@ export default function CartNotice() {
                             <a className="btn btn-outline-secondary btn-sm">Открыть корзину<i className="ci-arrow-right ms-1 me-n1" /></a>
                         </Link>
                     </div>
-                    <button className="btn btn-primary btn-sm d-block w-100" href="checkout-details.html"><i className="ci-basket-alt me-2 fs-base align-middle" />Оформить заказ</button>
+                    <Link href="/confirmation">
+                        <a className="btn btn-primary btn-sm d-block w-100">
+                            <i className="ci-basket-alt me-2 fs-base align-middle" />Оформить заказ
+                        </a>
+                    </Link>
                 </div>
             </div>
         </div>

@@ -1,37 +1,28 @@
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { signOut, useSession } from 'next-auth/react';
 import { useQuery } from 'react-query';
 
 import { formatPhone } from '@/lib/format';
 import useFavorites from '@/lib/favorites';
-import { withSession, orderKeys, userKeys, loadOrders, loadUser } from '@/lib/queries';
+import { useSession, signOut } from '@/lib/session';
+import { orderKeys, loadOrders } from '@/lib/queries';
 
 export default function UserSidebar() {
     const router = useRouter();
-    const { data: session, status } = useSession({
-        required: true,
+    const { user, status } = useSession({
         onUnauthenticated() {
             router.push({
                 pathname: '/login',
                 query: { callbackUrl: router.asPath }
             });
-        },
-    });
-
-    const { data: user } = useQuery(
-        userKeys.detail(session?.user),
-        () => withSession(session, loadUser, session?.user),
-        {
-            enabled: status === 'authenticated'
         }
-    );
+    });
 
     const { favorites } = useFavorites();
 
     const { data: orders } = useQuery(
         orderKeys.list(1, ''),
-        () => withSession(session, loadOrders, 1, ''),
+        () => loadOrders(1, ''),
         {
             enabled: status === 'authenticated'
         }
@@ -58,7 +49,9 @@ export default function UserSidebar() {
                                     { user.discount }%
                                 </span>
                             )}
-                            <img className="rounded-circle" src={user.gravatar} alt={ user.full_name } height="90" />
+                            <picture>
+                                <img className="rounded-circle" src={user.gravatar} alt={ user.full_name } height="90" />
+                            </picture>
                         </div>
                         <div className="ps-md-3">
                             <h3 className="fs-base mb-0">{ user.name || user.full_name }</h3>

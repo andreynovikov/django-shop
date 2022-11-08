@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import Script from 'next/script';
 
 export default function PriceFilter({filter, onFilterChanged}) {
@@ -21,6 +21,7 @@ export default function PriceFilter({filter, onFilterChanged}) {
         console.log('setupRangeSlider');
         if (window && 'noUiSlider' in window && sliderRef.current && !!!sliderRef.current.noUiSlider) {
             console.log('import range-slider');
+            /* eslint-disable unused-imports/no-unused-vars */
             import('@/vendor/cartzilla/components/range-slider').then((module) => {
                 console.log('set slider handler');
                 sliderRef.current.noUiSlider.on('set', () => {

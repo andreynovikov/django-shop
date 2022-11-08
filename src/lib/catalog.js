@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router';
 
 export default function useCatalog() {
@@ -6,6 +6,7 @@ export default function useCatalog() {
 
     useEffect(() => {
         sessionStorage.setItem('lastCatalogPath', router.asPath);
+        /* eslint-disable react-hooks/exhaustive-deps */
     }, []);
 }
 

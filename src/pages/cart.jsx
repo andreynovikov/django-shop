@@ -1,21 +1,17 @@
 import Link from 'next/link';
-import { signOut, useSession } from 'next-auth/react';
 
 import PageLayout from '@/components/layout/page';
 import LoginForm from '@/components/login-form';
 import CartItem from '@/components/cart/item';
 
 import useBasket from '@/lib/basket';
+import { useSession, signOut } from '@/lib/session';
 import { useLastCatalog } from '@/lib/catalog';
 
 export default function Cart() {
-    const { data: session, status } = useSession();
+    const { user, status } = useSession();
     const { basket, isEmpty, isLoading, isSuccess, removeItem, setQuantity } = useBasket();
     const lastPage = useLastCatalog();
-
-    const handleCreateOrder = () => {
-        console.log("create order");
-    };
 
     const noCartStyle = {
         width: '200px',
@@ -74,10 +70,12 @@ export default function Cart() {
 
                         { status === 'authenticated' ? (
                             <>
-                                <div className="mb-2">Добро пожаловать, { session.user?.name || "уважаемый покупатель" }!</div>
-                                <button className="btn btn-primary btn-shadow d-block w-100 mt-4" onClick={handleCreateOrder}>
-                                    <i className="fs-lg me-2 ci-basket-alt" />Оформить заказ
-                                </button>
+                                <div className="mb-2">Добро пожаловать, { user?.name || "уважаемый покупатель" }!</div>
+                                <Link href="/confirmation">
+                                    <a className="btn btn-primary btn-shadow d-block w-100 mt-4">
+                                        <i className="fs-lg me-2 ci-basket-alt" />Оформить заказ
+                                    </a>
+                                </Link>
                             </>
                         ) : (
                             <LoginForm embedded={true} ctx="order" />
@@ -90,7 +88,7 @@ export default function Cart() {
 
                         { status === 'authenticated' && (
                             <div className="mt-3">
-                                <a className="fs-sm link-primary" onClick={() => signOut({redirect: false})} style={{cursor:'pointer'}}>Оформить заказ от другого имени</a>
+                                <a className="fs-sm link-primary" onClick={signOut} style={{cursor:'pointer'}}>Оформить заказ от другого имени</a>
                             </div>
                         )}
                     </div>

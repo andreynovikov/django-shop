@@ -1,6 +1,15 @@
-import { getSession } from 'next-auth/react';
-
 import axios from 'axios';
+
+export const userKeys = {
+    all: ['users'],
+    form: () => [...userKeys.all, 'form'],
+    dependencies: () => [...userKeys.all, 'dependencies'], // those queries are invalidated on user login/logout
+    references: () => [...userKeys.dependencies(), 'references'], // those queries are reset on user logout
+    details: () => [...userKeys.all, 'detail'],
+    detail: (id) => [...userKeys.details(), id],
+    check: (phone) => [...userKeys.details(), 'check', phone],
+    current: () => [...userKeys.details(), 'current'],
+};
 
 export const categoryKeys = {
     all: ['categories'],
@@ -11,41 +20,46 @@ export const categoryKeys = {
 
 export const productKeys = {
     all: ['products'],
+    fields: () => [...productKeys.all, 'fields'],
     lists: () => [...productKeys.all, 'list'],
     list: (page, size, filters, ordering) => [...productKeys.lists(), { page, size, filters, ordering }],
     suggestions: (text) => [...productKeys.lists(), 'suggestions', text],
     details: () => [...productKeys.all, 'detail'],
     detail: (id) => [...productKeys.details(), id],
-    price: (id) => [...productKeys.details(), 'price', id],
+    price: (id) => [...productKeys.details(), 'price', id],  // TODO: think how to invalidate it on user change
 };
 
 export const basketKeys = {
-    all: ['baskets'],
+    all: [...userKeys.dependencies(), 'baskets'],
     details: () => [...basketKeys.all, 'detail'],
-    detail: () => [...basketKeys.details(), ''],
 };
 
 export const orderKeys = {
-    all: ['orders'],
+    all: [...userKeys.references(), 'orders'],
     lists: () => [...orderKeys.all, 'list'],
     list: (page, filter) => [...orderKeys.lists(), { page, filter }],
+    last: () => [...orderKeys.lists(), 'last'],
     details: () => [...orderKeys.all, 'detail'],
     detail: (id) => [...orderKeys.details(), id],
 };
 
-export const userKeys = {
-    all: ['users'],
-    form: () => [...userKeys.all, 'form'],
-    details: () => [...userKeys.all, 'detail'],
-    detail: (id) => [...userKeys.details(), id],
-    check: (phone) => [...userKeys.details(), 'check', phone],
-    current: () => [...userKeys.details(), 'current'],
+export const favoriteKeys = {
+    all: [...userKeys.references(), 'favorites'],
+    details: () => [...favoriteKeys.all, 'detail'],
 };
 
-export const favoriteKeys = {
-    all: ['favorites'],
-    details: () => [...favoriteKeys.all, 'detail'],
-    detail: () => [...favoriteKeys.details(), ''],
+export const comparisonKeys = {
+    all: [...userKeys.references(), 'comparisons'],
+    lists: () => [...comparisonKeys.all, 'list'],
+    list: (kind) => [...comparisonKeys.lists(), kind]
+};
+
+export const kindKeys = {
+    all: ['kinds'],
+    lists: () => [...kindKeys.all, 'list'],
+    list: (filter) => [...kindKeys.lists(), filter],
+    details: () => [...kindKeys.all, 'detail'],
+    detail: (id) => [...kindKeys.details(), id],
 };
 
 export const pageKeys = {
@@ -66,134 +80,159 @@ export function normalizePhone(phone) {
     return phone;
 };
 
-export const API = process.env.NEXT_PUBLIC_ORIGIN + 'api/v0/'; // 'https://cartzilla.sigalev.ru/api/v0/';
+export const API = process.env.NEXT_PUBLIC_API;
 
 export const apiClient = axios.create({
     baseURL: API,
     withCredentials: true,
 });
-apiClient.defaults.headers.common['Content-Type'] = 'application/json';
 
-apiClient.interceptors.request.use(function (config) {
-    if (typeof window === 'undefined') // set referrer when running on server
+apiClient.defaults.headers.post['Content-Type'] = 'application/json';
+apiClient.defaults.headers.put['Content-Type'] = 'application/json';
+
+apiClient.interceptors.request.use(async function (config) {
+    if (typeof window === 'undefined') {// set referrer when running on server
         config.headers['Referer'] = process.env.NEXT_PUBLIC_ORIGIN;
+        config.headers['Origin'] = process.env.NEXT_PUBLIC_ORIGIN;
+    }
+    if (config.method === 'post' || config.method === 'put') {
+        const response = await axios.get(API + 'csrf/', { withCredentials: true });
+        config.headers['X-CSRFTOKEN'] = response.data.csrf;
+    }
     return config;
 }, function (error) {
     return Promise.reject(error);
 });
 
-export async function withClient(handler, ...params) {
-    return handler(...params, apiClient);
-}
-
-export async function withAuthClient(handler, ...params) {
-    return withClient(async (...params) => {
-        const session = await getSession();
-        const client = params.pop();
-        const authClient = axios.create(client.defaults);
-        console.log(session);
-        if (session?.accessToken)
-            authClient.defaults.headers.common['Authorization'] = `Bearer ${session.accessToken}`;
-        return handler(...params, authClient);
-    }, ...params);
-    /*
-        const session = await getSession()
-        if (!session) {
-            return Promise.reject("Unauthorized");
-        }
-    */
-}
-
-export async function withSession(session, handler, ...params) {
-    // https://stackoverflow.com/a/59712429/488489
-    return withClient(async (...params) => {
-        const client = params.pop();
-        const authClient = axios.create(client.defaults);
-        if (session?.accessToken)
-            authClient.defaults.headers.common['Authorization'] = `Bearer ${session.accessToken}`;
-        return handler(...params, authClient);
-    }, ...params);
-}
-
-export async function loadBasket(client) {
-    const response = await client.get('baskets/');
+export async function loadBasket() {
+    const response = await apiClient.get('baskets/');
     return response.data;
 }
 
-export async function createBasket(client) {
-    const response = await client.post('baskets/');
+export async function createBasket() {
+    const response = await apiClient.post('baskets/');
     console.log(response.data);
     return response.data;
 }
 
-export async function addBasketItem(basketId, product, quantity, client) {
-    const response = await client.post(`baskets/${basketId}/add/`, {
+export async function addBasketItem(basketId, product, quantity) {
+    const response = await apiClient.post(`baskets/${basketId}/add/`, {
         product,
         quantity
     });
     return response.data;
 }
 
-export async function removeBasketItem(basketId, product, client) {
-    const response = await client.post(`baskets/${basketId}/remove/`, {
+export async function removeBasketItem(basketId, product) {
+    const response = await apiClient.post(`baskets/${basketId}/remove/`, {
         product
     });
     return response.data;
 }
 
-export async function updateBasketItem(basketId, product, quantity, client) {
-    const response = await client.post(`baskets/${basketId}/update/`, {
+export async function updateBasketItem(basketId, product, quantity) {
+    const response = await apiClient.post(`baskets/${basketId}/update/`, {
         product,
         quantity
     });
     return response.data;
 }
 
-export async function loadOrders(page, filter, client) {
+export async function createOrder() {
+    const response = await apiClient.post('orders/');
+    return response.data;
+}
+
+export async function loadOrders(page, filter) {
     const url = new URL(API + 'orders/');
     if (+page !== 1)
         url.searchParams.set('page', page);
     if (filter !== undefined && filter !== '')
         url.searchParams.set('filter', filter);
-    const response = await client.get(url);
+    const response = await apiClient.get(url);
     return response.data;
 };
 
-export async function loadOrder(id, client) {
-    const response = await client.get(`orders/${id}/`);
+export async function getLastOrder() {
+    const response = await apiClient.post('orders/last/');
     return response.data;
 }
 
-export async function loadFavorites(client) {
-    const response = await client.get('favorites/');
+export async function loadOrder(id) {
+    const response = await apiClient.get(`orders/${id}/`);
     return response.data;
 }
 
-export async function addToFavorites(product, client) {
-    const response = await client.post('favorites/add/', {
+export async function updateOrder(id, data) {
+    const response = await apiClient.put('orders/' + id + '/', data);
+    return response.data;
+}
+
+export async function loadFavorites() {
+    const response = await apiClient.get('favorites/');
+    return response.data;
+}
+
+export async function addToFavorites(product) {
+    const response = await apiClient.post('favorites/add/', {
         product
     });
     return response.data;
 }
 
-export async function removeFromFavorites(product, client) {
-    const response = await client.post('favorites/remove/', {
+export async function removeFromFavorites(product) {
+    const response = await apiClient.post('favorites/remove/', {
         product
     });
     return response.data;
 }
 
-export async function loadCategories(client) {
-    const response = await client.get('categories/');
+export async function loadComparisons(kind) {
+    const url = new URL(API + 'comparisons/');
+    if (kind !== null)
+        url.searchParams.set('kind', kind);
+    const response = await apiClient.get(url);
     return response.data;
 }
 
-export async function loadCategory(path, client) {
-    const response = await client.get(`categories/${path.join('/')}/`);
+export async function addToComparison(product) {
+    const response = await apiClient.post('comparisons/add/', {
+        product
+    });
     return response.data;
 }
 
-export function loadProducts(page, pageSize, filters, ordering) {
+export async function removeFromComparison(product) {
+    const response = await apiClient.post('comparisons/remove/', {
+        product
+    });
+    return response.data;
+}
+
+export async function loadCategories() {
+    const response = await apiClient.get('categories/');
+    return response.data;
+}
+
+export async function loadCategory(path) {
+    const response = await apiClient.get(`categories/${path.join('/')}/`);
+    return response.data;
+}
+
+export async function loadKinds(productIds) {
+    const url = new URL(API + 'kinds/');
+    for (const value of productIds)
+        url.searchParams.append('product', value);
+    const response = await apiClient.get(url);
+    return response.data;
+}
+
+export async function loadKind(id) {
+    const response = await apiClient.get('kinds/' + id + '/');
+    return response.data;
+}
+
+export async function loadProducts(page, pageSize, filters, ordering) {
     const url = new URL(API + 'products/');
 
     if (filters != null)
@@ -210,24 +249,36 @@ export function loadProducts(page, pageSize, filters, ordering) {
         url.searchParams.set('page_size', pageSize);
     if (ordering != null)
         url.searchParams.set('ordering', ordering);
-    return fetch(url)
-        .then(response => {
-            if (!response.ok) throw response;
-            return response.json();
-        });
+    const response = await apiClient.get(url.toString());
+    return response.data;
 }
 
-export async function loadProductSuggestions(text, client) {
+export async function loadProductSuggestions(text) {
     const url = new URL(API + 'products/');
     url.searchParams.set('title', text);
     url.searchParams.set('ta', 1);
     url.searchParams.set('page_size', 10);
-    const response = await client.get(url);
+    const response = await apiClient.get(url.toString());
     return response.data;
 }
 
-export async function getProductPrice(id, client) {
-    const response = await client.get(`products/${id}/price/`);
+export async function getProductPrice(id) {
+    const response = await apiClient.get(`products/${id}/price/`);
+    return response.data;
+}
+
+export async function loadProduct(id) {
+    const response = await apiClient.get(`products/${id}/`);
+    return response.data;
+}
+
+export async function loadProductByCode(code) {
+    const response = await apiClient.get(`products/${code}/bycode/`);
+    return response.data;
+}
+
+export async function getProductFields() {
+    const response = await apiClient.get('products/fields/');
     return response.data;
 }
 
@@ -238,27 +289,32 @@ export async function checkUser(phone, reset) {
     return response.data;
 }
 
+export async function currentUser() {
+    const response = await apiClient.get('users/current/');
+    return response.data;
+}
+
 export async function getUserForm() {
     const response = await apiClient.get('users/form/');
     return response.data;
 }
 
-export async function loadUser(id, client) {
-    const response = await client.get('users/' + id + '/');
+export async function loadUser(id) {
+    const response = await apiClient.get('users/' + id + '/');
     return response.data;
 }
 
-export async function updateUser(id, data, client) {
-    const response = await client.put('users/' + id + '/', data);
+export async function updateUser(id, data) {
+    const response = await apiClient.put('users/' + id + '/', data);
     return response.data;
 }
 
-export async function loadPages(client) {
-    const response = await client.get('pages/');
+export async function loadPages() {
+    const response = await apiClient.get('pages/');
     return response.data;
 }
 
-export async function loadPage(uri, client) {
-    const response = await client.get(`pages/${uri.join('/')}/`);
+export async function loadPage(uri) {
+    const response = await apiClient.get(`pages/${uri.join('/')}/`);
     return response.data;
 }

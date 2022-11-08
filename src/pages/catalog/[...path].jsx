@@ -7,7 +7,7 @@ import PageLayout from '@/components/layout/page';
 import ProductCard from '@/components/product/card';
 import ProductFilter from '@/components/product/filter';
 
-import { withClient, categoryKeys, productKeys, loadCategories, loadCategory, loadProducts } from '@/lib/queries';
+import { categoryKeys, productKeys, loadCategories, loadCategory, loadProducts } from '@/lib/queries';
 import useCatalog from '@/lib/catalog';
 
 const baseFilters = [
@@ -15,11 +15,19 @@ const baseFilters = [
 ];
 const defaultOrder = 'title';
 
-function filterReducer(filters, {field, value}) {
-    const newFilters = filters.filter(filter => filter.field !== field);
-    if (value !== undefined)
-        newFilters.push({field, value});
-    return newFilters;
+function filterReducer(filters, action) {
+    switch (action.type) {
+        case 'reset':
+            return action.filters;
+        case 'set':
+            const {field, value} = action.filter;
+            const newFilters = filters.filter(filter => filter.field !== field);
+            if (value !== undefined)
+                newFilters.push({field, value});
+            return newFilters;
+        default:
+            return filters;
+    }
 }
 
 /*
@@ -32,18 +40,23 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
     const [minPage, setMinPage] = useState(0);
     const [maxPage, setMaxPage] = useState(0);
 
+    // reset filters on page change
+    useEffect(() => {
+        setFilter({type: 'reset', filters});
+    }, [filters]);
+
     const router = useRouter();
     useCatalog();
 
-    const { data: category, isSuccess, isLoading, isError } = useQuery(
+    const { data: category, isSuccess } = useQuery(
         categoryKeys.detail(path),
-        () => withClient(loadCategory, path),
+        () => loadCategory(path),
         {
             enabled: !!path // path is not set on first render
         }
     );
 
-    const { data: products, isSuccess: isProductsSuccess, isFetching, isPreviousData } = useQuery(
+    const { data: products, isSuccess: isProductsSuccess } = useQuery(
         productKeys.list(currentPage, pageSize, currentFilters, order),
         () => loadProducts(currentPage, pageSize, currentFilters, order),
         {
@@ -68,8 +81,8 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
     }, [products, isProductsSuccess]);
 
     const onFilterChanged = (field, value) => {
-        console.error(field, value);
-        setFilter({field, value});
+        console.log(field, value);
+        setFilter({type: 'set', filter: {field, value}});
     };
 
     if (router.isFallback) {
@@ -109,7 +122,7 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                                 { category.filters && category.filters.map((filter, index) => (
                                     <div className={"widget" + (index === category.filters.length-1 ? "" : " pb-4 mb-4 border-bottom")} key={filter.id}>
                                         <h3 className="widget-title">{ filter.label }</h3>
-                                        <ProductFilter filter={{...filter, ...products?.filters[filter.name]}} onFilterChanged={onFilterChanged} />
+                                        <ProductFilter filter={{...filter, ...products?.filters?.[filter.name]}} onFilterChanged={onFilterChanged} />
                                     </div>
                                 ))}
 
@@ -257,7 +270,7 @@ export async function getStaticProps(context) {
         }
     }
     const queryClient = new QueryClient();
-    const category = await queryClient.fetchQuery(categoryKeys.detail(path), () => withClient(loadCategory, path));
+    const category = await queryClient.fetchQuery(categoryKeys.detail(path), () => loadCategory(path));
 
     const pageSize = category.categories || category.filters ? 15 : 16;
     const productFilters = [{field: 'categories', value: category.id}, ...baseFilters];
@@ -291,7 +304,7 @@ export async function getStaticPaths() {
         return {paths, root};
     };
 
-    const categories = await withClient(loadCategories);
+    const categories = await loadCategories();
     const {paths} = categories.reduce(getPaths, {paths: [], root: []});
     return { paths, fallback: true };
 }

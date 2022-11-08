@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
+import Link from 'next/link';
 import Script from 'next/script';
-import { useSession } from 'next-auth/react';
-import { useQuery } from 'react-query';
 
 import ProductPrice from '@/components/product/price';
 
 import useBasket from '@/lib/basket';
 import useFavorites from '@/lib/favorites';
-import { withSession, productKeys, getProductPrice } from '@/lib/queries';
+import { useSession } from '@/lib/session';
 
 const noImageStyle = {
     width: '200px',
@@ -17,33 +16,17 @@ const noImageStyle = {
 }
 
 export default function ProductCard({product, limitedBadges}) {
-    const [cost, setCost] = useState(product.cost);
-    const { data: session, status } = useSession();
+    const { status } = useSession();
 
     const cardRef = useRef();
 
     const { addItem } = useBasket();
     const { favorites, favoritize, unfavoritize } = useFavorites();
 
-    const { data: userPrice } = useQuery(
-        productKeys.price(product.id),
-        () => withSession(session, getProductPrice, product.id),
-        {
-            enabled: status === 'authenticated',
-            onError: (error) => {
-                console.log(error);
-            }
-        }
-    );
-
-    useEffect(() => {
-        setCost(userPrice ? userPrice.cost : product.cost);
-    }, [userPrice]);
-
     const initializeBootstrap = () => {
         if (window && 'bootstrap' in window && bootstrap.Tooltip) {
             const tooltipTriggerList = [].slice.call(cardRef.current.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
         }
@@ -89,16 +72,28 @@ export default function ProductCard({product, limitedBadges}) {
                title={status === 'authenticated' ? favorites.includes(product.id) ? "В избранном" : "Отложить" : "Войдите или зарегистрируйтесь, чтобы добавлять товары в избранное"}>
                 <i className="ci-heart" />
             </a>
-            <a className="d-block mx-auto pt-3 overflow-hidden" href="#">
-                { product.thumbnail ? (
-                    <img src={product.thumbnail.url} width={product.thumbnail.width} height={product.thumbnail.height} alt={`${product.title} ${product.whatis}`} />
-                ) : (
-                    <i className="d-inline-block ci-camera text-muted" style={ noImageStyle } />
-                )}
-            </a>
+            <Link href={{ pathname: '/products/[code]', query: { code: product.code }}}>
+                <a className="d-block mx-auto pt-3 overflow-hidden">
+                    { product.thumbnail ? (
+                        <img
+                            src={product.thumbnail.url}
+                            width={product.thumbnail.width}
+                            height={product.thumbnail.height}
+                            alt={`${product.title} ${product.whatis}`} />
+                    ) : (
+                        <i className="d-inline-block ci-camera text-muted" style={ noImageStyle } />
+                    )}
+                </a>
+            </Link>
             <div className="card-body py-2">
-                <a className="product-meta d-block fs-xs pb-1" href="#">{ product.whatis } { product.partnumber }</a>
-                <h3 className="product-title fs-sm"><a href="#">{ product.title }</a></h3>
+                <Link href={{ pathname: '/products/[code]', query: { code: product.code }}}>
+                    <a className="product-meta d-block fs-xs pb-1">{ product.whatis } { product.partnumber }</a>
+                </Link>
+                <h3 className="product-title fs-sm">
+                    <Link href={{ pathname: '/products/[code]', query: { code: product.code }}}>
+                        <a>{ product.title }</a>
+                    </Link>
+                </h3>
                 <div className="d-flex justify-content-between">
                     <div className="product-price text-accent"><ProductPrice product={product} /></div>
                     { /*

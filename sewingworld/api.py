@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+from django.core.mail import mail_admins
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 
@@ -17,14 +18,17 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from django.contrib.flatpages.models import FlatPage
+from django_ipgeobase.models import IPGeoBase
 
+from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase  # TODO: add all tasks
 from shop.filters import get_product_filter
-from shop.models import Category, Product, Basket, BasketItem, Order, Favorites, ShopUser, ShopUserManager
-from shop.tasks import send_password
+from shop.models import Category, ProductKind, Product, Basket, BasketItem, Order, Favorites, ShopUser, ShopUserManager
+from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 
 from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSerializer, ProductListSerializer, \
-    BasketSerializer, BasketItemActionSerializer, OrderListSerializer, OrderSerializer, FavoritesSerializer, \
-    UserSerializer, AnonymousUserSerializer, LoginSerializer, \
+    ProductKindSerializer, \
+    BasketSerializer, BasketItemActionSerializer, OrderListSerializer, OrderSerializer, OrderActionSerializer, \
+    FavoritesSerializer, ComparisonSerializer, UserSerializer, AnonymousUserSerializer, LoginSerializer, \
     FlatPageListSerializer, FlatPageSerializer
 
 
@@ -97,6 +101,17 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
             except IndexError:
                 pass  # let DRF issue the error
         return super().get_object()
+
+
+class ProductKindViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ProductKindSerializer
+
+    def get_queryset(self):
+        queryset = ProductKind.objects.all()
+        products = self.request.query_params.getlist('product')
+        if len(products) > 0:
+            queryset = queryset.filter(product__in=products)
+        return queryset.distinct()
 
 
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
@@ -205,6 +220,11 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     def fields(self, request):
         return Response({f.name: f.verbose_name for f in Product._meta.get_fields() if hasattr(f, 'verbose_name')})
 
+    @action(detail=True)
+    def bycode(self, request, pk=None):
+        product = self.get_queryset().filter(code=pk).first()
+        return Response(self.get_serializer(product, context=self.get_serializer_context()).data)
+
     @action(detail=True, permission_classes=[IsAuthenticated])
     def price(self, request, pk=None):
         product = self.get_object()
@@ -306,14 +326,17 @@ class BasketViewSet(viewsets.ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class OrderViewSet(viewsets.ReadOnlyModelViewSet):
+class OrderViewSet(viewsets.ModelViewSet):
     permission_classes=[IsAuthenticated]
     pagination_class = StandardResultsSetPagination
 
     def get_serializer_class(self):
         if self.action == 'list':
             return OrderListSerializer
-        return OrderSerializer
+        elif self.action == 'retrieve':
+            return OrderSerializer
+        else:
+            return OrderActionSerializer
 
     def get_queryset(self):
         filters = {
@@ -329,6 +352,62 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
             excludes['status__in'] = [Order.STATUS_DONE, Order.STATUS_FINISHED, Order.STATUS_CANCELED]
         queryset = Order.objects.order_by('-id').filter(**filters).exclude(**excludes)
         return queryset
+
+    def create(self, request):
+        try:
+            basket = Basket.objects.get(session_id=request.session.session_key)
+        except Basket.DoesNotExist:
+            return Response("Basket does not exist", status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            order = Order.register(basket)
+            ipgeobases = IPGeoBase.objects.by_ip(request.META.get('REMOTE_ADDR'))
+            if ipgeobases.exists():
+                for ipgeobase in ipgeobases:
+                    if ipgeobase.city is not None:
+                        order.city = ipgeobase.city
+                        break
+            order.save()
+            """ wait for 5 minutes to let user supply comments and other stuff """
+            try:
+                notify_user_order_new_mail.apply_async((order.id,), countdown=300)
+                notify_user_order_new_sms.apply_async((order.id,), countdown=300)
+            except Exception as e:
+                mail_admins('Task error', 'Failed to send notification: %s' % e, fail_silently=True)
+            basket.delete()
+
+            if FACEBOOK_TRACKING:
+                notify_purchase.delay(order.id, request.build_absolute_uri(),
+                                      request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
+            """ clear promo discount """
+            try:
+                del request.session['discount']
+            except KeyError:
+                pass
+
+            return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
+        except Exception as e:
+            # mail_admins('Order error', 'Failed to register order: %s' % e, fail_silently=True)
+            logger.exception(e)
+            return Response("Failed to register order", status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        super().update(request, *args, **kwargs)
+        instance = self.get_object()
+        return Response(OrderSerializer(instance).data)
+
+    def destroy(self, request):
+        raise MethodNotAllowed(request.method)
+
+    @action(detail=False, methods=['post'])
+    def last(self, request):
+        queryset = self.get_queryset().order_by('-id').values_list('id', flat=True)
+        last = queryset.exclude(status__in = [Order.STATUS_DONE, Order.STATUS_FINISHED, Order.STATUS_CANCELED]).first()
+        if last is None:
+            last = queryset.first()
+        return Response({
+            'id': last
+        })
 
 
 class FavoritesViewSet(viewsets.ModelViewSet):
@@ -367,6 +446,50 @@ class FavoritesViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class ComparisonsViewSet(viewsets.ViewSet):
+    def list(self, request):
+        comparison_list = request.session.get('comparison_list', None)
+        if comparison_list:
+            product_ids = list(map(int, comparison_list.split(',')))
+            kind = request.query_params.get('kind', None)
+            if kind:
+                product_ids = list(Product.objects.filter(pk__in=product_ids, kind=kind).values_list('id', flat=True))
+        else:
+            product_ids = []
+        return Response(product_ids)
+
+    @action(detail=False, methods=['post'], url_path='add')
+    def add_item(self, request):
+        serializer = ComparisonSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        product = serializer.validated_data['product']
+        comparison_list = request.session.get('comparison_list', None)
+        if comparison_list:
+            product_ids = list(map(int, comparison_list.split(',')))
+            if product.id not in product_ids:
+                product_ids.append(product.id)
+                request.session['comparison_list'] = ','.join(map(str, product_ids))
+        else:
+            request.session['comparison_list'] = str(product.id)
+            product_ids = [product.id]
+        return Response(product_ids)
+
+    @action(detail=False, methods=['post'], url_path='remove')
+    def remove_item(self, request):
+        serializer = ComparisonSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        product_ids = []
+        comparison_list = request.session.get('comparison_list', None)
+        if comparison_list:
+            product = serializer.validated_data['product']
+            product_ids = list(filter(lambda id: id != product.id, map(int, comparison_list.split(','))))
+            if product_ids:
+                request.session['comparison_list'] = ','.join(map(str, product_ids))
+            else:
+                del request.session['comparison_list']
+        return Response(product_ids)
+
+
 class UserViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
     queryset = get_user_model().objects.all()
@@ -389,7 +512,7 @@ class UserViewSet(viewsets.ModelViewSet):
         logger.error(self.action)
         if self.action in ('retrieve', 'update', 'partial_update'):
             self.permission_classes = [IsSelf]
-        elif self.action in ('check', 'login', 'form'):
+        elif self.action in ('check', 'login', 'logout', 'form'):
             self.permission_classes = []
 
         return super().get_permissions()
@@ -433,21 +556,41 @@ class UserViewSet(viewsets.ModelViewSet):
     def login(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        try:
+            basket = Basket.objects.get(session_id=request.session.session_key)
+        except Basket.MultipleObjectsReturned:
+            basket = None
+        except Basket.DoesNotExist:
+            basket = None
+
         user = serializer.validated_data
         login(request, user)
-        refresh = RefreshToken.for_user(user)
+
+        # preserve user basket because django login rotates session id
+        if basket:
+            basket.update_session(request.session.session_key)
+
         return Response({
             "id": user.id,
-            "refresh": str(refresh),
-            "access": str(refresh.access_token)
         })
 
     @action(detail=False, methods=['get'])
     def logout(self, request, *args, **kwargs):
+        try:
+            basket = Basket.objects.get(session_id=request.session.session_key)
+        except Basket.DoesNotExist:
+            basket = None
+
         logout(request)
-        return Response({
-            "user": None,
-        })
+        request.session.save()
+        request.session.modified = True
+
+        if basket is not None:
+            basket.update_session(request.session.session_key)
+            basket.save()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=False, methods=['get'])
     def form(self, request, *args, **kwargs):
@@ -476,7 +619,8 @@ class CsrfTokenView(views.APIView):
     @method_decorator(ensure_csrf_cookie)
     def get(self, request, *args, **kwargs):
         return Response({
-            "session": request.session
+            "session": request.session,
+            "csrf": request.META["CSRF_COOKIE"]
         })
 
 

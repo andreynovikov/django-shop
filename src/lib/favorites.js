@@ -1,17 +1,16 @@
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 
-import { withSession, favoriteKeys, loadFavorites, addToFavorites, removeFromFavorites } from '@/lib/queries';
+import { useSession } from '@/lib/session';
+import { favoriteKeys, loadFavorites, addToFavorites, removeFromFavorites } from '@/lib/queries';
 
 export default function useFavorites() {
-    const {data: session, status} = useSession();
+    const { status } = useSession();
 
     const queryClient = useQueryClient();
 
     const { data: favorites, isSuccess, isLoading, isError } = useQuery(
-        favoriteKeys.detail(),
-        () => withSession(session, loadFavorites),
+        favoriteKeys.details(),
+        () => loadFavorites(),
         {
             enabled: status === 'authenticated',
             initialData: [],
@@ -21,12 +20,12 @@ export default function useFavorites() {
         }
     );
 
-    const addToFavoritesMutation = useMutation((productId) => withSession(session, addToFavorites, productId), {
+    const addToFavoritesMutation = useMutation((productId) => addToFavorites(productId), {
         onSuccess: () => {
             queryClient.invalidateQueries(favoriteKeys.all);
         }
     });
-    const removeFromFavoritesMutation = useMutation((productId) => withSession(session, removeFromFavorites, productId), {
+    const removeFromFavoritesMutation = useMutation((productId) => removeFromFavorites(productId), {
         onSuccess: () => {
             queryClient.invalidateQueries(favoriteKeys.all);
         }

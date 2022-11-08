@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useDeferredValue } from 'react';
 import { useRouter } from 'next/router';
 import { useQuery } from 'react-query';
 
-import { withClient, productKeys, loadProductSuggestions } from '@/lib/queries';
+import { productKeys, loadProductSuggestions } from '@/lib/queries';
 
 export default function ProductSearchInput() {
     const [searchText, setSearchText] = useState('');
@@ -16,9 +16,9 @@ export default function ProductSearchInput() {
             setSearchText(router.query.text);
     }, [router.query.text]);
 
-    const { data: titles, isSuccess, isLoading } = useQuery(
+    const { data: titles } = useQuery(
         productKeys.suggestions(deferredSearchText),
-        () => withClient(loadProductSuggestions, deferredSearchText),
+        () => loadProductSuggestions(deferredSearchText),
         {
             enabled: searchText.length > 2,
             keepPreviousData : true
@@ -36,7 +36,7 @@ export default function ProductSearchInput() {
     };
 
     const suggestions = useMemo(() =>
-        titles && titles.count > 1 && titles.results.map((title, index) => (
+        titles && titles.count > 1 && titles.results.map((title) => (
             <a className="dropdown-item" key={title} onClick={() => suggest(title)} style={{ cursor: "pointer" }}>{ title }</a>
         )),
         [titles]

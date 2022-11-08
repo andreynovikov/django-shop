@@ -1,30 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
 import { useQuery } from 'react-query';
 
 import UserPageLayout from '@/components/layout/user-page';
 import UserTopbar from '@/components/user/topbar';
 import OrderStatusBadge from '@/components/order/status-badge';
 
-import { withSession, orderKeys, loadOrders } from '@/lib/queries';
+import { useSession } from '@/lib/session';
+import { orderKeys, loadOrders, getLastOrder } from '@/lib/queries';
 
 import moment from 'moment';
 import 'moment/locale/ru';
 
 moment.locale('ru');
 
-export default function Orders({filter, page}) {
+export default function Orders({filter, page, track}) {
     const [currentFilter, setFilter] = useState(filter);
+    const [isTracking, setIsTracking] = useState(track !== undefined);
     const [minPage, setMinPage] = useState(0);
     const [maxPage, setMaxPage] = useState(0);
     const router = useRouter();
-    const {data: session, status} = useSession();
+    const { status } = useSession();
 
-    const { data: orders, isSuccess, isLoading, isError } = useQuery(
+    const { data: lastOrder } = useQuery(
+        orderKeys.last(),
+        () => getLastOrder(),
+        {
+            enabled: status === 'authenticated' && isTracking
+        }
+    );
+
+    useEffect(() => {
+        setIsTracking(track !== undefined);
+    }, [track]);
+
+    useEffect(() => {
+        if (lastOrder !== undefined && isTracking) {
+            if (lastOrder.id) {
+                router.push({
+                    pathname: '/user/orders/[id]',
+                    query: { id: lastOrder.id }
+                });
+            } else {
+                setIsTracking(false);
+            }
+        }
+    }, [lastOrder, router, isTracking]);
+
+    const { data: orders, isSuccess, isLoading } = useQuery(
         orderKeys.list(page || 1, currentFilter),
-        () => withSession(session, loadOrders, page || 1, currentFilter),
+        () => loadOrders(page || 1, currentFilter),
         {
             enabled: status === 'authenticated'
         }
@@ -66,7 +92,7 @@ export default function Orders({filter, page}) {
         <>
             <UserTopbar>
                 <div className="d-flex align-items-center flex-nowrap me-3 me-sm-4">
-                    { isSuccess && (orders.results.length > 0 || filter !== '') && (
+                    { isSuccess && !isTracking && (orders.results.length > 0 || filter !== '') && (
                         <>
                             <label className="text-light opacity-75 text-nowrap fs-sm me-2 d-none d-sm-block" htmlFor="sw-order-filter">Отображать:</label>
                             <select className="form-select" id="sw-order-filter" value={filter} onChange={(e) => onFilterChanged(e.target.value)}>
@@ -80,7 +106,7 @@ export default function Orders({filter, page}) {
                 </div>
             </UserTopbar>
 
-            { isSuccess && orders.results.length > 0 ? (
+            { isSuccess && !isTracking && orders.results.length > 0 ? (
                 <>
                     <div className="table-responsive fs-md">
                         <table className="table table-hover mb-0">
@@ -93,7 +119,7 @@ export default function Orders({filter, page}) {
                                 </tr>
                             </thead>
                             <tbody>
-                                { orders.results.map((order, index) => (
+                                { orders.results.map((order) => (
                                     <tr key={order.id} onClick={() => handleRowClick(order.id)} style={{cursor: "pointer"}}>
                                         <td className="py-3">
                                             <Link href={{ pathname: '/user/orders/[id]', query: { id: order.id } }}>
@@ -163,7 +189,7 @@ export default function Orders({filter, page}) {
                         </nav>
                     )}
                 </>
-            ) : isLoading ? (
+            ) : (isLoading || isTracking) ? (
                 <p className="lead">Загружается...</p>
             ) : (
                 <p className="lead">У вас нет {

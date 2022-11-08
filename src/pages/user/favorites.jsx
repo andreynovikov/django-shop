@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useQuery } from 'react-query';
 
 import ProductPrice from '@/components/product/price';
@@ -28,7 +29,7 @@ export default function Favorites() {
         }, []));
     }, [favorites]);
 
-    const { data: products, isSuccess, isLoading, isError } = useQuery(
+    const { data: products, isSuccess } = useQuery(
         productKeys.list(1, 999, filters, 'title'),
         () => loadProducts(1, 999, filters, 'title'),
         {
@@ -52,15 +53,25 @@ export default function Favorites() {
                 isSuccess && products.results.map((product, index) => (
                     <div className={"d-sm-flex justify-content-between mt-lg-4 mb-4 pb-3 pb-sm-2" + (index < favorites.length - 1 ? " border-bottom" : "")} key={product.id}>
                         <div className="d-block d-sm-flex align-items-start text-center text-sm-start">
-                            <a className="d-block flex-shrink-0 mx-auto me-sm-4" href="shop-single-v1.html" style={{width: "10rem"}}>
-                                { product.thumbnail ? (
-                                    <img src={product.thumbnail.url} width={product.thumbnail.width} height={product.thumbnail.height} alt={`${product.title} ${product.whatis}`} />
-                                ) : (
-                                    <i className="d-inline-block ci-camera text-muted" style={ noImageStyle } />
-                                )}
-                            </a>
+                            <Link href={{ pathname: '/products/[code]', query: { code: product.code }}}>
+                                <a className="d-block flex-shrink-0 mx-auto me-sm-4" style={{width: "10rem"}}>
+                                    { product.thumbnail ? (
+                                        <img
+                                            src={product.thumbnail.url}
+                                            width={product.thumbnail.width}
+                                            height={product.thumbnail.height}
+                                            alt={`${product.title} ${product.whatis}`} />
+                                    ) : (
+                                        <i className="d-inline-block ci-camera text-muted" style={ noImageStyle } />
+                                    )}
+                                </a>
+                            </Link>
                             <div className="pt-2">
-                                <h3 className="product-title fs-base mb-2"><a href="shop-single-v1.html">{ product.title }</a></h3>
+                                <h3 className="product-title fs-base mb-2">
+                                    <Link href={{ pathname: '/products/[code]', query: { code: product.code }}}>
+                                        <a href="shop-single-v1.html">{ product.title }</a>
+                                    </Link>
+                                </h3>
                                 { (product.whatis || product.partnumber) && <div className="product-meta fs-sm">{ product.whatis } { product.partnumber }</div> }
                                 { product.sales_notes && <div className="fs-ms text-info">{ product.sales_notes }</div> }
                                 <div className="fs-lg text-accent pt-2"><ProductPrice product={product} /></div>
