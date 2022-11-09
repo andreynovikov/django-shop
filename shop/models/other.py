@@ -14,7 +14,8 @@ from tagging.fields import TagField
 
 __all__ = [
     'ShopUserManager', 'ShopUser', 'Category', 'Currency', 'Country', 'Region', 'City',
-    'Supplier', 'Store', 'StoreImage', 'ServiceCenter', 'Manufacturer', 'Advert', 'SalesAction'
+    'Supplier', 'Store', 'StoreImage', 'ServiceCenter', 'Manufacturer', 'Advert', 'SalesAction',
+    'News'
 ]
 
 logger = logging.getLogger(__name__)
@@ -482,4 +483,4 @@ class News(models.Model):
         ordering = ['publish_date']
 
     def __str__(self):
-        return self.name
+        return self.title

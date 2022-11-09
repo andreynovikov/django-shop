@@ -1,7 +1,10 @@
+import pprint
+
 from django.forms import ModelForm
 from django.db.models import ImageField
 from django.core.exceptions import PermissionDenied
 from django.contrib import admin
+from django.contrib.sessions.models import Session
 from django.template.response import TemplateResponse
 from django.conf.urls import url
 from django.utils.safestring import mark_safe
@@ -14,9 +17,9 @@ from sewingworld.admin import get_sites
 from sewingworld.widgets import AutosizedTextarea
 from shop.models import Category, Supplier, Contractor, Currency, Country, Region, City, \
     Store, StoreImage, ServiceCenter, Manufacturer, Advert, SalesAction, \
-    Manager, Courier, ShopUser
+    Manager, Courier, News, ShopUser
 from .widgets import ImageWidget
-from .forms import CategoryAdminForm
+from .forms import CategoryAdminForm, NewsAdminForm
 
 from .product import ProductAdmin  # NOQA
 from .order import OrderAdmin  # NOQA
@@ -203,8 +206,15 @@ class CourierAdmin(admin.ModelAdmin):
     ordering = ['name']
 
 
-import pprint
-from django.contrib.sessions.models import Session
+@admin.register(News)
+class NewsAdmin(admin.ModelAdmin):
+    list_display = ['title', 'publish_date', 'active']
+    list_display_links = ['title']
+    search_fields = ['title']
+    list_filter = ['active']
+    exclude = ('image_width', 'image_height')
+    form = NewsAdminForm
+
 
 class SessionAdmin(admin.ModelAdmin):
     def user(self, obj):
