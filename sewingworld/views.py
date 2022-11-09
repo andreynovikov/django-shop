@@ -8,12 +8,15 @@ from django.template import loader
 from django.utils.text import capfirst
 
 from sewingworld.models import SiteProfile
-from shop.models import Category, Product, ProductRelation, ProductSet, ProductKind, SalesAction, Store, ServiceCenter
+from shop.models import Category, Product, ProductRelation, ProductSet, ProductKind, ProductReview, SalesAction, Store, ServiceCenter
 from shop.filters import get_product_filter
 
 
 def index(request):
-    context = {}
+    review_list = ProductReview.objects.filter(site=Site.objects.get_current(), is_public=True, user_id=1)
+    context = {
+        'review_list': review_list
+    }
     return render(request, 'index.html', context)
 
 
