@@ -323,17 +323,19 @@ class OrderAdmin(admin.ModelAdmin):
     @mark_safe
     def order_name(self, obj):
         manager = ''
-        taxi = ''
+        express = ''
         if obj.manager:
             manager = ' style="color: %s"' % obj.manager.color
         lock = ''
         if obj.owner:
             lock = '&nbsp;<span class="fas fa-lock fa-xs" title="%s" style="position: relative; top: -2px"></span>' % str(obj.owner)
-        if obj.integration and obj.integration.uses_api and obj.integration.settings:
+        if obj.delivery == Order.DELIVERY_EXPRESS:
+            express = ' class="is-express"'
+        elif obj.integration and obj.integration.uses_api and obj.integration.settings:
             if obj.integration.settings.get('is_taxi', False):
-                taxi = ' class="is-taxi"'
+                express = ' class="is-express"'
         return '<span style="white-space:nowrap"%s><b%s>%s</b>%s</span><br/><span style="white-space:nowrap">%s</span>' % \
-            (taxi, manager, obj.title, lock, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
+            (express, manager, obj.title, lock, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
     order_name.admin_order_field = 'id'
     order_name.short_description = 'заказ'
 
