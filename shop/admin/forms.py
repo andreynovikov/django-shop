@@ -376,3 +376,21 @@ class ActOrderInlineAdminForm(forms.ModelForm):
     class Meta:
         model = ActOrder
         fields = '__all__'
+
+
+class NewsAdminForm(forms.ModelForm):
+    class Meta:
+        widgets = {
+            'content': AutosizedTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'}),
+        }
+
+    def clean_content(self):
+        content = self.cleaned_data.get('content', None)
+        if content is None:
+            return content
+        fragment, errors = tidy_fragment(content, options={'indent': 0})
+        if not fragment:
+            self.add_error('content', forms.ValidationError("Ошибка очистки HTML"))
+            return content
+        else:
+            return fragment

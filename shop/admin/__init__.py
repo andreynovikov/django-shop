@@ -14,9 +14,9 @@ from sewingworld.admin import get_sites
 from sewingworld.widgets import AutosizedTextarea
 from shop.models import Category, Supplier, Contractor, Currency, Country, Region, City, \
     Store, StoreImage, ServiceCenter, Manufacturer, Advert, SalesAction, \
-    Manager, Courier
+    Manager, Courier, News
 from .widgets import ImageWidget
-from .forms import CategoryAdminForm
+from .forms import CategoryAdminForm, NewsAdminForm
 
 from .product import ProductAdmin  # NOQA
 from .order import OrderAdmin  # NOQA
@@ -201,3 +201,13 @@ class CourierAdmin(admin.ModelAdmin):
     list_display_links = ['name']
     search_fields = ['name']
     ordering = ['name']
+
+
+@admin.register(News)
+class NewsAdmin(admin.ModelAdmin):
+    list_display = ['title', 'publish_date', 'active']
+    list_display_links = ['title']
+    search_fields = ['title']
+    list_filter = ['active']
+    exclude = ('image_width', 'image_height')
+    form = NewsAdminForm
