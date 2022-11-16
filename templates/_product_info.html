@@ -57,7 +57,8 @@
 {% if product.variations %}
 <div><a href="{{ product.variations }}" class="btn btn-sm btn-success sw-addProduct-sm" role="button">Выбрать</a></div>
 {% else %}
-{% if product.instock > 0 %}
+{# 'and' has higher precedence than 'or' #}
+{% if product.ws_pack_only and product.instock >= product.pack_factor or not product.ws_pack_only and product.instock > 0 %}
 <div class="input-group spinner quantity-container" data-trigger="spinner">
   <span class="input-group-btn sw-minus"><button type="button" class="btn btn-sm btn-success" aria-label="-" data-spin="down">-</button></span>
   <input class="form-control input-sm text-center sw-basket-quantity" type="text" name="quantity" value="{{ quantity }}" data-min="0"
