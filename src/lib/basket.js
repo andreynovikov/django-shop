@@ -19,7 +19,7 @@ export default function useBasket() {
     const basket = isEmpty ? {} : baskets[0];
 
     const createBasketMutation = useMutation(() => createBasket());
-    const addBasketItemMutation = useMutation(({basketId, productId}) => addBasketItem(basketId, productId, 1), {
+    const addBasketItemMutation = useMutation(({basketId, productId, quantity}) => addBasketItem(basketId, productId, quantity), {
         onSuccess: () => {
             queryClient.invalidateQueries(basketKeys.all);
         }
@@ -35,16 +35,16 @@ export default function useBasket() {
         }
     });
 
-    const addItem = (productId) => {
+    const addItem = (productId, quantity = 1) => {
         if (baskets.length === 0) {
             createBasketMutation.mutate(undefined, {
                 onSuccess: (data) => {
                     console.log(data);
-                    addBasketItemMutation.mutate({basketId: data.id, productId});
+                    addBasketItemMutation.mutate({basketId: data.id, productId, quantity});
                 }
             });
         } else {
-            addBasketItemMutation.mutate({basketId: baskets[0].id, productId});
+            addBasketItemMutation.mutate({basketId: baskets[0].id, productId, quantity});
         }
     };
 

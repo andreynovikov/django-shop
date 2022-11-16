@@ -26,7 +26,17 @@ export const productKeys = {
     suggestions: (text) => [...productKeys.lists(), 'suggestions', text],
     details: () => [...productKeys.all, 'detail'],
     detail: (id) => [...productKeys.details(), id],
-    price: (id) => [...productKeys.details(), 'price', id],  // TODO: think how to invalidate it on user change
+    price: (id) => [...productKeys.detail(id), 'price'],  // TODO: think how to invalidate it on user change
+};
+
+export const reviewKeys = {
+    all: ['reviews'],
+    lists: () => [...reviewKeys.all, 'list'],
+    list: (productId) => [...reviewKeys.lists(), { productId }],
+    rating: (productId) => [...reviewKeys.list(productId), 'rating'],
+    form: (productId) => [...reviewKeys.list(productId), 'form'],
+    details: () => [...reviewKeys.all, 'detail'],
+    detail: (productId, id) => [...reviewKeys.details(), { productId, id }],
 };
 
 export const basketKeys = {
@@ -264,6 +274,36 @@ export async function loadProductSuggestions(text) {
 
 export async function getProductPrice(id) {
     const response = await apiClient.get(`products/${id}/price/`);
+    return response.data;
+}
+
+export async function getProductRating(id) {
+    const response = await apiClient.get(`reviews/shop.product/${id}/average/`);
+    return response.data;
+}
+
+export async function getReviewForm(id) {
+    const response = await apiClient.get(`reviews/shop.product/${id}/form/`);
+    return response.data;
+}
+
+export async function createProductReview(id, data) {
+    const response = await apiClient.post(`reviews/shop.product/${id}/`, data);
+    return response.data;
+}
+
+export async function loadProductReviews(id) {
+    const response = await apiClient.get(`reviews/shop.product/${id}/`);
+    return response.data;
+}
+
+export async function loadProductReview(id, reviewId) {
+    const response = await apiClient.get(`reviews/shop.product/${id}/${reviewId}/`);
+    return response.data;
+}
+
+export async function updateProductReview(id, reviewId, data) {
+    const response = await apiClient.put(`reviews/shop.product/${id}/${reviewId}/`, data);
     return response.data;
 }
 

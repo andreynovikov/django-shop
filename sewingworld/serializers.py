@@ -446,7 +446,23 @@ class ComparisonSerializer(serializers.Serializer):
         return product
 
 
+class UserListSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField(read_only=True)
+    gravatar = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = ShopUser
+        fields = ('id', 'full_name', 'gravatar')
+
+    def get_full_name(self, obj):
+        return obj.get_full_name()
+
+    def get_gravatar(self, obj):
+        return get_gravatar_url(obj, 90)
+
+
 class UserSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField(read_only=True)
     gravatar = serializers.SerializerMethodField()
     discount = serializers.ReadOnlyField()
     bonuses = serializers.ReadOnlyField()
@@ -460,21 +476,39 @@ class UserSerializer(serializers.ModelSerializer):
         model = ShopUser
         exclude = ('groups', 'user_permissions', 'password', 'tags', 'is_superuser', 'is_active', 'is_staff', 'first_name', 'last_name')
 
+    def get_full_name(self, obj):
+        return obj.get_full_name()
+
     def get_gravatar(self, obj):
         return get_gravatar_url(obj, 90)
 
     def validate_phone(self, value):
         norm_phone = ShopUserManager.normalize_phone(value)
         another = ShopUser.objects.filter(phone=norm_phone).first()
-        if self.instance and another is not None and another.id != self.instance.id:
+        if another is not None and not (self.instance and another.id == self.instance.id):
             raise serializers.ValidationError("Пользователь с указанным номером уже зарегестрирован")
         return norm_phone
 
     def validate_email(self, value):
+        if value == '':
+            return value
         another = ShopUser.objects.filter(email=value).first()
-        if self.instance and another is not None and another.id != self.instance.id:
+        if another is not None and not (self.instance and another.id == self.instance.id):
             raise serializers.ValidationError("Пользователь с указанным адресом уже зарегестрирован")
         return value
+
+    def validate_username(self, value):
+        if value == '':
+            return value
+        another = ShopUser.objects.filter(username=value).first()
+        if another is not None and not (self.instance and another.id == self.instance.id):
+            raise serializers.ValidationError("Пользователь с указанным псевдонимом уже зарегестрирован")
+        return value
+
+    def create(self, validated_data):
+        user = ShopUser(**validated_data)
+        user.save()
+        return user
 
 
 class AnonymousUserSerializer(serializers.BaseSerializer):
@@ -498,6 +532,7 @@ class PhoneValidator:
 class LoginSerializer(serializers.Serializer):
     phone = serializers.CharField(validators=[PhoneValidator()])
     password = serializers.CharField(required=False)
+    permanent_password = serializers.CharField(required=False)
     ctx = serializers.CharField(required=False)
 
     def validate(self, data):
@@ -514,6 +549,10 @@ class LoginSerializer(serializers.Serializer):
             user = authenticate(**data)
 
         if user and user.is_active:
+            if 'permanent_password' in data and len(data['permanent_password']):
+                user.set_password(data['permanent_password'])
+                user.permanent_password = True
+                user.save()
             return user
 
         raise serializers.ValidationError("Unable to log in with provided credentials")

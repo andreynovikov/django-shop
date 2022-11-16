@@ -95,7 +95,7 @@ class UsernameField(models.CharField):
 class ShopUser(AbstractBaseUser, PermissionsMixin):
     phone = models.CharField('телефон', max_length=30, unique=True)
     name = models.CharField('имя', max_length=100, blank=True)
-    username = UsernameField('прозвище', max_length=100)
+    username = UsernameField('псевдоним', max_length=100)
     email = models.EmailField('эл.почта', blank=True)
     postcode = models.CharField('индекс', max_length=10, blank=True)
     city = models.CharField('город', max_length=255, blank=True)

@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import Link from 'next/link';
 
+import { formatPhone } from '@/lib/format';
 import { useSession, signOut } from '@/lib/session';
 
 import SignInModal from '@/components/sign-in-modal';
@@ -16,7 +17,7 @@ export default function UserProfileLink() {
                     <i className="navbar-tool-icon ci-user" />
                 </a>
                 <a className="navbar-tool-text ms-n3">
-                    <small>{ user?.name || user?.phone }</small>личный кабинет
+                    <small>{ user?.name || formatPhone(user?.phone) }</small>личный кабинет
                 </a>
                 <div className="dropdown-menu dropdown-menu-end">
                     <Link href="/user/orders">
@@ -33,7 +34,7 @@ export default function UserProfileLink() {
     } else {
         return (
             <div className="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2">
-                <SignInModal ref={modalRef} />
+                <SignInModal ref={modalRef} ctx="profile" />
                 <a className="navbar-tool-icon-box d-block" onClick={() => modalRef.current.showModal()} style={{cursor:'pointer'}}>
                     <i className="navbar-tool-icon ci-user" />
                 </a>

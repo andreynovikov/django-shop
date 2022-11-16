@@ -1,25 +1,32 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import Script from 'next/script';
 import { useQuery } from 'react-query';
 
+import { formatPhone } from '@/lib/format';
 import { signIn } from '@/lib/session';
 import { userKeys, checkUser, normalizePhone } from '@/lib/queries';
 import { useCountdown } from '@/lib/countdown';
 
 const CODE_RESEND_DELAY = 240;
 
-export default function LoginForm({embedded, ctx, hideModal}) {
-    const [phone, setPhone] = useState('');
-    const [password, setPassword] = useState('');
+export default function LoginForm({embedded, ctx, phone, hideModal}) {
     const [loginPhone, setLoginPhone] = useState('');
     const [reset, setReset] = useState(false);
-    const [error, setError] = useState(false);
+    const [error, setError] = useState({});
 
-    const [delay, setDelay] = useState(-1);
-    const [countdown, countdownText] = useCountdown(delay);
+    const [delay, setDelay] = useState(-1); // TODO: keep delay on page reload
+    const [countdown, countdownText] = useCountdown(delay); // TODO: put in child component to optimize rendering
+
+    const [showPermanentPassword, setShowPermanentPassword] = useState(ctx === 'reg')
 
     const router = useRouter();
+
+    useEffect(() => {
+        if (phone != '')
+            setLoginPhone(phone);
+    }, [phone]);
 
     const { data: shopUser, isSuccess, isFetching, refetch } = useQuery(
         userKeys.check(loginPhone),
@@ -36,11 +43,11 @@ export default function LoginForm({embedded, ctx, hideModal}) {
                                     if (embedded && hideModal)
                                         hideModal();
                                 } else {
-                                    setError(result.error);
+                                    setError({ phone: result.error });
                                 }
                             });
                     } else {
-                        setError("Пользователь с таким телефоном не зарегистрирован");
+                        setError({ phone: "Пользователь с таким телефоном не зарегистрирован" });
                     }
                 }
                 console.log(error);
@@ -70,25 +77,52 @@ export default function LoginForm({embedded, ctx, hideModal}) {
     const passwordRef = useRef(null);
 
     const validatePhone = () => {
-        return phoneRef.current && phoneRef.current.inputmask.isComplete();
-    }
+        return phoneRef.current && phoneRef.current.inputmask.isComplete() ?
+            {} : { phone: "Введите корректный номер" };
+
+    };
 
     const validatePassword = (value) => {
-        return !!(value.match(/^(:?\d{4}|.{5,30})$/));
-    }
+        if (!!!(value.match(/^(:?\d{4}|.{5,30})$/)))
+            return { password: "Указан неверный " + (shopUser?.permanent_password ? "пароль" : "код") };
+        else
+            return {};
+    };
+
+    const validatePermanentPasswords = (value1, value2) => {
+        const err = {};
+        if (value1 != value2)
+            err['permanent_password2'] = "Пароли не совпадают";
+        if (value1.length > 0 && value1.length < 5)
+            err['permanent_password'] = "Постоянный пароль должен быть не менее 5 символов";
+        return err;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(false);
+        setError({});
         if (e.target.elements.phone) {
-            if (validatePhone(e.target.elements.phone.value)) {
-                setLoginPhone(normalizePhone(e.target.elements.phone.value));
+            const err = validatePhone();
+            if (Object.keys(err).length > 0) {
+                setError(err);
             } else {
-                setError("Введите корректный номер");
+                setLoginPhone(normalizePhone(e.target.elements.phone.value));
             }
         } else if (e.target.elements.password) {
-            if (validatePassword(e.target.elements.password.value)) {
-                const result = await signIn({phone: loginPhone, password});
+            let err = validatePassword(e.target.elements.password.value);
+            if (showPermanentPassword)
+                err = {...err, ...validatePermanentPasswords(e.target.elements.permanent_password.value, e.target.elements.permanent_password2.value)};
+            if (Object.keys(err).length > 0) {
+                setError(err);
+                console.log(err);
+            } else {
+                const credentials = {
+                    phone: loginPhone,
+                    password: e.target.elements.password.value,
+                };
+                if (showPermanentPassword && e.target.elements.permanent_password.value.length > 0)
+                    credentials['permanent_password'] = e.target.elements.permanent_password.value;
+                const result = await signIn(credentials);
                 if (result.ok) {
                     if (embedded) {
                         if (hideModal)
@@ -98,22 +132,22 @@ export default function LoginForm({embedded, ctx, hideModal}) {
                     }
                 } else {
                     try {
-                        const error = JSON.parse(result.error);
-                        console.log(error);
-                        if (error.password)
-                            setError(error.password);
-                        else if (result.status === 401)
-                            setError("Вы ввели неправильный " + (shopUser?.permanent_password ? "пароль" : "код"));
-                        else if (error.non_field_errors)
-                            setError(error.non_field_errors);
-                        else
-                            setError("Неизвестная ошибка входа");
+                        if (result.error?.response?.data) {
+                            if (result.error.response.data.password)
+                                setError({ password: result.error.response.data.password[0] });
+                            else if (result.error.response.status === 401)
+                                setError({ password: "Вы ввели неправильный " + (shopUser?.permanent_password ? "пароль" : "код") });
+                            else if (result.error.response.data.non_field_errors)
+                                setError({ password: result.error.response.data.non_field_errors[0] });
+                            else
+                                setError({ password: "Неизвестная ошибка входа" });
+                        } else {
+                            setError({ password: "Неизвестная ошибка входа" });
+                        }
                     } catch (e) {
-                        setError(result.error);
+                        setError({ password: result.error.response?.statusText || result.error.message });
                     }
                 }
-            } else {
-                setError("Указан неверный " + (shopUser?.permanent_password ? "пароль" : "код"));
             }
         }
     }
@@ -121,16 +155,12 @@ export default function LoginForm({embedded, ctx, hideModal}) {
     const resetPhone = () => {
         setDelay(-1);
         setLoginPhone('');
-        setError(false);
+        setError({});
     };
 
     const resetPassword = () => {
         setDelay(-1);
         setReset(true);
-    };
-
-    const formatPhone = (phone) => {
-        return phone;
     };
 
     const setupInputMask = () => {
@@ -159,7 +189,7 @@ export default function LoginForm({embedded, ctx, hideModal}) {
     };
 
     return (
-        <form id={`sw-${ctx}-form`} onSubmit={handleSubmit} noValidate>
+        <form onSubmit={handleSubmit} noValidate>
             { !!shopUser ? (
                 <>
                     { /* Пользователь с таким телефоном уже есть, требуем подтверждение пароля */ }
@@ -173,19 +203,17 @@ export default function LoginForm({embedded, ctx, hideModal}) {
                         <input
                             type="password"
                             name="password"
-                            className={"form-control" + (error ? " is-invalid" : "")}
+                            className={"form-control" + ('password' in error ? " is-invalid" : "")}
                             style={embedded ? {} : {maxWidth: "20rem"}}
                             ref={passwordRef.current}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            id={`${ctx}-password-input`}
+                            id={`${embedded}${ctx}-password-input`}
                             placeholder={ shopUser?.permanent_password ? "Пароль" : "Код из смс" }
                             required
                             autoFocus />
-                        { error && <div className="invalid-feedback">{ error }</div> }
+                        { 'password' in error && <div className="invalid-feedback">{ error.password }</div> }
                         <div className="form-text">
                             { countdown > 180 && (
-                                <span id={`${ctx}-password-help`} className="text-warning">Код выслан на указанный телефон по смс</span>
+                                <span className="text-warning">Код выслан на указанный телефон по смс</span>
                             )}
                             { countdown > 0 && <div className="d-block">Запросить { shopUser?.permanent_password ? "пароль" : "код" } повторно можно<br/>{ countdownText }</div> }
                             { (isSuccess && delay >=0 && countdown === 0) && (
@@ -199,37 +227,43 @@ export default function LoginForm({embedded, ctx, hideModal}) {
                             )}
                         </div>
                     </div>
-                    { /*
-                    { ctx !== 'order' && !shopUser?.permanent_password && (
-                        <>
-                            { ctx === 'login' && (
-                                <div className="mb-3 fs-md">Вы можете <a href="#" id="permanent-password-link">указать постоянный пароль</a>, чтобы не получать каждый раз смс</div>
-                            )}
-                            <div id="permanent-password-block" className="form-row{% if ctx == 'login' %} d-none{% endif %}">
+                    { ctx !== 'order' && isSuccess && !shopUser.permanent_password && (
+                        showPermanentPassword ? (
+                            <div className="row">
                                 <div className="mb-3 col-md">
                                     <label htmlFor="permanent-password-input">Постоянный пароль:</label>
-                                    <input type="password" className="form-control form-control-sm" name="permanent_password" id="permanent-password-input" />
-                                    <span id="permanent-password-error" class="invalid-feedback"></span>
+                                    <input
+                                        type="password"
+                                        className={"form-control form-control-sm" + ('permanent_password' in error ? " is-invalid" : "")}
+                                        name="permanent_password"
+                                        id="permanent-password-input" />
+                                    { 'permanent_password' in error && <div className="invalid-feedback">{ error.permanent_password }</div> }
                                     { ctx === 'reg' && (
                                         <span className="form-text">Если Вы не укажете постоянный пароль, вход будет осуществляться с помощью смс</span>
                                     )}
                                 </div>
                                 <div className="mb-3 col-md">
                                     <label htmlFor="permanent-password-input2">ещё раз:</label>
-                                    <input type="password" className="form-control form-control-sm" name="permanent_password2" id="permanent-password-input2" />
-                                    <span id="permanent-password-error2" className="invalid-feedback"></span>
+                                    <input
+                                        type="password"
+                                        className={"form-control form-control-sm" + ('permanent_password2' in error ? " is-invalid" : "")}
+                                        name="permanent_password2"
+                                        id="permanent-password-input2" />
+                                    { 'permanent_password2' in error && <div className="invalid-feedback">{ error.permanent_password2 }</div> }
                                 </div>
                             </div>
-                        </>
+                        ) : (
+                            <div className="mb-3 fs-md">
+                                Вы можете <a onClick={() => setShowPermanentPassword(true)}>указать постоянный пароль</a>, чтобы не получать каждый раз смс
+                            </div>
+                        )
                     )}
-                      */
-                    }
                 </>
             ) : (
                 <>
                     { /* Анонимный пользователь */ }
                     <div className="mb-3">
-                        <label className="lead" htmlFor={`${ctx}-phone-input`}>
+                        <label className="lead" htmlFor={`${embedded}${ctx}-phone-input`}>
                             { ctx === 'order' ? "Для продолжения у" : "У" }
                             кажите номер мобильного телефона:
                         </label>
@@ -238,120 +272,38 @@ export default function LoginForm({embedded, ctx, hideModal}) {
                             <input
                                 type="tel"
                                 name="phone"
-                                className={"form-control" + (error ? " is-invalid" : "")}
+                                className={"form-control" + ('phone' in error ? " is-invalid" : "")}
                                 ref={phoneRef}
-                                id={`${ctx}-phone-input`}
+                                id={`${embedded}${ctx}-phone-input`}
                                 placeholder="(999) 111-22-33"
                                 autoComplete="phone"
                                 required />
-                            { error && <div className="invalid-feedback" id={`${ctx}-phone-input-error`}>{ error }</div> }
+                            { 'phone' in error && <div className="invalid-feedback">{ error.phone }</div> }
                         </div>
                     </div>
                 </>
             )}
 
-        { ctx === 'order' ? (
-            <button className="btn btn-primary btn-shadow d-block w-100 mt-4">
-                <i className={"fs-lg me-2 " + (!!shopUser ? "ci-sign-in" : "ci-basket-alt")} />Оформить заказ
-            </button>
-        ) : (
-            <div className="text-end">
-                <button className={"btn btn-primary ms-4" + (embedded && " btn-shadow")} type="submit">
-                    { !embedded && <i class={ "me-2 ms-n1" + (!!shopUser ? "ci-sign-in" : "ci-unlocked") } /> }
-                    { !!shopUser ? "Продолжить" : "Войти" }
+            { ctx === 'order' ? (
+                <button className="btn btn-primary btn-shadow d-block w-100 mt-4">
+                    <i className={"fs-lg me-2 " + (!!shopUser ? "ci-sign-in" : "ci-basket-alt")} />Оформить заказ
                 </button>
-            </div>
-        )}
-            { /*
-                {% if not shop_user and not embedded %}
-                <div class="mt-4 fs-md">Если Вы не совершали покупок в магазине, Вы можете <a href="{% url 'shop:register' %}{% if next %}?next={{ next }}{% endif %}">зарегистрироваться</a></div>
-                {% endif %}
-              */
-            }
-        { /*
-<script type="text/javascript">
-(function() {
-    'use strict';
-
-    var initializeLoginForm = function() {
-        var phoneInput = document.getElementById("{{ ctx }}-phone-input");
-
-        {% if shop_user %}
-        {% if ctx != 'order' and not shop_user.permanent_password %}
-        var ppwd1Input = document.getElementById("permanent-password-input");
-        var ppwd2Input = document.getElementById("permanent-password-input2");
-        var ppwd1Error = document.getElementById("permanent-password-error");
-        var ppwd2Error = document.getElementById("permanent-password-error2");
-
-        var validatePpwd = function() {
-            var ppwd1 = ppwd1Input.value;
-            var ppwd2 = ppwd2Input.value;
-
-            if (ppwd1 != ppwd2) {
-                ppwd2Error.textContent = "Пароли не совпадают";
-            } else {
-                ppwd2Error.textContent = "";
-            }
-            if (ppwd1.length > 0 && ppwd1.length < 5) {
-                ppwd1Error.textContent = "Постоянный пароль должен быть не менее 5 символов";
-            } else {
-                ppwd1Error.textContent = "";
-            }
-            ppwd1Input.setCustomValidity(ppwd1Error.textContent);
-            ppwd2Input.setCustomValidity(ppwd2Error.textContent);
-        };
-        ppwd1Input.addEventListener("input", validatePpwd);
-        ppwd2Input.addEventListener("input", validatePpwd);
-
-        {% if ctx == 'login' %}
-        var ppwdLink = document.getElementById("permanent-password-link");
-        ppwdLink.addEventListener("click", function() {
-            var ppwdBlock = document.getElementById("permanent-password-block");
-            ppwdBlock.classList.remove("d-none");
-            ppwdLink.parentElement.classList.add("d-none");
-            return false;
-        });
-        {% endif %}
-        {% endif %}
-
-        var passwordInput = document.getElementById("{{ ctx }}-password-input");
-        var passwordError = document.getElementById("{{ ctx }}-password-error");
-        var passwordHelp = document.getElementById("{{ ctx }}-password-help");
-        var passwordReset = document.getElementById("{{ ctx }}-password-reset");
-
-        // https://github.com/RobinHerbots/Inputmask
-        Inputmask({
-            mask: ["9999", "*{5,30}"],
-            placeholder: ""
-        }).mask(passwordInput);
-
-        var validatePassword = function() {
-            if (passwordInput.inputmask.isComplete()) {
-                passwordInput.setCustomValidity("");
-            } else {
-                passwordInput.setCustomValidity("Введите пароль");
-            }
-
-            if (passwordError) {
-                passwordError.parentNode.removeChild(passwordError);
-                passwordError = null;
-            }
-            if (passwordHelp) {
-                passwordHelp.textContent = "";
-                passwordHelp.classList.add("d-none");
-            }
-        };
-        passwordInput.addEventListener("input", validatePassword);
-        passwordInput.addEventListener("paste", validatePassword);
-
-        passwordInput.focus();
-        {% endif %}
-    };
-
-})();
-</script>
-          */
-        }
+            ) : (
+                <div className="text-end">
+                    <button className={"btn btn-primary ms-4" + (embedded && " btn-shadow")} type="submit">
+                        { !embedded && <i className={ "me-2 ms-n1" + (!!shopUser ? "ci-sign-in" : "ci-unlocked") } /> }
+                        { !!shopUser ? "Продолжить" : "Войти" }
+                    </button>
+                </div>
+            )}
+            { !!!shopUser && !embedded && (
+                <div className="mt-4 fs-md">
+                    Если Вы не совершали покупок в магазине, Вы можете{" "}
+                    <Link href={{ pathname: '/register', query: router.query }}>
+                        <a>зарегистрироваться</a>
+                    </Link>
+                </div>
+            )}
             <Script
                 id="inputmask"
                 src="/js/inputmask.js"
@@ -360,3 +312,7 @@ export default function LoginForm({embedded, ctx, hideModal}) {
         </form>
     )
 }
+
+LoginForm.defaultProps = {
+    embedded: ''
+};

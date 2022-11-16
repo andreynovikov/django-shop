@@ -59,6 +59,27 @@ export async function signOut(options) {
         });
 }
 
+export async function register(data) {
+    return apiClient.post('users/', data)
+        .then(function (response) {
+            return {
+                ...response.data,
+                ok: +response.data.id > 0
+            }
+        })
+        .catch(function (error) {
+            // handle error
+            console.log(error);
+            return {
+                error
+            }
+        })
+        .then(function (result) {
+            __SESSION.invalidate();
+            return result;
+        });
+}
+
 export function SessionProvider({children}) {
     const queryClient = useQueryClient();
 

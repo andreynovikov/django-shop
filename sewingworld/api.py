@@ -8,14 +8,14 @@ from django.core.mail import mail_admins
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 
-from rest_framework import generics, views, viewsets, filters, status
+from rest_framework import views, viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken  # TODO: remove
 
 from django.contrib.flatpages.models import FlatPage
 from django_ipgeobase.models import IPGeoBase
@@ -28,7 +28,8 @@ from shop.tasks import send_password, notify_user_order_new_sms, notify_user_ord
 from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSerializer, ProductListSerializer, \
     ProductKindSerializer, \
     BasketSerializer, BasketItemActionSerializer, OrderListSerializer, OrderSerializer, OrderActionSerializer, \
-    FavoritesSerializer, ComparisonSerializer, UserSerializer, AnonymousUserSerializer, LoginSerializer, \
+    FavoritesSerializer, ComparisonSerializer, \
+    UserListSerializer, UserSerializer, AnonymousUserSerializer, LoginSerializer, \
     FlatPageListSerializer, FlatPageSerializer
 
 
@@ -496,23 +497,20 @@ class UserViewSet(viewsets.ModelViewSet):
     lookup_value_regex = '(:?\+?\d+|current)'
 
     def get_serializer_class(self):
-        if self.action == 'retrieve':
-            if self.request.user.is_authenticated:
-                return UserSerializer
-            else:
-                return AnonymousUserSerializer
+        if self.action == 'list':
+            return UserListSerializer
+        elif self.action == 'retrieve' and not self.request.user.is_authenticated:
+            return AnonymousUserSerializer
         elif self.action == 'login':
             return LoginSerializer
         return UserSerializer
 
     def get_permissions(self):
-        # Only superuser can create, destroy, list
+        # Only superuser can destroy, list
         self.permission_classes = [IsSuperUser]
-
-        logger.error(self.action)
         if self.action in ('retrieve', 'update', 'partial_update'):
             self.permission_classes = [IsSelf]
-        elif self.action in ('check', 'login', 'logout', 'form'):
+        elif self.action in ('create', 'check', 'login', 'logout', 'form'):
             self.permission_classes = []
 
         return super().get_permissions()
@@ -529,9 +527,6 @@ class UserViewSet(viewsets.ModelViewSet):
                 self.kwargs[self.lookup_field] = instance.pk
 
         return super().get_object()
-
-    def create(self, request):
-        raise MethodNotAllowed(request.method)
 
     def destroy(self, request):
         raise MethodNotAllowed(request.method)

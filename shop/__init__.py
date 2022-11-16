@@ -4,9 +4,15 @@ def get_review_model():
     from .models import ProductReview
     return ProductReview
 
+
 def get_review_form():
     from .forms import ProductReviewForm
     return ProductReviewForm
+
+
+def get_review_api_user_serializer():
+    from sewingworld.serializers import UserListSerializer
+    return UserListSerializer
 
 
 def get_review_user_weight(user, target):

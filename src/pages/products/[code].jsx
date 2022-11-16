@@ -7,6 +7,8 @@ import PageLayout from '@/components/layout/page';
 import FieldHelp from '@/components/product/field-help';
 import ProductMiniCard from '@/components/product/mini-card';
 import ProductPrice from '@/components/product/price';
+import ProductRating from '@/components/product/rating';
+import ProductReviews from '@/components/product/reviews';
 
 import useBasket from '@/lib/basket';
 import useFavorites from '@/lib/favorites';
@@ -102,6 +104,7 @@ function rebootstrap(value) {
 export default function Product({code}) {
     const [productFields, setProductFields] = useState([]);
     const [fieldNames, setFieldNames] = useState({});
+    const [quantity, setQuantity] = useState(1);
 
     const router = useRouter();
 
@@ -163,7 +166,8 @@ export default function Product({code}) {
     const handleCartClick = () => {
         if (product.variations) {
         } else {
-            addItem(product.id);
+            // TODO: {% if utm_source %}?utm_source={{ utm_source }}{% endif %}
+            addItem(product.id, quantity);
         }
     };
 
@@ -318,7 +322,7 @@ export default function Product({code}) {
                                         { product.cost > 0 ? (
                                             <div className="d-flex align-items-center pt-2 pb-4" itemProp="offers" itemScope itemType="http://schema.org/Offer">
                                                 { product.instock > 5 && (
-                                                    <select className="form-select me-3 quantity-input" style={{width: "5rem"}}>
+                                                    <select className="form-select me-3" style={{width: "5rem"}} value={quantity} onChange={(e) => setQuantity(e.target.value)}>
                                                         <option value="1">1</option>
                                                         <option value="2">2</option>
                                                         <option value="3">3</option>
@@ -327,10 +331,10 @@ export default function Product({code}) {
                                                     </select>
                                                 )}
                                                 { product.instock > 0 ? (
-                                                    <a className="btn btn-primary btn-shadow d-block w-100 add-to-cart" href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}">
+                                                    <button className="btn btn-primary btn-shadow d-block w-100" type="button" onClick={handleCartClick}>
                                                         <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                                         <i className="ci-cart fs-lg me-2" />Купить
-                                                    </a>
+                                                    </button>
                                                 ) : (
                                                     <a className="btn btn-primary btn-shadow d-block w-100 add-to-cart" href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}">
                                                         <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
@@ -631,19 +635,26 @@ export default function Product({code}) {
             </div>
         )}
 
-        { /*
-    {% if product.allow_reviews %}
-    {% include '_product_reviews.html' %}
-    {% endif %}
-          */
-        }
+            { product.allow_reviews && (
+                    <div className="border-top my-lg-3 py-5">
+                        <div className="container pt-md-2" id="reviews">
+                            <ProductReviews product={product} />
+                        </div>
+                    </div>
+            )}
         </>
     )
 }
 
 Product.getLayout = function getLayout(page) {
     return (
-        <PageLayout title={page.props.title} dark overlapped>
+        <PageLayout
+            title={page.props.title}
+            titleAddon={
+                page.props.allowReviews && (
+                    <a href="#reviews"><ProductRating product={page.props.id} /></a>
+                )}
+            dark overlapped>
             {page}
         </PageLayout>
     )
@@ -663,7 +674,9 @@ export async function getStaticProps(context) {
         props: {
             code,
             dehydratedState: dehydrate(queryClient),
-            title: data.title
+            title: data.title,
+            id: data.id,
+            allowReviews: data.allow_reviews
         }
     };
 }

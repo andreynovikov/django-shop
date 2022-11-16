@@ -7,20 +7,23 @@
         "lint": "next lint"
     },
     "dependencies": {
+        "@popperjs/core": "^2.11.6",
         "axios": "^0.27.2",
         "jsonwebtoken": "^8.5.1",
         "moment": "^2.29.4",
         "next": "^12.2.5",
-        "next-auth": "^4.10.3",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "react-hook-form": "^7.35.0",
+        "react-popper": "^2.3.0",
         "react-query": "^3.39.2",
-        "simplebar-react": "^2.4.3"
+        "simplebar-react": "^2.4.3",
+        "tiny-slider": "^2.9.4"
     },
     "devDependencies": {
         "eslint": "^8.25.0",
         "eslint-config-next": "12.3.1",
+        "eslint-plugin-unused-imports": "^2.0.0",
         "local-ssl-proxy": "^1.2.3",
         "sass": "^1.54.9"
     }

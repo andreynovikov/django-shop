@@ -1,6 +1,6 @@
 import BaseLayout from './base';
 
-export const pageContentWrapper = ({title, dark, overlapped, children}) => {
+export const pageContentWrapper = ({title, titleAddon, dark, overlapped, children}) => {
     return (
         <>
             <div className={`bg-${dark ? 'dark' : 'secondary'} ${overlapped ? 'page-title-overlap pt-4' : 'py-4'}`}>
@@ -9,6 +9,7 @@ export const pageContentWrapper = ({title, dark, overlapped, children}) => {
                     </div>
                     <div className="order-lg-1 pe-lg-4 text-center text-lg-start">
                         <h1 className={`h3 mb-0 text-${dark ? 'light' : 'dark'}`}>{title}</h1>
+                        { titleAddon }
                     </div>
                 </div>
             </div>
@@ -24,6 +25,7 @@ export default function PageLayout(props) {
 };
 
 PageLayout.defaultProps = {
+    titleAddon: null,
     dark: false,
     overlapped: false,
     contentWrapper: pageContentWrapper

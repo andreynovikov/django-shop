@@ -2,6 +2,8 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useQuery } from 'react-query';
 
+import UserAvatar from '@/components/user/avatar';
+
 import { formatPhone } from '@/lib/format';
 import useFavorites from '@/lib/favorites';
 import { useSession, signOut } from '@/lib/session';
@@ -50,7 +52,7 @@ export default function UserSidebar() {
                                 </span>
                             )}
                             <picture>
-                                <img className="rounded-circle" src={user.gravatar} alt={ user.full_name } height="90" />
+                                <UserAvatar gravatar={user.gravatar} name={ user.name || user.full_name } size="90" />
                             </picture>
                         </div>
                         <div className="ps-md-3">
@@ -68,7 +70,7 @@ export default function UserSidebar() {
                             <Link href="/user/orders">
                                 <a className={"nav-link-style d-flex align-items-center px-4 py-3" + (router.pathname === '/user/orders' ? " active" : "")}>
                                     <i className="ci-bag opacity-60 me-2" />Заказы
-                                    { orders && <span className="fs-sm text-muted ms-auto">{ orders.count }</span> }
+                                    { orders?.count > 0 && <span className="fs-sm text-muted ms-auto">{ orders.count }</span> }
                                 </a>
                             </Link>
                         </li>

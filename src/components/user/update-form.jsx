@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { useSession } from '@/lib/session';
 import { userKeys, getUserForm, updateUser } from '@/lib/queries';
 
-export default forwardRef(function UpdateForm({embedded, onReady}, ref) {
+export default forwardRef(function UpdateForm({embedded, onReady, onUpdated}, ref) {
     const [ready, setReady] = useState(false);
     const [updated, setUpdated] = useState(false);
     const [error, setError] = useState(false);
@@ -72,14 +72,19 @@ export default forwardRef(function UpdateForm({embedded, onReady}, ref) {
         setFormData({[e.target.name]: e.target.value});
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (e) => {
+        if (e)
+            e.preventDefault();
         if (!validatePhone(formRef.current.elements.phone.value)) {
             console.error("error");
             setError({phone: ["Введите корректный номер"]});
         } else {
             updateUserMutation.mutate(undefined, {
                 onSuccess: () => {
-                    setUpdated(true);
+                    if (onUpdated !== undefined)
+                        onUpdated();
+                    else
+                        setUpdated(true);
                 },
                 onError: (error) => {
                     console.error(error);

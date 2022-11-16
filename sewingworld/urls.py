@@ -12,6 +12,8 @@ from forum.sitemaps import ThreadSitemap
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from reviews.api import ReviewViewSet
+
 from shop.models.integration import Integration
 
 from . import api
@@ -40,6 +42,7 @@ router.register(r'products', api.ProductViewSet, basename='product')
 router.register(r'kinds', api.ProductKindViewSet, basename='kind')
 router.register(r'users', api.UserViewSet, basename='user')
 router.register(r'pages', api.FlatPageViewSet, basename='page')
+router.register(r'reviews/(?P<model>[a-z]+.[a-z]+)/(?P<identifier>[^/.]+)', ReviewViewSet, basename='review')
 
 urlpatterns = [
     # ex: /

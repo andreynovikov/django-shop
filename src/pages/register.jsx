@@ -1,35 +1,23 @@
 import BaseLayout from '@/components/layout/base';
-import LoginForm from '@/components/login-form';
+import RegistrationForm from '@/components/user/registration-form';
 
-export default function Login({ctx, phone}) {
+export default function Register() {
     return (
         <div className="container py-3 py-lg-4 my-4">
             <div className="row justify-content-md-center">
                 <div className="col-md-6">
                     <h2 className="h4 mb-3">Добро пожаловать</h2>
-                    <LoginForm ctx={ctx} phone={phone} />
+                    <RegistrationForm />
                 </div>
             </div>
         </div>
     )
 }
 
-Login.defaultProps = {
-    ctx: 'login',
-    phone: ''
-}
-
-Login.getLayout = function getLayout(page) {
+Register.getLayout = function getLayout(page) {
     return (
         <BaseLayout title="Добро пожаловать" hideSignIn>
             {page}
         </BaseLayout>
     )
 }
-
-export async function getServerSideProps(context) {
-    return {
-        props: context.query || {}
-    }
-}
-

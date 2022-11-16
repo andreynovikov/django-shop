@@ -118,7 +118,9 @@ export default function ProductCard({product, limitedBadges}) {
                             { product.variations ? "Выбрать" : "Купить" }
                         </button>
                     ) : (
-                        <a className="btn btn-secondary btn-sm d-block w-100" href="% url 'product' product.code %">Подробное описание</a>
+                        <Link href={{ pathname: '/products/[code]', query: { code: product.code }}}>
+                            <a className="btn btn-secondary btn-sm d-block w-100">Подробное описание</a>
+                        </Link>
                     )}
                 </div>
                 <div className="text-center">

@@ -92,7 +92,7 @@ export default function Orders({filter, page, track}) {
         <>
             <UserTopbar>
                 <div className="d-flex align-items-center flex-nowrap me-3 me-sm-4">
-                    { isSuccess && !isTracking && (orders.results.length > 0 || filter !== '') && (
+                    { isSuccess && !isTracking && (orders.results.length > 0 || !!filter) && (
                         <>
                             <label className="text-light opacity-75 text-nowrap fs-sm me-2 d-none d-sm-block" htmlFor="sw-order-filter">Отображать:</label>
                             <select className="form-select" id="sw-order-filter" value={filter} onChange={(e) => onFilterChanged(e.target.value)}>
