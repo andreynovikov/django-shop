@@ -164,6 +164,10 @@ class Category(MPTTModel):
     product_order = models.CharField('поле сортировки товаров', max_length=50, default='-price')
     ya_active = models.BooleanField('выдавать в Яндекс.Маркет', default=True)
 
+    def get_api_path(self):
+        # TODO: refactor to remove mptt_urls get_path injection
+        return '/'.join([item.slug for item in self.get_ancestors(include_self=True)[1:]])  # exclude root category
+
     def get_active_children(self):
         return self.get_children().filter(active=True, hidden=False)
 
