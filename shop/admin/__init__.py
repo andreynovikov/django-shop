@@ -14,7 +14,7 @@ from sewingworld.admin import get_sites
 from sewingworld.widgets import AutosizedTextarea
 from shop.models import Category, Supplier, Contractor, Currency, Country, Region, City, \
     Store, StoreImage, ServiceCenter, Manufacturer, Advert, SalesAction, \
-    Manager, Courier
+    Manager, Courier, ShopUser
 from .widgets import ImageWidget
 from .forms import CategoryAdminForm
 
@@ -201,3 +201,21 @@ class CourierAdmin(admin.ModelAdmin):
     list_display_links = ['name']
     search_fields = ['name']
     ordering = ['name']
+
+
+import pprint
+from django.contrib.sessions.models import Session
+
+class SessionAdmin(admin.ModelAdmin):
+    def user(self, obj):
+        session_user = obj.get_decoded().get('_auth_user_id')
+        user = ShopUser.objects.get(pk=session_user)
+        return user.phone
+
+    def _session_data(self, obj):
+        return mark_safe('<span style="white-space: pre-line">' + pprint.pformat(obj.get_decoded()) + '</span>')
+
+    list_display = ['user', 'session_key', '_session_data', 'expire_date']
+    readonly_fields = ['_session_data']
+
+admin.site.register(Session, SessionAdmin)
