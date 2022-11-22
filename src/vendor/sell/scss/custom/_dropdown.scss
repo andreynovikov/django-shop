@@ -1,0 +1,63 @@
+/*
+*
+* =====================
+* Dropdowns
+* =====================
+*
+*/
+.dropdown-menu-animated.dropdown-menu-end {
+    right: 0 !important;
+    left: auto !important
+}
+
+.dropdown-menu-animated {
+    position: absolute;
+    margin: 0;
+    animation-name: AnimateDropdown;
+    animation-duration: .3s;
+    animation-fill-mode: both;
+    z-index: 1000
+}
+
+.dropdown-menu-animated.show {
+    top: 100% !important
+}
+
+.dropdown-menu-animated i {
+    display: inline-block
+}
+
+.dropdown-menu-animated.dropdown-menu[data-popper-placement^=left],
+.dropdown-menu-animated.dropdown-menu[data-popper-placement^=right],
+.dropdown-menu-animated.dropdown-menu[data-popper-placement^=top] {
+    top: auto !important;
+    animation: none !important
+}
+
+@keyframes AnimateDropdown {
+    100% {
+        transform: translateY(0)
+    }
+
+    0% {
+        transform: translateY(10px)
+    }
+}
+
+/*
+* ===================================================
+*     Multi-level dropdown
+* ===================================================
+*/
+.dropdown-submenu {
+    position: relative;
+}
+
+.dropdown-submenu>.dropdown-menu {
+    top: 0;
+    left: 100%;
+    margin-top: -2px !important;
+    &.dropdown-menu-animated.show {
+        top: 0 !important;
+    }
+}

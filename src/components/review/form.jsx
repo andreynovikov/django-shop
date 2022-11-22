@@ -1,0 +1,179 @@
+import { useState, useEffect, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from 'react-query';
+
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faBullhorn, faCircleCheck } from '@fortawesome/free-solid-svg-icons';
+
+//import UserUpdateModal from '@/components/user/update-modal';
+
+import { useSession } from '@/lib/session';
+import { reviewKeys, getReviewForm, loadProductReview, createProductReview, updateProductReview } from '@/lib/queries';
+
+export default function ReviewForm({product, review: reviewId}) {
+    const [updated, setUpdated] = useState(false);
+    const [error, setError] = useState({});
+    const queryClient = useQueryClient();
+    const modalRef = useRef();
+    const { user } = useSession();
+
+    const { data: form, isSuccess: isFormSuccess } = useQuery(
+        reviewKeys.form(product.id),
+        () => getReviewForm(product.id),
+        {
+            onError: (error) => {
+                console.log(error);
+            }
+        }
+    );
+
+    const { data: review, isSuccess: isReviewSuccess } = useQuery(
+        reviewKeys.detail(product.id, reviewId),
+        () => loadProductReview(product.id, reviewId),
+        {
+            enabled: reviewId !== undefined,
+            onError: (error) => {
+                console.log(error);
+            }
+        }
+    );
+
+    useEffect(() => {
+        if (updated) {
+            const timer = setTimeout(() => setUpdated(false), 5 * 1000);
+            return () => {
+                clearTimeout(timer);
+            };
+        }
+    }, [updated]);
+
+    const createReviewMutation = useMutation((data) => createProductReview(product.id, data), {
+        onSuccess: () => {
+            queryClient.invalidateQueries(reviewKeys.list(product.id));
+        }
+    });
+
+    const updateReviewMutation = useMutation((data) => updateProductReview(product.id, reviewId, data), {
+        onSuccess: () => {
+            queryClient.invalidateQueries(reviewKeys.detail(product.id, reviewId));
+            queryClient.invalidateQueries(reviewKeys.list(product.id));
+        }
+    });
+
+    const handleChange = (e) => {
+        const field = e.currentTarget.name;
+        if (error && field in error) {
+            setError(Object.keys(error).reduce(function (filtered, key) {
+                if (key !== field)
+                    filtered[key] = error[key];
+                return filtered;
+            }, {}));
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const config = {
+            onSuccess: () => {
+                setUpdated(true);
+            },
+            onError: (error) => {
+                console.error(error);
+                if (error.response?.data && error.response.headers['content-type'].toLowerCase() === 'application/json')
+                    setError(error.response.data);
+            }
+        };
+        if (reviewId)
+            updateReviewMutation.mutate(formData, config);
+        else
+            createReviewMutation.mutate(formData, config);
+    };
+
+    if (!isFormSuccess || (reviewId !== undefined && !isReviewSuccess))
+        return <div>Loading...</div>
+
+    return (
+        <>
+            { review && !review.is_public && (
+                <div className="alert alert-info mb-3 fs-sm" role="alert">Ваш отзыв в настоящее время находится на проверке</div>
+            )}
+
+            <h5 className="text-uppercase mb-4">{ reviewId ? "Изменить" : "Оставить" } отзыв</h5>
+
+            { user?.username === '' && (
+                <>
+                    { /* <UserUpdateModal ref={modalRef} /> */ }
+                    <div className="alert alert-warning d-flex align-items-center" role="alert">
+                        <FontAwesomeIcon icon={faBullhorn} className="flex-shrink-0 me-2" />
+                        <div>
+                            Вы можете{' '}
+                            <a className="alert-link" onClick={() => modalRef.current.showModal()} style={{cursor:'pointer'}}>указать</a>
+                            {' '}псевдоним, если не хотите, чтобы отображалось Ваше реальное имя.
+                        </div>
+                    </div>
+                </>
+            )}
+
+            <form noValidate onSubmit={handleSubmit}>
+                { updated && (
+                    <div className="alert alert-success d-flex align-items-center" role="alert">
+                        <FontAwesomeIcon icon={faCircleCheck} className="flex-shrink-0 me-2" />
+                        <div>Изменения успешно сохранены.</div>
+                    </div>
+                )}
+
+                <div className="row">
+                    { form.map((field) => (
+                        <div className="mb-4" style={{display: (field.widget === 'HiddenInput' || field.name === 'honeypot') ? "none" : "initial"}} key={field.id}>
+                            { field.widget !== 'HiddenInput' && (
+                                <label className="form-label" htmlFor={ field.id }>
+                                    { field.label }{ field.required && <span className="text-danger">*</span> }
+                                </label>
+                            )}
+                            { field.widget === 'HiddenInput' ? (
+                                <input
+                                    type="hidden"
+                                    name={field.name}
+                                    value={field.value}
+                                    required={field.required} />
+                            ) : field.widget === 'Select' ? (
+                                <select
+                                    className={"form-select focus-shadow-0" + ((error && field.name in error) ? " is-invalid" : "")}
+                                    id={field.id}
+                                    name={field.name}
+                                    defaultValue={review?.[field.name].value || review?.[field.name]}
+                                    onChange={handleChange}
+                                    required={field.required}>
+                                    { field.choices.map((choice) => (
+                                        <option value={choice[0]} key={choice[0]}>{choice[1]}</option>
+                                    ))}
+                                </select>
+                            ) : field.widget === 'Textarea' ? (
+                                <textarea
+                                    className={"form-control" + ((error && field.name in error) ? " is-invalid" : "")}
+                                    id={field.id}
+                                    name={field.name}
+                                    defaultValue={review?.[field.name]}
+                                    rows={field.attrs?.rows || 5}
+                                    maxLength={field.attrs?.maxlength || 5000}
+                                    required={field.required} />
+                            ) : (
+                                <input
+                                    className={"form-control" + ((error && field.name in error) ? " is-invalid" : "")}
+                                    id={field.id}
+                                    name={field.name}
+                                    defaultValue={review?.[field.name] || field.value}
+                                    required={field.required} />
+                            )}
+                            { error && field.name in error && error[field.name].map((err, index) => (
+                                <div className="invalid-feedback" key={index}>{ err }</div>
+                            ))}
+                            { field.text && <small className="form-text text-muted">{ field.help }</small> }
+                        </div>
+                    ))}
+                </div>
+                <button className="btn btn-outline-dark" type="submit">Опубликовать отзыв</button>
+            </form>
+        </>
+    )
+}

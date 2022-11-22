@@ -1,0 +1,29 @@
+/*
+* ===================================================
+*     SCROLL TO TOP BUTTON
+* ===================================================
+*/
+
+#scrollTop {
+    display: none;
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 45px;
+    height: 45px;
+    line-height: 45px;
+    color: $dark;
+    border: solid 1px $dark;
+    text-align: center;
+    background: $white;
+    font-size: .8rem;
+    z-index: 999;
+    cursor: pointer;
+    transition: border-color, color, background-color, bottom .5s ease-out; 
+
+    &:hover,
+    &:focus {
+        background-color: $gray-100;
+        bottom: 2.2rem;
+    }
+}

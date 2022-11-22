@@ -1,0 +1,39 @@
+/*
+* ===================================================
+*     Top bar
+* ===================================================
+*/
+
+.top-bar {
+    color: $gray-700;
+    background: $gray-100;
+    font-weight: 300;
+
+
+    .topbar-text {
+        padding-top: $spacer;
+        padding-bottom: $spacer;
+    }
+
+    .topbar-link {
+        padding-top: $spacer;
+        padding-bottom: $spacer;
+        text-decoration: none;
+        color: $gray-700;
+    }
+
+    .topbar-flag {
+        width: 20px;
+        margin-top: -2px;
+        margin-right: 10px;
+    }
+
+    .dropdown-menu {
+        margin-top: $spacer;
+    }
+
+    .dropdown-item {
+        color: $gray-700;
+        font-weight: 400;
+    }
+}

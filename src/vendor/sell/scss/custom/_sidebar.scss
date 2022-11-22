@@ -1,0 +1,81 @@
+/*
+* ===================================================
+*     Category sidebar
+* ===================================================
+*/
+
+.sidebar-block {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid $gray-200;
+
+    &:last-of-type {
+        border-bottom: none;
+    }
+
+    &:first-of-type {
+        padding-top: 0;
+    }
+}
+
+.sidebar-heading {
+    margin-bottom: 1.2rem;
+    font-weight: 400;
+    color: $gray-600;
+    @include uppercase;
+}
+
+.sidebar-badge {
+    margin-top: .2rem;
+    margin-bottom: .2rem;
+    padding: .2rem 0.6rem;
+    border-radius: 4rem;
+    background: $gray-600;
+    color: $white;
+    font-size: 0.7em;
+}
+
+.sidebar-menu-item {
+    position: relative;
+
+    > .nav-link {
+        font-weight: bold;
+
+    }
+
+    &[data-bs-toggle="collapse"] {
+        &::before {
+            display: inline-block;
+            position: absolute;
+            top: 1.2rem;
+            right: 10px;
+            content: '\f105';
+            transform: translateY(-50%);
+            font-family: "Font Awesome\ 5 Free";
+            font-weight: 900;
+        }
+    }
+
+    &[aria-expanded="true"] {
+        &::before {
+            content: '\f107';
+        }
+    }
+}
+
+.nav-link {
+    @include simpleTransition;
+    &.active {
+        .sidebar-badge {
+            background: $dark;
+        }
+    }
+}
+
+.nouislider-values {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
+    color: $gray-600;
+    font-size: $font-size-sm;
+}

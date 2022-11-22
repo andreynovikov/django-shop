@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+$font-family-serif: 'Roboto',serif;
+$font-family-sans-serif: 'Roboto',sans-serif;
+$font-family-heading: 'Roboto',sans-serif;
+
+@import "vendor/sell/scss/style.red";
+
+.navbar-brand > img {
+    max-width: 240px;
+
+    @include media-breakpoint-up(sm) {
+        max-width: 300px;
+    }
+}
+
+.popover.sw-field-help {
+    max-width: 725px;
+}
+
+.popover.sw-field-help > .popover-body img[align="left"] {
+    margin-right: 0.625em;
+}
+
+#comparison > tbody th:first-letter, .product-spec > dt:first-letter {
+    text-transform:capitalize;
+}
+
+#specification_tab table {
+    table-layout: fixed;
+}
+
+#specification_tab table th {
+    max-width: 50%;
+}
+
+.tns-item, .tns-nav {
+    text-align: center;
+}
+
+.tns-item > img {
+    max-width: 100%;
+}
+
+.tns-nav > button {
+    border: none;
+    background: $secondary;
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin: 5px;
+    padding: 0;
+    -webkit-backface-visibility: visible;
+    backface-visibility: visible;
+    border-radius: 50%;
+
+    &.tns-nav-active {
+        background: $dark;
+        position: relative;
+        top: 2px;
+        width: 14px !important;
+        height: 14px !important;
+    }
+
+    &:hover:not(.tns-nav-active) {
+        background: $light;
+    }
+}
+
+.sw-rating-link {
+    cursor: pointer;
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: none;
+    }
+}
+
+.fa-whatsapp {
+    font-weight: 900;
+}
+
+.fa-whatsapp path {
+    stroke-width: 40;
+    -webkit-stroke-width: 10px;
+}
