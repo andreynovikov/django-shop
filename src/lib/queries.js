@@ -79,6 +79,21 @@ export const pageKeys = {
     detail: (uri) => [...pageKeys.details(), uri],
 };
 
+export const newsKeys = {
+    all: ['news'],
+    lists: () => [...newsKeys.all, 'list'],
+};
+
+export const storeKeys = {
+    all: ['stores'],
+    lists: () => [...storeKeys.all, 'list'],
+};
+
+export const serviceCenterKeys = {
+    all: ['serviceCenters'],
+    lists: () => [...serviceCenterKeys.all, 'list'],
+};
+
 export function normalizePhone(phone) {
     phone = phone.replaceAll(/[^0-9\+]/g, '');
     if (!phone.startsWith('+')) {
@@ -356,5 +371,20 @@ export async function loadPages() {
 
 export async function loadPage(uri) {
     const response = await apiClient.get(`pages/${uri.join('/')}/`);
+    return response.data;
+}
+
+export async function loadNews() {
+    const response = await apiClient.get('news/');
+    return response.data;
+}
+
+export async function loadStores() {
+    const response = await apiClient.get('stores/');
+    return response.data;
+}
+
+export async function loadServiceCenters() {
+    const response = await apiClient.get('servicecenters/');
     return response.data;
 }

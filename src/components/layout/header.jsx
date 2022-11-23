@@ -37,16 +37,16 @@ export default function Header() {
                                 <Link className="nav-link" href="/catalog/accessories">Аксессуары</Link>
                             </li>
 				            <li className="nav-item">
-                                <a className="nav-link" href="/news/">Новости</a>
+                                <Link className="nav-link" href="/news">Новости</Link>
                             </li>
 				            <li className="nav-item">
                                 <Link className="nav-link" href="/pages/about">История</Link>
                             </li>
 				            <li className="nav-item">
-                                <a className="nav-link" href="/stores/">Где купить</a>
+                                <Link className="nav-link" href="/stores">Где купить</Link>
                             </li>
 				            <li className="nav-item">
-                                <a className="nav-link" href="/service/">Поддержка</a>
+                                <Link className="nav-link" href="/service">Поддержка</Link>
                             </li>
                         </ul>
                         <div className="d-flex align-items-center justify-content-between justify-content-lg-end mt-1 mb-2 my-lg-0">

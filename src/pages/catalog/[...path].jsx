@@ -1,6 +1,4 @@
-import React, { useState, useReducer, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
 
 import Layout from '@/components/layout';
@@ -43,7 +41,7 @@ export default function Category({path, filters, order}) {
             <>
                 <PageTitle title={category.name} description={category.description} />
 	            <main>
-                    <div className="container">
+                    <div className="container mb-5">
 		                <div className="row">
 		                    <div className="products-grid col-12 sidebar-none">
 		                        <div className="row">
@@ -71,8 +69,8 @@ Category.getLayout = function getLayout(page) {
     )
 }
 
-export async function getStaticProps(context) {
-    let path = context.params?.path;
+export async function getServerSideProps(context) {
+    const path = context.params?.path;
     const queryClient = new QueryClient();
     const category = await queryClient.fetchQuery(categoryKeys.detail(path), () => loadCategory(path));
     const productFilters = [{field: 'categories', value: category.id}, ...baseFilters];
@@ -91,11 +89,12 @@ export async function getStaticProps(context) {
             order: productOrder,
             path,
         },
-        revalidate: 60 * 60 * 24 // <--- ISR cache: once a day
+        //revalidate: 60 * 60 * 24 // <--- ISR cache: once a day
     };
 }
 
-export async function getStaticPaths() {
+export async function xgetStaticPaths() {
+    console.log("getStaticPaths");
     const getPaths = ({paths, root}, category) => {
         const path = root.concat([category.slug]);
         paths.push({
@@ -108,7 +107,9 @@ export async function getStaticPaths() {
         return {paths, root};
     };
 
-    const categories = await loadCategories();
-    const {paths} = categories.reduce(getPaths, {paths: [], root: []});
-    return { paths, fallback: true };
+    //const categories = await loadCategories();
+    //const {paths} = categories.reduce(getPaths, {paths: [], root: []});
+
+    return { paths: [], fallback: true }
+    //return { paths, fallback: true };
 }

@@ -1,6 +1,6 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPhone, faEnvelope, faPaperPlane } from '@fortawesome/free-solid-svg-icons';
-import { faWhatsapp, faVk, faYoutube } from '@fortawesome/free-brands-svg-icons';
+import { faVk, faYoutube } from '@fortawesome/free-brands-svg-icons';
 
 import SvgIcon from '@/components/svg-icon';
 
@@ -15,12 +15,12 @@ export default function Footer() {
                             <div>Больше интересного в социальных сетях:</div>
                             <ul className="list-inline">
 			                    <li className="list-inline-item">
-                                    <a className="text-muted text-hover-primary text-xl" href="https://vk.com/sew.world" target="_blank" title="VK">
+                                    <a className="text-muted text-hover-primary text-xl" href="https://vk.com/sew.world" target="_blank" rel="noreferrer" title="VK">
                                         <FontAwesomeIcon icon={faVk} />
                                     </a>
                                 </li>
                                 <li className="list-inline-item">
-                                    <a className="text-muted text-hover-primary text-xl" href="https://www.youtube.com/c/ШвейныйМирРоссия/" target="_blank" title="YouTube">
+                                    <a className="text-muted text-hover-primary text-xl" href="https://www.youtube.com/c/ШвейныйМирРоссия/" target="_blank" rel="noreferrer" title="YouTube">
                                         <FontAwesomeIcon icon={faYoutube} />
                                     </a>
                                 </li>

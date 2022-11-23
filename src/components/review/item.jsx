@@ -1,5 +1,3 @@
-import { useState, useEffect } from 'react';
-
 import ReviewRating from '@/components/review/rating';
 import UserAvatar from '@/components/user/avatar';
 

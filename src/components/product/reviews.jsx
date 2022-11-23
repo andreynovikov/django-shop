@@ -2,11 +2,9 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useQuery } from 'react-query';
 
-import ReviewRating from '@/components/review/rating';
 import ReviewItem from '@/components/review/item';
 import ReviewForm from '@/components/review/form';
 
-import rupluralize from '@/lib/rupluralize';
 import { useSession } from '@/lib/session';
 import { reviewKeys, loadProductReviews } from '@/lib/queries';
 

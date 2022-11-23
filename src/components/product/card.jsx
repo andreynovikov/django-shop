@@ -31,7 +31,7 @@ export default function ProductCard({product}) {
                 )}
                 <div className="product-hover-overlay">
                     <Link className="product-hover-overlay-link" href={{ pathname: '/products/[code]', query: { code: product.code }}} />
-                    <div class="product-hover-overlay-buttons">
+                    <div className="product-hover-overlay-buttons">
                         { /*
                         <a class="btn btn-outline-dark btn-product-left d-none d-sm-inline-block" href="#">
                             <i class="fa fa-shopping-cart"></i>
@@ -40,7 +40,7 @@ export default function ProductCard({product}) {
                         }
                         <Link className="btn btn-dark btn-buy" href={{ pathname: '/products/[code]', query: { code: product.code }}}>
                             <FontAwesomeIcon icon={faSearch} />
-                            <span class="btn-buy-label ms-2">Подробнее</span>
+                            <span className="btn-buy-label ms-2">Подробнее</span>
                         </Link>
                         { /*
                         <a class="btn btn-outline-dark btn-product-right d-none d-sm-inline-block" href="#">
@@ -51,9 +51,9 @@ export default function ProductCard({product}) {
                     </div>
                 </div>
             </div>
-            <div class="py-2">
-                <p class="text-muted text-sm mb-1">{ product.whatis }</p>
-                <h3 class="h6 text-uppercase mb-1">
+            <div className="py-2">
+                <p className="text-muted text-sm mb-1">{ product.whatis }</p>
+                <h3 className="h6 text-uppercase mb-1">
                     <Link className="text-dark" href={{ pathname: '/products/[code]', query: { code: product.code }}}>
                         { product.title }
                     </Link>

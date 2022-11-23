@@ -1,22 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import Script from 'next/script';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBalanceScale, faScaleUnbalanced } from '@fortawesome/free-solid-svg-icons';
+import { faScaleUnbalanced } from '@fortawesome/free-solid-svg-icons';
 
-import SvgIcon from '@/components/svg-icon';
 import Layout from '@/components/layout';
 import FieldHelp from '@/components/product/field-help';
 import ProductRating from '@/components/product/rating';
 import ProductReviews from '@/components/product/reviews';
 
 import useComparison from '@/lib/comparison';
-import { useSession } from '@/lib/session';
 import { productKeys, loadProductByCode, getProductFields } from '@/lib/queries';
-import { columns, rows } from '@/lib/partition';
+import { rows } from '@/lib/partition';
 
 const fieldList = ['km_class', 'km_font', 'km_needles', 'km_prog', 'km_rapport',
                    'sw_hoopsize', 'sw_datalink', 'sm_software', 'sm_shuttletype', 'sm_stitchwidth',
@@ -71,11 +68,10 @@ export default function Product({code}) {
     const [glightboxModule, setGlightboxModule] = useState(null);
     const [productFields, setProductFields] = useState([]);
     const [fieldNames, setFieldNames] = useState({});
-    const [quantity, setQuantity] = useState(1);
 
     const router = useRouter();
 
-    const { comparisons, compare, uncompare } = useComparison();
+    const { comparisons, compare } = useComparison();
 
     const { data: fields } = useQuery(productKeys.fields(), () => getProductFields());
 

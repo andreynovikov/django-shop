@@ -13,8 +13,10 @@ export default function Page({ uri }) {
             <PageTitle title={data.title} />
             <section>
                 <div className="container">
-                    <div className="row text-content text-lg">
-                        { isSuccess && <div dangerouslySetInnerHTML={{__html: data.content }}></div> }
+                    <div className="row">
+                        <div class="col-xl-8 col-lg-10 mx-auto mb-5">
+                            { isSuccess && <div className="text-content text-lg" dangerouslySetInnerHTML={{__html: data.content }}></div> }
+                        </div>
                     </div>
                 </div>
             </section>
