@@ -1,14 +1,10 @@
-import { useRouter } from 'next/router';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
 
 import PageLayout from '@/components/layout/page';
 
 import { pageKeys, loadPages, loadPage } from '@/lib/queries';
 
-export default function Page() {
-    const router = useRouter();
-    const { uri } = router.query;
-
+export default function Page({ uri }) {
     const { data, isSuccess } = useQuery(pageKeys.detail(uri), () => loadPage(uri));
 
     return (
@@ -34,7 +30,8 @@ export async function getStaticProps(context) {
     return {
         props: {
             dehydratedState: dehydrate(queryClient),
-            title: data.title
+            title: data.title,
+            uri
         }
     };
 }
