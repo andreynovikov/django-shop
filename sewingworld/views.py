@@ -306,9 +306,6 @@ def product(request, code):
 
 
 def product_stock(request, code):
-    if not request.is_ajax():
-        return HttpResponseForbidden()
-
     product = get_object_or_404(Product, code=code)
     if product.categories.exists() and not product.breadcrumbs:
         raise Http404("Product does not exist")

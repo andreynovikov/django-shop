@@ -99,7 +99,7 @@
         $("#items-group").after("<div style=\"text-align:right;\" class=\"lead\">Итого: " + Total + "</div>");
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Доставка: " + Delivery_Price + "</div>");
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Всего: " + Products_Price + "</div>");
-        $("#items-group").after("<div style=\"text-align:right; margin-bottom:0"+ WeightStyle + "\" class=\"lead\"" + WeightTitle + ">Общий вес: " + Weight + "</div>");
+        $("#items-group").after("<div style=\"text-align:right; margin-bottom:0"+ WeightStyle + "\" class=\"lead\"" + WeightTitle + ">Общий вес: " + Weight.toFixed(3) + "</div>");
         $("#content h1").append(' <b>' + Number + '</b>');
 
         $("select#id_status").on('change', function() {
