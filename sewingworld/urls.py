@@ -42,6 +42,10 @@ router.register(r'products', api.ProductViewSet, basename='product')
 router.register(r'kinds', api.ProductKindViewSet, basename='kind')
 router.register(r'users', api.UserViewSet, basename='user')
 router.register(r'pages', api.FlatPageViewSet, basename='page')
+router.register(r'news', api.NewsViewSet, basename='news')
+router.register(r'stores', api.StoreViewSet, basename='store')
+router.register(r'servicecenters', api.ServiceCenterViewSet, basename='servicecenter')
+router.register(r'reviews', ReviewViewSet, basename='review')
 router.register(r'reviews/(?P<model>[a-z]+.[a-z]+)/(?P<identifier>[^/.]+)', ReviewViewSet, basename='review')
 
 urlpatterns = [
