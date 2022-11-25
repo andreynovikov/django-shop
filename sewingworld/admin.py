@@ -71,7 +71,7 @@ get_sites.short_description = 'Sites'
 
 def configure_admin():
     admin.site.enable_nav_sidebar = False
-    
+
     djconfig.admin.register(SWConfig, SWConfigAdmin)
 
     from django.contrib.sites.admin import SiteAdmin
