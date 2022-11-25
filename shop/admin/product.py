@@ -4,6 +4,7 @@ from django.db.models import PositiveSmallIntegerField, PositiveIntegerField, \
     DecimalField, FloatField, Q
 from django.core.exceptions import PermissionDenied
 from django.contrib import admin
+from django.http import JsonResponse
 from django.template.response import TemplateResponse
 from django.conf.urls import url
 from django.utils.safestring import mark_safe
@@ -11,10 +12,12 @@ from django.utils.translation import ugettext_lazy as _
 
 from django_admin_listfilter_dropdown.filters import SimpleDropdownFilter
 from django_admin_listfilter_dropdown.filters import DropdownFilter, RelatedDropdownFilter
-from reviews.admin import ReviewAdmin
+from reviews.admin import ReviewAdmin, ReviewAdminForm
 
 from import_export import resources
 from import_export.admin import ImportExportMixin
+
+from flags.state import flag_enabled
 
 from shop.models import Product, ProductRelation, ProductSet, ProductKind, ProductReview, \
     Stock, Integration, Order
@@ -408,6 +411,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
             url(r'(\d+)/stock/$', self.admin_site.admin_view(self.stock_view), name='%s_%s_stock' % info),
             url(r'^stock/correction/$', self.admin_site.admin_view(self.stock_correction_view), name='%s_%s_stock_correction' % info),
             url(r'^import1c/$', self.admin_site.admin_view(self.import_1c_view), name='%s_%s_import_1c' % info),
+            url(r'^import1c/status/$', self.admin_site.admin_view(self.import_1c_status_view), name='%s_%s_import_1c_status' % info),
         ]
         return my_urls + urls
 
@@ -462,6 +466,14 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
             context['is_popup'] = request.GET.get('_popup', 0)
         return TemplateResponse(request, 'admin/shop/import_1c.html', context)
 
+    def import_1c_status_view(self, request):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        return JsonResponse({
+            'running': flag_enabled('1C_IMPORT_RUNNING'),
+            'copying': flag_enabled('1C_IMPORT_COPYING')
+        })
+
 
 @admin.register(ProductKind)
 class ProductKindAdmin(admin.ModelAdmin):
@@ -472,5 +484,30 @@ class ProductKindAdmin(admin.ModelAdmin):
     ordering = ['name']
 
 
-# Register default ReviewAdmin as it suits our model
-admin.site.register(ProductReview, ReviewAdmin)
+class ProductReviewAdminForm(ReviewAdminForm):
+    class Meta(ReviewAdminForm.Meta):
+        model = ProductReview
+
+class ProductReviewAdmin(ReviewAdmin):
+    form = ProductReviewAdminForm
+    fieldsets = (
+        (
+            None,
+            {'fields': ('content_type', 'object_pk', 'site')}
+        ),
+        (
+            _('Content'),
+            {'fields': ('user', 'rating', 'weight', 'comment')}
+        ),
+        (
+            'Дополнительно',
+            {'fields': ('advantage', 'disadvantage', 'reviewer_name', 'reviewer_avatar'),
+             'classes': ('collapse',)}
+        ),
+        (
+            _('Metadata'),
+            {'fields': ('submit_date', 'ip_address', 'is_public')}
+        ),
+    )
+
+admin.site.register(ProductReview, ProductReviewAdmin)

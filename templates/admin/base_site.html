@@ -1,6 +1,7 @@
 {% extends "admin/base_site.html" %}
 {% load i18n %}
 {% load shop_tags %}
+{% load feature_flags %}
 {% block extrastyle %}
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
 {# https://fontawesome.com/icons?d=gallery&m=free #}
@@ -17,6 +18,34 @@
     #user-tools { order: 3 }
 </style>
 {% endblock %}
+{% block extrahead %}
+{{ block.super }}
+<script>
+    function check1CImportStatus() {
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.onreadystatechange = function() {
+            if (xmlhttp.readyState == 4) {
+                if (xmlhttp.status == 200) {
+                    try {
+                        var status = JSON.parse(xmlhttp.responseText);
+                        var color = status.copying ? 'red' : status.running ? 'gold' : 'limegreen';
+                        document.getElementById("import1c_status").style.color = color;
+                    } catch(err) {
+                        console.log(err.message + " in " + xmlhttp.responseText);
+                    }
+                }
+                setTimeout(check1CImportStatus, 20000);
+            }
+        };
+        xmlhttp.open("GET", "/admin/shop/product/import1c/status/", true);
+        xmlhttp.send();
+    }
+
+    document.addEventListener('DOMContentLoaded', function(){
+        setTimeout(check1CImportStatus, 20000);
+    });
+</script>
+{% endblock %}
 {% block nav-global %}
 <div id="order-quick-link">
     <form action="{% url 'admin:goto_order' %}">
@@ -31,6 +60,9 @@
     <a href="{% url 'admin:shop_shopuser_changelist' %}">Пользователи</a>
 </div>
 <div id="stocks_status">
+    {% flag_enabled '1C_IMPORT_RUNNING' as running_flag %}
+    {% flag_enabled '1C_IMPORT_COPYING' as copying_flag %}
+    <span id="import1c_status" style="color: {% if copying_flag %}red{% elif running_flag %}gold{% else %}limegreen{% endif %}">&#9670;</span>
     Актуализация склада: {% last_1c_import %}
 </div>
 {% endblock %}

@@ -42,6 +42,7 @@ from django.contrib.sites.models import Site
 from celery import shared_task
 
 from djconfig import config, reload_maybe
+from flags.state import enable_flag, disable_flag
 
 import reviews
 
@@ -441,6 +442,7 @@ class fragile(object):
 @single_instance_task(60 * 20)
 def import1c(file):
     log.error('Import1C')
+    enable_flag('1C_IMPORT_RUNNING')
     frozen_orders = Order.objects.filter(status=Order.STATUS_FROZEN)
     frozen_products = defaultdict(list)
     if frozen_orders.exists():
@@ -579,10 +581,12 @@ def import1c(file):
                 table_copy.write('{}\t{}\t{}\t{}\t{}\n'.format(0, product, stock, correction, reason))
         table_copy.seek(0)
         with connection.cursor() as cursor:
+            enable_flag('1C_IMPORT_COPYING')
             cursor.execute("BEGIN")
             cursor.execute("TRUNCATE TABLE shop_stock RESTART IDENTITY")
             cursor.copy_from(table_copy, 'shop_stock', columns=('quantity', 'product_id', 'supplier_id', 'correction', 'reason'))
             cursor.execute("COMMIT")
+            disable_flag('1C_IMPORT_COPYING')
     table_copy.close()
     tmp_file.close()
 
@@ -603,6 +607,7 @@ def import1c(file):
 
     log.info('Frozen orders %s' % str(orders))
 
+    disable_flag('1C_IMPORT_RUNNING')
     reload_maybe()
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
                                  {'file': file, 'date': date, 'imported': imported, 'updated': updated, 'errors': errors,
@@ -969,13 +974,12 @@ def notify_expiring_bonus(self, phone):
     user = ShopUser.objects.get(phone=phone)
     today = datetime.today()
     base_format = SINGLE_DATE_FORMAT if today.year == user.expiration_date.year else SINGLE_DATE_FORMAT_WITH_YEAR
-    text = "%d ваших %s действуют до %s. В Швейном Мире вы можете оплатить бонусами до 20%% от стоимости покупки! https://%s" % (
+    text = "%d ваших %s действуют до %s. В Швейном Мире вы можете оплатить бонусами до 20%% от стоимости покупки! http://thsm.ru" % (
         user.expiring_bonuses,
         rupluralize(user.expiring_bonuses, "бонус,бонуса,бонусов"),
-        date_format(user.expiration_date, format=base_format),
-        sw_default_site.domain
+        date_format(user.expiration_date, format=base_format)
     )
-    result = send_sms(user.phone, text)
+    result = send_sms(user.phone, text, True)
     try:
         return result['descr']
     except Exception:
