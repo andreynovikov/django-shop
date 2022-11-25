@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import Link from 'next/link';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -10,13 +11,51 @@ import { formatPhone } from '@/lib/format';
 import useComparison from '@/lib/comparison';
 import { useSession, signOut } from '@/lib/session';
 
-export default function Header() {
+export default function Header({transparent}) {
     const { comparisons } = useComparison();
     const { user, status } = useSession();
 
+    useEffect(() => {
+        const onScroll = () => {
+            const body = document.querySelector("body");
+            const stickyNavbar = document.querySelector("nav.navbar-sticky");
+            const header = document.querySelector(".header");
+            const topbar = document.querySelector(".top-bar");
+
+            function makeItFixed(y) {
+                if (window.scrollY > y) {
+                    if (!stickyNavbar.classList.contains("fixed-top")) {
+                        stickyNavbar.classList.add("fixed-top");
+                        if (!header.classList.contains("header-absolute")) {
+                            body.style.paddingTop = stickyNavbar.offsetHeight;
+                        }
+                    }
+                } else {
+                    stickyNavbar.classList.remove("fixed-top");
+                    body.style.paddingTop = 0;
+                }
+            }
+
+            // if .top-bar exists, affix the navbar when we scroll past .top-bar
+            // else affix it immediately
+            if (stickyNavbar !== null && topbar !== null) {
+                makeItFixed(topbar.outerHeight());
+            } else if (stickyNavbar !== null) {
+                makeItFixed(0);
+            }
+        };
+
+        window.addEventListener('scroll', onScroll);
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
     return (
-        <header className="header">
-            <nav className="navbar navbar-expand-lg navbar-sticky navbar-airy navbar-light bg-white bg-fixed-white">
+        <header className={"header" + (transparent ? " header-absolute" : "")}>
+            <nav
+                className={
+                    "navbar navbar-expand-lg navbar-sticky navbar-airy navbar-light " +
+                        (transparent ? "bg-transparent bg-hover-white bg-fixed-white navbar-hover-light navbar-fixed-light" : "bg-white bg-fixed-white")
+                }>
                 <div className="container-fluid">
                     <Link className="navbar-brand" href="/">
                         <img src="/i/logo.svg" alt="Швейная техника и аксессуары Family" className="img-responsive" />
@@ -27,25 +66,25 @@ export default function Header() {
                     </button>
                     <div className="collapse navbar-collapse mt-2 mt-sm-0" id="navbarCollapse">
                         <ul className="navbar-nav mx-auto">
-				            <li className="nav-item">
+                            <li className="nav-item">
                                 <Link className="nav-link" href="/catalog/sewing_machines">Швейные машины</Link>
                             </li>
-				            <li className="nav-item">
+                            <li className="nav-item">
                                 <Link className="nav-link" href="/catalog/overlock">Оверлоки</Link>
                             </li>
-				            <li className="nav-item">
+                            <li className="nav-item">
                                 <Link className="nav-link" href="/catalog/accessories">Аксессуары</Link>
                             </li>
-				            <li className="nav-item">
+                            <li className="nav-item">
                                 <Link className="nav-link" href="/news">Новости</Link>
                             </li>
-				            <li className="nav-item">
+                            <li className="nav-item">
                                 <Link className="nav-link" href="/pages/about">История</Link>
                             </li>
-				            <li className="nav-item">
+                            <li className="nav-item">
                                 <Link className="nav-link" href="/stores">Где купить</Link>
                             </li>
-				            <li className="nav-item">
+                            <li className="nav-item">
                                 <Link className="nav-link" href="/service">Поддержка</Link>
                             </li>
                         </ul>
@@ -109,4 +148,8 @@ export default function Header() {
             }
         </header>
     )
+}
+
+Header.defaultProps = {
+    transparent: false
 }

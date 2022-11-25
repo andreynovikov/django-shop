@@ -3,7 +3,7 @@ import Head from 'next/head';
 import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
 
-export default function BaseLayout({ title, contentWrapper, children, ...props }) {
+export default function Layout({ title, transparentHeader, contentWrapper, children, ...props }) {
     return (
         <>
             <Head>
@@ -20,7 +20,7 @@ export default function BaseLayout({ title, contentWrapper, children, ...props }
 	            <meta name="google-site-verification" content="EDYJTRf3vq0dN_qGl4AKqLJ3QzazyENONErE2gIyHzo" />
             </Head>
 
-            <Header />
+            <Header transparent={transparentHeader} />
             <main>
                 {contentWrapper({title, children, ...props})}
             </main>
@@ -29,6 +29,7 @@ export default function BaseLayout({ title, contentWrapper, children, ...props }
     )
 }
 
-BaseLayout.defaultProps = {
+Layout.defaultProps = {
+    transparentHeader: false,
     contentWrapper: ({children}) => children
 };

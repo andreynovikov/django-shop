@@ -69,7 +69,7 @@ Category.getLayout = function getLayout(page) {
     )
 }
 
-export async function getServerSideProps(context) {
+export async function getStaticProps(context) {
     const path = context.params?.path;
     const queryClient = new QueryClient();
     const category = await queryClient.fetchQuery(categoryKeys.detail(path), () => loadCategory(path));
@@ -89,11 +89,11 @@ export async function getServerSideProps(context) {
             order: productOrder,
             path,
         },
-        //revalidate: 60 * 60 * 24 // <--- ISR cache: once a day
+        revalidate: 60 * 60 * 24 // <--- ISR cache: once a day
     };
 }
 
-export async function xgetStaticPaths() {
+export async function getStaticPaths() {
     console.log("getStaticPaths");
     const getPaths = ({paths, root}, category) => {
         const path = root.concat([category.slug]);
@@ -107,9 +107,8 @@ export async function xgetStaticPaths() {
         return {paths, root};
     };
 
-    //const categories = await loadCategories();
-    //const {paths} = categories.reduce(getPaths, {paths: [], root: []});
+    const categories = await loadCategories();
+    const {paths} = categories.reduce(getPaths, {paths: [], root: []});
 
-    return { paths: [], fallback: true }
-    //return { paths, fallback: true };
+    return { paths, fallback: true };
 }

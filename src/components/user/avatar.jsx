@@ -18,8 +18,6 @@ export default function UserAvatar({gravatar, name, size, border, className}) {
                 params: {
                     size: size,
                     bold: 'true',
-                    color: '4e54c8',
-                    background: 'fff',
                     name: name
                 },
                 responseType: 'arraybuffer'

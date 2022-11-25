@@ -7,6 +7,8 @@ import PageTitle from '@/components/layout/page-title';
 
 import { storeKeys, loadStores } from '@/lib/queries';
 
+// https://masonry.desandro.com/layout.html
+
 export default function Stores() {
     const [ymapsReady, setYMapsReady] = useState(false);
     const [storeGroups, setStoreGroups] = useState([]);
@@ -137,7 +139,7 @@ export default function Stores() {
             }
         }
         return () => myMap.destroy();
-    }, [ymapsReady, serviceGroups]); //eslint-disable-line react-hooks/exhaustive-deps
+    }, [ymapsReady, storeGroups]); //eslint-disable-line react-hooks/exhaustive-deps
 
     const setupYMaps = () => {
         ymaps.ready(function() {
@@ -160,9 +162,9 @@ export default function Stores() {
                         <div className="row">
                             { cities.map(({ city, stores }) => (
                                 stores.map((store) => (
-                                    <div class="col-xl-3 col-lg-4 col-sm-6" key={store.id}>
-                                        <div class="block-header">
-                                            <h6 class="text-uppercase mb-0">{ city.name }</h6>
+                                    <div className="col-xl-3 col-lg-4 col-sm-6" key={store.id}>
+                                        <div className="block-header">
+                                            <h6 className="text-uppercase mb-0">{ city.name }</h6>
                                         </div>
                                         <div className="block-body bg-light pt-1 mb-2">
                                             <p>

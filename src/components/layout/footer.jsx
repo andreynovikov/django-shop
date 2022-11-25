@@ -10,8 +10,8 @@ export default function Footer() {
             <div className="py-6 bg-gray-300 text-muted">
                 <div className="container">
                     <div className="row">
-                        <div className="col-lg-4 mb-5 mb-lg-0">
-                            <img src="/i/logo.svg" className="img-responsive d-block mb-3" style={{maxWidth: "100px"}} />
+                        <div className="col-lg-4 mb-5 mb-lg-0 text-center text-sm-start">
+                            <img src="/i/logo.svg" className="mb-3" style={{maxWidth: "100px"}} />
                             <div>Больше интересного в социальных сетях:</div>
                             <ul className="list-inline">
 			                    <li className="list-inline-item">
@@ -26,7 +26,7 @@ export default function Footer() {
                                 </li>
                             </ul>
                         </div>
-                        <div className="col-lg-4 col-md-12 mb-5 mb-lg-0 d-flex">
+                        <div className="col-lg-4 col-md-12 mb-5 mb-lg-0 d-flex justify-content-center justify-content-sm-start">
                             <SvgIcon id="customer-support-1" className="svg-icon service-icon" />
                             <div className="service-text text-dark mb-3">
                                 <h6 className="text-nowrap">

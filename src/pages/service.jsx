@@ -151,9 +151,9 @@ export default function Service() {
                         <div className="row">
                             { cities.map(({ city, centers }) => (
                                 centers.map((center) => (
-                                    <div class="col-xl-3 col-lg-4 col-sm-6" key={center.id}>
-                                        <div class="block-header">
-                                            <h6 class="text-uppercase mb-0">{ city.name }</h6>
+                                    <div className="col-xl-3 col-lg-4 col-sm-6" key={center.id}>
+                                        <div className="block-header">
+                                            <h6 className="text-uppercase mb-0">{ city.name }</h6>
                                         </div>
                                         <div className="block-body bg-light pt-1 mb-2">
                                             <p>

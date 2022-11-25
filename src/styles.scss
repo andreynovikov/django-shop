@@ -34,6 +34,10 @@ $font-family-heading: 'Roboto',sans-serif;
     max-width: 50%;
 }
 
+.header, .tns-outer {
+    user-select: none;
+}
+
 .tns-item, .tns-nav {
     text-align: center;
 }
@@ -83,4 +87,8 @@ $font-family-heading: 'Roboto',sans-serif;
 .fa-whatsapp path {
     stroke-width: 40;
     -webkit-stroke-width: 10px;
+}
+
+.sw-bg-right {
+    background-position-x: right !important;
 }

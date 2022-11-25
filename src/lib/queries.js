@@ -322,6 +322,11 @@ export async function updateProductReview(id, reviewId, data) {
     return response.data;
 }
 
+export async function loadPromoReviews() {
+    const response = await apiClient.get("reviews/?model=shop.product&user=1&site=10&page_size=10");
+    return response.data;
+}
+
 export async function loadProduct(id) {
     const response = await apiClient.get(`products/${id}/`);
     return response.data;
