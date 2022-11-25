@@ -120,9 +120,12 @@ class Basket(models.Model):
     @cached_property
     def user_discount(self):
         # if session contains valid user, get his discount
-        session_data = self.session.get_decoded()
+        try:
+            session_data = self.session.get_decoded()
+        except:
+            return 0
         discount = session_data.get('discount', 0)
-        uid = session_data.get('_auth_user_id')
+        uid = session_data.get('_auth_user_id', None)
         try:
             user = ShopUser.objects.get(id=uid)
             if user.discount > discount:
@@ -162,7 +165,7 @@ class BasketItem(models.Model):
     meta = models.JSONField(null=True, blank=True, editable=False)
 
     class Meta:
-        ordering = ['id']
+        ordering = ['-id']
 
     @property
     def price(self):
@@ -196,3 +199,4 @@ class Favorites(models.Model):
         verbose_name = 'избранное'
         verbose_name_plural = 'избранные'
         unique_together = ('product', 'user')
+        ordering = ['id']
