@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.core.mail import mail_admins
+from django.db.models import Q
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 
@@ -22,7 +23,8 @@ from django_ipgeobase.models import IPGeoBase
 
 from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase  # TODO: add all tasks
 from shop.filters import get_product_filter
-from shop.models import Category, ProductKind, Product, Basket, BasketItem, Order, Favorites, ShopUser, ShopUserManager
+from shop.models import Category, ProductKind, Product, Basket, BasketItem, Order, Favorites, ShopUser, ShopUserManager, \
+    News, Store, ServiceCenter
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 
 from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSerializer, ProductListSerializer, \
@@ -30,7 +32,7 @@ from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSeri
     BasketSerializer, BasketItemActionSerializer, OrderListSerializer, OrderSerializer, OrderActionSerializer, \
     FavoritesSerializer, ComparisonSerializer, \
     UserListSerializer, UserSerializer, AnonymousUserSerializer, LoginSerializer, \
-    FlatPageListSerializer, FlatPageSerializer
+    FlatPageListSerializer, FlatPageSerializer, NewsSerializer, StoreSerializer, ServiceCenterSerializer
 
 
 logger = logging.getLogger("django")
@@ -79,22 +81,26 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         if self.action == 'list':
-            return Category.objects.get(slug='sewing.world').get_active_children()  # TODO: remove hard coded root
+            root_slug = self.request.site.profile.category_root_slug
+            return Category.objects.get(slug=root_slug).get_active_children()
         return Category.objects.filter(active=True)
 
     def get_object(self):
         key = self.kwargs.get(self.lookup_field)
 
         if not key.isdigit():
+            root_slug = self.request.site.profile.category_root_slug
             # instance select taken from mptt_urls
             instance = None
-            path = '{}/'.format(key)  # we add trailing slash to conform .get_path() from mptt_urls
+            path = key # path = '{}/'.format(key)  # we add trailing slash to conform .get_path() from mptt_urls
             try:
-                instance_slug = path.split('/')[-2]  # slug of the instance
+                instance_slug = path.split('/')[-1] #[-2]  # slug of the instance
                 candidates = Category.objects.filter(slug=instance_slug)  # candidates to be the instance
                 for candidate in candidates:
                     # here we compare each candidate's path to the path passed to this view
-                    if candidate.get_path() == path:
+                    if candidate.get_api_path() == path:
+                        if root_slug != candidate.get_root().slug:
+                            continue
                         instance = candidate
                         break
                 if instance:
@@ -126,6 +132,13 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action == 'list':
             return ProductListSerializer
         return ProductSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        self.request.site.profile.product_thumbnail_size
+        context['product_thumbnail_size'] = self.request.site.profile.product_thumbnail_size
+        context['product_small_thumbnail_size'] = self.request.site.profile.product_small_thumbnail_size
+        return context
 
     def get_queryset(self):
         queryset = Product.objects.all().order_by('code')
@@ -630,13 +643,31 @@ class FlatPageViewSet(viewsets.ReadOnlyModelViewSet):
         return FlatPageSerializer
 
     def get_queryset(self):
-        domain = urlparse(self.request.META.get('HTTP_REFERER', '')).hostname
-        if domain == 'cartzilla.sigalev.ru':  # TODO: put this in Sites config
-            domain = 'www.sewing-world.ru'
-        return FlatPage.objects.filter(sites__domain=domain)
+        return FlatPage.objects.filter(sites=self.request.site)
 
     def get_object(self):
         # TODO: add support for authorization and template
         key = self.kwargs.get(self.lookup_field)
         self.kwargs[self.lookup_field] = '/{}/'.format(key)
         return super().get_object()
+
+
+class NewsViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = NewsSerializer
+
+    def get_queryset(self):
+        return News.objects.filter(sites=self.request.site, active=True)
+
+
+class StoreViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = StoreSerializer
+
+    def get_queryset(self):
+        return Store.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+
+
+class ServiceCenterViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ServiceCenterSerializer
+
+    def get_queryset(self):
+        return ServiceCenter.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
