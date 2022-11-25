@@ -29,6 +29,8 @@ def product_stock_view(product, order=None):
     if product.constituents.count() == 0:
         suppliers = product.stock.filter(show_in_order=True).order_by('order')
         if suppliers.exists():
+            if order is None:
+                result = '<span style="color: #009">%s</span><br/>' % floatformat(product.num)
             for supplier in suppliers:
                 stock = Stock.objects.get(product=product, supplier=supplier)
                 result = result + ('%s:&nbsp;' % supplier.code)
