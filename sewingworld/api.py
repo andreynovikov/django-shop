@@ -140,6 +140,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         queryset = Product.objects.all().order_by('code')
+        has_category_filter = False
 
         for field, values in self.request.query_params.lists():
             base_field = field.split('__', 1)[0]
@@ -181,6 +182,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             elif field == 'categories':
                 key = '{}__pk__exact'.format(field)
                 queryset = queryset.filter(**{key: values[0]})
+                has_category_filter = True
 
                 category = Category.objects.get(pk=values[0])
                 if category.filters:
@@ -207,6 +209,13 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             # else:  # строковый поиск
             #     key = '{}__exact'.format(field)
             #     queryset = queryset.filter(**{key: values[0]})
+
+        # Always limit product list to current category hierarchy
+        if not has_category_filter:
+            root_slug = self.request.site.profile.category_root_slug
+            if root_slug:
+                root = Category.objects.get(slug=root_slug)
+                queryset = queryset.filter(categories__in=root.get_descendants(include_self=True))
 
         return queryset.distinct()
 
