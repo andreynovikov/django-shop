@@ -9,9 +9,13 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 import mptt_urls
 from zinnia.sitemaps import EntrySitemap
 from forum.sitemaps import ThreadSitemap
+from rest_framework.routers import DefaultRouter
+
+from reviews.api import ReviewViewSet
 
 from shop.models.integration import Integration
 
+from . import api
 from . import views
 from .sitemaps import StaticViewSitemap, ProductSitemap, CategorySitemap, SalesActionSitemap, StoreSitemap, FlatPageSitemap
 
@@ -27,10 +31,24 @@ sitemaps = {
     'threads': ThreadSitemap
 }
 
+router = DefaultRouter()
+router.register(r'baskets', api.BasketViewSet, basename='basket')
+router.register(r'orders', api.OrderViewSet, basename='order')
+router.register(r'favorites', api.FavoritesViewSet, basename='favorite')
+router.register(r'comparisons', api.ComparisonsViewSet, basename='comparison')
+router.register(r'categories', api.CategoryViewSet, basename='category')
+router.register(r'products', api.ProductViewSet, basename='product')
+router.register(r'kinds', api.ProductKindViewSet, basename='kind')
+router.register(r'users', api.UserViewSet, basename='user')
+router.register(r'pages', api.FlatPageViewSet, basename='page')
+router.register(r'reviews/(?P<model>[a-z]+.[a-z]+)/(?P<identifier>[^/.]+)', ReviewViewSet, basename='review')
 
 urlpatterns = [
     # ex: /
     url(r'^$', views.index, name='index'),
+    # Rest API
+    path('api/v0/', include(router.urls)),
+    path('api/v0/csrf/', api.CsrfTokenView.as_view()),
     # ex: /sitemap.xml
     url(r'^sitemap\.xml$', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     # ex: /search.xml

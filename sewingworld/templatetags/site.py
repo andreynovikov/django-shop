@@ -16,6 +16,14 @@ def site_url_prefix(context):
 
 
 @register.simple_tag
+def get_object(model_name, pk):
+    from django.apps import apps
+    app, name = model_name.split('.', 1)
+    model = apps.get_model(app_label=app, model_name=name)
+    return model.objects.get(pk=int(pk))
+
+
+@register.simple_tag
 def get_categories_root():
     try:
         return Category.objects.get(slug=settings.MPTT_ROOT)
@@ -37,6 +45,22 @@ def filter_qs(queryset, field):
             field = field[1:]
         kwargs = {field: criteria}
         return queryset.filter(**kwargs)
+    else:
+        return None
+
+
+@register.filter
+def filter_qs_by_pk(queryset, ids):
+    if isinstance(queryset, QuerySet):
+        exclude = False
+        if ids[0] == '!':
+            exclude = True
+            ids = ids[1:]
+        kwargs = {'pk__in': ids.split(',')}
+        if exclude:
+            return queryset.exclude(**kwargs)
+        else:
+            return queryset.filter(**kwargs)
     else:
         return None
 
@@ -71,6 +95,14 @@ def parse_field_name(name):
 
 
 @register.filter
+def fields_with_values(fields, object):
+    for field in fields:
+        value = get_field(object, field)
+        if value:
+            yield field, value
+
+
+@register.filter
 def prettify(value):
     if isinstance(value, float):
         if value % 1 == 0:
@@ -78,4 +110,26 @@ def prettify(value):
         return value
     if isinstance(value, str):
         return value.strip()
+    return value
+
+
+@register.simple_tag
+def query_transform(request, **kwargs):
+    updated = request.GET.copy()
+    for k, v in kwargs.items():
+        updated[k] = v
+    return updated.urlencode()
+
+
+@register.filter
+def rebootstrap(value):
+    if not isinstance(value, str):
+        return value
+    value = value.replace('col-md-8', 'col-md-4')
+    value = value.replace('col-md-10', 'col-md-5')
+    value = value.replace('col-md-12', 'col-md-6')
+    value = value.replace('<h3>', '<h5>')
+    value = value.replace('</h3>', '</h5>')
+    value = value.replace('<h4>', '<h6>')
+    value = value.replace('</h4>', '</h6>')
     return value

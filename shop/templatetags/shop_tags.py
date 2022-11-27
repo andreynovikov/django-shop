@@ -7,7 +7,7 @@ from django.utils.safestring import mark_safe
 from celery import states
 from django_celery_results.models import TaskResult
 
-from shop.models import Order
+from shop.models import Order, Favorites
 
 
 register = template.Library()
@@ -27,6 +27,19 @@ def get_unpaid_order(context):
                 return order
     return None
 
+
+@register.simple_tag(takes_context=True)
+def get_order_count(context):
+    if hasattr(context, 'request') and context.request.user.is_authenticated:
+        return Order.objects.filter(user=context.request.user.id).count()
+    return 0
+
+
+@register.simple_tag(takes_context=True)
+def get_favorites_count(context):
+    if hasattr(context, 'request') and context.request.user.is_authenticated:
+        return Favorites.objects.filter(user=context.request.user.id).count()
+    return 0
 
 @register.simple_tag
 def barcode(number, fmt='code128', width=0.5, height=15):
