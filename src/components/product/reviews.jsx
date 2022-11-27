@@ -20,7 +20,7 @@ export default function ProductReviews({product}) {
 
     if (!isSuccess)
         return (
-            <div>Loading...</div>
+            <div className="px-3">Загружается...</div>
         )
 
     return (
@@ -29,7 +29,7 @@ export default function ProductReviews({product}) {
                 { reviews.results.length > 0 ? (
                     reviews.results.map((review, index) => <ReviewItem review={review} last={index === reviews.results.length - 1} key={review.id} />)
                 ) : (
-                    <div>Нет отзывов об этом товаре. Вы можете быть первым, кто опубликует отзыв.</div>
+                    <div className="px-3">Нет отзывов об этом товаре. Вы можете быть первым, кто опубликует отзыв.</div>
                 )}
                 <div className="py-5 px-3">
                     { status === 'authenticated' ? (

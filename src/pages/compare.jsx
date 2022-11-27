@@ -28,10 +28,10 @@ function prettify(field, value) {
 }
 
 const noImageStyle = {
-    width: '80px',
-    height: '80px',
-    fontSize: '40px',
-    padding: '20px'
+    width: '160px',
+    height: '160px',
+    fontSize: '80px',
+    padding: '40px'
 }
 
 export default function Compare({kindId, productIds}) {
@@ -172,7 +172,7 @@ export default function Compare({kindId, productIds}) {
             )}
 
             <div className="table-responsive mx-1 mx-lg-4 mx-xl-6">
-                <table className="table table-bordered table-layout-fixed text-sm" style={{minWidth: "45rem"}} id="comparison">
+                <table className="table table-bordered table-layout-fixed" style={{minWidth: "45rem"}} id="comparison">
                     <thead>
                         <tr>
                             <td className="align-middle">
@@ -210,7 +210,7 @@ export default function Compare({kindId, productIds}) {
                     <tbody>
                         { Object.keys(fieldNames).length > 0 && productFields.length > 0 && productFields.map(({field, differ}) => (
                             <tr className={ (differ && !different) ? "table-danger" : "" } key={field}>
-                                <th className="text-dark">
+                                <th className="text-uppercase text-sm fw-normal">
                                     { fieldNames[field][0] }
                                     <FieldHelp field={field} />
                                 </th>

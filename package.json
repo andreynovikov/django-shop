@@ -3,7 +3,7 @@
         "dev": "next dev -p 3001",
         "dev-ssl": "(local-ssl-proxy --key privkey.pem --cert cert.pem --source 8081 --target 3001) & next dev -p 3001",
         "build": "next build",
-        "start": "next start -p 4000",
+        "start": "next start -p 4001",
         "lint": "next lint"
     },
     "dependencies": {

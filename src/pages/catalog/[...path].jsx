@@ -94,7 +94,6 @@ export async function getStaticProps(context) {
 }
 
 export async function getStaticPaths() {
-    console.log("getStaticPaths");
     const getPaths = ({paths, root}, category) => {
         const path = root.concat([category.slug]);
         paths.push({

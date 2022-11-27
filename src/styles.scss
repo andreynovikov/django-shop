@@ -26,6 +26,10 @@ $font-family-heading: 'Roboto',sans-serif;
     text-transform:capitalize;
 }
 
+#description_tab .ratio + h5 {
+    margin-top: map-get($spacers, 2);
+}
+
 #specification_tab table {
     table-layout: fixed;
 }

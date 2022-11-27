@@ -84,8 +84,8 @@ export default function Index() {
                         <div className="col-lg-8 mx-auto">
                             <div id="reviewCarousel">
                                 { reviews.results.map((review) => (
-                                    <div className="container text-start fs-6">
-                                        <ReviewItem review={review} last key={review.id} />
+                                    <div className="container text-start fs-6" key={review.id}>
+                                        <ReviewItem review={review} last />
                                     </div>
                                 ))}
                             </div>
@@ -171,7 +171,11 @@ Index.getLayout = function getLayout(page) {
 
 export async function getStaticProps() {
     const queryClient = new QueryClient();
-    await queryClient.fetchQuery(newsKeys.lists(), () => loadNews());
+    const reviewsQuery = queryClient.prefetchQuery(reviewKeys.lists(), () => loadPromoReviews());
+    const newsQuery = queryClient.prefetchQuery(newsKeys.lists(), () => loadNews());
+
+    await reviewsQuery;
+    await newsQuery;
 
     return {
         props: {
