@@ -144,7 +144,7 @@ def send_message(phone, message):
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=15, retry_backoff=True)
 def send_password(phone, password):
-    return send_sms(phone, "Пароль для доступа на сайт: %s" % password)
+    return send_sms(phone, "Код для доступа на сайт: %s" % password)
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)

@@ -304,6 +304,8 @@ class Order(models.Model):
         order.phone = user.phone
         order.email = user.email
 
+        user_discount = basket.user_discount
+
         if WHOLESALE:
             qnt = Decimal('0.01')
         else:
@@ -323,7 +325,7 @@ class Order(models.Model):
                 price = item.product.ws_price
             # иначе считаем отдельно скидку в процентах и копируем текущую рублёвую скидку товара
             else:
-                pct_discount = basket.product_pct_discount(item.product)
+                pct_discount = basket.product_pct_discount(item.product, user_discount)
                 val_discount = item.product.val_discount
                 price = item.product.price
             # если это обычный товар, добавляем его в заказ

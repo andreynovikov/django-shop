@@ -96,7 +96,7 @@ class UsernameField(models.CharField):
 class ShopUser(AbstractBaseUser, PermissionsMixin):
     phone = models.CharField('телефон', max_length=30, unique=True)
     name = models.CharField('имя', max_length=100, blank=True)
-    username = UsernameField('прозвище', max_length=100)
+    username = UsernameField('псевдоним', max_length=100)
     email = models.EmailField('эл.почта', blank=True)
     postcode = models.CharField('индекс', max_length=10, blank=True)
     city = models.CharField('город', max_length=255, blank=True)
@@ -110,8 +110,8 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
     permanent_password = models.BooleanField('постоянный пароль', default=False)
     date_joined = models.DateTimeField('дата регистрации', default=timezone.now)
     tags = TagField('теги')
-    first_name = AliasField(db_column='name')
-    last_name = AliasField(db_column='name')
+    first_name = AliasField(db_column='name', blank=True)
+    last_name = AliasField(db_column='name', blank=True)
 
     objects = ShopUserManager()
 
@@ -165,8 +165,11 @@ class Category(MPTTModel):
     product_order = models.CharField('поле сортировки товаров', max_length=50, default='-price')
     ya_active = models.BooleanField('выдавать в Яндекс.Маркет', default=True)
 
+    def get_active_children(self):
+        return self.get_children().filter(active=True, hidden=False)
+
     def get_active_descendants(self):
-        return self.get_descendants().filter(active=True)
+        return self.get_descendants().filter(active=True, hidden=False)
 
     def get_absolute_url(self):
         return reverse('category', kwargs={'path': self.get_path()})
@@ -380,6 +383,9 @@ class ServiceCenter(models.Model):
         verbose_name = 'сервис-центр'
         verbose_name_plural = 'сервис-центры'
         ordering = ('city', 'address')
+
+    def phones_as_list(self):
+        return [x.strip() for x in self.phone.split(',')]
 
     @staticmethod
     def autocomplete_search_fields():

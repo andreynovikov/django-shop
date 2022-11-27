@@ -1,4 +1,4 @@
-from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse, JsonResponse
+from django.http import Http404, StreamingHttpResponse, JsonResponse
 from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.files.storage import default_storage
@@ -10,12 +10,18 @@ from django.utils.text import capfirst
 from sewingworld.models import SiteProfile
 from facebook.tasks import FACEBOOK_TRACKING, notify_view_content
 from shop.models import Category, Product, ProductRelation, ProductSet, ProductKind, Manufacturer, \
-    Advert, SalesAction, City, Store, ServiceCenter, Stock, Integration, ProductIntegration
+    Advert, SalesAction, City, Store, ServiceCenter, Stock, Favorites, Integration, ProductIntegration
 from shop.filters import get_product_filter
 
 
 def index(request):
     site = Site.objects.get_current()
+
+    if request.user.is_authenticated:
+        favorites = Favorites.objects.filter(user=request.user).values_list('product', flat=True)
+    else:
+        favorites = []
+
     context = {
         'top_adverts': Advert.objects.filter(active=True, place='index_top', sites=site).order_by('order'),
         'middle_adverts': Advert.objects.filter(active=True, place='index_middle', sites=site).order_by('order'),
@@ -24,7 +30,8 @@ def index(request):
         'actions': SalesAction.objects.filter(active=True, sites=site).order_by('order'),
         'gift_products': Product.objects.filter(enabled=True, show_on_sw=True, gift=True).order_by('-price')[:25],
         'recomended_products': Product.objects.filter(enabled=True, show_on_sw=True, recomended=True).order_by('-price')[:25],
-        'first_page_products': Product.objects.filter(enabled=True, show_on_sw=True, firstpage=True).order_by('-price')[:25]
+        'first_page_products': Product.objects.filter(enabled=True, show_on_sw=True, firstpage=True).order_by('-price')[:25],
+        'favorites': favorites
     }
     return render(request, 'index.html', context)
 
@@ -242,10 +249,16 @@ def category(request, path, instance):
         product_filter = get_product_filter(request.GET, queryset=products, fields=fields, request=request)
         products = product_filter.qs
 
+    if request.user.is_authenticated:
+        favorites = Favorites.objects.filter(user=request.user).values_list('product', flat=True)
+    else:
+        favorites = []
+
     context = {
         'category': instance,
         'product_filter': product_filter,
         'products': products,
+        'favorites': favorites,
         'gtm_list': gtm_list
     }
     return render(request, 'category.html', context)
@@ -261,8 +274,8 @@ def product(request, code):
             dirs, files = default_storage.listdir(product.image_prefix)
             if files is not None:
                 for file in sorted(files):
-                    if file.endswith('.s.jpg'):
-                        product.images.append(file[:-6])
+                    if file.endswith('.jpg') and not file.endswith('.s.jpg'):
+                        product.images.append(file[:-4])
         except NotADirectoryError:
             pass
     category = None
@@ -288,6 +301,8 @@ def product(request, code):
 
     comparison_list = list(map(int, request.session.get('comparison_list', '0').split(',')))
 
+    favorite = request.user.is_authenticated and Favorites.objects.filter(user=request.user, product=product).exists()
+
     if FACEBOOK_TRACKING:
         notify_view_content.delay(product.id, request.build_absolute_uri(),
                                   request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
@@ -300,7 +315,8 @@ def product(request, code):
         'similar': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR),
         'gifts': product.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT),
         'utm_source': request.GET.get('utm_source', None),
-        'is_compared': product.id in comparison_list
+        'is_compared': product.id in comparison_list,
+        'is_favorite': favorite
     }
     return render(request, 'product.html', context)
 
@@ -363,9 +379,6 @@ def product_stock(request, code):
 
 
 def compare_product(request, code):
-    if not request.is_ajax():
-        return HttpResponseForbidden()
-
     product = get_object_or_404(Product, code=code)
     if product.categories.exists() and not product.breadcrumbs:
         raise Http404("Product does not exist")
@@ -383,9 +396,6 @@ def compare_product(request, code):
 
 
 def uncompare_product(request, code):
-    if not request.is_ajax():
-        return HttpResponseForbidden()
-
     product = get_object_or_404(Product, code=code)
     if product.categories.exists() and not product.breadcrumbs:
         raise Http404("Product does not exist")
@@ -408,8 +418,11 @@ def compare_products(request, compare=None, kind=None):
         if kind:
             kind = get_object_or_404(ProductKind, pk=kind)
         else:
-            product = Product.objects.get(pk=product_ids[-1])
-            kind = product.kind.all()[0]
+            try:
+                product = Product.objects.get(pk=product_ids[-1])
+                kind = product.kind.all()[0]
+            except Product.DoesNotExist:
+                kind = 0
         products = Product.objects.filter(pk__in=product_ids, kind=kind).values_list('id', flat=True)
         if products:
             return redirect('compare_products', compare=','.join(map(str, products)))
