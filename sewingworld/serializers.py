@@ -3,6 +3,7 @@ from collections import OrderedDict
 from random import randint
 from urllib.parse import urlparse
 
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.storage import default_storage
@@ -208,6 +209,7 @@ class ProductSerializer(NonNullModelSerializer):
     similar = serializers.SerializerMethodField()
     gifts = serializers.SerializerMethodField()
     sales = serializers.SerializerMethodField()
+    stitches = serializers.SerializerMethodField()
     cost = serializers.ReadOnlyField()
     discount = serializers.ReadOnlyField()
 
@@ -317,6 +319,19 @@ class ProductSerializer(NonNullModelSerializer):
         sales = obj.sales_actions.filter(active=True)  # , sites__domain=domain).order_by('order') - TODO!
         return SalesActionSerializer(sales, many=True, context=self.context).data
 
+    def get_stitches(self, obj):
+        filepath = 'images/{manufacturer}/stitches/{code}_stitches.jpg'.format(manufacturer=obj.manufacturer.code, code=obj.code)
+        if default_storage.exists(filepath):
+            img = '<div><img src="{media}{filepath}" alt="Строчки швейной машины {title}" />'.format(
+                media=settings.MEDIA_URL,
+                filepath=filepath,
+                title=obj.title
+            )
+            if obj.stitches:
+                return obj.stitches + img
+            else:
+                return img
+        return obj.stitches
 
 class BasketItemProductSerializer(NonNullModelSerializer):
     thumbnail = serializers.SerializerMethodField()
