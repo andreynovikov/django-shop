@@ -12,6 +12,7 @@ class SiteProfile(models.Model):
     category_root_slug = models.CharField('slug корневой категории', max_length=30, blank=True)
     product_thumbnail_size = models.PositiveSmallIntegerField('размер малого изображения товара', default=200)
     product_small_thumbnail_size = models.PositiveSmallIntegerField('размер супермалого изображения товара', default=80)
+    revalidation_token = models.CharField('Токен перегенерации', max_length=30, blank=True)
     city = models.ForeignKey(City, verbose_name='город', blank=True, null=True, on_delete=models.PROTECT)
     phone = models.CharField('телефон', max_length=255, blank=True)
     manager_emails = models.CharField('адреса менеджеров', max_length=255, blank=True, help_text='Можно несколько через запятую')
