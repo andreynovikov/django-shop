@@ -9,6 +9,7 @@ import json
 import logging
 import os.path
 import re
+import requests
 import tempfile
 
 from collections import defaultdict
@@ -98,6 +99,16 @@ class DecimalEncoder(json.JSONEncoder):
         if isinstance(o, Decimal):
             return str(o)
         return super(DecimalEncoder, self).default(o)
+
+
+@shared_task(autoretry_for=(Exception,), default_retry_delay=300, retry_backoff=True)
+def revalidate_nextjs(domain, token, payload):
+    url = 'https://{}:8443/api/revalidate'.format(domain)
+    request_data = {
+        'secret': token
+    } + payload
+    response = requests.post(url, json=request_data)
+    response_data = response.json()
 
 
 @shared_task(bind=True, autoretry_for=(DatabaseError,), retry_backoff=300, retry_jitter=False)

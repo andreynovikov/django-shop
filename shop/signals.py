@@ -13,11 +13,11 @@ from tagging.utils import parse_tag_input
 from reviews import get_review_model
 from reviews.signals import review_was_posted
 
-from shop.models import Product, Order
+from shop.models import Product, Order, News
 from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, \
     notify_user_order_delivered, notify_user_order_done, notify_user_review_products, \
     notify_review_posted, create_modulpos_order, delete_modulpos_order, \
-    notify_manager, notify_manager_sms
+    notify_manager, notify_manager_sms, revalidate_nextjs
 
 
 SITE_SW = Site.objects.get(domain='www.sewing-world.ru')
@@ -105,3 +105,15 @@ def order_saved(sender, **kwargs):
 @receiver(review_was_posted, sender=get_review_model(), dispatch_uid='review_posted_receiver')
 def review_posted(sender, review, request, **kwargs):
     notify_review_posted.delay(review.id)
+
+
+@receiver(post_save, sender=News, dispatch_uid='news_saved_receiver')
+def news_saved(sender, **kwargs):
+    news = kwargs['instance']
+    payload = {
+        'model': 'news',
+        'pk': news.pk
+    }
+    for site in news.sites.all():
+        if site.profile.revalidation_token:
+            revalidate_nextjs.delay(site.domain, site.profile.revalidation_token, payload)
