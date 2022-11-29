@@ -105,8 +105,9 @@ class DecimalEncoder(json.JSONEncoder):
 def revalidate_nextjs(domain, token, payload):
     url = 'https://{}:8443/api/revalidate'.format(domain)
     request_data = {
-        'secret': token
-    } + payload
+        'secret': token,
+        **payload
+    }
     response = requests.post(url, json=request_data)
     response_data = response.json()
 
