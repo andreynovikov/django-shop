@@ -166,7 +166,7 @@ class Category(MPTTModel):
     ya_active = models.BooleanField('выдавать в Яндекс.Маркет', default=True)
 
     def get_api_path(self):
-        # TODO: refactor to remove mptt_urls get_path injection
+        # TODO: refactor: remove mptt_urls get_path injection, use this instead
         return '/'.join([item.slug for item in self.get_ancestors(include_self=True)[1:]])  # exclude root category
 
     def get_active_children(self):

@@ -25,12 +25,14 @@ from shop.models import Category, ProductKind, Product, Basket, BasketItem, Orde
     News, Store, ServiceCenter
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 
+from .models import SiteProfile
 from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSerializer, ProductListSerializer, \
     ProductKindSerializer, \
     BasketSerializer, BasketItemActionSerializer, OrderListSerializer, OrderSerializer, OrderActionSerializer, \
     FavoritesSerializer, ComparisonSerializer, \
     UserListSerializer, UserSerializer, AnonymousUserSerializer, LoginSerializer, \
-    FlatPageListSerializer, FlatPageSerializer, NewsSerializer, StoreSerializer, ServiceCenterSerializer
+    FlatPageListSerializer, FlatPageSerializer, NewsSerializer, StoreSerializer, ServiceCenterSerializer, \
+    SiteProfileSerializer
 
 
 logger = logging.getLogger("django")
@@ -364,6 +366,9 @@ class OrderViewSet(viewsets.ModelViewSet):
             'user': self.request.user
         }
         excludes = {}
+        order_site = self.request.query_params.get('site', None)
+        if order_site is not None:
+            filters['site'] = order_site
         order_filter = self.request.query_params.get('filter', None)
         if order_filter == 'done':
             filters['status__in'] = [Order.STATUS_DONE, Order.STATUS_FINISHED]
@@ -380,8 +385,11 @@ class OrderViewSet(viewsets.ModelViewSet):
         except Basket.DoesNotExist:
             return Response("Basket does not exist", status=status.HTTP_400_BAD_REQUEST)
 
+        if basket.quantity == 0:
+            return Response("Basket is empty", status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            order = Order.register(basket)
+            order = Order.register(basket, site=request.site)
             ipgeobases = IPGeoBase.objects.by_ip(request.META.get('REMOTE_ADDR'))
             if ipgeobases.exists():
                 for ipgeobase in ipgeobases:
@@ -678,3 +686,27 @@ class ServiceCenterViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return ServiceCenter.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+
+
+class SiteProfileViewSet(viewsets.ReadOnlyModelViewSet):
+    lookup_field = 'site'
+    lookup_value_regex = '(:?\d+|current)'
+    serializer_class = SiteProfileSerializer
+    queryset = SiteProfile.objects.all()
+
+    def get_permissions(self):
+        self.permission_classes = [IsSuperUser]
+        if self.action == 'retrieve':
+            key = self.kwargs.get(self.lookup_field)
+            if key == 'current':
+                self.permission_classes = []
+
+        return super().get_permissions()
+
+    def get_object(self):
+        key = self.kwargs.get(self.lookup_field)
+
+        if key == 'current':
+            return self.request.site.profile
+
+        return super().get_object()
