@@ -1,8 +1,0 @@
-{% extends "base.html" %}
-{% load reviews %}
-{% block title %}Спасибо за ваш отзыв{% endblock %}
-{% block content %}
-<h1>Спасибо за ваш отзыв</h1>
-<p>Ваш отзыв о товаре {{ review.target }} будет опубликован после проверки модератором и доступен по ссылке:
-<a href="{% get_review_permalink review "#r%(id)s" %}">{% get_review_permalink review "#r%(id)s" %}</a></p>
-{% endblock %}

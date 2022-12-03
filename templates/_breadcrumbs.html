@@ -1,9 +1,0 @@
-<ol class="breadcrumb justify-content-center">
-{% for url, label in breadcrumbs %}
-	{% ifnotequal forloop.counter breadcrumbs_total %}
-	<li class="breadcrumb-item"><a href="{{ url }}">{{ label|safe }}</a></li>
-	{% else %}
-	<li class="breadcrumb-item active"><a href="{{ url }}" id="cname">{{ label|safe }}</a></li>
-	{% endifnotequal %}
-{% endfor %}
-</ol>

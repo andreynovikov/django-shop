@@ -1,8 +1,0 @@
-{% load i18n %}
-              <div class="d-flex align-items-center">
-                <ul class="list-inline mr-2 mb-0">
-                  {% for choice in rating_choices %}
-                  <li class="list-inline-item mr-0"><i class="fa fa-star {% if forloop.counter <= average_rating_value %}text-primary{% else %}text-gray-300{% endif %}"></i></li>
-                  {% endfor %}
-                </ul><span class="text-muted text-uppercase text-sm">{% blocktrans count review_count=review_count %}{{ review_count }} review{% plural %}{{ review_count }} reviews{% endblocktrans %}</span>
-              </div>

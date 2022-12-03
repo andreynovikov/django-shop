@@ -1,4 +1,0 @@
-User-Agent: *
-Disallow: /shop/basket/
-Disallow: /shop/user/
-Host: https://familysew.ru
