@@ -282,11 +282,10 @@ class Order(models.Model):
         return self.meta and 'fiscalInfo' in self.meta
 
     @staticmethod
-    def register(basket):
+    def register(basket, site=None):
         session_data = basket.session.get_decoded()
         uid = session_data.get('_auth_user_id')
         user = ShopUser.objects.get(id=uid)
-        site = None
         integration = None
         if basket.utm_source:
             integration = Integration.objects.filter(utm_source=basket.utm_source).first()

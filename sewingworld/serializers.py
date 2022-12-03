@@ -14,6 +14,7 @@ from sorl.thumbnail import get_thumbnail
 
 from django.contrib.flatpages.models import FlatPage
 
+from sewingworld.models import SiteProfile
 from sewingworld.templatetags.gravatar import get_gravatar_url
 
 from shop.filters import get_product_filter
@@ -43,7 +44,7 @@ class RecursiveField(serializers.Serializer):
 class CountrySerializer(NonNullModelSerializer):
     class Meta:
         model = Country
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'enabled')
 
 
 class CitySerializer(NonNullModelSerializer):
@@ -85,10 +86,20 @@ class CategorySerializer(NonNullModelSerializer):
 
     class Meta:
         model = Category
-        exclude = ('active', 'hidden', 'ya_active', 'lft', 'rght')
+        exclude = ('active', 'hidden', 'ya_active', 'tree_id', 'lft', 'rght')
 
     def get_path(self, obj):
-        return obj.get_path()
+        ancestors = obj.get_ancestors(include_self=True)[1:]  # exclude root category
+        uri = '/'.join([item.slug for item in ancestors])
+        breadcrumbs = [{
+            'id': item.id,
+            'slug': item.slug,
+            'name': item.name
+        } for item in ancestors]
+        return {
+            'uri': uri,
+            'breadcrumbs': breadcrumbs
+        }
 
     def get_filters(self, obj):
         request = self.context.get('request')
@@ -322,7 +333,7 @@ class ProductSerializer(NonNullModelSerializer):
     def get_stitches(self, obj):
         filepath = 'images/{manufacturer}/stitches/{code}_stitches.jpg'.format(manufacturer=obj.manufacturer.code, code=obj.code)
         if default_storage.exists(filepath):
-            img = '<div><img src="{media}{filepath}" alt="Строчки швейной машины {title}" />'.format(
+            img = '<div><img class="img-fluid" src="{media}{filepath}" alt="Строчки швейной машины {title}" /></div>'.format(
                 media=settings.MEDIA_URL,
                 filepath=filepath,
                 title=obj.title
@@ -606,3 +617,15 @@ class NewsSerializer(serializers.ModelSerializer):
     class Meta:
         model = News
         exclude = ('sites', 'active')
+
+
+class SiteProfileSerializer(NonNullModelSerializer):
+    id = serializers.SerializerMethodField()
+    city = CitySerializer(read_only=True)
+
+    class Meta:
+        model = SiteProfile
+        fields = ('id', 'title', 'description', 'city', 'phone')
+
+    def get_id(self, obj):
+        return obj.site.pk

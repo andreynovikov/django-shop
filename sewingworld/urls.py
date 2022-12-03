@@ -33,6 +33,7 @@ sitemaps = {
 }
 
 router = DefaultRouter()
+router.register(r'sites', api.SiteProfileViewSet, basename='site')
 router.register(r'baskets', api.BasketViewSet, basename='basket')
 router.register(r'orders', api.OrderViewSet, basename='order')
 router.register(r'favorites', api.FavoritesViewSet, basename='favorite')
