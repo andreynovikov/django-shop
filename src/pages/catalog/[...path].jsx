@@ -12,7 +12,7 @@ const baseFilters = [
 ];
 const defaultOrder = 'title';
 
-export default function Category({path, filters, order}) {
+export default function Category({title, path, filters, order}) {
     const router = useRouter();
 
     const { data: category, isSuccess } = useQuery(
@@ -31,9 +31,16 @@ export default function Category({path, filters, order}) {
         }
     );
 
-    if (router.isFallback) {
-        // TODO: Test and make user friendly
-        return <div>Loading...</div>
+    if (router.isFallback || !isSuccess) {
+        return (
+            <>
+                <PageTitle title={title} />
+                <div className="container d-flex align-items-center justify-content-center text-secondary mb-6">
+                    <div className="spinner-border mx-3" role="status" aria-hidden="true"></div>
+                    <strong>Загружается...</strong>
+                </div>
+            </>
+        )
     }
 
     if (isSuccess)
