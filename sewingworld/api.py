@@ -191,19 +191,19 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                     fields = category.filters.split(',')
                     self.product_filter = get_product_filter(self.request.query_params, queryset=queryset, fields=fields, request=self.request)
                     queryset = self.product_filter.qs
+            elif field in ('kind', 'manufacturer'):  # поиск по ключу
+                if len(values) > 1:
+                    key = '{}__pk__in'.format(field)
+                    queryset = queryset.filter(**{key: values})
+                else:
+                    key = '{}__pk__exact'.format(field)
+                    queryset = queryset.filter(**{key: values[0]})
             # elif field == 'inspection':
             #     if len(values) > 1:
             #         key = '{}__pk__in'.format(field)
             #         queryset = queryset.filter(**{key: values})
             #     else:
             #         key = '{}__pk__istartswith'.format(field)
-            #         queryset = queryset.filter(**{key: values[0]})
-            # elif field in ('account__units', 'inspection__breach'):  # поиск по ключу
-            #     if len(values) > 1:
-            #         key = '{}__pk__in'.format(field)
-            #         queryset = queryset.filter(**{key: values})
-            #     else:
-            #         key = '{}__pk__exact'.format(field)
             #         queryset = queryset.filter(**{key: values[0]})
             # elif len(values) > 1:  # поиск в массиве
             #     key = '{}__in'.format(field)
