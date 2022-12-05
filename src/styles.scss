@@ -16,10 +16,24 @@ $font-family-heading: 'Roboto',sans-serif;
 
 .popover.sw-field-help {
     max-width: 725px;
-}
 
-.popover.sw-field-help > .popover-body img[align="left"] {
-    margin-right: 0.625em;
+    @include media-breakpoint-down(sm) {
+        margin: 0 2%;
+        max-width: 95%;
+    }
+
+    &>.popover-body {
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 0.625em;
+
+            &[align="left"] {
+                max-width: 60%;
+                margin-right: 0.625em;
+            }
+        }
+    }
 }
 
 #comparison > tbody th:first-letter, .product-spec > dt:first-letter {
