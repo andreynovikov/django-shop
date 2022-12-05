@@ -78,16 +78,30 @@ export default function Index() {
                     <Link className="btn btn-dark" href="/catalog/sewing_machines/">Большой выбор в каталоге</Link>
                 </div>
             </ParallaxBanner>
-            { isReviewSuccess && reviews.results.length > 0 && (
+            { isNewsSuccess && (
                 <div className="container py-5 py-sm-6">
                     <div className="row">
                         <div className="col-lg-8 mx-auto">
-                            <div id="reviewCarousel">
-                                { reviews.results.map((review) => (
-                                    <div className="container text-start fs-6" key={review.id}>
-                                        <ReviewItem review={review} last />
+                            <div id="newsCarousel">
+                                { news.map((article) => (
+                                    <div className="container text-start" key={article.id}>
+                                        <div className="row">
+                                            <div className={article.image ? "col-sm-8" : "col"}>
+                                                <h3 className="display-6">{ article.title }</h3>
+                                                <div className="mb-1 text-muted">{ moment(article.publish_date).format('LL') }</div>
+                                                <div className="text-lg" dangerouslySetInnerHTML={{__html: article.content }}></div>
+                                            </div>
+                                            { article.image && (
+                                                <div className="col-sm-4">
+                                                    <img className="img-fluid" src={article.image} alt={article.title} />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
+                            </div>
+                            <div className="mt-4 text-end">
+                                <Link className="btn btn-dark" href="/news">Другие новости</Link>
                             </div>
                         </div>
                     </div>
@@ -114,30 +128,16 @@ export default function Index() {
                     <Link className="btn btn-dark" href="/catalog/overlock/">Выберите модель</Link>
                 </div>
             </ParallaxBanner>
-            { isNewsSuccess && (
+            { isReviewSuccess && reviews.results.length > 0 && (
                 <div className="container py-5 py-sm-6">
                     <div className="row">
                         <div className="col-lg-8 mx-auto">
-                            <div id="newsCarousel">
-                                { news.map((article) => (
-                                    <div className="container text-start" key={article.id}>
-                                        <div className="row">
-                                            <div className={article.image ? "col-sm-8" : "col"}>
-                                                <h3 className="display-6">{ article.title }</h3>
-                                                <div className="mb-1 text-muted">{ moment(article.publish_date).format('LL') }</div>
-                                                <div className="text-lg" dangerouslySetInnerHTML={{__html: article.content }}></div>
-                                            </div>
-                                            { article.image && (
-                                                <div className="col-sm-4">
-                                                    <img className="img-fluid" src={article.image} alt={article.title} />
-                                                </div>
-                                            )}
-                                        </div>
+                            <div id="reviewCarousel">
+                                { reviews.results.map((review) => (
+                                    <div className="container text-start fs-6" key={review.id}>
+                                        <ReviewItem review={review} last />
                                     </div>
                                 ))}
-                            </div>
-                            <div className="mt-4 text-end">
-                                <Link className="btn btn-dark" href="/news">Другие новости</Link>
                             </div>
                         </div>
                     </div>
