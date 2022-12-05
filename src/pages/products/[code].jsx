@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Script from 'next/script';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
@@ -191,12 +191,12 @@ export default function Product({code, title}) {
         setBootstrapLoaded(true);
     };
 
-    if (isLoading || !isSuccess)
+    if (router.isFallback || isLoading || !isSuccess)
         return (
             <>
                 <PageTitle title={title} />
-                <div class="container d-flex align-items-center justify-content-center text-secondary mb-6">
-                    <div class="spinner-border mx-3" role="status" aria-hidden="true"></div>
+                <div className="container d-flex align-items-center justify-content-center text-secondary mb-6">
+                    <div className="spinner-border mx-3" role="status" aria-hidden="true"></div>
                     <strong>Загружается...</strong>
                 </div>
             </>
@@ -290,12 +290,9 @@ export default function Product({code, title}) {
 		                        { product.complect && (
                                     <li className="nav-item"><a className="nav-link detail-nav-link" href="#complect_tab" role="tab">Комплектация</a></li>
                                 )}
-                                { /*
-		                            {% if 'images/'|add:product.manufacturer.code|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists or product.stitches %}
-                                    <li class="nav-item"><a class="nav-link detail-nav-link" href="#stitches_tab" role="tab">Строчки</a></li>
-		                            {% endif %}
-                                  */
-                                }
+		                        { product.stitches && (
+                                    <li className="nav-item"><a className="nav-link detail-nav-link" href="#stitches_tab" role="tab">Строчки</a></li>
+                                )}
                                 { Object.keys(fieldNames).length > 0 && productFields.length > 0 && (
                                     <li className="nav-item"><a className="nav-link detail-nav-link" href="#specification_tab" role="tab">Технические характеристики</a></li>
                                 )}
@@ -322,20 +319,25 @@ export default function Product({code, title}) {
                                     <div dangerouslySetInnerHTML={{__html: product.complect }} />
                                 </div>
                             )}
+		                    { product.stitches && (
+		                        <div className="tab-pane py-3" id="stitches_tab" role="tabpanel">
+                                    <div dangerouslySetInnerHTML={{__html: product.stitches }} />
+                                </div>
+                            )}
                             { Object.keys(fieldNames).length > 0 && productFields.length > 0 && (
 		                        <div className="tab-pane py-3" id="specification_tab" role="tabpanel">
-                                    <div class="row">
+                                    <div className="row">
                                         {rows(productFields, 2).map((row, index) => (
-                                            <div class="col-lg-6" key={index}>
-                                                <table class="table text-sm">
+                                            <div className="col-lg-6" key={index}>
+                                                <table className="table text-sm">
                                                     <tbody>
                                                         { row.map((field, index) => (
                                                             <tr key={field}>
-                                                                <th class={"text-uppercase fw-normal" + (index === row.length -1 ? " border-0" : "")}>
+                                                                <th className={"text-uppercase fw-normal" + (index === row.length -1 ? " border-0" : "")}>
                                                                     { fieldNames[field][0] }
                                                                     <FieldHelp field={field} />
                                                                 </th>
-                                                                <td class={"text-muted" + (index === row.length -1 ? " border-0" : "")}>
+                                                                <td className={"text-muted" + (index === row.length -1 ? " border-0" : "")}>
                                                                     { field in renderer ? renderer[field](product[field]) : prettify(product[field]) }
                                                                     { fieldNames[field][1] }
                                                                 </td>

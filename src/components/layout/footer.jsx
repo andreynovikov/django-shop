@@ -11,7 +11,7 @@ export default function Footer() {
                 <div className="container">
                     <div className="row">
                         <div className="col-lg-4 mb-5 mb-lg-0 text-center text-sm-start">
-                            <img src="/i/logo.svg" className="mb-3" style={{maxWidth: "100px"}} />
+                            <img src="/i/logo.svg" className="mb-3" style={{maxWidth: "100px"}} alt="Family" />
                             <div>Больше интересного в социальных сетях:</div>
                             <ul className="list-inline">
 			                    <li className="list-inline-item">

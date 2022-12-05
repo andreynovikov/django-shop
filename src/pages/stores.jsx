@@ -96,7 +96,7 @@ export default function Stores() {
             }
         });
 
-        listBox.events.add('collapse', function (e) {
+        listBox.events.add('collapse', function () {
             for (const item of listBoxItems)
                 item.deselect();
         });

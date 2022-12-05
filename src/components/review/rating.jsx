@@ -14,11 +14,11 @@ function getStarIcon(star, value) {
 export default function ReviewRating({value}) {
     return (
         <ul className="list-inline me-2 mb-0">
-            <li class="list-inline-item me-0"><FontAwesomeIcon icon={getStarIcon(1, value)} /></li>
-            <li class="list-inline-item me-0"><FontAwesomeIcon icon={getStarIcon(2, value)} /></li>
-            <li class="list-inline-item me-0"><FontAwesomeIcon icon={getStarIcon(3, value)} /></li>
-            <li class="list-inline-item me-0"><FontAwesomeIcon icon={getStarIcon(4, value)} /></li>
-            <li class="list-inline-item me-0"><FontAwesomeIcon icon={getStarIcon(5, value)} /></li>
+            <li className="list-inline-item me-0"><FontAwesomeIcon icon={getStarIcon(1, value)} /></li>
+            <li className="list-inline-item me-0"><FontAwesomeIcon icon={getStarIcon(2, value)} /></li>
+            <li className="list-inline-item me-0"><FontAwesomeIcon icon={getStarIcon(3, value)} /></li>
+            <li className="list-inline-item me-0"><FontAwesomeIcon icon={getStarIcon(4, value)} /></li>
+            <li className="list-inline-item me-0"><FontAwesomeIcon icon={getStarIcon(5, value)} /></li>
         </ul>
     )
 }

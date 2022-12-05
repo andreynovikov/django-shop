@@ -6,8 +6,7 @@ import 'moment/locale/ru';
 
 moment.locale('ru');
 
-export default function ReviewItem({review, first, last}) {
-
+export default function ReviewItem({review}) {
     return (
         <div className="review d-flex" id={"r" + review.id }>
             <div className="flex-shrink-0 text-center me-4 me-xl-5">
