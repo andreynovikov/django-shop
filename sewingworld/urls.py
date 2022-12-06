@@ -55,6 +55,7 @@ urlpatterns = [
     # Rest API
     path('api/v0/', include(router.urls)),
     path('api/v0/csrf/', api.CsrfTokenView.as_view()),
+    path('api/v0/warrantycard/<str:code>/', api.WarrantyCardView.as_view()),
     # ex: /sitemap.xml
     url(r'^sitemap\.xml$', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     # ex: /search.xml
