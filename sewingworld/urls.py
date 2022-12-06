@@ -57,6 +57,7 @@ urlpatterns = [
     path('api/v0/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/v0/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/v0/csrf/', api.CsrfTokenView.as_view()),
+    path('api/v0/warrantycard/<str:code>/', api.WarrantyCardView.as_view()),
     # ex: /sitemap.xml
     url(r'^sitemap\.xml$', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     # ex: /search.xml

@@ -167,7 +167,7 @@ class ProductListSerializer(NonNullModelSerializer):
         return super().to_representation(instance)
 
     def get_instock(self, obj):
-        return obj.instock > 0
+        return max(min(obj.instock, 10), 0)
 
     def get_image(self, obj):
         if not obj.image_prefix:
@@ -588,8 +588,10 @@ class LoginSerializer(serializers.Serializer):
             user.set_password(password)
             user.save()
             user = authenticate(phone=norm_phone, password=password)
+            user.registered = True
         else:
             user = authenticate(**data)
+            user.registered = False
 
         if user and user.is_active:
             if 'permanent_password' in data and len(data['permanent_password']):
@@ -598,7 +600,7 @@ class LoginSerializer(serializers.Serializer):
                 user.save()
             return user
 
-        raise serializers.ValidationError("Unable to log in with provided credentials")
+        raise serializers.ValidationError("Невозможно войти с указанными учетными данными")
 
 
 class FlatPageListSerializer(serializers.ModelSerializer):

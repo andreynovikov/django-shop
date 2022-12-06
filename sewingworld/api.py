@@ -2,10 +2,12 @@ import logging
 from random import randint
 from urllib.parse import urlparse
 
+from django.conf import settings
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.core.mail import mail_admins
 from django.db.models import Q
+from django.template.loader import render_to_string
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 
@@ -23,8 +25,8 @@ from django_ipgeobase.models import IPGeoBase
 
 from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase  # TODO: add all tasks
 from shop.filters import get_product_filter
-from shop.models import Category, ProductKind, Product, Basket, BasketItem, Order, Favorites, ShopUser, ShopUserManager, \
-    News, Store, ServiceCenter
+from shop.models import Category, ProductKind, Product, Basket, BasketItem, Order, OrderItem, Favorites, \
+    ShopUser, ShopUserManager, News, Store, ServiceCenter
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 
 from .models import SiteProfile
@@ -38,6 +40,12 @@ from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSeri
 
 
 logger = logging.getLogger("django")
+
+
+def ensure_session(request):
+    if hasattr(request, 'session') and not request.session.session_key:
+        request.session.save()
+        request.session.modified = True
 
 
 class IsSuperUser(BasePermission):
@@ -594,10 +602,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
         # preserve user basket because django login rotates session id
         if basket:
+            ensure_session(request)
             basket.update_session(request.session.session_key)
 
         return Response({
             "id": user.id,
+            "registered": user.registered
         })
 
     @action(detail=False, methods=['get'])
@@ -608,12 +618,10 @@ class UserViewSet(viewsets.ModelViewSet):
             basket = None
 
         logout(request)
-        request.session.save()
-        request.session.modified = True
 
         if basket is not None:
+            ensure_session(request)
             basket.update_session(request.session.session_key)
-            basket.save()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -646,6 +654,27 @@ class CsrfTokenView(views.APIView):
         return Response({
             "session": request.session,
             "csrf": request.META["CSRF_COOKIE"]
+        })
+
+
+class WarrantyCardView(views.APIView):
+    def get(self, request, code):
+        item = OrderItem.objects.filter(serial_number=code.strip()).order_by('-order__created').first()
+        if item is None:
+            return Response({'code': ['Изделие с таким серийным номером не покупалось в нашем интернет-магазине']}, status=status.HTTP_400_BAD_REQUEST)
+
+        context = {
+            'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
+            'order': item.order,
+            'product': item.product,
+            'serial_number': item.serial_number,
+            'admin': False
+        }
+
+        rendered = render_to_string('shop/warrantycard/common.html', context)
+
+        return Response({
+            "html": rendered
         })
 
 
