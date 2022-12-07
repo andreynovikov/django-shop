@@ -282,7 +282,7 @@ class Order(models.Model):
         return self.meta and 'fiscalInfo' in self.meta
 
     @staticmethod
-    def register(basket, site=None):
+    def register(basket, **kwargs):
         session_data = basket.session.get_decoded()
         uid = session_data.get('_auth_user_id')
         user = ShopUser.objects.get(id=uid)
@@ -290,10 +290,10 @@ class Order(models.Model):
         if basket.utm_source:
             integration = Integration.objects.filter(utm_source=basket.utm_source).first()
             if integration.uses_api:
-                site = integration.site
-        if site is None:
-            site = Site.objects.get_current()
-        order = Order.objects.create(user=user, site=site)
+                kwargs['site'] = integration.site
+        if kwargs['site'] is None:
+            kwargs['site'] = Site.objects.get_current()
+        order = Order(user=user, **kwargs)
         order.integration = integration
         order.utm_source = basket.utm_source
         order.name = user.name
@@ -302,6 +302,7 @@ class Order(models.Model):
         order.address = user.address
         order.phone = user.phone
         order.email = user.email
+        order.save()
 
         user_discount = basket.user_discount
 
