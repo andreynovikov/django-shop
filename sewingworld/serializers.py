@@ -3,6 +3,7 @@ from collections import OrderedDict
 from random import randint
 from urllib.parse import urlparse
 
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import AnonymousUser
 from django.core.files.storage import default_storage
@@ -13,12 +14,13 @@ from sorl.thumbnail import get_thumbnail
 
 from django.contrib.flatpages.models import FlatPage
 
+from sewingworld.models import SiteProfile
 from sewingworld.templatetags.gravatar import get_gravatar_url
 
 from shop.filters import get_product_filter
 from shop.models import Basket, BasketItem, Order, OrderItem, Favorites, \
     Category, Product, ProductRelation, ProductKind, ShopUser, ShopUserManager, Country, City, Store, \
-    SalesAction, Manufacturer
+    ServiceCenter, News, SalesAction, Manufacturer
 
 
 logger = logging.getLogger("django")
@@ -42,13 +44,31 @@ class RecursiveField(serializers.Serializer):
 class CountrySerializer(NonNullModelSerializer):
     class Meta:
         model = Country
-        fields = ('name', 'enabled')
+        fields = ('id', 'name', 'enabled')
 
 
 class CitySerializer(NonNullModelSerializer):
+    country = CountrySerializer(read_only=True)
+
     class Meta:
         model = City
         fields = '__all__'  # TODO refactor
+
+
+class StoreSerializer(NonNullModelSerializer):
+    city = CitySerializer(read_only=True)
+
+    class Meta:
+        model = Store
+        exclude = ('supplier', 'enabled')
+
+
+class ServiceCenterSerializer(NonNullModelSerializer):
+    city = CitySerializer(read_only=True)
+
+    class Meta:
+        model = ServiceCenter
+        exclude = ('enabled',)
 
 
 class CategoryTreeSerializer(NonNullModelSerializer):
@@ -66,10 +86,20 @@ class CategorySerializer(NonNullModelSerializer):
 
     class Meta:
         model = Category
-        exclude = ('active', 'hidden', 'ya_active', 'lft', 'rght')
+        exclude = ('active', 'hidden', 'ya_active', 'tree_id', 'lft', 'rght')
 
     def get_path(self, obj):
-        return obj.get_path()
+        ancestors = obj.get_ancestors(include_self=True)[1:]  # exclude root category
+        uri = '/'.join([item.slug for item in ancestors])
+        breadcrumbs = [{
+            'id': item.id,
+            'slug': item.slug,
+            'name': item.name
+        } for item in ancestors]
+        return {
+            'uri': uri,
+            'breadcrumbs': breadcrumbs
+        }
 
     def get_filters(self, obj):
         request = self.context.get('request')
@@ -137,7 +167,7 @@ class ProductListSerializer(NonNullModelSerializer):
         return super().to_representation(instance)
 
     def get_instock(self, obj):
-        return obj.instock > 0
+        return max(min(obj.instock, 10), 0)
 
     def get_image(self, obj):
         if not obj.image_prefix:
@@ -153,7 +183,8 @@ class ProductListSerializer(NonNullModelSerializer):
             return None
         filepath = obj.image_prefix + '.jpg'
         if default_storage.exists(filepath):
-            image = get_thumbnail(filepath, '200x200', padding=True)
+            thumbnail_size = '{}x{}'.format(self.context.get('product_thumbnail_size'), self.context.get('product_thumbnail_size'))
+            image = get_thumbnail(filepath, thumbnail_size, padding=True)
             return {
                 'url': image.url,
                 'width': image.width,
@@ -189,6 +220,7 @@ class ProductSerializer(NonNullModelSerializer):
     similar = serializers.SerializerMethodField()
     gifts = serializers.SerializerMethodField()
     sales = serializers.SerializerMethodField()
+    stitches = serializers.SerializerMethodField()
     cost = serializers.ReadOnlyField()
     discount = serializers.ReadOnlyField()
 
@@ -199,6 +231,10 @@ class ProductSerializer(NonNullModelSerializer):
                    'show_on_sw', 'spb_show_in_catalog', 'market', 'spb_market', 'firstpage',
                    'num', 'spb_num', 'ws_num', 'recalculate_price', 'cur_code', 'ws_cur_code',
                    'sp_cur_code', 'sales_actions', 'categories', 'stock', 'related', 'image_prefix')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['constituents'].context.update(self.context)
 
     def get_instock(self, obj):
         return obj.instock  # TODO: limit output
@@ -248,7 +284,8 @@ class ProductSerializer(NonNullModelSerializer):
             return None
         filepath = obj.image_prefix + '.jpg'
         if default_storage.exists(filepath):
-            image = get_thumbnail(filepath, '200x200', padding=True)
+            thumbnail_size = '{}x{}'.format(self.context.get('product_thumbnail_size'), self.context.get('product_thumbnail_size'))
+            image = get_thumbnail(filepath, thumbnail_size, padding=True)
             return {
                 'url': image.url,
                 'width': image.width,
@@ -262,7 +299,8 @@ class ProductSerializer(NonNullModelSerializer):
             return None
         filepath = obj.image_prefix + '.jpg'
         if default_storage.exists(filepath):
-            image = get_thumbnail(filepath, '80x80', padding=True)
+            thumbnail_size = '{}x{}'.format(self.context.get('product_small_thumbnail_size'), self.context.get('product_small_thumbnail_size'))
+            image = get_thumbnail(filepath, thumbnail_size, padding=True)
             return {
                 'url': image.url,
                 'width': image.width,
@@ -273,15 +311,15 @@ class ProductSerializer(NonNullModelSerializer):
 
     def get_accessories(self, obj):
         accessories = obj.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_ACCESSORY)
-        return ProductListSerializer(accessories, many=True).data
+        return ProductListSerializer(accessories, many=True, context=self.context).data
 
     def get_similar(self, obj):
         similar = obj.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR)
-        return ProductListSerializer(similar, many=True).data
+        return ProductListSerializer(similar, many=True, context=self.context).data
 
     def get_gifts(self, obj):
         gifts = obj.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT)
-        return ProductListSerializer(gifts, many=True).data
+        return ProductListSerializer(gifts, many=True, context=self.context).data
 
     def get_sales(self, obj):
         request = self.context.get('request')
@@ -290,7 +328,21 @@ class ProductSerializer(NonNullModelSerializer):
         if domain == 'cartzilla.sigalev.ru':  # TODO: put this in Sites config
             domain = 'www.sewing-world.ru'
         sales = obj.sales_actions.filter(active=True)  # , sites__domain=domain).order_by('order') - TODO!
-        return SalesActionSerializer(sales, many=True).data
+        return SalesActionSerializer(sales, many=True, context=self.context).data
+
+    def get_stitches(self, obj):
+        filepath = 'images/{manufacturer}/stitches/{code}_stitches.jpg'.format(manufacturer=obj.manufacturer.code, code=obj.code)
+        if default_storage.exists(filepath):
+            img = '<div><img class="img-fluid" src="{media}{filepath}" alt="Строчки швейной машины {title}" /></div>'.format(
+                media=settings.MEDIA_URL,
+                filepath=filepath,
+                title=obj.title
+            )
+            if obj.stitches:
+                return obj.stitches + img
+            else:
+                return img
+        return obj.stitches
 
 
 class BasketItemProductSerializer(NonNullModelSerializer):
@@ -365,14 +417,6 @@ class BasketItemActionSerializer(serializers.ModelSerializer):
         model = BasketItem
         fields = ('product', 'quantity')
         extra_kwargs = {'quantity': {'required': False}}
-
-
-class StoreSerializer(NonNullModelSerializer):
-    city = CitySerializer(read_only=True)
-
-    class Meta:
-        model = Store
-        fields = '__all__'
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -545,8 +589,10 @@ class LoginSerializer(serializers.Serializer):
             user.set_password(password)
             user.save()
             user = authenticate(phone=norm_phone, password=password)
+            user.registered = True
         else:
             user = authenticate(**data)
+            user.registered = False
 
         if user and user.is_active:
             if 'permanent_password' in data and len(data['permanent_password']):
@@ -555,7 +601,7 @@ class LoginSerializer(serializers.Serializer):
                 user.save()
             return user
 
-        raise serializers.ValidationError("Unable to log in with provided credentials")
+        raise serializers.ValidationError("Невозможно войти с указанными учетными данными")
 
 
 class FlatPageListSerializer(serializers.ModelSerializer):
@@ -568,3 +614,21 @@ class FlatPageSerializer(serializers.ModelSerializer):
     class Meta:
         model = FlatPage
         exclude = ('sites',)
+
+
+class NewsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = News
+        exclude = ('sites', 'active')
+
+
+class SiteProfileSerializer(NonNullModelSerializer):
+    id = serializers.SerializerMethodField()
+    city = CitySerializer(read_only=True)
+
+    class Meta:
+        model = SiteProfile
+        fields = ('id', 'title', 'description', 'city', 'phone')
+
+    def get_id(self, obj):
+        return obj.site.pk

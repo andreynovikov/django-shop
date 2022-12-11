@@ -2,9 +2,12 @@ import logging
 from random import randint
 from urllib.parse import urlparse
 
+from django.conf import settings
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.core.mail import mail_admins
+from django.db.models import Q
+from django.template.loader import render_to_string
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 
@@ -20,18 +23,27 @@ from django_ipgeobase.models import IPGeoBase
 
 from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase  # TODO: add all tasks
 from shop.filters import get_product_filter
-from shop.models import Category, ProductKind, Product, Basket, BasketItem, Order, Favorites, ShopUser, ShopUserManager
+from shop.models import Category, ProductKind, Product, Basket, BasketItem, Order, OrderItem, Favorites, \
+    ShopUser, ShopUserManager, News, Store, ServiceCenter
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 
+from .models import SiteProfile
 from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSerializer, ProductListSerializer, \
     ProductKindSerializer, \
     BasketSerializer, BasketItemActionSerializer, OrderListSerializer, OrderSerializer, OrderActionSerializer, \
     FavoritesSerializer, ComparisonSerializer, \
     UserListSerializer, UserSerializer, AnonymousUserSerializer, LoginSerializer, \
-    FlatPageListSerializer, FlatPageSerializer
+    FlatPageListSerializer, FlatPageSerializer, NewsSerializer, StoreSerializer, ServiceCenterSerializer, \
+    SiteProfileSerializer
 
 
 logger = logging.getLogger("django")
+
+
+def ensure_session(request):
+    if hasattr(request, 'session') and not request.session.session_key:
+        request.session.save()
+        request.session.modified = True
 
 
 class IsSuperUser(BasePermission):
@@ -77,22 +89,26 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         if self.action == 'list':
-            return Category.objects.get(slug='sewing.world').get_active_children()  # TODO: remove hard coded root
+            root_slug = self.request.site.profile.category_root_slug
+            return Category.objects.get(slug=root_slug).get_active_children()
         return Category.objects.filter(active=True)
 
     def get_object(self):
         key = self.kwargs.get(self.lookup_field)
 
         if not key.isdigit():
+            root_slug = self.request.site.profile.category_root_slug
             # instance select taken from mptt_urls
             instance = None
-            path = '{}/'.format(key)  # we add trailing slash to conform .get_path() from mptt_urls
+            path = key # path = '{}/'.format(key)  # we add trailing slash to conform .get_path() from mptt_urls
             try:
-                instance_slug = path.split('/')[-2]  # slug of the instance
+                instance_slug = path.split('/')[-1] #[-2]  # slug of the instance
                 candidates = Category.objects.filter(slug=instance_slug)  # candidates to be the instance
                 for candidate in candidates:
                     # here we compare each candidate's path to the path passed to this view
-                    if candidate.get_path() == path:
+                    if candidate.get_api_path() == path:
+                        if root_slug != candidate.get_root().slug:
+                            continue
                         instance = candidate
                         break
                 if instance:
@@ -125,8 +141,16 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             return ProductListSerializer
         return ProductSerializer
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        self.request.site.profile.product_thumbnail_size
+        context['product_thumbnail_size'] = self.request.site.profile.product_thumbnail_size
+        context['product_small_thumbnail_size'] = self.request.site.profile.product_small_thumbnail_size
+        return context
+
     def get_queryset(self):
         queryset = Product.objects.all().order_by('code')
+        has_category_filter = False
 
         for field, values in self.request.query_params.lists():
             base_field = field.split('__', 1)[0]
@@ -168,12 +192,20 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             elif field == 'categories':
                 key = '{}__pk__exact'.format(field)
                 queryset = queryset.filter(**{key: values[0]})
+                has_category_filter = True
 
                 category = Category.objects.get(pk=values[0])
                 if category.filters:
                     fields = category.filters.split(',')
                     self.product_filter = get_product_filter(self.request.query_params, queryset=queryset, fields=fields, request=self.request)
                     queryset = self.product_filter.qs
+            elif field in ('kind', 'manufacturer'):  # поиск по ключу
+                if len(values) > 1:
+                    key = '{}__pk__in'.format(field)
+                    queryset = queryset.filter(**{key: values})
+                else:
+                    key = '{}__pk__exact'.format(field)
+                    queryset = queryset.filter(**{key: values[0]})
             # elif field == 'inspection':
             #     if len(values) > 1:
             #         key = '{}__pk__in'.format(field)
@@ -181,19 +213,19 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             #     else:
             #         key = '{}__pk__istartswith'.format(field)
             #         queryset = queryset.filter(**{key: values[0]})
-            # elif field in ('account__units', 'inspection__breach'):  # поиск по ключу
-            #     if len(values) > 1:
-            #         key = '{}__pk__in'.format(field)
-            #         queryset = queryset.filter(**{key: values})
-            #     else:
-            #         key = '{}__pk__exact'.format(field)
-            #         queryset = queryset.filter(**{key: values[0]})
             # elif len(values) > 1:  # поиск в массиве
             #     key = '{}__in'.format(field)
             #     queryset = queryset.filter(**{key: values})
             # else:  # строковый поиск
             #     key = '{}__exact'.format(field)
             #     queryset = queryset.filter(**{key: values[0]})
+
+        # Always limit product list to current category hierarchy
+        if not has_category_filter:
+            root_slug = self.request.site.profile.category_root_slug
+            if root_slug:
+                root = Category.objects.get(slug=root_slug)
+                queryset = queryset.filter(categories__in=root.get_descendants(include_self=True))
 
         return queryset.distinct()
 
@@ -342,6 +374,9 @@ class OrderViewSet(viewsets.ModelViewSet):
             'user': self.request.user
         }
         excludes = {}
+        order_site = self.request.query_params.get('site', None)
+        if order_site is not None:
+            filters['site'] = order_site
         order_filter = self.request.query_params.get('filter', None)
         if order_filter == 'done':
             filters['status__in'] = [Order.STATUS_DONE, Order.STATUS_FINISHED]
@@ -358,8 +393,11 @@ class OrderViewSet(viewsets.ModelViewSet):
         except Basket.DoesNotExist:
             return Response("Basket does not exist", status=status.HTTP_400_BAD_REQUEST)
 
+        if basket.quantity == 0:
+            return Response("Basket is empty", status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            order = Order.register(basket)
+            order = Order.register(basket, site=request.site)
             ipgeobases = IPGeoBase.objects.by_ip(request.META.get('REMOTE_ADDR'))
             if ipgeobases.exists():
                 for ipgeobase in ipgeobases:
@@ -562,10 +600,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
         # preserve user basket because django login rotates session id
         if basket:
+            ensure_session(request)
             basket.update_session(request.session.session_key)
 
         return Response({
             "id": user.id,
+            "registered": user.registered
         })
 
     @action(detail=False, methods=['get'])
@@ -576,12 +616,10 @@ class UserViewSet(viewsets.ModelViewSet):
             basket = None
 
         logout(request)
-        request.session.save()
-        request.session.modified = True
 
         if basket is not None:
+            ensure_session(request)
             basket.update_session(request.session.session_key)
-            basket.save()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -617,6 +655,27 @@ class CsrfTokenView(views.APIView):
         })
 
 
+class WarrantyCardView(views.APIView):
+    def get(self, request, code):
+        item = OrderItem.objects.filter(serial_number=code.strip()).order_by('-order__created').first()
+        if item is None:
+            return Response({'code': ['Изделие с таким серийным номером не покупалось в нашем интернет-магазине']}, status=status.HTTP_400_BAD_REQUEST)
+
+        context = {
+            'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
+            'order': item.order,
+            'product': item.product,
+            'serial_number': item.serial_number,
+            'admin': False
+        }
+
+        rendered = render_to_string('shop/warrantycard/common.html', context)
+
+        return Response({
+            "html": rendered
+        })
+
+
 class FlatPageViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'url'
     lookup_value_regex = '.*'
@@ -628,13 +687,55 @@ class FlatPageViewSet(viewsets.ReadOnlyModelViewSet):
         return FlatPageSerializer
 
     def get_queryset(self):
-        domain = urlparse(self.request.META.get('HTTP_REFERER', '')).hostname
-        if domain == 'cartzilla.sigalev.ru':  # TODO: put this in Sites config
-            domain = 'www.sewing-world.ru'
-        return FlatPage.objects.filter(sites__domain=domain)
+        return FlatPage.objects.filter(sites=self.request.site)
 
     def get_object(self):
         # TODO: add support for authorization and template
         key = self.kwargs.get(self.lookup_field)
         self.kwargs[self.lookup_field] = '/{}/'.format(key)
+        return super().get_object()
+
+
+class NewsViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = NewsSerializer
+
+    def get_queryset(self):
+        return News.objects.filter(sites=self.request.site, active=True)
+
+
+class StoreViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = StoreSerializer
+
+    def get_queryset(self):
+        return Store.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+
+
+class ServiceCenterViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ServiceCenterSerializer
+
+    def get_queryset(self):
+        return ServiceCenter.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+
+
+class SiteProfileViewSet(viewsets.ReadOnlyModelViewSet):
+    lookup_field = 'site'
+    lookup_value_regex = '(:?\d+|current)'
+    serializer_class = SiteProfileSerializer
+    queryset = SiteProfile.objects.all()
+
+    def get_permissions(self):
+        self.permission_classes = [IsSuperUser]
+        if self.action == 'retrieve':
+            key = self.kwargs.get(self.lookup_field)
+            if key == 'current':
+                self.permission_classes = []
+
+        return super().get_permissions()
+
+    def get_object(self):
+        key = self.kwargs.get(self.lookup_field)
+
+        if key == 'current':
+            return self.request.site.profile
+
         return super().get_object()

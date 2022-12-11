@@ -96,11 +96,14 @@ def get_unfulfilled_orders(self):
                     continue
 
             basket.save()
-            order = Order.register(basket)
 
-            is_express = posting.get('is_express', False)
-            if is_express:
-                order.delivery = Order.DELIVERY_EXPRESS
+            kwargs = {
+                'delivery_tracking_number': posting_number
+            }
+            if posting.get('is_express', False):
+                kwargs['delivery'] = Order.DELIVERY_EXPRESS
+
+            order = Order.register(basket, **kwargs)
 
             full_address = []
             analytics_data = posting.get('analytics_data', {})
@@ -123,7 +126,6 @@ def get_unfulfilled_orders(self):
             if date:
                 order.delivery_dispatch_date = datetime.strptime(date.split('T')[0], '%Y-%m-%d')
 
-            order.delivery_tracking_number = posting_number
             order.save()
             num = num + 1
         return num
@@ -135,7 +137,7 @@ def get_unfulfilled_orders(self):
         raise TaskFailure(message) from e
 
 
-@shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
+@shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), rate_limit='1/s', retry_backoff=300, retry_jitter=False)
 def notify_product_stocks(self, product_id):
     integration = Integration.objects.get(utm_source='ozon')
     client_id = integration.settings.get('client_id', '')
@@ -149,8 +151,8 @@ def notify_product_stocks(self, product_id):
     }
     product = Product.objects.get(pk=product_id)
 
-    stock = min(10, int(product.get_stock(integration=integration)))
-    express_stock = min(10, int(product.get_stock(integration=integration, express=True)))
+    stock = max(0, min(10, int(product.get_stock(integration=integration))))
+    express_stock = max(0, min(10, int(product.get_stock(integration=integration, express=True))))
 
     data = {
         "stocks": []

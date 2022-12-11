@@ -32,6 +32,7 @@ sitemaps = {
 }
 
 router = DefaultRouter()
+router.register(r'sites', api.SiteProfileViewSet, basename='site')
 router.register(r'baskets', api.BasketViewSet, basename='basket')
 router.register(r'orders', api.OrderViewSet, basename='order')
 router.register(r'favorites', api.FavoritesViewSet, basename='favorite')
@@ -41,6 +42,10 @@ router.register(r'products', api.ProductViewSet, basename='product')
 router.register(r'kinds', api.ProductKindViewSet, basename='kind')
 router.register(r'users', api.UserViewSet, basename='user')
 router.register(r'pages', api.FlatPageViewSet, basename='page')
+router.register(r'news', api.NewsViewSet, basename='news')
+router.register(r'stores', api.StoreViewSet, basename='store')
+router.register(r'servicecenters', api.ServiceCenterViewSet, basename='servicecenter')
+router.register(r'reviews', ReviewViewSet, basename='review')
 router.register(r'reviews/(?P<model>[a-z]+.[a-z]+)/(?P<identifier>[^/.]+)', ReviewViewSet, basename='review')
 
 urlpatterns = [
@@ -49,6 +54,7 @@ urlpatterns = [
     # Rest API
     path('api/v0/', include(router.urls)),
     path('api/v0/csrf/', api.CsrfTokenView.as_view()),
+    path('api/v0/warrantycard/<str:code>/', api.WarrantyCardView.as_view()),
     # ex: /sitemap.xml
     url(r'^sitemap\.xml$', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     # ex: /search.xml
