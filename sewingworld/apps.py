@@ -8,6 +8,7 @@ class SWAppConfig(AppConfig):
 
     def ready(self):
         import sewingworld.tasks  # noqa: F401
+        import sewingworld.signals  # noqa: F401
 
         import djconfig
         from .forms import SWConfigForm

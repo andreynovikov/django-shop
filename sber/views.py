@@ -79,7 +79,11 @@ def new_order(request):
                 return JsonResponse({"success": 0, "meta": {}, "error": {"message": str(e)}})
 
         basket.save()
-        order = Order.register(basket)
+
+        kwargs = {
+            'delivery_tracking_number': shipment.get('shipmentId', None)
+        }
+        order = Order.register(basket, **kwargs)
 
         full_address = []
         delivery = shipment.get('label', {})
@@ -105,8 +109,6 @@ def new_order(request):
         date = shipment.get('shipping', {}).get('shippingDate', None)
         if date:
             order.delivery_dispatch_date = datetime.strptime(date.split('T')[0], '%Y-%m-%d')
-
-        order.delivery_tracking_number = shipment.get('shipmentId', None)
 
         order.status = Order.STATUS_ACCEPTED  # автоматическое подтверждение сработает по сигналу смены статуса
         order.save()

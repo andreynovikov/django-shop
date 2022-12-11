@@ -147,7 +147,15 @@ def accept_order(request, account='beru'):
             return JsonResponse({"order": {"accepted": False, "reason": "OUT_OF_DATE"}})
 
     basket.save()
-    order = Order.register(basket)
+
+    kwargs = {
+        'delivery_tracking_number': order_id
+    }
+    integration = Integration.objects.filter(utm_source=account).first()
+    if integration.settings.get('is_taxi', False):
+        kwargs['delivery'] = Order.DELIVERY_EXPRESS
+
+    order = Order.register(basket, **kwargs)
 
     address = []
     delivery = beru_order.get('delivery', {})
@@ -166,11 +174,6 @@ def accept_order(request, account='beru'):
     if date:
         order.delivery_dispatch_date = datetime.strptime(date, '%d-%m-%Y')
 
-    is_taxi = order.integration.settings.get('is_taxi', False)
-    if is_taxi:
-        order.delivery = Order.DELIVERY_EXPRESS
-
-    order.delivery_tracking_number = order_id
     order.comment = beru_order.get('notes', '')
     order.save()
 

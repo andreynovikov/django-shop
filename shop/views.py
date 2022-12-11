@@ -22,6 +22,8 @@ from django.db import IntegrityError
 from django.utils.formats import localize
 from django.utils.html import escape
 
+from sewingworld.celery import PRIORITY_HIGHEST, PRIORITY_IDLE
+
 from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 from shop.models import Product, Basket, BasketItem, Order, OrderItem, ShopUser, ShopUserManager, Favorites
@@ -127,8 +129,10 @@ def view_basket(request):
             pass
 
     if FACEBOOK_TRACKING:
-        notify_initiate_checkout.delay(basket.id, user_id, request.build_absolute_uri(),
-                                       request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
+        notify_initiate_checkout.s(
+            basket.id, user_id, request.build_absolute_uri(),
+            request.META.get('REMOTE_ADDR'),
+            request.META['HTTP_USER_AGENT']).apply_async(priority=PRIORITY_IDLE)
     context = {
         'basket': basket,
         'shop_user': user,
@@ -159,8 +163,10 @@ def add_to_basket(request, product_id):
         basket.save()
 
     if FACEBOOK_TRACKING:
-        notify_add_to_cart.delay(product.id, request.build_absolute_uri(),
-                                 request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
+        notify_add_to_cart.s(
+            product.id, request.build_absolute_uri(),
+            request.META.get('REMOTE_ADDR'),
+            request.META['HTTP_USER_AGENT']).apply_async(priority=PRIORITY_IDLE)
 
     # as soon as user starts gethering new basket "forget" last order
     try:
@@ -345,7 +351,7 @@ def authorize(request):
             """ User exists, request password """
             if not user.permanent_password:
                 try:
-                    send_password.delay(norm_phone, password)
+                    send_password.s(norm_phone, password).apply_async(priority=PRIORITY_HIGHEST)
                 except Exception as e:
                     mail_admins('Task error', 'Failed to send password: %s' % e, fail_silently=True)
             data = {
@@ -497,7 +503,7 @@ def login_user(request):
                 user.save()
                 try:
                     if reg != '1':
-                        send_password.delay(norm_phone, password)
+                        send_password.s(norm_phone, password).apply_async(priority=PRIORITY_HIGHEST)
                 except Exception as e:
                     mail_admins('Task error', 'Failed to send password: %s' % e, fail_silently=True)
             context = {
@@ -601,7 +607,7 @@ def reset_password(request):
         user.permanent_password = False
         user.save()
         try:
-            send_password.delay(phone, password)
+            send_password.s(phone, password).apply_async(priority=PRIORITY_HIGHEST)
         except Exception as e:
             mail_admins('Task error', 'Failed to send password: %s' % e, fail_silently=True)
     else:
@@ -654,8 +660,10 @@ def confirm_order(request, order_id=None):
             basket.delete()
 
             if FACEBOOK_TRACKING:
-                notify_purchase.delay(order.id, request.build_absolute_uri(),
-                                      request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
+                notify_purchase.s(
+                    order.id, request.build_absolute_uri(),
+                    request.META.get('REMOTE_ADDR'),
+                    request.META['HTTP_USER_AGENT']).apply_async(priority=PRIORITY_IDLE)
             """ clear promo discount """
             try:
                 del request.session['discount']
