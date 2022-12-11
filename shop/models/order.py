@@ -291,7 +291,7 @@ class Order(models.Model):
             integration = Integration.objects.filter(utm_source=basket.utm_source).first()
             if integration.uses_api:
                 kwargs['site'] = integration.site
-        if kwargs['site'] is None:
+        if 'site' not in kwargs:
             kwargs['site'] = Site.objects.get_current()
         order = Order(user=user, **kwargs)
         order.integration = integration
@@ -453,6 +453,8 @@ class OrderItem(models.Model):
     serial_number = models.CharField('SN', max_length=30, blank=True)
     box = models.ForeignKey(Box, blank=True, null=True, related_name='products', related_query_name='box', verbose_name='коробка', on_delete=models.SET_NULL)
     meta = models.JSONField(null=True, blank=True, editable=False)
+
+    tracker = FieldTracker(fields=['quantity'])
 
     @property
     def price(self):
