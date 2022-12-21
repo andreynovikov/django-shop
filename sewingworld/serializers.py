@@ -200,7 +200,6 @@ class ProductListSerializer(NonNullModelSerializer):
             domain = urlparse(request.META.get('HTTP_REFERER', '')).hostname
             if domain == 'cartzilla.sigalev.ru':  # TODO: put this in Sites config
                 domain = 'www.sewing-world.ru'
-            logger.error(request.META.get('HTTP_REFERER', ''))
             return list(obj.sales_actions.filter(active=True).exclude(notice='').order_by('order').values_list('notice', flat=True)) # , sites__domain=domain).order_by('order')
         return None
 
