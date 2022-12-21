@@ -76,37 +76,36 @@ def get_unfulfilled_orders(self):
                 continue
 
             order = Order.objects.filter(delivery_tracking_number=posting_number).first()
-            if order is not None:
-                continue
-            basket = Basket.objects.create(session_id=session.session_key, utm_source='ozon', secondary=True)
+            if order is None:
+                basket = Basket.objects.create(session_id=session.session_key, utm_source='ozon', secondary=True)
 
-            for ozon_item in posting.get('products', []):
-                try:
-                    sku = ozon_item.get('offer_id', '#NO_SKU#')
-                    product = Product.objects.get(article=sku)
-                    price = Decimal(ozon_item.get('price', '0'))
-                    quantity = ozon_item.get('quantity', 0)
-                    item, _ = basket.items.get_or_create(product=product)
-                    item.quantity = quantity
-                    if product.price > price:
-                        item.ext_discount = product.price - price
-                    item.save()
-                except Exception as e:
-                    logger.exception(e)
-                    continue
+                for ozon_item in posting.get('products', []):
+                    try:
+                        sku = ozon_item.get('offer_id', '#NO_SKU#')
+                        product = Product.objects.get(article=sku)
+                        price = Decimal(ozon_item.get('price', '0'))
+                        quantity = ozon_item.get('quantity', 0)
+                        item, _ = basket.items.get_or_create(product=product)
+                        item.quantity = quantity
+                        if product.price > price:
+                            item.ext_discount = product.price - price
+                        item.save()
+                    except Exception as e:
+                        logger.exception(e)
+                        continue
 
-            basket.save()
+                basket.save()
 
-            kwargs = {
-                'delivery_tracking_number': posting_number
-            }
-            if posting.get('is_express', False):
-                kwargs['delivery'] = Order.DELIVERY_EXPRESS
+                kwargs = {
+                    'delivery_tracking_number': posting_number
+                }
+                if posting.get('is_express', False):
+                    kwargs['delivery'] = Order.DELIVERY_EXPRESS
 
-            order = Order.register(basket, **kwargs)
+                order = Order.register(basket, **kwargs)
 
             full_address = []
-            analytics_data = posting.get('analytics_data', {})
+            analytics_data = posting.get('analytics_data', {}) or {}  # Ozon sometimes sets analytics_data to None
             region = analytics_data.get('region', None)
             if region:
                 full_address.append(region)
