@@ -3,7 +3,7 @@ import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from sewingworld.celery import PRIORITY_IDLE
+from sewingworld.tasks import PRIORITY_IDLE
 
 from shop.models import Integration, Product, OrderItem
 
