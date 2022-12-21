@@ -19,12 +19,3 @@ def zinnia_count_discussions():
 @shared_task
 def zinnia_spam_cleanup():
     management.call_command("spam_cleanup", verbosity=1)
-
-
-@shared_task
-def haystack_update_index():
-    management.call_command("update_index", verbosity=1)
-
-@shared_task
-def lock_tokens_remove_expired_locks():
-    management.call_command("remove_expired_locks", verbosity=1)

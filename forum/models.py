@@ -2,40 +2,7 @@ from __future__ import unicode_literals
 
 from django.db import models
 
-from spirit.category.models import Category
-from spirit.user.models import UserProfile
-from spirit.topic.models import Topic
-from spirit.comment.flag.models import CommentFlag
-
 from shop.models import Product
-
-
-class SpiritCategory(Category):
-    class Meta:
-        proxy = True
-        verbose_name = 'Категория'
-        verbose_name_plural = 'Категории'
-
-
-class SpiritUserProfile(UserProfile):
-    class Meta:
-        proxy = True
-        verbose_name = 'Профиль пользователя'
-        verbose_name_plural = 'Профили пользователя'
-
-
-class SpiritTopic(Topic):
-    class Meta:
-        proxy = True
-        verbose_name = 'Тема'
-        verbose_name_plural = 'Темы'
-
-
-class SpiritCommentFlag(CommentFlag):
-    class Meta:
-        proxy = True
-        verbose_name = 'Пометка'
-        verbose_name_plural = 'Пометки'
 
 
 class BassetUser(models.Model):

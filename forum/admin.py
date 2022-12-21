@@ -14,63 +14,6 @@ from shop.admin.decorators import admin_changelist_link
 from . import models
 
 
-@admin.register(models.SpiritCategory)
-class SpiritCategoryAdmin(admin.ModelAdmin):
-    list_display = ['title', 'slug', 'is_closed', 'is_removed', 'is_private', 'is_global']
-
-
-@admin.register(models.SpiritUserProfile)
-class SpiritUserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'slug', 'last_seen', 'last_post_on', 'is_administrator', 'is_moderator']
-    list_filter = ['is_administrator', 'is_moderator']
-    readonly_fields = ['user', 'slug', 'topic_count', 'comment_count', 'last_seen', 'last_ip', 'last_post_on', 'last_post_hash']
-    search_fields = ['user__phone', 'user__name', 'user__email']
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-
-@admin.register(models.SpiritTopic)
-class SpiritTopicAdmin(admin.ModelAdmin):
-    def category_title(self, obj):
-        return obj.category.title
-    category_title.admin_order_field = 'category'
-    category_title.short_description = 'категория'
-
-    @mark_safe
-    def view_link(self, obj):
-        return '<a href={}><i class="fas fa-external-link-alt"></i></a>'.format(reverse('spirit:topic:detail', args=(obj.pk, obj.slug)))
-    view_link.short_description = 'просмотр'
-
-    list_display = ['title', 'category_title', 'date', 'comment_count', 'is_pinned', 'is_globally_pinned', 'is_closed', 'is_removed', 'view_link']
-    list_filter = ['is_pinned', 'is_globally_pinned', 'is_closed', 'is_removed']
-    readonly_fields = ['user', 'date', 'last_active', 'view_count', 'comment_count']
-    search_fields = ['title']
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-
-@admin.register(models.SpiritCommentFlag)
-class SpiritCommentFlagAdmin(admin.ModelAdmin):
-    @mark_safe
-    def view_link(self, obj):
-        return "<a href={}>{}</a>".format(reverse('spirit:comment:find', args=(obj.pk,)), obj.comment.comment)
-    view_link.short_description = 'просмотр'
-
-    @mark_safe
-    def moderate_link(self, obj):
-        return '<a href={}><i class="icon-lock"></i></a>'.format(reverse('spirit:admin:flag:detail', args=(obj.pk,)))
-    moderate_link.short_description = 'модерирование'
-
-    list_display = ['view_link', 'date', 'is_closed', 'moderate_link']
-    list_filter = ['is_closed']
-    list_display_links = None
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-
 @admin.register(models.Opinion)
 class OpinionAdmin(admin.ModelAdmin):
     @mark_safe

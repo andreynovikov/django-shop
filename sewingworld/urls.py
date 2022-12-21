@@ -5,9 +5,10 @@ from django.urls import path
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.views.decorators.cache import cache_page
 
 import mptt_urls
-import spirit.urls
+
 from zinnia.sitemaps import EntrySitemap
 from forum.sitemaps import ThreadSitemap
 from rest_framework.routers import DefaultRouter
@@ -57,7 +58,7 @@ urlpatterns = [
     path('api/v0/csrf/', api.CsrfTokenView.as_view()),
     path('api/v0/warrantycard/<str:code>/', api.WarrantyCardView.as_view()),
     # ex: /sitemap.xml
-    url(r'^sitemap\.xml$', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
+    url(r'^sitemap\.xml$', cache_page(60 * 60 * 24, cache='files')(sitemap), {'sitemaps': sitemaps}, name='sitemap'),
     # ex: /search.xml
     url(r'^search\.xml$', views.products, {'template': 'search', 'filters': None}, name='search_xml'),
     # ex: /full.xml
@@ -113,13 +114,13 @@ urlpatterns = [
     url(r'^kassa/', include('yandex_kassa.urls')),
     url(r'^blog/', include('zinnia.urls')),
     url(r'^comments/', include('django_comments.urls')),
-    url(r'^forum/', include(spirit.urls)),
     url(r'^reviews/', include('reviews.urls')),
     url(r'^oldforum/', include('forum.urls')),
 
+    path('admin/', include('massadmin.urls')),
+    path('admin/', include('loginas.urls')),
     path('admin/', admin.site.urls),
-    url(r'^admin/', include('massadmin.urls')),
-    url(r'^admin/', include('loginas.urls')),
+    path('', include('django_prometheus.urls')),
 ]
 
 # Add Yandex integrations
