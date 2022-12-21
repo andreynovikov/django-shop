@@ -130,6 +130,7 @@ class ProductKindViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
+    lookup_value_regex = '[^/]+'
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ('id', 'code', 'article', 'title', 'price')
@@ -286,7 +287,7 @@ class BasketViewSet(viewsets.ModelViewSet):
     serializer_class = BasketSerializer
 
     def get_queryset(self):
-        queryset = Basket.objects.filter(session_id=self.request.session.session_key)
+        queryset = Basket.objects.filter(session_id__isnull=False, session_id=self.request.session.session_key)
         return queryset
 
     def destroy(self, request):
