@@ -6,7 +6,7 @@
 <h1>Печать гарантийного талона</h1>
 
 {% if form %}
-<form id="warranty-card" action="{% url 'shop:warranty_card' %}" method="post">
+<form id="warranty-card" action="{% url 'shop:warranty_card' %}" method="post" style="width: 90%">
     {% csrf_token %}
     {% for field in form %}
         <div class="has-feedback{% if field.errors %} has-error{% endif %}">
@@ -20,7 +20,7 @@
         </div>
         <span class="help-block">{{ field.help_text }}</span>
     {% endfor %}
-    <div class="center" style="padding-top:10px;"><input type="submit" class="btn btn-success" value="Распечатать"/></div>
+    <div style="padding-top:10px;"><input type="submit" class="btn btn-success" value="Распечатать"/></div>
 </form>
 {% endif %}
 
