@@ -1,0 +1,37 @@
+{
+    "version": "2.12.06",
+    "scripts": {
+        "dev": "next dev -H 127.0.0.1 -p 3002",
+        "start": "next start -H 127.0.0.1 -p 4002",
+        "lint": "next lint",
+        "build": "next build",
+        "deploy": "sudo rsync -av --no-links --delete --delete-delay --chown=www-data:www-data .next-build/static .next-build/standalone/. public deploy"
+    },
+    "dependencies": {
+        "@fortawesome/fontawesome-svg-core": "^6.2.1",
+        "@fortawesome/free-regular-svg-icons": "^6.2.1",
+        "@fortawesome/free-solid-svg-icons": "^6.2.1",
+        "@fortawesome/react-fontawesome": "^0.2.0",
+        "@popperjs/core": "^2.11.6",
+        "axios": "^1.2.0",
+        "bootstrap": "^5.2.3",
+        "glightbox": "^3.2.0",
+        "moment": "^2.29.4",
+        "next": "^13.0.5",
+        "react": "^18.2.0",
+        "react-bootstrap": "^2.6.0",
+        "react-bootstrap-typeahead": "^6.0.0",
+        "react-dom": "^18.2.0",
+        "react-gtm-module": "^2.0.11",
+        "react-popper": "^2.3.0",
+        "react-query": "^3.39.2",
+        "react-toastify": "^9.1.1",
+        "react-yandex-metrika": "^2.6.0"
+    },
+    "devDependencies": {
+        "eslint": "^8.28.0",
+        "eslint-config-next": "^13.0.4",
+        "eslint-plugin-unused-imports": "^2.0.0",
+        "sass": "^1.56.1"
+    }
+}

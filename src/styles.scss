@@ -1,0 +1,365 @@
+@import "~bootstrap/scss/functions";
+
+$body-color: #71655c;
+
+$primary: #d6083b;
+$warning: #f0ad4e;
+$accent: #d45200;
+
+$link-color: $primary;
+$dropdown-link-color: $primary;
+
+$border-color: #d7d2cb;
+$table-border-color: $border-color;
+
+$font-family-base: helvetica, arial, sans-serif;
+
+$font-size-base: .9rem;
+$font-size-xl: ($font-size-base * 2);
+$font-size-lg: ($font-size-base * 1.25);
+$font-size-sm: ($font-size-base * .875);
+$font-size-xs: ($font-size-base * .7);
+
+$lead-font-size: ($font-size-base * 1.35);
+
+$line-height-base: 1.2;
+
+$h1-font-size: $font-size-base * 2.5;
+$h2-font-size: $font-size-base * 2;
+$h3-font-size: $font-size-base * 1.7;
+$h4-font-size: $font-size-base * 1.5;
+$h5-font-size: $font-size-base * 1.25;
+$h6-font-size: $font-size-base;
+
+$headings-font-weight: 300;
+$headings-line-height: 1;
+
+$link-decoration: none;
+$link-hover-decoration: underline;
+
+// import missing base theme colors
+@import "~bootstrap/scss/variables";
+
+$theme-colors: (
+  "primary":    $primary,
+  "accent":     $accent,
+  "secondary":  $secondary,
+  "success":    $success,
+  "info":       $info,
+  "warning":    $warning,
+  "danger":     $danger,
+  "light":      $light,
+  "dark":       $dark
+);
+
+@import "~bootstrap/scss/bootstrap";
+
+.fs-base {
+    font-size: $font-size-base !important;
+}
+
+.fs-sm {
+    font-size: $font-size-sm !important;
+}
+
+.fs-md {
+    font-size: $font-size-base * 1.15 !important;
+}
+
+.fs-lg {
+    font-size: $font-size-lg !important;
+}
+
+body {
+    background: transparent url("/i/newsingerco/bg_main.png") repeat center top !important;
+}
+
+h1 {
+    margin: 10px 0 20px 0;
+    color: $primary;
+
+    &.si-product-header {
+        text-transform: uppercase;
+
+        .badge {
+            font-size: $font-size-base !important;
+        }
+    }
+}
+
+header, main, footer {
+    margin: 0 auto;
+    max-width: 972px;
+}
+
+main {
+    background: transparent;
+    padding-left: 5px;
+    padding-right: 10px;
+
+    @include media-breakpoint-down(lg) {
+        padding: 0 $container-padding-x * 0.5;
+    }
+
+    h2, h3 {
+        margin-top: 10px;
+    }
+}
+
+header {
+    position: relative;
+    min-height: 190px;
+    padding: 0 calc(5px + 0.5 * $grid-gutter-width);
+    background: url(/i/newsingerco/bg_header.png) center top no-repeat;
+    color: #f37b83;
+
+    @include media-breakpoint-down(sm) {
+        background: $primary;
+        min-height: auto;
+    }
+}
+
+footer {
+    min-height: 199px;
+    background: url(/i/newsingerco/bg_footer.png) center bottom no-repeat;
+    background-size: 100%;
+    margin-top: 30px;
+    color: #f37b83;
+
+    @include media-breakpoint-down(sm) {
+        background: $primary;
+    }
+
+    a {
+        margin: 0 16px;
+        color: #f37b83;
+
+        &:hover {
+            color: #f3d1d3;
+        }
+    }
+
+    form {
+        input[type="text"] {
+            max-width: 300px;
+            width: 100%;
+        }
+    }
+}
+
+.page-link {
+    &.page-link-static:hover {
+        background-color: $pagination-bg;
+        color: $pagination-color;
+    }
+}
+
+.nav-link-style {
+    &:hover {
+        text-decoration: none;
+    }
+}
+
+#secondaryNavigation {
+    color: #f9b3b8;
+
+    a:not(.dropdown-item) {
+        color: #f9b3b8;
+
+        &:hover {
+            color: white;
+            text-decoration: none;
+        }
+    }
+}
+
+#navigation {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+
+    @include media-breakpoint-down(sm) {
+        position: static;
+    }
+
+    .navLink {
+        text-align: center;
+        padding: 0 .75em;
+        cursor: pointer;
+
+        @include media-breakpoint-down(sm) {
+            padding: .4em 0;
+            width: 100%;
+            height: 100%;
+        }
+    }
+
+    &>div {
+        display: inline-block;
+
+        @include media-breakpoint-down(sm) {
+            display: block;
+        }
+
+        &>a {
+            display: block;
+            border-right: 2px solid #685c53;
+            color: #685c53;
+            text-align: center;
+            font-weight: bold;
+
+            @include media-breakpoint-down(sm) {
+                color: white;
+                border-right: none;
+                border-top: 1px solid white;
+            }
+
+            &:hover {
+                color: $primary;
+                text-decoration: none;
+
+                @media (max-width: 767px) {
+                    color: #f3d1d3;
+                }
+            }
+        }
+
+        &:last-child>a {
+                border-right: none
+        }
+    }
+}
+
+.si-mega-menu {
+    max-width: 960px;
+    width: 100vw;
+
+    .dropdown-item {
+        font-weight: bold;
+        white-space: normal;
+        padding: 0;
+
+        &:hover, &:focus {
+            background-color: transparent;
+        }
+    }
+}
+
+.product_display {
+    padding: 10px;
+    width: 380px;
+    border-radius: 10px;
+    background: white;
+
+    @include media-breakpoint-up(lg) {
+        width: 300px;
+    }
+
+    @include media-breakpoint-down(sm) {
+        width: 100%;
+        margin: 16px 0;
+    }
+
+    .thumb {
+        border: 1px solid #F1EBE4;
+
+        img {
+            height: 160px;
+            width: auto;
+        }
+    }
+
+    .title {
+        margin: 10px 0;
+        font-weight: 200;
+        font-size: $font-size-base * 1.2 !important;
+    }
+
+    .description p {
+        margin: 7px 0;
+        color: #716D69;
+        font-size: $font-size-base * 0.8 !important;
+    }
+}
+
+ul.si-category-list {
+    width: 240px;
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+
+    @include media-breakpoint-up(lg) {
+        width: 300px;
+    }
+
+    @include media-breakpoint-down(sm) {
+        width: 100%;
+        margin: 16px 0;
+    }
+
+    li {
+        margin: 0 0 12px;
+        padding: 0;
+        line-height: 100%;
+
+        a {
+            display: block;
+            padding: 12px;
+            color: #666;
+            border: 1px solid #d7d2cb;
+            border-radius: 10px;
+
+            &:hover {
+                color: $primary;
+                background: #e3ddd5;
+                text-decoration: none;
+            }
+        }
+    }
+}
+
+.si-category-image {
+    max-width: 520px;
+    height: auto;
+
+    @include media-breakpoint-up(lg) {
+        max-width: 600px;
+    }
+
+    @include media-breakpoint-down(sm) {
+        max-width: 100%;
+    }
+}
+
+.product-nal-true     { color:#4cae4c; font-weight:bold; }
+.product-nal-false    { color:#aaaaaa; font-weight:bold; }
+
+.popover.sw-field-help {
+    max-width: 725px;
+
+    @include media-breakpoint-down(sm) {
+        margin: 0 2%;
+        max-width: 95%;
+    }
+
+    &>.popover-body {
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 0.625em;
+
+            &[align="left"] {
+                max-width: 60%;
+                margin-right: 0.625em;
+            }
+        }
+    }
+}
+
+.ratio + h5 {
+    margin-top: map-get($spacers, 2);
+}
+
+:root {
+    --toastify-color-progress-light: #{$primary};
+}
