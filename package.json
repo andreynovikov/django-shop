@@ -1,8 +1,8 @@
 {
-    "version": "2.12.06",
+    "version": "3.01.20",
     "scripts": {
-        "dev": "next dev -H 127.0.0.1 -p 3002",
-        "start": "next start -H 127.0.0.1 -p 4002",
+        "dev": "next dev -H 127.0.0.1 -p 3003",
+        "start": "next start -H 127.0.0.1 -p 4003",
         "lint": "next lint",
         "build": "next build",
         "deploy": "sudo rsync -av --no-links --delete --delete-delay --chown=www-data:www-data .next-build/static .next-build/standalone/. public deploy"
