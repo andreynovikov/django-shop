@@ -58,9 +58,7 @@ export default function FieldHelp({field}) {
 
     return (
         <>
-            <button type="button" ref={setReferenceElement} onClick={handleClick} className="btn btn-link p-0 ps-1">
-                <img src="/i/icons/more_icon.png" className="opacity-50" alt="Подсказка" />
-            </button>
+            <img ref={setReferenceElement} src="/i/icons/more_icon.png" className="opacity-50 align-baseline btn btn-link p-0 ps-1" alt="Подсказка" onClick={handleClick} />
             { visible && (
                 <div className="popover bs-popover-auto sw-field-help" ref={setPopperElement} style={styles.popper} {...attributes.popper}>
                     <div className="popover-arrow" ref={setArrowElement} style={styles.arrow} {...attributes.arrow} />
