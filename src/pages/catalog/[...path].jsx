@@ -42,17 +42,12 @@ export default function Category({path, filters, order}) {
 
     if (isSuccess)
         return (
-            <div className="d-flex flex-wrap justify-content-between py-2" style={{gap: "20px"}}>
-                { category.promo_image && (
-                    <div>
-                        <img src={ category.promo_image } className="si-category-image" width={ category.promo_image_width } height={ category.promo_image_height } alt="" />
-                    </div>
-                )}
+            <>
                 { category.children && (
-                    <ul className="si-category-list fs-md order-sm-first">
+                    <ul className="catalog">
                         { /* TODO: filter hidden (here or in API) */ }
                         {category.children.map((subcategory) => (
-                            <li key={subcategory.id}>
+                            <li className="category" key={subcategory.id}>
                                 <Link href={`/catalog/${category.path.uri}/${subcategory.slug}`}>
                                     { subcategory.name }
                                 </Link>
@@ -60,10 +55,12 @@ export default function Category({path, filters, order}) {
                         ))}
                     </ul>
                 )}
-                { isProductsSuccess && products.results.map((product) => (
-                    <ProductCard product={product} key={product.id} />
-                ))}
-            </div>
+                <div className="d-flex flex-wrap justify-content-between py-2" style={{gap: "5px"}}>
+                    { isProductsSuccess && products.results.map((product) => (
+                        <ProductCard product={product} key={product.id} />
+                    ))}
+                </div>
+            </>
         )
 
     return null

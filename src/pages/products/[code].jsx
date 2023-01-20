@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
 
 import Layout from '@/components/layout';
 import FieldHelp from '@/components/product/field-help';
 import NoImage from '@/components/product/no-image';
+import Popover from '@/components/popover';
 
 import useBasket from '@/lib/basket';
 import { productKeys, loadProducts, loadProductByCode, getProductFields } from '@/lib/queries';
@@ -44,10 +45,10 @@ function rebootstrap(value) {
     value = value.replaceAll('col-md-8', 'col-md-4');
     value = value.replaceAll('col-md-10', 'col-md-5');
     value = value.replaceAll('col-md-12', 'col-md-6');
-    value = value.replaceAll('<h3>', '<h5>');
-    value = value.replaceAll('</h3>', '</h5>');
-    value = value.replaceAll('<h4>', '<h6>');
-    value = value.replaceAll('</h4>', '</h6>');
+    // value = value.replaceAll('<h3>', '<h5>');
+    // value = value.replaceAll('</h3>', '</h5>');
+    // value = value.replaceAll('<h4>', '<h6>');
+    // value = value.replaceAll('</h4>', '</h6>');
     value = value.replaceAll('embed-responsive embed-responsive-4by3', 'ratio ratio-4x3');
     value = value.replaceAll('embed-responsive embed-responsive-16by9', 'ratio ratio-16x9');
     return value;
@@ -57,6 +58,8 @@ export default function Product({code, title}) {
     const [glightboxModule, setGlightboxModule] = useState(null);
     const [productFields, setProductFields] = useState([]);
     const [fieldNames, setFieldNames] = useState({});
+    const [anchorDiscountElement, setAnchorDiscountElement] = useState(null);
+    const [anchorDeshevleElement, setAnchorDeshevleElement] = useState(null);
 
     const router = useRouter();
 
@@ -110,6 +113,22 @@ export default function Product({code, title}) {
         }
     };
 
+    const handleDiscountClick = (event) => {
+        setAnchorDiscountElement(event.currentTarget);
+    };
+
+    const handleDiscountClose = () => {
+        setAnchorDiscountElement(null);
+    };
+
+    const handleDeshevleClick = (event) => {
+        setAnchorDeshevleElement(event.currentTarget);
+    };
+
+    const handleDeshevleClose = () => {
+        setAnchorDeshevleElement(null);
+    };
+
     if (router.isFallback || isLoading || !isSuccess)
         return (
             <>
@@ -122,13 +141,14 @@ export default function Product({code, title}) {
         )
 
     return (
-        <div itemScope itemType="http://schema.org/Product">
-            <h1 className="si-product-header" itemProp="name">
+        <div className="product-page" itemScope itemType="http://schema.org/Product">
+            <h1 className="prodname" itemProp="name">
                 { product.title }
-                <sup className="d-block d-sm-inline mt-4 mt-sm-0">
-                    { product.ishot && <span className="badge text-bg-warning ms-1">Акция</span> }
-                    { product.isnew && <span className="badge text-bg-danger ms-1">Новинка</span> }
-                    { product.recomended && <span className="badge text-bg-success ms-1">Рекомендуем</span> }
+                <sup>
+                    { product.ishot && <span className="label sw-action">Акция</span> }
+                    { product.isnew && <span className="label sw-new">Новинка</span> }
+                    { product.recomended && <span className="label sw-recomended">Рекомендуем</span> }
+                    { product.utilisation && <span className="label sw-action">Скидка по &laquo;Утилизации&raquo;</span> }
                 </sup>
             </h1>
 
@@ -136,61 +156,89 @@ export default function Product({code, title}) {
             { (product.runame || product.whatis) && <p>{ product.whatis } { product.runame }</p> }
 
             <div className="d-flex flex-column-reverse flex-sm-row" style={{gap: 10}}>
-            <div className="flex-grow-1">
-                { product.image ? (
-                    <div className="text-center">
-                        <a className="glightbox" href={product.big_image || product.image} data-title={product.title}>
-                            <img
-                                className="img-fluid xsi-product-image"
-                                src={product.image}
-                                alt={`${product.title} ${product.whatis}`}
-                                itemProp="image" />
-                        </a>
+                <div className="flex-grow-1">
+                    <div className="product-image">
+                        { product.image ? (
+                            <div className="text-center">
+                                <a className="glightbox" href={product.big_image || product.image} data-title={product.title}>
+                                    <img
+                                        className="img-responsive"
+                                        src={product.image}
+                                        alt={`${product.title} ${product.whatis}`}
+                                        itemProp="image" />
+                                </a>
+                            </div>
+                        ) : (
+                            <NoImage className="d-none d-lg-block text-muted mx-auto" />
+                        )}
                     </div>
-                ) : (
-                    <NoImage className="d-none d-lg-block text-muted mx-auto" />
-                )}
-            </div>
-
-            <div className="card xsi-product-buyblock align-self-stretch align-self-sm-start">
-                <div className="card-body">
-                    { product.enabled ? (
-                        <div itemProp="offers" itemScope itemType="http://schema.org/Offer">
-                            { product.discount > 0 && (
-                                <p className="oldprice">
-                                    <del>{ product.price.toLocaleString('ru') }&nbsp;руб.</del>
-                                </p>
-                            )}
-                            <div>
-                                <span className="align-middle fs-md fw-bold">
-                                    <span className="lead fw-bold" itemProp="price">{ product.cost.toLocaleString('ru') }</span>&nbsp;руб.
-                                </span>
-
-                                <button className="btn btn-primary fw-bold ms-2 align-middle" type="button" onClick={handlePrimaryClick}>
-                                    { product.instock > 0 ? "Купить" : "Сообщить о поступлении" }
-                                </button>
-
-                                <span itemProp="priceCurrency" className="d-none">RUB</span>
-                            </div>
-
-                            <div className="mt-3">
-                                <span className="product-nal-caption">Наличие:</span>{" "}
-                                { product.instock > 1 ? (
-                                    <span className="product-nal-true">Есть</span>
-                                ) : product.instock == 1 ? (
-                                    <span className="product-nal-true">Мало</span>
-                                ) : (
-                                    <span className="product-nal-false">Нет</span>
-                                )}
-                            </div>
-
-                            { product.sales_notes && <p className="mt-3">{ product.sales_notes }</p> }
-                        </div>
-                    ) : (
-                        <span className="product-nal-false">Товар снят с продажи</span>
-                    )}
                 </div>
-            </div>
+
+                <div className="card align-self-stretch align-self-sm-start">
+                    <div className="card-body">
+                        { product.enabled ? (
+                            <div itemProp="offers" itemScope itemType="http://schema.org/Offer">
+                                { product.discount > 0 && (
+                                    <>
+                                        <p className="oldprice">
+                                            <del>{ product.price.toLocaleString('ru') }&nbsp;руб.</del>
+                                            <img onClick={handleDiscountClick} src="/i/icons/more_icon.png" className="opacity-50 align-baseline btn btn-link p-0 ps-1" alt="" />
+                                        </p>
+                                        <Popover
+                                            anchorElement={anchorDiscountElement}
+                                            onClose={handleDiscountClose}>
+                                            <h5>Скидка!</h5>
+                                            <div className="my-2">
+                                                Базовая цена в магазинах &laquo;Швейный Мир&raquo; без учета скидок:{' '}
+                                                <b>{ product.price.toLocaleString('ru') }&nbsp;руб.</b>
+                                            </div>
+                                            <div>
+                                                Скидка при покупке в интернет-магазине составляет:{' '}
+                                                <b>{ product.discount.toLocaleString('ru') }&nbsp;руб.</b>
+                                            </div>
+                                        </Popover>
+                                    </>
+                                )}
+                                <div>
+                                    <span className="align-middle fs-md fw-bold">
+                                        <span className="lead fw-bold sw-price" itemProp="price">{ product.cost.toLocaleString('ru') }</span>&nbsp;руб.
+                                    </span>
+
+                                    <button className="btn btn-success fw-bold ms-2 align-middle" type="button" onClick={handlePrimaryClick}>
+                                        { product.instock > 0 ? "Купить" : "Сообщить о поступлении" }
+                                    </button>
+
+                                    <span itemProp="priceCurrency" className="d-none">RUB</span>
+                                </div>
+
+                                { product.deshevle && (
+                                    <div className="my-1">
+                                        <button type="button" className="btn btn-link p-0" onClick={handleDeshevleClick}>Нашли дешевле?</button>
+                                        <Popover
+                                            page="/dialog/deshevle/"
+                                            anchorElement={anchorDeshevleElement}
+                                            onClose={handleDeshevleClose} />
+                                    </div>
+                                )}
+
+                                <div className="mt-3">
+                                    <span className="product-nal-caption">Наличие:</span>{" "}
+                                    { product.instock > 1 ? (
+                                        <span className="product-nal-true">Есть</span>
+                                    ) : product.instock == 1 ? (
+                                        <span className="product-nal-true">Мало</span>
+                                    ) : (
+                                        <span className="product-nal-false">Нет</span>
+                                    )}
+                                </div>
+
+                                { product.sales_notes && <p className="mt-3">{ product.sales_notes }</p> }
+                            </div>
+                        ) : (
+                            <span className="product-nal-false">Товар снят с продажи</span>
+                        )}
+                    </div>
+                </div>
             </div>
 
             { product.images && (
@@ -209,10 +257,10 @@ export default function Product({code, title}) {
 
             <div className="mt-3" />
 
-		    { product.descr && (
+            { product.descr && (
                 <div className="pb-3" itemProp="description" dangerouslySetInnerHTML={{__html: rebootstrap(product.descr) }} />
             )}
-		    { product.spec && (
+            { product.spec && (
                 <div className="pb-3" dangerouslySetInnerHTML={{__html: rebootstrap(product.spec) }} />
             )}
 
@@ -226,26 +274,26 @@ export default function Product({code, title}) {
             { Object.keys(fieldNames).length > 0 && productFields.length > 0 && (
                 <>
                     <h2>Характеристики{ product.kind ? " " + product.title : "" }:</h2>
-                    <table className="table text-sm pb-3">
-                        <tbody>
-                            { productFields.map((field, index) => (
-                                <tr key={field}>
-                                    <th className={"fw-normal" + (index === productFields.length -1 ? " border-0" : "")}>
+                    <dl className="product-spec">
+                        { productFields.map((field) => (
+                            <React.Fragment key={field}>
+                                <dt>
+                                    <span>
                                         { fieldNames[field][0] }
                                         <FieldHelp field={field} />
-                                    </th>
-                                    <td className={"text-muted" + (index === productFields.length -1 ? " border-0" : "")}>
-                                        { prettify(field, product[field]) }
-                                        { fieldNames[field][1] }
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                    </span>
+                                </dt>
+                                <dd>
+                                    { prettify(field, product[field]) }
+                                    { fieldNames[field][1] }
+                                </dd>
+                            </React.Fragment>
+                        ))}
+                    </dl>
                 </>
             )}
 
-		    { product.stitches && (
+            { product.stitches && (
                 <>
                     <h2>Строчки { product.title }:</h2>
                     <div className="py-3" dangerouslySetInnerHTML={{__html: product.stitches }} />

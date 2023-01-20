@@ -6,7 +6,7 @@ import PageTitle from '@/components/layout/page-title';
 
 import { useSite } from '@/lib/site';
 
-export default function Layout({ title, hideTitle, hideTitleBorder, contentWrapper, children, ...props }) {
+export default function Layout({ title, hideTitle, contentWrapper, children, ...props }) {
     const { site } = useSite();
 
     return (
@@ -19,18 +19,21 @@ export default function Layout({ title, hideTitle, hideTitleBorder, contentWrapp
                 <meta name="robots" content="all,follow" />
             </Head>
 
-            <Header />
-            <main>
-                {!hideTitle && <PageTitle title={title} border={!hideTitleBorder} /> }
-                {contentWrapper({title, children, ...props})}
-            </main>
-            <Footer />
+            <div className="container mainwindow">
+                <Header />
+                <div className="row">
+                    <div className="content">
+                        {!hideTitle && <PageTitle title={title} /> }
+                        {contentWrapper({title, children, ...props})}
+                    </div>
+                </div>
+                <Footer />
+            </div>
         </>
     )
 }
 
 Layout.defaultProps = {
     hideTitle: false,
-    hideTitleBorder: false,
     contentWrapper: ({children}) => children
 };

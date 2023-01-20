@@ -3,9 +3,6 @@ import { useQuery } from 'react-query';
 
 import { AsyncTypeahead } from 'react-bootstrap-typeahead';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch } from '@fortawesome/free-solid-svg-icons';
-
 import { productKeys, loadProductSuggestions } from '@/lib/queries';
 
 export default function ProductSearchInput() {
@@ -51,9 +48,10 @@ export default function ProductSearchInput() {
                                 }}
                                 className="form-control"
                                 name="text"
+                                style={{height: 'inherit'}}
                             />
                             <button className="input-group-text" type="submit">
-                                <FontAwesomeIcon icon={faSearch} />
+                                Найти
                             </button>
                         </div>
                     )}

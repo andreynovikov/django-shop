@@ -1,35 +1,44 @@
+import Link from 'next/link';
+
 export default function Footer() {
     return (
-        <footer className="position-relative">
-            <div className="position-absolute bottom-0 text-center w-100 px-3 pb-2">
-                <form method="POST" action="https://cp.unisender.com/ru/subscribe?hash=6ag87sp95se3dnxjfcqpuuzuecea35ueiscjkuqxbo9kgbqc8oy3y">
-                    <div className="fw-bold text-white mb-2">
-                        Оставьте свой e-mail и узнайте первыми о скидках и новинках:
-                    </div>
-                    <div className="mb-2">
-                        <label className="fw-bold text-white me-2">E-mail</label>
-                        <input type="text" name="email" />
-                    </div>
-                    <div className="mb-2">
-                        <input type="checkbox" />
-                        <span className="text-white fs-sm ms-2">
-                            Я согласен с политикой конфиденциальности
-                        </span>
-                    </div>
-                    <button className="btn btn-sm btn-warning text-white fw-bold" type="submit">Подписаться</button>
-                    <input type="hidden" name="charset" value="UTF-8" />
-                    <input type="hidden" name="default_list_id" value="15181421" />
-                    <input type="hidden" name="overwrite" value="2" />
-                    <input type="hidden" name="is_v5" value="1" />
-                </form>
-                <div className="mt-2 mt-lg-3">
-                    <a className="d-block d-sm-inline" href="http://www.singer.com">&copy;2004-2022 Singer Sourcing Limited LLC</a>
-                    <span className="d-none d-sm-inline">|</span>
-                    <a className="d-block d-sm-inline" href="http://www.sewing-world.ru">Представитель в России - &laquo;Швейный Мир&raquo;</a>
-                    <span className="d-none d-sm-inline">|</span>
-                    <a className="d-block d-sm-inline" href="mailto:info@singer.ru">info@singer.ru</a>
+        <>
+            <div className="row bottom-content mt-5">
+                <div className="col-md-4">
+                    <Link href="/pages/map/">
+                        <img src="/i/mc15k-nav-icon-features.png" alt="Наш адрес" width="145" height="100" />
+                        <h5 className="bottom">Наш адрес</h5>
+                        <p className="bottom">Наш магазин находится в Москве, рядом с метро &laquo;Пролетарская&raquo;</p>
+                    </Link>
+                </div>
+                <div className="col-md-4">
+                    <Link href="/pages/delivery/">
+                        <img src="/i/mc15k-nav-icon-delivery.png" alt="Доставка" width="145" height="100" />
+                        <h5 className="bottom">Доставка</h5>
+                        <p className="bottom">Условия доставки и оплаты товаров</p>
+                    </Link>
+                </div>
+                <div className="col-md-4">
+                    <Link href="/user/orders/">
+                        <img src="/i/cart.png" alt="Доставка" width="145" height="100" />
+                        <h5 className="bottom">Кабинет покупателя</h5>
+                        <p className="bottom">Узнать состояние заказа</p>
+                    </Link>
                 </div>
             </div>
-        </footer>
+            <div className="row footer p-4">
+                <div className="col-md-6">
+                    <p>
+                        Copyright (C) 2013-2023{' '}
+                        <a href="http://www.janome.co.jp/e1.htm">Janome</a>
+                        {' '}&amp;{' '}
+                        <a href="http://www.sewing-world.ru">Швейный Мир</a>
+                    </p>
+                </div>
+                <div className="col-md-6">
+                    <p>info@janome.club</p>
+                </div>
+            </div>
+        </>
     )
 }
