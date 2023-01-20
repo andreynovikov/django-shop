@@ -7,6 +7,7 @@ from django.contrib.auth import login, logout
 from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.core.mail import mail_admins
 from django.db.models import F
+from django.http import HttpResponseRedirect
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
@@ -22,6 +23,8 @@ from rest_framework_simplejwt.tokens import RefreshToken  # TODO: remove
 
 from django.contrib.flatpages.models import FlatPage
 from django_ipgeobase.models import IPGeoBase
+
+from yandex_kassa.views import payment as yandex_payment
 
 from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase  # TODO: add all tasks
 from shop.filters import get_product_filter
@@ -434,6 +437,16 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request):
         raise MethodNotAllowed(request.method)
+
+    @action(detail=True, methods=['post'])
+    def pay(self, request, pk=None):
+        order = self.get_object()  # this looks redundant but we keep it for framework internal checks
+        return_url = request.data.get('return_url', None)
+        response = yandex_payment(request, order.id, return_url)
+        if type(response) == HttpResponseRedirect:
+            return Response({'location': response.url})
+        else:
+            return response
 
     @action(detail=False, methods=['post'])
     def last(self, request):
