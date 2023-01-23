@@ -140,7 +140,7 @@ export default function Confirmation() {
                         <p>
                             Узнать о состоянии заказа Вы можете по ссылке{" "}
                             <Link href="/user/orders?track">
-                                <a>&laquo;Отслеживание заказа&raquo;</a>
+                                &laquo;Отслеживание заказа&raquo;
                             </Link>
                             {" "}вверху страницы.
                         </p>
@@ -178,23 +178,21 @@ export default function Confirmation() {
                             <h2 className="widget-title text-center">Детали заказа</h2>
                             {order.items.map((item, index) => (
                                 <div className={"d-flex align-items-center border-bottom " + (index === 0 ? "pb-3" : "py-3")} key={item.product.id}>
-                                    <Link href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
-                                        <a className="d-block flex-shrink-0">
-                                            { item.product.thumbnail_small ? (
-                                                <img
-                                                    src={item.product.thumbnail_small.url}
-                                                    width={item.product.thumbnail_small.width}
-                                                    height={item.product.thumbnail_small.height}
-                                                    alt={`${item.product.title} ${item.product.whatis}`} />
-                                            ) : (
-                                                <i className="d-inline-block ci-camera text-muted" style={{width: "64px", height: "64px", fontSize: "32px", padding: "16px"}} />
-                                            )}
-                                        </a>
+                                    <Link className="d-block flex-shrink-0" href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
+                                        { item.product.thumbnail_small ? (
+                                            <img
+                                                src={item.product.thumbnail_small.url}
+                                                width={item.product.thumbnail_small.width}
+                                                height={item.product.thumbnail_small.height}
+                                                alt={`${item.product.title} ${item.product.whatis}`} />
+                                        ) : (
+                                            <i className="d-inline-block ci-camera text-muted" style={{width: "64px", height: "64px", fontSize: "32px", padding: "16px"}} />
+                                        )}
                                     </Link>
                                     <div className="ps-2">
                                         <h6 className="widget-product-title">
                                             <Link href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
-                                                <a>{ item.product.title }</a>
+                                                { item.product.title }
                                             </Link>
                                         </h6>
                                         <div className="widget-product-meta">

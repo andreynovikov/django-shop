@@ -159,10 +159,8 @@ export default function Compare({kindId, productIds}) {
             { isKindsSuccess && kinds.length > 1 ? (
                 <div className="btn-group btn-group-lg mb-5" role="group">
                     { kinds.map((kind) => (
-                        <Link href={{ pathname: router.pathname, query: { kind: kind.id }}} key={kind.id}>
-                            <a className={"btn btn-" + (kind.id === currentKind ? "dark" : "secondary")}>
-                                { kind.name }
-                            </a>
+                        <Link className={"btn btn-" + (kind.id === currentKind ? "dark" : "secondary")} href={{ pathname: router.pathname, query: { kind: kind.id }}} key={kind.id}>
+                            { kind.name }
                         </Link>
                     ))}
                 </div>
@@ -189,22 +187,20 @@ export default function Compare({kindId, productIds}) {
                                     <button type="button" className="btn btn-sm d-block w-100 text-danger mb-2" onClick={() => uncompareProduct(product.id)}>
                                         <i className="ci-trash me-1" />Удалить
                                     </button>
-                                    <Link href={{ pathname: '/products/[code]', query: { code: product.code }}}>
-                                        <a className="d-inline-block mb-3">
-                                            { product.thumbnail_small ? (
-                                                <img
-                                                    src={product.thumbnail_small.url}
-                                                    width={product.thumbnail_small.width}
-                                                    height={product.thumbnail_small.height}
-                                                    alt={`${product.title} ${product.whatis}`} />
-                                            ) : (
-                                                <i className="d-inline-block ci-camera text-muted" style={ noImageStyle } />
-                                            )}
-                                        </a>
+                                    <Link className="d-inline-block mb-3" href={{ pathname: '/products/[code]', query: { code: product.code }}}>
+                                        { product.thumbnail_small ? (
+                                            <img
+                                                src={product.thumbnail_small.url}
+                                                width={product.thumbnail_small.width}
+                                                height={product.thumbnail_small.height}
+                                                alt={`${product.title} ${product.whatis}`} />
+                                        ) : (
+                                            <i className="d-inline-block ci-camera text-muted" style={ noImageStyle } />
+                                        )}
                                     </Link>
                                     <h3 className="product-title fs-sm">
                                         <Link href={{ pathname: '/products/[code]', query: { code: product.code }}}>
-                                            <a>{ product.title }</a>
+                                            { product.title }
                                         </Link>
                                     </h3>
                                     { product.enabled && product.instock > 0 && (

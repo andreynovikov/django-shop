@@ -20,11 +20,11 @@ export default function UserProfileLink() {
                     <small>{ user?.name || formatPhone(user?.phone) }</small>личный кабинет
                 </a>
                 <div className="dropdown-menu dropdown-menu-end">
-                    <Link href="/user/orders">
-                        <a className="dropdown-item">Заказы</a>
+                    <Link className="dropdown-item" href="/user/orders">
+                        Заказы
                     </Link>
-                    <Link href="/user/profile">
-                        <a className="dropdown-item">Профиль</a>
+                    <Link className="dropdown-item" href="/user/profile">
+                        Профиль
                     </Link>
                     <div className="dropdown-divider"></div>
                     <a className="dropdown-item" onClick={signOut} style={{cursor:'pointer'}}>Выйти</a>

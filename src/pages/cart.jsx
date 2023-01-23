@@ -27,8 +27,8 @@ export default function Cart() {
                     <h2 className="h6 text-light mb-0">
                         { isLoading ? "Загружается..." : isEmpty ? "Нет товаров" : "" }
                     </h2>
-                    <Link href={lastPage}>
-                        <a className="btn btn-outline-primary btn-sm ps-2"><i className="ci-arrow-left me-2" />Продолжить покупки</a>
+                    <Link className="btn btn-outline-primary btn-sm ps-2" href={lastPage}>
+                        <i className="ci-arrow-left me-2" />Продолжить покупки
                     </Link>
                 </div>
                 { isLoading ? (
@@ -51,8 +51,8 @@ export default function Cart() {
             <section className="col-lg-8">
                 <div className="d-flex justify-content-between align-items-center pt-3 pb-2 pb-sm-5 mt-1">
                     <h2 className="h6 text-light mb-0">Товары</h2>
-                    <Link href={lastPage}>
-                        <a className="btn btn-outline-primary btn-sm ps-2"><i className="ci-arrow-left me-2" />Продолжить покупки</a>
+                    <Link className="btn btn-outline-primary btn-sm ps-2" href={lastPage}>
+                        <i className="ci-arrow-left me-2" />Продолжить покупки
                     </Link>
                 </div>
                 {basket.items.map((item, index) => (
@@ -71,10 +71,8 @@ export default function Cart() {
                         { status === 'authenticated' ? (
                             <>
                                 <div className="mb-2">Добро пожаловать, { user?.name || "уважаемый покупатель" }!</div>
-                                <Link href="/confirmation">
-                                    <a className="btn btn-primary btn-shadow d-block w-100 mt-4">
-                                        <i className="fs-lg me-2 ci-basket-alt" />Оформить заказ
-                                    </a>
+                                <Link className="btn btn-primary btn-shadow d-block w-100 mt-4" href="/confirmation">
+                                    <i className="fs-lg me-2 ci-basket-alt" />Оформить заказ
                                 </Link>
                             </>
                         ) : (
@@ -83,7 +81,7 @@ export default function Cart() {
 
                         <div id="oferta-notice" className="mt-4 fs-xs">
                             Нажимая на кнопку &laquo;Оформить заказ&raquo;, вы подтверждаете согласие с условиями{' '}
-                            <Link href="/pages/oferta/"><a>публичной оферты</a></Link>.
+                            <Link href="/pages/oferta/">публичной оферты</Link>.
                         </div>
 
                         { status === 'authenticated' && (

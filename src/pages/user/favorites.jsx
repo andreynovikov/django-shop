@@ -53,23 +53,21 @@ export default function Favorites() {
                 isSuccess && products.results.map((product, index) => (
                     <div className={"d-sm-flex justify-content-between mt-lg-4 mb-4 pb-3 pb-sm-2" + (index < favorites.length - 1 ? " border-bottom" : "")} key={product.id}>
                         <div className="d-block d-sm-flex align-items-start text-center text-sm-start">
-                            <Link href={{ pathname: '/products/[code]', query: { code: product.code }}}>
-                                <a className="d-block flex-shrink-0 mx-auto me-sm-4" style={{width: "10rem"}}>
-                                    { product.thumbnail ? (
-                                        <img
-                                            src={product.thumbnail.url}
-                                            width={product.thumbnail.width}
-                                            height={product.thumbnail.height}
-                                            alt={`${product.title} ${product.whatis}`} />
-                                    ) : (
-                                        <i className="d-inline-block ci-camera text-muted" style={ noImageStyle } />
-                                    )}
-                                </a>
+                            <Link className="d-block flex-shrink-0 mx-auto me-sm-4" style={{width: "10rem"}} href={{ pathname: '/products/[code]', query: { code: product.code }}}>
+                                { product.thumbnail ? (
+                                    <img
+                                        src={product.thumbnail.url}
+                                        width={product.thumbnail.width}
+                                        height={product.thumbnail.height}
+                                        alt={`${product.title} ${product.whatis}`} />
+                                ) : (
+                                    <i className="d-inline-block ci-camera text-muted" style={ noImageStyle } />
+                                )}
                             </Link>
                             <div className="pt-2">
                                 <h3 className="product-title fs-base mb-2">
                                     <Link href={{ pathname: '/products/[code]', query: { code: product.code }}}>
-                                        <a href="shop-single-v1.html">{ product.title }</a>
+                                        { product.title }
                                     </Link>
                                 </h3>
                                 { (product.whatis || product.partnumber) && <div className="product-meta fs-sm">{ product.whatis } { product.partnumber }</div> }

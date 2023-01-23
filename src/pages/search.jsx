@@ -107,14 +107,18 @@ export default function Search({text, page}) {
                             { products?.totalPages > 1 && (
                                 <div className="d-flex pb-3">
                                     { products.currentPage > 1 && (
-                                        <Link href={{ pathname: router.pathname, query: { ...router.query, page: products.currentPage - 1 } }}>
-                                            <a className="nav-link-style nav-link-light me-3"><i className="ci-arrow-left" /></a>
+                                        <Link
+                                            className="nav-link-style nav-link-light me-3"
+                                            href={{ pathname: router.pathname, query: { ...router.query, page: products.currentPage - 1 } }}>
+                                            <i className="ci-arrow-left" />
                                         </Link>
                                     )}
                                     <span className="fs-md text-light">{ products.currentPage } / { products.totalPages }</span>
                                     { products.currentPage < products.totalPages && (
-                                        <Link href={{ pathname: router.pathname, query: { ...router.query, page: products.currentPage + 1 } }}>
-                                            <a className="nav-link-style nav-link-light ms-3"><i className="ci-arrow-right" /></a>
+                                        <Link
+                                            className="nav-link-style nav-link-light ms-3"
+                                            href={{ pathname: router.pathname, query: { ...router.query, page: products.currentPage + 1 } }}>
+                                            <i className="ci-arrow-right" />
                                         </Link>
                                     )}
                                 </div>
@@ -141,11 +145,9 @@ export default function Search({text, page}) {
                                     { products.currentPage > 1 && (
                                     <ul className="pagination">
                                         <li className="page-item">
-                                            <Link href={{ pathname: router.pathname, query: { ...router.query, page: products.currentPage - 1 } }}>
-                                                <a className="page-link">
-                                                    <i className="ci-arrow-left me-2" />
-                                                    Пред<span className="d-none d-sm-inline d-md-none d-xl-inline">ыдущая</span>
-                                                </a>
+                                            <Link className="page-link" href={{ pathname: router.pathname, query: { ...router.query, page: products.currentPage - 1 } }}>
+                                                <i className="ci-arrow-left me-2" />
+                                                Пред<span className="d-none d-sm-inline d-md-none d-xl-inline">ыдущая</span>
                                             </Link>
                                         </li>
                                     </ul>
@@ -165,8 +167,8 @@ export default function Search({text, page}) {
                                                         <li className="page-item d-none d-md-block">&hellip;</li>
                                                     )}
                                                     <li className="page-item d-none d-sm-block">
-                                                        <Link href={{ pathname: router.pathname, query: { ...router.query, page } }}>
-                                                            <a className="page-link">{ page }</a>
+                                                        <Link className="page-link" href={{ pathname: router.pathname, query: { ...router.query, page } }}>
+                                                            { page }
                                                         </Link>
                                                     </li>
                                                     { (minPage > 1 && page === 1) && (
@@ -179,11 +181,9 @@ export default function Search({text, page}) {
                                     { products.currentPage < products.totalPages && (
                                         <ul className="pagination">
                                             <li className="page-item">
-                                                <Link href={{ pathname: router.pathname, query: { ...router.query, page: products.currentPage + 1 } }}>
-                                                    <a className="page-link">
-                                                        След<span className="d-none d-sm-inline d-md-none d-xl-inline">ующая</span>
-                                                        <i className="ci-arrow-right ms-2" />
-                                                    </a>
+                                                <Link className="page-link" href={{ pathname: router.pathname, query: { ...router.query, page: products.currentPage + 1 } }}>
+                                                    След<span className="d-none d-sm-inline d-md-none d-xl-inline">ующая</span>
+                                                    <i className="ci-arrow-right ms-2" />
                                                 </Link>
                                             </li>
                                         </ul>

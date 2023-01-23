@@ -67,26 +67,20 @@ export default function UserSidebar() {
                 <div className="d-lg-block collapse" id="account-menu">
                     <ul className="list-unstyled mb-0">
                         <li className="border-bottom mb-0">
-                            <Link href="/user/orders">
-                                <a className={"nav-link-style d-flex align-items-center px-4 py-3" + (router.pathname === '/user/orders' ? " active" : "")}>
-                                    <i className="ci-bag opacity-60 me-2" />Заказы
-                                    { orders?.count > 0 && <span className="fs-sm text-muted ms-auto">{ orders.count }</span> }
-                                </a>
+                            <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (router.pathname === '/user/orders' ? " active" : "")} href="/user/orders">
+                                <i className="ci-bag opacity-60 me-2" />Заказы
+                                { orders?.count > 0 && <span className="fs-sm text-muted ms-auto">{ orders.count }</span> }
                             </Link>
                         </li>
                         <li className="border-bottom mb-0">
-                            <Link href="/user/favorites">
-                                <a className={"nav-link-style d-flex align-items-center px-4 py-3" + (router.pathname === '/user/favorites' ? " active" : "")}>
-                                    <i className="ci-heart opacity-60 me-2" />Избранное
-                                    { favorites.length > 0 && <span className="fs-sm text-muted ms-auto">{ favorites.length }</span> }
-                                </a>
+                            <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (router.pathname === '/user/favorites' ? " active" : "")} href="/user/favorites">
+                                <i className="ci-heart opacity-60 me-2" />Избранное
+                                { favorites.length > 0 && <span className="fs-sm text-muted ms-auto">{ favorites.length }</span> }
                             </Link>
                         </li>
                         <li className="mb-0">
-                            <Link href="/user/profile">
-                                <a className={"nav-link-style d-flex align-items-center px-4 py-3" + (router.pathname === '/user/profile' ? " active" : "")}>
-                                    <i className="ci-user opacity-60 me-2" />Профиль
-                                </a>
+                            <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (router.pathname === '/user/profile' ? " active" : "")} href="/user/profile">
+                                <i className="ci-user opacity-60 me-2" />Профиль
                             </Link>
                         </li>
                         <li className="d-lg-none border-top mb-0">

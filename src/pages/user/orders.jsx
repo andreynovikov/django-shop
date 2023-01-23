@@ -92,10 +92,10 @@ export default function Orders({filter, page, track}) {
         <>
             <UserTopbar>
                 <div className="d-flex align-items-center flex-nowrap me-3 me-sm-4">
-                    { isSuccess && !isTracking && (orders.results.length > 0 || !!filter) && (
+                    { isSuccess && !isTracking && (orders.results.length > 0 || !!currentFilter) && (
                         <>
                             <label className="text-light opacity-75 text-nowrap fs-sm me-2 d-none d-sm-block" htmlFor="sw-order-filter">Отображать:</label>
-                            <select className="form-select" id="sw-order-filter" value={filter} onChange={(e) => onFilterChanged(e.target.value)}>
+                            <select className="form-select" id="sw-order-filter" value={currentFilter} onChange={(e) => onFilterChanged(e.target.value)}>
                                 <option value="">Все</option>
                                 <option value="active">Активные</option>
                                 <option value="done">Выполненные</option>
@@ -115,20 +115,20 @@ export default function Orders({filter, page, track}) {
                                     <th><span className="d-none d-sm-inline">Заказ </span>№</th>
                                     <th>Дата<span className="d-none d-sm-inline"> оформления</span></th>
                                     <th>Статус</th>
-                                    <th className="d-none d-sm-block">Сумма</th>
+                                    <th className="d-none d-sm-table-cell">Сумма</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 { orders.results.map((order) => (
                                     <tr key={order.id} onClick={() => handleRowClick(order.id)} style={{cursor: "pointer"}}>
                                         <td className="py-3">
-                                            <Link href={{ pathname: '/user/orders/[id]', query: { id: order.id } }}>
-                                                <a className="nav-link-style fw-medium fs-sm">{ order.id }</a>
+                                            <Link className="nav-link-style fw-medium fs-sm" href={{ pathname: '/user/orders/[id]', query: { id: order.id } }}>
+                                                { order.id }
                                             </Link>
                                         </td>
                                         <td className="py-3">{ moment(order.created).format('LLL') }</td>
                                         <td className="py-3"><OrderStatusBadge status={order.status} text={order.status_text} /></td>
-                                        <td className="d-none d-sm-block py-3">{ order.total.toLocaleString('ru') }<small>&nbsp;руб</small></td>
+                                        <td className="d-none d-sm-table-cell py-3">{ order.total.toLocaleString('ru') }<small>&nbsp;руб</small></td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -139,11 +139,9 @@ export default function Orders({filter, page, track}) {
                             { orders.currentPage > 1 && (
                                 <ul className="pagination">
                                     <li className="page-item">
-                                        <Link href={{ pathname: router.pathname, query: { ...router.query, page: orders.currentPage - 1 } }}>
-                                            <a className="page-link">
-                                                <i className="ci-arrow-left me-2" />
-                                                Пред<span className="d-none d-sm-inline d-md-none d-xl-inline">ыдущая</span>
-                                            </a>
+                                        <Link className="page-link" href={{ pathname: router.pathname, query: { ...router.query, page: orders.currentPage - 1 } }}>
+                                            <i className="ci-arrow-left me-2" />
+                                            Пред<span className="d-none d-sm-inline d-md-none d-xl-inline">ыдущая</span>
                                         </Link>
                                     </li>
                                 </ul>
@@ -163,8 +161,8 @@ export default function Orders({filter, page, track}) {
                                                 <li className="page-item d-none d-md-block">&hellip;</li>
                                             )}
                                             <li className="page-item d-none d-sm-block">
-                                                <Link href={{ pathname: router.pathname, query: { ...router.query, page } }}>
-                                                    <a className="page-link">{ page }</a>
+                                                <Link className="page-link" href={{ pathname: router.pathname, query: { ...router.query, page } }}>
+                                                    { page }
                                                 </Link>
                                             </li>
                                             { (minPage > 1 && page === 1) && (
@@ -177,11 +175,9 @@ export default function Orders({filter, page, track}) {
                             { orders.currentPage < orders.totalPages && (
                                 <ul className="pagination">
                                     <li className="page-item">
-                                        <Link href={{ pathname: router.pathname, query: { ...router.query, page: orders.currentPage + 1 } }}>
-                                            <a className="page-link">
-                                                След<span className="d-none d-sm-inline d-md-none d-xl-inline">ующая</span>
-                                                <i className="ci-arrow-right ms-2" />
-                                            </a>
+                                        <Link className="page-link" href={{ pathname: router.pathname, query: { ...router.query, page: orders.currentPage + 1 } }}>
+                                            След<span className="d-none d-sm-inline d-md-none d-xl-inline">ующая</span>
+                                            <i className="ci-arrow-right ms-2" />
                                         </Link>
                                     </li>
                                 </ul>

@@ -300,7 +300,7 @@ export default function LoginForm({embedded, ctx, phone, hideModal}) {
                 <div className="mt-4 fs-md">
                     Если Вы не совершали покупок в магазине, Вы можете{" "}
                     <Link href={{ pathname: '/register', query: router.query }}>
-                        <a>зарегистрироваться</a>
+                        зарегистрироваться
                     </Link>
                 </div>
             )}

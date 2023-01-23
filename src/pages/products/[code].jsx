@@ -500,8 +500,8 @@ export default function Product({code}) {
                             )}
                             <div className="card-body fs-sm">
                                 <strong>
-                                    <Link href={{ pathname: '/products/[code]', query: { code: item.code }}}>
-                                        <a className="text-muted">{ item.title }</a>
+                                    <Link className="text-muted" href={{ pathname: '/products/[code]', query: { code: item.code }}}>
+                                        { item.title }
                                     </Link>
                                     { item.quantity > 1 && (
                                         <>({ item.quantity } шт.)</>

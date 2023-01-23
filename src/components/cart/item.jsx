@@ -30,23 +30,21 @@ export default function CartItem({item, first, last, removeItem, setQuantity}) {
     return (
         <div className={"d-sm-flex justify-content-between align-items-center my-2 " + (first ? "pb-3" : "py-3") + (!last && " border-bottom")}>
             <div className="d-block d-sm-flex align-items-center text-center text-sm-start">
-                <Link href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
-                    <a className="d-inline-block flex-shrink-0 mx-auto me-sm-4">
-                        { item.product.thumbnail ? (
-                            <img
-                                src={item.product.thumbnail.url}
-                                width={item.product.thumbnail.width}
-                                height={item.product.thumbnail.height}
-                                alt={`${item.product.title} ${item.product.whatis}`} />
-                        ) : (
-                            <i className="d-inline-block ci-camera text-muted" style={{width: "160px", height: "160px", fontSize: "80px", padding: "40px"}} />
-                        )}
-                    </a>
+                <Link className="d-inline-block flex-shrink-0 mx-auto me-sm-4" href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
+                    { item.product.thumbnail ? (
+                        <img
+                            src={item.product.thumbnail.url}
+                            width={item.product.thumbnail.width}
+                            height={item.product.thumbnail.height}
+                            alt={`${item.product.title} ${item.product.whatis}`} />
+                    ) : (
+                        <i className="d-inline-block ci-camera text-muted" style={{width: "160px", height: "160px", fontSize: "80px", padding: "40px"}} />
+                    )}
                 </Link>
                 <div className="pt-2">
                     <h3 className="product-title fs-base mb-2">
                         <Link href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
-                            <a>{ item.product.title }</a>
+                            { item.product.title }
                         </Link>
                     </h3>
                     <div className="fs-sm"><span className="text-muted me-2">Цена:</span>{ item.product.price.toLocaleString('ru') }<small>&nbsp;руб</small></div>
