@@ -13,6 +13,7 @@ class Integration(models.Model):
     utm_source = models.CharField('источник', max_length=20)
     site = models.ForeignKey(Site, verbose_name='сайт', related_name='integrations', related_query_name='integration', on_delete=models.PROTECT)
     output_template = models.CharField('шаблон выгрузки', max_length=20)
+    output_all = models.BooleanField('выгражать все', default=False, help_text="Выгружать товары по дереву категорий, а не по флагу интеграции")
     output_available = models.BooleanField('выгражать только в наличии', default=False)
     output_stock = models.BooleanField('выгражать остатки', default=False)
     uses_api = models.BooleanField('использует API', default=False)
