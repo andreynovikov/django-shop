@@ -456,7 +456,7 @@ class ProductReview(UserReviewAbstractModel):
 
 
 class Stock(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='stock_items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='stock_items', related_query_name='stock_item')
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, verbose_name='поставщик')
     quantity = models.FloatField('кол-во', default=0)
     correction = models.FloatField('коррекция', default=0)
