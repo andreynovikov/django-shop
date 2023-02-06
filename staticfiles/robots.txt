@@ -1,3 +1,0 @@
-User-Agent: *
-Disallow: /shop
-Host: janome.club
