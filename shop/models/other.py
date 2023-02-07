@@ -14,8 +14,8 @@ from tagging.fields import TagField
 
 __all__ = [
     'ShopUserManager', 'ShopUser', 'Category', 'Currency', 'Country', 'Region', 'City',
-    'Supplier', 'Store', 'StoreImage', 'ServiceCenter', 'Manufacturer', 'Advert', 'SalesAction',
-    'News'
+    'Contractor', 'Supplier', 'Store', 'StoreImage', 'ServiceCenter', 'Manufacturer',
+    'Advert', 'SalesAction', 'News'
 ]
 
 logger = logging.getLogger(__name__)
@@ -267,6 +267,19 @@ class City(models.Model):
 
     def __str__(self):
         return str(self.country) + ', ' + self.name
+
+
+class Contractor(models.Model):
+    code = models.CharField('код 1С', max_length=64)
+    name = models.CharField('название', max_length=100)
+    is_default_seller = models.BooleanField('продавец по-умолчанию', default=False)
+
+    class Meta:
+        verbose_name = 'контрагент'
+        verbose_name_plural = 'контрагенты'
+
+    def __str__(self):
+        return self.name
 
 
 class Supplier(models.Model):
