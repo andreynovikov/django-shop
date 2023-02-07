@@ -13,27 +13,15 @@ from model_utils import FieldTracker
 from colorfield.fields import ColorField
 from tagging.utils import parse_tag_input
 
-from . import Product, ProductSet, Store, ShopUser, Integration
+from . import Product, ProductSet, Store, ShopUser, Integration, Contractor, Supplier
 
 __all__ = [
-    'Contractor', 'Manager', 'Courier', 'Order', 'OrderItem', 'Box'
+    'Manager', 'Courier', 'Order', 'OrderItem', 'Box'
 ]
 
 logger = logging.getLogger(__name__)
 
 WHOLESALE = getattr(settings, 'SHOP_WHOLESALE', False)
-
-
-class Contractor(models.Model):
-    code = models.CharField('код 1С', max_length=64)
-    name = models.CharField('название', max_length=100)
-
-    class Meta:
-        verbose_name = 'контрагент'
-        verbose_name_plural = 'контрагенты'
-
-    def __str__(self):
-        return self.name
 
 
 class Manager(models.Model):
@@ -209,6 +197,7 @@ class Order(models.Model):
     delivery_pickpoint_reception = models.CharField('вид приема', max_length=10, choices=PICKPOINT_RECEPTIONS, default=PICKPOINT_RECEPTION_CUR)
     buyer = models.ForeignKey(Contractor, verbose_name='покупатель 1С', related_name='покупатель', blank=True, null=True, on_delete=models.SET_NULL)
     seller = models.ForeignKey(Contractor, verbose_name='продавец 1С', related_name='продавец', blank=True, null=True, on_delete=models.SET_NULL)
+    wirehouse = models.ForeignKey(Supplier, verbose_name='склад отгрузки', related_name='orders', blank=True, null=True, on_delete=models.SET_NULL)
     wiring_date = models.DateField('дата проводки', blank=True, null=True)
     courier = models.ForeignKey(Courier, verbose_name='курьер', blank=True, null=True, on_delete=models.SET_NULL)
     store = models.ForeignKey(Store, verbose_name='магазин самовывоза', blank=True, null=True, on_delete=models.PROTECT)
@@ -286,15 +275,14 @@ class Order(models.Model):
         session_data = basket.session.get_decoded()
         uid = session_data.get('_auth_user_id')
         user = ShopUser.objects.get(id=uid)
-        integration = None
-        if basket.utm_source:
+        integration = kwargs.get('integration', None)
+        if integration is None and basket.utm_source:
             integration = Integration.objects.filter(utm_source=basket.utm_source).first()
-            if integration.uses_api:
-                kwargs['site'] = integration.site
+        if integration and integration.uses_api:
+            kwargs['site'] = integration.site
         if 'site' not in kwargs:
             kwargs['site'] = Site.objects.get_current()
         order = Order(user=user, **kwargs)
-        order.integration = integration
         order.utm_source = basket.utm_source
         order.name = user.name
         order.postcode = user.postcode
@@ -302,9 +290,12 @@ class Order(models.Model):
         order.address = user.address
         order.phone = user.phone
         order.email = user.email
+        order.seller = Contractor.objects.filter(is_default_seller=True).first()
+        order.integration = integration
+        if integration:
+            order.buyer = integration.buyer
+            order.wirehouse = integration.wirehouse
         order.save()
-
-        user_discount = basket.user_discount
 
         user_discount = basket.user_discount
 
