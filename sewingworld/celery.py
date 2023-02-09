@@ -20,5 +20,7 @@ if hasattr(main, '__file__') and 'celery' in main.__file__:
 # Using a string here means the worker will not have to
 # pickle the object when using Windows.
 app.config_from_object('django.conf:settings', namespace='CELERY')
+app.conf.worker_send_task_events = True
+app.conf.task_send_sent_event = True
 app.conf.task_track_started = True
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
