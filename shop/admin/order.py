@@ -407,7 +407,7 @@ class OrderAdmin(admin.ModelAdmin):
 
     @mark_safe
     def status1c(self, obj):
-        if obj.status < Order.STATUS_SENT:
+        if obj.status <= Order.STATUS_COLLECTED:
             return ''
         if not obj.seller or not obj.buyer or not obj.wirehouse or not obj.wiring_date:
             return '<span style="color: orange" title="Нет данных для проводки"><i class="far fa-calendar-times fa-sm"></i></span>'

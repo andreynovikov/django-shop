@@ -102,7 +102,7 @@
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0"+ WeightStyle + "\" class=\"lead\"" + WeightTitle + ">Общий вес: " + Weight.toFixed(3) + "</div>");
         $("#content h1").append(' <b>' + Number + '</b>');
 
-{% if original.status >= original.STATUS_SENT %}
+{% if original.status > original.STATUS_COLLECTED %}
 {% if not original.wiring_date or not original.wirehouse or not original.buyer or not original.seller %}
         $(".form-row.field-buyer").css('background-color', '#fff8dc');
         $(".form-row.field-wirehouse").css('background-color', '#fff8dc');
