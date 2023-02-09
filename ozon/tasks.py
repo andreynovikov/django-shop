@@ -25,8 +25,8 @@ class TaskFailure(Exception):
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
-def get_unfulfilled_orders(self):
-    integration = Integration.objects.get(utm_source='ozon')
+def get_unfulfilled_orders(self, account):
+    integration = Integration.objects.get(utm_source=account)
     client_id = integration.settings.get('client_id', '')
     api_key = integration.settings.get('api_key', '')
 
@@ -77,7 +77,7 @@ def get_unfulfilled_orders(self):
 
             order = Order.objects.filter(delivery_tracking_number=posting_number).first()
             if order is None:
-                basket = Basket.objects.create(session_id=session.session_key, utm_source='ozon', secondary=True)
+                basket = Basket.objects.create(session_id=session.session_key, utm_source=account, secondary=True)
 
                 for ozon_item in posting.get('products', []):
                     try:
@@ -137,8 +137,8 @@ def get_unfulfilled_orders(self):
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), rate_limit='1/s', retry_backoff=300, retry_jitter=False)
-def notify_product_stocks(self, product_id):
-    integration = Integration.objects.get(utm_source='ozon')
+def notify_product_stocks(self, product_id, account):
+    integration = Integration.objects.get(utm_source=account)
     client_id = integration.settings.get('client_id', '')
     api_key = integration.settings.get('api_key', '')
 
