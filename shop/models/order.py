@@ -197,7 +197,7 @@ class Order(models.Model):
     delivery_pickpoint_reception = models.CharField('вид приема', max_length=10, choices=PICKPOINT_RECEPTIONS, default=PICKPOINT_RECEPTION_CUR)
     buyer = models.ForeignKey(Contractor, verbose_name='покупатель 1С', related_name='покупатель', blank=True, null=True, on_delete=models.SET_NULL)
     seller = models.ForeignKey(Contractor, verbose_name='продавец 1С', related_name='продавец', blank=True, null=True, on_delete=models.SET_NULL)
-    wirehouse = models.ForeignKey(Supplier, verbose_name='склад отгрузки', related_name='orders', blank=True, null=True, on_delete=models.SET_NULL)
+    wirehouse = models.ForeignKey(Supplier, verbose_name='склад отгрузки', related_name='orders', blank=True, null=True, on_delete=models.SET_NULL, limit_choices_to={'show_in_list': True})
     wiring_date = models.DateField('дата проводки', blank=True, null=True)
     courier = models.ForeignKey(Courier, verbose_name='курьер', blank=True, null=True, on_delete=models.SET_NULL)
     store = models.ForeignKey(Store, verbose_name='магазин самовывоза', blank=True, null=True, on_delete=models.PROTECT)

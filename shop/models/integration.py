@@ -21,7 +21,8 @@ class Integration(models.Model):
     settings = models.JSONField('настройки', null=True, blank=True)
     admin_user_fields = models.JSONField('поля покупателя', null=True, blank=True)
     buyer = models.ForeignKey(Contractor, verbose_name='покупатель 1С по-умолчанию', related_name='+', blank=True, null=True, on_delete=models.SET_NULL)
-    wirehouse = models.ForeignKey(Supplier, verbose_name='склад отгрузки по-умолчанию', related_name='+', blank=True, null=True, on_delete=models.SET_NULL)
+    wirehouse = models.ForeignKey(Supplier, verbose_name='склад отгрузки по-умолчанию', related_name='+', blank=True, null=True,
+                                  on_delete=models.SET_NULL, limit_choices_to={'show_in_list': True})
     suppliers = models.ManyToManyField(Supplier, verbose_name='поставщики', related_name='integrations', related_query_name='integration', blank=True)
     products = models.ManyToManyField(Product, related_name='integrations', related_query_name='integration', through='ProductIntegration', blank=True)
 
