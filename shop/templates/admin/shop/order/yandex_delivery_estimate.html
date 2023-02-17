@@ -31,14 +31,14 @@
 {% endif %}
 <table id="yde_widget"><tr><td>
 {% for type, variants in deliveries.items|dictsort:"0.lower" %}
-<h2>{% if type == 'TODOOR' %}Курьером{% elif type == 'PICKUP' %}Самовывозом{% elif type == 'POST' %}Почтой России{% else %}{{ type }}{% endif %}</h2>
+<h2>{% if type == 'COURIER' %}Курьером{% elif type == 'PICKUP' %}Самовывозом{% elif type == 'POST' %}Почтой России{% else %}{{ type }}{% endif %}</h2>
 <table class="yde_variants">
     {% for variant in variants %}
     <tr>
-        <td title="Тариф: {{ variant.tariffName }}"><span style="color: {{ variant.color }}">&#9608;</span>&nbsp;{{ variant.delivery.name }}{% if variant.pickupPoints %}&nbsp;<span class="pickup_count">{{ variant.pickupPoints|length }}{% endif %}</td>
-        <td class="delivery_date" title="{{ variant.delivery_date }}">{{ variant.delivery_date|daterange }}<span class="time_interval">{{ variant.delivery_interval }}</span></td>
-        <td class="user_cost">{{ variant.cost }}<span class="rub">&#8381;</span></td>
-        <td class="shop_cost">{{ variant.shop_cost|round_up:-1 }}<span class="rub">&#8381;</span>
+        <td title="Тариф: {{ variant.name }}">{{ variant }} <span style="color: {{ variant.color }}">&#9608;</span>&nbsp;{{ variant.partner.name }}{% if variant.pickupPoints %}&nbsp;<span class="pickup_count">{{ variant.pickupPoints|length }}{% endif %}</td>
+        {#<td class="delivery_date" title="{{ variant.delivery_date }}">{{ variant.delivery_date|daterange }}<span class="time_interval">{{ variant.delivery_interval }}</span></td>#}
+        <td class="user_cost">{{ variant.cost.deliveryForSender }}<span class="rub">&#8381;</span></td>
+        <td class="shop_cost">{{ variant.cost.deliveryForCustomer|round_up:-1 }}<span class="rub">&#8381;</span> {{ variant.cost.delivery }}
             <table class="popup">
                 <tr><th>Всего (точно):</th><td class="service_cost">{{ variant.shop_cost }}<span class="rub">&#8381;</span></td></tr>
                 {% for service in variant.required_services %}

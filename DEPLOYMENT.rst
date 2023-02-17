@@ -249,6 +249,31 @@ Set proper permissions, otherwise services will fail to start:
     mkdir /run/celery
     chown nikolays:www-data /run/celery
 
+*************
+Node.js setup
+*************
+
+Install Node (replace XX.X with actual version):
+::
+    mkdir /www/.nvm
+    export NVM_DIR="/www/.nvm"
+    wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.XX.X/install.sh | bash
+    nvm install node
+
+Install pm2 globally:
+::
+    npm install pm2 -g
+
+Add ``export PM2_HOME=/www/.pm2`` to ``/etc/profile``
+
+Create systemd service file:
+::
+    sudo mkdir /www/.pm2
+    sudo chown www-data:www-data /www/.pm2
+    sudo chmod g+w /www/.pm2
+    sudo pm2 startup systemd -u www-data -hp /www --service-name pm2
+    sudo systemctl enable pm2
+
 *****************
 Environment setup
 *****************
@@ -273,6 +298,10 @@ file. So, general deployment scheme looks like this:
     sudo chown nikolays:www-data logs
     mkdir st_search
     sudo chown nikolays:www-data st_search
+    
+For React sites:
+::
+    pm2 start npm --name "janome" -- start
 
 ************************
 Master/slave replication

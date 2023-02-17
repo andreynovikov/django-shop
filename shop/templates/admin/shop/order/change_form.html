@@ -1,5 +1,5 @@
 {% extends "admin/change_form.html" %}
-{% load i18n admin_urls admin_modify lock_tokens_tags %}
+{% load i18n l10n admin_urls admin_modify %}
 
 {% block extrastyle %}{{ block.super }}
     <style>
@@ -65,12 +65,33 @@
 <script>
 (function($) {
     $(document).ready(function() {
+{% if not original.pk or original.owner == request.user %}
         var $SaveButton = $("input[name='_save']");
         var $ContinueButton = $("input[name='_continue']");
-        $SaveButton.val("Сохранить");
         $SaveButton.attr('name', '_continue');
-        $ContinueButton.val("Сохранить и выйти");
+        $ContinueButton.val("Сохранить и ОСВОБОДИТЬ");
         $ContinueButton.attr('name', '_save');
+{% endif %}
+        var Weight = 0;
+        var WeightError = false;
+{% for item in original.items.all %}
+        var weight{{ item.pk }} = '{{ item.product.prom_weight|unlocalize }}';
+        if (weight{{ item.pk }}.length > 0)
+            weight{{ item.pk }} = parseFloat(weight{{ item.pk }});
+        else
+            weight{{ item.pk }} = 0;
+        if (weight{{ item.pk }} > 0)
+            Weight += parseFloat(weight{{ item.pk }}) * {{ item.quantity }};
+        else
+            WeightError = true;
+{% endfor %}
+        var WeightStyle = '';
+        var WeightTitle = '';
+        if (WeightError) {
+            WeightStyle = '; color: #f00';
+            WeightTitle = ' title="Не все позиции имеют указанный вес!"';
+        }
+
         var Delivery_Price = $("input[name='delivery_price']").val();
         var Products_Price = $("div.field-products_price > div > div.readonly").html();
         var Total = $("div.field-total > div > div.readonly").html();
@@ -78,7 +99,15 @@
         $("#items-group").after("<div style=\"text-align:right;\" class=\"lead\">Итого: " + Total + "</div>");
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Доставка: " + Delivery_Price + "</div>");
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Всего: " + Products_Price + "</div>");
+        $("#items-group").after("<div style=\"text-align:right; margin-bottom:0"+ WeightStyle + "\" class=\"lead\"" + WeightTitle + ">Общий вес: " + Weight.toFixed(3) + "</div>");
         $("#content h1").append(' <b>' + Number + '</b>');
+
+{% if original.status > original.STATUS_COLLECTED %}
+{% if not original.wiring_date or not original.wirehouse or not original.buyer or not original.seller %}
+        $(".form-row.field-buyer").css('background-color', '#fff8dc');
+        $(".form-row.field-wirehouse").css('background-color', '#fff8dc');
+{% endif %}
+{% endif %}
 
         $("select#id_status").on('change', function() {
             if (this.value == 1) {
@@ -86,6 +115,24 @@
             }
         });
     });
+
+{% if not original.pk or original.owner == request.user %}
+    var submitting = false;
+    var form = document.getElementById("order_form");
+    form.addEventListener("submit", function(e) {
+        submitting = true;
+    });
+
+    window.addEventListener("pagehide", function(e) {
+        if (!submitting) {
+            {% url opts|admin_urlname:'unlock' original.pk|admin_urlquote as unlock_url %}
+            var csrftoken = $("[name=csrfmiddlewaretoken]").val();
+            var params = new FormData();
+            params.append('csrfmiddlewaretoken', csrftoken);
+            navigator.sendBeacon('{{ unlock_url }}', params);
+       }
+    }, false);
+{% endif %}
 
     var documentBoxLink = document.getElementById("documentboxlink");
     documentBoxLink.addEventListener('click', function(e) {
@@ -130,9 +177,6 @@
 
 {% block content %}
     {{ block.super }}
-    {% if lock_token %}
-        {% admin_lock_handler opts.app_label opts.model_name original.id lock_token %}
-    {% endif %}
 <div id="documentbox" class="documentbox module" style="display: none; position: absolute">
     <ul class="documentlist">
     {% url opts|admin_urlname:'document' original.pk 'stock'|admin_urlquote as stock_url %}
@@ -169,23 +213,32 @@
     <p class="documentlist-cancel"><a href="#">{% trans "Cancel" %}</a></p>
 </div>
 {% endblock %}
-{% block submit_buttons_top %}{% if not original.pk or lock_token %}{% submit_row %}{% endif %}{% endblock %}
-{% block submit_buttons_bottom %}{% if not original.pk or lock_token %}{% submit_row %}{% endif %}{% endblock %}
+{% block submit_buttons_top %}
+{% if original.owner != request.user %}<div class="submit-row" style="display: flex; align-items: center; text-align: left; background: #ffdfdf">
+    <div style="color: #ba2121; font-weight: bold">Заказ редактирует: {{ original.owner }}</div>
+    <input type="hidden" name="_continue" value="yes">
+    <input type="submit" value="Разблокировать" style="margin-left: auto; text-transform: uppercase; background: #ba2121" name="_unlock">
+    </div>{% endif %}
+{% if not original.pk or original.owner == request.user %}{% submit_row %}{% endif %}
+{% endblock %}
+{% block submit_buttons_bottom %}{% if not original.pk or original.owner == request.user %}{% submit_row %}{% endif %}{% endblock %}
 
 {% block object-tools-items %}
-    {% if original.is_beru and original.status == original.STATUS_COLLECTED %}
+    {% if original.integration and original.integration.settings and original.integration.settings.ym_campaign and original.status == original.STATUS_COLLECTED %}
     {% url opts|admin_urlname:'beru_labels' original.pk|admin_urlquote as beru_labels_url %}
     <li><a href="{% add_preserved_filters beru_labels_url %}?_popup=1" class="related-widget-wrapper-link">
             <span>{% trans "Наклейки Беру!" %}</span></a></li>
     {% endif %}
     <li><a id="documentboxlink" href="#" class="related-widget-wrapper-link">Документы</a></li>
+    {% if original.owner == request.user %}
+    {% if not original.integration or not original.integration.uses_api %}
     {% url opts|admin_urlname:'combine' original.pk|admin_urlquote as combine_url %}
-    {% if not original.is_beru %}
     <li><a href="{% add_preserved_filters combine_url %}?_popup=1" class="related-widget-wrapper-link">
             <span>{% trans "Объединение заказов" %}</span></a></li>
     {% url opts|admin_urlname:'discount' original.pk|admin_urlquote as discount_url %}
     <li><a href="{% add_preserved_filters discount_url %}?_popup=1" class="related-widget-wrapper-link">
             <span>{% trans "Скидка" %}</span></a></li>
+    {% endif %}
     {% endif %}
     {{ block.super }}
 {% endblock %}

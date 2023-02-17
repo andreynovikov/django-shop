@@ -14,8 +14,8 @@ from tagging.fields import TagField
 
 __all__ = [
     'ShopUserManager', 'ShopUser', 'Category', 'Currency', 'Country', 'Region', 'City',
-    'Supplier', 'Store', 'StoreImage', 'ServiceCenter', 'Manufacturer', 'Advert', 'SalesAction',
-    'News'
+    'Contractor', 'Supplier', 'Store', 'StoreImage', 'ServiceCenter', 'Manufacturer',
+    'Advert', 'SalesAction', 'News'
 ]
 
 logger = logging.getLogger(__name__)
@@ -269,6 +269,19 @@ class City(models.Model):
         return str(self.country) + ', ' + self.name
 
 
+class Contractor(models.Model):
+    code = models.CharField('код 1С', max_length=64)
+    name = models.CharField('название', max_length=100)
+    is_default_seller = models.BooleanField('продавец по-умолчанию', default=False)
+
+    class Meta:
+        verbose_name = 'контрагент'
+        verbose_name_plural = 'контрагенты'
+
+    def __str__(self):
+        return self.name
+
+
 class Supplier(models.Model):
     COUNT_STOCK = 1
     COUNT_DEFER = 2
@@ -282,6 +295,7 @@ class Supplier(models.Model):
     code1c = models.CharField('код 1С', max_length=50)
     name = models.CharField('название', max_length=100)
     show_in_order = models.BooleanField('показывать в заказе', default=False, db_index=True)
+    show_in_list = models.BooleanField('показывать в списках', default=False, db_index=True)
     count_in_stock = models.SmallIntegerField('учитывать в наличии', choices=COUNT_CHOICES, default=COUNT_NONE)
     spb_count_in_stock = models.SmallIntegerField('учитывать в наличии СПб', choices=COUNT_CHOICES, default=COUNT_NONE)
     ws_count_in_stock = models.SmallIntegerField('учитывать в наличии Опт', choices=COUNT_CHOICES, default=COUNT_NONE)

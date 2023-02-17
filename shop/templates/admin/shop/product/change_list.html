@@ -1,4 +1,33 @@
 {% extends "admin/import_export/change_list_import_export.html" %}
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .field-integrations ul {
+        margin-left: 0;
+        margin-top: 0;
+        padding-left: 0;
+        padding-right: 0;
+        position: relative;
+        top: -4px;
+    }
+    .field-integrations li {
+        padding-top: 0;
+        padding-bottom: 2px;
+        list-style-type: none;
+        white-space: nowrap;
+    }
+    .field-integrations input[type=checkbox] {
+        position: relative;
+        bottom: -2px;
+    }
+    .field-integrations li.unchecked {
+        display: none;
+    }
+    .field-integrations:hover li.unchecked {
+        display: block;
+    }
+</style>
+{% endblock %}
 {% block extrahead %}
 {{ block.super }}
 <script>
@@ -8,23 +37,29 @@
             $c.attr("title", $c.text()).text("в");
             $c = $("#result_list th.column-show_on_sw div.text a");
             $c.attr("title", $c.text()).text("ш");
-            $c = $("#result_list th.column-beru div.text a");
-            $c.attr("title", $c.text()).text("б");
             $c = $("#result_list th.column-market div.text a");
             $c.attr("title", $c.text()).text("м");
             $c = $("#result_list th.column-spb_market div.text a");
-            $c.attr("title", $c.text()).text("с")
-            $c = $("#result_list th.column-merchant div.text a");
-            $c.attr("title", $c.text()).text("g")
+            $c.attr("title", $c.text()).text("п")
 
             $("#result_list th.column-orders_link div.text span").attr("title", "Заказы");
             $("#result_list th.column-product_link div.text span").attr("title", "Открыть на сайте");
+
+            $('.field-integrations li').has('input[type=checkbox]:not(:checked)').addClass('unchecked');
+            $('.field-integrations li input[type=checkbox]').change(function() {
+               if (this.checked) {
+                   $(this).closest('li').removeClass('unchecked');
+               } else {
+                   $(this).closest('li').addClass('unchecked');
+               }
+            });
         });
     })(django.jQuery);
 </script>
 {% endblock %}
 {% block object-tools-items %}
 {% load admin_urls %}
+<li><a href="{% url opts|admin_urlname:'import_1c' %}?_popup=1" onclick="window.open(this.href, 'Импорт 1С', 'height=500,width=800,resizable=yes,scrollbars=yes').focus(); return false;">Импорт 1С</a></li>
 <li><a href="{% url opts|admin_urlname:'stock_correction' %}">Коррекция склада</a></li>
 {{ block.super }}
 {% endblock %}

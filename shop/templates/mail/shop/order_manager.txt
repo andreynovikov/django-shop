@@ -17,7 +17,3 @@
 {% endif %}
 
 Итого: {{ order.total }} руб.
-
-{% if order.user.discount < 10 and order.total >= 30000 %}Выдать 10% карту!{% endif %}
-{% if order.user.discount < 5 and order.total < 30000 and order.total > 3000 %}Выдать 5% карту!{% endif %}
-

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{% load static %}
+{% load site %}
+{% load l10n %}
+<companies>
+  {% for store in stores %}
+  <company>
+    <company-id>{{ store.id }}</company-id>
+    <name lang="ru">{{ store.name }}</name>
+    <address lang="ru">{{ store.address }}</address>
+    <locality-name lang="ru">{{ store.city.name }}</locality-name>
+    <country lang="ru">{{ store.city.country }}</country>
+    {% if store.address2 %}
+    <address-add lang="ru">{{ store.address2 }}</address-add>
+    {% endif %}
+    {% if store.latitude and store.longitude %}
+    <coordinates>
+      <lon>{{ store.longitude|unlocalize }}</lon>
+      <lat>{{ store.latitude|unlocalize }}</lat>
+    </coordinates>
+    {% endif %}
+    {% for phone in store.phones_as_list %}
+    <phone>
+      <number>{{ phone }}</number>
+      <type>phone</type>
+    </phone>
+    {% endfor %}
+    {% if store.email %}
+    <email>{{ store.email }}</email>
+    {% endif %}
+    <url>{% site_url_prefix %}</url>
+    {% if store.url %}
+    <info-page>{{ store.url }}</info-page>
+    {% endif %}
+    <info-page>{% site_url_prefix %}{% url 'store' store.id %}</info-page>
+    {% if store.hours %}
+    <working-time lang="ru">{{ store.hours }}</working-time>
+    {% endif %}
+    <rubric-id>184106726</rubric-id>
+    <rubric-id>184107861</rubric-id>
+    <rubric-id>184106442</rubric-id>
+    <rubric-id>42959413904</rubric-id>
+    <actualization-date>{% now 'd-m-Y' %}</actualization-date>
+    {% if store.images.all %}
+    <photos gallery-url="{% site_url_prefix %}{% url 'store' store.id %}">
+      {% for image in store.images.all %}
+      <photo url="{% site_url_prefix %}{% get_media_prefix %}{{ image.image }}" type="{{ image.kind }}"/>
+      {% endfor %}
+    </photos>
+    {% endif %}
+  </company>
+  {% endfor %}
+</companies>

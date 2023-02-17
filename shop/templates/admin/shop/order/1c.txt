@@ -3,7 +3,7 @@
 {% for order in orders %}<Заказ Дата="{{ order.wiring_date|date:"d.m.Y" }}" Номер="{{ order.id }}">
        <КодФ>{{ order.seller.code }}</КодФ>
        <КодК>{{ order.buyer.code }}</КодК>
-       <КодС>8af5fd51-44ee-11e7-a7d8-0cc47ac12f5b</КодС>
+       <КодС>{{ order.wirehouse.code1c }}</КодС>
        <Доставка>{{ order.get_delivery_display }}</Доставка>
        <Курьер>{{ order.courier|default_if_none:"" }}</Курьер>
        <Комментарий>Заказ {{ order.id }}</Комментарий>

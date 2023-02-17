@@ -32,20 +32,23 @@ def num(s):
     try:
         return int(s)
     except ValueError:
-        return float(s)
+        try:
+            return float(s)
+        except ValueError:
+            return None
 
 
 class ShopSliderWidget(forms.TextInput):
     template_name = 'shop/widgets/sliderwidget.html'
 
-    #def value_from_datadict(self, data, files, name):
-    #    return [
-    #        num(widget.value_from_datadict(data, files, self.suffixed(name, suffix)))
-    #        for widget, suffix in zip(self.widgets, self.suffixes)
-    #        ]
-    #def value_from_datadict(self, data, files, name):
-    #    print("vfd %s" % str(data), file=sys.stderr)
-    #    return super().value_from_datadict(data, files, name)
+    # def value_from_datadict(self, data, files, name):
+    #     return [
+    #         num(widget.value_from_datadict(data, files, self.suffixed(name, suffix)))
+    #         for widget, suffix in zip(self.widgets, self.suffixes)
+    #         ]
+    # def value_from_datadict(self, data, files, name):
+    #     print("vfd %s" % str(data), file=sys.stderr)
+    #     return super().value_from_datadict(data, files, name)
 
     def setRange(self, min_value, max_value):
         step = self.attrs.get('step', 1)

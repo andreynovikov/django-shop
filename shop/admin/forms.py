@@ -222,7 +222,7 @@ class ProductAdminForm(forms.ModelForm):
 
 
 class ProductListAdminForm(forms.ModelForm):
-    integrations = forms.ModelMultipleChoiceField(queryset=Integration.objects.all(), widget=forms.CheckboxSelectMultiple, required=False)
+    integrations = forms.ModelMultipleChoiceField(queryset=Integration.objects.filter(output_all=False), widget=forms.CheckboxSelectMultiple, required=False)
 
     def __init__(self, *args, **kwargs):
         instance = kwargs.get('instance')
@@ -233,9 +233,6 @@ class ProductListAdminForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
     def save(self, *args, **kwargs):
-        integrations = self.cleaned_data['integrations']
-        import sys
-        print(integrations, file=sys.stderr)
         if self.instance:
             self.instance.integrations.set(self.cleaned_data['integrations'], through_defaults={'price': 0})
         return super().save(*args, **kwargs)

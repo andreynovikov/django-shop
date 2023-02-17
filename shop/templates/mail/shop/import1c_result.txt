@@ -1,4 +1,5 @@
 Файл {{ file }}
+Дата файла: {{ date }}
 Импортировано: {{ imported }}
 Обновлено: {{ updated }}
 {% if orders %}{% load admin_urls %}

@@ -19,8 +19,6 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
-from rest_framework_simplejwt.tokens import RefreshToken  # TODO: remove
-
 from django.contrib.flatpages.models import FlatPage
 from django_ipgeobase.models import IPGeoBase
 
@@ -288,7 +286,7 @@ class BasketViewSet(viewsets.ModelViewSet):
     serializer_class = BasketSerializer
 
     def get_queryset(self):
-        queryset = Basket.objects.filter(session_id=self.request.session.session_key)
+        queryset = Basket.objects.filter(session_id__isnull=False, session_id=self.request.session.session_key)
         return queryset
 
     def destroy(self, request):

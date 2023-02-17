@@ -323,17 +323,19 @@ class OrderAdmin(admin.ModelAdmin):
     @mark_safe
     def order_name(self, obj):
         manager = ''
-        taxi = ''
+        express = ''
         if obj.manager:
             manager = ' style="color: %s"' % obj.manager.color
         lock = ''
         if obj.owner:
             lock = '&nbsp;<span class="fas fa-lock fa-xs" title="%s" style="position: relative; top: -2px"></span>' % str(obj.owner)
-        if obj.integration and obj.integration.uses_api and obj.integration.settings:
+        if obj.delivery == Order.DELIVERY_EXPRESS:
+            express = ' class="is-express"'
+        elif obj.integration and obj.integration.uses_api and obj.integration.settings:
             if obj.integration.settings.get('is_taxi', False):
-                taxi = ' class="is-taxi"'
+                express = ' class="is-express"'
         return '<span style="white-space:nowrap"%s><b%s>%s</b>%s</span><br/><span style="white-space:nowrap">%s</span>' % \
-            (taxi, manager, obj.title, lock, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
+            (express, manager, obj.title, lock, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
     order_name.admin_order_field = 'id'
     order_name.short_description = 'заказ'
 
@@ -404,6 +406,17 @@ class OrderAdmin(admin.ModelAdmin):
     combined_payment.short_description = 'оплата'
 
     @mark_safe
+    def status1c(self, obj):
+        if obj.status <= Order.STATUS_COLLECTED:
+            return ''
+        if not obj.seller or not obj.buyer or not obj.wirehouse or not obj.wiring_date:
+            return '<span style="color: orange" title="Нет данных для проводки"><i class="far fa-calendar-times fa-sm"></i></span>'
+        if obj.wiring_date == timezone.now().date():
+            return '<span style="color: #2121ba" title="Проводка сегодня"><i class="far fa-calendar-plus fa-sm"></i></span>'
+        return '<span style="color: green"><i class="far fa-calendar-check fa-sm"></i></span>'
+    status1c.short_description = '1С'
+
+    @mark_safe
     def total_cost(self, obj):
         if obj.total == int(obj.total):
             return number_format(int(obj.total), force_grouping=True)
@@ -465,7 +478,7 @@ class OrderAdmin(admin.ModelAdmin):
     pos_status.short_description = 'касса'
 
     list_display = ['order_name', 'name_and_phone', 'city', 'total_cost', 'combined_payment', 'combined_delivery',
-                    'colored_status', 'combined_comments']
+                    'colored_status', 'status1c', 'combined_comments']
     readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'user_bonuses', 'pos_status',
                        'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
                        'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
@@ -496,7 +509,7 @@ class OrderAdmin(admin.ModelAdmin):
                                'delivery_dispatch_date', ['delivery_tracking_number'], 'delivery_info',
                                ['delivery_handing_date'], 'manager_comment', 'alert',
                                'products_price', 'total', 'id']}),
-            ('1С', {'fields': (('buyer', 'seller', 'wiring_date'),)}),
+            ('1С', {'fields': (('buyer', 'seller'), ('wirehouse', 'wiring_date'))}),
             # ('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
             #                           ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
             ('Покупатель', {'fields': []})
@@ -1093,17 +1106,22 @@ class OrderAdmin(admin.ModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied
         missing_contractors = set()
+        missing_wirehouse = set()
         missing_wiring_date = set()
         for order in queryset:
             if not order.buyer or not order.seller:
                 missing_contractors.add(order.id)
+            if not order.wirehouse:
+                missing_wirehouse.add(order.id)
             if not order.wiring_date:
                 missing_wiring_date.add(order.id)
         if missing_contractors:
             self.message_user(request, "В заказах не указан контрагент: %s" % ', '.join(map(str, missing_contractors)), level=messages.ERROR)
-        elif missing_wiring_date:
+        if missing_wirehouse:
+            self.message_user(request, "В заказах не указан склад отгрузки: %s" % ', '.join(map(str, missing_wirehouse)), level=messages.ERROR)
+        if missing_wiring_date:
             self.message_user(request, "В заказах не указана дата проводки: %s" % ', '.join(map(str, missing_wiring_date)), level=messages.ERROR)
-        else:
+        if not (missing_contractors or missing_wirehouse or missing_wiring_date):
             template = get_template('admin/shop/order/1c.txt')
             response = HttpResponse(template.render({'orders': queryset}).replace('\n', '\r\n'), content_type='text/xml; charset=utf8')
             response['Content-Disposition'] = 'attachment; filename=1C-{0}.xml'.format(datetime.date.today().isoformat())

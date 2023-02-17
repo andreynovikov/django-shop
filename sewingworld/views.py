@@ -1,5 +1,6 @@
-from django.http import Http404, HttpResponseForbidden, StreamingHttpResponse, JsonResponse
+from django.http import Http404, StreamingHttpResponse, JsonResponse
 from django.conf import settings
+from django.db.models import Sum, F, Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.files.storage import default_storage
 from django.core.paginator import Paginator
@@ -41,7 +42,7 @@ def search(request):
     root = Category.objects.get(slug=settings.MPTT_ROOT)
 
     text = request.GET.get('text', request.GET.get('q', ''))
-    typeahead  = request.GET.get('ta', None) or request.GET.get('q', None)
+    typeahead = request.GET.get('ta', None) or request.GET.get('q', None)
 
     from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
     language = 'russian'
@@ -135,10 +136,8 @@ def products_stream(request, integration, template, filter_type):
         'categories__in': root.get_descendants(include_self=True)
     }
 
-    if integration:
+    if integration and not integration.output_all:
         filters['integration'] = integration
-        if integration.output_available:
-            filters['num__gt'] = 0
 
     if filter_type == 'yandex':
         filters['market'] = True
@@ -151,13 +150,21 @@ def products_stream(request, integration, template, filter_type):
         except Manufacturer.DoesNotExist:
             pass
 
-    products = Product.objects.filter(**filters).distinct()
+    products = Product.objects.order_by().filter(**filters).distinct()
+
+    if integration and integration.output_available:
+        products = products.annotate(
+            quantity=Sum('stock_item__quantity', filter=Q(stock_item__supplier__integration=integration)),
+            correction=Sum('stock_item__correction', filter=Q(stock_item__supplier__integration=integration)),
+            available=F('quantity') + F('correction')
+        ).filter(available__gt=0)
+
     for product in products:
         context['product'] = product
-        if integration:
+        if integration and not integration.output_all:
             context['integration'] = ProductIntegration.objects.get(product=product, integration=integration)
             if integration.output_stock:
-                context['stock'] = product.get_stock(filter_type, integration=integration)
+                context['stock'] = product.get_stock(integration=integration)
         yield t.render(context, request)
 
     context.pop('product', None)
@@ -422,9 +429,6 @@ def product_quick_view(request, code):
 
 
 def product_stock(request, code):
-    #if not request.is_ajax():
-    #    return HttpResponseForbidden()
-
     product = get_object_or_404(Product, code=code)
     if product.categories.exists() and not product.breadcrumbs:
         raise Http404("Product does not exist")
