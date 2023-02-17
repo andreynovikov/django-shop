@@ -9,6 +9,7 @@ class SiteProfile(models.Model):
     site = models.OneToOneField(Site, related_name='profile', on_delete=models.CASCADE)
     title = models.CharField('название', max_length=255, blank=True)
     description = models.CharField('описание', max_length=255, blank=True)
+    wholesale = models.BooleanField('оптовый', default=False)
     category_root_slug = models.CharField('slug корневой категории', max_length=30, blank=True)
     product_thumbnail_size = models.PositiveSmallIntegerField('размер малого изображения товара', default=200)
     product_small_thumbnail_size = models.PositiveSmallIntegerField('размер супермалого изображения товара', default=80)
