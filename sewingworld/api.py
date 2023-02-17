@@ -3,10 +3,11 @@ from random import randint
 from urllib.parse import urlparse
 
 from django.conf import settings
-from django.contrib.auth import get_user_model, login, logout
-from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
+from django.contrib.auth import login, logout
+from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.core.mail import mail_admins
-from django.db.models import Q
+from django.db.models import F
+from django.http import HttpResponseRedirect
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
@@ -21,10 +22,12 @@ from rest_framework.response import Response
 from django.contrib.flatpages.models import FlatPage
 from django_ipgeobase.models import IPGeoBase
 
+from yandex_kassa.views import payment as yandex_payment
+
 from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase  # TODO: add all tasks
 from shop.filters import get_product_filter
 from shop.models import Category, ProductKind, Product, Basket, BasketItem, Order, OrderItem, Favorites, \
-    ShopUser, ShopUserManager, News, Store, ServiceCenter
+    ShopUser, News, Store, ServiceCenter
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 
 from .models import SiteProfile
@@ -130,6 +133,7 @@ class ProductKindViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
+    lookup_value_regex = '[^/]+'
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ('id', 'code', 'article', 'title', 'price')
@@ -159,23 +163,19 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             if field == 'id':
                 queryset = queryset.filter(pk__in=values)
             elif field == 'text':  # full text search
-                # TODO: create fts index with weights:
-                # http://logan.tw/posts/2017/12/30/full-text-search-with-django-and-postgresql/
-                root = Category.objects.get(slug='sewing.world')  # TODO: remove hard coded root
                 language = 'russian'
-                search_vector = SearchVector('title', 'whatis', 'code', 'article', 'partnumber', config=language)
                 search_query = SearchQuery(values[0], config=language)
-                search_rank = SearchRank(search_vector, search_query)
+                search_rank = SearchRank(F('fts_vector'), search_query, weights=[0.1, 0.2, 0.4, 1.0])
                 queryset = queryset.annotate(
                     rank=search_rank
                 ).filter(
-                    categories__in=root.get_descendants(include_self=True),
+                    fts_vector=search_query,
                     rank__gte=0.001
                 ).order_by(
                     '-enabled',
                     '-rank'
                 )
-                filter_fields = ['manufacturer','price']
+                filter_fields = ['manufacturer', 'price']
                 self.product_filter = get_product_filter(self.request.query_params, queryset=queryset, fields=filter_fields, request=self.request)
                 queryset = self.product_filter.qs
             elif field in ('show_on_sw', 'gift', 'recomended', 'firstpage', 'enabled'):
@@ -286,7 +286,7 @@ class BasketViewSet(viewsets.ModelViewSet):
     serializer_class = BasketSerializer
 
     def get_queryset(self):
-        queryset = Basket.objects.filter(session_id=self.request.session.session_key)
+        queryset = Basket.objects.filter(session_id__isnull=False, session_id=self.request.session.session_key)
         return queryset
 
     def destroy(self, request):
@@ -436,6 +436,16 @@ class OrderViewSet(viewsets.ModelViewSet):
     def destroy(self, request):
         raise MethodNotAllowed(request.method)
 
+    @action(detail=True, methods=['post'])
+    def pay(self, request, pk=None):
+        order = self.get_object()  # this looks redundant but we keep it for framework internal checks
+        return_url = request.data.get('return_url', None)
+        response = yandex_payment(request, order.id, return_url)
+        if type(response) == HttpResponseRedirect:
+            return Response({'location': response.url})
+        else:
+            return response
+
     @action(detail=False, methods=['post'])
     def last(self, request):
         queryset = self.get_queryset().order_by('-id').values_list('id', flat=True)
@@ -529,7 +539,7 @@ class ComparisonsViewSet(viewsets.ViewSet):
 
 class UserViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
-    queryset = get_user_model().objects.all()
+    queryset = ShopUser.objects.all()
     lookup_value_regex = '(:?\+?\d+|current)'
 
     def get_serializer_class(self):

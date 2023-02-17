@@ -32,7 +32,10 @@ def num(s):
     try:
         return int(s)
     except ValueError:
-        return float(s)
+        try:
+            return float(s)
+        except ValueError:
+            return None
 
 
 class ShopSliderWidget(forms.TextInput):

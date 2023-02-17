@@ -3,10 +3,12 @@ from django.conf.urls import include, url
 from django.conf.urls.static import static
 from django.urls import path
 from django.contrib import admin
-from django.contrib.sitemaps.views import sitemap
+from django.contrib.sitemaps.views import index, sitemap
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.views.decorators.cache import cache_page
 
 import mptt_urls
+
 from zinnia.sitemaps import EntrySitemap
 from forum.sitemaps import ThreadSitemap
 from rest_framework.routers import DefaultRouter
@@ -24,11 +26,11 @@ sitemaps = {
     'static': StaticViewSitemap,
     'products': ProductSitemap,
     'categories': CategorySitemap,
-    'sales actions': SalesActionSitemap,
+    'sales': SalesActionSitemap,
     'stores': StoreSitemap,
     'pages': FlatPageSitemap,
     'blog': EntrySitemap,
-    'threads': ThreadSitemap
+    'forum': ThreadSitemap
 }
 
 router = DefaultRouter()
@@ -56,7 +58,8 @@ urlpatterns = [
     path('api/v0/csrf/', api.CsrfTokenView.as_view()),
     path('api/v0/warrantycard/<str:code>/', api.WarrantyCardView.as_view()),
     # ex: /sitemap.xml
-    url(r'^sitemap\.xml$', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
+    path('sitemap.xml', cache_page(60 * 60 * 24, cache='files')(index), {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.index'),
+    path('sitemap-<section>.xml', cache_page(60 * 60 * 24, cache='files')(sitemap), {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     # ex: /search.xml
     url(r'^search\.xml$', views.products, {'template': 'search', 'filters': None}, name='search_xml'),
     # ex: /full.xml
@@ -115,9 +118,10 @@ urlpatterns = [
     url(r'^reviews/', include('reviews.urls')),
     url(r'^oldforum/', include('forum.urls')),
 
+    path('admin/', include('massadmin.urls')),
+    path('admin/', include('loginas.urls')),
     path('admin/', admin.site.urls),
-    url(r'^admin/', include('massadmin.urls')),
-    url(r'^admin/', include('loginas.urls')),
+    path('', include('django_prometheus.urls')),
 ]
 
 # Add Yandex integrations

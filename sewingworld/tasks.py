@@ -24,3 +24,9 @@ def zinnia_spam_cleanup():
 @shared_task
 def haystack_update_index():
     management.call_command("update_index", verbosity=1)
+
+PRIORITY_HIGHEST = 0
+PRIORITY_HIGH = 2
+PRIORITY_NORMAL = 4
+PRIORITY_LOW = 6
+PRIORITY_IDLE = 9

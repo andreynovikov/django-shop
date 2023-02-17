@@ -38,5 +38,3 @@
 <td colspan="3" style="border:1px solid lightgray; font-size: 10pt; padding:3px; text-align:right;">{{ order.total }}&nbsp;руб.</td>
 </tr>
 </table>
-{% if order.user.discount < 10 and order.total >= 30000 %}<p>Выдать 10% карту!</p>{% endif %}
-{% if order.user.discount < 5 and order.total < 30000 and order.total > 3000 %}<p>Выдать 5% карту!</p>{% endif %}

@@ -53,7 +53,7 @@ CANCELLATION_REASONS = {
 
 
 @login_required
-def payment(request, order_id):
+def payment(request, order_id, return_url=None):
     order = get_object_or_404(Order, pk=order_id)
     if order.user.id != request.user.id:
         """ This is not the user's order, someone tries to hack us """
@@ -84,10 +84,11 @@ def payment(request, order_id):
             'vat_code': 1
         })
 
-    return_url = 'https://{}{}'.format(
-        Site.objects.get_current().domain,
-        reverse('shop:order', args=[order.id])
-    )
+    if return_url is None:
+        return_url = 'https://{}{}'.format(
+            Site.objects.get_current().domain,
+            reverse('shop:order', args=[order.id])
+        )
 
     payment_details = {
         'amount': {

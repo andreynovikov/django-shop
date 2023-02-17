@@ -4,8 +4,11 @@ import traceback
 
 from urllib.parse import urlparse
 
+from django.conf import settings
 from django.contrib.sites.models import Site
+from django.core.exceptions import MiddlewareNotUsed
 from django.db.models import Q
+from django.http import HttpResponseForbidden
 
 
 logger = logging.getLogger("django")
@@ -21,8 +24,6 @@ class SiteDetectionMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        logger.error("Origin: " + request.META.get('HTTP_ORIGIN', ''))
-        logger.error("Referer: " + request.META.get('HTTP_REFERER', ''))
         site = None
         # Prefer Origin header over Referer
         url = request.META.get('HTTP_ORIGIN', request.META.get('HTTP_REFERER', ''))
@@ -36,13 +37,8 @@ class SiteDetectionMiddleware:
         if site is None:
             site = Site.objects.get_current()
         request.site = site
-        logger.error(site)
         response = self.get_response(request)
         return response
-
-from django.conf import settings
-from django.core.exceptions import MiddlewareNotUsed
-from django.http import HttpResponseForbidden
 
 
 class BlockedIpMiddleware:

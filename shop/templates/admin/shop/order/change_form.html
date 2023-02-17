@@ -102,7 +102,7 @@
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0"+ WeightStyle + "\" class=\"lead\"" + WeightTitle + ">Общий вес: " + Weight.toFixed(3) + "</div>");
         $("#content h1").append(' <b>' + Number + '</b>');
 
-{% if original.status >= original.STATUS_SENT %}
+{% if original.status > original.STATUS_COLLECTED %}
 {% if not original.wiring_date or not original.wirehouse or not original.buyer or not original.seller %}
         $(".form-row.field-buyer").css('background-color', '#fff8dc');
         $(".form-row.field-wirehouse").css('background-color', '#fff8dc');
@@ -224,19 +224,21 @@
 {% block submit_buttons_bottom %}{% if not original.pk or original.owner == request.user %}{% submit_row %}{% endif %}{% endblock %}
 
 {% block object-tools-items %}
-    {% if original.integration and original.integration and original.integration.settings.ym_campaign and original.status == original.STATUS_COLLECTED %}
+    {% if original.integration and original.integration.settings and original.integration.settings.ym_campaign and original.status == original.STATUS_COLLECTED %}
     {% url opts|admin_urlname:'beru_labels' original.pk|admin_urlquote as beru_labels_url %}
     <li><a href="{% add_preserved_filters beru_labels_url %}?_popup=1" class="related-widget-wrapper-link">
             <span>{% trans "Наклейки Беру!" %}</span></a></li>
     {% endif %}
     <li><a id="documentboxlink" href="#" class="related-widget-wrapper-link">Документы</a></li>
-    {% if original.owner == request.user and not original.integration %}
+    {% if original.owner == request.user %}
+    {% if not original.integration or not original.integration.uses_api %}
     {% url opts|admin_urlname:'combine' original.pk|admin_urlquote as combine_url %}
     <li><a href="{% add_preserved_filters combine_url %}?_popup=1" class="related-widget-wrapper-link">
             <span>{% trans "Объединение заказов" %}</span></a></li>
     {% url opts|admin_urlname:'discount' original.pk|admin_urlquote as discount_url %}
     <li><a href="{% add_preserved_filters discount_url %}?_popup=1" class="related-widget-wrapper-link">
             <span>{% trans "Скидка" %}</span></a></li>
+    {% endif %}
     {% endif %}
     {{ block.super }}
 {% endblock %}

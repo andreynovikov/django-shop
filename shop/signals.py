@@ -12,7 +12,7 @@ from tagging.utils import parse_tag_input
 
 from django.contrib.flatpages.models import FlatPage
 
-from sewingworld.celery import PRIORITY_HIGH, PRIORITY_NORMAL, PRIORITY_LOW, PRIORITY_IDLE
+from sewingworld.tasks import PRIORITY_HIGH, PRIORITY_NORMAL, PRIORITY_LOW, PRIORITY_IDLE
 
 from reviews import get_review_model
 from reviews.signals import review_was_posted

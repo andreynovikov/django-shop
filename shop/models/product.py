@@ -3,6 +3,8 @@ import logging
 from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
 from django.conf import settings
+from django.contrib.postgres.search import SearchVector, SearchVectorField
+from django.contrib.postgres.indexes import GinIndex
 from django.contrib.sites.models import Site
 from django.db import connection, models
 from django.db.models.signals import post_save
@@ -32,8 +34,8 @@ class Product(models.Model):
     partnumber = models.CharField('partnumber', max_length=200, blank=True, db_index=True)
     gtin = models.CharField('GTIN', max_length=17, blank=True, db_index=True)
     enabled = models.BooleanField('включён', default=False, db_index=True)
-    title = models.CharField('название', max_length=200)
-    price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0, db_column=settings.SHOP_PRICE_DB_COLUMN)
+    title = models.CharField('название', max_length=200, db_index=True)
+    price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0, db_column=settings.SHOP_PRICE_DB_COLUMN, db_index=True)
     if settings.SHOP_PRICE_DB_COLUMN == 'price':
         spb_price = models.DecimalField('цена СПб, руб', max_digits=10, decimal_places=2, default=0)
     cur_price = models.DecimalField('цена, вал', max_digits=10, decimal_places=2, default=0)
@@ -212,10 +214,15 @@ class Product(models.Model):
     prom_stitch_type = models.CharField('Тип стежка', max_length=255, blank=True)
     prom_autothread = models.CharField('Автоматический нитеотводчик', max_length=255, blank=True)
 
+    fts_vector = SearchVectorField(null=True)
+
     class Meta:
         verbose_name = 'товар'
         verbose_name_plural = 'товары'
-        # ordering = ['title']
+        ordering = ['title']
+        indexes = [
+            GinIndex(fields=['fts_vector'])
+        ]
 
     def get_absolute_url(self):
         return reverse('product', args=[str(self.code)])
@@ -232,6 +239,7 @@ class Product(models.Model):
             self.update_set_price()
         self.image_prefix = ''.join(['images/', self.manufacturer.code, '/', self.code])
         super(Product, self).save(*args, **kwargs)
+        self.update_fts_vector()
         if settings.SHOP_PRICE_DB_COLUMN == 'price':
             self.update_sets()
 
@@ -273,6 +281,14 @@ class Product(models.Model):
         self.ws_price = ws_price
         self.sp_price = sp_price
 
+    def update_fts_vector(self):
+        language = 'russian'
+        vector = SearchVector('title', 'code', 'article', 'partnumber', weight='A', config=language)
+        vector = vector + SearchVector('whatis', 'shortdescr', weight='B', config=language)
+        vector = vector + SearchVector('descr', 'spec', weight='D', config=language)
+        Product.objects.filter(id=self.id).update(fts_vector=vector)  # use direct DB update to skip heavy save() logic
+
+    # TODO: depricated
     def get_sales_actions(self):
         return self.sales_actions.filter(active=True, sites=Site.objects.get_current()).order_by('order')
 

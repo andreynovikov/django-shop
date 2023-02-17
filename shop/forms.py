@@ -3,7 +3,7 @@ from django.forms.models import model_to_dict
 
 from reviews.forms import ReviewForm
 
-from shop.models import ShopUser
+from shop.models import ShopUser, ShopUserManager
 
 
 class ProductReviewForm(ReviewForm):
@@ -24,6 +24,20 @@ class UserForm(forms.Form):
         if self.instance:
             kwargs['initial'] = model_to_dict(self.instance)
         super(UserForm, self).__init__(*args, **kwargs)
+
+    def clean_phone(self):
+        norm_phone = ShopUserManager.normalize_phone(self.cleaned_data['phone'])
+        if ShopUser.objects.filter(phone=norm_phone).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Пользователь с указанным номером уже зарегестрирован")
+        return norm_phone
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if email == '':
+            return email
+        if ShopUser.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Пользователь с указанным адресом уже зарегестрирован")
+        return email
 
     def clean_username(self):
         username = self.cleaned_data['username']
