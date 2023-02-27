@@ -160,7 +160,7 @@ def add_to_basket(request, product_id):
     item.save()
     utm_source = request.GET.get('utm_source', None)
     if utm_source:
-        basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source)  # ASCII only regex
+        basket.utm_source = re.sub(r'(?a)[^\w]', '_', utm_source)  # ASCII only regex
         basket.save()
 
     if FACEBOOK_TRACKING:
@@ -283,7 +283,7 @@ def restore_basket(request, restore):
                 pass
         utm_source = request.GET.get('utm_source', None)
         if utm_source:
-            basket.utm_source = re.sub('(?a)[^\w]', '_', utm_source)  # ASCII only regex
+            basket.utm_source = re.sub(r'(?a)[^\w]', '_', utm_source)  # ASCII only regex
         basket.secondary = True
         basket.save()
     query_string = request.GET.urlencode()

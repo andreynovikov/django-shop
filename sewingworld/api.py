@@ -1,6 +1,5 @@
 import logging
 from random import randint
-from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth import login, logout
@@ -103,9 +102,9 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
             root_slug = self.request.site.profile.category_root_slug
             # instance select taken from mptt_urls
             instance = None
-            path = key # path = '{}/'.format(key)  # we add trailing slash to conform .get_path() from mptt_urls
+            path = key  # path = '{}/'.format(key)  # we add trailing slash to conform .get_path() from mptt_urls
             try:
-                instance_slug = path.split('/')[-1] #[-2]  # slug of the instance
+                instance_slug = path.split('/')[-1]  # [-2]  # slug of the instance
                 candidates = Category.objects.filter(slug=instance_slug)  # candidates to be the instance
                 for candidate in candidates:
                     # here we compare each candidate's path to the path passed to this view
@@ -358,7 +357,7 @@ class BasketViewSet(viewsets.ModelViewSet):
 
 
 class OrderViewSet(viewsets.ModelViewSet):
-    permission_classes=[IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
 
     def get_serializer_class(self):
@@ -449,7 +448,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def last(self, request):
         queryset = self.get_queryset().order_by('-id').values_list('id', flat=True)
-        last = queryset.exclude(status__in = [Order.STATUS_DONE, Order.STATUS_FINISHED, Order.STATUS_CANCELED]).first()
+        last = queryset.exclude(status__in=[Order.STATUS_DONE, Order.STATUS_FINISHED, Order.STATUS_CANCELED]).first()
         if last is None:
             last = queryset.first()
         return Response({
@@ -459,7 +458,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
 class FavoritesViewSet(viewsets.ModelViewSet):
     serializer_class = FavoritesSerializer
-    permission_classes=[IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         queryset = Favorites.objects.filter(user=self.request.user)
@@ -540,7 +539,7 @@ class ComparisonsViewSet(viewsets.ViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
     queryset = ShopUser.objects.all()
-    lookup_value_regex = '(:?\+?\d+|current)'
+    lookup_value_regex = r'(:?\+?\d+|current)'
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -729,7 +728,7 @@ class ServiceCenterViewSet(viewsets.ReadOnlyModelViewSet):
 
 class SiteProfileViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'site'
-    lookup_value_regex = '(:?\d+|current)'
+    lookup_value_regex = r'(:?\d+|current)'
     serializer_class = SiteProfileSerializer
     queryset = SiteProfile.objects.all()
 
