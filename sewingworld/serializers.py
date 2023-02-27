@@ -146,6 +146,8 @@ class SalesActionSerializer(NonNullModelSerializer):
 
 
 class ProductListSerializer(NonNullModelSerializer):
+    price = serializers.SerializerMethodField()
+    cost = serializers.SerializerMethodField()
     instock = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     thumbnail = serializers.SerializerMethodField()
@@ -165,6 +167,20 @@ class ProductListSerializer(NonNullModelSerializer):
             if typeahead is not None:
                 return instance.title
         return super().to_representation(instance)
+
+    def get_price(self, obj):
+        request = self.context.get('request')
+        if request.site.profile.wholesale:
+            return obj.ws_price
+        else:
+            return obj.price
+
+    def get_cost(self, obj):
+        request = self.context.get('request')
+        if request.site.profile.wholesale:
+            return obj.ws_cost
+        else:
+            return obj.cost
 
     def get_instock(self, obj):
         return max(min(obj.instock, 10), 0)
@@ -214,13 +230,14 @@ class ProductSerializer(NonNullModelSerializer):
     developer_country = CountrySerializer(read_only=True)
     manufacturer = ManufacturerSerializer(read_only=True)
     constituents = ProductListSerializer(many=True, read_only=True)
-    instock = serializers.ReadOnlyField()
+    price = serializers.SerializerMethodField()
+    cost = serializers.SerializerMethodField()
     accessories = serializers.SerializerMethodField()
     similar = serializers.SerializerMethodField()
     gifts = serializers.SerializerMethodField()
     sales = serializers.SerializerMethodField()
     stitches = serializers.SerializerMethodField()
-    cost = serializers.ReadOnlyField()
+    instock = serializers.ReadOnlyField()
     discount = serializers.ReadOnlyField()
 
     class Meta:
@@ -234,6 +251,20 @@ class ProductSerializer(NonNullModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['constituents'].context.update(self.context)
+
+    def get_price(self, obj):
+        request = self.context.get('request')
+        if request.site.profile.wholesale:
+            return obj.ws_price
+        else:
+            return obj.price
+
+    def get_cost(self, obj):
+        request = self.context.get('request')
+        if request.site.profile.wholesale:
+            return obj.ws_cost
+        else:
+            return obj.cost
 
     def get_instock(self, obj):
         return obj.instock  # TODO: limit output
@@ -344,12 +375,20 @@ class ProductSerializer(NonNullModelSerializer):
         return obj.stitches
 
 class BasketItemProductSerializer(NonNullModelSerializer):
+    price = serializers.SerializerMethodField()
     thumbnail = serializers.SerializerMethodField()
     thumbnail_small = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = ('id', 'code', 'title', 'whatis', 'partnumber', 'article', 'price', 'thumbnail', 'thumbnail_small')
+
+    def get_price(self, obj):
+        request = self.context.get('request')
+        if request.site.profile.wholesale:
+            return obj.ws_price
+        else:
+            return obj.price
 
     def get_thumbnail(self, obj):
         if not obj.image_prefix:
@@ -399,13 +438,13 @@ class BasketSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Basket
-        exclude = ('created', 'secondary', 'session')
+        exclude = ('created', 'secondary', 'session', 'site')
 
     def create(self, validated_data):
         request = self.context.get('request')
         request.session.save()  # ensure session is persisted
         request.session.modified = True
-        basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
+        basket, created = Basket.objects.get_or_create(site=request.site, session_id=request.session.session_key)
         basket.save(**validated_data)
         return basket
 
@@ -568,7 +607,7 @@ class PhoneValidator:
     def __call__(self, value):
         norm_phone = ShopUserManager.normalize_phone(value)
         if not norm_phone:
-            raise ValidationError(self.message, code=self.code)
+            raise serializers.ValidationError(self.message, code=self.code)
 
 
 class LoginSerializer(serializers.Serializer):
