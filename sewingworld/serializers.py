@@ -158,7 +158,7 @@ class ProductListSerializer(NonNullModelSerializer):
         model = Product
         fields = ('id', 'code', 'article', 'partnumber', 'whatis', 'title', 'variations', 'price',
                   'cost', 'discount', 'instock', 'image', 'thumbnail', 'enabled', 'isnew', 'recomended',
-                  'sales', 'sales_notes', 'shortdescr', 'rank')
+                  'ws_pack_only', 'pack_factor', 'sales', 'sales_notes', 'shortdescr', 'rank')
 
     def to_representation(self, instance):
         request = self.context.get('request')
@@ -198,6 +198,8 @@ class ProductListSerializer(NonNullModelSerializer):
         if not obj.image_prefix:
             return None
         filepath = obj.image_prefix + '.jpg'
+        if not default_storage.exists(filepath):
+            filepath = obj.image_prefix + '.s.jpg'  # special case for variants (dor-tak)
         if default_storage.exists(filepath):
             thumbnail_size = '{}x{}'.format(self.context.get('product_thumbnail_size'), self.context.get('product_thumbnail_size'))
             image = get_thumbnail(filepath, thumbnail_size, padding=True)
