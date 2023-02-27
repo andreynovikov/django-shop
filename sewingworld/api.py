@@ -264,7 +264,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             'user': user.pk,
             'user_discount': user.discount,
             'price': product.price,
-            'cost': Basket.product_cost_for_user(product, user)
+            'cost': Basket.product_cost_for_user(request.site.profile.wholesale, product, user)
         })
 
 
@@ -286,7 +286,7 @@ class BasketViewSet(viewsets.ModelViewSet):
     serializer_class = BasketSerializer
 
     def get_queryset(self):
-        queryset = Basket.objects.filter(session_id__isnull=False, session_id=self.request.session.session_key)
+        queryset = Basket.objects.filter(site=self.request.site, session_id__isnull=False, session_id=self.request.session.session_key)
         return queryset
 
     def destroy(self, request):

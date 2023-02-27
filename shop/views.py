@@ -10,6 +10,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpRe
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.sites.models import Site
 from django.core.paginator import Paginator
 from django_ipgeobase.models import IPGeoBase
 from django.template.loader import render_to_string
@@ -146,7 +147,7 @@ def view_basket(request):
 def add_to_basket(request, product_id):
     ensure_session(request)
     product = get_object_or_404(Product, pk=product_id)
-    basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
+    basket, created = Basket.objects.get_or_create(site=Site.objects.get_current(), session_id=request.session.session_key)
     item, created = basket.items.get_or_create(product=product)
     try:
         quantity = int(request.GET.get('quantity', '1'))
