@@ -5,7 +5,6 @@ from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth import authenticate
-from django.contrib.auth.models import AnonymousUser
 from django.core.files.storage import default_storage
 
 from rest_framework import serializers
@@ -76,7 +75,7 @@ class CategoryTreeSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Category
-        fields=('id', 'name', 'slug', 'children')
+        fields = ('id', 'name', 'slug', 'children')
 
 
 class CategorySerializer(NonNullModelSerializer):
@@ -122,7 +121,7 @@ class CategorySerializer(NonNullModelSerializer):
             if len(field_label) > 1:
                 filter['unit'] = field_label[1].strip()
             if field.help_text:
-                filter['help'] =  field.help_text
+                filter['help'] = field.help_text
             filters.append(filter)
         return filters
 
@@ -218,7 +217,7 @@ class ProductListSerializer(NonNullModelSerializer):
             domain = urlparse(request.META.get('HTTP_REFERER', '')).hostname
             if domain == 'cartzilla.sigalev.ru':  # TODO: put this in Sites config
                 domain = 'www.sewing-world.ru'
-            return list(obj.sales_actions.filter(active=True).exclude(notice='').order_by('order').values_list('notice', flat=True)) # , sites__domain=domain).order_by('order')
+            return list(obj.sales_actions.filter(active=True).exclude(notice='').order_by('order').values_list('notice', flat=True))  # , sites__domain=domain).order_by('order')
         return None
 
 
