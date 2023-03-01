@@ -31,7 +31,7 @@ from shop.tasks import send_password, notify_user_order_new_sms, notify_user_ord
 
 from .models import SiteProfile
 from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSerializer, ProductListSerializer, \
-    ProductKindSerializer, \
+    ProductKindSerializer, ProductImagesSerializer, \
     BasketSerializer, BasketItemActionSerializer, OrderListSerializer, OrderSerializer, OrderActionSerializer, \
     FavoritesSerializer, ComparisonSerializer, \
     UserListSerializer, UserSerializer, AnonymousUserSerializer, LoginSerializer, \
@@ -142,6 +142,8 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     def get_serializer_class(self):
         if self.action == 'list':
             return ProductListSerializer
+        if self.action == 'images':
+            return ProductImagesSerializer
         return ProductSerializer
 
     def get_serializer_context(self):
@@ -253,6 +255,11 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True)
     def bycode(self, request, pk=None):
         product = self.get_queryset().filter(code=pk).first()
+        return Response(self.get_serializer(product, context=self.get_serializer_context()).data)
+
+    @action(detail=True)
+    def images(self, request, pk=None):
+        product = self.get_object()
         return Response(self.get_serializer(product, context=self.get_serializer_context()).data)
 
     @action(detail=True, permission_classes=[IsAuthenticated])
@@ -388,7 +395,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def create(self, request):
         try:
-            basket = Basket.objects.get(session_id=request.session.session_key)
+            basket = Basket.objects.get(site=request.site, session_id=request.session.session_key)
         except Basket.DoesNotExist:
             return Response("Basket does not exist", status=status.HTTP_400_BAD_REQUEST)
 
@@ -430,7 +437,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         super().update(request, *args, **kwargs)
         instance = self.get_object()
-        return Response(OrderSerializer(instance).data)
+        return Response(OrderSerializer(instance, context=self.get_serializer_context()).data)
 
     def destroy(self, request):
         raise MethodNotAllowed(request.method)
@@ -598,7 +605,7 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         try:
-            basket = Basket.objects.get(session_id=request.session.session_key)
+            basket = Basket.objects.get(site=request.site, session_id=request.session.session_key)
         except Basket.MultipleObjectsReturned:
             basket = None
         except Basket.DoesNotExist:
@@ -620,7 +627,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def logout(self, request, *args, **kwargs):
         try:
-            basket = Basket.objects.get(session_id=request.session.session_key)
+            basket = Basket.objects.get(site=request.site, session_id=request.session.session_key)
         except Basket.DoesNotExist:
             basket = None
 
