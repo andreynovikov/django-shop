@@ -2,7 +2,6 @@ import logging
 
 from decimal import Decimal, ROUND_UP, ROUND_DOWN, ROUND_HALF_EVEN
 
-from django.conf import settings
 from django.contrib.sites.models import Site
 from django.db import models
 from django.db.models.signals import pre_save
@@ -20,8 +19,6 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
-
-WHOLESALE = getattr(settings, 'SHOP_WHOLESALE', False)
 
 
 class Manager(models.Model):
@@ -297,9 +294,10 @@ class Order(models.Model):
             order.wirehouse = integration.wirehouse
         order.save()
 
+        wholesale = basket.site.profile.wholesale
         user_discount = basket.user_discount
 
-        if WHOLESALE:
+        if wholesale:
             qnt = Decimal('0.01')
         else:
             qnt = Decimal('1')
@@ -312,13 +310,13 @@ class Order(models.Model):
                 val_discount = item.ext_discount
                 price = item.product.price
             # если это опт, то указываем только рублёвую скидку, высчитанную корзиной
-            elif WHOLESALE:
+            elif wholesale:
                 pct_discount = 0
                 val_discount = item.discount
                 price = item.product.ws_price
             # иначе считаем отдельно скидку в процентах и копируем текущую рублёвую скидку товара
             else:
-                pct_discount = basket.product_pct_discount(item.product, user_discount)
+                pct_discount = basket.product_pct_discount(wholesale, item.product, user_discount)
                 val_discount = item.product.val_discount
                 price = item.product.price
             # если это обычный товар, добавляем его в заказ
@@ -334,7 +332,7 @@ class Order(models.Model):
                 full_discount = val_discount
                 discount_remainder = full_discount
                 if not item.product.recalculate_price:
-                    if WHOLESALE:
+                    if wholesale:
                         full_price = item.product.ws_price
                     else:
                         full_price = item.product.price
@@ -343,7 +341,7 @@ class Order(models.Model):
                 constituents = ProductSet.objects.filter(declaration=item.product)
                 last = len(constituents) - 1
                 for idx, itm in enumerate(constituents):
-                    if WHOLESALE:
+                    if wholesale:
                         constituent_price = itm.constituent.ws_price
                     else:
                         constituent_price = itm.constituent.price
@@ -455,7 +453,7 @@ class OrderItem(models.Model):
             price = self.total
             pd = Decimal(0)
             if self.pct_discount > 0:
-                if WHOLESALE:
+                if self.order.site.profile.wholesale:
                     qnt = Decimal('0.01')
                 else:
                     qnt = Decimal('1')
@@ -475,7 +473,7 @@ class OrderItem(models.Model):
         pd = Decimal(0)
         if self.pct_discount > 0:
             price = self.product_price
-            if WHOLESALE:
+            if self.order.site.profile.wholesale:
                 qnt = Decimal('0.01')
             else:
                 qnt = Decimal('1')
@@ -492,7 +490,7 @@ class OrderItem(models.Model):
         pdt = False
         if self.pct_discount > 0:
             price = self.product_price
-            if WHOLESALE:
+            if self.order.site.profile.wholesale:
                 qnt = Decimal('0.01')
             else:
                 qnt = Decimal('1')

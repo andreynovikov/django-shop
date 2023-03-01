@@ -144,6 +144,30 @@ class SalesActionSerializer(NonNullModelSerializer):
         exclude = ('active', 'show_in_list', 'order', 'sites')
 
 
+class ProductImagesSerializer(serializers.BaseSerializer):  # BaseSerializer is used to be able to return list instead of dict
+    def to_representation(self, instance):
+        images = []
+        if instance.image_prefix and default_storage.exists(instance.image_prefix):
+            try:
+                dirs, files = default_storage.listdir(instance.image_prefix)
+                if files is not None:
+                    for image_file in sorted(files):
+                        if image_file.endswith('.jpg') and not image_file.endswith('.s.jpg'):
+                            image_path = instance.image_prefix + '/' + image_file
+                            thumbnail = get_thumbnail(image_path, '80x80', padding=True)
+                            images.append({
+                                'src': default_storage.base_url + image_path,
+                                'thumbnail': {
+                                    'src': thumbnail.url,
+                                    'width': thumbnail.width,
+                                    'height': thumbnail.height
+                                }
+                            })
+            except NotADirectoryError:
+                pass
+        return images
+
+
 class ProductListSerializer(NonNullModelSerializer):
     price = serializers.SerializerMethodField()
     cost = serializers.SerializerMethodField()
@@ -246,8 +270,9 @@ class ProductSerializer(NonNullModelSerializer):
         exclude = ('sp_price', 'sp_cur_price', 'cur_price', 'max_discount', 'ws_max_discount',
                    'forbid_price_import', 'forbid_spb_price_import', 'forbid_ws_price_import',
                    'show_on_sw', 'spb_show_in_catalog', 'market', 'spb_market', 'firstpage',
-                   'num', 'spb_num', 'ws_num', 'recalculate_price', 'cur_code', 'ws_cur_code',
-                   'sp_cur_code', 'sales_actions', 'categories', 'stock', 'related', 'image_prefix')
+                   'num', 'spb_num', 'ws_num', 'recalculate_price', 'spb_price', 'ws_cur_price',
+                   'cur_code', 'ws_cur_code', 'sp_cur_code', 'sales_actions', 'categories',
+                   'stock', 'related', 'image_prefix', 'bid', 'cbid', 'fts_vector')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -289,26 +314,7 @@ class ProductSerializer(NonNullModelSerializer):
             return None
 
     def get_images(self, obj):
-        images = []
-        if default_storage.exists(obj.image_prefix):
-            try:
-                dirs, files = default_storage.listdir(obj.image_prefix)
-                if files is not None:
-                    for image_file in sorted(files):
-                        if image_file.endswith('.jpg') and not image_file.endswith('.s.jpg'):
-                            image_path = obj.image_prefix + '/' + image_file
-                            thumbnail = get_thumbnail(image_path, '80x80', padding=True)
-                            images.append({
-                                'url': default_storage.base_url + image_path,
-                                'thumbnail': {
-                                    'url': thumbnail.url,
-                                    'width': thumbnail.width,
-                                    'height': thumbnail.height
-                                }
-                            })
-            except NotADirectoryError:
-                pass
-        return images
+        return ProductImagesSerializer(instance=obj).data
 
     def get_thumbnail(self, obj):
         if not obj.image_prefix:
@@ -383,7 +389,8 @@ class BasketItemProductSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Product
-        fields = ('id', 'code', 'title', 'whatis', 'partnumber', 'article', 'price', 'thumbnail', 'thumbnail_small')
+        fields = ('id', 'code', 'title', 'whatis', 'partnumber', 'article',
+                  'ws_pack_only', 'pack_factor', 'price', 'thumbnail', 'thumbnail_small')
 
     def get_price(self, obj):
         request = self.context.get('request')
