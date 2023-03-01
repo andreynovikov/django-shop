@@ -69,7 +69,7 @@ def view_empty_basket(request):
 def view_basket_notice(request):
     ensure_session(request)
     try:
-        basket = Basket.objects.get(session_id=request.session.session_key)
+        basket = Basket.objects.get(site=Site.objects.get_current(), session_id=request.session.session_key)
     except Basket.DoesNotExist:
         basket = None
     context = {
@@ -81,7 +81,7 @@ def view_basket_notice(request):
 def view_basket_notice_new(request):
     ensure_session(request)
     try:
-        basket = Basket.objects.get(session_id=request.session.session_key)
+        basket = Basket.objects.get(site=Site.objects.get_current(), session_id=request.session.session_key)
     except Basket.DoesNotExist:
         basket = None
     context = {
@@ -93,7 +93,7 @@ def view_basket_notice_new(request):
 def view_basket_extnotice(request):
     ensure_session(request)
     try:
-        basket = Basket.objects.get(session_id=request.session.session_key)
+        basket = Basket.objects.get(site=Site.objects.get_current(), session_id=request.session.session_key)
     except Basket.DoesNotExist:
         basket = None
     context = {
@@ -110,7 +110,7 @@ def view_basket_extnotice(request):
 def view_basket(request):
     ensure_session(request)
     try:
-        basket = Basket.objects.get(session_id=request.session.session_key)
+        basket = Basket.objects.get(site=Site.objects.get_current(), session_id=request.session.session_key)
     except Basket.DoesNotExist:
         if request.session.get('last_order', None):
             return HttpResponseRedirect(reverse('shop:user_orders'))
@@ -188,7 +188,7 @@ def around(x, base=10):
 def update_basket(request, product_id):
     ensure_session(request)
     product = get_object_or_404(Product, pk=product_id)
-    basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
+    basket, created = Basket.objects.get_or_create(site=Site.objects.get_current(), session_id=request.session.session_key)
     quantity = 0
     item, created = basket.items.get_or_create(product=product)
     try:
@@ -268,7 +268,7 @@ def delete_from_basket(request, product_id):
 
 def restore_basket(request, restore):
     ensure_session(request)
-    basket, created = Basket.objects.get_or_create(session_id=request.session.session_key)
+    basket, created = Basket.objects.get_or_create(site=Site.objects.get_current(), session_id=request.session.session_key)
     if created:
         contents = map(lambda p: map(int, p.split('*')), restore.split(','))
         import sys
@@ -453,7 +453,7 @@ def login_user(request):
         ctx = escape(request.GET.get('ctx', 'login'))
 
     try:
-        basket = Basket.objects.get(session_id=request.session.session_key)
+        basket = Basket.objects.get(site=Site.objects.get_current(), session_id=request.session.session_key)
     except MultipleObjectsReturned:
         basket = None
     except Basket.DoesNotExist:
@@ -559,7 +559,7 @@ def logout_user(request):
     Logout user preserving his basket contents
     """
     try:
-        basket = Basket.objects.get(session_id=request.session.session_key)
+        basket = Basket.objects.get(site=Site.objects.get_current(), session_id=request.session.session_key)
     except Basket.DoesNotExist:
         basket = None
     logout(request)
@@ -623,7 +623,7 @@ def reset_password(request):
 @login_required
 def confirm_order(request, order_id=None):
     try:
-        basket = Basket.objects.get(session_id=request.session.session_key)
+        basket = Basket.objects.get(site=Site.objects.get_current(), session_id=request.session.session_key)
     except Basket.DoesNotExist:
         basket = None
 
