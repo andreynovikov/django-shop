@@ -66,23 +66,39 @@ def notify_beru_order_status(self, order_id, status, substatus):
             'Content-Type': 'application/json; charset=utf-8'
         }
         request = Request(url, data_encoded, headers, method='PUT')
+        logger.info('<<< ' + request.full_url)
+        logger.info(data_encoded)
         try:
             response = urlopen(request)
             result = json.loads(response.read().decode('utf-8'))
             boxes_status = result.get('status', 'ERROR')
             if boxes_status != 'OK':
+                message = result.get('errors', [{}])[0].get('message', None)
+                if message is not None:
+                    order.status = Order.STATUS_PROBLEM
+                    if order.delivery_info:
+                        order.delivery_info = '\n'.join([order.delivery_info, message])
+                    else:
+                        order.delivery_info = message
+                    order.save()
                 raise self.retry(countdown=60 * 10, max_retries=12)  # 10 minutes
         except HTTPError as e:
             content = e.read()
+            logger.error(content)
+            """
+            INFO <<< https://api.partner.market.yandex.ru/v2/campaigns/22478010/orders/168524598/delivery/shipments/163754467/boxes.json
+            INFO b'{"boxes": [{"fulfilmentId": "168524598-1", "weight": 4200, "width": 27, "height": 33, "depth": 48, "items": [{"id": 248335221, "count": 1}]}]}'
+            ERROR b'{"status":"ERROR","errors":[{"code":"BAD_REQUEST","message":"You could not change boxes for order 168524598 in this status PROCESSING (SHIPPED)"}]}'
+            """
             error = json.loads(content.decode('utf-8'))
-            message = error.get('error', {}).get('message', 'Неизвестная ошибка взаимодействия с Беру!')
+            message = error.get('errors', [{}])[0].get('message', 'Неизвестная ошибка взаимодействия с Беру!')
             order.status = Order.STATUS_PROBLEM
             if order.delivery_info:
                 order.delivery_info = '\n'.join([order.delivery_info, message])
             else:
                 order.delivery_info = message
             order.save()
-            raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
+            raise self.retry(countdown=60 * 10, max_retries=12, exc=Exception(content))  # 10 minutes
 
     data = {"order": {"status": status, "substatus": substatus}}
     data_encoded = json.dumps(data).encode('utf-8')
@@ -93,6 +109,8 @@ def notify_beru_order_status(self, order_id, status, substatus):
         'Content-Type': 'application/json; charset=utf-8'
     }
     request = Request(url, data_encoded, headers, method='PUT')
+    logger.info('<<< ' + request.full_url)
+    logger.info(data_encoded)
     try:
         response = urlopen(request)
         result = json.loads(response.read().decode('utf-8'))
@@ -103,18 +121,19 @@ def notify_beru_order_status(self, order_id, status, substatus):
         return '{}: {} {}'.format(order_id, status, substatus)
     except HTTPError as e:
         content = e.read()
+        logger.error(content)
         """
         {"error":{"code":400,"message":"status update is not allowed if there are items unassigned to boxes"},"errors":[{"code":"BAD_REQUEST","message":"status update is not allowed if there are items unassigned to boxes"}],"status":"ERROR"}
         """
         error = json.loads(content.decode('utf-8'))
-        message = error.get('error', {}).get('message', 'Неизвестная ошибка взаимодействия с Беру!')
+        message = error.get('errors', [{}])[0].get('message', 'Неизвестная ошибка взаимодействия с Беру!')
         order.status = Order.STATUS_PROBLEM
         if order.delivery_info:
             order.delivery_info = '\n'.join([order.delivery_info, message])
         else:
             order.delivery_info = message
         order.save()
-        raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
+        raise self.retry(countdown=60 * 10, max_retries=12, exc=Exception(content))  # 10 minutes
 
 
 def get_beru_order_details(order_id):
@@ -140,12 +159,9 @@ def get_beru_order_details(order_id):
         return result.get('order', {})
     except HTTPError as e:
         content = e.read()
-        """
-        {"error":{"code":400,"message":"status update is not allowed if there are items unassigned to boxes"},"errors":[{"code":"BAD_REQUEST","message":"status update is not allowed if there are items unassigned to boxes"}],"status":"ERROR"}
-        """
         error = json.loads(content.decode('utf-8'))
         logger.error(error)
-        message = error.get('error', {}).get('message', 'Неизвестная ошибка взаимодействия с Беру!')
+        message = error.get('errors', [{}])[0].get('message', 'Неизвестная ошибка взаимодействия с Беру!')
         raise TaskFailure(message) from e
 
 
@@ -174,5 +190,5 @@ def get_beru_labels_data(order_id):
         content = e.read()
         error = json.loads(content.decode('utf-8'))
         logger.error(error)
-        message = error.get('error', {}).get('message', 'Неизвестная ошибка взаимодействия с Беру!')
+        message = error.get('errors', [{}])[0].get('message', 'Неизвестная ошибка взаимодействия с Беру!')
         raise TaskFailure(message) from e

@@ -41,6 +41,8 @@ def stocks(request, account='beru'):
         data = json.loads("""
         { "warehouseId": 1234, "skus": [ "01057", "00159" ] }
         """)
+    logger.info('>>> ' + request.path)
+    logger.debug(data)
     integration = Integration.objects.filter(utm_source=account).first()
     skus = []
     warehouseId = data.get('warehouseId', '')
