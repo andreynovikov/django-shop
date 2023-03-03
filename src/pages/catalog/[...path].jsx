@@ -110,8 +110,8 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                                             { /* TODO: filter hidden (here or in API) */ }
                                             {category.children.map((subcategory) => (
                                                 <li className="widget-list-item" key={subcategory.id}>
-                                                    <Link href={`/catalog/${category.path}${subcategory.slug}/`}>
-                                                        <a className="widget-list-link">{ subcategory.name }</a>
+                                                    <Link className="widget-list-link" href={`/catalog/${category.path}${subcategory.slug}/`}>
+                                                        { subcategory.name }
                                                     </Link>
                                                 </li>
                                             ))}
