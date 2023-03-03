@@ -1,20 +1,23 @@
                         <div style="max-height: 14rem" data-simplebar="init" data-simplebar-auto-hide="false">
                           {% for country_group in store_groups %}
+                          {% if forloop.first %}
+                          <div class="pt-2 pb-3 fs-sm">Товар есть в наличии в следующих магазинах:</div>
+                          {% endif %}
                           <h6 class="d-none">{{ country_group.country.name }}</h6>
                           {% for city_group in country_group.cities %}
                           <div class="border-bottom {% if forloop.first %}pb-2{% else %}py-2{% endif %}">
-                            <a class="d-block font-size-sm product-meta" href="#stores_{{ city_group.city.id }}" data-toggle="collapse" aria-expanded="false" aria-controls="stores_{{ city_group.city.id }}">{{ city_group.city.name }}</a>
+                            <a class="d-block fs-sm product-meta" href="#stores_{{ city_group.city.id }}" data-bs-toggle="collapse" aria-expanded="false" aria-controls="stores_{{ city_group.city.id }}">{{ city_group.city.name }}</a>
                             <div class="collapse" id="stores_{{ city_group.city.id }}">
                               {% for item in city_group.stores %}
-                              <a class="d-block font-size-xs" href="{% url 'store' item.store.pk %}"><i class="czi-check mr-1 text-muted"></i>{{ item.store.address }}</a>
+                              <a class="d-block fs-xs" href="{% url 'store' item.store.pk %}"><i class="ci-check me-1 text-muted"></i>{{ item.store.address }}</a>
                               {% endfor %}
                             </div>
                           </div>
                           {% endfor %}
-                          <div class="pt-2 font-size-xs text-muted">
+                          <div class="pt-2 fs-xs text-muted">
                             Наличие в других магазинах сети можно уточнить по <a href="{% url 'stores' %}">телефонам магазинов</a>
                           </div>
                           {% empty %}
-                          <div class="font-weight-semibold text-dark py-3">Данного товара нет в наличии в розничных магазинах</div>
+                          <div class="fw-bold text-dark py-3">Данного товара нет в наличии в розничных магазинах</div>
                           {% endfor %}
                         </div>

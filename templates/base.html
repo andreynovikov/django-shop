@@ -6,17 +6,17 @@
       <div class="modal-dialog modal-xl">
         <div class="modal-content">
           <div class="modal-header">
-            <h4 class="modal-title product-title"><a href="#" data-toggle="tooltip" data-placement="right" title="Перейти на страницу описания товара"><span>{{ product.title }}</span><i class="czi-arrow-right font-size-lg ml-2"></i></a></h4>
-            <button class="close" type="button" data-dismiss="modal" aria-label="Закрыть"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title product-title"><a href="#" data-bs-toggle="tooltip" data-bs-placement="right" title="Перейти на страницу описания товара"><span>ПРОВЕРИТЬ!!!</span><i class="ci-arrow-right fs-lg ms-2"></i></a></h4>
+            <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Закрыть"></button>
           </div>
           <div class="modal-body">
             <div class="text-center">
-              <div class="spinner-border" role="status"><span class="sr-only">Загрузка...</span></div>
+              <div class="spinner-border" role="status"><span class="visually-hidden">Загрузка...</span></div>
             </div>
           </div>
           <div class="modal-footer d-flex justify-content-between">
-            <div><a class="nav-link-style font-size-ms" href="#" id="prev-quick-view-link"><i class="czi-arrow-left mr-2"></i><span class="d-none d-sm-inline">Предыдущий товар</span></a></div>
-            <div><a class="nav-link-style font-size-ms" href="#" id="next-quick-view-link"><span class="d-none d-sm-inline">Следующий товар</span><i class="czi-arrow-right ml-2"></i></a></div>
+            <div><a class="nav-link-style fs-ms" href="#" id="prev-quick-view-link"><i class="ci-arrow-left me-2"></i><span class="d-none d-sm-inline">Предыдущий товар</span></a></div>
+            <div><a class="nav-link-style fs-ms" href="#" id="next-quick-view-link"><span class="d-none d-sm-inline">Следующий товар</span><i class="ci-arrow-right ms-2"></i></a></div>
           </div>
         </div>
       </div>
@@ -26,7 +26,7 @@
       <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
           <div class="modal-body">
-            <p>Войдите или зарегистрируйтесь, чтобы добавлять товары в избранное</p>
+            <p>ПРОВЕРИТЬ!!! Войдите или зарегистрируйтесь, чтобы добавлять товары в избранное</p>
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" type="button" data-dismiss="modal">Отменить</button>
@@ -37,26 +37,29 @@
     </div>
     {% endif %}
 {% if not hide_sign_in %}{% include '_sign_in.html' %}{% endif %}
+<main class="page-wrapper">
 {% include '_navbar.html' %}
 {% endblock body_header %}
 {% block content_wrapper %}
     <!-- Page Content-->
 {% block content %}{% endblock %}
+</main>
 {% endblock content_wrapper %}
 {% block body_footer %}
-{% include '_footer.html' %}
+{# include '_footer.html' #}
 {% endblock %}
 {% block body_underground %}
-    <!-- Back To Top Button--><a class="btn-scroll-top" href="#top" data-scroll><span class="btn-scroll-top-tooltip text-muted font-size-sm mr-2">Начало</span><i class="btn-scroll-top-icon czi-arrow-up">   </i></a>
+    <!-- Back To Top Button--><a class="btn-scroll-top" href="#top" data-scroll data-fixed-element><span class="btn-scroll-top-tooltip text-muted fs-sm me-2">Начало</span><i class="btn-scroll-top-icon ci-arrow-up">   </i></a>
     <!-- Toast: Added to Cart-->
-    <div class="toast-container toast-bottom-center">
-      <div class="toast mb-3" id="cart-toast" data-delay="5000" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header bg-success text-white"><i class="czi-check-circle mr-2"></i>
-          <h6 class="font-size-sm text-white mb-0 mr-auto">Added to cart!</h6>
-          <button class="close text-white ml-2 mb-1" type="button" data-dismiss="toast" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    <div class="toast-container position-absolute p-3 bottom-0 start-50 translate-middle-x">
+        <div class="toast" id="cart-toast" data-delay="5000" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header bg-success text-white">
+                <i class="ci-basket me-2"></i>
+                <span class="fw-medium me-auto">Added to cart!</span>
+                <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">This item has been added to your cart.</div>
         </div>
-        <div class="toast-body">This item has been added to your cart.</div>
-      </div>
     </div>
 {% endblock %}
 {% block javascript_wrapper %}

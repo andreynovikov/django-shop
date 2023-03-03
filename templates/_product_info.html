@@ -6,42 +6,42 @@
   {% if product.enabled %}
   <span class="badge">
   {% if product.isnew and not limitedBadges %}
-  <span class="sw-badge badge-info badge-shadow">Новинка</span>
+  <span class="sw-badge bg-info badge-shadow">Новинка</span>
   {% endif %}
   {% if product.recomended and not limitedBadges %}
-  <span class="sw-badge badge-warning badge-shadow">Рекомендуем</span>
+  <span class="sw-badge bg-warning badge-shadow">Рекомендуем</span>
   {% endif %}
   {% for action in product.get_sales_actions %}{% if action.notice %}
-  <span class="sw-badge badge-danger badge-shadow">{{ action.notice }}</span>
+  <span class="sw-badge bg-danger badge-shadow">{{ action.notice }}</span>
   {% endif %}{% endfor %}</span>{% endif %}
-  <button type="button" class="btn-wishlist btn-sm{% if request.user.is_authenticated %} favoritize-product{% endif %}{% if product.id in favorites %} bg-accent text-light{% endif %}" data-id="{{ product.id }}"{% if product.id not in favorites %} data-favorites-link="{% url 'shop:favorites' %}"{% endif %} {% if request.user.is_authenticated %}href="{% if product.id in favorites %}{% url 'shop:favorites' %}{% else %}{% url 'shop:favoritize' product.id %}{% endif %}"{% else %}data-toggle="modal" data-target="#favorites-signin-modal"{% endif %} rel="nofollow"><span data-toggle="tooltip" data-placement="left" title="{% if product.id in favorites %}В избранном{% else %}Отложить{% endif %}"><i class="czi-heart"></i></span></button><a class="d-inline-block mx-auto pt-3 overflow-hidden" href="{% url 'product' product.code %}">{% if product.image_prefix|add:'.jpg'|file_exists %}{% thumbnail product.image_prefix|add:'.jpg' '200x200' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}"/>{% endthumbnail %}{% else %}<i class="d-inline-block czi-camera text-muted" style="width: 200px; height: 200px; font-size: 100px; padding: 50px"></i>{% endif %}</a>
-  <div class="card-body py-2"><a class="product-meta d-block font-size-xs pb-1" href="{% url 'product' product.code %}">{{ product.whatis }} {{ product.partnumber }}</a>
-    <h3 class="product-title font-size-sm"><a href="{% url 'product' product.code %}">{{ product.title }}</a></h3>
+  <button type="button" class="btn-wishlist btn-sm{% if request.user.is_authenticated %} favoritize-product{% endif %}{% if product.id in favorites %} bg-accent text-light{% endif %}" data-id="{{ product.id }}"{% if product.id not in favorites %} data-favorites-link="{% url 'shop:favorites' %}"{% endif %} {% if request.user.is_authenticated %}href="{% if product.id in favorites %}{% url 'shop:favorites' %}{% else %}{% url 'shop:favoritize' product.id %}{% endif %}"{% else %}data-bs-toggle="modal" data-bs-target="#favorites-signin-modal"{% endif %} rel="nofollow"><span data-bs-toggle="tooltip" data-bs-placement="left" title="{% if product.id in favorites %}В избранном{% else %}Отложить{% endif %}"><i class="ci-heart"></i></span></button><a class="d-inline-block mx-auto pt-3 overflow-hidden" href="{% url 'product' product.code %}">{% if product.image_prefix|add:'.jpg'|file_exists %}{% thumbnail product.image_prefix|add:'.jpg' '200x200' padding=True as im %}<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}"/>{% endthumbnail %}{% else %}<i class="d-inline-block ci-camera text-muted" style="width: 200px; height: 200px; font-size: 100px; padding: 50px"></i>{% endif %}</a>
+  <div class="card-body py-2"><a class="product-meta d-block fs-xs pb-1" href="{% url 'product' product.code %}">{{ product.whatis }} {{ product.partnumber }}</a>
+    <h3 class="product-title fs-sm"><a href="{% url 'product' product.code %}">{{ product.title }}</a></h3>
     <div class="d-flex justify-content-between">
       <div class="product-price">
       {% if not product.enabled %}
         <span class="text-accent"><small>товар снят с продажи</small></span>
       {% elif product.price > 0 %}
-        {% if product.discount > 0 %}
-          <del class="font-size-sm text-muted">{{ product.price|quantize:"1" }}<small>&nbsp;руб</small></del><br>
-        {% endif %}
 	<span class="text-accent">{{ product.cost|quantize:"1" }}<small>&nbsp;руб</small></span>
+        {% if product.discount > 0 %}
+        <del class="fs-sm text-muted">{{ product.price|quantize:"1" }}<small>&nbsp;руб</small></del>
+        {% endif %}
       {% endif %}
       </div>
     </div>
   </div>
   <div class="card-body card-body-hidden">
-    <div class="font-size-ms pb-2">
+    <div class="fs-ms pb-2">
       {{ product.shortdescr|safe }}
     </div>
     {% if product.sales_notes %}
-    <div class="font-size-ms text-info pb-2">{{ product.sales_notes }}</div>
+    <div class="fs-ms text-info pb-2">{{ product.sales_notes }}</div>
     {% endif %}
     {% if product.instock > 0 %}
-    <a class="btn btn-primary btn-sm btn-block mb-2 add-to-cart" href="{% url 'shop:add' product.id %}" data-id="{{ product.id }}"><span class="d-none spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span><i class="czi-cart font-size-sm mr-1"></i>{% if product.variations %}Выбрать{% else %}Купить{% endif %}</a>
+    <a class="btn btn-primary btn-sm d-block w-100 mb-2 add-to-cart" href="{% url 'shop:add' product.id %}" data-id="{{ product.id }}"><span class="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span><i class="ci-cart fs-sm me-1"></i>{% if product.variations %}Выбрать{% else %}Купить{% endif %}</a>
     {% else %}
-    <a class="btn btn-secondary btn-sm btn-block mb-2" href="{% url 'product' product.code %}">Подробное описание</a>
+    <a class="btn btn-secondary btn-sm d-block w-100 mb-2" href="{% url 'product' product.code %}">Подробное описание</a>
     {% endif %}
-    <div class="text-center"><a class="nav-link-style font-size-ms product-quick-view" href="{% url 'product_quick_view' product.code %}" data-href="{% url 'product' product.code %}" data-title="{{ product.title }}"><i class="czi-eye align-middle mr-1"></i>Быстрый просмотр</a></div>
+    <div class="text-center"><a class="nav-link-style fs-ms product-quick-view" href="{% url 'product_quick_view' product.code %}" data-href="{% url 'product' product.code %}" data-title="{{ product.title }}"><i class="ci-eye align-middle me-1"></i>Быстрый просмотр</a></div>
   </div>
 </div>

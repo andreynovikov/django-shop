@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% load static %}
+{% block javascript_wrapper %}
+<script src="{% static 'js/eldarion-ajax.min.js' %}"></script>
+{{ block.super }}
+{% endblock %}
+{% block cart_notice %}{% endblock %}

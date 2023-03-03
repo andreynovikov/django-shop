@@ -1,33 +1,42 @@
 {% extends "admin/base_site.html" %}
+{% load i18n %}
+{% load shop_tags %}
 {% block extrastyle %}
 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
 {# https://fontawesome.com/icons?d=gallery&m=free #}
 <style>
     @media (max-width: 1200px) {
-    #branding h1 { display: none }
+      #branding h1 { display: none }
     }
     @media (max-width: 1024px) {
-    #branding h1 { display: block }
-    #quick-links, #order-quick-link { margin: 8px 0 0; }
+      #branding h1 { display: block }
     }
-    @media (min-width: 1024px) {
-    #quick-links, #order-quick-link { margin: 0 0 0 20px }
-    }
-    #quick-links, #order-quick-link { float: right }
+    #brandng { order: 1 }
+    #quick-links, #order-quick-link, #stocks_status { order: 2 }
     #quick-links { text-transform: uppercase }
+    #user-tools { order: 3 }
 </style>
 {% endblock %}
 {% block nav-global %}
-<div id="quick-links">
-    <a href="{% url 'admin:shop_order_changelist' %}">Заказы</a>
-    /
-    <a href="{% url 'admin:shop_product_changelist' %}">Товары</a>
-    /
-    <a href="{% url 'admin:import_1c' %}?_popup=1" onclick="window.open(this.href, 'Импорт 1С', 'height=500,width=800,resizable=yes,scrollbars=yes').focus(); return false;">Импорт 1С</a>
-</div>
 <div id="order-quick-link">
     <form action="{% url 'admin:goto_order' %}">
         Заказ: <input type="text" name="order" size="5" autocomplete="off" />
     </form>
 </div>
+<div id="quick-links">
+    <a href="{% url 'admin:shop_order_changelist' %}">Заказы</a>
+    /
+    <a href="{% url 'admin:shop_product_changelist' %}">Товары</a>
+    /
+    <a href="{% url 'admin:shop_shopuser_changelist' %}">Пользователи</a>
+</div>
+<div id="stocks_status">
+    Актуализация склада: {% last_1c_import %}
+</div>
+{% endblock %}
+{% block userlinks %}
+    {% if user.has_usable_password %}
+    <a href="{% url 'admin:password_change' %}">{% trans 'Change password' %}</a> /
+    {% endif %}
+    <a href="{% url 'admin:logout' %}">{% trans 'Log out' %}</a>
 {% endblock %}

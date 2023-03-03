@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load staticfiles %}
+{% load static %}
 {% block title %}Швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов{% endblock %}
 {% block content %}
 <div class="bg-secondary">
@@ -29,8 +29,8 @@
 {% if top_adverts %}
 <section class="bg-secondary">
   <div class="container pt-0 pb-5">
-    <div id="top_slides" class="cz-carousel cz-dots-enabled cz-controls-sm cz-controls-outside">
-      <div class="cz-carousel-inner" data-carousel-options='{"autoplay": true, "center": true}'>
+    <div id="top_slides" class="tns-carousel tns-nav-enabled tns-controls-sm tns-controls-outside">
+      <div class="tns-carousel-inner" data-carousel-options='{"autoplay": true, "center": true}'>
         {% for advert in top_adverts %}
         <div>
           {{ advert.content|safe }}
@@ -50,8 +50,8 @@ gtm_products = [];
 <section class="container pt-5">
   <!-- Heading-->
   <div class="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
-    <h2 class="h3 mb-0 pt-3 mr-2">Специальные предложения</h2>
-    <div class="pt-3"><a class="btn btn-outline-accent btn-sm" href="/catalog/promo/">Больше товаров<i class="czi-arrow-right ml-1 mr-n1"></i></a></div>
+    <h2 class="h3 mb-0 pt-3 me-2">Специальные предложения</h2>
+    <div class="pt-3"><a class="btn btn-outline-accent btn-sm" href="/catalog/promo/">Больше товаров<i class="ci-arrow-right ms-1 me-n1"></i></a></div>
   </div>
   <!-- Grid-->
   <div class="row pt-2 mx-n2">
@@ -71,8 +71,8 @@ gtm_products = [];
 {% if middle_adverts %}
 <section class="bg-secondary">
   <div class="container py-5">
-    <div id="middle_slides" class="cz-carousel cz-dots-enabled cz-controls-sm cz-controls-outside">
-      <div class="cz-carousel-inner" data-carousel-options='{"autoplay": true, "center": true}'>
+    <div id="middle_slides" class="tns-carousel tns-nav-enabled tns-controls-sm tns-controls-outside">
+      <div class="tns-carousel-inner" data-carousel-options='{"autoplay": true, "center": true}'>
         {% for advert in middle_adverts %}
         <div>
           {{ advert.content|safe }}
@@ -87,7 +87,7 @@ gtm_products = [];
 <section class="container pt-5">
   <!-- Heading-->
   <div class="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
-    <h2 class="h3 mb-0 pt-3 mr-2">Идеи для подарков</h2>
+    <h2 class="h3 mb-0 pt-3 me-2">Идеи для подарков</h2>
   </div>
   <!-- Grid-->
   <div class="row pt-2 mx-n2">
@@ -107,8 +107,8 @@ gtm_products = [];
 {% if bottom_adverts %}
 <section class="bg-secondary">
   <div class="container py-5">
-    <div id="bottom_slides" class="cz-carousel cz-dots-enabled cz-controls-sm cz-controls-outside">
-      <div class="cz-carousel-inner" data-carousel-options='{"autoplay": true, "center": true}'>
+    <div id="bottom_slides" class="tns-carousel tns-nav-enabled tns-controls-sm tns-controls-outside">
+      <div class="tns-carousel-inner" data-carousel-options='{"autoplay": true, "center": true}'>
         {% for advert in bottom_adverts %}
         <div>
           {{ advert.content|safe }}
@@ -123,8 +123,8 @@ gtm_products = [];
 <section class="container pt-5">
   <!-- Heading-->
   <div class="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
-    <h2 class="h3 mb-0 pt-3 mr-2">Новинки</h2>
-    <div class="pt-3"><a class="btn btn-outline-accent btn-sm" href="/catalog/New/">Больше товаров<i class="czi-arrow-right ml-1 mr-n1"></i></a></div>
+    <h2 class="h3 mb-0 pt-3 me-2">Новинки</h2>
+    <div class="pt-3"><a class="btn btn-outline-accent btn-sm" href="/catalog/New/">Больше товаров<i class="ci-arrow-right ms-1 me-n1"></i></a></div>
   </div>
   <!-- Grid-->
   <div class="row pt-2 mx-n2">
@@ -141,28 +141,30 @@ gtm_products = [];
   </div>
 </section>
 
-<section class="container-fluid px-0">
-  <div class="row no-gutters bg-faded-primary justify-content-md-center">
-    <div class="col-md-6">
-      <a class="card border-0 rounded-0 text-decoration-none py-md-4 bg-transparent" href="http://www.raruk.ru">
-        <div class="card-body text-center">
-          <div><i class="czi-edit h3 mt-2 mb-4 text-primary"></i></div>
-          <div class="d-inline-block text-left">
-            <h2 class="h5 mb-3">Учебный центр "Радость рукоделия"</h2>
-            <p class="text-muted font-size-sm mb-1">приглашает на курсы:</p>
-            <ul class="text-muted font-size-sm">
-              <li>вышивальные программы Pfaff и Husqvarna</li>
-              <li>технология машинной вышивки на швейно-вышивальных машинах</li>
-              <li>пэчворк</li>
-              <li>текстильные сумки</li>
-              <li>куклы "Тильда" и многое другое</li>
-            </ul>
+<div class="bg-faded-primary">
+  <section class="container px-0">
+    <div class="row no-gutters justify-content-md-center">
+      <div class="col-md-6">
+        <a class="card border-0 rounded-0 text-decoration-none py-md-4 bg-transparent" href="http://www.raruk.ru">
+          <div class="card-body text-center">
+            <div><i class="ci-edit h3 mt-2 mb-4 text-primary"></i></div>
+            <div class="d-inline-block text-start">
+              <h2 class="h5 mb-3">Учебный центр "Радость рукоделия"</h2>
+              <p class="text-muted font-size-sm mb-1">приглашает на курсы:</p>
+              <ul class="text-muted font-size-sm">
+                <li>вышивальные программы Pfaff и Husqvarna</li>
+                <li>технология машинной вышивки на швейно-вышивальных машинах</li>
+                <li>пэчворк</li>
+                <li>текстильные сумки</li>
+                <li>куклы "Тильда" и многое другое</li>
+              </ul>
+            </div>
           </div>
-        </div>
-      </a>
+        </a>
+      </div>
     </div>
-  </div>
-</section>
+  </section>
+</div>
 
 <script>
 dataLayer.push({'ecommerce':{'currencyCode':'RUB','impressions':gtm_products}});

@@ -1,0 +1,82 @@
+{% extends "shop/base.html" %}
+{% load static %}
+{% block title %}Список заказов{% endblock %}
+{% block css %}
+<link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap_glyphicons.css' %}"/>
+<style type="text/css">
+.sw-widepan {width:40% !important;}
+@media(max-width:768px){
+.sw-widepan {width:100% !important;}
+}
+.sw-orders-list li { margin-bottom:10px; }
+.sw-user-properties div { margin-bottom:10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>Кабинет покупателя</h1>
+<div class="row">
+    <div class="col-md-6 col-md-push-12">
+
+<div class="panel panel-default">
+<div class="panel-body">
+<h2 style="margin-top: 0">Регистрационные данные</h2>
+{% include "shop/_update_user.html" %}
+</div>
+</div>
+
+{% if user.bonuses %}
+<div class="panel panel-default">
+<div class="panel-body">
+<h2 style="margin-top: 0">Накопленные бонусы</h2>
+<div class="alert alert-info lead" style="display: inline-block; margin-bottom: 0">{{ user.bonuses }}</div>
+</div>
+</div>
+{% endif %}
+
+    </div>
+    <div class="col-md-12 col-md-pull-6">
+<h2>Нажмите на номер, чтобы узнать состояние заказа:</h2>
+{% if orders %}
+<ul class="sw-orders-list">
+{% for order in orders %}
+<li><a href="{% url 'shop:order' order.id %}">Заказ № <b>{{ order.id }}</b></a>
+ от {{ order.created|date:"j E Y" }} - {{ order.get_status_display }}</li>
+{% endfor %}
+</ul>
+{% else %}
+<p>У вас нет оформленных заказов.</p>
+{% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block javascript %}
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var CustomHandlers = function () {
+            };
+            CustomHandlers.prototype.addAjaxFlag = function (e, $el) {
+                $el.on("eldarion-ajax:modify-data", function (e, data) {
+                    if (typeof data === "object") // using FormData
+                        data.append('ajax', 1);
+                    else if (data != null)
+                        data = data + "&ajax=1";
+                    else
+                        data = "ajax=1";
+                    return data;
+                });
+            };
+            $(document).on("eldarion-ajax:begin", function(evt, $el) {
+                $("body").css("cursor", "progress");
+            });
+            $(document).on("eldarion-ajax:complete", function(evt, $el) {
+                $("body").css("cursor", "auto");
+            });
+            $(document).on("eldarion-ajax:begin", "#update-user", CustomHandlers.prototype.addAjaxFlag);
+	});
+    </script>
+{% endblock %}

@@ -17,21 +17,21 @@
             {% get_rating_statistics for product as rating_choices %}
             {% for choice in rating_choices reversed %}
             <div class="d-flex align-items-center mb-2">
-              <div class="text-nowrap mr-3"><span class="d-inline-block align-middle text-muted">{{ choice.rating }}</span><i class="czi-star-filled font-size-xs ml-1"></i></div>
+              <div class="text-nowrap me-3"><span class="d-inline-block align-middle text-muted">{{ choice.rating }}</span><i class="ci-star-filled fs-xs ms-1"></i></div>
               <div class="w-100">
                 <div class="progress" style="height: 4px;">
                   <div class="progress-bar" role="progressbar" style="width: {{ choice.percent|default:"0" }}%; background-color: {{ color_list|get_list_item:forloop.counter0 }}" aria-valuenow="{{ choice.percent|default:"0" }}" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
-              </div><span class="text-muted ml-3">{{ choice.count|default:"0" }}</span>
+              </div><span class="text-muted ms-3">{{ choice.count|default:"0" }}</span>
             </div>
             {% endfor %}
             {% endwith %}
             {% endwith %}
           </div>
         </div>
-        <hr class="mt-4 pb-4 mb-3">
+        <hr class="mt-4 mb-3">
         {% endif %}
-        <div class="row">
+        <div class="row pt-4">
           <!-- Reviews list-->
           <div class="col-md-7">
             {% if review_count %}
@@ -45,11 +45,11 @@
           {% get_review_by_user for product as user_review %}
           {% endif %}
           <div class="col-md-5 mt-2 pt-4 mt-md-0 pt-md-0"{% if user_review and not user_review.is_public %} id="r{{ user_review.id }}"{% endif %}>
-            <div class="bg-secondary py-grid-gutter px-grid-gutter rounded-lg">
+            <div class="bg-secondary py-grid-gutter px-grid-gutter rounded-3">
               {% if request.user.is_authenticated %}
               <h3 class="h4 pb-2">{% if user_review %}Изменить{% else %}Оставить{% endif %} отзыв</h3>
               {% if user_review and not user_review.is_public %}
-              <div class="alert alert-accent mb-3 font-size-sm" role="alert">Ваш отзыв в настоящее время находится на проверке</div>
+              <div class="alert alert-accent mb-3 fs-sm" role="alert">Ваш отзыв в настоящее время находится на проверке</div>
               {% endif %}
               {% render_review_form for product %}
               {% else %}

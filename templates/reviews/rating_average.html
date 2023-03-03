@@ -1,5 +1,5 @@
 {% load i18n %}
-<div class="star-rating mr-2"{% if average_rating %} itemprop="aggregateRating" itemscope itemtype="http://schema.org/AggregateRating"{% endif %}>
+<div class="star-rating me-2"{% if average_rating %} itemprop="aggregateRating" itemscope itemtype="http://schema.org/AggregateRating"{% endif %}>
     {% if average_rating %}
     <meta itemprop="worstRating" content="1" />
     <meta itemprop="bestRating" content="{{ rating_choices|length }}" />
@@ -7,4 +7,4 @@
     <meta itemprop="ratingCount" content="{{ review_count }}" />
     <meta itemprop="reviewCount" content="{{ review_count }}" />
     {% endif %}
-    {% include "reviews/rating_value.html" with rating=average_rating rating_value=average_rating_value rating_star=average_rating_star rating_text=average_rating_text color='text-accent' font_size='font-size-sm' mr='mr-1' %}</div>{% if show_rating_text and average_rating %}<span class="d-inline-block align-middle">{{ average_rating }} {{ average_rating_text }}</span>{% endif %}
+    {% include "reviews/rating_value.html" with rating=average_rating rating_star=average_rating_star rating_text=average_rating_text no_star_icon='yes' color='text-accent' font_size='fs-sm' me='me-1' %}</div>{% if show_rating_text and average_rating %}<span class="d-inline-block align-middle">{{ average_rating }} {{ average_rating_text }}</span>{% endif %}

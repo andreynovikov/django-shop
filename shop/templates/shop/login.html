@@ -1,0 +1,206 @@
+{% extends "shop/base.html" %}
+{% block title %}Добро пожаловать{% endblock %}
+{% block css %}
+<style type="text/css">
+	.sw-phone-input          { height:auto; color: black; }
+	.sw-phone-input:-moz-placeholder { color:#e0e0e0; }
+	.sw-phone-input::-webkit-input-placeholder { color:#e0e0e0; }
+	.sw-small-jumbotron      { font-size:10pt; }
+        #login-form { background-color: inherit; }
+        #permanent-password-block { margin-bottom: 15px; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% load static %}
+{% load shop_filters %}
+<h1>Кабинет покупателя</h1>
+{% if next %}
+    {% if user.is_authenticated %}
+    <p>У вас нет права доступа к этой странице.</p>
+    {% else %}
+    <!-- <p>Пожалуйста, авторизуйтесь, чтобы увидеть эту страницу.</p> -->
+    {% endif %}
+{% endif %}
+<form id="login-form" class="form-inline jumbotron" action="{% url 'shop:login' %}" method="post">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next|default_if_none:"" }}"/>
+    {% if shop_user %}
+        {# Пользователь с таким телефоном уже есть #}
+        <input type="hidden" name="phone" id="phone-input" value="{{ phone }}"/>
+        {# Требуем подтверждение пароля #}
+        <p>{{ shop_user.phone|format_phone }}</p>
+        <div id="password-block" class="has-feedback{% if wrong_password %} has-error{% endif %}">
+        <label class="control-label lead" for="password-input">{% if reg %}Код из смс{% else %}Пароль{% endif %}:</label>
+        <input type="password" class="form-control input-lg" name="password" id="password-input" value="" size="20"/>
+        <span class="help-block">
+        {% if wrong_password %}
+        <span id="password-help">Вы ввели неправильный {% if reg %}код{% else %}пароль{% endif %}.</span>
+        {% elif not shop_user.permanent_password %}
+        <span id="password-help">{% if reg %}Код{% else %}Пароль{% endif %} выслан на указанный телефон по смс.</span>
+        {% endif %}
+        <span id="reset-counter"></span>
+        {% if shop_user.permanent_password %}
+        <span id="reset-password"><a href="{% url 'shop:reset_password' %}" class="ajax sw-small-jumbotron">Сбросить забытый пароль</a></span>
+        {% else %}
+        <span id="reset-password" class="hide"><a href="{% url 'shop:reset_password' %}" class="ajax sw-small-jumbotron">Прислать {% if reg %}код{% else %}пароль{% endif %} повторно</a></span>
+        {% endif %}
+        </span>
+        </div>
+        {% if not shop_user.permanent_password %}
+        {% if not reg %}
+        <p><a href="#" id="permanent-password-link" class="sw-small-jumbotron">Вы можете указать постоянный пароль, чтобы не получать каждый раз смс</a></p>
+        {% endif %}
+        <div id="permanent-password-block" class="{% if not reg %}hide {% endif %}has-feedback">
+            <label class="control-label lead-sm" for="permanent-password-input">Постоянный пароль:</label>
+            <input type="password" class="form-control input-sm" name="permanent_password" id="permanent-password-input" value="" size="30"/>
+            <label class="control-label lead-sm" for="permanent-password-input2">ещё раз:</label>
+            <input type="password" class="form-control input-sm" name="permanent_password2" id="permanent-password-input2" value="" size="30"/>
+            <span id="permanent-password-help" class="help-block"></span>
+            {% if reg %}
+            <span class="help-block">Если Вы не укажете постоянный пароль, вход будет осуществляться с помощью смс</span>
+            {% endif %}
+        </div>
+        {% endif %}
+    {% else %}
+        {# Анонимный пользователь #}
+        <p><label class="control-label lead" for="phone-input">Укажите номер мобильного телефона:</label></p>
+        <div id="phone-block" class="input-group">
+            <span class="input-group-addon input-lg sw-phone-input">+7</span>
+            <input type="tel" class="form-control input-lg sw-phone-input" name="phone" id="phone-input" value="" size="20" placeholder="(999) 111-22-33"/>
+        </div>
+    {% endif %}
+    <input type="submit" id="login-submit" class="btn btn-success btn-lg" value="Продолжить"/>
+    {% if not shop_user %}
+    <p><a href="{% url 'shop:register' %}{% if next %}?next={{ next }}{% endif %}" class="sw-small-jumbotron">Если Вы не совершали покупок в магазине, Вы можете зарегистрироваться</a></p>
+    {% endif %}
+    {% if error %}
+    <div class="has-error"><span id="error" class="help-block">{{ error }}</span></div>
+    {% endif %}
+</form>
+{% endblock %}
+
+{% block javascript %}
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var CustomHandlers = function () {
+            };
+            CustomHandlers.prototype.passwordResetBegin = function (e, $el) {
+                $el.on("eldarion-ajax:modify-data", function (e, data) {
+                    encphone = encodeURIComponent($("#phone-input").val());
+                    if (typeof data === "object") { // using FormData
+                        data.append("ajax", 1);
+                        data.append("phone", encphone);
+                    } else if (data != null)
+                        data = data + "&ajax=1&phone=" + encphone;
+                    else
+                        data = "ajax=1&phone=" + encphone;
+                    return data;
+                });
+            };
+            CustomHandlers.prototype.passwordReset = function (e, $el) {
+                $("#password-help").text("Новый {% if reg %}код{% else %}пароль{% endif %} выслан на указанный телефон.");
+                $("#password-help").removeClass("hide").show();
+                $("#reset-password").addClass("hide").hide();
+                $("#password-block").addClass("has-warning");
+                delayShowPasswordReset("{% if reg %}код{% else %}пароль{% endif %}");
+            };
+            $(document).on("eldarion-ajax:begin", function(evt, $el) {
+                $("body").css("cursor", "progress");
+            });
+            $(document).on("eldarion-ajax:complete", function(evt, $el) {
+                $("body").css("cursor", "auto");
+            });
+            $(document).on("eldarion-ajax:begin",   "#reset-password", CustomHandlers.prototype.passwordResetBegin);
+            $(document).on("eldarion-ajax:success", "#reset-password", CustomHandlers.prototype.passwordReset);
+
+            initHandlers();
+        });
+
+        function initHandlers() {
+            $("#login-submit").prop("disabled", true);
+            $("#login-form").on("submit", function() {
+                 var complete = $("#phone-input").inputmask("isComplete");
+                 if (!complete)
+                     $("#phone-block").addClass("has-error");
+
+                 {% if shop_user and not shop_user.permanent_password %}
+                 var ppwd1 = $("#permanent-password-input").val();
+                 var ppwd2 = $("#permanent-password-input2").val();
+                 if (ppwd1 != ppwd2) {
+                     $("#permanent-password-block").addClass("has-error");
+                     $("#permanent-password-help").text("Пароли не совпадают");
+                     complete = false;
+                 }
+                 if (ppwd1.length > 0 && ppwd1.length < 5) {
+                     $("#permanent-password-block").addClass("has-error");
+                     $("#permanent-password-help").text("Постоянный пароль должен быть не менее 5 символов");
+                     complete = false;
+                 }
+                 {% endif %}
+
+                 return complete;
+            });
+
+            {% if shop_user%}
+            {% if not shop_user.permanent_password %}
+            $("#permanent-password-link").on("click", function() {
+                 $("#permanent-password-block").removeClass("hide").show();
+                 $("#permanent-password-link").hide();
+                 return false;
+            });
+            {% endif %}
+
+            $("#password-input").inputmask({
+                mask: ["9999", "*{5,30}"],
+                placeholder: "",
+                oncomplete: function() {
+                    $("#login-submit").prop("disabled", false);
+                }
+            });
+            $("#password-input").on("paste keydown", function () {
+                $("#password-block").removeClass("has-error");
+                $("#password-block").removeClass("has-warning");
+                $("#password-help").hide();
+                $("#password-help").text("");
+            });
+            $("#password-input").focus();
+
+            {% if not shop_user.permanent_password %}
+            $("#permanent-password-block input").on("paste keydown", function () {
+                $("#permanent-password-block").removeClass("has-error");
+                $("#permanent-password-help").text("");
+            });
+            {% endif %}
+            {% endif %}
+
+            // https://github.com/RobinHerbots/Inputmask
+            $("#phone-input").inputmask({
+                mask: ["(999) 999-99-99", "* (999) 999-99-99"],
+                definitions: {
+                    "*": { validator: "[78]" }
+                },
+                onBeforePaste: function(pastedValue, opts) {
+                    return pastedValue.replace("+7", "");
+                },
+                onBeforeMask: function(value, opts) {
+                    return value.replace("+7", "");
+                },
+                oncomplete: function() {
+                    $("#phone-block").removeClass("has-error");
+                    var value = this.inputmask.unmaskedvalue();
+                    if (value.length > 10) {
+                        value = value.substr(1);
+                        this.inputmask.setValue(value);
+                    }
+                    $("#login-submit").prop("disabled", false);
+                },
+                keepStatic: true
+            });
+
+            {% if shop_user and not shop_user.permanent_password %}
+            delayShowPasswordReset("{% if reg %}код{% else %}пароль{% endif %}");
+            {% endif %}
+        }
+    </script>
+{% endblock %}

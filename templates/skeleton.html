@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE|default:'ru' }}">
-{% load staticfiles %}
+{% load static %}
 {% block html_page %}
 <head>
     <title>{% block title %}{% endblock title %}{% block title-page %}{% endblock title-page %} - Швейный Мир</title>
@@ -12,8 +12,9 @@
     <meta name="msapplication-TileColor" content="#ffffff">
     <meta name="theme-color" content="#ffffff">
     {% block meta %}{% endblock meta %}
-    <link rel="stylesheet" media="screen" href="{% static 'css/vendor.min.css' %}">
-    <link rel="stylesheet" media="screen" id="main-styles" href="{% static 'css/theme.min.css' %}">
+    <link rel="stylesheet" media="screen" href="{% static 'css/simplebar.min.css' %}"/>
+    <link rel="stylesheet" media="screen" href="{% static 'css/tiny-slider.css' %}"/>
+    <link rel="stylesheet" media="screen" href="{% static 'css/theme.min.css' %}">
     {% block link %}{% endblock link %}
     <style>
         .white-popup-block img { margin: 10px }
@@ -27,7 +28,7 @@
 </head>
 <body>
 {% block body_top %}{% endblock %}
-<header class="box-shadow-sm">
+<header class="shadow-sm">
 {% block body_header %}{% endblock %}
 </header>
 {% block content_wrapper %}{% endblock %}
@@ -35,8 +36,14 @@
 {% block body_footer %}{% endblock %}
 </footer>
 {% block body_underground %}{% endblock %}
-    <script src="{% static 'js/vendor.min.js' %}"></script>
+{% block javascript_libraries %}{% endblock %}
+    <!-- Cartzilla -->
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'js/simplebar.min.js' %}"></script>
+    <script src="{% static 'js/tiny-slider.min.js' %}"></script>
+    <script src="{% static 'js/smooth-scroll.polyfills.min.js' %}"></script>
     <script src="{% static 'js/theme.min.js' %}"></script>
+    <!-- Sewing world -->
     <script src="{% static 'js/inputmask.min.js' %}"></script>
     <script src="{% static 'js/site.js' %}"></script>
     <script src="{% static 'js/shop.js' %}"></script>
