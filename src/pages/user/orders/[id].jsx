@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Script from 'next/script';
 import { useQuery } from 'react-query';
 
+import { useSite } from '@/lib/site';
 import { useSession } from '@/lib/session';
 import { orderKeys, loadOrder } from '@/lib/queries';
 import { formatPhone } from '@/lib/format';
@@ -37,6 +38,7 @@ moment.locale('ru');
 
 export default function Order({id}) {
     const [orderStatus, setOrderStatus] = useState(STATUS_NEW);
+    const { site } = useSite();
     const { status } = useSession();
 
     const { data: order, isSuccess } = useQuery(
@@ -76,6 +78,19 @@ export default function Order({id}) {
         if (window && 'bootstrap' in window && bootstrap.Tooltip) {
             return new bootstrap.Tooltip(document.querySelector('.sw-order-created'));
         }
+    };
+
+    const handlePayment = () => {
+        apiClient.post(`orders/${id}/pay/`, {
+            'return_url': process.env.NEXT_PUBLIC_ORIGIN.slice(0, -1) + router.asPath
+        }, {
+            maxRedirects: 0 // maxRedirects does not work so API returns JSON with location
+        }).then(function (response) {
+            window.location = response.data.location;
+        }).catch(function (error) {
+            // handle error
+            console.log(error);
+        })
     };
 
     if (!isSuccess)
@@ -155,19 +170,7 @@ export default function Order({id}) {
                                         {" "}{ order.address }
                                     </li>
                                     { order.status === STATUS_DELIVERED_STORE && (
-                                        <>
-                                            <li>Заказ передан в службу доставки</li>
-                                            { /* TODO: fix widget */ }
-                                            <li style={{width: "0px"}}>
-                                                <meta name="ydWidgetData" id="f526c05f4e50090a3bffbb04d40e07b3" content="" data-sender_id="15938" data-weight="0" data-cost="0"
-                                                      data-height="0" data-length="0" data-width="0" data-city_from="Москва" data-geo_id_from="213" data-css_name="tracking_tpl"
-                                                      data-tpl_name="tracking_tpl" data-container_tag_id="f96bae27a7dbbcfc794595702bd9024d" data-resource_id="21272"
-                                                      data-resource_key="1780931b94c77b42c08b895fb88747d2" data-tracking_method_key="43df8cf1b0d40baaef3a3363458314f1"
-                                                      data-autocomplete_method_key="fd34c231b276f9bea3db9b60ac09506e"></meta>
-                                                <script src="https://delivery.yandex.ru/widget/widgetJsLoader?dataTagID=f526c05f4e50090a3bffbb04d40e07b3" charSet="utf-8" defer></script>
-                                                <msw id="f96bae27a7dbbcfc794595702bd9024d" className="yd-widget-container"></msw>
-                                            </li>
-                                        </>
+                                        <li>Заказ передан в службу доставки</li>
                                     )}
                                 </>
                             )}
@@ -237,8 +240,7 @@ export default function Order({id}) {
                                         order.status === STATUS_COLLECTED ? (
                                             order.payment === PAYMENT_CARD || order.payment === PAYMENT_CREDIT ? (
                                                 <li>
-                                                    { /* TODO: external link */ }
-                                                    <a className="btn btn-primary" href="'yandex_kassa:payment'">
+                                                    <button type="button" className="btn btn-sm btn-primary mt-2" onClick={handlePayment}>
                                                         { order.payment === PAYMENT_CREDIT ? (
                                                             <>
                                                                 <i className="ci-money-bag fs-lg me-2" />Оформить кредит
@@ -248,7 +250,7 @@ export default function Order({id}) {
                                                                 <i className="ci-card fs-lg me-2" />Оплатить заказ
                                                             </>
                                                         )}
-                                                    </a>
+                                                    </button>
                                                 </li>
                                             ) : order.payment === PAYMENT_TRANSFER ? (
                                                 <li>
@@ -340,11 +342,12 @@ export default function Order({id}) {
                     </div>
                 </div>
             ))}
-            { [STATUS_NEW, STATUS_ACCEPTED, STATUS_COLLECTING, STATUS_FROZEN, STATUS_COLLECTED].includes(order.status) && (
+            { site.phone && [STATUS_NEW, STATUS_ACCEPTED, STATUS_COLLECTING, STATUS_FROZEN, STATUS_COLLECTED].includes(order.status) && (
                 <div className="alert alert-info d-flex mt-5" role="alert">
                     <div className="alert-icon"><i className="ci-bell" /></div>
                     <div>
-                        Если Вы хотите внести изменения в заказ, позвоните по телефону <a className="alert-link" href="tel:shop_info.inet_phone_E164">shop_info.inet_phone</a>
+                        Если Вы хотите внести изменения в заказ, позвоните по телефону{" "}
+                        <a className="alert-link" href={"tel:" + site.phone} style={{whiteSpace: "nowrap"}}>{ formatPhone(site.phone) }</a>
                     </div>
                 </div>
             )}
