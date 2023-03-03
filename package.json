@@ -1,28 +1,27 @@
 {
+    "version": "3.01.23",
     "scripts": {
-        "dev": "next dev",
-        "dev-ssl": "(local-ssl-proxy --key privkey.pem --cert cert.pem --source 8080 --target 3000) & next dev",
-        "build": "next build",
-        "start": "next start -p 4000",
-        "lint": "next lint"
+        "dev": "next dev -H 127.0.0.1 -p 3004",
+        "start": "next start -H 127.0.0.1 -p 4004",
+        "lint": "next lint",
+        "build": "next build"
     },
     "dependencies": {
         "@popperjs/core": "^2.11.6",
-        "axios": "^0.27.2",
+        "axios": "^1.2.2",
         "moment": "^2.29.4",
-        "next": "^12.2.5",
+        "next": "^13.1.4",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "react-popper": "^2.3.0",
         "react-query": "^3.39.2",
-        "simplebar-react": "^2.4.3",
+        "simplebar-react": "^3.2.0",
         "tiny-slider": "^2.9.4"
     },
     "devDependencies": {
         "eslint": "^8.25.0",
-        "eslint-config-next": "12.3.1",
+        "eslint-config-next": "13.1.4",
         "eslint-plugin-unused-imports": "^2.0.0",
-        "local-ssl-proxy": "^1.2.3",
         "sass": "^1.54.9"
     }
 }
