@@ -1,0 +1,80 @@
+@import 'vendor/cartzilla/scss/theme.scss';
+
+// Global tweaks
+
+body {
+    scroll-behavior: smooth;
+}
+
+// Cartzilla tweaks
+
+.navbar .navbar-brand.d-lg-block {
+    min-width: 7rem
+}
+
+.navbar .navbar-brand.d-lg-none {
+    min-width: 2.125rem
+}
+
+.pagination {
+    flex-wrap: wrap
+}
+
+a.page-link {
+    cursor: pointer
+}
+
+a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
+    cursor: pointer;
+    color: $link-color;
+    text-decoration: $link-decoration;
+
+    &:hover {
+        color: $link-hover-color;
+        text-decoration: $link-hover-decoration;
+    }
+}
+
+// Custom styles
+
+.sw-bg-light {
+    background-color: #fffaee
+}
+
+.sw-badge {
+    padding: 0.25em 0.625em;
+    margin-right: 0.25em;
+    border-radius: 0.175rem;
+}
+
+#comparison > tbody th:first-letter, .product-spec > .row > .text-muted:first-letter {
+    text-transform: capitalize;
+}
+
+// product details field help popover
+.popover.sw-field-help {
+    max-width: 725px;
+
+    @include media-breakpoint-down(sm) {
+        margin: 0 2%;
+        max-width: 95%;
+    }
+
+    &>.popover-body {
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 0.625em;
+
+            &[align="left"] {
+                max-width: 60%;
+                margin-right: 0.625em;
+            }
+        }
+    }
+}
+
+// product details long description
+.ratio + h5 {
+    margin-top: map-get($spacers, 2);
+}
