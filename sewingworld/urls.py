@@ -123,7 +123,6 @@ urlpatterns = [
     path('admin/', include('massadmin.urls')),
     path('admin/', include('loginas.urls')),
     path('admin/', admin.site.urls),
-    path('', include('django_prometheus.urls')),
 ]
 
 # Add Yandex integrations
