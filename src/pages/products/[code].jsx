@@ -98,6 +98,8 @@ function rebootstrap(value) {
     value = value.replaceAll('</h3>', '</h5>');
     value = value.replaceAll('<h4>', '<h6>');
     value = value.replaceAll('</h4>', '</h6>');
+    value = value.replaceAll('embed-responsive embed-responsive-4by3', 'ratio ratio-4x3');
+    value = value.replaceAll('embed-responsive embed-responsive-16by9', 'ratio ratio-16x9');
     return value;
 }
 
@@ -433,17 +435,6 @@ export default function Product({code}) {
                                             </div>
                                         </div>
                                     </div>
-                                    {% if product.width and product.height and product.length and product.weight > 0.1 %}
-                                    <div class="accordion-item">
-                                        <h3 class="accordion-header"><a class="accordion-button collapsed" href="#delivery" role="button" data-bs-toggle="collapse" aria-expanded="true" aria-controls="delivery"><i class="ci-delivery text-muted lead align-middle mt-n1 me-2"></i>Доставка</a></h3>
-                                        <div class="accordion-collapse collapse" id="delivery" data-parent="#productPanels">
-                                            <div class="accordion-body fs-sm">
-                                                <div id="yaDeliveryWidget"></div>
-                                                <div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Загрузка...</span></div></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endif %}
                                     {% endif %}
                                       */
                                     }
@@ -525,7 +516,7 @@ export default function Product({code}) {
             <div className="pb-3 mb-md-3" dangerouslySetInnerHTML={{__html: rebootstrap(product.spec) }} />
         )}
 
-            { Object.keys(fieldNames).length > 0 && productFields.length > 0 && (
+        { Object.keys(fieldNames).length > 0 && productFields.length > 0 && (
             <div className="pt-lg-2 pb-3 mb-md-3">
                 <h2 className="h3 pb-2">Характеристики { product.title }</h2>
                 <div className="product-spec container fs-sm">
