@@ -56,10 +56,15 @@ class CitySerializer(NonNullModelSerializer):
 
 class StoreSerializer(NonNullModelSerializer):
     city = CitySerializer(read_only=True)
+    phones = serializers.SerializerMethodField()
 
     class Meta:
         model = Store
-        exclude = ('supplier', 'enabled')
+        exclude = ('supplier', 'enabled', 'phone', 'phone2',
+                   'payment_cash', 'payment_credit', 'payment_master', 'payment_mir', 'payment_visa')
+
+    def get_phones(self, obj):
+        return obj.phones_as_list()
 
 
 class ServiceCenterSerializer(NonNullModelSerializer):
