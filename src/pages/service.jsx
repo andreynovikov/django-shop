@@ -1,0 +1,194 @@
+import { Fragment, useState, useEffect, useMemo } from 'react';
+import Script from 'next/script';
+import { dehydrate, QueryClient, useQuery } from 'react-query';
+
+import PageLayout from '@/components/layout/page';
+
+import { serviceCenterKeys, loadServiceCenters } from '@/lib/queries';
+
+export default function Service() {
+    const [ymapsReady, setYMapsReady] = useState(false);
+
+    const { data: services, isSuccess } = useQuery(serviceCenterKeys.lists(), () => loadServiceCenters());
+
+    useEffect(() => {
+        if (!ymapsReady || !isSuccess)
+            return;
+
+        const coords = [55.76, 37.64];
+        const map = new ymaps.Map('map', {
+            center: coords,
+            zoom: 10,
+            controls: ['zoomControl', 'fullscreenControl', 'geolocationControl', 'rulerControl']
+        });
+        map.margin.setDefaultMargin(100);
+
+        const location = ymaps.geolocation;
+        location.get({
+            provider: 'yandex'
+        }).then((result) => {
+            const userCoodinates = result.geoObjects.get(0).geometry.getCoordinates();
+            myMap.setCenter(userCoodinates);
+        });
+
+        services.filter((service) => service.latitude && service.longitude).map((service) => {
+            map.geoObjects.add(new ymaps.Placemark([service.latitude, service.longitude], {
+                balloonContentHeader: '',
+                balloonContent:
+                    `<div><i class="ci-location text-primary d-inline-block me-2"></i>
+                    <span class="d-inline-block align-top">${service.address}</span></div>
+                    <div class="mt-1"><i class="ci-phone text-primary d-inline-block me-2"></i>
+                    <span class="d-inline-block align-top">${service.phone}</span></div>`,
+                balloonContentFooter: ''
+            },
+            {
+                iconLayout: 'default#image',
+                iconImageHref: '/i/shoplogos/workshop.png',
+                iconImageSize: [27, 26], iconImageOffset: [-10, -23]
+            }));
+        });
+
+        return () => map.destroy();
+    }, [ymapsReady, isSuccess]); //eslint-disable-line react-hooks/exhaustive-deps
+
+    const serviceGroups = useMemo(() => {
+        if (!isSuccess)
+            return [];
+
+        const { groups } = services.reduce(({ groups, country, city }, service) => {
+            if (service.city.country.id !== country) {
+                groups.push({country: service.city.country, cities: []});
+                country = service.city.country.id;
+                city = null;
+            }
+            const curCountry = groups.length - 1;
+            if (service.city.id !== city) {
+                groups[curCountry].cities.push({city: service.city, services: []});
+                city = service.city.id;
+            }
+            groups[curCountry].cities[groups[curCountry].cities.length - 1].services.push(service);
+            return { groups, country, city };
+        }, {groups: [], country: null, city: null});
+
+        return groups;
+    }, [services, isSuccess]);
+
+    const setupYMaps = () => {
+        ymaps.ready(function() {
+            setYMapsReady(true);
+        });
+    };
+
+    return (
+        <>
+            <main class="container-fluid px-0">
+                <section class="row g-0">
+                    <div
+                        class="col-md-6 bg-position-center bg-size-cover bg-secondary order-md-2"
+                        style={{minHeight: '15rem', backgroundImage: 'url(https://cartzilla.createx.studio/img/about/02.jpg)'}} />
+                    <div class="col-md-6 px-3 px-md-5 py-5 order-md-1">
+                        <div class="mx-auto py-lg-5" style={{maxWidth: '35rem'}}>
+                            <p class="lead">Наши сервисные центры предлагают следующие работы и услуги:</p>
+                            <ul class="list-style pb-3 text-muted">
+                                <li>
+                                    Гарантийный ремонт и обслуживание швейных машин, вышивальных машин, оверлоков,
+                                    вязальных машин и другого оборудования производства компаний
+                                    Pfaff, Husqvarna Viking, Family, Janome, Silver Reed и ряда других фирм.
+                                </li>
+                                <li>Поставку запасных частей для швейного оборудования.</li>
+                                <li>Послегарантийный ремонт машин Pfaff, Husqvarna, Family, Janome, Silver Reed и NewHome.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+                <section class="row g-0">
+                    <div class="col-lg-6 iframe-full-height-wrap" style={{minHeight: '26rem'}}>
+                        <div class="iframe-full-height" id="map"></div>
+                    </div>
+                    <div class="col-md-6 px-3 px-md-5 py-5">
+                        <div class="mx-auto py-lg-5" style={{maxWidth: '35rem'}}>
+                            <h2 class="h3 pb-3">Новости</h2>
+                            <ul class="list-style pb-3">
+                                <li>Сервисный центр на &laquo;Академической&raquo; переехал с ул. Кедрова по адресу ул. Дмитрия Ульянова д.31<br/>Телефон: +7 495 718-86-02</li>
+                                <li><a class="nav-link-style" href="/blog/O/">Наши механики прошли обучение в Швеции</a></li>
+                                <li>Теперь в наших сервисных центрах можно купить педали для швейных машин</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+                <hr />
+
+                <section class="container-fluid pt-grid-gutter mt-md-4 mb-5">
+                    { serviceGroups.length > 0 && serviceGroups.map(({ country, cities }) => (
+                        <Fragment key={country.id}>
+                            <h2 class="h3 mb-3">{ country.name }</h2>
+                            <div class="row">
+                                { cities.map(({ city, services }) => (
+                                    <Fragment key={city.id}>
+                                        { services.map((service) => (
+                                            <div class="col-xl-3 col-lg-4 col-sm-6 mb-grid-gutter" key={service.id}>
+                                                <div class="card border-0 shadow-sm">
+                                                    <div class="card-body" itemscope itemtype="http://schema.org/Organization">
+                                                        <h6 class="card-title" itemprop="name">{ city.name }</h6>
+                                                        <ul class="list-unstyled mb-0">
+                                                            <li class="d-flex">
+                                                                <i class="ci-location fs-lg my-1 text-primary" />
+                                                                <div class="ps-3 fs-sm" itemprop="address" itemscope itemtype="http://schema.org/PostalAddress">
+                                                                    <span itemprop="streetAddress">{ service.address }</span>
+                                                                    <span class="d-none" itemprop="addressLocality">{ city.name }</span>
+                                                                    <span class="d-none" itemprop="addressCountry">{ country.name }</span>
+                                                                </div>
+                                                            </li>
+                                                            <li class="d-flex pt-2 mt-2 mb-0 border-top">
+                                                                <i class="ci-phone fs-lg my-1 text-primary" />
+                                                                <div class="ps-3 fs-sm">
+                                                                    {service.phone.split(',').map((phone, index) => (
+                                                                        <a
+                                                                            class={'d-block nav-link-style' + (index > 0 ? ' mt-2' : '')}
+                                                                            href={'tel:' + phone.trim().replace(' ', '')}
+                                                                            itemprop="telephone"
+                                                                            key={index}>
+                                                                            { phone.trim() }
+                                                                        </a>
+                                                                    ))}
+                                                                </div>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </Fragment>
+                                ))}
+                            </div>
+                        </Fragment>
+                    ))}
+            </section>
+            </main>
+            <Script
+                id="ymaps"
+                src={"https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=" + process.env.NEXT_PUBLIC_YMAPS_API_KEY}
+                onReady={setupYMaps}
+                onLoad={setupYMaps} />
+        </>
+    )
+}
+
+Service.getLayout = function getLayout(page) {
+    return (
+        <PageLayout htmlTitle="Сервисные центры" title={<>Сервисное обслуживание и ремонт<span class="d-lg-none"> швейных машин, оверлоков, вышивальных и вязальных машин</span></>}>
+            {page}
+        </PageLayout>
+    )
+}
+
+export async function getStaticProps() {
+    const queryClient = new QueryClient();
+    await queryClient.prefetchQuery(serviceCenterKeys.lists(), () => loadServiceCenters());
+
+    return {
+        props: {
+            dehydratedState: dehydrate(queryClient)
+        }
+    };
+}
