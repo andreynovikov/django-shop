@@ -1,4 +1,4 @@
-import React, { useState, useReducer, useEffect } from 'react';
+import { useReducer, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
@@ -6,6 +6,7 @@ import { dehydrate, QueryClient, useQuery } from 'react-query';
 import PageLayout from '@/components/layout/page';
 import ProductCard from '@/components/product/card';
 import ProductFilter from '@/components/product/filter';
+import PageSelector from '@/components/page-selector';
 
 import { categoryKeys, productKeys, loadCategories, loadCategory, loadProducts } from '@/lib/queries';
 import useCatalog from '@/lib/catalog';
@@ -37,8 +38,6 @@ function filterReducer(filters, action) {
 */
 export default function Category({path, currentPage, pageSize, order, filters}) {
     const [currentFilters, setFilter] = useReducer(filterReducer, filters);
-    const [minPage, setMinPage] = useState(0);
-    const [maxPage, setMaxPage] = useState(0);
 
     // reset filters on page change
     useEffect(() => {
@@ -64,21 +63,6 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
             keepPreviousData : true // required for filters not to loose choices and attributes
         }
     );
-
-    useEffect(() => {
-        if (isProductsSuccess) {
-            // количество переключателей страниц лимитировано дизайном
-            const pageRange = products.next && products.previous ? 7 : 10;
-            let min = products.currentPage - pageRange + Math.min(4, products.totalPages - products.currentPage)
-            if (min < 4)
-                min = 1;
-            let max = products.currentPage + pageRange - Math.min(4, products.currentPage - 1)
-            if (max > products.totalPages - 3)
-                max = products.totalPages;
-            setMinPage(min);
-            setMaxPage(max);
-        }
-    }, [products, isProductsSuccess]);
 
     const onFilterChanged = (field, value) => {
         console.log(field, value);
@@ -184,54 +168,7 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                         { products?.totalPages > 1 && (
                             <>
                                 <hr className="my-3" />
-                                <nav className="d-flex justify-content-between pt-2" aria-label="Переключение страниц">
-                                    { products.currentPage > 1 && (
-                                    <ul className="pagination">
-                                        <li className="page-item">
-                                            <Link className="page-link" href={{ pathname: router.pathname, query: { path: [...path, products.currentPage - 1] } }}>
-                                                <i className="ci-arrow-left me-2" />
-                                                Пред<span className="d-none d-sm-inline d-md-none d-xl-inline">ыдущая</span>
-                                            </Link>
-                                        </li>
-                                    </ul>
-                                    )}
-                                    <ul className="pagination">
-                                        <li className="page-item d-sm-none">
-                                            <span className="page-link page-link-static">{ products.currentPage } / { products.totalPages }</span>
-                                        </li>
-                                        {Array(products.totalPages).fill().map((_, i) => i+1).map((page) => (
-                                            page === products.currentPage ? (
-                                                <li className="page-item active d-none d-sm-block" aria-current="page" key={page}>
-                                                    <span className="page-link">{ page }<span className="visually-hidden">(текущая)</span></span>
-                                                </li>
-                                            ) : (page >= minPage && page <= maxPage || page === 1 || page === products.totalPages) ? (
-                                                <React.Fragment key={page}>
-                                                    { (maxPage < products.totalPages && page === products.totalPages) && (
-                                                        <li className="page-item d-none d-md-block">&hellip;</li>
-                                                    )}
-                                                    <li className="page-item d-none d-sm-block">
-                                                        <Link className="page-link" href={{ pathname: router.pathname, query: { path: [...path, page] } }}>
-                                                            { page }
-                                                        </Link>
-                                                    </li>
-                                                    { (minPage > 1 && page === 1) && (
-                                                        <li className="page-item d-none d-md-block">&hellip;</li>
-                                                    )}
-                                                </React.Fragment>
-                                            ) : ( null )
-                                        ))}
-                                    </ul>
-                                    { products.currentPage < products.totalPages && (
-                                        <ul className="pagination">
-                                            <li className="page-item">
-                                                <Link className="page-link" href={{ pathname: router.pathname, query: { path: [...path, products.currentPage + 1] } }}>
-                                                    След<span className="d-none d-sm-inline d-md-none d-xl-inline">ующая</span>
-                                                    <i className="ci-arrow-right ms-2" />
-                                                </Link>
-                                            </li>
-                                        </ul>
-                                    )}
-                                </nav>
+                                <PageSelector path={path} totalPages={products.totalPages} currentPage={products.currentPage} />
                             </>
                         )}
                     </section>
