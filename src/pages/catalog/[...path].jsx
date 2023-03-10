@@ -1,4 +1,4 @@
-import { useReducer, useEffect } from 'react';
+import { useState, useReducer, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
@@ -10,6 +10,7 @@ import PageSelector from '@/components/page-selector';
 
 import { categoryKeys, productKeys, loadCategories, loadCategory, loadProducts } from '@/lib/queries';
 import useCatalog from '@/lib/catalog';
+import rupluralize from '@/lib/rupluralize';
 
 const baseFilters = [
     { field: 'enabled', value: 1}
@@ -38,6 +39,7 @@ function filterReducer(filters, action) {
 */
 export default function Category({path, currentPage, pageSize, order, filters}) {
     const [currentFilters, setFilter] = useReducer(filterReducer, filters);
+    const [currentOrder, setOrder] = useState(order);
 
     // reset filters on page change
     useEffect(() => {
@@ -56,8 +58,8 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
     );
 
     const { data: products, isSuccess: isProductsSuccess } = useQuery(
-        productKeys.list(currentPage, pageSize, currentFilters, order),
-        () => loadProducts(currentPage, pageSize, currentFilters, order),
+        productKeys.list(currentPage, pageSize, currentFilters, currentOrder),
+        () => loadProducts(currentPage, pageSize, currentFilters, currentOrder),
         {
             enabled: isSuccess,
             keepPreviousData : true // required for filters not to loose choices and attributes
@@ -67,6 +69,11 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
     const onFilterChanged = (field, value) => {
         console.log(field, value);
         setFilter({type: 'set', filter: {field, value}});
+    };
+
+    const handleOrderSelect = (value) => {
+        console.log(value);
+        setOrder(value);
     };
 
     if (router.isFallback) {
@@ -91,10 +98,9 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                                     <div className={"widget widget-links mb-4 pb-4" + (category.filters ? " border-bottom" : "")}>
                                         <h3 className="widget-title">Категории</h3>
                                         <ul className="widget-list">
-                                            { /* TODO: filter hidden (here or in API) */ }
                                             {category.children.map((subcategory) => (
                                                 <li className="widget-list-item" key={subcategory.id}>
-                                                    <Link className="widget-list-link" href={`/catalog/${category.path}${subcategory.slug}/`}>
+                                                    <Link className="widget-list-link" href={{ pathname: router.pathname, query: { path: [...path, subcategory.slug] } }}>
                                                         { subcategory.name }
                                                     </Link>
                                                 </li>
@@ -118,16 +124,21 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                         <div className="d-flex justify-content-center justify-content-sm-between align-items-center pt-2 pb-4 pb-sm-5">
                             <div className="d-flex flex-wrap">
                                 <div className="d-flex align-items-center flex-nowrap me-3 me-sm-4 pb-3">
-                                    <label className="text-light opacity-75 text-nowrap fs-sm me-2 d-none d-sm-block" htmlFor="sorting">Sort by:</label>
-                                    <select className="form-select" id="sorting">
-                                        <option>Popularity</option>
-                                        <option>Low - Hight Price</option>
-                                        <option>High - Low Price</option>
-                                        <option>Average Rating</option>
-                                        <option>A - Z Order</option>
-                                        <option>Z - A Order</option>
+                                    <label className="text-light opacity-75 text-nowrap fs-sm me-2 d-none d-sm-block" htmlFor="sorting">Сортировать:</label>
+                                    <select className="form-select" id="sorting" value={currentOrder} onChange={(event) => handleOrderSelect(event.target.value)}>
+                                        <option value={order}>по-умолчанию</option>
+                                        { order !== '-price' && <option value="-price">от дорогих к дешёвым</option> }
+                                        { order !== 'price' && <option value="price">сначала дешёвые</option> }
+                                        { order !== 'title' && <option value="title">по алфавиту</option> }
+                                        { order !== '-title' && <option value="-title">по алфавиту, наоборот</option> }
                                     </select>
-                                    { isProductsSuccess && <span className="fs-sm text-light opacity-75 text-nowrap ms-2 d-none d-md-block">из { products.count } товаров</span> }
+                                    { isProductsSuccess && (
+                                        <span className="fs-sm text-light opacity-75 text-nowrap ms-2 d-none d-md-block">
+                                            из
+                                            {' '}{ products.count }{' '}
+                                            { rupluralize(products.count, ['товара','товаров','товаров']) }
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                             { products?.totalPages > 1 && (
