@@ -6,7 +6,7 @@ import { dehydrate, QueryClient, useQuery } from 'react-query';
 import PageLayout from '@/components/layout/page';
 import ProductCard from '@/components/product/card';
 import ProductFilter from '@/components/product/filter';
-import PageSelector from '@/components/page-selector';
+import PageSelector, { SmallPageSelector } from '@/components/page-selector';
 
 import { categoryKeys, productKeys, loadCategories, loadCategory, loadProducts } from '@/lib/queries';
 import useCatalog from '@/lib/catalog';
@@ -141,21 +141,7 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                                     )}
                                 </div>
                             </div>
-                            { products?.totalPages > 1 && (
-                                <div className="d-flex pb-3">
-                                    { products.currentPage > 1 && (
-                                        <Link className="nav-link-style nav-link-light me-3" href={{ pathname: router.pathname, query: { path: [...path, products.currentPage - 1] } }}>
-                                            <i className="ci-arrow-left" />
-                                        </Link>
-                                    )}
-                                    <span className="fs-md text-light">{ products.currentPage } / { products.totalPages }</span>
-                                    { products.currentPage < products.totalPages && (
-                                        <Link className="nav-link-style nav-link-light ms-3" href={{ pathname: router.pathname, query: { path: [...path, products.currentPage + 1] } }}>
-                                            <i className="ci-arrow-right" />
-                                        </Link>
-                                    )}
-                                </div>
-                            )}
+                            { products?.totalPages > 1 && <SmallPageSelector path={path} totalPages={products.totalPages} currentPage={products.currentPage} /> }
                         </div>
 
 

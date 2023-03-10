@@ -2,6 +2,28 @@ import { Fragment, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 
+export function SmallPageSelector({path, totalPages, currentPage}) {
+    const router = useRouter();
+
+    const getQuery = (page) => path !== undefined ? { path: [...path, page] } : { ...router.query, page };
+
+    return (
+        <div className="d-flex pb-3">
+            { currentPage > 1 && (
+                <Link className="nav-link-style nav-link-light me-3" href={{ pathname: router.pathname, query: getQuery(currentPage - 1) }}>
+                    <i className="ci-arrow-left" />
+                </Link>
+            )}
+            <span className="fs-md text-light">{ currentPage } / { totalPages }</span>
+            { currentPage < totalPages && (
+                <Link className="nav-link-style nav-link-light ms-3" href={{ pathname: router.pathname, query: getQuery(currentPage + 1) }}>
+                    <i className="ci-arrow-right" />
+                </Link>
+            )}
+        </div>
+    );
+}
+
 export default function PageSelector({path, totalPages, currentPage}) {
     const router = useRouter();
 
