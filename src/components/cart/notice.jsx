@@ -5,6 +5,22 @@ import useBasket from '@/lib/basket';
 
 import 'simplebar-react/dist/simplebar.min.css';
 
+export function MobileCartNotice() {
+    const { basket, isEmpty } = useBasket();
+
+    return (
+        <Link className="d-table-cell handheld-toolbar-item" href="/cart">
+            <span className="handheld-toolbar-icon">
+                <i className="ci-cart" />
+                { !isEmpty && <span className="badge bg-primary rounded-pill ms-1">{ basket.quantity }</span> }
+            </span>
+            <span className="handheld-toolbar-label">
+                { isEmpty ? <>Корзина&nbsp;пуста</> : <>{ basket.total.toLocaleString('ru') }&nbsp;руб</> }
+            </span>
+        </Link>
+    );
+}
+
 export default function CartNotice() {
     const { basket, isEmpty, removeItem } = useBasket();
 
@@ -14,14 +30,14 @@ export default function CartNotice() {
 
     if (isEmpty)
         return (
-            <div className="navbar-tool ms-3">
+            <div className="navbar-tool ms-3 d-none d-lg-flex">
                 <span className="navbar-tool-icon-box bg-secondary"><i className="navbar-tool-icon ci-cart" /></span>
                 <span className="navbar-tool-text"><small>Корзина</small>пуста</span>
             </div>
         );
 
     return (
-        <div className="navbar-tool ms-3 dropdown">
+        <div className="navbar-tool ms-3 d-none d-lg-flex dropdown">
             <Link className="navbar-tool-icon-box bg-secondary dropdown-toggle" href="/cart">
                 <span className="navbar-tool-label">{ basket.quantity }</span><i className="navbar-tool-icon ci-cart" />
             </Link>

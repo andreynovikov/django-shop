@@ -1,19 +1,19 @@
 import useComparison from '@/lib/comparison';
 
-export default function CompareLink() {
+export default function CompareLink({ mobile }) {
     const { comparisons } = useComparison();
 
     return (
         <>
-            { /*
-                <i className="ci-compare text-muted me-2" />Сравнение <span id="compare-notice">{view "sewingworld.views.compare_notice"}</span>
-              */
-            }
-            <i className="ci-compare mt-n1" />
+            <i className={"ci-compare mt-n1" + (mobile ? " text-muted me-2" : "")} />
             Сравнение
             { comparisons.length > 0 && (
-                <strong> ({ comparisons.length })</strong>
+                <span class="badge rounded-pill bg-primary ms-1 align-text-bottom">{ comparisons.length }</span>
             )}
         </>
     )
 }
+
+CompareLink.defaultProps = {
+    mobile: false
+};

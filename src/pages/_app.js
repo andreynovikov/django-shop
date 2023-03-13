@@ -11,6 +11,8 @@ import 'tiny-slider/dist/tiny-slider.css';
 import '@/vendor/nouislider.css';  // TODO: this breaks external font import
 import '@/vendor/lightgallery/css/lightgallery.css';
 import '@/vendor/cartzilla/scss/theme.scss'; // must be defined here for Cartzilla icons to work
+import 'react-bootstrap-typeahead/css/Typeahead.css';
+import 'react-bootstrap-typeahead/css/Typeahead.bs5.css';
 import '../styles.scss';
 
 export default function App({ Component, pageProps: { site, session, ...pageProps }}) {

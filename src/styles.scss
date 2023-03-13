@@ -8,6 +8,25 @@ body {
 
 // Cartzilla tweaks
 
+.navbar-brand > img { // make logo highly responsive
+    width: 34px;
+    height: 34px;
+    object-position: left;
+    object-fit: cover;
+
+    @include media-breakpoint-up(sm) {
+        width: auto;
+    }
+
+    @include media-breakpoint-up(xl) {
+        height: 53px;
+    }
+}
+
+.navbar-sticky.navbar-stuck {
+    animation: none;
+}
+
 .navbar .navbar-brand.d-lg-block {
     min-width: 7rem
 }
@@ -33,6 +52,12 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
         color: $link-hover-color;
         text-decoration: $link-hover-decoration;
     }
+}
+
+// React Bootstrap Typeahead tweaks
+
+.rbt > .rbt-menu .dropdown-item.active {
+    background-color: map-get($theme-faded-colors, 'dark');
 }
 
 // Custom styles
