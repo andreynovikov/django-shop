@@ -1,4 +1,4 @@
-import { useState, useReducer, useEffect } from 'react';
+import { useState, useReducer, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
@@ -34,6 +34,7 @@ function filterReducer(filters, action) {
 
 /*
   TODO:
+  - refactor price filter on server side
   - более строгие фильтры не на первой странице приводят к пустой странице
   - debounce currentFilters (useDeferredValue does not work)
 */
@@ -66,13 +67,37 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
         }
     );
 
-    const onFilterChanged = (field, value) => {
+    const selectedFilters = useMemo(() => {
+        if (!!!category.filters)
+            return {};
+
+        return category.filters.reduce((filters, filter) => {
+            let value = undefined;
+            if (filter.widget === 'PriceWidget') {
+                const minValue = currentFilters.reduce((value, f) => f.field === filter.name + '_min' ? f.value : value, undefined);
+                const maxValue = currentFilters.reduce((value, f) => f.field === filter.name + '_max' ? f.value : value, undefined);
+                if (minValue !== undefined || maxValue !== undefined)
+                    value = [minValue, maxValue];
+            } else {
+                value = currentFilters.reduce((value, f) => f.field === filter.name ? f.value : value, undefined);
+            }
+            filters[filter.name] = value;
+            return filters;
+        }, {});
+    }, [currentFilters, category.filters]);
+
+    const handleFilterChanged = (field, value) => {
         console.log(field, value);
-        setFilter({type: 'set', filter: {field, value}});
+        const filter = category.filters.reduce((value, filter) => field === filter.name ? filter : value, undefined);
+        if (filter.widget === 'PriceWidget') {
+            setFilter({type: 'set', filter: {field: `${field}_min`, value: value?.[0]}});
+            setFilter({type: 'set', filter: {field: `${field}_max`, value: value?.[1]}});
+        } else {
+            setFilter({type: 'set', filter: {field, value}});
+        }
     };
 
     const handleOrderSelect = (value) => {
-        console.log(value);
         setOrder(value);
     };
 
@@ -112,7 +137,10 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                                 { category.filters && category.filters.map((filter, index) => (
                                     <div className={"widget" + (index === category.filters.length-1 ? "" : " pb-4 mb-4 border-bottom")} key={filter.id}>
                                         <h3 className="widget-title">{ filter.label }</h3>
-                                        <ProductFilter filter={{...filter, ...products?.filters?.[filter.name]}} onFilterChanged={onFilterChanged} />
+                                        <ProductFilter
+                                            filter={{...filter, ...products?.filters?.[filter.name]}}
+                                            filterValue={selectedFilters[filter.name]}
+                                            onFilterChanged={handleFilterChanged} />
                                     </div>
                                 ))}
 
@@ -202,7 +230,7 @@ export async function getStaticProps(context) {
     const queryClient = new QueryClient();
     const category = await queryClient.fetchQuery(categoryKeys.detail(path), () => loadCategory(path));
 
-    const pageSize = category.categories || category.filters ? 15 : 16;
+    const pageSize = 1000; // category.categories || category.filters ? 15 : 16;
     const productFilters = [{field: 'categories', value: category.id}, ...baseFilters];
     const productOrder = category.product_order || defaultOrder;
     await queryClient.prefetchQuery(productKeys.list(currentPage, pageSize, productFilters, productOrder), () => loadProducts(currentPage, pageSize, productFilters, productOrder));

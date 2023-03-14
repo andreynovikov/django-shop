@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+export default function SliderFilter({filter, filterValue, onFilterChanged}) {
+    const minValue = filter.attrs?.min_value || 0;
+    const currentValue = filterValue !== undefined ? filterValue : minValue;
 
-export default function SliderFilter({filter, onFilterChanged}) {
-    const [filterValue, setFilterValue] = useState(filter.attrs?.min_value || 0);
-
-    const handleChange = (e) => {
-        let value = +e.target.value;
-        setFilterValue(value);
-        if (value === (filter.attrs?.min_value || 0))
+    const handleChange = (event) => {
+        let value = +event.target.value;
+        if (value === minValue)
             onFilterChanged(filter.name, undefined);
         else
             onFilterChanged(filter.name, value);
@@ -19,13 +17,13 @@ export default function SliderFilter({filter, onFilterChanged}) {
             type="range"
             name={filter.name}
             id={filter.id}
-            value={filterValue}
-            min={filter.attrs?.min_value || 0}
+            value={currentValue}
+            min={minValue}
             max={filter.attrs?.max_value}
             step={filter.attrs?.step || 1}
             onChange={handleChange} />
             <div className="ms-2 fs-sm">
-                <span>{ filterValue }</span>
+                <span>{ currentValue }</span>
                 { filter.unit && <span>&nbsp;{ filter.unit }</span> }
             </div>
         </div>

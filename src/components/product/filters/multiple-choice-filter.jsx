@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
 import Script from 'next/script';
 
-export default function MultipleChoiceFilter({filter, onFilterChanged}) {
-    const [filterValue, setFilterValue] = useState([]);
+export default function MultipleChoiceFilter({filter, filterValue, onFilterChanged}) {
+    const currentValue = filterValue !== undefined  ? filterValue : [];
 
-    const handleChange = (e) => {
-        let value = +e.target.value;
+    const handleChange = (event) => {
+        let value = +event.target.value;
         let newValue;
-        if (e.target.checked)
-            newValue = [value, ...filterValue];
+        if (event.target.checked)
+            newValue = [value, ...currentValue];
         else
-            newValue = filterValue.filter(v => v !== value);
-        setFilterValue(newValue);
+            newValue = currentValue.filter(v => v !== value);
         if (newValue.length === 0)
             onFilterChanged(filter.name, undefined);
         else
@@ -33,7 +31,14 @@ export default function MultipleChoiceFilter({filter, onFilterChanged}) {
                 { filter.choices?.map(([value, label]) => (
                     <li className="widget-filter-item d-flex justify-content-between align-items-center mb-1" key={value}>
                         <div className="form-check">
-                            <input className="form-check-input" type="checkbox" name={filter.name} id={`${filter.id}-${value}`} value={value} checked={filterValue.includes(value)} onChange={handleChange} />
+                            <input
+                                className="form-check-input"
+                                type="checkbox"
+                                name={filter.name}
+                                id={`${filter.id}-${value}`}
+                                value={value}
+                                checked={currentValue.includes(value)}
+                                onChange={handleChange} />
                             <label className="form-check-label widget-filter-item-text" htmlFor={`${filter.id}-${value}`}>{ label }</label>
                         </div>
                     </li>

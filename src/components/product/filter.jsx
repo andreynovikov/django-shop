@@ -4,21 +4,17 @@ import MultipleChoiceFilter from './filters/multiple-choice-filter';
 import PriceFilter from './filters/price-filter';
 import SliderFilter from './filters/slider-filter';
 
-export default function ProductFilter({filter, onFilterChanged}) {
-    if (filter.class === 'NullBooleanField')
-        return <BooleanFilter filter={filter} onFilterChanged={onFilterChanged} />
+export default function ProductFilter({filter, filterValue, onFilterChanged}) {
+    const FilterComponent =
+          filter.class === 'NullBooleanField' ? BooleanFilter
+          : filter.class === 'ChoiceField' ? ChoiceFilter
+          : filter.class === 'MultipleChoiceField' ? MultipleChoiceFilter
+          : filter.widget === 'PriceWidget' ? PriceFilter
+          : filter.widget === 'ShopSliderWidget' ? SliderFilter
+          : undefined;
 
-    if (filter.class === 'ChoiceField')
-        return <ChoiceFilter filter={filter} onFilterChanged={onFilterChanged} />
+    if (FilterComponent === undefined)
+        return null;
 
-    if (filter.class === 'MultipleChoiceField')
-        return <MultipleChoiceFilter filter={filter} onFilterChanged={onFilterChanged} />
-
-    if (filter.widget === 'PriceWidget')
-        return <PriceFilter filter={filter} onFilterChanged={onFilterChanged} />
-
-    if (filter.widget === 'ShopSliderWidget')
-        return <SliderFilter filter={filter} onFilterChanged={onFilterChanged} />
-
-    return null;
+    return <FilterComponent filter={filter} filterValue={filterValue} onFilterChanged={onFilterChanged} />
 }

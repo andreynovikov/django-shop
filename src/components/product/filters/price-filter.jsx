@@ -1,42 +1,66 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Script from 'next/script';
 
-export default function PriceFilter({filter, onFilterChanged}) {
-    const [filterValue, setFilterValue] = useState([-1,-1]);
+import rangeSlider from '@/vendor/cartzilla/components/range-slider'; // NOTICE: autoexecution is manually removed from module
 
-    const sliderRef = useRef(null);
+export default function PriceFilter({filter, filterValue, onFilterChanged}) {
+    const [ready, setReady] = useState(false);
 
-    const setFilters = () => {
-        const value = sliderRef.current.noUiSlider.get(true);
+    const minValue = filter.attrs?.min_value || 0;
+    const maxValue = filter.attrs?.max_value || 990000;
+    const currentValue = filterValue !== undefined ? filterValue : [minValue, maxValue];
+
+    const sliderRef = useRef();
+
+    useEffect(() => {
+        if (!ready)
+            return;
+
+        const ref = sliderRef.current;
+        console.log('uislider', ref.noUiSlider);
+
+        if (!!!ref.noUiSlider) {
+            console.log('create range-slider');
+            rangeSlider();
+        }
+        console.log('set slider handler');
+        ref.noUiSlider.on('set', () => {
+            const value = ref.noUiSlider.get(true);
+            console.log('new value', value);
+            value[0] = Math.round(value[0]);
+            value[1] = Math.round(value[1]);
+            if (value[0] !== currentValue[0] || value[1] !== currentValue[1])
+                onFilterChanged(filter.name, value);
+        });
+
+        return () => {
+            console.log('destroy slider');
+            if (!!ref.noUiSlider) {
+                ref.noUiSlider.off('set');
+                ref.noUiSlider.destroy();
+            }
+        }
+    }, [ready]);
+
+    useEffect(() => {
+        const value = sliderRef.current?.noUiSlider?.get(true) || [minValue, maxValue];
         value[0] = Math.round(value[0]);
         value[1] = Math.round(value[1]);
-        if (value[0] !== filterValue[0])
-            onFilterChanged(`${filter.name}_min`, value[0]);
-        if (value[1] !== filterValue[1])
-            onFilterChanged(`${filter.name}_max`, value[1]);
-        setFilterValue(value);
-    };
+        if (value[0] !== currentValue[0] || value[1] !== currentValue[1])
+            sliderRef.current?.noUiSlider?.set(currentValue);
+    }, [filterValue]);
 
     const setupRangeSlider = () => {
         console.log('setupRangeSlider');
-        if (window && 'noUiSlider' in window && sliderRef.current && !!!sliderRef.current.noUiSlider) {
-            console.log('import range-slider');
-            /* eslint-disable unused-imports/no-unused-vars */
-            import('@/vendor/cartzilla/components/range-slider').then((module) => {
-                console.log('set slider handler');
-                sliderRef.current.noUiSlider.on('set', () => {
-                    setFilters();
-                });
-            });
-        }
+        setReady(true);
     };
 
     return (
         <div className="range-slider"
-             data-start-min={filter.attrs?.min_value || 0}
-             data-start-max={filter.attrs?.max_value || 990000}
+             data-start-min={minValue}
+             data-start-max={maxValue}
              data-min="0"
-             data-max={Math.ceil((filter.attrs?.max_value || 990000) * 1.1 / 1000) * 1000}
+             data-max={Math.ceil(maxValue * 1.1 / 1000) * 1000}
              data-step={filter.attrs?.step || 10}
              data-currency={filter.unit}>
             <div className="range-slider-ui" ref={sliderRef}></div>
