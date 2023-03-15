@@ -17,22 +17,23 @@ export default function TopBar({hideSignIn, hideCartNotice}) {
     const [catalogVisible, setCatalogVisible] = useState(false);
     const { site } = useSite();
     const { status } = useSession();
-    const catalogButtonRef = useRef(null);
+
+    const stuckMenuRef = useRef();
+    const catalogButtonRef = useRef();
 
     useEffect(() => {
-        const toggler = document.querySelector('.navbar-stuck-toggler');
+        const topbar = document.querySelector('.topbar');
 
-        const handleToggle = (event) => {
-            const stuckMenu = document.querySelector('.navbar-stuck-menu');
-            stuckMenu.classList.toggle('show');
-            event.preventDefault();
-        };
+        if (catalogVisible) {
+            if (window.innerWidth > 992 && window.pageYOffset > topbar.offsetHeight) {
+                window.scrollTo(0, topbar.offsetHeight);
+            }
+        }
 
         const setStickyState = (event) => {
-            const topbar = document.querySelector('.topbar');
             const navbar = document.querySelector('.navbar-sticky');
             const navbarHeight = navbar.offsetHeight;
-            if (event.currentTarget.pageYOffset > topbar.offsetHeight) {
+            if (event.currentTarget.pageYOffset > topbar.offsetHeight && !catalogVisible) {
                 document.body.style.paddingTop = navbarHeight + 'px';
                 navbar.classList.add('navbar-stuck');
             } else {
@@ -41,14 +42,16 @@ export default function TopBar({hideSignIn, hideCartNotice}) {
             }
         };
 
-        toggler.addEventListener('click', handleToggle);
         window.addEventListener('scroll', setStickyState);
 
         return () => {
-            toggler.removeEventListener('click', handleToggle);
             window.removeEventListener('scroll', setStickyState);
         };
-    }, []);
+    }, [catalogVisible]);
+
+    const handleStuckToggler = () => {
+        stuckMenuRef.current?.classList.toggle('show');
+    };
 
     const { comparisons } = useComparison();
     const { favorites } = useFavorites();
@@ -116,15 +119,6 @@ export default function TopBar({hideSignIn, hideCartNotice}) {
                         <Link className="navbar-brand flex-shrink-0" href="/">
                             <img src="/i/logo.svg" alt={seoLogoAlt} />
                         </Link>
-                        { /*
-                        <Link className="navbar-brand d-none d-sm-block d-xl-none flex-shrink-0" href="/">
-                            <img src="/i/logo.svg" alt={seoLogoAlt} style={{ height: 34, width: 'auto' }} />
-                        </Link>
-                        <Link className="navbar-brand d-sm-none flex-shrink-0" href="/">
-                            <img src="/i/logo-icon.svg" alt={seoLogoAlt} style={{ height: 34, width: 'auto' }} />
-                        </Link>
-                          */
-                        }
                         <div className="d-none d-lg-flex w-100 mx-4">
                             <ProductSearchInput />
                         </div>
@@ -132,10 +126,10 @@ export default function TopBar({hideSignIn, hideCartNotice}) {
                             <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
                                 <span className="navbar-toggler-icon"></span>
                             </button>
-                            <a className="navbar-tool navbar-stuck-toggler" href="#">
+                            <button className="btn p-0 navbar-tool navbar-stuck-toggler" onClick={handleStuckToggler}>
                                 <span className="navbar-tool-tooltip">Раскрыть меню</span>
                                 <div className="navbar-tool-icon-box"><i className="navbar-tool-icon ci-menu" /></div>
-                            </a>
+                            </button>
                             { status === 'authenticated' && (
                                 <Link className="navbar-tool d-none d-lg-flex" href="/user/favorites">
                                     <div className="navbar-tool-icon-box">
@@ -151,31 +145,21 @@ export default function TopBar({hideSignIn, hideCartNotice}) {
                         </div>
                     </div>
                 </div>
-                <div className="navbar navbar-expand-lg navbar-light navbar-stuck-menu mt-n2 pt-0 pb-2">
+                <div className="navbar navbar-expand-lg navbar-light navbar-stuck-menu mt-n2 pt-0 pb-2" ref={stuckMenuRef}>
                     <div className="container">
                         <div className="collapse navbar-collapse" id="navbarCollapse">
                             <div className="d-lg-none my-3">
                                 <ProductSearchInput mobile />
                             </div>
-                            <ul className="navbar-nav navbar-mega-nav pe-lg-2 me-lg-2">
-                                { /*
-                                <li className="nav-item">
+                            <ul className="navbar-nav pe-lg-2 me-lg-2">
+                                <li className="nav-item bg-transparent">
                                     <button ref={catalogButtonRef}
-                                        className="btn btn-primary fw-bold w-100 text-start text-lg-center dropdown-toggle"
+                                        className="btn btn-primary w-100 fw-bold text-start text-lg-center dropdown-toggle"
                                         onClick={() => setCatalogVisible(!catalogVisible)}>
-                                        <i className={(catalogVisible ? "ci-close" : "ci-menu") + " align-middle mt-n1 me-2"} />Каталог
+                                        <i className={(catalogVisible ? "ci-close" : "ci-server-alt") + " me-2"} />
+                                        Каталог
                                     </button>
-                                </li>
-                                  */
-                                }
-                                <li className="nav-item dropdown">
-                                    <a className="nav-link dropdown-toggle ps-lg-0 fw-bold" href="#" data-bs-toggle="dropdown">
-                                        <i className="ci-view-grid me-2" />Каталог
-                                    </a>
-                                    { /* className="btn btn-primary fw-bold w-100 text-start text-lg-center dropdown-toggle" */ }
-                                    <div className="dropdown-menu px-2 pb-4">
-                                        <Catalog visible={true} setVisible={setCatalogVisible} buttonRef={catalogButtonRef} />
-                                    </div>
+                                    <Catalog visible={catalogVisible} setVisible={setCatalogVisible} buttonRef={catalogButtonRef} />
                                 </li>
                             </ul>
                             <ul className="navbar-nav">
@@ -217,7 +201,6 @@ export default function TopBar({hideSignIn, hideCartNotice}) {
                     </div>
                 </div>
             </div>
-        { /* <Catalog visible={catalogVisible} setVisible={setCatalogVisible} buttonRef={catalogButtonRef} /> */ }
         </>
     )
 }

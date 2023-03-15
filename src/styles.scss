@@ -66,6 +66,27 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
     background-color: #fffaee
 }
 
+.sw-catalog {
+    padding-top: $card-spacer-y;
+    padding-bottom: $card-spacer-y;
+    background-color: $white;
+    background-clip: border-box;
+
+    @include media-breakpoint-up(lg) {
+        top: $navbar-nav-link-padding-y - .125rem - $btn-padding-y + ( $font-size-base - $btn-font-size ) / 2 + map-get($spacers, 2);
+        position: absolute;
+        min-width: 50rem;
+        z-index: $zindex-dropdown - 5;
+        padding-left: $card-spacer-x;
+        padding-right: $card-spacer-x;
+        box-shadow: 0 1rem 1rem rgba($black,.15);
+        border: $card-border-width solid $card-border-color;
+        border-bottom-right-radius: $border-radius;
+        border-bottom-left-radius: $border-radius;
+        border-top: 0!important;
+    }
+}
+
 .sw-badge {
     padding: 0.25em 0.625em;
     margin-right: 0.25em;
