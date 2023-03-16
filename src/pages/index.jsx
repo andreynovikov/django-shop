@@ -7,6 +7,8 @@ import ProductCard from '@/components/product/card';
 import { productKeys, loadProducts } from '@/lib/queries';
 import useCatalog from '@/lib/catalog';
 
+const itemsPerSection = 16;
+
 const recomendedFilters = [
     { field: 'enabled', value: 1},
     { field: 'recomended', value: 1 },
@@ -26,67 +28,67 @@ const sort = '-price';
 
 export default function Index() {
     const { data: recomended, isSuccess: isRecomendedSuccess } = useQuery(
-        productKeys.list(null, 24, recomendedFilters, sort),
-        () => loadProducts(null, 24, recomendedFilters, sort)
+        productKeys.list(null, itemsPerSection, recomendedFilters, sort),
+        () => loadProducts(null, itemsPerSection, recomendedFilters, sort)
     );
     const { data: gifts, isSuccess: isGiftsSuccess } = useQuery(
-        productKeys.list(null, 24, giftsFilters, sort),
-        () => loadProducts(null, 24, giftsFilters, sort)
+        productKeys.list(null, itemsPerSection, giftsFilters, sort),
+        () => loadProducts(null, itemsPerSection, giftsFilters, sort)
     );
     const { data: firstpage, isSuccess: isFirstPageSuccess } = useQuery(
-        productKeys.list(null, 24, firstPageFilters, sort),
-        () => loadProducts(null, 24, firstPageFilters, sort)
+        productKeys.list(null, itemsPerSection, firstPageFilters, sort),
+        () => loadProducts(null, itemsPerSection, firstPageFilters, sort)
     );
 
     useCatalog();
 
     return (
         <>
-            <div class="bg-secondary">
-                <section class="pb-5">
-                    <div class="bg-dark py-5"></div>
-                    <div class="py-3"></div>
+            <div className="bg-secondary">
+                <section className="pb-5">
+                    <div className="bg-dark py-5"></div>
+                    <div className="py-3"></div>
                 </section>
 
-                <section class="container position-relative pt-3 pt-lg-0 pb-5 mt-n10" style={{zIndex: 10}}>
-                    <div class="row">
-                        <div class="col-10 offset-1">
-                            <div class="card border-0 box-shadow-lg">
-                                <div class="card-body px-3 pb-0">
-                                    <div class="row g-0 justify-content-center">
-                                        <div class="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
+                <section className="container position-relative pt-3 pt-lg-0 pb-5 mt-n10" style={{zIndex: 10}}>
+                    <div className="row">
+                        <div className="col-10 offset-1">
+                            <div className="card border-0 box-shadow-lg">
+                                <div className="card-body px-3 pb-0">
+                                    <div className="row g-0 justify-content-center">
+                                        <div className="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
                                             <Link href="/catalog/sewing_machines/">
                                                 <img src="/i/categories/compsewing.svg" alt="Швейные машины" height="75" width="75" />
                                                 <div>Швейные машины</div>
                                             </Link>
                                         </div>
-                                        <div class="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
+                                        <div className="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
                                             <Link href="/catalog/embroidery_machines/">
                                                 <img src="/i/categories/embroidery.svg" alt="Швейно-вышивальные машины" height="75" width="94" />
                                                 <div>Вышивальные машины</div>
                                             </Link>
                                         </div>
-                                        <div class="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
+                                        <div className="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
                                             <Link href="/catalog/sergers/">
                                                 <img src="/i/categories/overlock.svg" alt="Оверлоки, коверлоки и распошивальные машины" height="75" width="75" />
                                                 <div>Оверлоки и коверлоки</div>
                                             </Link>
                                         </div>
-                                        <div class="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
+                                        <div className="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
                                             <Link href="/catalog/knitting_machines/">
                                                 <img src="/i/categories/knitting.svg" alt="Вязальные машины" height="75" width="94" />
                                                 <div>Вязальные машины</div>
                                             </Link>
                                         </div>
-                                        <div class="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
+                                        <div className="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
                                             <Link href="/catalog/accessories/">
                                                 <img src="/i/categories/accessories.svg" alt="Аксессуары" height="75" width="75" />
                                                 <div>Аксессуары</div>
                                             </Link>
                                         </div>
-                                        <div class="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
-                                            <Link href="/catalog/accessories/">
-                                                <img src="/i/categories/threads.svg" alt="Аксессуары" height="75" width="75" />
+                                        <div className="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
+                                            <Link href="/catalog/accessories/threads/">
+                                                <img src="/i/categories/threads.svg" alt="Нитки" height="75" width="75" />
                                                 <div>Нитки</div>
                                             </Link>
                                         </div>
@@ -102,10 +104,10 @@ export default function Index() {
                 <section className="container pt-5">
                     <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
                         <h2 className="h3 mb-0 pt-3 me-2">Специальные предложения</h2>
-                        <div class="pt-3">
+                        <div className="pt-3">
                             <Link className="btn btn-outline-accent btn-sm" href="/catalog/promo/">
                                 Больше товаров
-                                <i class="ci-arrow-right ms-1 me-n1" />
+                                <i className="ci-arrow-right ms-1 me-n1" />
                             </Link>
                         </div>
                     </div>
@@ -140,10 +142,10 @@ export default function Index() {
                 <section className="container pt-5">
                     <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
                         <h2 className="h3 mb-0 pt-3 me-2">Новинки</h2>
-                        <div class="pt-3">
+                        <div className="pt-3">
                             <Link className="btn btn-outline-accent btn-sm" href="/catalog/New/">
                                 Больше товаров
-                                <i class="ci-arrow-right ms-1 me-n1" />
+                                <i className="ci-arrow-right ms-1 me-n1" />
                             </Link>
                         </div>
                     </div>
@@ -197,9 +199,9 @@ Index.getLayout = function getLayout(page) {
 export async function getStaticProps() {
     const queryClient = new QueryClient();
 
-    await queryClient.prefetchQuery(productKeys.list(null, 24, recomendedFilters, sort), () => loadProducts(null, 24, recomendedFilters, sort));
-    await queryClient.prefetchQuery(productKeys.list(null, 24, giftsFilters, sort), () => loadProducts(null, 24, giftsFilters, sort));
-    await queryClient.prefetchQuery(productKeys.list(null, 24, firstPageFilters, sort), () => loadProducts(null, 24, firstPageFilters, sort));
+    await queryClient.prefetchQuery(productKeys.list(null, itemsPerSection, recomendedFilters, sort), () => loadProducts(null, itemsPerSection, recomendedFilters, sort));
+    await queryClient.prefetchQuery(productKeys.list(null, itemsPerSection, giftsFilters, sort), () => loadProducts(null, itemsPerSection, giftsFilters, sort));
+    await queryClient.prefetchQuery(productKeys.list(null, itemsPerSection, firstPageFilters, sort), () => loadProducts(null, itemsPerSection, firstPageFilters, sort));
 
     return {
         props: {

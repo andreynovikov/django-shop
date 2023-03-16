@@ -13,10 +13,10 @@ export default function UserProfileLink() {
     if (status === 'authenticated') {
         return (
             <div className="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2 dropdown">
-                <a className="navbar-tool-icon-box d-block dropdown-toggle" href="shop:user_orders">
+                <Link className="navbar-tool-icon-box d-block dropdown-toggle" href="/user/orders">
                     <i className="navbar-tool-icon ci-user" />
-                </a>
-                <a className="navbar-tool-text ms-n3">
+                </Link>
+                <a className="navbar-tool-text ms-n3" style={{cursor:'pointer'}}>
                     <small>{ user?.name || formatPhone(user?.phone) }</small>личный кабинет
                 </a>
                 <div className="dropdown-menu dropdown-menu-end">

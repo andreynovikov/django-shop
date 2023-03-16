@@ -138,12 +138,12 @@ export default function Stores() {
 
     return (
         <>
-            <div class="container-fluid px-0">
-                <div class="row g-0">
-                    <div class="col-lg-6 iframe-full-height-wrap" style={{minHeight: '26rem'}}>
-                        <div class="iframe-full-height" id="map"></div>
+            <div className="container-fluid px-0">
+                <div className="row g-0">
+                    <div className="col-lg-6 iframe-full-height-wrap" style={{minHeight: '26rem'}}>
+                        <div className="iframe-full-height" id="map"></div>
                     </div>
-                    <div class="col-lg-6 px-4 px-xl-5 py-4">
+                    <div className="col-lg-6 px-4 px-xl-5 py-4">
                         <div>
                             <button className={`btn ${currentCity === 2 ? 'btn-info' : 'btn-light'} btn-link p-1 fw-bold`} onClick={() => handleCitySelect(2)}>
                                 Москва
@@ -172,44 +172,44 @@ export default function Stores() {
                 </div>
             </div>
 
-            <section class="container-fluid pt-grid-gutter mt-md-4 mb-5">
-                <div class="row">
+            <section className="container-fluid pt-grid-gutter mt-md-4 mb-5">
+                <div className="row">
                     { storeGroups.length > 0 && storeGroups.filter(({city}) => currentCity === null || city.id === currentCity).map(({ city, stores }) => (
                         <Fragment key={city.id}>
                             { stores.map((store) => (
-                                <div class="col-xl-3 col-lg-4 col-sm-6 mb-grid-gutter" key={store.id}>
-                                    <div class="card border-0 shadow-sm">
-                                        <div class="card-body" itemscope itemtype="http://schema.org/Organization">
-                                            <h6 class="card-title">
+                                <div className="col-xl-3 col-lg-4 col-sm-6 mb-grid-gutter" key={store.id}>
+                                    <div className="card border-0 shadow-sm">
+                                        <div className="card-body" itemScope itemType="http://schema.org/Organization">
+                                            <h6 className="card-title">
                                                 { store.logo === 'sewingworld' ?
-                                                  <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }} itemprop="name">
+                                                  <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }} itemProp="name">
                                                       &quot;{ store.name }&quot; - { city.name }
                                                   </Link>
                                                   :
-                                                  <span itemprop="name">&quot;{ store.name }&quot; ({ city.name })</span>
+                                                  <span itemProp="name">&quot;{ store.name }&quot; ({ city.name })</span>
                                                 }
                                             </h6>
-                                            <ul class="list-unstyled mb-0">
-                                                <li class="d-flex">
-                                                    <i class="ci-location fs-lg my-1 text-primary" />
-                                                    <div class="ps-3 fs-sm" itemprop="address" itemscope itemtype="http://schema.org/PostalAddress">
-                                                        <span itemprop="streetAddress">
+                                            <ul className="list-unstyled mb-0">
+                                                <li className="d-flex">
+                                                    <i className="ci-location fs-lg my-1 text-primary" />
+                                                    <div className="ps-3 fs-sm" itemProp="address" itemScope itemType="http://schema.org/PostalAddress">
+                                                        <span itemProp="streetAddress">
                                                             { store.address }
                                                             { store.address2 && <><br/>{ store.address2 }</>}
                                                         </span>
-                                                        <span class="d-none" itemprop="addressLocality">{ city.name }</span>
-                                                        <span class="d-none" itemprop="addressCountry">{ city.country.name }</span>
+                                                        <span className="d-none" itemProp="addressLocality">{ city.name }</span>
+                                                        <span className="d-none" itemProp="addressCountry">{ city.country.name }</span>
                                                     </div>
                                                 </li>
                                                 { store.phones && (
-                                                    <li class="d-flex pt-2 mt-2 mb-0 border-top">
-                                                        <i class="ci-phone fs-lg my-1 text-primary" />
-                                                        <div class="ps-3 fs-sm">
+                                                    <li className="d-flex pt-2 mt-2 mb-0 border-top">
+                                                        <i className="ci-phone fs-lg my-1 text-primary" />
+                                                        <div className="ps-3 fs-sm">
                                                             {store.phones.map((phone, index) => (
                                                                 <a
-                                                                    class={'d-block nav-link-style' + (index > 0 ? ' mt-2' : '')}
+                                                                    className={'d-block nav-link-style' + (index > 0 ? ' mt-2' : '')}
                                                                     href={'tel:' + phone.replace(' ', '')}
-                                                                    itemprop="telephone"
+                                                                    itemProp="telephone"
                                                                     key={index}>
                                                                     { phone }
                                                                 </a>
@@ -218,9 +218,9 @@ export default function Stores() {
                                                     </li>
                                                 )}
                                                 { store.hours && (
-                                                    <li class="d-flex pt-2 mt-2 mb-0 border-top">
-                                                        <i class="ci-time fs-lg my-1 text-primary" />
-                                                        <div class="ps-3 fs-sm">
+                                                    <li className="d-flex pt-2 mt-2 mb-0 border-top">
+                                                        <i className="ci-time fs-lg my-1 text-primary" />
+                                                        <div className="ps-3 fs-sm">
                                                             {store.hours.split(',').map((hours, index) => (
                                                                 <div className={index > 0 ? 'mt-2' : ''} key={index}>
                                                                     {hours.trim()}
@@ -230,16 +230,16 @@ export default function Stores() {
                                                     </li>
                                                 )}
                                                 { store.url && (
-                                                    <li class="d-flex pt-2 mt-2 mb-0 border-top">
-                                                        <i class="ci-dribbble fs-lg my-1 text-primary" />
-                                                        <div class="ps-3 fs-sm">
-                                                            <a class="nav-link-style" href={ store.url }>{ store.url }</a>
+                                                    <li className="d-flex pt-2 mt-2 mb-0 border-top">
+                                                        <i className="ci-dribbble fs-lg my-1 text-primary" />
+                                                        <div className="ps-3 fs-sm">
+                                                            <a className="nav-link-style" href={ store.url }>{ store.url }</a>
                                                         </div>
                                                     </li>
                                                 )}
                                                 { store.logo !== 'sewingworld' && (
-                                                    <li class="pt-2 mt-2 mb-0">
-                                                        <small class="text-muted">
+                                                    <li className="pt-2 mt-2 mb-0">
+                                                        <small className="text-muted">
                                                             Магазин-партнер: рекламные акции Швейного Мира могут не действовать в этом магазине
                                                         </small>
                                                     </li>

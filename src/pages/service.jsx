@@ -81,15 +81,15 @@ export default function Service() {
 
     return (
         <>
-            <main class="container-fluid px-0">
-                <section class="row g-0">
+            <main className="container-fluid px-0">
+                <section className="row g-0">
                     <div
-                        class="col-md-6 bg-position-center bg-size-cover bg-secondary order-md-2"
+                        className="col-md-6 bg-position-center bg-size-cover bg-secondary order-md-2"
                         style={{minHeight: '15rem', backgroundImage: 'url(https://cartzilla.createx.studio/img/about/02.jpg)'}} />
-                    <div class="col-md-6 px-3 px-md-5 py-5 order-md-1">
-                        <div class="mx-auto py-lg-5" style={{maxWidth: '35rem'}}>
-                            <p class="lead">Наши сервисные центры предлагают следующие работы и услуги:</p>
-                            <ul class="list-style pb-3 text-muted">
+                    <div className="col-md-6 px-3 px-md-5 py-5 order-md-1">
+                        <div className="mx-auto py-lg-5" style={{maxWidth: '35rem'}}>
+                            <p className="lead">Наши сервисные центры предлагают следующие работы и услуги:</p>
+                            <ul className="list-style pb-3 text-muted">
                                 <li>
                                     Гарантийный ремонт и обслуживание швейных машин, вышивальных машин, оверлоков,
                                     вязальных машин и другого оборудования производства компаний
@@ -101,16 +101,16 @@ export default function Service() {
                         </div>
                     </div>
                 </section>
-                <section class="row g-0">
-                    <div class="col-lg-6 iframe-full-height-wrap" style={{minHeight: '26rem'}}>
-                        <div class="iframe-full-height" id="map"></div>
+                <section className="row g-0">
+                    <div className="col-lg-6 iframe-full-height-wrap" style={{minHeight: '26rem'}}>
+                        <div className="iframe-full-height" id="map"></div>
                     </div>
-                    <div class="col-md-6 px-3 px-md-5 py-5">
-                        <div class="mx-auto py-lg-5" style={{maxWidth: '35rem'}}>
-                            <h2 class="h3 pb-3">Новости</h2>
-                            <ul class="list-style pb-3">
+                    <div className="col-md-6 px-3 px-md-5 py-5">
+                        <div className="mx-auto py-lg-5" style={{maxWidth: '35rem'}}>
+                            <h2 className="h3 pb-3">Новости</h2>
+                            <ul className="list-style pb-3">
                                 <li>Сервисный центр на &laquo;Академической&raquo; переехал с ул. Кедрова по адресу ул. Дмитрия Ульянова д.31<br/>Телефон: +7 495 718-86-02</li>
-                                <li><a class="nav-link-style" href="/blog/O/">Наши механики прошли обучение в Швеции</a></li>
+                                <li><a className="nav-link-style" href="/blog/O/">Наши механики прошли обучение в Швеции</a></li>
                                 <li>Теперь в наших сервисных центрах можно купить педали для швейных машин</li>
                             </ul>
                         </div>
@@ -118,35 +118,35 @@ export default function Service() {
                 </section>
                 <hr />
 
-                <section class="container-fluid pt-grid-gutter mt-md-4 mb-5">
+                <section className="container-fluid pt-grid-gutter mt-md-4 mb-5">
                     { serviceGroups.length > 0 && serviceGroups.map(({ country, cities }) => (
                         <Fragment key={country.id}>
-                            <h2 class="h3 mb-3">{ country.name }</h2>
-                            <div class="row">
+                            <h2 className="h3 mb-3">{ country.name }</h2>
+                            <div className="row">
                                 { cities.map(({ city, services }) => (
                                     <Fragment key={city.id}>
                                         { services.map((service) => (
-                                            <div class="col-xl-3 col-lg-4 col-sm-6 mb-grid-gutter" key={service.id}>
-                                                <div class="card border-0 shadow-sm">
-                                                    <div class="card-body" itemscope itemtype="http://schema.org/Organization">
-                                                        <h6 class="card-title" itemprop="name">{ city.name }</h6>
-                                                        <ul class="list-unstyled mb-0">
-                                                            <li class="d-flex">
-                                                                <i class="ci-location fs-lg my-1 text-primary" />
-                                                                <div class="ps-3 fs-sm" itemprop="address" itemscope itemtype="http://schema.org/PostalAddress">
-                                                                    <span itemprop="streetAddress">{ service.address }</span>
-                                                                    <span class="d-none" itemprop="addressLocality">{ city.name }</span>
-                                                                    <span class="d-none" itemprop="addressCountry">{ country.name }</span>
+                                            <div className="col-xl-3 col-lg-4 col-sm-6 mb-grid-gutter" key={service.id}>
+                                                <div className="card border-0 shadow-sm">
+                                                    <div className="card-body" itemScope itemType="http://schema.org/Organization">
+                                                        <h6 className="card-title" itemProp="name">{ city.name }</h6>
+                                                        <ul className="list-unstyled mb-0">
+                                                            <li className="d-flex">
+                                                                <i className="ci-location fs-lg my-1 text-primary" />
+                                                                <div className="ps-3 fs-sm" itemProp="address" itemScope itemType="http://schema.org/PostalAddress">
+                                                                    <span itemProp="streetAddress">{ service.address }</span>
+                                                                    <span className="d-none" itemProp="addressLocality">{ city.name }</span>
+                                                                    <span className="d-none" itemProp="addressCountry">{ country.name }</span>
                                                                 </div>
                                                             </li>
-                                                            <li class="d-flex pt-2 mt-2 mb-0 border-top">
-                                                                <i class="ci-phone fs-lg my-1 text-primary" />
-                                                                <div class="ps-3 fs-sm">
+                                                            <li className="d-flex pt-2 mt-2 mb-0 border-top">
+                                                                <i className="ci-phone fs-lg my-1 text-primary" />
+                                                                <div className="ps-3 fs-sm">
                                                                     {service.phone.split(',').map((phone, index) => (
                                                                         <a
-                                                                            class={'d-block nav-link-style' + (index > 0 ? ' mt-2' : '')}
+                                                                            className={'d-block nav-link-style' + (index > 0 ? ' mt-2' : '')}
                                                                             href={'tel:' + phone.trim().replace(' ', '')}
-                                                                            itemprop="telephone"
+                                                                            itemProp="telephone"
                                                                             key={index}>
                                                                             { phone.trim() }
                                                                         </a>
@@ -176,7 +176,7 @@ export default function Service() {
 
 Service.getLayout = function getLayout(page) {
     return (
-        <PageLayout htmlTitle="Сервисные центры" title={<>Сервисное обслуживание и ремонт<span class="d-lg-none"> швейных машин, оверлоков, вышивальных и вязальных машин</span></>}>
+        <PageLayout htmlTitle="Сервисные центры" title={<>Сервисное обслуживание и ремонт<span className="d-lg-none"> швейных машин, оверлоков, вышивальных и вязальных машин</span></>}>
             {page}
         </PageLayout>
     )

@@ -76,7 +76,7 @@ export default function Favorites() {
                             </div>
                         </div>
                         <div className="pt-2 ps-sm-3 mx-auto mx-sm-0 text-center">
-                            { product.enabled && product.instock && (
+                            { product.enabled && product.instock > 0 && (
                                 <button className="btn btn-primary btn-sm me-2" type="button" onClick={() => handleClick(product)}>
                                     <i className="ci-cart fs-sm me-1" />
                                     { product.variations ? "Выбрать" : "Купить" }

@@ -18,9 +18,9 @@ export default function HandheldBottomBar() {
             <div className="d-table table-layout-fixed w-100">
                 { status === 'authenticated' && (
                     <Link className="d-table-cell handheld-toolbar-item" href="/user/favorites">
-                        <span class="handheld-toolbar-icon">
-                            <i class="ci-heart" />
-                            { favorites.length > 0 && <span class="badge bg-primary rounded-pill ms-1">{ favorites.length }</span> }
+                        <span className="handheld-toolbar-icon">
+                            <i className="ci-heart" />
+                            { favorites.length > 0 && <span className="badge bg-primary rounded-pill ms-1">{ favorites.length }</span> }
                         </span>
                         <span className="handheld-toolbar-label">Избранное</span>
                     </Link>

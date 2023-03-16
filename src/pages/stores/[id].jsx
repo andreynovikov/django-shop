@@ -40,36 +40,36 @@ export default function Store({ id }) {
 
     return (
         <>
-            <section class="container py-3 py-lg-5">
-                <p class="lead">Продажа швейных машин, оверлоков, вязальных машин и аксессуаров для рукоделия в г. { store.city.name }</p>
+            <section className="container py-3 py-lg-5">
+                <p className="lead">Продажа швейных машин, оверлоков, вязальных машин и аксессуаров для рукоделия в г. { store.city.name }</p>
             </section>
-            <section class="container-fluid">
-                <div class="row">
-                    <div class={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-                        <a class="card" href="#map" data-scroll>
-                            <div class="card-body text-center">
-                                <i class="ci-location h3 mt-2 mb-4 text-primary" />
-                                <h3 class="h6 mb-3">Адрес</h3>
-                                <ul class="list-unstyled fs-sm text-muted mb-0">
+            <section className="container-fluid">
+                <div className="row">
+                    <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
+                        <a className="card" href="#map" data-scroll>
+                            <div className="card-body text-center">
+                                <i className="ci-location h3 mt-2 mb-4 text-primary" />
+                                <h3 className="h6 mb-3">Адрес</h3>
+                                <ul className="list-unstyled fs-sm text-muted mb-0">
                                     <li>{ store.address }</li>
                                     { store.address2 && <li>{ store.address2 }</li> }
                                 </ul>
                                 { store.latitude && store.longitude && (
-                                    <div class="fs-sm text-primary">
+                                    <div className="fs-sm text-primary">
                                         Посмотреть на карте
-                                        <i class="ci-arrow-right fs-xs ms-1" />
+                                        <i className="ci-arrow-right fs-xs ms-1" />
                                     </div>
                                 )}
                             </div>
                         </a>
                     </div>
                     { store.hours && (
-                        <div class={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-                            <div class="card">
-                                <div class="card-body text-center">
-                                    <i class="ci-time h3 mt-2 mb-4 text-primary" />
-                                    <h3 class="h6 mb-3">Часы работы</h3>
-                                    <ul class="list-unstyled fs-sm text-muted mb-0">
+                        <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
+                            <div className="card">
+                                <div className="card-body text-center">
+                                    <i className="ci-time h3 mt-2 mb-4 text-primary" />
+                                    <h3 className="h6 mb-3">Часы работы</h3>
+                                    <ul className="list-unstyled fs-sm text-muted mb-0">
                                         {store.hours.split(',').map((hours, index) => (
                                             <li className={index === store.hours.length - 1 ? 'mb-0' : ''} key={index}>
                                                 {hours.trim()}
@@ -80,15 +80,15 @@ export default function Store({ id }) {
                             </div>
                         </div>
                     )}
-                    <div class={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-                        <div class="card">
-                            <div class="card-body text-center">
-                                <i class="ci-phone h3 mt-2 mb-4 text-primary" />
-                                <h3 class="h6 mb-3">Телефон{ store.phones.length > 1 && 'ы'}</h3>
-                                <ul class="list-unstyled fs-sm mb-0">
+                    <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
+                        <div className="card">
+                            <div className="card-body text-center">
+                                <i className="ci-phone h3 mt-2 mb-4 text-primary" />
+                                <h3 className="h6 mb-3">Телефон{ store.phones.length > 1 && 'ы'}</h3>
+                                <ul className="list-unstyled fs-sm mb-0">
                                     {store.phones.map((phone, index) => (
                                         <li className={index === store.phones.length - 1 ? 'mb-0' : ''} key={index}>
-                                            <a class="nav-link-style" href={'tel:' + phone.replace(/[ -]/g, '')}>{ phone }</a>
+                                            <a className="nav-link-style" href={'tel:' + phone.replace(/[ -]/g, '')}>{ phone }</a>
                                         </li>
                                     ))}
                                 </ul>
@@ -96,14 +96,14 @@ export default function Store({ id }) {
                         </div>
                     </div>
                     { store.url && (
-                        <div class={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-                            <div class="card">
-                                <div class="card-body text-center">
-                                    <i class="ci-dribbble h3 mt-2 mb-4 text-primary" />
-                                    <h3 class="h6 mb-3">Сайт магазина</h3>
-                                    <ul class="list-unstyled fs-sm mb-0">
-                                        <li class="mb-0">
-                                            <a class="nav-link-style" href="{ store.url }">{ store.url }</a>
+                        <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
+                            <div className="card">
+                                <div className="card-body text-center">
+                                    <i className="ci-dribbble h3 mt-2 mb-4 text-primary" />
+                                    <h3 className="h6 mb-3">Сайт магазина</h3>
+                                    <ul className="list-unstyled fs-sm mb-0">
+                                        <li className="mb-0">
+                                            <a className="nav-link-style" href="{ store.url }">{ store.url }</a>
                                         </li>
                                     </ul>
                                 </div>
@@ -113,15 +113,15 @@ export default function Store({ id }) {
                 </div>
             </section>
             { store.description && (
-                <section class="container py-3 py-lg-5 mt-4 mb-3">
+                <section className="container py-3 py-lg-5 mt-4 mb-3">
                     <div dangerouslySetInnerHTML={{__html: store.description }}></div>
                 </section>
             )}
             { store.latitude && store.longitude && (
-                <div class="container-fluid px-0 pt-3 pt-lg-5" id="map">
-                    <div class="row g-0">
-                        <div class="col-lg-12 iframe-full-height-wrap" style={{ minHeight: '28rem' }}>
-                            <div class="iframe-full-height" id="map-container"></div>
+                <div className="container-fluid px-0 pt-3 pt-lg-5" id="map">
+                    <div className="row g-0">
+                        <div className="col-lg-12 iframe-full-height-wrap" style={{ minHeight: '28rem' }}>
+                            <div className="iframe-full-height" id="map-container"></div>
                         </div>
                     </div>
                 </div>
