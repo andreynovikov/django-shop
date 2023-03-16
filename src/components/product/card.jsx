@@ -1,6 +1,8 @@
 import React, { useRef } from 'react';
 import Link from 'next/link';
-import Script from 'next/script';
+
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Tooltip from 'react-bootstrap/Tooltip';
 
 import ProductPrice from '@/components/product/price';
 
@@ -23,15 +25,6 @@ export default function ProductCard({product, limitedBadges}) {
     const { addItem } = useBasket();
     const { favorites, favoritize, unfavoritize } = useFavorites();
 
-    const initializeBootstrap = () => {
-        if (window && 'bootstrap' in window && bootstrap.Tooltip) {
-            const tooltipTriggerList = [].slice.call(cardRef.current.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-        }
-    };
-
     const handlePrimaryClick = () => {
         if (product.variations) {
         } else {
@@ -39,10 +32,7 @@ export default function ProductCard({product, limitedBadges}) {
         }
     };
 
-    const handleFavoritesClick = (e) => {
-        const tooltip = bootstrap.Tooltip.getInstance(e.currentTarget);
-        if (tooltip)
-            tooltip.hide();
+    const handleFavoritesClick = () => {
         if (status === 'authenticated') {
             if (favorites.includes(product.id))
                 unfavoritize(product.id);
@@ -53,25 +43,32 @@ export default function ProductCard({product, limitedBadges}) {
 
     return (
         <div ref={cardRef} className="card product-card">
-            <Script id="bootstrap" src="/js/bootstrap.bundle.js" onReady={initializeBootstrap} onLoad={initializeBootstrap} />
             { product.enabled && (
-                <span className="badge">
-                    { (product.isnew && !limitedBadges) && <span className="sw-badge bg-info badge-shadow">Новинка</span> }
-                    { (product.recomended && !limitedBadges) && <span className="sw-badge bg-warning badge-shadow">Рекомендуем</span> }
+                <div className="position-absolute ms-3 mt-2">
+                    { (product.isnew && !limitedBadges) && <span className="position-static badge bg-info badge-shadow me-2 mb-2">Новинка</span> }
+                    { (product.recomended && !limitedBadges) && <span className="position-static badge bg-warning badge-shadow me-2 mb-2">Рекомендуем</span> }
                     { product.sales && product.sales.map((notice, index) => (
-                        notice && <span className="sw-badge bg-danger badge-shadow" key={index}>{notice}</span>
+                        notice && <span className="position-static badge bg-danger badge-shadow me-2 mb-2" key={index}>{notice}</span>
                     ))}
-                </span>
+                </div>
             )}
-            <a role="button"
-               tabIndex="0"
-               onClick={handleFavoritesClick}
-               className={"btn-wishlist btn-sm" + (favorites.includes(product.id) ? " bg-accent text-light" : "")}
-               data-bs-toggle="tooltip"
-               data-bs-placement="left"
-               title={status === 'authenticated' ? favorites.includes(product.id) ? "В избранном" : "Отложить" : "Войдите или зарегистрируйтесь, чтобы добавлять товары в избранное"}>
-                <i className="ci-heart" />
-            </a>
+            <OverlayTrigger
+                placement="left"
+                overlay={
+                    <Tooltip>
+                        { status === 'authenticated' ?
+                          favorites.includes(product.id) ?
+                          "В избранном" :
+                          "Отложить" :
+                          "Войдите или зарегистрируйтесь, чтобы добавлять товары в избранное"
+                        }
+                    </Tooltip>
+                }
+            >
+                <button onClick={handleFavoritesClick} className={"btn-wishlist btn-sm" + (favorites.includes(product.id) ? " bg-accent text-light" : "")}>
+                    <i className="ci-heart" />
+                </button>
+            </OverlayTrigger>
             <Link className="d-block mx-auto pt-3 overflow-hidden" href={{ pathname: '/products/[code]', query: { code: product.code }}}>
                 { product.thumbnail ? (
                     <img
@@ -120,12 +117,6 @@ export default function ProductCard({product, limitedBadges}) {
                             Подробное описание
                         </Link>
                     )}
-                </div>
-                <div className="text-center">
-                    <a className="nav-link-style fs-ms" href="#" data-bs-toggle="modal">
-                        <i className="ci-eye align-middle me-1"></i>
-                        Быстрый просмотр
-                    </a>
                 </div>
             </div>
         </div>

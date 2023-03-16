@@ -3,6 +3,9 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
 
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Tooltip from 'react-bootstrap/Tooltip';
+
 import PageLayout from '@/components/layout/page';
 import FieldHelp from '@/components/product/field-help';
 import ProductMiniCard from '@/components/product/mini-card';
@@ -15,6 +18,8 @@ import useFavorites from '@/lib/favorites';
 import useComparison from '@/lib/comparison';
 import { useSession } from '@/lib/session';
 import { productKeys, loadProductByCode, getProductFields } from '@/lib/queries';
+
+const gana = require('gana');
 
 const fieldList = ['fabric_verylite', 'km_class', 'km_font', 'km_needles', 'km_prog', 'km_rapport',
                    'sw_hoopsize', 'sw_datalink', 'sm_software', 'sm_shuttletype', 'sm_stitchwidth',
@@ -38,18 +43,7 @@ const noImageStyle = {
 };
 
 const gallerySettings = {
-    download: false,
-    videojs: false, // may be add this in future
-    youtubePlayerParams: {
-        modestbranding: 1,
-        showinfo: 0,
-        rel: 0
-    },
-    vimeoPlayerParams: {
-        byline: 0,
-        portrait: 0,
-        color: 'fe696a'
-    }
+    touchNavigation: true
 };
 
 const sliderSettings = {
@@ -82,7 +76,13 @@ const sliderSettings = {
     }
 };
 
-function prettify(value) {
+function prettify(field, value) {
+    if (field === 'manufacturer')
+        return value.name;
+    if (field === 'country' || field === 'developer_country')
+        return value.enabled ? value.name : "";
+    if (field === 'complect')
+        return <div dangerouslySetInnerHTML={{__html: value }} />
     if (typeof value === 'string')
         return value.trim();
     return value;
@@ -103,7 +103,14 @@ function rebootstrap(value) {
     return value;
 }
 
+function renderTemplate(template, product) {
+    const compileFn = gana(template);
+    return compileFn({product});
+};
+
 export default function Product({code}) {
+    const [glightboxModule, setGlightboxModule] = useState(null);
+    const [tnsModule, setTnsModule] = useState(null);
     const [productFields, setProductFields] = useState([]);
     const [fieldNames, setFieldNames] = useState({});
     const [quantity, setQuantity] = useState(1);
@@ -113,13 +120,22 @@ export default function Product({code}) {
     const { status } = useSession();
     const { addItem } = useBasket();
     const { favorites, favoritize, unfavoritize } = useFavorites();
-    const { comparisons, compare, uncompare } = useComparison();
+    const { comparisons, compare } = useComparison();
 
     const { data: fields } = useQuery(productKeys.fields(), () => getProductFields());
 
     const { data: product, isSuccess, isLoading } = useQuery(productKeys.detail(code), () => loadProductByCode(code), {
         enabled: code !== undefined
     });
+
+    useEffect(() => {
+        import('glightbox').then((module) => {
+            setGlightboxModule(module);
+        });
+        import('tiny-slider').then((module) => {
+            setTnsModule(module);
+        });
+    }, []);
 
     useEffect(() => {
         if (isSuccess)
@@ -140,30 +156,28 @@ export default function Product({code}) {
     }, [fields]);
 
     useEffect(() => {
-        if (isSuccess && (product.accessories || product.similar)) {
-            import('tiny-slider').then((module) => {
-                const tns = module.tns;
-                const carousels = [].slice.call(document.querySelectorAll('.tns-carousel .tns-carousel-inner'));
-                carousels.map((carouselEl) => {
-                    const carousel = tns({container: carouselEl, ...sliderSettings});
-                });
-            });
+        if (isSuccess && product.image && glightboxModule !== null) {
+            const lightbox = glightboxModule.default(gallerySettings);
+            return () => {
+                lightbox.destroy();
+            }
         }
-    }, [product, isSuccess]);
+    }, [product, isSuccess, glightboxModule]);
 
     useEffect(() => {
-        if (isSuccess && product.image) {
-            (async () => {
-                await import('@/vendor/lightgallery/js/lightgallery.js');
-                await import('@/vendor/lightgallery/js/lg-zoom.js');
-                await import('@/vendor/lightgallery/js/lg-fullscreen.js');
-                const galleries = [].slice.call(document.querySelectorAll('.gallery'));
-                galleries.map((galleryEl) => {
-                    const gallery = lightGallery(galleryEl, {selector: '.gallery-item', ...gallerySettings});
-                });
-            })();
+        if (isSuccess && (product.accessories || product.similar) && tnsModule !== null) {
+            const carousels = [];
+            const carouselEls = [].slice.call(document.querySelectorAll('.tns-carousel .tns-carousel-inner'));
+            carouselEls.map((carouselEl) => {
+                const carousel = tnsModule.tns({container: carouselEl, ...sliderSettings});
+                // carousel.events.on('transitionEnd', carousel.updateSliderHeight);
+                carousels.push(carousel);
+            });
+            return () => {
+                carousels.map((carousel) => carousel.destroy());
+            }
         }
-    }, [product, isSuccess]);
+    }, [product, isSuccess, tnsModule]);
 
     const handleCartClick = () => {
         if (product.variations) {
@@ -173,7 +187,7 @@ export default function Product({code}) {
         }
     };
 
-    const handleFavoritesClick = (e) => {
+    const handleFavoritesClick = () => {
         if (status === 'authenticated') {
             if (favorites.includes(product.id))
                 unfavoritize(product.id);
@@ -182,7 +196,7 @@ export default function Product({code}) {
         } // TODO: else show dialog or tooltip
     }
 
-    const handleComparisonClick = (e) => {
+    const handleComparisonClick = () => {
         if (comparisons.includes(product.id))
             router.push({
                 pathname: '/compare',
@@ -205,8 +219,10 @@ export default function Product({code}) {
                     <div className="row">
                         <div className="col-lg-7 pe-lg-0">
                             { product.image ? (
-                                <div className="d-block gallery">
-                                    <a href={product.big_image || product.image} className="gallery-item" data-sub-html={`${product.title} ${product.whatis}`}>
+                                <div className="d-block">
+                                    <a href={product.big_image || product.image}
+                                       className="glightbox gallery-item"
+                                       data-title={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`}>
                                         <img
                                             src={product.image}
                                             alt={`${product.title} ${product.whatis}`}
@@ -215,9 +231,12 @@ export default function Product({code}) {
                                     { product.images && (
                                         <div className="d-flex flex-wrap my-2">
                                             { product.images.map((image, index) => (
-                                                <a href={image.url} className="gallery-item rounded border me-4 mb-4" data-sub-html={`${product.title} ${product.whatis}`} key={index}>
+                                                <a href={image.src}
+                                                   className="glightbox gallery-item rounded border me-4 mb-4"
+                                                   data-title={`${product.title} - фото №${index + 2}`}
+                                                   key={index}>
                                                     <img
-                                                        src={image.thumbnail.url}
+                                                        src={image.thumbnail.src}
                                                         width={image.thumbnail.width}
                                                         height={image.thumbnail.height}
                                                         alt={`${product.title} - фото №${index + 2}`} />
@@ -236,34 +255,39 @@ export default function Product({code}) {
                         <div className="col-lg-5 pt-4 pt-lg-0">
                             <div className="product-details ms-auto pb-3">
                                 { product.enabled && product.cost > 0 && (
-                                    <div className="d-flex flex-row align-items-baseline mb-3">
-                                        <div className="h3 fw-normal text-accent">
+                                    <div className="d-flex flex-row xalign-items-baseline mb-3">
+                                        <div className="h3 fw-normal text-accent flex-shrink-1">
                                             <ProductPrice product={product} delFs="lg" itemProp="price" />
                                             <span itemProp="priceCurrency" className="d-none">RUB</span>
                                         </div>
-                                        <div className="ms-3">
-                                            { /*
+                                        <div className="ms-3 text-end w-100">
                                             { product.discount > 0 && (
-                                                <span
-                                                    className="badge bg-primary badge-shadow align-middle mt-n2"
-                                                    data-bs-toggle="tooltip"
-                                                    data-bs-placement="right"
-                                                    data-bs-html="true"
-                                                    title="Базовая цена в магазинах &laquo;Швейный Мир&raquo; без учета скидок <b>{{ product.price|quantize:"1" }}</b>&nbsp;руб. Скидка при покупке в интернет-магазине составляет <b>{{ product.discount|quantize:"1" }}</b>&nbsp;руб.">
-                                                    Скидка
-                                                </span>
+                                                <OverlayTrigger
+                                                    placement="bottom"
+                                                    overlay={
+                                                        <Tooltip>
+                                                            Базовая цена в магазинах &laquo;Швейный Мир&raquo;
+                                                            без учета скидок <b>{ product.price.toLocaleString('ru') }</b>&nbsp;руб.
+                                                            Скидка при покупке в интернет-магазине составляет{' '}
+                                                            <b>{ product.discount.toLocaleString('ru') }</b>&nbsp;руб.
+                                                        </Tooltip>
+                                                    }
+                                                >
+                                                    <span className="badge bg-primary badge-shadow ms-2 mb-2">Скидка</span>
+                                                </OverlayTrigger>
                                             )}
-                                              */
-                                            }
                                             { product.ishot && (
-                                                <span className="badge bg-accent badge-shadow align-middle mt-n2">Акция</span>
+                                                <span className="badge bg-accent badge-shadow ms-2 mb-2">Акция</span>
                                             )}
                                             { product.isnew && (
-                                                <span className="badge bg-info badge-shadow align-middle mt-n2">Новинка</span>
+                                                <span className="badge bg-info badge-shadow ms-2 mb-2">Новинка</span>
                                             )}
                                             { product.recomended && (
-                                                <span className="badge bg-warning badge-shadow align-middle mt-n2">Рекомендуем</span>
+                                                <span className="badge bg-warning badge-shadow ms-2 mb-2">Рекомендуем</span>
                                             )}
+                                            { product.sales && product.sales.filter((action) => !!action.notice && !!!action.brief).map((action) => (
+                                                <span className="badge bg-danger badge-shadow ms-2 mb-2" key={action.id}>{action.notice}</span>
+                                            ))}
                                         </div>
                                     </div>
                                 )}
@@ -290,13 +314,11 @@ export default function Product({code}) {
                                         <div className="me-2">
                                             <div className="me-5 pb-4 pe-5 fs-sm">
                                                 { product.sales && (
-                                                    product.sales.map((action) => (
-                                                        action.brief && (
-                                                            <div className="mb-2" key={action.id}>
-                                                                <i className="ci-gift text-danger pe-2" />
-                                                                render_as_template { action.brief }
-                                                            </div>
-                                                        )
+                                                    product.sales.filter((action) => !!action.brief).map((action) => (
+                                                        <div className="mb-2" key={action.id}>
+                                                            <i className="ci-gift text-danger pe-2" />
+                                                            <span dangerouslySetInnerHTML={{__html: renderTemplate(action.brief, product) }}></span>
+                                                        </div>
                                                     ))
                                                 )}
                                                 { product.state && (
@@ -550,7 +572,10 @@ export default function Product({code}) {
                                             <FieldHelp field={field} />
                                         </span>
                                     </span>
-                                    <span className="col-md pt-1 pt-sm-0 pe-0 ps-2 align-self-end">{ prettify(product[field]) }{ fieldNames[field][1] }</span>
+                                    <span className="col-md pt-1 pt-sm-0 pe-0 ps-2 align-self-end">
+                                        { prettify(field, product[field]) }
+                                        { fieldNames[field][1] }
+                                    </span>
                                 </>
                             )}
                         </div>
@@ -559,25 +584,12 @@ export default function Product({code}) {
             </div>
         )}
 
-        { /*
-      {% if 'images/'|add:product.manufacturer.code|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists or product.stitches %}
-      <!-- Stitches -->
-      <div class="pt-lg-2 pb-3 mb-md-3">
-        <h2 class="h3 pb-2">Строчки {{ product.title }}</h2>
-        {% if 'images/'|add:product.manufacturer.code|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists %}
-        <div class="pb-3 mb-md-3">
-          <img src="{{ MEDIA_URL }}/images/{{ product.manufacturer.code }}/stitches/{{ product.code }}_stitches.jpg" alt="Строчки швейной машины {{ product.title }}" class="img-responsive">
-        </div>
-        {% endif %}
-        {% if product.stitches %}
-        <div>
-          {{ product.stitches|safe }}
-        </div>
-        {% endif %}
-      </div>
-      {% endif %}
-          */
-        }
+        { product.stitches && (
+            <div className="pt-lg-2 pb-3 mb-md-3">
+                <h2 className="h3 pb-2">Строчки { product.title }</h2>
+                <div dangerouslySetInnerHTML={{__html: product.stitches }} />
+            </div>
+        )}
 
         { product.complect && (
             <div className="pt-lg-2 pb-3 mb-md-3">

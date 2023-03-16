@@ -7,10 +7,9 @@ import { SiteProvider } from '@/lib/site';
 import { SessionProvider } from '@/lib/session';
 import { apiClient, categoryKeys, productKeys, pageKeys } from '@/lib/queries';
 
-import 'tiny-slider/dist/tiny-slider.css';
-import '@/vendor/nouislider.css';  // TODO: this breaks external font import
-import '@/vendor/lightgallery/css/lightgallery.css';
-import '@/vendor/cartzilla/scss/theme.scss'; // must be defined here for Cartzilla icons to work
+import '@/vendor/nouislider.css'; // price filter // TODO: this breaks external font import
+import 'tiny-slider/dist/tiny-slider.css'; // carousel
+import 'glightbox/dist/css/glightbox.css'; // image gallery
 import 'react-bootstrap-typeahead/css/Typeahead.css';
 import 'react-bootstrap-typeahead/css/Typeahead.bs5.css';
 import '../styles.scss';
