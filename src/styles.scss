@@ -4,6 +4,37 @@
 
 body {
     scroll-behavior: smooth;
+    overflow: overlay;
+    scrollbar-color: $body-color $light;
+
+    &::-webkit-scrollbar, & *::-webkit-scrollbar {
+        background-color: transparent;
+        &:hover {
+            background-color: $secondary;
+        }
+    }
+    &::-webkit-scrollbar:vertical, & *::-webkit-scrollbar:vertical {
+        width: $border-radius * 2;
+    }
+    &::-webkit-scrollbar:horizontal, & *::-webkit-scrollbar:horizontal {
+        height: $border-radius * 2;
+    }
+    &::-webkit-scrollbar-thumb, & *::-webkit-scrollbar-thumb {
+        background-color: tint-color($dark, 20%);
+        min-height: 24px;
+        border-radius: $border-radius;
+        border-width: 2px;
+        border-style: solid;
+        background-clip: padding-box;
+        border-color: transparent;
+
+        &:hover {
+            border-width: 1px;
+        }
+    }
+    &::-webkit-scrollbar-corner, & *::-webkit-scrollbar-corner {
+        background-color: $light;
+    }
 }
 
 // Cartzilla tweaks
@@ -83,14 +114,8 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
         border: $card-border-width solid $card-border-color;
         border-bottom-right-radius: $border-radius;
         border-bottom-left-radius: $border-radius;
-        border-top: 0!important;
+        border-top: 0 !important;
     }
-}
-
-.sw-badge {
-    padding: 0.25em 0.625em;
-    margin-right: 0.25em;
-    border-radius: 0.175rem;
 }
 
 #comparison > tbody th:first-letter, .product-spec > .row > .text-muted:first-letter {
