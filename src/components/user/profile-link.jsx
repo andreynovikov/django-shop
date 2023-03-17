@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { formatPhone } from '@/lib/format';
 import { useSession, signOut } from '@/lib/session';
 
-import SignInModal from '@/components/sign-in-modal';
+import SignInModal from '@/components/user/sign-in-modal';
 
 export default function UserProfileLink() {
     const modalRef = useRef();
