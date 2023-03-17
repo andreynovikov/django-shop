@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import Script from 'next/script';
 import { useQuery } from 'react-query';
+
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Tooltip from 'react-bootstrap/Tooltip';
 
 import { useSite } from '@/lib/site';
 import { useSession } from '@/lib/session';
@@ -32,9 +34,6 @@ import {
 } from '@/components/order/status-badge';
 
 import moment from 'moment';
-import 'moment/locale/ru';
-
-moment.locale('ru');
 
 export default function Order({id}) {
     const [orderStatus, setOrderStatus] = useState(STATUS_NEW);
@@ -74,12 +73,6 @@ export default function Order({id}) {
         [isSuccess, order]
     );
 
-    const initializeBootstrap = () => {
-        if (window && 'bootstrap' in window && bootstrap.Tooltip) {
-            return new bootstrap.Tooltip(document.querySelector('.sw-order-created'));
-        }
-    };
-
     const handlePayment = () => {
         apiClient.post(`orders/${id}/pay/`, {
             'return_url': process.env.NEXT_PUBLIC_ORIGIN.slice(0, -1) + router.asPath
@@ -100,12 +93,15 @@ export default function Order({id}) {
 
     return (
         <>
-            <Script id="bootstrap" src="/js/bootstrap.bundle.js" onReady={initializeBootstrap} onLoad={initializeBootstrap} />
             <UserTopbar>
                 <div className="d-flex w-100 text-light text-center me-3">
                     <div className="fs-ms px-3">
                         <div className="fw-medium">Дата оформления</div>
-                        <div className="fs-lg opacity-60 sw-order-created" title={ moment(order.created).format('LLL') } data-bs-toggle="tooltip" data-bs-placement="bottom">{ created }</div>
+                        <div className="fs-lg opacity-60 sw-order-created">
+                            <OverlayTrigger placement="bottom" overlay={<Tooltip>{ moment(order.created).format('LLL') }</Tooltip>}>
+                                <span>{ created }</span>
+                            </OverlayTrigger>
+                        </div>
                     </div>
                     <div className="fs-ms px-3">
                         <div className="fw-medium">Статус</div>

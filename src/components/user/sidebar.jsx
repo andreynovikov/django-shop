@@ -2,6 +2,9 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useQuery } from 'react-query';
 
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Tooltip from 'react-bootstrap/Tooltip';
+
 import UserAvatar from '@/components/user/avatar';
 
 import { formatPhone } from '@/lib/format';
@@ -46,10 +49,12 @@ export default function UserSidebar() {
                     <div className="d-md-flex align-items-center">
                         <div className="img-thumbnail rounded-circle position-relative flex-shrink-0 mx-auto mb-2 mx-md-0 mb-md-0" style={{width: "6.375rem"}}>
                             { user.discount > 0 && (
-                                <span className="badge bg-warning position-absolute end-0 mt-n2" data-bs-toggle="tooltip" title="Текущая скидка">
-                                    { /* TODO: показывать бонусы */ }
-                                    { user.discount }%
-                                </span>
+                                <OverlayTrigger overlay={<Tooltip>Текущая скидка</Tooltip>}>
+                                    <span className="badge bg-warning position-absolute end-0 mt-n2">
+                                        { /* TODO: показывать бонусы */ }
+                                        { user.discount }%
+                                    </span>
+                                </OverlayTrigger>
                             )}
                             <picture>
                                 <UserAvatar gravatar={user.gravatar} name={ user.name || user.full_name } size="90" />

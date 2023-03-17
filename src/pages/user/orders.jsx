@@ -3,6 +3,9 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useQuery } from 'react-query';
 
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Tooltip from 'react-bootstrap/Tooltip';
+
 import UserPageLayout from '@/components/layout/user-page';
 import UserTopbar from '@/components/user/topbar';
 import OrderStatusBadge from '@/components/order/status-badge';
@@ -12,9 +15,6 @@ import { useSession } from '@/lib/session';
 import { orderKeys, loadOrders, getLastOrder } from '@/lib/queries';
 
 import moment from 'moment';
-import 'moment/locale/ru';
-
-moment.locale('ru');
 
 export default function Orders({filter, page, track}) {
     const [currentFilter, setFilter] = useState(filter);
@@ -110,7 +110,11 @@ export default function Orders({filter, page, track}) {
                                                 { order.id }
                                             </Link>
                                         </td>
-                                        <td className="py-3">{ moment(order.created).format('LLL') }</td>
+                                        <td className="py-3">
+                                            <OverlayTrigger overlay={<Tooltip>{ moment(order.created).format('LLL') }</Tooltip>}>
+                                                <span>{ moment(order.created).calendar().toLowerCase() }</span>
+                                            </OverlayTrigger>
+                                        </td>
                                         <td className="py-3"><OrderStatusBadge status={order.status} text={order.status_text} /></td>
                                         <td className="d-none d-sm-table-cell py-3">{ order.total.toLocaleString('ru') }<small>&nbsp;руб</small></td>
                                     </tr>

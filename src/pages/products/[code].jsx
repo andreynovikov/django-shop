@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
 
+import Accordion from 'react-bootstrap/Accordion';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
 
@@ -113,6 +114,7 @@ export default function Product({code}) {
     const [tnsModule, setTnsModule] = useState(null);
     const [productFields, setProductFields] = useState([]);
     const [fieldNames, setFieldNames] = useState({});
+    const [stocksVisible, setStocksVisible] = useState(false);
     const [quantity, setQuantity] = useState(1);
 
     const router = useRouter();
@@ -399,80 +401,77 @@ export default function Product({code}) {
                                 )}
 
                                 { /* Product panels */ }
-                                <div className="accordion mb-4" id="productPanels">
-                                    <div className="accordion-item">
-                                        <h3 className="accordion-header">
-                                            <a className="accordion-button" href="#information" role="button" data-bs-toggle="collapse" aria-expanded="true" aria-controls="information">
-                                                <i className="ci-lable text-muted lead align-middle mt-n1 me-2" />Информация
-                                            </a>
-                                        </h3>
-                                        <div className="accordion-collapse collapse show" id="information" data-bs-parent="#productPanels">
-                                            <div className="accordion-body fs-sm">
-                                                { product.manufacturer && (
-                                                    <div className="d-flex justify-content-between pb-2">
-                                                        <div className="text-muted fw-light">Производитель</div>
-                                                        <div className="fw-normal">{ product.manufacturer.name }</div>
-                                                    </div>
-                                                )}
-                                                { product.partnumber && (
-                                                    <div className="d-flex justify-content-between pb-2">
-                                                        <div className="text-muted fw-light">Артикул</div>
-                                                        <div className="fw-normal">{ product.partnumber }</div>
-                                                    </div>
-                                                )}
-                                                { product.developer_country && product.developer_country.enabled && (
-                                                    <div className="d-flex justify-content-between pb-2">
-                                                        <div className="text-muted fw-light">Страна разработки</div>
-                                                        <div className="fw-normal">{ product.developer_country.name }</div>
-                                                    </div>
-                                                )}
-                                                { product.country && product.country.enabled && (
-                                                    <div className="d-flex justify-content-between pb-2">
-                                                        <div className="text-muted fw-light">Страна производства</div>
-                                                        <div className="fw-normal">{ product.country.name }</div>
-                                                    </div>
-                                                )}
-                                                { product.warranty && (
-                                                    <div className="d-flex justify-content-between pb-2">
-                                                        <div className="text-muted fw-light">Гарантия</div>
-                                                        <div className="fw-normal">{ product.warranty }</div>
-                                                    </div>
-                                                )}
-                                                { product.article && (
-                                                    <div className="d-flex justify-content-between pb-2">
-                                                        <div className="text-muted fw-light">Код товара</div>
-                                                        <div className="fw-normal">{ product.article }</div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    { /*
-                                    {% if product.enabled and product.cost > 0 %}
-                                    <div class="accordion-item">
-                                        <h3 class="accordion-header"><a class="accordion-button collapsed" href="#localStore" role="button" data-bs-toggle="collapse" aria-expanded="true" aria-controls="localStore"><i class="ci-location text-muted lead align-middle mt-n1 me-2"></i>Наличие в магазинах</a></h3>
-                                        <div class="accordion-collapse collapse" id="localStore" data-bs-parent="#productPanels">
-                                            <div class="accordion-body fs-sm">
-                                                <div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Загрузка...</span></div></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {% endif %}
-                                      */
-                                    }
-                                    { product.manuals && (
-                                        <div className="accordion-item">
-                                            <h3 className="accordion-header">
-                                                <a className="accordion-button collapsed" href="#instructions" role="button" data-bs-toggle="collapse" aria-expanded="true" aria-controls="instructions">
-                                                    <i className="ci-clip text-muted lead align-middle mt-n1 me-2"></i>Инструкции
-                                                </a>
-                                            </h3>
-                                            <div className="accordion-collapse collapse" id="instructions" data-parent="#productPanels">
-                                                <div className="accordion-body fs-sm" dangerouslySetInnerHTML={{__html: product.manuals }}></div>
-                                            </div>
-                                        </div>
+                                <Accordion className="mb-4" defaultActiveKey={['information']} alwaysOpen>
+                                    <Accordion.Item eventKey="information">
+                                        <Accordion.Header>
+                                            <i className="ci-lable text-muted lead align-middle mt-n1 me-2" />Информация
+                                        </Accordion.Header>
+                                        <Accordion.Body className="fs-sm">
+                                            { product.manufacturer && (
+                                                <div className="d-flex justify-content-between pb-2">
+                                                    <div className="text-muted fw-light">Производитель</div>
+                                                    <div className="fw-normal">{ product.manufacturer.name }</div>
+                                                </div>
+                                            )}
+                                            { product.partnumber && (
+                                                <div className="d-flex justify-content-between pb-2">
+                                                    <div className="text-muted fw-light">Артикул</div>
+                                                    <div className="fw-normal">{ product.partnumber }</div>
+                                                </div>
+                                            )}
+                                            { product.developer_country && product.developer_country.enabled && (
+                                                <div className="d-flex justify-content-between pb-2">
+                                                    <div className="text-muted fw-light">Страна разработки</div>
+                                                    <div className="fw-normal">{ product.developer_country.name }</div>
+                                                </div>
+                                            )}
+                                            { product.country && product.country.enabled && (
+                                                <div className="d-flex justify-content-between pb-2">
+                                                    <div className="text-muted fw-light">Страна производства</div>
+                                                    <div className="fw-normal">{ product.country.name }</div>
+                                                </div>
+                                            )}
+                                            { product.warranty && (
+                                                <div className="d-flex justify-content-between pb-2">
+                                                    <div className="text-muted fw-light">Гарантия</div>
+                                                    <div className="fw-normal">{ product.warranty }</div>
+                                                </div>
+                                            )}
+                                            { product.article && (
+                                                <div className="d-flex justify-content-between pb-2">
+                                                    <div className="text-muted fw-light">Код товара</div>
+                                                    <div className="fw-normal">{ product.article }</div>
+                                                </div>
+                                            )}
+                                        </Accordion.Body>
+                                    </Accordion.Item>
+                                    { product.enabled && product.cost > 0 && (
+                                        <Accordion.Item eventKey="stocks">
+                                            <Accordion.Header>
+                                                <i className="ci-location text-muted lead align-middle mt-n1 me-2" />Наличие в магазинах
+                                            </Accordion.Header>
+                                            <Accordion.Body className="fs-sm" onEnter={() => setStocksVisible(true)}>
+                                                {stocksVisible ? 'visible' : 'hidden'}
+                                                { /*
+                                                    {% if product.enabled and product.cost > 0 %}
+                                                    <div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Загрузка...</span></div></div>
+                                                    {% endif %}
+                                                  */
+                                                }
+                                            </Accordion.Body>
+                                        </Accordion.Item>
                                     )}
-                                </div>
+                                    { product.manuals && (
+                                        <Accordion.Item eventKey="instructions">
+                                            <Accordion.Header>
+                                                <i className="ci-clip text-muted lead align-middle mt-n1 me-2" />Инструкции
+                                            </Accordion.Header>
+                                            <Accordion.Body className="fs-sm">
+                                                <div dangerouslySetInnerHTML={{__html: product.manuals }}></div>
+                                            </Accordion.Body>
+                                        </Accordion.Item>
+                                    )}
+                                </Accordion>
 
                                 { product.enabled && product.gifts && (
                                     <>
