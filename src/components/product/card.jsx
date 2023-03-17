@@ -4,18 +4,12 @@ import Link from 'next/link';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
 
+import NoImage from '@/components/product/no-image';
 import ProductPrice from '@/components/product/price';
 
 import useBasket from '@/lib/basket';
 import useFavorites from '@/lib/favorites';
 import { useSession } from '@/lib/session';
-
-const noImageStyle = {
-    width: '200px',
-    height: '200px',
-    fontSize: '100px',
-    padding: '50px'
-}
 
 export default function ProductCard({product, limitedBadges}) {
     const { status } = useSession();
@@ -77,7 +71,7 @@ export default function ProductCard({product, limitedBadges}) {
                         height={product.thumbnail.height}
                         alt={`${product.title} ${product.whatis}`} />
                 ) : (
-                    <i className="d-inline-block ci-camera text-muted" style={ noImageStyle } />
+                    <NoImage />
                 )}
             </Link>
             <div className="card-body py-2">

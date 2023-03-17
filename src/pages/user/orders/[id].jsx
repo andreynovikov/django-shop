@@ -10,6 +10,7 @@ import { useSession } from '@/lib/session';
 import { orderKeys, loadOrder } from '@/lib/queries';
 import { formatPhone } from '@/lib/format';
 
+import NoImage from '@/components/product/no-image';
 import UserPageLayout from '@/components/layout/user-page';
 import UserTopbar from '@/components/user/topbar';
 import OrderStatusBadge from '@/components/order/status-badge';
@@ -302,7 +303,7 @@ export default function Order({id}) {
                                     height={item.product.thumbnail.height}
                                     alt={`${item.product.title} ${item.product.whatis}`} />
                             ) : (
-                                <i className="d-inline-block ci-camera text-muted" style={{width: "160px", height: "160px", fontSize: "80px", padding: "40px"}} />
+                                <NoImage size={160} />
                             )}
                         </Link>
                         <div className="ps-sm-4 pt-2">

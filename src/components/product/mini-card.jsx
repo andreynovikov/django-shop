@@ -1,13 +1,7 @@
 import Link from 'next/link';
 
+import NoImage from '@/components/product/no-image';
 import ProductPrice from '@/components/product/price';
-
-const noImageStyle = {
-    width: '200px',
-    height: '200px',
-    fontSize: '100px',
-    padding: '50px'
-}
 
 export default function ProductMiniCard({product}) {
     return (
@@ -20,7 +14,7 @@ export default function ProductMiniCard({product}) {
                         height={product.thumbnail.height}
                         alt={`${product.title} ${product.whatis}`} />
                 ) : (
-                    <i className="d-inline-block ci-camera text-muted" style={ noImageStyle } />
+                    <NoImage />
                 )}
             </Link>
             <div className="card-body py-2">

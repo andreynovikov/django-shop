@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useQuery } from 'react-query';
 
+import NoImage from '@/components/product/no-image';
 import ProductPrice from '@/components/product/price';
 import UserPageLayout from '@/components/layout/user-page';
 import UserTopbar from '@/components/user/topbar';
@@ -9,13 +10,6 @@ import UserTopbar from '@/components/user/topbar';
 import useBasket from '@/lib/basket';
 import useFavorites from '@/lib/favorites';
 import { productKeys, loadProducts } from '@/lib/queries';
-
-const noImageStyle = {
-    width: '160px',
-    height: '160px',
-    fontSize: '80px',
-    padding: '40px'
-}
 
 export default function Favorites() {
     const [filters, setFilters] = useState([]);
@@ -61,7 +55,7 @@ export default function Favorites() {
                                         height={product.thumbnail.height}
                                         alt={`${product.title} ${product.whatis}`} />
                                 ) : (
-                                    <i className="d-inline-block ci-camera text-muted" style={ noImageStyle } />
+                                    <NoImage size={160} />
                                 )}
                             </Link>
                             <div className="pt-2">

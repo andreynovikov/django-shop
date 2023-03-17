@@ -9,6 +9,7 @@ import Tooltip from 'react-bootstrap/Tooltip';
 
 import PageLayout from '@/components/layout/page';
 import FieldHelp from '@/components/product/field-help';
+import NoImage from '@/components/product/no-image';
 import ProductMiniCard from '@/components/product/mini-card';
 import ProductPrice from '@/components/product/price';
 import ProductRating from '@/components/product/rating';
@@ -40,11 +41,6 @@ const fieldList = ['fabric_verylite', 'km_class', 'km_font', 'km_needles', 'km_p
                    'prom_overstitch_lenght', 'prom_overstitch_width', 'prom_stitch_width',
                    'prom_needle_width', 'prom_needle_num', 'prom_platform_type', 'prom_button_diaouter',
                    'prom_button_diainner', 'prom_needle_height', 'prom_stitch_type', 'prom_autothread'];
-
-const noImageStyle = {
-    width: '300px',
-    fontSize: '300px'
-};
 
 const gallerySettings = {
     touchNavigation: true
@@ -252,7 +248,7 @@ export default function Product({code}) {
                                 </div>
                             ) : (
                                 <div className="d-none d-lg-block">
-                                    <i className="d-block ci-camera text-muted mx-auto" style={ noImageStyle } />
+                                    <NoImage size={300} block />
                                 </div>
                             )}
 
@@ -504,12 +500,9 @@ export default function Product({code}) {
                                     height={item.thumbnail.height}
                                     alt={`${product.title} ${product.whatis}`} />
                             ) : (
-                                <i className="d-inline-block ci-camera text-muted card-img-top" style={{
-                                       width: '200px',
-                                       height: '200px',
-                                       fontSize: '100px',
-                                       padding: '50px'
-                                   }} />
+                                <div className="text-center">
+                                    <NoImage size={200} />
+                                </div>
                             )}
                             <div className="card-body fs-sm">
                                 <strong>

@@ -5,6 +5,7 @@ import { useQuery, useQueries } from 'react-query';
 
 import PageLayout from '@/components/layout/page';
 import FieldHelp from '@/components/product/field-help';
+import NoImage from '@/components/product/no-image';
 import ProductPrice from '@/components/product/price';
 
 import useBasket from '@/lib/basket';
@@ -23,13 +24,6 @@ function prettify(field, value) {
     if (typeof value === 'string')
         return value.trim();
     return value;
-}
-
-const noImageStyle = {
-    width: '80px',
-    height: '80px',
-    fontSize: '40px',
-    padding: '20px'
 }
 
 export default function Compare({kindId, productIds}) {
@@ -195,7 +189,7 @@ export default function Compare({kindId, productIds}) {
                                                 height={product.thumbnail_small.height}
                                                 alt={`${product.title} ${product.whatis}`} />
                                         ) : (
-                                            <i className="d-inline-block ci-camera text-muted" style={ noImageStyle } />
+                                            <NoImage size={80} />
                                         )}
                                     </Link>
                                     <h3 className="product-title fs-sm">

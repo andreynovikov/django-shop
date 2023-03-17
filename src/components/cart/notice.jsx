@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import SimpleBar from 'simplebar-react';
 
+import NoImage from '@/components/product/no-image';
+
 import useBasket from '@/lib/basket';
 
 export function MobileCartNotice() {
@@ -59,7 +61,7 @@ export default function CartNotice() {
                                                 height={item.product.thumbnail_small.height}
                                                 alt={`${item.product.title} ${item.product.whatis}`} />
                                         ) : (
-                                            <i className="d-inline-block ci-camera text-muted" style={{width: "64px", height: "64px", fontSize: "32px", padding: "16px"}} />
+                                            <NoImage size={64} />
                                         )}
                                     </Link>
                                     <div className="ps-2">

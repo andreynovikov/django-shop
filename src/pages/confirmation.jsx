@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 
 import PageLayout from '@/components/layout/page';
+import NoImage from '@/components/product/no-image';
 import { STATUS_NEW } from '@/components/order/status-badge';
 
 import useBasket from '@/lib/basket';
@@ -186,7 +187,7 @@ export default function Confirmation() {
                                                 height={item.product.thumbnail_small.height}
                                                 alt={`${item.product.title} ${item.product.whatis}`} />
                                         ) : (
-                                            <i className="d-inline-block ci-camera text-muted" style={{width: "64px", height: "64px", fontSize: "32px", padding: "16px"}} />
+                                            <NoImage size={64} />
                                         )}
                                     </Link>
                                     <div className="ps-2">
