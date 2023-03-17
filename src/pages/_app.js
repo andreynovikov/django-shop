@@ -14,6 +14,37 @@ import 'react-bootstrap-typeahead/css/Typeahead.css';
 import 'react-bootstrap-typeahead/css/Typeahead.bs5.css';
 import '../styles.scss';
 
+import moment from 'moment';
+import 'moment/locale/ru';
+
+moment.locale('ru');
+moment.updateLocale('ru', {
+    calendar: {
+        lastWeek: function (now) {
+            if (now.week() !== this.week()) {
+                switch (this.day()) {
+                case 0:
+                    return '[В прошлое] dddd';
+                case 1:
+                case 2:
+                case 4:
+                    return '[В прошлый] dddd';
+                case 3:
+                case 5:
+                case 6:
+                    return '[В прошлую] dddd';
+                }
+            } else {
+                if (this.day() === 2) {
+                    return '[Во] dddd';
+                } else {
+                    return '[В] dddd';
+                }
+            }
+        }
+    },
+});
+
 export default function App({ Component, pageProps: { site, session, ...pageProps }}) {
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {

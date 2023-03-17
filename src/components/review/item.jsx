@@ -1,16 +1,9 @@
-import { useState, useEffect } from 'react';
-
 import ReviewRating from '@/components/review/rating';
 import UserAvatar from '@/components/user/avatar';
 
-import axios from 'axios';
 import moment from 'moment';
-import 'moment/locale/ru';
-
-moment.locale('ru');
 
 export default function ReviewItem({review, first, last}) {
-
     return (
         <div className={"product-review mb-4 pb-4" + (!last && " border-bottom")} id={"r" + review.id }>
             <div className="d-flex mb-3">
