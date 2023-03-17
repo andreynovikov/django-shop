@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
@@ -13,12 +13,15 @@ import ProductMiniCard from '@/components/product/mini-card';
 import ProductPrice from '@/components/product/price';
 import ProductRating from '@/components/product/rating';
 import ProductReviews from '@/components/product/reviews';
+import Loading from '@/components/loading';
 
 import useBasket from '@/lib/basket';
 import useFavorites from '@/lib/favorites';
 import useComparison from '@/lib/comparison';
 import { useSession } from '@/lib/session';
 import { productKeys, loadProductByCode, getProductFields } from '@/lib/queries';
+
+const ProductStock = lazy(() => import('@/components/product/stock'));
 
 const gana = require('gana');
 
@@ -114,7 +117,7 @@ export default function Product({code}) {
     const [tnsModule, setTnsModule] = useState(null);
     const [productFields, setProductFields] = useState([]);
     const [fieldNames, setFieldNames] = useState({});
-    const [stocksVisible, setStocksVisible] = useState(false);
+    const [stockVisible, setStockVisible] = useState(false);
     const [quantity, setQuantity] = useState(1);
 
     const router = useRouter();
@@ -446,18 +449,16 @@ export default function Product({code}) {
                                         </Accordion.Body>
                                     </Accordion.Item>
                                     { product.enabled && product.cost > 0 && (
-                                        <Accordion.Item eventKey="stocks">
+                                        <Accordion.Item eventKey="stock">
                                             <Accordion.Header>
                                                 <i className="ci-location text-muted lead align-middle mt-n1 me-2" />Наличие в магазинах
                                             </Accordion.Header>
-                                            <Accordion.Body className="fs-sm" onEnter={() => setStocksVisible(true)}>
-                                                {stocksVisible ? 'visible' : 'hidden'}
-                                                { /*
-                                                    {% if product.enabled and product.cost > 0 %}
-                                                    <div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Загрузка...</span></div></div>
-                                                    {% endif %}
-                                                  */
-                                                }
+                                            <Accordion.Body className="fs-sm" onEnter={() => setStockVisible(true)}>
+                                                { stockVisible && (
+                                                    <Suspense fallback={<Loading className="text-center" />}>
+                                                        <ProductStock id={product.id} />
+                                                    </Suspense>
+                                                )}
                                             </Accordion.Body>
                                         </Accordion.Item>
                                     )}

@@ -25,8 +25,8 @@ from yandex_kassa.views import payment as yandex_payment
 
 from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase  # TODO: add all tasks
 from shop.filters import get_product_filter
-from shop.models import Category, ProductKind, Product, Basket, BasketItem, Order, OrderItem, Favorites, \
-    ShopUser, News, Store, ServiceCenter
+from shop.models import Category, ProductKind, Product, ProductSet, Stock, Basket, BasketItem, Order, OrderItem, \
+    Favorites, ShopUser, News, Store, ServiceCenter
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 
 from .models import SiteProfile
@@ -261,6 +261,35 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     def images(self, request, pk=None):
         product = self.get_object()
         return Response(self.get_serializer(product, context=self.get_serializer_context()).data)
+
+    @action(detail=True)
+    def stock(self, request, pk=None):
+        product = self.get_object()
+        if product.constituents.count() == 0:
+            suppliers = product.stock.all()
+            stores = Store.objects.filter(enabled=True, supplier__in=suppliers).order_by('city__country__ename', 'city__name')
+        else:
+            stores = Store.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+        results = []
+        for store in stores:
+            if product.constituents.count() == 0:
+                stock = Stock.objects.get(product=product, supplier=store.supplier)
+                quantity = stock.quantity + stock.correction
+            else:
+                quantity = 32767
+                for item in ProductSet.objects.filter(declaration=product):
+                    try:
+                        stock = Stock.objects.get(product=item.constituent, supplier=store.supplier)
+                        q = stock.quantity + stock.correction
+                        if item.quantity > 1:
+                            q = int(q / item.quantity)
+                    except Stock.DoesNotExist:
+                        q = 0.0
+                        if q < quantity:
+                            quantity = q
+            if quantity > 0.0:
+                results.append(store)
+        return Response(StoreSerializer(results, many=True, context=self.get_serializer_context()).data)
 
 
 """

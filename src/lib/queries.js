@@ -21,6 +21,7 @@ export const productKeys = {
     fields: () => [...productKeys.all, 'fields'],
     suggestions: (text) => [...productKeys.all, 'suggestions', text],
     images: (id) => [...productKeys.all, id, 'images'],
+    stock: (id) => [...productKeys.all, id, 'stock'],
     lists: () => [...productKeys.all, 'list'],
     list: (page, size, filters, ordering) => [...productKeys.lists(), { page, size, filters, ordering }],
     details: () => [...productKeys.all, 'detail'],
@@ -314,8 +315,8 @@ export async function getProductImages(id) {
     return response.data;
 }
 
-export async function getProductPrice(id) {
-    const response = await apiClient.get(`products/${id}/price/`);
+export async function loadProductStock(id) {
+    const response = await apiClient.get(`products/${id}/stock/`);
     return response.data;
 }
 
