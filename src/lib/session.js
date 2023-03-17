@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from 'react-query';
 
-import { apiClient, userKeys, currentUser } from '@/lib/queries';
+import { apiClient, userKeys, userReferences, userDependencies, currentUser } from '@/lib/queries';
 
 export const SessionContext = createContext(undefined);
 
@@ -111,8 +111,8 @@ export function SessionProvider({children}) {
         console.log("SessionProvider", user?.id, "isLoading", isLoading);
         if (!isLoading) {
             if (!(user?.id > 0))
-                queryClient.resetQueries(userKeys.references());
-            queryClient.invalidateQueries(userKeys.dependencies());
+                userReferences.map((keys) => queryClient.resetQueries(keys));
+            userDependencies.map((keys) => queryClient.invalidateQueries(keys));
         }
         /* eslint-disable react-hooks/exhaustive-deps */
     }, [user, isLoading]);

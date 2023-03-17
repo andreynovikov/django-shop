@@ -3,8 +3,6 @@ import axios from 'axios';
 export const userKeys = {
     all: ['users'],
     form: () => [...userKeys.all, 'form'],
-    dependencies: () => [...userKeys.all, 'dependencies'], // those queries are invalidated on user login/logout
-    references: () => [...userKeys.dependencies(), 'references'], // those queries are reset on user logout
     details: () => [...userKeys.all, 'detail'],
     detail: (id) => [...userKeys.details(), id],
     check: (phone) => [...userKeys.details(), 'check', phone],
@@ -21,12 +19,12 @@ export const categoryKeys = {
 export const productKeys = {
     all: ['products'],
     fields: () => [...productKeys.all, 'fields'],
+    suggestions: (text) => [...productKeys.all, 'suggestions', text],
+    images: (id) => [...productKeys.all, id, 'images'],
     lists: () => [...productKeys.all, 'list'],
     list: (page, size, filters, ordering) => [...productKeys.lists(), { page, size, filters, ordering }],
-    suggestions: (text) => [...productKeys.lists(), 'suggestions', text],
     details: () => [...productKeys.all, 'detail'],
-    detail: (id) => [...productKeys.details(), id],
-    price: (id) => [...productKeys.detail(id), 'price'],  // TODO: think how to invalidate it on user change
+    detail: (id) => [...productKeys.details(), id]
 };
 
 export const reviewKeys = {
@@ -40,12 +38,12 @@ export const reviewKeys = {
 };
 
 export const basketKeys = {
-    all: [...userKeys.dependencies(), 'baskets'],
+    all: ['baskets'],
     details: () => [...basketKeys.all, 'detail'],
 };
 
 export const orderKeys = {
-    all: [...userKeys.references(), 'orders'],
+    all: ['orders'],
     lists: () => [...orderKeys.all, 'list'],
     list: (page, filter) => [...orderKeys.lists(), { page, filter }],
     last: () => [...orderKeys.lists(), 'last'],
@@ -54,12 +52,12 @@ export const orderKeys = {
 };
 
 export const favoriteKeys = {
-    all: [...userKeys.references(), 'favorites'],
+    all: ['favorites'],
     details: () => [...favoriteKeys.all, 'detail'],
 };
 
 export const comparisonKeys = {
-    all: [...userKeys.references(), 'comparisons'],
+    all: ['comparisons'],
     lists: () => [...comparisonKeys.all, 'list'],
     list: (kind) => [...comparisonKeys.lists(), kind]
 };
@@ -87,17 +85,35 @@ export const newsKeys = {
 export const storeKeys = {
     all: ['stores'],
     lists: () => [...storeKeys.all, 'list'],
+    details: () => [...storeKeys.all, 'detail'],
+    detail: (id) => [...storeKeys.details(), id],
 };
 
 export const serviceCenterKeys = {
     all: ['serviceCenters'],
     lists: () => [...serviceCenterKeys.all, 'list'],
+    details: () => [...serviceCenterKeys.all, 'detail'],
+    detail: (id) => [...serviceCenterKeys.details(), id],
 };
 
 export const siteKeys = {
     all: ['sites'],
     current: () => [...siteKeys.all, 'current'],
 };
+
+// those queries are reset on user logout
+export const userReferences = [
+    orderKeys.all,
+    favoriteKeys.all,
+    comparisonKeys.all
+];
+
+// those queries are invalidated on user login/logout
+export const userDependencies = [
+    productKeys.lists(),
+    productKeys.details(),
+    basketKeys.all
+];
 
 export function normalizePhone(phone) {
     phone = phone.replaceAll(/[^0-9\+]/g, '');
@@ -293,6 +309,11 @@ export async function loadProductSuggestions(text) {
     return response.data;
 }
 
+export async function getProductImages(id) {
+    const response = await apiClient.get(`products/${id}/images/`);
+    return response.data;
+}
+
 export async function getProductPrice(id) {
     const response = await apiClient.get(`products/${id}/price/`);
     return response.data;
@@ -325,6 +346,11 @@ export async function loadProductReview(id, reviewId) {
 
 export async function updateProductReview(id, reviewId, data) {
     const response = await apiClient.put(`reviews/shop.product/${id}/${reviewId}/`, data);
+    return response.data;
+}
+
+export async function loadPromoReviews() {
+    const response = await apiClient.get("reviews/?model=shop.product&user=1&site=10&page_size=10");
     return response.data;
 }
 
@@ -390,8 +416,18 @@ export async function loadStores() {
     return response.data;
 }
 
+export async function loadStore(id) {
+    const response = await apiClient.get('stores/' + id + '/');
+    return response.data;
+}
+
 export async function loadServiceCenters() {
     const response = await apiClient.get('servicecenters/');
+    return response.data;
+}
+
+export async function loadServiceCenter(id) {
+    const response = await apiClient.get('servicecenters/' + id + '/');
     return response.data;
 }
 

@@ -32,10 +32,13 @@ class Basket(models.Model):
 
     @classmethod
     def product_cost_for_user(cls, wholesale, product, user):
+        user_discount = 0
+        if user.is_authenticated:
+            user_discount = user.discount
         if wholesale:
-            return product.ws_price - cls.product_discount_with_user_discount(wholesale, product, user.discount)
+            return product.ws_price - cls.product_discount_with_user_discount(wholesale, product, user_discount)
         else:
-            return product.price - cls.product_discount_with_user_discount(wholesale, product, user.discount)
+            return product.price - cls.product_discount_with_user_discount(wholesale, product, user_discount)
 
     @classmethod
     def product_pct_discount(cls, wholesale, product, user_discount):

@@ -262,17 +262,6 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         product = self.get_object()
         return Response(self.get_serializer(product, context=self.get_serializer_context()).data)
 
-    @action(detail=True, permission_classes=[IsAuthenticated])
-    def price(self, request, pk=None):
-        product = self.get_object()
-        user = request.user
-        return Response({
-            'user': user.pk,
-            'user_discount': user.discount,
-            'price': product.price,
-            'cost': Basket.product_cost_for_user(request.site.profile.wholesale, product, user)
-        })
-
 
 """
 class ViolationModelPermission(AccountsModelPermission):

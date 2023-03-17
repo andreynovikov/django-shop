@@ -205,10 +205,7 @@ class ProductListSerializer(NonNullModelSerializer):
 
     def get_cost(self, obj):
         request = self.context.get('request')
-        if request.site.profile.wholesale:
-            return obj.ws_cost
-        else:
-            return obj.cost
+        return Basket.product_cost_for_user(request.site.profile.wholesale, obj, request.user)
 
     def get_instock(self, obj):
         return max(min(obj.instock, 10), 0)
@@ -292,10 +289,7 @@ class ProductSerializer(NonNullModelSerializer):
 
     def get_cost(self, obj):
         request = self.context.get('request')
-        if request.site.profile.wholesale:
-            return obj.ws_cost
-        else:
-            return obj.cost
+        return Basket.product_cost_for_user(request.site.profile.wholesale, obj, request.user)
 
     def get_instock(self, obj):
         return obj.instock  # TODO: limit output
