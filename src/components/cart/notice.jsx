@@ -3,8 +3,6 @@ import SimpleBar from 'simplebar-react';
 
 import useBasket from '@/lib/basket';
 
-import 'simplebar-react/dist/simplebar.min.css';
-
 export function MobileCartNotice() {
     const { basket, isEmpty } = useBasket();
 

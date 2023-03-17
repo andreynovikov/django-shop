@@ -1,4 +1,5 @@
 import Script from 'next/script';
+import SimpleBar from 'simplebar-react';
 
 export default function MultipleChoiceFilter({filter, filterValue, onFilterChanged}) {
     const currentValue = filterValue !== undefined  ? filterValue : [];
@@ -27,23 +28,26 @@ export default function MultipleChoiceFilter({filter, filterValue, onFilterChang
                     <i className="ci-search position-absolute top-50 end-0 translate-middle-y fs-sm me-3" />
                 </div>
             )}
-            <ul className="widget-list widget-filter-list list-unstyled pt-1" style={{maxHeight: "11rem"}} data-simplebar data-simplebar-auto-hide="false">
-                { filter.choices?.map(([value, label]) => (
-                    <li className="widget-filter-item d-flex justify-content-between align-items-center mb-1" key={value}>
-                        <div className="form-check">
-                            <input
-                                className="form-check-input"
-                                type="checkbox"
-                                name={filter.name}
-                                id={`${filter.id}-${value}`}
-                                value={value}
-                                checked={currentValue.includes(value)}
-                                onChange={handleChange} />
-                            <label className="form-check-label widget-filter-item-text" htmlFor={`${filter.id}-${value}`}>{ label }</label>
-                        </div>
-                    </li>
-                ))}
-            </ul>
+            <SimpleBar style={{maxHeight: "11rem"}} autoHide={false}>
+                <ul className="widget-list widget-filter-list list-unstyled pt-1">
+                    { filter.choices?.map(([value, label]) => (
+                        <li className="widget-filter-item d-flex justify-content-between align-items-center mb-1" key={value}>
+                            <div className="form-check">
+                                <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    name={filter.name}
+                                    id={`${filter.id}-${value}`}
+                                    value={value}
+                                    checked={currentValue.includes(value)}
+                                    onChange={handleChange} />
+                                <label className="form-check-label widget-filter-item-text" htmlFor={`${filter.id}-${value}`}>{ label }</label>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            </SimpleBar>
+            { /* TODO: refactor to use native filtering */ }
             <Script
                 id="filter-list"
                 src="/js/components/filter-list.js"
