@@ -87,8 +87,14 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
 
 // React Bootstrap Typeahead tweaks
 
-.rbt > .rbt-menu .dropdown-item.active {
-    background-color: map-get($theme-faded-colors, 'dark');
+.rbt > .rbt-menu {
+    .dropdown-item.active {
+        background-color: map-get($theme-faded-colors, 'dark');
+    }
+
+    &::-webkit-scrollbar {
+        background-color: $light;
+    }
 }
 
 // Custom styles
