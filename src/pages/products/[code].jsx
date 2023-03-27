@@ -244,9 +244,9 @@ export default function Product({code, title}) {
             { product.images && (
                 <div className="mt-2">
                     { product.images.map((image, index) => (
-                    <a className="glightbox me-1" href={image.url} data-title={`${product.title} - фото №${index + 2}`} key={index}>
+                    <a className="glightbox me-1" href={image.src} data-title={`${product.title} - фото №${index + 2}`} key={index}>
                         <img
-                            src={image.thumbnail.url}
+                            src={image.thumbnail.src}
                             width={image.thumbnail.width}
                             height={image.thumbnail.height}
                             alt={`${product.title} - фото №${index + 2}`} />
