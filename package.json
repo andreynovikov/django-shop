@@ -1,5 +1,5 @@
 {
-    "version": "3.01.20",
+    "version": "3.03.27",
     "scripts": {
         "dev": "next dev -H 127.0.0.1 -p 3003",
         "start": "next start -H 127.0.0.1 -p 4003",
