@@ -366,7 +366,7 @@ class Product(models.Model):
                 num = max(0, num - 2)
 
             if num > 0:
-                sites = []
+                sites = [Site.objects.get(domain='www.sewing-world.ru').id]
                 sites.extend(Site.objects.filter(integration__suppliers__in=suppliers).distinct().values_list('id', flat=True))
                 if Supplier.objects.filter(count_in_stock=Supplier.COUNT_STOCK, pk__in=suppliers).count():
                     sites.extend(Site.objects.filter(integration__isnull=True).exclude(domain__in=['spb.sewing-world.ru', 'opt.sewing-world.ru']).values_list('id', flat=True))
@@ -375,7 +375,6 @@ class Product(models.Model):
                 if Supplier.objects.filter(ws_count_in_stock=Supplier.COUNT_STOCK, pk__in=suppliers).count():
                     sites.extend(Site.objects.filter(domain='opt.sewing-world.ru').values_list('id', flat=True))
                 site_addon = 'IN ({})'.format(','.join(map(str, sites)))
-
                 cursor = connection.cursor()
                 cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
                               INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
