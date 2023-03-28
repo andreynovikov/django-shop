@@ -85,6 +85,32 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
     }
 }
 
+@include media-breakpoint-up(lg) {
+    .offcanvas-lg { // Collapse off-canvas down from lg breakpoint
+        display: block;
+        position: static;
+        top: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: auto !important;
+        width: 100% !important;
+        height: auto !important;
+        transform: none !important;
+        background-color: transparent;
+
+        .offcanvas-header, .offcanvas-footer { display: none; }
+
+        .offcanvas-body {
+            padding: 0;
+            overflow: initial;
+        }
+
+        &.rounded-3 {
+            border-radius: $border-radius-lg !important;
+        }
+    }
+}
+
 // React Bootstrap Typeahead tweaks
 
 .rbt > .rbt-menu {

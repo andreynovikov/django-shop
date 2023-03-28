@@ -1,7 +1,8 @@
-import { useReducer } from 'react';
+import { useState, useReducer, useMemo } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import { useQuery } from 'react-query';
+
+import Offcanvas from 'react-bootstrap/Offcanvas';
 
 import PageLayout from '@/components/layout/page';
 import ProductCard from '@/components/product/card';
@@ -10,6 +11,7 @@ import PriceFilter from '@/components/product/filters/price-filter';
 import PageSelector, { SmallPageSelector } from '@/components/page-selector';
 
 import { productKeys, loadProducts } from '@/lib/queries';
+import { useToolbar } from '@/lib/toolbar';
 import useCatalog from '@/lib/catalog';
 import rupluralize from '@/lib/rupluralize';
 
@@ -21,10 +23,23 @@ function filterReducer(filters, {field, value}) {
 }
 
 export default function Search({text, page}) {
-    const router = useRouter();
+    const [showFilters, setShowFilters] = useState(false);
     const [currentFilters, setFilter] = useReducer(filterReducer, [{field: 'text', value: text}]);
 
+    const router = useRouter();
+
     useCatalog();
+
+    const toolbarItem = useMemo(() => {
+        return (
+            <a className="d-table-cell handheld-toolbar-item" onClick={() => setShowFilters(true)} style={{ cursor: 'pointer' }}>
+                <span className="handheld-toolbar-icon"><i className="ci-filter-alt" /></span>
+                <span className="handheld-toolbar-label">Фильтры</span>
+            </a>
+        )
+    }, []);
+
+    useToolbar(toolbarItem);
 
     const { data: products, isSuccess, isLoading, isError } = useQuery(
         productKeys.list(page || 1, 15, currentFilters, null),
@@ -34,12 +49,29 @@ export default function Search({text, page}) {
         }
     );
 
-    const onFilterChanged = (field, value) => {
+    const selectedFilters = useMemo(() => {
+        const filters = {};
+        const minPrice = currentFilters.reduce((value, f) => f.field === 'price_min' ? f.value : value, undefined);
+        const maxPrice = currentFilters.reduce((value, f) => f.field === 'price_max' ? f.value : value, undefined);
+        filters['price'] = [minPrice, maxPrice];
+        const manufacturer = currentFilters.reduce((value, f) => f.field === 'manufacturer' ? f.value : value, undefined);
+        filters['manufacturer'] = manufacturer;
+        filters['available'] = currentFilters.reduce((value, f) => f.field === 'instock' ? f.value : value, undefined);
+        return filters;
+    }, [currentFilters]);
+
+    const handleFilterChanged = (field, value) => {
+        console.log(field, value);
         router.push({
             pathname: router.pathname,
             query: { ...router.query, page: 1 }
         });
-        setFilter({field, value});
+        if (field === 'price') {
+            setFilter({field: `${field}_min`, value: value?.[0]});
+            setFilter({field: `${field}_max`, value: value?.[1]});
+        } else {
+            setFilter({field, value});
+        }
     };
 
     const handleAvailableChange = (e) => {
@@ -53,35 +85,50 @@ export default function Search({text, page}) {
             <div className="container pb-5 mb-2 mb-md-4">
                 <div className="row">
                     <aside className="col-lg-4">
-                        <div className="offcanvas offcanvas-collapse bg-white w-100 rounded-3 shadow-lg py-1" id="shop-sidebar" style={{maxWidth: "22rem"}}>
-                            <div className="offcanvas-header align-items-center shadow-sm">
+                        <Offcanvas
+                            show={showFilters}
+                            onHide={() => setShowFilters(false)}
+                            responsive="lg"
+                            className="offcanvas bg-white w-100 rounded-3 shadow-lg py-1"
+                            style={{maxWidth: "22rem"}}>
+                            <Offcanvas.Header className="align-items-center shadow-sm" closeButton>
                                 <h2 className="h5 mb-0">Фильтры</h2>
-                                <button className="btn-close ms-auto" type="button" data-bs-dismiss="offcanvas" aria-label="Закрыть"></button>
-                            </div>
-                            <div className="offcanvas-body py-grid-gutter px-lg-grid-gutter">
+                            </Offcanvas.Header>
+                            <Offcanvas.Body className="py-grid-gutter px-lg-grid-gutter">
                                 <div className="widget pb-4 mb-4 border-bottom">
                                     <h3 className="widget-title">Производитель</h3>
-                                    <MultipleChoiceFilter filter={{name: 'manufacturer', ...products.filters['manufacturer']}} onFilterChanged={onFilterChanged} />
+                                    <MultipleChoiceFilter
+                                        filter={{name: 'manufacturer', ...products.filters['manufacturer']}}
+                                        filterValue={selectedFilters['manufacturer']}
+                                        onFilterChanged={handleFilterChanged} />
                                 </div>
                                 <div className="widget pb-4 mb-4 border-bottom">
                                     <h3 className="widget-title">Цена</h3>
-                                    <PriceFilter filter={{name: 'price', unit: 'руб', ...products.filters['price']}} onFilterChanged={onFilterChanged} />
+                                    <PriceFilter
+                                        filter={{name: 'price', unit: 'руб', ...products.filters['price']}}
+                                        filterValue={selectedFilters['price']}
+                                        onFilterChanged={handleFilterChanged} />
                                 </div>
                                 <div className="widget">
                                     <div className="form-check">
-                                        <input className="form-check-input" type="checkbox" id="sw-awailable-check" onChange={handleAvailableChange} />
+                                        <input
+                                            className="form-check-input"
+                                            type="checkbox"
+                                            id="sw-awailable-check"
+                                            checked={selectedFilters['available'] !== undefined}
+                                            onChange={handleAvailableChange} />
                                         <label className="form-check-label" htmlFor="sw-awailable-check">Доступно к покупке</label>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
+                            </Offcanvas.Body>
+                        </Offcanvas>
                     </aside>
 
                     <section className="col-lg-8">
                         <div className="d-flex justify-content-center justify-content-sm-between align-items-center pt-2 pb-4 pb-sm-5">
                             <div className="d-flex pb-3">
                                 { products.count > 0 && (
-                                    <span className="text-light opacity-75 text-nowrap d-none d-md-block">
+                                    <span className="text-light opacity-75 text-nowrap">
                                         { rupluralize(products.count, ['Найден','Найдены','Найдены']) }
                                         {' '}{ products.count }{' '}
                                         { rupluralize(products.count, ['товар','товара','товаров']) }

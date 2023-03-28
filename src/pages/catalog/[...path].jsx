@@ -3,12 +3,15 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
 
+import Offcanvas from 'react-bootstrap/Offcanvas';
+
 import PageLayout from '@/components/layout/page';
 import ProductCard from '@/components/product/card';
 import ProductFilter from '@/components/product/filter';
 import PageSelector, { SmallPageSelector } from '@/components/page-selector';
 
 import { categoryKeys, productKeys, loadCategories, loadCategory, loadProducts } from '@/lib/queries';
+import { useToolbar } from '@/lib/toolbar';
 import useCatalog from '@/lib/catalog';
 import rupluralize from '@/lib/rupluralize';
 
@@ -41,6 +44,7 @@ function filterReducer(filters, action) {
 export default function Category({path, currentPage, pageSize, order, filters}) {
     const [currentFilters, setFilter] = useReducer(filterReducer, filters);
     const [currentOrder, setOrder] = useState(order);
+    const [showFilters, setShowFilters] = useState(false);
 
     // reset filters on page change
     useEffect(() => {
@@ -57,6 +61,17 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
             enabled: !!path // path is not set on first render
         }
     );
+
+    const toolbarItem = useMemo(() => {
+        return category.filters ? (
+            <a className="d-table-cell handheld-toolbar-item" onClick={() => setShowFilters(true)} style={{ cursor: 'pointer' }}>
+                <span className="handheld-toolbar-icon"><i className="ci-filter-alt" /></span>
+                <span className="handheld-toolbar-label">Фильтры</span>
+            </a>
+        ) : undefined
+    }, [category]);
+
+    useToolbar(toolbarItem);
 
     const { data: products, isSuccess: isProductsSuccess } = useQuery(
         productKeys.list(currentPage, pageSize, currentFilters, currentOrder),
@@ -112,12 +127,16 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                 <div className="row">
                     { (category.children || category.filters) && (
                         <aside className="col-lg-4">
-                            <div className="offcanvas offcanvas-collapse bg-white w-100 rounded-3 shadow-lg py-1" id="shop-sidebar" style={{maxWidth: "22rem"}}>
-                                <div className="offcanvas-header align-items-center shadow-sm">
+                            <Offcanvas
+                                show={showFilters}
+                                onHide={() => setShowFilters(false)}
+                                responsive="lg"
+                                className="offcanvas bg-white w-100 rounded-3 shadow-lg py-1"
+                                style={{maxWidth: "22rem"}}>
+                                <Offcanvas.Header className="align-items-center shadow-sm" closeButton>
                                     <h2 className="h5 mb-0">Фильтры</h2>
-                                    <button className="btn-close ms-auto" type="button" data-bs-dismiss="offcanvas" aria-label="Закрыть"></button>
-                                </div>
-                                <div className="offcanvas-body py-grid-gutter px-lg-grid-gutter">
+                                </Offcanvas.Header>
+                                <Offcanvas.Body className="py-grid-gutter px-lg-grid-gutter">
                                     { category.children && (
                                         <div className={"widget widget-links d-none d-lg-block mb-4 pb-4" + (category.filters ? " border-bottom" : "")}>
                                             <h3 className="widget-title">Категории</h3>
@@ -141,8 +160,8 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                                                 onFilterChanged={handleFilterChanged} />
                                         </div>
                                     ))}
-                                </div>
-                            </div>
+                                </Offcanvas.Body>
+                            </Offcanvas>
                         </aside>
                     )}
                     <section className={`col-lg-${(category.children || category.filters) ? 8 : 12}`}>
@@ -218,7 +237,7 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
 
 Category.getLayout = function getLayout(page) {
     return (
-        <PageLayout title={page.props.title} dark overlapped hasSidebar={page.props.hasSidebar}>
+        <PageLayout title={page.props.title} dark overlapped>
             {page}
         </PageLayout>
     )
@@ -242,7 +261,6 @@ export async function getStaticProps(context) {
     const queryClient = new QueryClient();
     const category = await queryClient.fetchQuery(categoryKeys.detail(path), () => loadCategory(path));
 
-    const hasSidebar = category.filters;
     const pageSize = 1000; // category.categories || category.filters ? 15 : 16;
     const productFilters = [{field: 'categories', value: category.id}, ...baseFilters];
     const productOrder = category.product_order || defaultOrder;
@@ -255,7 +273,6 @@ export async function getStaticProps(context) {
             filters: productFilters,
             order: productOrder,
             path,
-            hasSidebar,
             currentPage,
             pageSize
         },
