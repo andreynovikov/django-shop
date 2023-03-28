@@ -106,7 +106,7 @@ export default function ReviewForm({product, review: reviewId}) {
                         </div>
                         <div>
                             Вы можете{' '}
-                            <a class="alert-link" onClick={() => modalRef.current.showModal()} style={{cursor:'pointer'}}>указать</a>
+                            <a className="alert-link" onClick={() => modalRef.current.showModal()} style={{cursor:'pointer'}}>указать</a>
                             {' '}псевдоним, если не хотите, чтобы отображалось Ваше реальное имя.
                         </div>
                     </div>
@@ -126,7 +126,7 @@ export default function ReviewForm({product, review: reviewId}) {
                         <div style={{display: (field.widget === 'HiddenInput' || field.name === 'honeypot') ? "none" : "initial"}} key={field.id}>
                             { field.widget !== 'HiddenInput' && (
                                 <label className="form-label" htmlFor={ field.id }>
-                                    { field.label }{ field.required && <span class="text-danger">*</span> }
+                                    { field.label }{ field.required && <span className="text-danger">*</span> }
                                 </label>
                             )}
                             { field.widget === 'HiddenInput' ? (
