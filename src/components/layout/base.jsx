@@ -4,7 +4,7 @@ import TopBar from './topbar';
 import BottomBar from './bottombar';
 import HandheldBottomBar from './handheld-bottombar';
 
-export default function BaseLayout({ title, htmlTitle, hideSignIn, hideCartNotice, contentWrapper, children, ...props }) {
+export default function BaseLayout({ title, htmlTitle, hideSignIn, hideCartNotice, hasSidebar, contentWrapper, children, ...props }) {
     return (
         <>
             <Head>
@@ -12,13 +12,15 @@ export default function BaseLayout({ title, htmlTitle, hideSignIn, hideCartNotic
                 <meta name="description" content="Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары" />
                 <meta name="keywords" content="швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов Швейный Мир, швейная, швейные, вышивальная, вышивальные, вязальная, вязальные, машинка, машина, машинки, машины, оверлок, оверлоки,  шитье, вышивка, вязание, купить, интернет, магазин, pfaff, brother, janome, bernina, husqvarna, huskystar, viking, оверлок, строчка, петля, челнок, стежок, ткань, рукав" />
             </Head>
-            <main className="page-wrapper">
-                <TopBar hideSignIn={hideSignIn} hideCartNotice={hideCartNotice} />
-                {contentWrapper({title, children, ...props})}
-            </main>
+            <div className="d-flex flex-column min-vh-100">
+                <main className="page-wrapper">
+                    <TopBar hideSignIn={hideSignIn} hideCartNotice={hideCartNotice} />
+                    {contentWrapper({title, children, ...props})}
+                </main>
 
-            <BottomBar />
-            <HandheldBottomBar />
+                <BottomBar />
+            </div>
+            <HandheldBottomBar hasSidebar={hasSidebar} />
 
             { /* Back To Top Button */ }
             <a className="btn-scroll-top" href="#top" data-scroll>
@@ -30,6 +32,8 @@ export default function BaseLayout({ title, htmlTitle, hideSignIn, hideCartNotic
 }
 
 BaseLayout.defaultProps = {
+    hideSignIn: false,
     hideCartNotice: false,
+    hasSidebar: false,
     contentWrapper: ({children}) => children
 };

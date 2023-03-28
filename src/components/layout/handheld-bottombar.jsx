@@ -5,7 +5,7 @@ import { MobileCartNotice } from '@/components/cart/notice';
 import useFavorites from '@/lib/favorites';
 import { useSession } from '@/lib/session';
 
-export default function HandheldBottomBar() {
+export default function HandheldBottomBar({hasSidebar=false}) {
     const { status } = useSession();
     const { favorites } = useFavorites();
 
@@ -16,6 +16,12 @@ export default function HandheldBottomBar() {
     return (
         <div className="handheld-toolbar">
             <div className="d-table table-layout-fixed w-100">
+                { hasSidebar && (
+                    <a class="d-table-cell handheld-toolbar-item" href="#" data-bs-toggle="offcanvas" data-bs-target="#shop-sidebar">
+                        <span class="handheld-toolbar-icon"><i className="ci-filter-alt" /></span>
+                        <span class="handheld-toolbar-label">Фильтры</span>
+                    </a>
+                )}
                 { status === 'authenticated' && (
                     <Link className="d-table-cell handheld-toolbar-item" href="/user/favorites">
                         <span className="handheld-toolbar-icon">
