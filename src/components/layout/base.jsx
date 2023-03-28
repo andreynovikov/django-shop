@@ -4,7 +4,7 @@ import TopBar from './topbar';
 import BottomBar from './bottombar';
 import HandheldBottomBar from './handheld-bottombar';
 
-export default function BaseLayout({ title, htmlTitle, hideSignIn, hideCartNotice, hasSidebar, contentWrapper, children, ...props }) {
+export default function BaseLayout({ title, htmlTitle, hideSignIn, hideCartNotice, contentWrapper, children, ...props }) {
     return (
         <>
             <Head>
@@ -20,7 +20,7 @@ export default function BaseLayout({ title, htmlTitle, hideSignIn, hideCartNotic
 
                 <BottomBar />
             </div>
-            <HandheldBottomBar hasSidebar={hasSidebar} />
+            <HandheldBottomBar />
 
             { /* Back To Top Button */ }
             <a className="btn-scroll-top" href="#top" data-scroll>
@@ -34,6 +34,5 @@ export default function BaseLayout({ title, htmlTitle, hideSignIn, hideCartNotic
 BaseLayout.defaultProps = {
     hideSignIn: false,
     hideCartNotice: false,
-    hasSidebar: false,
     contentWrapper: ({children}) => children
 };

@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from 'react-query/devtools';
 
 import { SiteProvider } from '@/lib/site';
 import { SessionProvider } from '@/lib/session';
+import { ToolbarProvider } from '@/lib/toolbar';
 import { apiClient, categoryKeys, productKeys, pageKeys } from '@/lib/queries';
 
 import 'simplebar-react/dist/simplebar.min.css';
@@ -74,8 +75,10 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
             <Hydrate state={pageProps.dehydratedState}>
                 <SiteProvider site={site}>
                     <SessionProvider session={session}>
-                        <Script id="bootstrap" src="/js/bootstrap.bundle.js" />
-                        { getLayout(<Component {...pageProps} />) }
+                        <ToolbarProvider>
+                            <Script id="bootstrap" src="/js/bootstrap.bundle.js" />
+                            { getLayout(<Component {...pageProps} />) }
+                        </ToolbarProvider>
                     </SessionProvider>
                 </SiteProvider>
                 <ReactQueryDevtools initialIsOpen={false} />
