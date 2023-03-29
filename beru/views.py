@@ -50,7 +50,7 @@ def stocks(request, account='beru'):
     for sku in data.get('skus', []):
         try:
             product = Product.objects.get(article=sku)
-            count = max(int(product.get_stock(account, integration=integration)), 0)
+            count = max(int(product.get_stock(integration=integration)), 0)
             skus.append({
                 'sku': sku,
                 'warehouseId': str(warehouseId),
@@ -90,7 +90,7 @@ def cart(request, account='beru'):
             response['cart']['items'].append({
                 'feedId': item.get('feedId', 0),
                 'offerId': sku,
-                'count': min(item.get('count', 0), max(product.get_stock(account, integration), 0)),
+                'count': min(item.get('count', 0), max(product.get_stock(integration), 0)),
                 'price': int(price.to_integral_value(rounding=decimal.ROUND_UP)),
                 'delivery': True
             })
@@ -125,13 +125,14 @@ def accept_order(request, account='beru'):
         return JsonResponse({"order": {"accepted": True, "id": str(order.id)}})
 
     user = ShopUser.objects.get(phone='0000')
+    integration = Integration.objects.filter(utm_source=account).first()
 
     if not request.session.session_key:
         request.session.save()
         request.session.modified = True
     request.session[SESSION_KEY] = user._meta.pk.value_to_string(user)
     request.session.save()
-    basket = Basket.objects.create(session_id=request.session.session_key, utm_source=account, secondary=True)
+    basket = Basket.objects.create(site=integration.site, session_id=request.session.session_key, utm_source=account, secondary=True)
 
     for beru_item in beru_order.get('items', []):
         try:
@@ -153,7 +154,6 @@ def accept_order(request, account='beru'):
     kwargs = {
         'delivery_tracking_number': order_id
     }
-    integration = Integration.objects.filter(utm_source=account).first()
     if integration.settings.get('is_taxi', False):
         kwargs['delivery'] = Order.DELIVERY_EXPRESS
 

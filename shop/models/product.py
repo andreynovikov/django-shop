@@ -35,9 +35,7 @@ class Product(models.Model):
     gtin = models.CharField('GTIN', max_length=17, blank=True, db_index=True)
     enabled = models.BooleanField('включён', default=False, db_index=True)
     title = models.CharField('название', max_length=200, db_index=True)
-    price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0, db_column=settings.SHOP_PRICE_DB_COLUMN, db_index=True)
-    if settings.SHOP_PRICE_DB_COLUMN == 'price':
-        spb_price = models.DecimalField('цена СПб, руб', max_digits=10, decimal_places=2, default=0)
+    price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0, db_index=True)
     cur_price = models.DecimalField('цена, вал', max_digits=10, decimal_places=2, default=0)
     cur_code = models.ForeignKey(Currency, verbose_name='валюта', related_name="rtprice", on_delete=models.PROTECT, default=643)
     ws_price = models.DecimalField('опт. цена, руб', max_digits=10, decimal_places=2, default=0)
@@ -61,8 +59,6 @@ class Product(models.Model):
                                      related_query_name='product', verbose_name='категории', blank=True)
     tags = TagField('теги')
     forbid_price_import = models.BooleanField('не импортировать цену', default=False)
-    if settings.SHOP_PRICE_DB_COLUMN == 'price':
-        forbid_spb_price_import = models.BooleanField('не импортировать цену СПб', default=False)
     forbid_ws_price_import = models.BooleanField('не импортировать опт. цену', default=False)
     warranty = models.CharField('гарантия', max_length=20, blank=True)
     extended_warranty = models.CharField('расширенная гарантия', max_length=20, blank=True)
@@ -73,14 +69,10 @@ class Product(models.Model):
     sales_notes = models.CharField('Yandex.Market Sales Notes', max_length=128, blank=True)
     bid = models.CharField('Ставка маркета для основной выдачи', max_length=10, blank=True)
     cbid = models.CharField('Ставка маркета для карточки модели', max_length=10, blank=True)
-    show_on_sw = models.BooleanField('витрина', default=True, db_index=True, db_column=settings.SHOP_SHOW_DB_COLUMN)
-    if settings.SHOP_SHOW_DB_COLUMN == 'show_on_sw':
-        spb_show_in_catalog = models.BooleanField('витрина СПб', default=True, db_index=True)
+    show_on_sw = models.BooleanField('витрина', default=True, db_index=True)
     gift = models.BooleanField('Годится в подарок', default=False)
     merchant = models.BooleanField('мерчант', default=False, db_index=True)
-    market = models.BooleanField('маркет', default=False, db_index=True, db_column=settings.SHOP_MARKET_DB_COLUMN)
-    if settings.SHOP_MARKET_DB_COLUMN == 'market':
-        spb_market = models.BooleanField('маркет СПб', default=False, db_index=True)
+    market = models.BooleanField('маркет', default=False, db_index=True)
     manufacturer = models.ForeignKey(Manufacturer, verbose_name="Производитель", on_delete=models.PROTECT, default=49)
     country = models.ForeignKey(Country, verbose_name="Страна производства", on_delete=models.PROTECT, default=1)
     developer_country = models.ForeignKey(Country, verbose_name="Страна разработки", on_delete=models.PROTECT, related_name="developed_product", default=1)
@@ -112,10 +104,7 @@ class Product(models.Model):
     stitches = models.TextField('Строчки', blank=True)
     complect = models.TextField('Комплектация', blank=True)
     dealertxt = models.TextField('Текст про официального дилера', blank=True)
-    num = models.IntegerField('в наличии', default=-1, db_column=settings.SHOP_STOCK_DB_COLUMN)
-    if settings.SHOP_STOCK_DB_COLUMN == 'num':
-        spb_num = models.IntegerField('в наличии СПб', default=-1)
-        ws_num = models.IntegerField('в наличии Опт', default=-1)
+    num = models.IntegerField('в наличии', default=-1)
     stock = models.ManyToManyField(Supplier, through='Stock')
     pack_factor = models.SmallIntegerField('Количество в упаковке', default=1)
     shortdescr = models.TextField('Характеристика', blank=True)
@@ -229,10 +218,7 @@ class Product(models.Model):
 
     def save(self, *args, **kwargs):
         if self.pk is None or self.constituents.count() == 0 or not self.recalculate_price:
-            if settings.SHOP_PRICE_DB_COLUMN == 'price':
-                self.price = self.cur_price * self.cur_code.rate
-                if self.spb_price == 0 or not self.forbid_spb_price_import:
-                    self.spb_price = self.price
+            self.price = self.cur_price * self.cur_code.rate
             self.ws_price = self.ws_cur_price * self.ws_cur_code.rate
             self.sp_price = self.sp_cur_price * self.sp_cur_code.rate
         else:
@@ -240,8 +226,7 @@ class Product(models.Model):
         self.image_prefix = ''.join(['images/', self.manufacturer.code, '/', self.code])
         super(Product, self).save(*args, **kwargs)
         self.update_fts_vector()
-        if settings.SHOP_PRICE_DB_COLUMN == 'price':
-            self.update_sets()
+        self.update_sets()
 
     def update_sets(self):
         product_sets = ProductSet.objects.filter(constituent=self)
@@ -249,8 +234,6 @@ class Product(models.Model):
             updated = False
             if self.num < 0:
                 product_set.declaration.num = -1
-                product_set.declaration.spb_num = -1
-                product_set.declaration.ws_num = -1
                 updated = True
             if product_set.declaration.recalculate_price:
                 product_set.declaration.update_set_price()
@@ -277,7 +260,6 @@ class Product(models.Model):
             sp_price = sp_price + item_sp_price * item.quantity
 
         self.price = price
-        self.spb_price = price
         self.ws_price = ws_price
         self.sp_price = sp_price
 
@@ -341,15 +323,11 @@ class Product(models.Model):
         super(Product, self).save()
         return self.num
 
-    def get_stock(self, which=settings.SHOP_STOCK_DB_COLUMN, integration=None, express=False):
+    def get_stock(self, integration=None, express=False):
         num = 0
         if self.constituents.count() == 0:
             if integration is not None:
                 suppliers = self.stock.filter(pk__in=integration.suppliers.all())
-            elif which == 'spb_num':
-                suppliers = self.stock.filter(spb_count_in_stock=Supplier.COUNT_STOCK)
-            elif which == 'ws_num':
-                suppliers = self.stock.filter(ws_count_in_stock=Supplier.COUNT_STOCK)
             else:
                 suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
 
@@ -361,19 +339,11 @@ class Product(models.Model):
                     stock = Stock.objects.get(product=self, supplier=supplier)
                     num = num + stock.quantity + stock.correction
 
-            # reserve 2 items for retail
-            if num > 0 and which == 'ws_num':
-                num = max(0, num - 2)
-
             if num > 0:
                 sites = [Site.objects.get(domain='www.sewing-world.ru').id]
                 sites.extend(Site.objects.filter(integration__suppliers__in=suppliers).distinct().values_list('id', flat=True))
                 if Supplier.objects.filter(count_in_stock=Supplier.COUNT_STOCK, pk__in=suppliers).count():
-                    sites.extend(Site.objects.filter(integration__isnull=True).exclude(domain__in=['spb.sewing-world.ru', 'opt.sewing-world.ru']).values_list('id', flat=True))
-                if Supplier.objects.filter(spb_count_in_stock=Supplier.COUNT_STOCK, pk__in=suppliers).count():
-                    sites.extend(Site.objects.filter(domain='spb.sewing-world.ru').values_list('id', flat=True))
-                if Supplier.objects.filter(ws_count_in_stock=Supplier.COUNT_STOCK, pk__in=suppliers).count():
-                    sites.extend(Site.objects.filter(domain='opt.sewing-world.ru').values_list('id', flat=True))
+                    sites.extend(Site.objects.filter(integration__isnull=True).values_list('id', flat=True))
                 site_addon = 'IN ({})'.format(','.join(map(str, sites)))
                 cursor = connection.cursor()
                 cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem

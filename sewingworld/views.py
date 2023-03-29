@@ -103,8 +103,9 @@ def products_stream(request, integration, template, filter_type):
 
     for product in products:
         context['product'] = product
-        if integration and not integration.output_all:
-            context['integration'] = ProductIntegration.objects.get(product=product, integration=integration)
+        if integration:
+            if not integration.output_all:
+                context['integration'] = ProductIntegration.objects.get(product=product, integration=integration)
             if integration.output_stock:
                 context['stock'] = product.get_stock(integration=integration)
         yield t.render(context, request)
@@ -135,7 +136,7 @@ def stock(request):
     }
     integration = Integration.objects.filter(utm_source='avito').first()
     products = Product.objects.filter(**filters).distinct()
-    products = map(lambda p: (p, max(int(p.get_stock('avito', integration)), 0)), products)
+    products = map(lambda p: (p, max(int(p.get_stock(integration=integration)), 0)), products)
     context = {
         'products': products
     }
