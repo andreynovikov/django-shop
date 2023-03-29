@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import Script from 'next/script';
 import { QueryClient, QueryClientProvider, Hydrate } from 'react-query';
 import { ReactQueryDevtools } from 'react-query/devtools';
 
@@ -76,7 +75,6 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
                 <SiteProvider site={site}>
                     <SessionProvider session={session}>
                         <ToolbarProvider>
-                            <Script id="bootstrap" src="/js/bootstrap.bundle.js" />
                             { getLayout(<Component {...pageProps} />) }
                         </ToolbarProvider>
                     </SessionProvider>

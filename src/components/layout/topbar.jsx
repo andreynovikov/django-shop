@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
+import Collapse from 'react-bootstrap/Collapse';
+import Dropdown from 'react-bootstrap/Dropdown';
+
 import CartNotice from '@/components/cart/notice';
 import Catalog from '@/components/catalog';
 import CompareLink from '@/components/user/compare-link';
@@ -13,7 +16,7 @@ import { useSite } from '@/lib/site';
 import { useSession } from '@/lib/session';
 import { formatPhone } from '@/lib/format';
 
-export default function TopBar({hideSignIn, hideCartNotice}) {
+export default function TopBar({hideSignIn, hideCartNotice, topMenuOpen, toggleTopMenu}) {
     const [catalogVisible, setCatalogVisible] = useState(false);
     const { site } = useSite();
     const { status } = useSession();
@@ -62,30 +65,24 @@ export default function TopBar({hideSignIn, hideCartNotice}) {
         <>
             <div className="topbar topbar-light sw-bg-light">
                 <div className="container">
-                    <div className="topbar-text dropdown d-md-none">
-                        <a className="topbar-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Useful links</a>
-                        <ul className="dropdown-menu">
+                    <Dropdown className="topbar-text d-md-none">
+                        <Dropdown.Toggle as="a" className="topbar-link">Useful links</Dropdown.Toggle>
+                        <Dropdown.Menu>
                             { site.phone && (
-                                <li>
-                                    <a className="dropdown-item" href={"tel:" + site.phone}>
-                                        <i className="ci-support text-muted me-2" />{ formatPhone(site.phone) }
-                                    </a>
-                                </li>
+                                <Dropdown.Item href={"tel:" + site.phone}>
+                                    <i className="ci-support text-muted me-2" />{ formatPhone(site.phone) }
+                                </Dropdown.Item>
                             )}
                             { comparisons.length > 0 && (
-                                <li>
-                                    <Link className="dropdown-item" href="/compare/" rel="nofollow">
-                                        <CompareLink mobile />
-                                    </Link>
-                                </li>
+                                <Dropdown.Item as={Link} href="/compare/" rel="nofollow">
+                                    <CompareLink mobile />
+                                </Dropdown.Item>
                             )}
-                            <li>
-                                <Link className="dropdown-item" href="/user/orders?track" rel="nofollow">
-                                    <i className="ci-delivery text-muted me-2" />Отслеживание заказа
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
+                            <Dropdown.Item as={Link} href="/user/orders?track" rel="nofollow">
+                                <i className="ci-delivery text-muted me-2" />Отслеживание заказа
+                            </Dropdown.Item>
+                        </Dropdown.Menu>
+                    </Dropdown>
                     <div className="d-none d-md-inline-block">
                         { site.phone && (
                             <div className="topbar-text text-nowrap">
@@ -123,7 +120,7 @@ export default function TopBar({hideSignIn, hideCartNotice}) {
                             <ProductSearchInput />
                         </div>
                         <div className="navbar-toolbar d-flex flex-shrink-0 align-items-center">
-                            <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                            <button className="navbar-toggler" type="button" onClick={toggleTopMenu}>
                                 <span className="navbar-toggler-icon"></span>
                             </button>
                             <button className="btn p-0 navbar-tool navbar-stuck-toggler" onClick={handleStuckToggler}>
@@ -147,57 +144,58 @@ export default function TopBar({hideSignIn, hideCartNotice}) {
                 </div>
                 <div className="navbar navbar-expand-lg navbar-light navbar-stuck-menu mt-n2 pt-0 pb-2" ref={stuckMenuRef}>
                     <div className="container">
-                        <div className="collapse navbar-collapse" id="navbarCollapse">
-                            <div className="d-lg-none my-3">
-                                <ProductSearchInput mobile />
-                            </div>
-                            <ul className="navbar-nav pe-lg-2 me-lg-2">
-                                <li className="nav-item bg-transparent">
-                                    <button ref={catalogButtonRef}
-                                        className="btn btn-primary w-100 fw-bold text-start text-lg-center dropdown-toggle"
-                                        onClick={() => setCatalogVisible(!catalogVisible)}>
-                                        <i className={(catalogVisible ? "ci-close" : "ci-server-alt") + " me-2"} />
-                                        Каталог
-                                    </button>
-                                    <Catalog visible={catalogVisible} setVisible={setCatalogVisible} buttonRef={catalogButtonRef} />
-                                </li>
-                            </ul>
-                            <ul className="navbar-nav">
-                                { /* <li class="nav-item"><a class="nav-link" href="{% url 'sales_actions' %}">Акции</a></li> */ }
-                                <li className="nav-item">
-                                    <Link className="nav-link" href="/pages/articles/">
-                                        Справочные материалы
-                                    </Link>
-                                </li>
-                                <li className="nav-item"><a className="nav-link" href="% url 'zinnia:entry_archive_index' %">Блог</a></li>
-                                { /*
-                                    <li className="nav-item dropdown"><a className="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Форум</a>
-                                    <ul class="dropdown-menu">
-                                    {#<li><a class="dropdown-item" href="{% url "spirit:topic:unread:index" %}">Непрочитанные темы</a></li>#}
-                                    {#<li><a class="dropdown-item" href="{% url 'spirit:topic:index-active' %}">Активные темы</a></li>#}
-                                    <li><a class="dropdown-item" href="{% url 'forum:index' %}">Архив</a></li>
-                                    </ul>
+                        <Collapse in={topMenuOpen} className="navbar-collapse">
+                            <div>
+                                <div className="d-lg-none my-3">
+                                    <ProductSearchInput mobile />
+                                </div>
+                                <ul className="navbar-nav pe-lg-2 me-lg-2">
+                                    <li className="nav-item bg-transparent">
+                                        <button ref={catalogButtonRef}
+                                                className="btn btn-primary w-100 fw-bold text-start text-lg-center dropdown-toggle"
+                                                onClick={() => setCatalogVisible(!catalogVisible)}>
+                                            <i className={(catalogVisible ? "ci-close" : "ci-server-alt") + " me-2"} />
+                                            Каталог
+                                        </button>
+                                        <Catalog visible={catalogVisible} setVisible={setCatalogVisible} buttonRef={catalogButtonRef} />
                                     </li>
-                                  */
-                                }
-                                <li className="nav-item d-md-none">
-                                    <Link className="nav-link" href="/stores/">
-                                        Магазины
-                                    </Link>
-                                </li>
-                                <li className="nav-item">
-                                    <Link className="nav-link" href="/service/">
-                                        Сервисные центры
-                                    </Link>
-                                </li>
-                                <li className="nav-item">
-                                    <Link className="nav-link" href="/pages/delivery/">
-                                        Доставка и оплата
-                                    </Link>
-                                </li>
-                            </ul>
-
-                        </div>
+                                </ul>
+                                <ul className="navbar-nav">
+                                    { /* <li class="nav-item"><a class="nav-link" href="{% url 'sales_actions' %}">Акции</a></li> */ }
+                                    <li className="nav-item">
+                                        <Link className="nav-link" href="/pages/articles/">
+                                            Справочные материалы
+                                        </Link>
+                                    </li>
+                                    <li className="nav-item"><a className="nav-link" href="% url 'zinnia:entry_archive_index' %">Блог</a></li>
+                                    { /*
+                                        <li className="nav-item dropdown"><a className="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Форум</a>
+                                        <ul class="dropdown-menu">
+                                        {#<li><a class="dropdown-item" href="{% url "spirit:topic:unread:index" %}">Непрочитанные темы</a></li>#}
+                                        {#<li><a class="dropdown-item" href="{% url 'spirit:topic:index-active' %}">Активные темы</a></li>#}
+                                        <li><a class="dropdown-item" href="{% url 'forum:index' %}">Архив</a></li>
+                                        </ul>
+                                        </li>
+                                      */
+                                    }
+                                    <li className="nav-item d-md-none">
+                                        <Link className="nav-link" href="/stores/">
+                                            Магазины
+                                        </Link>
+                                    </li>
+                                    <li className="nav-item">
+                                        <Link className="nav-link" href="/service/">
+                                            Сервисные центры
+                                        </Link>
+                                    </li>
+                                    <li className="nav-item">
+                                        <Link className="nav-link" href="/pages/delivery/">
+                                            Доставка и оплата
+                                        </Link>
+                                    </li>
+                                </ul>
+                            </div>
+                        </Collapse>
                     </div>
                 </div>
             </div>

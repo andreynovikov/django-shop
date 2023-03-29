@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useQuery } from 'react-query';
 
+import Collapse from 'react-bootstrap/Collapse';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
 
@@ -13,6 +15,8 @@ import { useSession, signOut } from '@/lib/session';
 import { orderKeys, loadOrders } from '@/lib/queries';
 
 export default function UserSidebar() {
+    const [menuOpen, setMenuOpen] = useState(false);
+
     const router = useRouter();
     const { user, status } = useSession({
         onUnauthenticated() {
@@ -65,11 +69,11 @@ export default function UserSidebar() {
                             <span className="text-accent fs-sm">{ formatPhone(user.phone) }</span>
                         </div>
                     </div>
-                    <a className="btn btn-primary d-lg-none mb-2 mt-3 mt-md-0" href="#account-menu" data-bs-toggle="collapse" aria-expanded="false">
+                    <button className="btn btn-primary d-lg-none mb-2 mt-3 mt-md-0" onClick={() => setMenuOpen(!menuOpen)}>
                         <i className="ci-menu me-2" />Личный кабинет
-                    </a>
+                    </button>
                 </div>
-                <div className="d-lg-block collapse" id="account-menu">
+                <Collapse in={menuOpen} className="d-lg-block">
                     <ul className="list-unstyled mb-0">
                         <li className="border-bottom mb-0">
                             <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (router.pathname === '/user/orders' ? " active" : "")} href="/user/orders">
@@ -94,7 +98,7 @@ export default function UserSidebar() {
                             </a>
                         </li>
                     </ul>
-                </div>
+                </Collapse>
             </div>
         </aside>
     )

@@ -6,13 +6,15 @@ import useFavorites from '@/lib/favorites';
 import { useSession } from '@/lib/session';
 import { useToolbar } from '@/lib/toolbar';
 
-export default function HandheldBottomBar() {
+export default function HandheldBottomBar({ topMenuOpen, toggleTopMenu }) {
     const { status } = useSession();
     const { favorites } = useFavorites();
     const { item } = useToolbar();
 
     const handleMenuOpen = () => {
-        window.scrollTo(0, 0);
+        if (!topMenuOpen)
+            window.scrollTo(0, 0);
+        toggleTopMenu();
     };
 
     return (
@@ -28,7 +30,7 @@ export default function HandheldBottomBar() {
                         <span className="handheld-toolbar-label">Избранное</span>
                     </Link>
                 )}
-                <a className="d-table-cell handheld-toolbar-item" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" onClick={handleMenuOpen}>
+                <a className="d-table-cell handheld-toolbar-item" onClick={handleMenuOpen}>
                     <span className="handheld-toolbar-icon"><i className="ci-menu" /></span>
                     <span className="handheld-toolbar-label">Меню</span>
                 </a>
