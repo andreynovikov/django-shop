@@ -297,9 +297,7 @@ class Supplier(models.Model):
     show_in_order = models.BooleanField('показывать в заказе', default=False, db_index=True)
     show_in_list = models.BooleanField('показывать в списках', default=False, db_index=True)
     count_in_stock = models.SmallIntegerField('учитывать в наличии', choices=COUNT_CHOICES, default=COUNT_NONE)
-    spb_count_in_stock = models.SmallIntegerField('учитывать в наличии СПб', choices=COUNT_CHOICES, default=COUNT_NONE)
-    ws_count_in_stock = models.SmallIntegerField('учитывать в наличии Опт', choices=COUNT_CHOICES, default=COUNT_NONE)
-    express_count_in_stock = models.SmallIntegerField('учитывать в наличии Эксп', choices=COUNT_CHOICES, default=COUNT_NONE)
+    express_count_in_stock = models.SmallIntegerField('учитывать в наличии Экспресс', choices=COUNT_CHOICES, default=COUNT_NONE)
     order = models.PositiveIntegerField()
 
     class Meta:

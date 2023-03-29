@@ -64,8 +64,6 @@ def order_item_saved(sender, **kwargs):
     order_item = kwargs['instance']
     if order_item.tracker.has_changed('quantity'):
         order_item.product.num = -1
-        order_item.product.spb_num = -1
-        order_item.product.ws_num = -1
         order_item.product.save()
 
 
