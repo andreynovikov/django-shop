@@ -32,11 +32,15 @@ from .user import ShopUserAdmin  # NOQA
 class CategoryAdmin(DraggableMPTTAdmin):
     search_fields = ('name', 'slug')
     prepopulated_fields = {'slug': ('name',)}
-    list_display = ('tree_actions', 'indented_title', 'slug', 'active', 'hidden')
+    list_display = ('tree_actions', 'indented_title', 'slug', 'active', 'hidden', 'products_num')
     # list_editable = ['active']
     list_display_links = ['indented_title']
     exclude = ('image_width', 'image_height', 'promo_image_width', 'promo_image_height')
     form = CategoryAdminForm
+
+    def products_num(self, obj):
+        return obj.products.all().count()
+    products_num.short_description = 'кол-во товаров'
 
 
 @admin.register(Supplier)
