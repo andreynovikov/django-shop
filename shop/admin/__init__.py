@@ -45,7 +45,7 @@ class CategoryAdmin(DraggableMPTTAdmin):
 
 @admin.register(Supplier)
 class SupplierAdmin(SortableAdminMixin, admin.ModelAdmin):
-    list_display = ['code', 'name', 'show_in_order', 'show_in_list', 'count_in_stock', 'express_count_in_stock', 'ws_count_in_stock']
+    list_display = ['code', 'name', 'show_in_order', 'show_in_list', 'count_in_stock', 'express_count_in_stock']
     list_display_links = ['name']
     search_fields = ['code', 'code1c', 'name']
 

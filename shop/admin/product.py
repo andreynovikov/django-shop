@@ -113,7 +113,7 @@ class ProductResource(resources.ModelResource):
 
     class Meta:
         model = Product
-        exclude = ('categories', 'stock', 'num', 'spb_num', 'ws_num', 'related', 'constituents', 'image_prefix')
+        exclude = ('categories', 'stock', 'num', 'related', 'constituents', 'image_prefix')
 
 
 class IntegrationsFilter(SimpleDropdownFilter):
@@ -189,10 +189,10 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     form = ProductAdminForm
     change_list_template = 'admin/shop/product/change_list.html'
     resource_class = ProductResource
-    list_display = ['product_codes', 'title', 'combined_price', 'spb_price', 'combined_discount', 'enabled', 'show_on_sw',
-                    'market', 'spb_market', 'integrations', 'product_stock', 'orders_link', 'product_link']
+    list_display = ['product_codes', 'title', 'combined_price', 'combined_discount', 'enabled', 'show_on_sw',
+                    'market', 'integrations', 'product_stock', 'orders_link', 'product_link']
     list_display_links = ['title']
-    list_editable = ['enabled', 'show_on_sw', 'market', 'spb_market']
+    list_editable = ['enabled', 'show_on_sw', 'market']
     list_filter = ['enabled', 'preorder', 'show_on_sw', IntegrationsFilter, 'market', 'isnew', 'recomended',
                    'forbid_price_import', 'cur_code', ('pct_discount', DropdownFilter), ('val_discount', DropdownFilter),
                    ('categories', RelatedDropdownFilter), ('manufacturer', RelatedDropdownFilter)]
@@ -212,10 +212,6 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         DecimalField: {'widget': TextInput(attrs={'style': 'width: 4em'})},
         FloatField: {'widget': TextInput(attrs={'style': 'width: 4em'})},
     }
-    spb_fieldset = ('С.Петербург', {
-        'classes': ('collapse',),
-        'fields': ('spb_price', 'forbid_spb_price_import', 'spb_show_in_catalog', 'spb_market')
-    })
     fieldsets = (
         ('Основное', {
             'classes': ('collapse',),
@@ -235,7 +231,6 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
             'fields': (('enabled', 'show_on_sw', 'firstpage'), 'market', ('preorder', 'isnew', 'recomended', 'gift'), 'credit_allowed', 'deshevle',
                        'sales_notes', 'present', 'delivery', 'sales_actions', 'tags')
         }),
-        spb_fieldset,
         ('Размеры', {
             'classes': ('collapse',),
             'fields': (('measure', 'pack_factor'), ('weight', 'prom_weight'), ('length', 'width', 'height'))
@@ -336,17 +331,12 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         }),
     )
 
-    def get_fieldsets(self, request, obj=None):
-        if not request.user.is_superuser and request.user.has_perm('shop.change_order_spb'):
-            self.spb_fieldset[1].pop('classes', None)
-            return (self.spb_fieldset,)
-        else:
-            return super().get_fieldsets(request, obj=obj)
-
+    """
     def get_formsets_with_inlines(self, request, obj=None):
         for inline in self.get_inline_instances(request, obj):
             if request.user.is_superuser or not request.user.has_perm('shop.change_order_spb'):
                 yield inline.get_formset(request, obj), inline
+    """
 
     def get_changelist_form(self, request, **kwargs):
         return ProductListAdminForm
@@ -386,14 +376,10 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         """
         if change:
-            obj.num = obj.get_stock('num')
-            obj.spb_num = obj.get_stock('spb_num')
-            obj.ws_num = obj.get_stock('ws_num')
+            obj.num = obj.get_stock()
         else:
         """
         obj.num = -1
-        obj.spb_num = -1
-        obj.ws_num = -1
         super().save_model(request, obj, form, change)
 
     def save_related(self, request, form, formsets, change):
