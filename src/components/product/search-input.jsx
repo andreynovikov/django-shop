@@ -51,7 +51,11 @@ export default function ProductSearchInput({ mobile }) {
                             className={"form-control pe-5 " + (mobile ? "rounded-start" : "rounded-end")}
                             name="text"
                         />
-                        { !mobile && <i className="ci-search position-absolute top-50 end-0 translate-middle-y text-muted fs-base me-3" /> }
+                        { !mobile && (
+                            <button className="btn btn-link position-absolute top-50 end-0 translate-middle-y p-0 me-3" type="submit">
+                                <i className="ci-search text-muted fs-base" />
+                            </button>
+                        )}
                     </div>
                 )}
             />
