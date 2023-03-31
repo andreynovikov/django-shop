@@ -64,7 +64,7 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
 
     const toolbarItem = useMemo(() => {
         return category.filters ? (
-            <a className="d-table-cell handheld-toolbar-item" onClick={() => setShowFilters(true)} style={{ cursor: 'pointer' }}>
+            <a className="d-table-cell handheld-toolbar-item" onClick={() => setShowFilters(true)}>
                 <span className="handheld-toolbar-icon"><i className="ci-filter-alt" /></span>
                 <span className="handheld-toolbar-label">Фильтры</span>
             </a>
@@ -185,7 +185,14 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                                     )}
                                 </div>
                             </div>
-                            { products?.totalPages > 1 && <SmallPageSelector path={path} totalPages={products.totalPages} currentPage={products.currentPage} /> }
+                            { products?.totalPages > 1 && (
+                                <SmallPageSelector
+                                    pathname={router.pathname}
+                                    query={router.query}
+                                    path={path}
+                                    totalPages={products.totalPages}
+                                    currentPage={products.currentPage} />
+                            )}
                         </div>
 
 
@@ -224,7 +231,12 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                         { products?.totalPages > 1 && (
                             <>
                                 <hr className="my-3" />
-                                <PageSelector path={path} totalPages={products.totalPages} currentPage={products.currentPage} />
+                                <PageSelector
+                                    pathname={router.pathname}
+                                    query={router.query}
+                                    path={path}
+                                    totalPages={products.totalPages}
+                                    currentPage={products.currentPage} />
                             </>
                         )}
                     </section>

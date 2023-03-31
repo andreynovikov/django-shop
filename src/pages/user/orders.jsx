@@ -123,7 +123,11 @@ export default function Orders({filter, page, track}) {
                         </table>
                     </div>
                     { orders.totalPages > 1 && (
-                        <PageSelector totalPages={orders.totalPages} currentPage={orders.currentPage} />
+                        <PageSelector
+                            pathname={router.pathname}
+                            query={router.query}
+                            totalPages={orders.totalPages}
+                            currentPage={orders.currentPage} />
                     )}
                 </>
             ) : (isLoading || isTracking) ? (

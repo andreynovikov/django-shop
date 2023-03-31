@@ -167,7 +167,11 @@ export default function TopBar({hideSignIn, hideCartNotice, topMenuOpen, toggleT
                                             Справочные материалы
                                         </Link>
                                     </li>
-                                    <li className="nav-item"><a className="nav-link" href="% url 'zinnia:entry_archive_index' %">Блог</a></li>
+                                    <li className="nav-item">
+                                        <Link className="nav-link" href="/blog/entries">
+                                            Блог
+                                        </Link>
+                                    </li>
                                     { /*
                                         <li className="nav-item dropdown"><a className="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Форум</a>
                                         <ul class="dropdown-menu">

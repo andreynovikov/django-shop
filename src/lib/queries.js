@@ -83,6 +83,14 @@ export const newsKeys = {
     lists: () => [...newsKeys.all, 'list'],
 };
 
+export const blogKeys = {
+    all: ['blog'],
+    lists: () => [...blogKeys.all, 'list'],
+    list: (page, filters) => [...blogKeys.lists(), { page, filters }],
+    details: () => [...blogKeys.all, 'detail'],
+    detail: (uri) => [...blogKeys.details(), uri],
+};
+
 export const storeKeys = {
     all: ['stores'],
     lists: () => [...storeKeys.all, 'list'],
@@ -409,6 +417,27 @@ export async function loadPage(uri) {
 
 export async function loadNews() {
     const response = await apiClient.get('news/');
+    return response.data;
+}
+
+export async function loadBlogEntries(page, filters) {
+    const url = new URL(API + 'blog/entries/');
+    if (page !== null && +page !== 1)
+        url.searchParams.set('page', page);
+    if (filters !== null)
+        for (var filter of filters)
+            if (Array.isArray(filter.value)) {
+                for (const value of filter.value)
+                    url.searchParams.append(filter.field, value);
+            } else {
+                url.searchParams.append(filter.field, filter.value);
+            }
+    const response = await apiClient.get(url);
+    return response.data;
+};
+
+export async function loadBlogEntry(uri) {
+    const response = await apiClient.get(`blog/entries/${uri.join('/')}/`);
     return response.data;
 }
 

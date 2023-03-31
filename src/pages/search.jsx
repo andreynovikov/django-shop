@@ -32,7 +32,7 @@ export default function Search({text, page}) {
 
     const toolbarItem = useMemo(() => {
         return (
-            <a className="d-table-cell handheld-toolbar-item" onClick={() => setShowFilters(true)} style={{ cursor: 'pointer' }}>
+            <a className="d-table-cell handheld-toolbar-item" onClick={() => setShowFilters(true)}>
                 <span className="handheld-toolbar-icon"><i className="ci-filter-alt" /></span>
                 <span className="handheld-toolbar-label">Фильтры</span>
             </a>
@@ -135,7 +135,13 @@ export default function Search({text, page}) {
                                     </span>
                                 )}
                             </div>
-                            { products?.totalPages > 1 &&  <SmallPageSelector totalPages={products.totalPages} currentPage={products.currentPage} /> }
+                            { products?.totalPages > 1 && (
+                                <SmallPageSelector
+                                    pathname={router.pathname}
+                                    query={router.query}
+                                    totalPages={products.totalPages}
+                                    currentPage={products.currentPage} />
+                            )}
                         </div>
 
                         <div className="row mx-n2">
@@ -154,7 +160,11 @@ export default function Search({text, page}) {
                         { products.totalPages > 1 && (
                             <>
                                 <hr className="my-3" />
-                                <PageSelector totalPages={products.totalPages} currentPage={products.currentPage} />
+                                <PageSelector
+                                    pathname={router.pathname}
+                                    query={router.query}
+                                    totalPages={products.totalPages}
+                                    currentPage={products.currentPage} />
                             </>
                         )}
                     </section>
