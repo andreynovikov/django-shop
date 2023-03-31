@@ -1,6 +1,7 @@
 {% load i18n %}
 {% load zinnia %}
-{% load spirit_tags %}
+{% load gravatar %}
+{% load time %}
           {% if continue_reading %}<!-- Entry-->{% else %}<!-- Post meta-->{% endif %}
           <article class="{% if continue_reading %}blog-list {% endif %}pb-4" id="entry-{{ object.pk }}" itemscope itemtype="http://schema.org/Article">
             <meta itemprop="wordCount" content="{{ object.word_count }}" />
