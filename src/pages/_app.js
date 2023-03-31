@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider, Hydrate } from 'react-query';
 import { ReactQueryDevtools } from 'react-query/devtools';
 
+import SSRProvider from 'react-bootstrap/SSRProvider';
+
 import { SiteProvider } from '@/lib/site';
 import { SessionProvider } from '@/lib/session';
 import { ToolbarProvider } from '@/lib/toolbar';
@@ -20,6 +22,10 @@ import 'moment/locale/ru';
 
 moment.locale('ru');
 moment.updateLocale('ru', {
+    monthsShort : {
+        format: 'янв_фев_мар_апр_мая_июн_июл_авг_сен_окт_ноя_дек'.split('_'),
+        standalone: 'янв_фев_март_апр_май_июнь_июль_авг_сен_окт_ноя_дек'.split('_')
+    },
     calendar: {
         lastWeek: function (now) {
             if (now.week() !== this.week()) {
@@ -75,7 +81,9 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
                 <SiteProvider site={site}>
                     <SessionProvider session={session}>
                         <ToolbarProvider>
-                            { getLayout(<Component {...pageProps} />) }
+                            <SSRProvider>
+                                { getLayout(<Component {...pageProps} />) }
+                            </SSRProvider>
                         </ToolbarProvider>
                     </SessionProvider>
                 </SiteProvider>
