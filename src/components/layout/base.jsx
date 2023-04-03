@@ -5,6 +5,7 @@ import Head from 'next/head';
 import TopBar from './topbar';
 import BottomBar from './bottombar';
 import HandheldBottomBar from './handheld-bottombar';
+import ScrollTopButton from './scroll-top-button';
 
 export default function BaseLayout({ title, htmlTitle, hideSignIn, hideCartNotice, contentWrapper, children, ...props }) {
     const [topMenuOpen, setTopMenuOpen] = useState(false);
@@ -37,12 +38,7 @@ export default function BaseLayout({ title, htmlTitle, hideSignIn, hideCartNotic
                 <BottomBar />
             </div>
             <HandheldBottomBar topMenuOpen={topMenuOpen} toggleTopMenu={() => setTopMenuOpen((open) => !open)} />
-
-            { /* Back To Top Button */ }
-            <a className="btn-scroll-top" href="#top" data-scroll>
-                <span className="btn-scroll-top-tooltip text-muted fs-sm me-2">Начало</span>
-                <i className="btn-scroll-top-icon ci-arrow-up">   </i>
-            </a>
+            <ScrollTopButton />
         </>
     )
 }

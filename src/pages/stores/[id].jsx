@@ -27,6 +27,17 @@ export default function Store({ id }) {
         return () => myMap.destroy();
     }, [ymapsReady, isSuccess]); //eslint-disable-line react-hooks/exhaustive-deps
 
+    const handleScroll = (event) => {
+        event.preventDefault();
+        const hash = event.currentTarget.hash;
+        const el = document.getElementById(hash.substring(1));
+        if (el !== undefined)
+            el.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            })
+    };
+
     const setupYMaps = () => {
         ymaps.ready(function() {
             setYMapsReady(true);
@@ -46,7 +57,7 @@ export default function Store({ id }) {
             <section className="container-fluid">
                 <div className="row">
                     <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-                        <a className="card" href="#map" data-scroll>
+                        <a className="card" href="#map" onClick={handleScroll}>
                             <div className="card-body text-center">
                                 <i className="ci-location h3 mt-2 mb-4 text-primary" />
                                 <h3 className="h6 mb-3">Адрес</h3>
@@ -162,5 +173,5 @@ export async function getStaticPaths() {
     const paths = stores.filter(store => store.logo === 'sewingworld').map((store) => ({
         params: { id: store.id.toString() },
     }));
-    return { paths, fallback: false }
+    return { paths, fallback: 'blocking' }
 }
