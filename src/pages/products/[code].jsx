@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
@@ -553,9 +553,9 @@ export default function Product({code}) {
                                                 <span className="d-block border-bottom">
                                                     <span>
                                                         Диапазон прошиваемых материалов{" "}
-                                                        <a className="opener-html" href="/blog/H/">
+                                                        <Link href="/blog/H/">
                                                             <i className="ci-message fs-ms text-muted" />
-                                                        </a>
+                                                        </Link>
                                                     </span>
                                                 </span>
                                             </span>
