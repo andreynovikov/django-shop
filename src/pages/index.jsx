@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import BaseLayout from '@/components/layout/base';
 import ProductCard from '@/components/product/card';
+import TopCategoriesCard from '@/components/top-categories-card';
 
 import { productKeys, loadProducts } from '@/lib/queries';
 import useCatalog from '@/lib/catalog';
@@ -53,48 +54,7 @@ export default function Index() {
                 <section className="container position-relative pt-3 pt-lg-0 pb-5 mt-n10" style={{zIndex: 10}}>
                     <div className="row">
                         <div className="col-10 offset-1">
-                            <div className="card border-0 box-shadow-lg">
-                                <div className="card-body px-3 pb-0">
-                                    <div className="row g-0 justify-content-center">
-                                        <div className="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
-                                            <Link href="/catalog/sewing_machines/">
-                                                <img src="/i/categories/compsewing.svg" alt="Швейные машины" height="75" width="75" />
-                                                <div>Швейные машины</div>
-                                            </Link>
-                                        </div>
-                                        <div className="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
-                                            <Link href="/catalog/embroidery_machines/">
-                                                <img src="/i/categories/embroidery.svg" alt="Швейно-вышивальные машины" height="75" width="94" />
-                                                <div>Вышивальные машины</div>
-                                            </Link>
-                                        </div>
-                                        <div className="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
-                                            <Link href="/catalog/sergers/">
-                                                <img src="/i/categories/overlock.svg" alt="Оверлоки, коверлоки и распошивальные машины" height="75" width="75" />
-                                                <div>Оверлоки и коверлоки</div>
-                                            </Link>
-                                        </div>
-                                        <div className="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
-                                            <Link href="/catalog/knitting_machines/">
-                                                <img src="/i/categories/knitting.svg" alt="Вязальные машины" height="75" width="94" />
-                                                <div>Вязальные машины</div>
-                                            </Link>
-                                        </div>
-                                        <div className="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
-                                            <Link href="/catalog/accessories/">
-                                                <img src="/i/categories/accessories.svg" alt="Аксессуары" height="75" width="75" />
-                                                <div>Аксессуары</div>
-                                            </Link>
-                                        </div>
-                                        <div className="col-6 col-md-4 col-lg-2 mb-grid-gutter text-center">
-                                            <Link href="/catalog/accessories/threads/">
-                                                <img src="/i/categories/threads.svg" alt="Нитки" height="75" width="75" />
-                                                <div>Нитки</div>
-                                            </Link>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <TopCategoriesCard />
                         </div>
                     </div>
                 </section>
