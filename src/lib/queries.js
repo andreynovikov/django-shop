@@ -89,6 +89,9 @@ export const blogKeys = {
     list: (page, filters) => [...blogKeys.lists(), { page, filters }],
     details: () => [...blogKeys.all, 'detail'],
     detail: (uri) => [...blogKeys.details(), uri],
+    tags: () => [...blogKeys.lists(), 'tags'],
+    categories: () => [...blogKeys.lists(), 'categories'],
+    category: (slug) => [...blogKeys.categories(), slug],
 };
 
 export const storeKeys = {
@@ -417,6 +420,21 @@ export async function loadPage(uri) {
 
 export async function loadNews() {
     const response = await apiClient.get('news/');
+    return response.data;
+}
+
+export async function loadBlogTags() {
+    const response = await apiClient.get('blog/tags/');
+    return response.data;
+}
+
+export async function loadBlogCategories() {
+    const response = await apiClient.get('blog/categories/');
+    return response.data;
+}
+
+export async function loadBlogCategory(slug) {
+    const response = await apiClient.get(`blog/categories/${slug}/`);
     return response.data;
 }
 

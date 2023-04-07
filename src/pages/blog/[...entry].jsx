@@ -49,8 +49,10 @@ export default function BlogEntry({entry}) {
                     <div dangerouslySetInnerHTML={{__html: entry?.content }}></div>
                     <div className="d-flex flex-wrap justify-content-between pt-2 pb-4 mb-1">
                         <div class="mt-3 me-3">
-                            {entry.tags.map((tag) => (
-                                <a className="btn-tag me-2 mb-2" href="#" key={tag}>#{ tag }</a>
+                            {entry.tags && entry.tags.map((tag) => (
+                                <Link className="btn-tag me-2 mb-2" href={{ pathname: '/blog/tags/[tag]', query: { tag }}} key={tag}>
+                                    #{ tag }
+                                </Link>
                             ))}
                         </div>
                     </div>

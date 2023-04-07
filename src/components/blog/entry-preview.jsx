@@ -1,6 +1,8 @@
+import { Fragment } from 'react';
 import Link from 'next/link';
 
 import BlogEntryAuthor from '@/components/blog/entry-author';
+import BlogCategoryLink from '@/components/blog/category-link';
 
 export default function BlogEntryPreview({entry, last}) {
     const previewContent = () => {
@@ -21,16 +23,20 @@ export default function BlogEntryPreview({entry, last}) {
             </div>
             <div className="blog-end-column">
                 { /* <a className="blog-entry-thumb mb-3" href="blog-single.html"><img src="img/blog/02.jpg" alt="Post" /></a> */ }
-                <div className="d-flex justify-content-between mb-1">
+                <div className="d-flex align-items-baseline justify-content-between mb-1">
                     <div className="fs-sm text-muted pe-2 mb-2">
-                        in{' '}
-                        <a href='#' className='blog-entry-meta-link'>Shopping</a>
-                        ,{' '}
-                        <a href='#' className='blog-entry-meta-link'>Personal finance</a>
+                        {entry.categories && entry.categories.map((id, index) => (
+                            <Fragment key={id}>
+                                { index > 0 && ', ' }
+                                <BlogCategoryLink id={id} />
+                            </Fragment>
+                        ))}
                     </div>
                     <div className="font-size-sm mb-2">
-                        {entry.tags.map((tag) => (
-                            <a className="btn-tag ms-2" href="#" key={tag}>#{ tag }</a>
+                        {entry.tags && entry.tags.map((tag) => (
+                            <Link className="btn-tag ms-2" href={{ pathname: '/blog/tags/[tag]', query: { tag }}} key={tag}>
+                                #{ tag }
+                            </Link>
                         ))}
                     </div>
                 </div>

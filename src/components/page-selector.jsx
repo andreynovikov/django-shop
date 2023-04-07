@@ -1,24 +1,33 @@
 import { Fragment, useMemo } from 'react';
 import Link from 'next/link';
 
-const getQuery = (page, query, path) => {
+/*
+  pathname  - dynamic route path with parameters, e.g.:
+                "/blog/tags/[tag]/[page]"
+              usually {router.pathname}
+  path      - current base path if [...path] is uses as dynamic route or {[]} if custom path is used, otherwise page number will be put in query string
+  pathExtra - {{...}} dictionary of extra path parameters if not only page number is dynamic
+  query     - {router.query} if query string params are used
+*/
+
+const getQuery = (page, query, path, pathExtra) => {
     if (path !== undefined)
-        return path.length > 0 ? { path: [...path, page] } : { page }; // put page number in path
+        return path.length > 0 ? { path: [...path, page] } : { ...pathExtra, page }; // put page number in path
     else
         return { ...query, page }; // put page number in query string
 };
 
-export function SmallPageSelector({pathname, query, path, totalPages, currentPage}) {
+export function SmallPageSelector({pathname, query, path, pathExtra, totalPages, currentPage}) {
     return (
         <div className="d-flex pb-3">
             { currentPage > 1 && (
-                <Link className="nav-link-style nav-link-light me-3" href={{ pathname, query: getQuery(currentPage - 1, query, path) }}>
+                <Link className="nav-link-style nav-link-light me-3" href={{ pathname, query: getQuery(currentPage - 1, query, path, pathExtra) }}>
                     <i className="ci-arrow-left" />
                 </Link>
             )}
             <span className="fs-md text-light">{ currentPage } / { totalPages }</span>
             { currentPage < totalPages && (
-                <Link className="nav-link-style nav-link-light ms-3" href={{ pathname, query: getQuery(currentPage + 1, query, path) }}>
+                <Link className="nav-link-style nav-link-light ms-3" href={{ pathname, query: getQuery(currentPage + 1, query, path, pathExtra) }}>
                     <i className="ci-arrow-right" />
                 </Link>
             )}
@@ -26,7 +35,7 @@ export function SmallPageSelector({pathname, query, path, totalPages, currentPag
     );
 }
 
-export default function PageSelector({pathname, query, path, totalPages, currentPage}) {
+export default function PageSelector({pathname, query, path, pathExtra, totalPages, currentPage}) {
     const {minPage, maxPage} = useMemo(() => {
         // количество переключателей страниц лимитировано дизайном
         const pageRange = currentPage > 1 && currentPage < totalPages ? 7 : 10;
@@ -44,7 +53,7 @@ export default function PageSelector({pathname, query, path, totalPages, current
             { currentPage > 1 && (
                 <ul className="pagination">
                     <li className="page-item">
-                        <Link className="page-link" href={{ pathname, query: getQuery(currentPage - 1, query, path) }}>
+                        <Link className="page-link" href={{ pathname, query: getQuery(currentPage - 1, query, path, pathExtra) }}>
                             <i className="ci-arrow-left me-2" />
                             Пред<span className="d-none d-sm-inline d-md-none d-xl-inline">ыдущая</span>
                         </Link>
@@ -66,7 +75,7 @@ export default function PageSelector({pathname, query, path, totalPages, current
                                 <li className="page-item d-none d-md-block">&hellip;</li>
                             )}
                             <li className="page-item d-none d-sm-block">
-                                <Link className="page-link" href={{ pathname, query: getQuery(page, query, path) }}>
+                                <Link className="page-link" href={{ pathname, query: getQuery(page, query, path, pathExtra) }}>
                                     { page }
                                 </Link>
                             </li>
@@ -80,7 +89,7 @@ export default function PageSelector({pathname, query, path, totalPages, current
             { currentPage < totalPages && (
                 <ul className="pagination">
                     <li className="page-item">
-                        <Link className="page-link" href={{ pathname, query: getQuery(currentPage + 1, query, path) }}>
+                        <Link className="page-link" href={{ pathname, query: getQuery(currentPage + 1, query, path, pathExtra) }}>
                             След<span className="d-none d-sm-inline d-md-none d-xl-inline">ующая</span>
                             <i className="ci-arrow-right ms-2" />
                         </Link>
