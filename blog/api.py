@@ -1,6 +1,7 @@
 import datetime
 
 from django.conf import settings
+from django.db.models import Count
 from django.utils import timezone
 
 from rest_framework import views, viewsets, filters, status
@@ -10,12 +11,15 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Entry
-from .serializers import EntrySerializer, EntryListSerializer
+from tagging.models import Tag, TaggedItem
+from tagging.utils import get_tag
+
+from .models import Entry, Category
+from .serializers import EntrySerializer, EntryListSerializer, TagListSerializer, CategorySerializer
 
 
 class StandardResultsSetPagination(PageNumberPagination):
-    page_size = 20
+    page_size = 10
     page_size_query_param = 'page_size'
     max_page_size = 100
 
@@ -34,6 +38,7 @@ class StandardResultsSetPagination(PageNumberPagination):
 class EntryViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_value_regex = '.*'
     pagination_class = StandardResultsSetPagination
+    filtering_fields = [f.name for f in Entry._meta.get_fields()]
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -41,7 +46,22 @@ class EntryViewSet(viewsets.ReadOnlyModelViewSet):
         return EntrySerializer
 
     def get_queryset(self):
-        return Entry.objects.filter(sites=self.request.site, status=Entry.PUBLISHED)
+        queryset = Entry.objects.filter(sites=self.request.site, status=Entry.PUBLISHED)
+
+        for field, values in self.request.query_params.lists():
+            base_field = field.split('__', 1)[0]
+            if base_field not in self.filtering_fields:
+                continue
+
+            if field == 'tags':
+                tag = get_tag(values[0])
+                if tag is None:
+                    pass  # TODO: deside what to do in this case
+                queryset = TaggedItem.objects.get_by_model(queryset, tag)
+            elif field == 'categories':
+                queryset = queryset.filter(categories__in=values)
+
+        return queryset
 
     def get_object(self):
         key = self.kwargs.get(self.lookup_field)
@@ -68,3 +88,32 @@ class EntryViewSet(viewsets.ReadOnlyModelViewSet):
         if settings.USE_TZ:
             value = timezone.make_aware(value)
         return value
+
+
+class TagViewSet(viewsets.ReadOnlyModelViewSet):
+    lookup_value_regex = '.*'
+
+    def get_serializer_class(self):
+        return TagListSerializer
+
+    def get_queryset(self):
+        queryset = Entry.objects.filter(sites=self.request.site, status=Entry.PUBLISHED)
+        return Tag.objects.usage_for_queryset(queryset, counts=True)
+
+
+class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    lookup_value_regex = '.*'
+
+    def get_serializer_class(self):
+        return CategorySerializer
+
+    def get_queryset(self):
+        return Category.objects.filter(entries__sites=self.request.site, entries__status=Entry.PUBLISHED).annotate(count=Count('entries'))
+
+    def get_object(self):
+        key = self.kwargs.get(self.lookup_field)
+        if not key.isdigit():
+            instance = self.get_queryset().filter(slug=key).first()
+            if instance is not None:
+                self.kwargs[self.lookup_field] = instance.pk
+        return super().get_object()

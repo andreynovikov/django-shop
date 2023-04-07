@@ -4,9 +4,11 @@ from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
 
+from tagging.utils import parse_tag_input
+
 from sewingworld.serializers import UserListSerializer
 
-from .models import Entry
+from .models import Entry, Category
 
 
 class NonNullModelSerializer(serializers.ModelSerializer):
@@ -30,7 +32,7 @@ class BaseEntrySerializer(NonNullModelSerializer):
         }
 
     def get_tags(self, obj):
-        return obj.tags.split(',')
+        return parse_tag_input(obj.tags)
 
 
 class EntryNavSerializer(BaseEntrySerializer):
@@ -81,3 +83,16 @@ class EntrySerializer(BaseEntrySerializer):
             'previous': _previous,
             'next': _next
         }
+
+
+class TagListSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    count = serializers.IntegerField()
+
+
+class CategorySerializer(NonNullModelSerializer):
+    count = serializers.IntegerField()
+
+    class Meta:
+        model = Category
+        exclude = ('description',)
