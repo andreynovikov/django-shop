@@ -1,0 +1,26 @@
+version: "3"
+name: family
+services:
+  app:
+    container_name: nextjs-family
+    image: family
+    build:
+      context: ./
+      target: runner
+      args:
+        entity: family
+      tags:
+        - family
+    volumes:
+      - ./.docker/:/app/.docker/
+    network_mode: bridge
+    ports:
+      - "127.0.0.1:4101:3000/tcp"
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+    logging:
+      driver: syslog
+      options:
+        syslog-address: unixgram:///run/systemd/journal/dev-log
+        tag: "{{.Name}}/{{.ID}}"

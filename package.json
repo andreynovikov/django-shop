@@ -1,10 +1,13 @@
 {
+    "name": "family",
+    "version": "2023.04.10",
     "scripts": {
         "dev": "next dev -H 127.0.0.1 -p 3001",
         "start": "next start -H 127.0.0.1 -p 4001",
         "lint": "next lint",
         "build": "next build",
-        "deploy": "sudo rsync -av --no-links --delete --delete-delay --chown=www-data:www-data .next-build/static .next-build/standalone/. public deploy"
+        "docker-build": "sudo docker compose build && sudo docker tag family family:$npm_package_version",
+        "docker-deploy": "sudo docker compose up -d"
     },
     "dependencies": {
         "@fortawesome/fontawesome-svg-core": "^6.2.1",
