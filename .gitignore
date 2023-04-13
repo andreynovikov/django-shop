@@ -1,9 +1,8 @@
 .env*
-.next*/
+.next/
+.docker/
 node_modules/
 
-deploy/
 logs/
-media/
 
 *~

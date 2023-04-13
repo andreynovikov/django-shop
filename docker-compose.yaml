@@ -1,0 +1,26 @@
+version: "3"
+name: janome
+services:
+  app:
+    container_name: nextjs-janome
+    image: janome
+    build:
+      context: ./
+      target: runner
+      args:
+        entity: janome
+      tags:
+        - janome
+    volumes:
+      - ./.docker/:/app/.docker/
+    network_mode: bridge
+    ports:
+      - "127.0.0.1:4103:3000/tcp"
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+    logging:
+      driver: syslog
+      options:
+        syslog-address: unixgram:///run/systemd/journal/dev-log
+        tag: "{{.Name}}/{{.ID}}"
