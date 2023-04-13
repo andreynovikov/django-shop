@@ -1,11 +1,13 @@
 {
-    "version": "2.12.06",
+    "name": "singer",
+    "version": "2023.03.27",
     "scripts": {
         "dev": "next dev -H 127.0.0.1 -p 3002",
         "start": "next start -H 127.0.0.1 -p 4002",
         "lint": "next lint",
         "build": "next build",
-        "deploy": "sudo rsync -av --no-links --delete --delete-delay --chown=www-data:www-data .next-build/static .next-build/standalone/. public deploy"
+        "docker-build": "sudo docker compose build && sudo docker tag singer singer:$npm_package_version",
+        "docker-deploy": "sudo docker compose up -d"
     },
     "dependencies": {
         "@fortawesome/fontawesome-svg-core": "^6.2.1",
@@ -13,8 +15,9 @@
         "@fortawesome/free-solid-svg-icons": "^6.2.1",
         "@fortawesome/react-fontawesome": "^0.2.0",
         "@popperjs/core": "^2.11.6",
-        "axios": "^1.2.0",
+        "axios": "^1.2.2",
         "bootstrap": "^5.2.3",
+        "dangerously-set-html-content": "^1.0.13",
         "glightbox": "^3.2.0",
         "moment": "^2.29.4",
         "next": "^13.0.5",
