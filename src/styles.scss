@@ -1,0 +1,135 @@
+@import "~bootstrap/scss/functions";
+
+$min-contrast-ratio: 3.4; // adjusted to have white text in success buttons
+
+$primary: #337ab7;
+$success: #10A04E;
+
+$border-color: #ddd;
+$border-color-translucent: rgba(0, 0, 0, .1);
+$table-border-color: $border-color;
+
+$font-size-base: 0.95rem;
+
+$navbar-nav-link-padding-x: .8rem;
+
+@import "~bootstrap/scss/variables";
+@import "~bootstrap/scss/bootstrap";
+
+.fs-base {
+    font-size: $font-size-base !important;
+}
+
+.fs-xs {
+    font-size: $font-size-sm * 0.9 !important;
+}
+
+.fs-sm {
+    font-size: $font-size-sm !important;
+}
+
+.fs-md {
+    font-size: $font-size-base * 1.15 !important;
+}
+
+.fs-lg {
+    font-size: $font-size-lg !important;
+}
+
+.navbar .nav-link {
+    font-weight: bold;
+}
+
+.product-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 255px);
+    justify-content: space-between;
+    gap: 5px;
+
+    @include media-breakpoint-up(md) {
+        grid-template-columns: repeat(auto-fill, 228px);
+    }
+
+    @include media-breakpoint-up(lg) {
+        grid-template-columns: repeat(auto-fill, 230px);
+    }
+
+    @include media-breakpoint-up(xl) {
+        grid-template-columns: repeat(auto-fill, 275px);
+    }
+
+    @include media-breakpoint-up(xxl) {
+        grid-template-columns: repeat(auto-fill, 255px);
+    }
+
+    @include media-breakpoint-down(sm) {
+        grid-template-columns: 100%;
+    }
+}
+
+.sw-p-l {
+    width: 255px;
+
+    @include media-breakpoint-up(md) {
+        width: 228px;
+    }
+
+    @include media-breakpoint-up(lg) {
+        width: 230px;
+    }
+
+    @include media-breakpoint-up(xl) {
+        width: 275px;
+    }
+
+    @include media-breakpoint-up(xxl) {
+        width: 255px;
+    }
+
+    @include media-breakpoint-down(sm) {
+        width: 100%;
+        margin: $spacer * 0.2 0;
+    }
+
+    .card-body {
+        padding: $spacer * .5;
+
+        .sw-p-l-name {
+            padding-top: $spacer;
+            position: relative;
+
+            .sw-p-l-action {
+                position: absolute;
+                top: -$spacer;
+
+                .label {
+                    opacity: .9;
+                    padding-left: 1px;
+                }
+            }
+
+            h3.sw-p-l-name-h {
+                font-weight: 700;
+                font-size: $font-size-base;
+
+                a {
+                    color: #000;
+                    text-decoration: none;
+                }
+            }
+
+            p {
+                margin-bottom: 0;
+            }
+        }
+
+        .sw-p-l-brif {
+            color: #555;
+        }
+    }
+}
+
+.product-nal-false {
+    color: #aaa;
+    font-weight: 700;
+}

@@ -1,8 +1,8 @@
-env/
+.env*
+.next/
+.docker/
+node_modules/
+
 logs/
-__pycache__/
+
 *~
-*.pyc
-settings_local.py
-media/images/
-static/
