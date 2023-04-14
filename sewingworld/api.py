@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.core.mail import mail_admins
-from django.db.models import F
+from django.db.models import F, Q
 from django.http import HttpResponseRedirect
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -13,7 +13,7 @@ from django.utils.decorators import method_decorator
 
 from rest_framework import views, viewsets, filters, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.exceptions import MethodNotAllowed, NotFound
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
@@ -40,6 +40,8 @@ from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSeri
 
 
 logger = logging.getLogger("django")
+
+translation = str.maketrans(dict(zip("qwertyuiop[]asdfghjkl;'zxcvbnm,.`", "йцукенгшщзхъфывапролджэячсмитьбюё")))
 
 
 def ensure_session(request):
@@ -164,8 +166,13 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             if field == 'id':
                 queryset = queryset.filter(pk__in=values)
             elif field == 'text':  # full text search
+                original = values[0]
+                translated = original.translate(translation)
                 language = 'russian'
-                search_query = SearchQuery(values[0], config=language)
+                search_query = SearchQuery(original, config=language)
+                if original != translated:  # TODO: split into words
+                    search_query = search_query | SearchQuery(translated, config=language)
+                logger.error(str(search_query))
                 search_rank = SearchRank(F('fts_vector'), search_query, weights=[0.1, 0.2, 0.4, 1.0])
                 queryset = queryset.annotate(
                     rank=search_rank
@@ -184,7 +191,11 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                 queryset = queryset.filter(**{key: int(values[0])})
             elif field == 'title':
                 key = '{}__icontains'.format(field)
-                queryset = queryset.filter(**{key: values[0]})
+                translated = values[0].translate(translation)  # TODO: split into words
+                filter = Q(**{key: values[0]})
+                if values[0] != translated:
+                    filter = filter | Q(**{key: translated})
+                queryset = queryset.filter(filter)
             elif field == 'instock':
                 if int(values[0]) > 0:
                     queryset = queryset.filter(num__gt=0)
@@ -255,6 +266,8 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True)
     def bycode(self, request, pk=None):
         product = self.get_queryset().filter(code=pk).first()
+        if product == None:
+            raise NotFound()
         return Response(self.get_serializer(product, context=self.get_serializer_context()).data)
 
     @action(detail=True)
