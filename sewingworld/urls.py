@@ -117,10 +117,10 @@ urlpatterns = [
 
     url(r'^sber/', include('sber.urls')),
     url(r'^kassa/', include('yandex_kassa.urls')),
-    url(r'^blog/', include('zinnia.urls')),
     url(r'^comments/', include('django_comments.urls')),
     url(r'^reviews/', include('reviews.urls')),
     url(r'^oldforum/', include('forum.urls')),
+    path('blog/', include('blog.urls')),
 
     path('admin/', include('massadmin.urls')),
     path('admin/', include('loginas.urls')),

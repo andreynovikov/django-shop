@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from rest_framework import views, viewsets, filters, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.exceptions import MethodNotAllowed, NotFound
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
@@ -65,7 +65,7 @@ class EntryViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_object(self):
         key = self.kwargs.get(self.lookup_field)
-        if not key.isdigit():
+        if '/' in key:
             try:
                 year, month, day, slug = key.split('/')
                 date = datetime.datetime.strptime('{}__{}__{}'.format(year,month,day), '%Y__%m__%d').date()
@@ -77,10 +77,16 @@ class EntryViewSet(viewsets.ReadOnlyModelViewSet):
                     "slug": slug
                 }
                 instance = self.get_queryset().filter(**lookup_kwargs).first()
-                if instance is not None:
-                    self.kwargs[self.lookup_field] = instance.pk
+                if instance is None:
+                    raise NotFound()
+                self.kwargs[self.lookup_field] = instance.pk
             except (IndexError, ValueError) as e:
                 pass  # let DRF issue the error
+        else:
+            instance = self.get_queryset().filter(pk=int(key, 36)).first()
+            if instance is None:
+                raise NotFound()
+            self.kwargs[self.lookup_field] = instance.pk
         return super().get_object()
 
     def _make_date_lookup_arg(self, value):

@@ -48,7 +48,7 @@ export default function BlogEntry({entry}) {
                     </div>
                     <div dangerouslySetInnerHTML={{__html: entry?.content }}></div>
                     <div className="d-flex flex-wrap justify-content-between pt-2 pb-4 mb-1">
-                        <div class="mt-3 me-3">
+                        <div className="mt-3 me-3">
                             {entry.tags && entry.tags.map((tag) => (
                                 <Link className="btn-tag me-2 mb-2" href={{ pathname: '/blog/tags/[tag]', query: { tag }}} key={tag}>
                                     #{ tag }
@@ -97,6 +97,13 @@ export async function getStaticProps(context) {
 
     const queryClient = new QueryClient();
     const entry = await queryClient.fetchQuery(blogKeys.detail(uri), () => loadBlogEntry(uri));
+    if (uri.length === 1 && entry?.id)
+        return {
+            redirect: {
+                destination: entry.urls.canonical,
+                permanent: false,
+            },
+        }
 
     return {
         props: {
