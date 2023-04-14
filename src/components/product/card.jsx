@@ -19,11 +19,8 @@ export default function ProductCard({product, limitedBadges}) {
     const { addItem } = useBasket();
     const { favorites, favoritize, unfavoritize } = useFavorites();
 
-    const handlePrimaryClick = () => {
-        if (product.variations) {
-        } else {
-            addItem(product.id);
-        }
+    const handleCartClick = () => {
+        addItem(product.id);
     };
 
     const handleFavoritesClick = () => {
@@ -34,6 +31,8 @@ export default function ProductCard({product, limitedBadges}) {
                 favoritize(product.id);
         }
     }
+
+    const productLink = product.variations ? product.variations : { pathname: '/products/[code]', query: { code: product.code }};
 
     return (
         <div ref={cardRef} className="card product-card">
@@ -63,7 +62,7 @@ export default function ProductCard({product, limitedBadges}) {
                     <i className="ci-heart" />
                 </button>
             </OverlayTrigger>
-            <Link className="d-block mx-auto pt-3 overflow-hidden" href={{ pathname: '/products/[code]', query: { code: product.code }}}>
+            <Link className="d-block mx-auto pt-3 overflow-hidden" href={productLink}>
                 { product.thumbnail ? (
                     <img
                         src={product.thumbnail.url}
@@ -75,17 +74,20 @@ export default function ProductCard({product, limitedBadges}) {
                 )}
             </Link>
             <div className="card-body py-2">
-                <Link className="product-meta d-block fs-xs pb-1" href={{ pathname: '/products/[code]', query: { code: product.code }}}>
+                <Link className="product-meta d-block fs-xs pb-1" href={productLink}>
                     { product.whatis } { product.partnumber }
                 </Link>
                 <h3 className="product-title fs-sm">
-                    <Link href={{ pathname: '/products/[code]', query: { code: product.code }}}>
+                    <Link href={productLink}>
                         { product.title }
                     </Link>
                 </h3>
                 <div className="d-flex justify-content-between">
-                    <div className="product-price text-accent"><ProductPrice product={product} /></div>
-                    { /*
+                    <div className="product-price text-accent">
+                        { product.variations && "от " }
+                        <ProductPrice product={product} />
+                    </div>
+                    { /* TODO
                     <div className="star-rating">
                         <i className="star-rating-icon ci-star-filled active"></i>
                         <i className="star-rating-icon ci-star-filled active"></i>
@@ -101,10 +103,14 @@ export default function ProductCard({product, limitedBadges}) {
                 { product.shortdescr && <div className="fs-ms pb-2" dangerouslySetInnerHTML={{__html: product.shortdescr }}></div> }
                 { product.sales_notes && <div className="fs-ms text-info pb-2">{ product.sales_notes }</div> }
                 <div className="d-flex mb-2">
-                    { product.enabled && product.instock ? (
-                        <button className="btn btn-primary btn-sm d-block w-100" type="button" onClick={handlePrimaryClick}>
+                    { product.variations ? (
+                        <Link className="btn btn-primary btn-sm d-block w-100" href={product.variations}>
+                            Выбрать
+                        </Link>
+                    ) : product.enabled && product.instock ? (
+                        <button className="btn btn-primary btn-sm d-block w-100" type="button" onClick={handleCartClick}>
                             <i className="ci-cart fs-sm me-1" />
-                            { product.variations ? "Выбрать" : "Купить" }
+                            Купить
                         </button>
                     ) : (
                         <Link className="btn btn-secondary btn-sm d-block w-100" href={{ pathname: '/products/[code]', query: { code: product.code }}}>

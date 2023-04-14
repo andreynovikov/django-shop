@@ -93,6 +93,7 @@ function prettify(field, value) {
 function rebootstrap(value) {
     if (typeof value !== 'string')
         return value;
+    value = value.replaceAll('col-md-4', 'col-md-2');
     value = value.replaceAll('col-md-8', 'col-md-4');
     value = value.replaceAll('col-md-10', 'col-md-5');
     value = value.replaceAll('col-md-12', 'col-md-6');
@@ -190,11 +191,8 @@ export default function Product({code}) {
     });
 
     const handleCartClick = () => {
-        if (product.variations) {
-        } else {
-            // TODO: {% if utm_source %}?utm_source={{ utm_source }}{% endif %}
-            addItem(product.id, quantity);
-        }
+        // TODO: {% if utm_source %}?utm_source={{ utm_source }}{% endif %}
+        addItem(product.id, quantity);
     };
 
     const handleFavoritesClick = () => {
