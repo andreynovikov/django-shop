@@ -85,6 +85,11 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
     }
 }
 
+.gallery-item > img { // We have extremely vertical images that heavily zoom with preset settings
+    width: unset !important;
+    margin: auto;
+}
+
 @include media-breakpoint-up(lg) {
     .offcanvas-lg { // Collapse off-canvas down from lg breakpoint
         display: block;
