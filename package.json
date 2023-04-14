@@ -1,16 +1,21 @@
 {
-    "version": "3.01.23",
+    "name": "sworld",
+    "version": "2023.04.14",
     "scripts": {
         "dev": "next dev -H 127.0.0.1 -p 3004",
         "start": "next start -H 127.0.0.1 -p 4004",
         "lint": "next lint",
-        "build": "next build"
+        "build": "next build",
+        "docker-build": "sudo docker compose build && sudo docker tag sworld sworld:$npm_package_version",
+        "docker-deploy": "sudo docker compose up -d",
+        "vars": "printenv | grep npm"
     },
     "dependencies": {
         "@popperjs/core": "^2.11.6",
         "axios": "^1.2.2",
         "gana": "^1.1.1",
         "glightbox": "^3.2.0",
+        "lodash": "^4.17.21",
         "moment": "^2.29.4",
         "next": "^13.1.4",
         "react": "^18.2.0",
@@ -27,7 +32,6 @@
         "eslint": "^8.25.0",
         "eslint-config-next": "^13.1.4",
         "eslint-plugin-unused-imports": "^2.0.0",
-        "lodash": "^4.17.21",
         "sass": "^1.54.9"
     }
 }

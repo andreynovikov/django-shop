@@ -1,0 +1,27 @@
+version: "3"
+name: sworld
+services:
+  app:
+    container_name: nextjs-sworld
+    image: sworld
+    build:
+      context: ./
+      target: runner
+      args:
+        entity: sworld
+      tags:
+        - sworld
+    volumes:
+      - ./.docker/:/app/.docker/
+      - ./static/i:/app/public/i
+    network_mode: bridge
+    ports:
+      - "127.0.0.1:4004:3000/tcp"
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+    logging:
+      driver: syslog
+      options:
+        syslog-address: unixgram:///run/systemd/journal/dev-log
+        tag: "{{.Name}}/{{.ID}}"

@@ -1,4 +1,4 @@
-.env.*
+.env*
 env/
 logs/
 __pycache__/
@@ -6,8 +6,12 @@ __pycache__/
 *.pyc
 settings_local.py
 media/
-static/
+static*/
+templates*/
+sewingworld/settings/
 st_search/
+.touch_reload
 .next-build/
 .next/
 node_modules/
+.docker/
