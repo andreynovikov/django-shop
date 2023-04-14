@@ -87,16 +87,17 @@ export default function TopBar({hideSignIn, hideCartNotice, topMenuOpen, toggleT
                         { site.phone && (
                             <div className="topbar-text text-nowrap">
                                 <i className="ci-support mt-n1" />
+                                <a className="topbar-link" href={"tel:" + "+74957440087"}>{ formatPhone("+74957440087") }</a>
+                                <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;розничные магазины</span>
+                            </div>
+                        )}
+                        { site.phone && (
+                            <div className="topbar-text text-nowrap border-start ps-3 ms-3">
+                                <i className="ci-support mt-n1" />
                                 <a className="topbar-link" href={"tel:" + site.phone}>{ formatPhone(site.phone) }</a>
                                 <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;интернет-магазин</span>
                             </div>
                         )}
-                        <div className="topbar-text text-nowrap border-start ps-3 ms-3">
-                            <i className="ci-location mt-n1" />
-                            <span className="text-muted me-1">
-                                <Link className="topbar-link" href="/stores/">Адреса магазинов</Link>
-                            </span>
-                        </div>
                     </div>
                     <div className="d-none d-md-inline-block">
                         { comparisons.length > 0 && (
@@ -161,28 +162,7 @@ export default function TopBar({hideSignIn, hideCartNotice, topMenuOpen, toggleT
                                     </li>
                                 </ul>
                                 <ul className="navbar-nav">
-                                    { /* <li class="nav-item"><a class="nav-link" href="{% url 'sales_actions' %}">Акции</a></li> */ }
                                     <li className="nav-item">
-                                        <Link className="nav-link" href="/pages/articles/">
-                                            Справочные материалы
-                                        </Link>
-                                    </li>
-                                    <li className="nav-item">
-                                        <Link className="nav-link" href="/blog/entries">
-                                            Блог
-                                        </Link>
-                                    </li>
-                                    { /*
-                                        <li className="nav-item dropdown"><a className="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Форум</a>
-                                        <ul class="dropdown-menu">
-                                        {#<li><a class="dropdown-item" href="{% url "spirit:topic:unread:index" %}">Непрочитанные темы</a></li>#}
-                                        {#<li><a class="dropdown-item" href="{% url 'spirit:topic:index-active' %}">Активные темы</a></li>#}
-                                        <li><a class="dropdown-item" href="{% url 'forum:index' %}">Архив</a></li>
-                                        </ul>
-                                        </li>
-                                      */
-                                    }
-                                    <li className="nav-item d-md-none">
                                         <Link className="nav-link" href="/stores/">
                                             Магазины
                                         </Link>
@@ -194,7 +174,7 @@ export default function TopBar({hideSignIn, hideCartNotice, topMenuOpen, toggleT
                                     </li>
                                     <li className="nav-item">
                                         <Link className="nav-link" href="/pages/delivery/">
-                                            Доставка и оплата
+                                            Доставка
                                         </Link>
                                     </li>
                                 </ul>
