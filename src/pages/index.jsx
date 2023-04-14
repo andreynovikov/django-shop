@@ -6,25 +6,9 @@ import ProductCard from '@/components/product/card';
 import TopCategoriesCard from '@/components/top-categories-card';
 
 import { productKeys, loadProducts } from '@/lib/queries';
-import useCatalog from '@/lib/catalog';
+import useCatalog, { recomendedFilters, giftsFilters, firstPageFilters } from '@/lib/catalog';
 
 const itemsPerSection = 16;
-
-const recomendedFilters = [
-    { field: 'enabled', value: 1},
-    { field: 'recomended', value: 1 },
-    { field: 'show_on_sw', value: 1 }
-];
-const giftsFilters = [
-    { field: 'enabled', value: 1},
-    { field: 'gift', value: 1 },
-    { field: 'show_on_sw', value: 1 }
-];
-const firstPageFilters = [
-    { field: 'enabled', value: 1},
-    { field: 'firstpage', value: 1 },
-    { field: 'show_on_sw', value: 1 }
-];
 const sort = '-price';
 
 export default function Index() {

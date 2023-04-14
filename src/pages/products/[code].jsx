@@ -20,7 +20,8 @@ import useBasket from '@/lib/basket';
 import useFavorites from '@/lib/favorites';
 import useComparison from '@/lib/comparison';
 import { useSession } from '@/lib/session';
-import { productKeys, loadProductByCode, getProductFields } from '@/lib/queries';
+import { productKeys, loadProducts, loadProductByCode, getProductFields } from '@/lib/queries';
+import { recomendedFilters, giftsFilters, firstPageFilters } from '@/lib/catalog';
 
 const ProductReviews = lazy(() => import('@/components/product/reviews'));
 const ProductStock = lazy(() => import('@/components/product/stock'));
@@ -311,7 +312,7 @@ export default function Product({code}) {
                                         </div>
                                     )}
                                     <div className="position-relative me-n4">
-                                        <div className={`product-badge product-${ product.instock < 1 ? "not-" : ""}available mt-1`}>
+                                        <div className={`product-badge product-${ product.instock < 1 ? "not-" : ""}available mt-${ product.enabled ? "1": "3" }`}>
                                             <i className={`ci-security-${ product.instock > 1 ? "check" : product.instock === 1 ? "announcement" : "close"}`} />
                                             { product.enabled ? (
                                                 product.instock > 1 ? "В наличии" : product.instock === 1 ? "Осталось мало" : "Закончились"
@@ -410,7 +411,7 @@ export default function Product({code}) {
                                     )}
 
                                     { /* Product panels */ }
-                                    <Accordion className="mb-4" defaultActiveKey={['information']} alwaysOpen>
+                                    <Accordion className={"mb-4" + (product.enabled ? "" : " mt-5")} defaultActiveKey={['information']} alwaysOpen>
                                         <Accordion.Item eventKey="information">
                                             <Accordion.Header>
                                                 <i className="ci-lable text-muted lead align-middle mt-n1 me-2" />Информация
@@ -661,7 +662,7 @@ Product.getLayout = function getLayout(page) {
             title={page.props.title}
             titleAddon={
                 page.props.allowReviews && (
-                    <a href="#reviews"><ProductRating product={page.props.id} /></a>
+                    <ProductRating product={page.props.id} anchor="reviews" />
                 )}
             dark overlapped>
             {page}
@@ -670,29 +671,58 @@ Product.getLayout = function getLayout(page) {
 }
 
 export async function getStaticProps(context) {
-    const code = context.params?.code;
+    const code = context.params.code;
+
     const queryClient = new QueryClient();
     const fieldsQuery = queryClient.fetchQuery(productKeys.fields(), () => getProductFields());
     const dataQuery = queryClient.fetchQuery(productKeys.detail(code), () => loadProductByCode(code));
-    // run queries in parallel
-    await fieldsQuery;
-    const data = await dataQuery;
+    try {
+        // run queries in parallel
+        await fieldsQuery;
+        const data = await dataQuery;
 
-    return {
-        props: {
-            code,
-            dehydratedState: dehydrate(queryClient),
-            title: data.title,
-            id: data.id,
-            allowReviews: data.allow_reviews
-        }
-    };
+        return {
+            props: {
+                code,
+                dehydratedState: dehydrate(queryClient),
+                title: data.title,
+                id: data.id,
+                allowReviews: data.allow_reviews
+            }
+        };
+    } catch (error) {
+        if (error.response.status === 404)
+            return { notFound: true };
+        else
+            throw(error);
+    }
 }
 
 export async function getStaticPaths() {
-    // const pages = await loadPages(); TODO: pre-build top(?) products
-    // const paths = pages.map((page) => ({
-    //     params: { uri: page.url.slice(1, -1).split('/') },
-    // }))
-    return { paths: [], fallback: true }
+    const filters = [
+        recomendedFilters,
+        giftsFilters,
+        firstPageFilters
+    ];
+    const included = new Set();
+    const paths = [];
+    for (let filter of filters) {
+        let page = 1;
+        while (page !== undefined) {
+            const products = await loadProducts(page, 100, filter, null);
+            paths.push(...products.results.filter((product) => !included.has(product.id)).map((product) => {
+                included.add(product.id);
+                return {
+                    params: {
+                        code: product.code
+                    }
+                };
+            }));
+            if (products.totalPages > products.currentPage)
+                page += 1;
+            else
+                page = undefined;
+        }
+    }
+    return { paths, fallback: true }
 }
