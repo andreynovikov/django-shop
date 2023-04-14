@@ -91,21 +91,23 @@ export default function Store({ id }) {
                             </div>
                         </div>
                     )}
-                    <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-                        <div className="card">
-                            <div className="card-body text-center">
-                                <i className="ci-phone h3 mt-2 mb-4 text-primary" />
-                                <h3 className="h6 mb-3">Телефон{ store.phones.length > 1 && 'ы'}</h3>
-                                <ul className="list-unstyled fs-sm mb-0">
-                                    {store.phones.map((phone, index) => (
-                                        <li className={index === store.phones.length - 1 ? 'mb-0' : ''} key={index}>
-                                            <a className="nav-link-style" href={'tel:' + phone.replace(/[ -]/g, '')}>{ phone }</a>
-                                        </li>
-                                    ))}
-                                </ul>
+                    { store.phones && (
+                        <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
+                            <div className="card">
+                                <div className="card-body text-center">
+                                    <i className="ci-phone h3 mt-2 mb-4 text-primary" />
+                                    <h3 className="h6 mb-3">Телефон{ store.phones.length > 1 && 'ы'}</h3>
+                                    <ul className="list-unstyled fs-sm mb-0">
+                                        {store.phones.map((phone, index) => (
+                                            <li className={index === store.phones.length - 1 ? 'mb-0' : ''} key={index}>
+                                                <a className="nav-link-style" href={'tel:' + phone.replace(/[ -]/g, '')}>{ phone }</a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                     { store.url && (
                         <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
                             <div className="card">

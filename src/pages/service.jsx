@@ -1,6 +1,8 @@
 import { Fragment, useState, useEffect, useMemo } from 'react';
-import Script from 'next/script';
 import { dehydrate, QueryClient, useQuery } from 'react-query';
+
+import Link from 'next/link';
+import Script from 'next/script';
 
 import PageLayout from '@/components/layout/page';
 
@@ -110,7 +112,7 @@ export default function Service() {
                             <h2 className="h3 pb-3">Новости</h2>
                             <ul className="list-style pb-3">
                                 <li>Сервисный центр на &laquo;Академической&raquo; переехал с ул. Кедрова по адресу ул. Дмитрия Ульянова д.31<br/>Телефон: +7 495 718-86-02</li>
-                                <li><a className="nav-link-style" href="/blog/O/">Наши механики прошли обучение в Швеции</a></li>
+                                <li><Link className="nav-link-style" href="/blog/O/">Наши механики прошли обучение в Швеции</Link></li>
                                 <li>Теперь в наших сервисных центрах можно купить педали для швейных машин</li>
                             </ul>
                         </div>

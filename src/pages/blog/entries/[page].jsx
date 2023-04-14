@@ -6,6 +6,8 @@ import PageSelector from '@/components/page-selector';
 
 import { blogKeys, loadBlogEntries } from '@/lib/queries';
 
+import range from 'lodash/range';
+
 export default function BlogEntries({currentPage}) {
 
     const { data: entries, isSuccess } = useQuery(
@@ -75,9 +77,8 @@ export async function getStaticProps(context) {
 export async function getStaticPaths() {
     const entries = await loadBlogEntries(null, null);
     const pages = Math.ceil(entries.count / entries.pageSize);
-    const paths = [...Array(pages).keys()].map((page) => ({
-        params: { page: `${page + 1}` }
+    const paths = range(2, pages).map((page) => ({
+        params: { page: String(page) }
     }));
-    console.log(paths);
     return { paths, fallback: false };
 }

@@ -119,8 +119,7 @@ export async function getStaticPaths() {
                         String(date.month()+1).padStart(2, '0'),
                         String(date.date()).padStart(2, '0'),
                         entry.slug
-                    ],
-                    id: entry.id
+                    ]
                 }
             };
         }));

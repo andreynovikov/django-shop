@@ -63,7 +63,7 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
     );
 
     const toolbarItem = useMemo(() => {
-        return category.filters ? (
+        return category?.filters ? (
             <a className="d-table-cell handheld-toolbar-item" onClick={() => setShowFilters(true)}>
                 <span className="handheld-toolbar-icon"><i className="ci-filter-alt" /></span>
                 <span className="handheld-toolbar-label">Фильтры</span>
@@ -307,5 +307,5 @@ export async function getStaticPaths() {
 
     const categories = await loadCategories();
     const {paths} = categories.reduce(getPaths, {paths: [], root: []});
-    return { paths, fallback: true };
+    return { paths, fallback: 'blocking' };
 }

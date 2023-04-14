@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Script from 'next/script';
-import { useQuery } from 'react-query';
 
 import { register } from '@/lib/session';
 import { normalizePhone } from '@/lib/queries';
