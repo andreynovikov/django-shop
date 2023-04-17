@@ -1,6 +1,17 @@
 
 <form id="send-order" class="form-inline jumbotron ajax{% if wrong_password %} has-error{% endif %}" action="{% url 'shop:authorize' %}" method="post" data-replace="#send-order">
     {% csrf_token %}
+    <input type="hidden" name="meta" id="basket-meta"/>
+    <script type="text/javascript">
+      document.addEventListener("DOMContentLoaded", function() {
+          ym(35990, 'getClientID', function(clientID) {
+              console.log(clientID);
+              console.log(JSON.stringify({clientID}));
+              document.getElementById('basket-meta').value = JSON.stringify({clientID});
+          });
+      });
+    </script>
+
     {% if user and user.is_authenticated %}
         {# Пользователь залогинился #}
         <p>Добро пожаловать, {{ user.name|default:"уважаемый покупатель" }}!</p>

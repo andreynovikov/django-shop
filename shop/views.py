@@ -1,3 +1,4 @@
+import json
 import re
 
 from math import ceil
@@ -301,6 +302,7 @@ def authorize(request):
     basket = get_object_or_404(Basket, session_id=request.session.session_key)
     phone = request.POST.get('phone')
     password = request.POST.get('password')
+    request.session['meta'] = request.POST.get('meta')
     data = None
 
     if password:
@@ -598,6 +600,8 @@ def confirm_order(request, order_id=None):
                     if ipgeobase.city is not None:
                         order.city = ipgeobase.city
                         break
+            if request.session['meta']:
+                order.meta = json.loads(request.session['meta'])
             order.save()
             request.session['last_order'] = order.id
             request.session['last_order_updated'] = False
