@@ -7,7 +7,7 @@ import hashlib
 import io
 import json
 import logging
-import os.path
+import os
 import re
 import requests
 import tempfile
@@ -101,15 +101,16 @@ class DecimalEncoder(json.JSONEncoder):
         return super(DecimalEncoder, self).default(o)
 
 
-@shared_task(autoretry_for=(Exception,), default_retry_delay=300, retry_backoff=True)
+@shared_task(autoretry_for=(Exception,), rate_limit='2/s', default_retry_delay=300, retry_backoff=True)
 def revalidate_nextjs(domain, token, payload):
-    url = 'https://{}:8443/api/revalidate'.format(domain)
+    url = 'https://{}/api/revalidate'.format(domain)
     request_data = {
         'secret': token,
         **payload
     }
     response = requests.post(url, json=request_data)
     response_data = response.json()
+    return response_data
 
 
 @shared_task(bind=True, autoretry_for=(DatabaseError,), retry_backoff=300, retry_jitter=False)
@@ -393,28 +394,32 @@ def update_1c_stocks(self):
     try:
         response = urlopen(request)
         result = json.loads(response.read().decode('utf-8'))
-        bonus_file = result.get('file', None)
-        bonus_md5 = result.get('md5', None)
+        import_file = result.get('file', None)
+        import_md5 = result.get('md5', None)
         modified = result.get('modified', None)
-        if not bonus_file:
+        if not import_file:
             log.error('No file')
             raise self.retry(countdown=600, max_retries=4)  # 10 minutes
 
         import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
         filepath = os.path.join(import_dir, filename)
-        if modified and os.path.isfile(filename):
+        lastpath = os.path.join(import_dir, re.sub(r'(\..+$)', '_last\\1', filename))
+        log.info("Update1C")
+        log.info("modified: " + str(modified))
+        if modified and os.path.isfile(lastpath):
             mdate = dateparse.parse_datetime(modified)
-            fdate = timezone.make_aware(datetime.fromtimestamp(os.path.getmtime(filepath)))
+            fdate = timezone.make_aware(datetime.fromtimestamp(os.path.getmtime(lastpath)))
+            log.info("diff: " + str(mdate) + " < " + str(fdate))
             if mdate < fdate:
                 log.info('File is not modified since last update: {} < {}'.format(mdate, fdate))
                 return None
 
-        log.info('Getting file %s' % bonus_file)
-        request = Request(bonus_file, None, headers)
+        log.info('Getting file %s' % import_file)
+        request = Request(import_file, None, headers)
         response = urlopen(request)
         result = response.read()
         md5 = hashlib.md5(result).hexdigest()
-        if md5 != bonus_md5:
+        if md5 != import_md5:
             log.error('MD5 checksums differ')
             raise self.retry(countdown=600, max_retries=4)  # 10 minutes
 
@@ -455,6 +460,13 @@ class fragile(object):
 def import1c(file):
     log.error('Import1C')
     enable_flag('1C_IMPORT_RUNNING')
+
+    currencies = {}
+    def get_currency(code):
+        if code not in currencies:
+            currencies[code] = Currency.objects.get(pk=code)
+        return currencies[code]
+
     frozen_orders = Order.objects.filter(status=Order.STATUS_FROZEN)
     frozen_products = defaultdict(list)
     if frozen_orders.exists():
@@ -476,7 +488,7 @@ def import1c(file):
         corrected_stocks[s[0]][s[1]] = (s[2], s[3])
 
     import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
-    filepath = import_dir + '/' + file
+    filepath = os.path.join(import_dir, file)
 
     src_file = open(filepath, mode='rt')
     tmp_file = tempfile.TemporaryFile(mode='r+t')
@@ -484,6 +496,11 @@ def import1c(file):
         tmp_file.write(line)
     src_file.close()
     tmp_file.seek(0)
+    lastpath = os.path.join(import_dir, re.sub(r'(\..+$)', '_last\\1', file))
+    penultpath = os.path.join(import_dir, re.sub(r'(\..+$)', '_penult\\1', file))
+    if os.path.isfile(lastpath):
+        os.rename(lastpath, penultpath)
+    os.rename(filepath, lastpath)
 
     table_copy = tempfile.TemporaryFile(mode='r+t')
 
@@ -493,7 +510,6 @@ def import1c(file):
     products = set()
     orders = set()
     suppliers = []
-    currencies = Currency.objects.all()
     date_reg = re.compile(r"\d{1,2}\.\d{2}\.\d{4} \d{1,2}:\d{2}:\d{2}")
     date = None
     with fragile(tmp_file) as csvfile:  # https://stackoverflow.com/a/23665658
@@ -535,7 +551,7 @@ def import1c(file):
                     try:
                         sp_cur_price = float(line['sp_cur_price'].replace('\xA0', ''))
                         product.sp_cur_price = int(round(sp_cur_price))
-                        product.sp_cur_code = currencies.get(pk=line['sp_cur_code'])
+                        product.sp_cur_code = get_currency(line['sp_cur_code'])
                     except ValueError:
                         errors.append("%s: цена СП" % line['article'])
                 if line['ws_cur_code'] != '0' and not product.forbid_ws_price_import:
@@ -543,7 +559,7 @@ def import1c(file):
                         ws_cur_price = float(line['ws_cur_price'].replace('\xA0', ''))
                         if ws_cur_price > 0:
                             product.ws_cur_price = Decimal(ws_cur_price).quantize(Decimal('0.01'), rounding=ROUND_HALF_EVEN)
-                        product.ws_cur_code = currencies.get(pk=line['ws_cur_code'])
+                        product.ws_cur_code = get_currency(line['ws_cur_code'])
                     except ValueError:
                         errors.append("%s: оптовая цена" % line['article'])
                 if line['cur_code'] != '0' and not product.forbid_price_import:
@@ -593,24 +609,22 @@ def import1c(file):
                 table_copy.write('{}\t{}\t{}\t{}\t{}\n'.format(0, product, stock, correction, reason))
         table_copy.seek(0)
         with connection.cursor() as cursor:
+            log.info('Start 1C_IMPORT_COPYING')
             enable_flag('1C_IMPORT_COPYING')
             cursor.execute("BEGIN")
-            cursor.execute("TRUNCATE TABLE shop_stock RESTART IDENTITY")
+            cursor.execute("DELETE FROM shop_stock")
+            # cursor.execute("TRUNCATE TABLE shop_stock RESTART IDENTITY")
+            log.info('Continue 1C_IMPORT_COPYING')
             cursor.copy_from(table_copy, 'shop_stock', columns=('quantity', 'product_id', 'supplier_id', 'correction', 'reason'))
             cursor.execute("COMMIT")
             disable_flag('1C_IMPORT_COPYING')
+            log.info('Stop 1C_IMPORT_COPYING')
     table_copy.close()
     tmp_file.close()
 
     for product_id in products:
-        product = Product.objects.only(
-            'num',
-            'spb_num',
-            'ws_num'
-        ).get(id=product_id)
+        product = Product.objects.only('num').get(id=product_id)
         product.num = -1
-        product.spb_num = -1
-        product.ws_num = -1
         product.save()
         if product_id in frozen_products.keys() and product.instock > 0:
             orders.update(frozen_products[product_id])
@@ -915,7 +929,7 @@ def update_cbrf_currencies(self):
 def update_user_bonuses(self):
     reload_maybe()
     bonused_users = set(ShopUser.objects.filter(bonuses__gt=0).values_list('id', flat=True))
-    filename = 'БонусныеБаллыИнфо.txt'
+    filename = 'БонусныеБаллыИнфо.txt'  # БонусныеБаллыНаДР.txt
     url = 'https://cloud-api.yandex.net/v1/disk/resources?path={}'.format(quote('disk:/' + filename))
     headers = {
         'Authorization': 'OAuth {token}'.format(token=config.sw_bonuses_ydisk_token),
@@ -986,23 +1000,28 @@ def notify_expiring_bonus(self, phone):
     user = ShopUser.objects.get(phone=phone)
     today = datetime.today()
     base_format = SINGLE_DATE_FORMAT if today.year == user.expiration_date.year else SINGLE_DATE_FORMAT_WITH_YEAR
-    text = "%d ваших %s действуют до %s. В Швейном Мире вы можете оплатить бонусами до 20%% от стоимости покупки! http://thsm.ru" % (
+    text = "Ваши %d %s сгорят %s www.thsm.ru" % (
         user.expiring_bonuses,
         rupluralize(user.expiring_bonuses, "бонус,бонуса,бонусов"),
         date_format(user.expiration_date, format=base_format)
     )
     result = send_sms(user.phone, text, True)
     try:
-        return result['descr']
+        return {
+            'result': result['descr'],
+            'bonuses': user.expiring_bonuses,
+            'expiration': date_format(user.expiration_date, format=base_format)
+        }
     except Exception:
         return result
 
 
 @shared_task(autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
 def notify_expiring_bonuses():
-    lt = timezone.now() + timedelta(days=10)
+    """ 2 weeks and > 500 bonuses """
+    lt = timezone.now() + timedelta(days=14)
     gt = lt - timedelta(days=1)
-    users = ShopUser.objects.filter(expiring_bonuses__gte=100, expiration_date__lt=lt, expiration_date__gte=gt)
+    users = ShopUser.objects.filter(expiring_bonuses__gt=500, expiration_date__lt=lt, expiration_date__gte=gt)
     num = 0
     for user in users.all():
         if user.phone:
@@ -1010,3 +1029,60 @@ def notify_expiring_bonuses():
             num = num + 1
     log.info('Sent notifications for %d expiring bonuses' % num)
     return num
+
+
+@shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=600, retry_jitter=False)
+def update_user_birthday_bonuses(self):
+    reload_maybe()
+    # bonused_users = set(ShopUser.objects.filter(bonuses__gt=0).values_list('id', flat=True))
+    filename = 'БонусныеБаллыНаДР.txt'
+    url = 'https://cloud-api.yandex.net/v1/disk/resources?path={}'.format(quote('disk:/' + filename))
+    headers = {
+        'Authorization': 'OAuth {token}'.format(token=config.sw_bonuses_ydisk_token),
+        'Content-Type': 'application/json; charset=utf-8'
+    }
+    request = Request(url, None, headers)
+    try:
+        response = urlopen(request)
+        result = json.loads(response.read().decode('utf-8'))
+        bonus_file = result.get('file', None)
+        bonus_md5 = result.get('md5', None)
+        if not bonus_file:
+            log.error('No file')
+            raise self.retry(countdown=3600, max_retries=4)  # 1 hour
+        log.info('Getting file %s' % bonus_file)
+        request = Request(bonus_file, None, headers)
+        response = urlopen(request)
+        result = response.read()
+        md5 = hashlib.md5(result).hexdigest()
+        if md5 != bonus_md5:
+            log.error('MD5 checksums differ')
+            raise self.retry(countdown=3600, max_retries=4)  # 1 hour
+        num = 0
+        one_week = timezone.now() + timedelta(days=7)
+        expiration_date = date_format(one_week, format=SINGLE_DATE_FORMAT)
+        records = csv.DictReader(io.StringIO(result.decode('windows-1251')), delimiter=';')
+        log.info('Processing file')
+        for line in records:
+            try:
+                if line['НомерТелефона'] and line['КоличествоБонусов']:
+                    bonuses = int(float(line['КоличествоБонусов'].replace('\xA0', '').replace(' ', '').replace(',', '.')))
+                    if bonuses < 0:
+                        continue
+                    text = "%d %s ко дню рождения до %s www.thsm.ru" % (
+                        bonuses,
+                        rupluralize(bonuses, "бонус,бонуса,бонусов"),
+                        expiration_date
+                    )
+                    send_sms(ShopUserManager.normalize_phone(line['НомерТелефона']), text, True)
+                    num = num + 1
+            except ValueError:
+                log.error("Wrong bonus number '%s' for '%s'" % (line['КоличествоБаллов'], line['НомерТелефона']))
+        return num
+    except HTTPError as e:
+        content = e.read()
+        error = json.loads(content.decode('utf-8'))
+        message = error.get('message', 'Неизвестная ошибка взаимодействия с Яндекс.Диском')
+        log.error(message)
+        raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
+    return 0
