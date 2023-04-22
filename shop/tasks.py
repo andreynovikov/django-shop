@@ -22,7 +22,6 @@ from urllib.error import HTTPError
 
 from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.postgres.fields import JSONField
 from django.core import signing
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
@@ -31,6 +30,7 @@ from django.core.validators import EmailValidator
 from django.conf import settings
 from django.db import connection, Error as DatabaseError
 from django.db.models import Q
+from django.db.models.fields.json import JSONField
 from django.db.models.fields.related import RelatedField
 from django.db.models.fields.reverse_related import ForeignObjectRel
 from django.template.loader import render_to_string
