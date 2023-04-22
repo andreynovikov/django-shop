@@ -75,7 +75,7 @@ class CategoryTreeSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Category
-        fields = ('id', 'name', 'slug', 'children')
+        fields = ('id', 'name', 'slug', 'svg_icon', 'image', 'children')
 
 
 class CategorySerializer(NonNullModelSerializer):
@@ -635,7 +635,8 @@ class LoginSerializer(serializers.Serializer):
             user.registered = True
         else:
             user = authenticate(**data)
-            user.registered = False
+            if user:
+                user.registered = False
 
         if user and user.is_active:
             if 'permanent_password' in data and len(data['permanent_password']):
