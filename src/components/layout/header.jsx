@@ -1,8 +1,13 @@
+import { useState } from 'react';
 import Link from 'next/link';
+
+import Collapse from 'react-bootstrap/Collapse';
 
 import CartNotice from '@/components/cart/notice';
 
 export default function Header() {
+    const [topMenuOpen, setTopMenuOpen] = useState(false);
+
     return (
         <header className="container">
             <div className="row">
@@ -21,33 +26,33 @@ export default function Header() {
                     <Link className="navbar-brand" href="/">
                         <img alt="DorTak" src="/i/home.svg" width="30" height="30" className="img-fluid" />
                     </Link>
-                    <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false">
+                    <button className="navbar-toggler" type="button" onClick={() => setTopMenuOpen((prevOpen) => !prevOpen)} aria-controls="navbarNav" aria-expanded="false">
                         <span className="navbar-toggler-icon"></span>
                     </button>
-                    <div className="collapse navbar-collapse" id="navbarNav">
-                        <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-                            <li className="nav-item">
-                                <Link className="nav-link" href="/catalog/nitki-dor-tak/">Каталоги ниток</Link>
-                            </li>
-                            <li className="nav-item">
-                                <Link className="nav-link" href="/pages/price/">Прайс-лист</Link>
-                            </li>
-                            <li className="nav-item">
-                                <Link className="nav-link" href="/pages/where-to-buy/">Где купить</Link>
-                            </li>
-                            <li className="nav-item">
-                                <Link className="nav-link" href="/user/orders/">Кабинет покупателя</Link>
-                            </li>
-                        </ul>
-                        <form className="d-flex" action="/search/">
-                            <input type="search" name="text" className="form-control me-2" placeholder="Введите номер цвета" autoComplete="off" />
-                            <button type="submit" className="btn btn-outline-secondary">Найти</button>
-                        </form>
-                    </div>
+                    <Collapse in={topMenuOpen} className="navbar-collapse" id="navbarNav">
+                        <div>
+                            <ul className="navbar-nav me-auto mb-2 mb-lg-0">
+                                <li className="nav-item">
+                                    <Link className="nav-link" href="/catalog/nitki-dor-tak/">Каталоги ниток</Link>
+                                </li>
+                                <li className="nav-item">
+                                    <Link className="nav-link" href="/pages/price/">Прайс-лист</Link>
+                                </li>
+                                <li className="nav-item">
+                                    <Link className="nav-link" href="/pages/where-to-buy/">Где купить</Link>
+                                </li>
+                                <li className="nav-item">
+                                    <Link className="nav-link" href="/user/orders/">Кабинет покупателя</Link>
+                                </li>
+                            </ul>
+                            <form className="d-flex" action="/search/">
+                                <input type="search" name="text" className="form-control me-2" placeholder="Введите номер цвета" autoComplete="off" />
+                                <button type="submit" className="btn btn-outline-secondary">Найти</button>
+                            </form>
+                        </div>
+                    </Collapse>
                 </div>
             </nav>
-
-            <h3 className="my-3">Уважаемые покупатели, к сожалению, оптовые продажи остановлены. Надеемся, что это временно.</h3>
         </header>
     )
 }

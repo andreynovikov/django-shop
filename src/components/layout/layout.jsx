@@ -24,7 +24,7 @@ export default function Layout({ title, hideTitle, contentWrapper, children, ...
             </Head>
 
             <Header />
-            <main className="container mb-4">
+            <main className="container my-4">
                 {!hideTitle && <PageTitle title={title} /> }
                 {contentWrapper({title, children, ...props})}
             </main>
