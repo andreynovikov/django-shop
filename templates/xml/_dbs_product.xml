@@ -1,0 +1,17 @@
+{% load site %}
+{% load decimals %}
+<offer id="{{ product.article }}">
+  <url>{% site_url_prefix %}{% url 'product' product.code %}</url>
+{% if stock is not None %}
+  <count>{{ stock|quantize:"1" }}</count>
+  <available>{% if stock > 0 %}true{% else %}false{% endif %}</available>
+{% endif %}
+{% if product.sales_notes %}
+  <sales-notes>{{ product.sales_notes }}</sales-notes>
+{% endif %}
+  <delivery>false</delivery>
+  <pickup>true</pickup>
+  <pickup-options>
+    <option cost="0" days="0-1" order-before="16" />
+  </pickup-options>
+</offer>
