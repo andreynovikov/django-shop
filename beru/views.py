@@ -172,6 +172,16 @@ def accept_order(request, account='beru'):
     if address:
         order.address = ', '.join(address)
 
+    date = delivery.get('dates', {}).get('fromDate', None)
+    if date:
+        order.delivery_handing_date = datetime.strptime(date, '%d-%m-%Y')
+        from_time = delivery.get('dates', {}).get('fromTime', None)
+        till_time = delivery.get('dates', {}).get('toTime', None)
+        if from_time:
+            order.delivery_time_from = datetime.strptime(from_time, '%H:%M')
+        if till_time:
+            order.delivery_time_till = datetime.strptime(till_time, '%H:%M')
+
     date = delivery.get('shipments', [{}])[0].get('shipmentDate', None)
     if date:
         order.delivery_dispatch_date = datetime.strptime(date, '%d-%m-%Y')
@@ -265,6 +275,16 @@ def order_status(request, account='beru'):
             pass
 
         delivery = beru_order.get('delivery', {})
+        date = delivery.get('dates', {}).get('fromDate', None)
+        if date:
+            order.delivery_handing_date = datetime.strptime(date, '%d-%m-%Y')
+            from_time = delivery.get('dates', {}).get('fromTime', None)
+            till_time = delivery.get('dates', {}).get('toTime', None)
+            if from_time:
+                order.delivery_time_from = datetime.strptime(from_time, '%H:%M')
+            if till_time:
+                order.delivery_time_till = datetime.strptime(till_time, '%H:%M')
+
         date = delivery.get('shipments', [{}])[0].get('shipmentDate', None)
         if date:
             order.delivery_dispatch_date = datetime.strptime(date, '%d-%m-%Y')
