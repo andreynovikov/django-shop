@@ -200,6 +200,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     exclude = ['image_prefix']
     search_fields = ['code', 'article', 'partnumber', 'title', 'tags']
     readonly_fields = ['price', 'ws_price', 'sp_price']
+    ordering = ('-id',)
     save_as = True
     save_on_top = True
     view_on_site = True
@@ -215,9 +216,9 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     fieldsets = (
         ('Основное', {
             'classes': ('collapse',),
-            'fields': (('code', 'article', 'partnumber'), 'title', 'runame', 'whatis', 'kind', 'categories', ('manufacturer', 'gtin'),
-                       ('country', 'developer_country'), 'variations', 'spec', 'shortdescr', 'yandexdescr', 'descr', 'manuals', 'state',
-                       'complect', 'dealertxt')
+            'fields': (('code', 'article'), ('partnumber', 'tnved'), 'title', 'runame', 'whatis', 'whatisit', 'kind', 'categories',
+                       ('manufacturer', 'gtin'), ('country', 'developer_country'), 'variations', 'spec', 'shortdescr',
+                       'yandexdescr', 'descr', 'manuals', 'state', 'complect', 'dealertxt')
         }),
         ('Деньги', {
             'classes': ('collapse',),
@@ -280,7 +281,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         }),
         ('Гарантия', {
             'classes': ('collapse',),
-            'fields': ('warranty', 'extended_warranty', 'manufacturer_warranty')
+            'fields': ('warranty', 'extended_warranty', 'manufacturer_warranty', 'comment_warranty', 'service_life')
         }),
         ('Остальное', {
             'classes': ('collapse',),
@@ -294,7 +295,6 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
                 'opinion',
                 'allow_reviews',
                 ('bid', 'cbid'),
-                'whatisit',
             )
         }),
         ('Промышленные машины', {

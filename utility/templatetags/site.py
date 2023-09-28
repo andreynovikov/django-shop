@@ -133,3 +133,43 @@ def rebootstrap(value):
     value = value.replace('<h4>', '<h6>')
     value = value.replace('</h4>', '</h6>')
     return value
+
+
+@register.filter
+def from_months(value):
+    if value == 0:
+        return 'нет'
+    if value == 1:
+        return '1 месяц'
+    if value < 5:
+        return '{} месяца'.format(value)
+    if value < 12:
+        return '{} месяцев'.format(value)
+
+    months = ''
+    if value % 12 != 0:
+        months = ' {}'.format(from_months(value % 12))
+
+    years = int(value / 12)
+
+    year = 'лет'
+    if years % 10 == 1:
+        year = 'год'
+    elif years % 10 in (2, 3, 4):
+        year = 'года'
+    else:
+        year = 'лет'
+
+    return '{} {}{}'.format(years, year, months)
+
+
+@register.filter
+def ya_days(value):
+    years = int(value / 12)
+    months = value % 12
+    result = ['P']
+    if years > 0:
+        result.append('{}Y'.format(years))
+    if months > 0:
+        result.append('{}M'.format(months))
+    return ''.join(result)
