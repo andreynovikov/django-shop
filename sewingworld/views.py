@@ -103,6 +103,16 @@ def products_stream(request, integration, template, filter_type):
 
     for product in products:
         context['product'] = product
+        product.images = []
+        if default_storage.exists(product.image_prefix):
+            try:
+                dirs, files = default_storage.listdir(product.image_prefix)
+                if files is not None:
+                    for file in sorted(files):
+                        if file.endswith('.jpg') and not file.endswith('.s.jpg'):
+                            product.images.append(file[:-4])
+            except NotADirectoryError:
+                pass
         if integration:
             if not integration.output_all:
                 context['integration'] = ProductIntegration.objects.get(product=product, integration=integration)
