@@ -154,6 +154,7 @@ class Category(MPTTModel):
     filters = models.CharField('фильтры', max_length=255, blank=True)
     brief = models.TextField('описание', blank=True)
     description = models.TextField('статья', blank=True)
+    svg_icon = models.TextField('SVG иконка', blank=True)
     image = models.ImageField('изображение', upload_to='categories', blank=True,
                               width_field='image_width', height_field='image_height')
     image_width = models.IntegerField(null=True, blank=True)

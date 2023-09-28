@@ -13,6 +13,7 @@ from zinnia.sitemaps import EntrySitemap
 from forum.sitemaps import ThreadSitemap
 from rest_framework.routers import DefaultRouter
 
+from blog.urls import router as blog_router
 from reviews.api import ReviewViewSet
 
 from shop.models.integration import Integration
@@ -55,6 +56,7 @@ urlpatterns = [
     url(r'^$', views.index, name='index'),
     # Rest API
     path('api/v0/', include(router.urls)),
+    path('api/v0/blog/', include(blog_router.urls)),
     path('api/v0/csrf/', api.CsrfTokenView.as_view()),
     path('api/v0/warrantycard/<str:code>/', api.WarrantyCardView.as_view()),
     # ex: /sitemap.xml

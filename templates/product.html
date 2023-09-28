@@ -294,7 +294,8 @@ gtm_products = [];
 {% with field_value=product|get_field:field %}
 {% if field_value %}
 {% with field_name=product|get_field_name:field|parse_field_name %}
-<dt><span>{{ field_name.0 }}{% include '_field_help.html' %}</span></dt><dd>{{ field_value|prettify }}{{ field_name.1 }}</dd>
+<dt><span>{{ field_name.0 }}{% include '_field_help.html' %}</span></dt>
+<dd>{% if field == 'warranty' %}{{ field_value|from_months }}{% else %}{{ field_value|prettify }}{{ field_name.1 }}{% endif %}</dd>
 {% endwith %}
 {% endif %}
 {% endwith %}
@@ -306,7 +307,7 @@ gtm_products = [];
 {% if 'images/'|add:product.manufacturer.code|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists or product.stitches %}
 <h2>Строчки {{ product.title }}:</h2>
 {% if 'images/'|add:product.manufacturer.code|add:'/stitches/'|add:product.code|add:'_stitches.jpg'|file_exists %}
-<p><img src="{{ MEDIA_URL }}/images/{{ product.manufacturer.code }}/stitches/{{ product.code }}_stitches.jpg" alt="Строчки швейной машины {{ product.title }}" class="img-responsive"></p>
+<p><img src="{{ MEDIA_URL }}images/{{ product.manufacturer.code }}/stitches/{{ product.code }}_stitches.jpg" alt="Строчки швейной машины {{ product.title }}"></p>
 {% endif %}
 {% if product.stitches %}
 {{ product.stitches|safe }}
@@ -414,7 +415,7 @@ var google_custom_params = window.google_tag_params;
 var google_remarketing_only = true;
 /* ]]> */
 </script>
-<script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js"></script>
+<script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js" async></script>
 {% endblock javascript %}
 {% block vk_retargeting_event %}
   var eventParams = {'products': [{'id': '{{ product.id }}'}], 'category_ids':'{{ category.id }},473', 'products_recommended_ids':

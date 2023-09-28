@@ -13,10 +13,10 @@
 <a href="{% url 'product' product.code %}" onclick="dataLayer.push({'event': 'productClick','ecommerce': {'click': {'actionField': {'list': '{{ gtm_list }}'},'products': [{'name': '{{ product.partnumber}} {{ product.title }}','id': '{{ product.id }}','price': '{{ product.cost }}','brand': '{{ product.manufacturer.code }}','category': '{{ category.name }}','position': {{ forloop.counter }}}]}},'eventCallback': function() {document.location = {% url 'product' product.code %}}});">
 {% endif %}
 {% if product.image_prefix|add:'.s.jpg'|file_exists %}
-<img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" />
+<img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" loading="lazy" />
 {% else %}
 {% thumbnail product.image_prefix|add:'.jpg' '120x120' padding=True as im %}
-<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}"/>
+<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}" loading="lazy" />
 {% endthumbnail %}
 {% endif %}
 </a>

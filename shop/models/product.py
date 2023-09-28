@@ -33,6 +33,7 @@ class Product(models.Model):
     article = models.CharField('код 1С', max_length=20, blank=True, db_index=True)
     partnumber = models.CharField('partnumber', max_length=200, blank=True, db_index=True)
     gtin = models.CharField('GTIN', max_length=17, blank=True, db_index=True)
+    tnved = models.CharField('ТН ВЭД', max_length=16, blank=True)
     enabled = models.BooleanField('включён', default=False, db_index=True)
     title = models.CharField('название', max_length=200, db_index=True)
     price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0, db_index=True)
@@ -60,9 +61,11 @@ class Product(models.Model):
     tags = TagField('теги')
     forbid_price_import = models.BooleanField('не импортировать цену', default=False)
     forbid_ws_price_import = models.BooleanField('не импортировать опт. цену', default=False)
-    warranty = models.CharField('гарантия', max_length=20, blank=True)
+    service_life = models.PositiveSmallIntegerField('срок службы, мес', default=60)
+    warranty = models.PositiveSmallIntegerField('гарантия, мес', default=0)
     extended_warranty = models.CharField('расширенная гарантия', max_length=20, blank=True)
     manufacturer_warranty = models.BooleanField('официальная гарантия', default=False)
+    comment_warranty = models.CharField('комментарий к гарантии', max_length=200, blank=True)
 
     swcode = models.CharField('Код товара в ШМ', max_length=20, blank=True)
     runame = models.CharField('Русское название', max_length=200, blank=True)
@@ -340,12 +343,11 @@ class Product(models.Model):
                     num = num + stock.quantity + stock.correction
 
             if num > 0:
-                sites = []
+                sites = [Site.objects.get(domain='www.sewing-world.ru').id]
                 sites.extend(Site.objects.filter(integration__suppliers__in=suppliers).distinct().values_list('id', flat=True))
                 if Supplier.objects.filter(count_in_stock=Supplier.COUNT_STOCK, pk__in=suppliers).count():
                     sites.extend(Site.objects.filter(integration__isnull=True).values_list('id', flat=True))
                 site_addon = 'IN ({})'.format(','.join(map(str, sites)))
-
                 cursor = connection.cursor()
                 cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
                               INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)

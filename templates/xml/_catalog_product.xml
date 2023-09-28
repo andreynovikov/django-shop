@@ -1,0 +1,55 @@
+{% load static %}
+{% load site %}
+{% load decimals %}
+{% load l10n %}
+<offer id="{{ product.article }}">
+    <name>{% firstof product.whatisit product.whatis %} {{ product.title }}</name>
+    <price>{{ product.cost|quantize:"1" }}</price>
+{% if product.discount > 0 %}
+    <oldprice>{{ product.price|quantize:"1" }}</oldprice>
+{% endif %}
+    <cofinance_price>{{ product.cost|percentage:90 }}</cofinance_price>
+    <currencyId>RUR</currencyId>
+{% for category in product.categories.all %}
+{% with top_category=category_map|get_dict_item:category.pk %}
+{% if top_category %}
+    <categoryId>{{ top_category }}</categoryId>
+{% endif %}
+{% endwith %}
+{% endfor %}
+    <picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image_prefix }}.jpg</picture>
+{% for image in product.images %}
+    <picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image_prefix }}/{{ image }}.jpg</picture>
+{% endfor %}
+    <vendor>{{ product.manufacturer.name }}</vendor>
+{% if product.partnumber %}
+    <vendorCode>{{ product.partnumber }}</vendorCode>
+{% endif %}
+{% if product.gtin %}
+    <barcode>{{ product.gtin }}</barcode>
+{% endif %}
+    <description><![CDATA[
+    {% if product.descr %}{{ product.descr|safe }}{% elif product.yandexdescr %}{{ product.yandexdescr|safe }}{% else %}{{ product.whatis|safe }}{% endif %}
+    ]]></description>
+{% if product.service_life > 0 %}
+    <service-life-days>{{ product.service_life|ya_days }}</service-life-days>
+{% endif %}
+{% if product.warranty > 0 %}
+    <warranty-days>{{ product.warranty|ya_days }}</warranty-days>
+{% endif %}
+{% if product.manufacturer_warranty %}
+    <manufacturer_warranty>true</manufacturer_warranty>
+{% endif %}
+{% if product.comment_warranty %}
+    <comment-warranty>{{ comment_warranty }}</comment-warranty>
+{% endif %}
+{% if product.prom_weight %}
+    <weight>{{ product.prom_weight|unlocalize }}</weight>
+{% endif %}
+{% if product.length and product.width and product.height %}
+    <dimensions>{{ product.length|unlocalize }}/{{ product.width|unlocalize }}/{{product.height|unlocalize }}</dimensions>
+{% endif %}
+{% if product.tnved %}
+    <tn-ved-codes><tn-ved-code>{{ product.tnved }}</tn-ved-code></tn-ved-codes>
+{% endif %}
+</offer>

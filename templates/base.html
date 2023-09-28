@@ -5,6 +5,7 @@
 {% block meta-description %}Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары{% endblock %}
 
 {% block css_wrapper %}
+<link rel="preload" as="image" href="https://www.sewing-world.ru{% static '/i/logo.svg' %}" />
 <link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap_glyphicons.css' %}"/>
 <style>
   .ui-autocomplete { z-index: 2000 }
@@ -29,12 +30,8 @@
 <div class="row">
 
 <div class="col-md-9 sw-header-left">
-<div class="sw-logo">
-
-<a href="/">
-<div><img src="{% static '/i/logo.svg' %}" class="img-responsive" alt="Швейный Мир - всероссийская сеть швейных супермаркетов.&#10; Швейные машинки, вышивальные и вязальные машины, оверлоки и аксессуары."></div>
-</a>
-
+<div class="sw-logo" style="max-width: 380px">
+<a href="/"><img src="{% static '/i/logo.svg' %}" class="img-responsive" alt="Швейный Мир - всероссийская сеть швейных супермаркетов.&#10; Швейные машинки, вышивальные и вязальные машины, оверлоки и аксессуары."></a>
 <p class="hidden-xs"><a href="/stores/">Больше 100 магазинов швейных машин и товаров для рукоделия</a></p>
 </div>
 </div>
@@ -58,6 +55,7 @@
     <ul class="dropdown-menu dropdown-menu-right" role="menu" style="z-index: 1001">
         {% if user.is_authenticated %}
         <li><a href="{% url 'shop:user_orders' %}">Кабинет покупателя</a></li>
+        <li role="separator" class="divider"></li>
         <li><a href="{% url 'shop:logout' %}?next={% firstof request.get_full_path|urlencode '/' %}">Выйти</a></li>
         {% else %}
         <li><a href="{% url 'shop:login' %}?next={% firstof request.get_full_path|urlencode '/' %}">Войти</a></li>
@@ -105,7 +103,6 @@
             <li class="visible-xs"><a href="/catalog/">Каталог товаров</a></li>
             <li><a href="/pages/articles/">Статьи</a></li>
             <li><a href="/blog/">Блог</a></li>
-<!--        <li><a href="{% url "spirit:topic:index-active" %}">Форум</a></li>  -->
             <li><a href="/service/">Сервисные центры</a></li>
             <li><a href="/pages/delivery/">Доставка и оплата</a></li>
             <li class="hidden-xs"><a href="{% url 'shop:user_orders' %}">Состояние заказа</a></li>
@@ -232,14 +229,14 @@
 <div class="col-md-8 text-center small">
 <p>
 Принимаем платежи по картам<br>
-<img src="{% static 'i/mastercard.gif' %}" border="0">
-<img src="{% static 'i/visa.gif' %}" border="0"><br>
+<img src="{% static 'i/mastercard.gif' %}" border="0" loading="lazy">
+<img src="{% static 'i/visa.gif' %}" border="0" loading="lazy"><br>
 при поддержке <a href="https://yookassa.ru">ЮKassa</a>
 </p>
 <p>
 <a href="https://clck.yandex.ru/redir/dtype=stred/pid=47/cid=2508/*https://market.yandex.ru/shop/4767/reviews"><img src="https://clck.yandex.ru/redir/dtype=stred/pid=47/cid=2506/*https://grade.market.yandex.ru/?id=4767&action=image&size=1" border="0" width="120" height="110" alt="Читайте отзывы покупателей и оценивайте качество магазина на Яндекс.Маркете" /></a>
 </p>
-<p>&copy;1996-2021 Торговый Дом Швейных Машин</p>
+<p>&copy;1996-2023 Торговый Дом Швейных Машин</p>
 <p><a href="mailto:info@thsm.ru">info@thsm.ru</a></p>
 </div>
 <div class="col-md-8 text-center">
@@ -248,11 +245,11 @@
     <div class="col-md-8 col-xs-8 text-right"></div>
     <div class="col-md-16 col-xs-16 text-left">
       <p>
-        <a href="https://vk.com/sew.world"><img width="60" src="/media/images/social_vk.svg"></a><a href="https://vk.com/sew.world">@sew.world</a><br>
-        <a href="https://t.me/sewingworldrus"><img style="width:30px; height:30px; margin-left:15px; margin-right:15px" src="/media/images/social_tg.svg"></a><a href="https://t.me/sewingworldrus">@sewingworldrus</a><br>
+        <a href="https://vk.com/sew.world"><img width="60" src="/media/images/social_vk.svg" loading="lazy"></a><a href="https://vk.com/sew.world">@sew.world</a><br>
+        <a href="https://t.me/sewingworldrus"><img style="width:30px; height:30px; margin-left:15px; margin-right:15px" src="/media/images/social_tg.svg" loading="lazy"></a><a href="https://t.me/sewingworldrus">@sewingworldrus</a><br>
 <!--    <a href="https://instagram.com/sew.world"><img width="60" src="/media/images/social_inst.svg"></a><a href="https://instagram.com/sew.world">@sew.world</a><br>
         <a href="https://ru-ru.facebook.com/sewing.world.russia"><img width="60" src="/media/images/social_fb.svg"></a><a href="https://ru-ru.facebook.com/sewing.world.russia">@sewing.world.russia</a><br> -->
-        <a href="https://youtube.com/ШвейныйМирРоссия"><img width="60" src="/media/images/social_yt.svg"></a><a href="https://youtube.com/ШвейныйМирРоссия">@ШвейныйМирРоссия</a>
+        <a href="https://youtube.com/ШвейныйМирРоссия"><img width="60" src="/media/images/social_yt.svg" loading="lazy"></a><a href="https://youtube.com/ШвейныйМирРоссия">@ШвейныйМирРоссия</a>
      </p>
     </div>
   </div>

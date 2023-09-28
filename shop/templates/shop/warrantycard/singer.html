@@ -51,7 +51,15 @@ www.sewing-world.ru<br>
 </tr>
 <tr>
 <td>Дата продажи</td>
-<td>{% if order.delivery_handing_date %}{{ order.delivery_handing_date }}{% else %}&laquo;_____&raquo;___________ 20___{% endif %}</td>
+<td>
+{% if order.delivery_handing_date %}
+{{ order.delivery_handing_date }}
+{% elif order.delivery_dispatch_date %}
+{{ order.delivery_dispatch_date }}
+{% else %}
+&laquo;_____&raquo;___________ 20___
+{% endif %}
+</td>
 <td>Продавец</td>
 <td>___________</td>
 </tr>

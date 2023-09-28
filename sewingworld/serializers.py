@@ -75,7 +75,7 @@ class CategoryTreeSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Category
-        fields = ('id', 'name', 'slug', 'children')
+        fields = ('id', 'name', 'slug', 'svg_icon', 'image', 'children')
 
 
 class CategorySerializer(NonNullModelSerializer):
@@ -222,10 +222,10 @@ class ProductListSerializer(NonNullModelSerializer):
             return None
         filepath = obj.image_prefix + '.jpg'
         if not default_storage.exists(filepath):
-            filepath = obj.image_prefix + '.s.jpg'  # special case for variants (dor-tak)
+            filepath = obj.image_prefix + '.s.jpg'  # special case for variants
         if default_storage.exists(filepath):
             thumbnail_size = '{}x{}'.format(self.context.get('product_thumbnail_size'), self.context.get('product_thumbnail_size'))
-            image = get_thumbnail(filepath, thumbnail_size, padding=True)
+            image = get_thumbnail(filepath, thumbnail_size, padding=True, upscale=False)
             return {
                 'url': image.url,
                 'width': image.width,
@@ -636,7 +636,8 @@ class LoginSerializer(serializers.Serializer):
             user.registered = True
         else:
             user = authenticate(**data)
-            user.registered = False
+            if user:
+                user.registered = False
 
         if user and user.is_active:
             if 'permanent_password' in data and len(data['permanent_password']):
