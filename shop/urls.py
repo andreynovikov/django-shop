@@ -7,7 +7,7 @@ app_name = 'shop'
 
 urlpatterns = [
     # ex: /shop/
-    url(r'^$', views.index, name='index'),
+    # url(r'^$', views.index, name='index'),
     # ex: /promo/
     url(r'^promo/$', views.view_promo, name='promo'),
     # ex: /shop/basket/
