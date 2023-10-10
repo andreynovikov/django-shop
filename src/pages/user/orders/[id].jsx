@@ -244,7 +244,6 @@ export default function Order({id}) {
                                         order.status === STATUS_COLLECTED ? (
                                             order.payment === PAYMENT_CARD || order.payment === PAYMENT_CREDIT ? (
                                                 <li>
-                                                    { /* TODO: external link */ }
                                                     <button type="button" className="btn btn-sm btn-primary mt-2" onClick={handlePayment}>
                                                         { order.payment === PAYMENT_CREDIT ? (
                                                             <>
