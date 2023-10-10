@@ -136,69 +136,69 @@ export default function Product({code, title}) {
             { (product.runame || product.whatis) && <p>{ product.whatis } { product.runame }</p> }
 
             <div className="d-flex flex-column-reverse flex-sm-row" style={{gap: 10}}>
-            <div className="flex-grow-1">
-                { product.image ? (
-                    <div className="text-center">
-                        <a className="glightbox" href={product.big_image || product.image} data-title={product.title}>
-                            <img
-                                className="img-fluid xsi-product-image"
-                                src={product.image}
-                                alt={`${product.title} ${product.whatis}`}
-                                itemProp="image" />
-                        </a>
-                    </div>
-                ) : (
-                    <NoImage className="d-none d-lg-block text-muted mx-auto" />
-                )}
-            </div>
-
-            <div className="card xsi-product-buyblock align-self-stretch align-self-sm-start">
-                <div className="card-body">
-                    { product.enabled ? (
-                        <div itemProp="offers" itemScope itemType="http://schema.org/Offer">
-                            { product.discount > 0 && (
-                                <p className="oldprice">
-                                    <del>{ product.price.toLocaleString('ru') }&nbsp;руб.</del>
-                                </p>
-                            )}
-                            <div>
-                                <span className="align-middle fs-md fw-bold">
-                                    <span className="lead fw-bold" itemProp="price">{ product.cost.toLocaleString('ru') }</span>&nbsp;руб.
-                                </span>
-
-                                <button className="btn btn-primary fw-bold ms-2 align-middle" type="button" onClick={handlePrimaryClick}>
-                                    { product.instock > 0 ? "Купить" : "Сообщить о поступлении" }
-                                </button>
-
-                                <span itemProp="priceCurrency" className="d-none">RUB</span>
-                            </div>
-
-                            <div className="mt-3">
-                                <span className="product-nal-caption">Наличие:</span>{" "}
-                                { product.instock > 1 ? (
-                                    <span className="product-nal-true">Есть</span>
-                                ) : product.instock == 1 ? (
-                                    <span className="product-nal-true">Мало</span>
-                                ) : (
-                                    <span className="product-nal-false">Нет</span>
-                                )}
-                            </div>
-
-                            { product.sales_notes && <p className="mt-3">{ product.sales_notes }</p> }
+                <div className="flex-grow-1">
+                    { product.image ? (
+                        <div className="text-center">
+                            <a className="glightbox" href={product.big_image || product.image} data-title={product.title}>
+                                <img
+                                    className="img-fluid xsi-product-image"
+                                    src={product.image}
+                                    alt={`${product.title} ${product.whatis}`}
+                                    itemProp="image" />
+                            </a>
                         </div>
                     ) : (
-                        <span className="product-nal-false">Товар снят с продажи</span>
+                        <NoImage className="d-none d-lg-block text-muted mx-auto" />
                     )}
                 </div>
-            </div>
+
+                <div className="card align-self-stretch align-self-sm-start">
+                    <div className="card-body">
+                        { product.enabled ? (
+                            <div itemProp="offers" itemScope itemType="http://schema.org/Offer">
+                                { product.discount > 0 && (
+                                    <p className="oldprice">
+                                        <del>{ product.price.toLocaleString('ru') }&nbsp;руб.</del>
+                                    </p>
+                                )}
+                                <div>
+                                    <span className="align-middle fs-md fw-bold">
+                                        <span className="lead fw-bold" itemProp="price">{ product.cost.toLocaleString('ru') }</span>&nbsp;руб.
+                                    </span>
+
+                                    <button className="btn btn-primary fw-bold ms-2 align-middle" type="button" onClick={handlePrimaryClick}>
+                                        { product.instock > 0 ? "Купить" : "Сообщить о поступлении" }
+                                    </button>
+
+                                    <span itemProp="priceCurrency" className="d-none">RUB</span>
+                                </div>
+
+                                <div className="mt-3">
+                                    <span className="product-nal-caption">Наличие:</span>{" "}
+                                    { product.instock > 1 ? (
+                                        <span className="product-nal-true">Есть</span>
+                                    ) : product.instock == 1 ? (
+                                        <span className="product-nal-true">Мало</span>
+                                    ) : (
+                                        <span className="product-nal-false">Нет</span>
+                                    )}
+                                </div>
+
+                                { product.sales_notes && <p className="mt-3">{ product.sales_notes }</p> }
+                            </div>
+                        ) : (
+                            <span className="product-nal-false">Товар снят с продажи</span>
+                        )}
+                    </div>
+                </div>
             </div>
 
             { product.images && (
                 <div className="mt-2">
                     { product.images.map((image, index) => (
-                    <a className="glightbox me-1" href={image.url} data-title={`${product.title} - фото №${index + 2}`} key={index}>
+                    <a className="glightbox me-1" href={image.src} data-title={`${product.title} - фото №${index + 2}`} key={index}>
                         <img
-                            src={image.thumbnail.url}
+                            src={image.thumbnail.src}
                             width={image.thumbnail.width}
                             height={image.thumbnail.height}
                             alt={`${product.title} - фото №${index + 2}`} />
@@ -209,10 +209,10 @@ export default function Product({code, title}) {
 
             <div className="mt-3" />
 
-		    { product.descr && (
+            { product.descr && (
                 <div className="pb-3" itemProp="description" dangerouslySetInnerHTML={{__html: rebootstrap(product.descr) }} />
             )}
-		    { product.spec && (
+            { product.spec && (
                 <div className="pb-3" dangerouslySetInnerHTML={{__html: rebootstrap(product.spec) }} />
             )}
 
