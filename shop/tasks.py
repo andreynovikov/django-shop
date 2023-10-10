@@ -1086,3 +1086,81 @@ def update_user_birthday_bonuses(self):
         log.error(message)
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
     return 0
+
+
+@shared_task(autoretry_for=(OSError, DatabaseError), retry_backoff=600, retry_jitter=False)
+def ym_upload_user(user_id, order_id):
+    user = ShopUser.objects.get(pk=user_id)
+    order = Order.objects.get(id=order_id)
+    metas = Order.objects.filter(user=user, meta__has_key='clientID').values_list('meta', flat=True).exclude(id=order_id)
+    client_ids = {order.meta['clientID']}
+    for meta in metas:
+        client_ids.add(meta['clientID'])
+    data = {
+        "contacts": [
+            {
+                "uniq_id": str(user.id),
+                "name": user.name,
+                "create_date_time": timezone.localtime(user.date_joined).strftime('%Y-%m-%d %H:%M:%S'),
+                "update_date_time": timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M:%S'),
+                "client_ids": list(client_ids),
+                "emails": [user.email],
+                "phones": [user.phone]
+            }
+        ]
+    }
+    data_encoded = json.dumps(data).encode('utf-8')
+    mode = 'UPDATE'
+    url = 'https://api-metrika.yandex.net/cdp/api/v1/counter/{counterId}/data/contacts?merge_mode={mode}'.format(counterId=settings.YM_COUNTER_ID, mode=mode)
+    headers = {
+        'Authorization': 'OAuth {oauth_token}'.format(oauth_token=settings.YM_API_TOKEN),
+        'Content-Type': 'application/json; charset=utf-8'
+    }
+    request = Request(url, data_encoded, headers, method='POST')
+    log.info('<<< ' + request.full_url)
+    log.info(data_encoded)
+    try:
+        response = urlopen(request)
+        result = json.loads(response.read().decode('utf-8'))
+        log.info(str(result))
+    except HTTPError as e:
+        content = e.read().decode('utf-8')
+        log.error(content)
+
+
+@shared_task(autoretry_for=(OSError, DatabaseError), retry_backoff=600, retry_jitter=False)
+def ym_upload_order(order_id):
+    order = Order.objects.get(id=order_id)
+    data = {
+        "orders": [
+            {
+                "id": str(order.id),
+                "client_uniq_id": str(order.user.id),
+                "client_type": "CONTACT",
+                "revenue": order.total,
+                "order_status": str(order.status),
+                "create_date_time": timezone.localtime(order.created).strftime('%Y-%m-%d %H:%M:%S'),
+                "update_date_time": timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M:%S')
+            }
+        ]
+    }
+    if order.status in (Order.STATUS_DONE, Order.STATUS_FINISHED, Order.STATUS_CANCELED, Order.STATUS_UNCLAIMED):
+        data["orders"][0]["finish_date_time"] = timezone.localtime(timezone.now()).strftime('%Y-%m-%d %H:%M:%S')
+
+    data_encoded = json.dumps(data, cls=DecimalEncoder).encode('utf-8')
+    mode = 'APPEND' if order.status == Order.STATUS_NEW else 'UPDATE'
+    url = 'https://api-metrika.yandex.net/cdp/api/v1/counter/{counterId}/data/orders?merge_mode={mode}'.format(counterId=settings.YM_COUNTER_ID, mode=mode)
+    headers = {
+        'Authorization': 'OAuth {oauth_token}'.format(oauth_token=settings.YM_API_TOKEN),
+        'Content-Type': 'application/json; charset=utf-8'
+    }
+    request = Request(url, data_encoded, headers, method='POST')
+    log.info('<<< ' + request.full_url)
+    log.info(data_encoded)
+    try:
+        response = urlopen(request)
+        result = json.loads(response.read().decode('utf-8'))
+        log.info(str(result))
+    except HTTPError as e:
+        content = e.read().decode('utf-8')
+        log.error(content)

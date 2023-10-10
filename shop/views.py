@@ -591,17 +591,22 @@ def confirm_order(request, order_id=None):
             'updated': request.session.get('last_order_updated', False)
         }
     else:
+        kwargs = {}
+        try:
+            if request.session['meta']:
+                kwargs['meta'] = json.loads(request.session['meta'])
+        except:  # do nothing on failure to load meta
+            pass
+
         """ register order """
         try:
-            order = Order.register(basket)
+            order = Order.register(basket, **kwargs)
             ipgeobases = IPGeoBase.objects.by_ip(request.META.get('REMOTE_ADDR'))
             if ipgeobases.exists():
                 for ipgeobase in ipgeobases:
                     if ipgeobase.city is not None:
                         order.city = ipgeobase.city
                         break
-            if request.session['meta']:
-                order.meta = json.loads(request.session['meta'])
             order.save()
             request.session['last_order'] = order.id
             request.session['last_order_updated'] = False
