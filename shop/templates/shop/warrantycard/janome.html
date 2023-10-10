@@ -1,15 +1,5 @@
-{% if product.manufacturer.code == 'Pfaff' %}
-{% include "./pfaff.html" %}
-{% elif product.manufacturer.code == 'Husqvarna' %}
-{% include "./husqvarna.html" %}
-{% elif product.manufacturer.code == 'Janome' %}
-{% include "./janome.html" %}
-{% elif product.manufacturer.code == 'Singer' %}
-{% include "./singer.html" %}
-{% else %}
 <!DOCTYPE html>
 {% load static %}
-{% load site %}
 <html>
 <head>
   <title></title>
@@ -34,8 +24,8 @@ body     { font-size:9pt; font-family:Verdana,sans-serif; }
 <div class="wrapper">
 <table style="width:100%">
 <tr>
-<td style="text-align:center;"><img src="{% static 'i/logo.svg' %}" style="width:80mm"><br><b>www.sewing-world.ru</b></td>
-<td><h1>Гарантийная карточка</h1></td>
+<td style="text-align:center;"><img src="{% static 'i/logo.svg' %}" style="width:50mm"></td>
+<td><h1>ГАРАНТИЙНАЯ КАРТОЧКА</h1></td>
 <td style="align:right;"><img src="{% static 'i/eac.svg' %}" style="width:10mm"></td>
 </tr>
 </table>
@@ -48,50 +38,22 @@ body     { font-size:9pt; font-family:Verdana,sans-serif; }
 </tr>
 <tr>
 <td>Торговая организация</td>
-<td colspan="{% if admin %}3{% else %}2{% endif %}">
+<td colspan="3">
 Интернет-магазин "Швейный Мир"<br>
 www.sewing-world.ru<br>
 {{ owner_info.full_name }}<br>
 ИНН {{ owner_info.inn }}<br>
 {{ owner_info.phone }}</td>
-{% if not admin %}<td><img src="{% static 'i/stamp.jpg' %}" width="150" height="150"></td>{% endif %}
-</tr>
-<tr>
-<td>Дата продажи</td>
-<td>
-{% if order.delivery_handing_date %}
-{{ order.delivery_handing_date }}
-{% elif order.delivery_dispatch_date %}
-{{ order.delivery_dispatch_date }}
-{% else %}
-&laquo;_____&raquo;___________ 20___
-{% endif %}
-</td>
-<td>Продавец</td>
-<td>{% if admin %}___________{% else %}<img src="{% static 'i/script-dir.jpg' %}" width="137" height="75">{% endif %}</td>
 </tr>
 </table>
 
-<p class="center">Уважаемый покупатель! Проверьте правильность заполнения гарантийной карточки при покупке!</p>
-<div style="border:1px solid black;">
-<ul>
-Подтверждаю, что:
-<li>при покупке изделие полностью укомплектовано и имеет безупречный внешний вид</li>
-<li>имеется инструкция, содержание которой удовлетворяет требованиям покупателя</li>
-<li>работа изделия проверена демонстрацией основных функций, качество исполнения соответствует требованиям покупателя</li>
-<li>предоставлена полная информация об изделии, его назначении, правилах и условиях безопасного использования, хранения и транспортировки</li>
-<li>конструкция и ресурс изделия не предполагают его использование с промышленной интенсивностью</li>
-<li>с условиями гарантии и безвозмездного устранения недостатков ознакомлен и возражений не имею</li>
-</ul>
-<br>&nbsp;
-<table style="width:100%"><tr><td>&laquo;_____&raquo;__________ 20___</td><td>Подпись покупателя __________________</td></tr></table>
-</div>
 <h2>Условия гарантии</h2>
 <h3>Часть 1: Гарантия</h3>
 <ol>
 <li>Изготовитель гарантирует выполнение всех требований законодательства о защите прав потребителей страны продажи в случае обнаружения
 в товаре недостатков, допущенных по вине изготовителя и выявленных в течение гарантийного срока.<br>
-Гарантийный срок составляет {% if product.warranty %}{{ product.warranty|from_months }} со дня продажи{% else %}_______ месяцев со дня продажи{% endif %}
+Гарантийный срок составляет 12 месяцев со дня продажи. Дата продажи определяется по чеку, который выдается при покупке 
+(его можно найти в личном кабинете интернет-магазина или маркетплейса, где вы приобрели швейную машину или оверлок).
 </li>
 <li>Гарантия не дается в случае использования товара в производственных целях (например, в кооперативах, на фабриках),
 индивидуально-трудовой, частно-предпринимательской деятельности, учебном или учебно-производственном процессе. Гарантия
@@ -120,52 +82,9 @@ www.sewing-world.ru<br>
 </li>
 <li>Гарантийные и сервисные работы выполняются сервисной организацией, уполномоченной изготовителем. Изготовитель не принимает претензий
 и не несет ответственность за последствия ремонта изделия в неуполномоченном сервисе. Проводившие ремонт третьи лица
-несут полную ответственность за результаты неквалифицированного вмешательства, работу и безопасность изделия после него.</li>
+несут полную ответственность за результаты неквалифицированного вмешательства, работу и безопасность изделия после него. Срок службы изделия составляет 7 лет</li>
 </ol>
-<p>Адреса сервисных центров в Москве:<br>
-ул. Дмитрия Ульянова, д.31, +7 495 718-86-02<br>
-Ленинградское ш., д.3 стр.1, +7 499 158-06-87</p>
-<p>При обнаружении неисправности в приобретенном товаре, обратитесь в магазин
-по телефону +7 495 766-56-75 или по электронной почте info@thsm.ru</p>
-
-<h2>Отметки о гарантийном и сервисном обслуживании</h2>
-<table style="width:100%;border-collapse:collapse;border-spacing:0;" class="otmetki">
-<tr>
-<td width="60%" style="text-align:center;">Дата и причина обращения. Выполненные работы</td>
-<td width="20%" style="text-align:center;">Дата окончания работ<br>___________<br>Дата выдачи</td>
-<td width="20%" style="text-align:center;">Подпись механика<br>___________<br>Подпись покупателя</td>
-</tr>
-<tr>
-<td rowspan="2" style="vertical-align:top;height:35mm">&laquo;_____&raquo;___________ 20___ </td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td rowspan="2" style="vertical-align:top;height:35mm;">&laquo;_____&raquo;___________ 20___ </td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td rowspan="2" style="vertical-align:top;height:35mm;">&laquo;_____&raquo;___________ 20___ </td>
-<td></td>
-<td></td>
-</tr>
-<tr>
-<td></td>
-<td></td>
-</tr>
-</table>
-<p>Для заметок </p>
+<p>При обнаружении неисправности в приобретенном товаре, обратитесь в сервисную службу Janome по телефону +7 495 766-56-75 или по электронной почте info@thsm.ru</p>
 </div>
 </body>
 </html>
-
-{% endif %}
