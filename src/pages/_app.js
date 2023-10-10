@@ -20,14 +20,6 @@ config.autoAddCss = false;
 import '../styles.scss';
 
 export default function App({ Component, pageProps: { site, session, ...pageProps }}) {
-    const LogRocket = require('logrocket');
-    //const setupLogRocketReact = require('logrocket-react');
-
-    if (typeof window !== 'undefined') {
-        LogRocket.init('ddrcub/sewing-world');
-        //setupLogRocketReact(LogRocket);
-    }
-
     const router = useRouter();
 
     const [queryClient] = useState(() => new QueryClient({
