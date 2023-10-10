@@ -26,6 +26,7 @@ export const productKeys = {
     suggestions: (text) => [...productKeys.lists(), 'suggestions', text],
     details: () => [...productKeys.all, 'detail'],
     detail: (id) => [...productKeys.details(), id],
+    images: (id) => [...productKeys.detail(id), 'images'],
     price: (id) => [...productKeys.detail(id), 'price'],  // TODO: think how to invalidate it on user change
 };
 
@@ -112,24 +113,43 @@ export function normalizePhone(phone) {
 
 export const API = process.env.NEXT_PUBLIC_API;
 
-export const apiClient = axios.create({
+const AXIOS_CONFIG = {
     baseURL: API,
     withCredentials: true,
-});
+};
+
+export const apiClient = axios.create(AXIOS_CONFIG);
 
 apiClient.defaults.headers.post['Content-Type'] = 'application/json';
 apiClient.defaults.headers.put['Content-Type'] = 'application/json';
 
 apiClient.interceptors.request.use(async function (config) {
+    const session = typeof(localStorage) !== 'undefined' && localStorage.getItem('session');
+
     if (typeof window === 'undefined') {// set referrer when running on server
         config.headers['Referer'] = process.env.NEXT_PUBLIC_ORIGIN;
         config.headers['Origin'] = process.env.NEXT_PUBLIC_ORIGIN;
     }
     if (config.method === 'post' || config.method === 'put') {
-        const response = await axios.get(API + 'csrf/', { withCredentials: true });
-        config.headers['X-CSRFTOKEN'] = response.data.csrf;
+        const response = await axios.get('csrf/', {
+            ...AXIOS_CONFIG,
+            headers: session ? {'x-session': session} : {}
+        });
+        config.headers['x-csrftoken'] = response.data.csrf;
     }
+    if (session)
+        config.headers['x-session'] = session;
     return config;
+}, function (error) {
+    return Promise.reject(error);
+});
+
+apiClient.interceptors.response.use(function (response) {
+    if ('x-session' in response.headers) {
+        const session = response.headers['x-session'];
+        localStorage.setItem("session", session);
+    }
+    return response;
 }, function (error) {
     return Promise.reject(error);
 });
@@ -290,6 +310,11 @@ export async function loadProductSuggestions(text) {
     url.searchParams.set('ta', 1);
     url.searchParams.set('page_size', 10);
     const response = await apiClient.get(url.toString());
+    return response.data;
+}
+
+export async function getProductImages(id) {
+    const response = await apiClient.get(`products/${id}/images/`);
     return response.data;
 }
 
