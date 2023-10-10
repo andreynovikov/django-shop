@@ -3,8 +3,6 @@ import { useRouter } from 'next/router';
 import { QueryClient, QueryClientProvider, Hydrate } from 'react-query';
 import { ReactQueryDevtools } from 'react-query/devtools';
 
-import SSRProvider from 'react-bootstrap/SSRProvider';
-
 import TagManager from 'react-gtm-module';
 import ym, { YMInitializer } from 'react-yandex-metrika';
 
@@ -88,9 +86,7 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
             <Hydrate state={pageProps.dehydratedState}>
                 <SiteProvider site={site}>
                     <SessionProvider session={session}>
-                        <SSRProvider>
-                            { getLayout(<Component {...pageProps} />) }
-                        </SSRProvider>
+                        { getLayout(<Component {...pageProps} />) }
                         { !!process.env.NEXT_PUBLIC_YM_COUNTER_ID && (
                             <YMInitializer
                                 accounts={[parseInt(process.env.NEXT_PUBLIC_YM_COUNTER_ID)]}
