@@ -53,7 +53,7 @@ const getColor = (status) => {
         case STATUS_OTHERSHOP:
         case STATUS_SENT:
         case STATUS_DELIVERED_STORE:
-            return 'accent';
+            return 'danger';
         case STATUS_DELIVERED:
         case STATUS_DELIVERED_SHOP:
             return 'primary';
