@@ -2,6 +2,7 @@ import logging
 import sys
 import traceback
 
+from importlib import import_module
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -37,6 +38,50 @@ class SiteDetectionMiddleware:
         if site is None:
             site = Site.objects.get_current()
         request.site = site
+        response = self.get_response(request)
+        return response
+
+
+class SessionCookieMiddleware:
+    """
+    Fallback middleware when cookies are blocked or broken
+    (e.g. https://www.chromium.org/updates/same-site/incompatible-clients/)
+    Should be called *after* Django session middleware
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+        engine = import_module(settings.SESSION_ENGINE)
+        self.SessionStore = engine.SessionStore
+
+    def __call__(self, request):
+        if 'X-Session' in request.headers and not settings.SESSION_COOKIE_NAME in request.COOKIES:  # skip if cookie is available
+            session_key = request.headers.get('X-Session')
+            request.session = self.SessionStore(session_key)
+
+        response = self.get_response(request)
+
+        try:
+            empty = request.session.is_empty()
+        except AttributeError:
+            return response
+
+        if response.status_code != 500:
+            if not empty:
+                response['X-Session'] = request.session.session_key
+            elif 'X-Session' in request.headers:
+                # response['X-Session'] = ''  # clean empty session
+                pass  # TODO: fix logout and basket request, it should be delayed
+        return response
+
+
+class CsrfCookieMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if settings.CSRF_HEADER_NAME in request.META and not settings.CSRF_COOKIE_NAME in request.COOKIES:
+            request.COOKIES[settings.CSRF_COOKIE_NAME] = request.META.get(settings.CSRF_HEADER_NAME)
+
         response = self.get_response(request)
         return response
 
