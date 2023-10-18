@@ -162,6 +162,8 @@ def products_stream(request, integration, template, filter_type):
     for product in products:
         context['product'] = product
         if integration:
+            if integration.output_with_images and len(product.images) == 0:
+                yield ''
             if not integration.output_all:
                 context['integration'] = ProductIntegration.objects.get(product=product, integration=integration)
             if integration.output_stock:
