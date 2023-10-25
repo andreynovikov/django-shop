@@ -21,7 +21,7 @@ from shop.models import Product, Order, OrderItem, News
 from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, \
     notify_user_order_delivered, notify_user_order_done, notify_user_review_products, \
     notify_review_posted, create_modulpos_order, delete_modulpos_order, \
-    notify_manager, notify_manager_sms, revalidate_nextjs
+    notify_manager, notify_manager_sms, revalidate_nextjs, ym_upload_user, ym_upload_order
 
 import logging
 
@@ -76,11 +76,18 @@ def order_saved(sender, **kwargs):
             if order.delivery == Order.DELIVERY_EXPRESS and hasattr(order.site, 'profile') and order.site.profile.manager_phones:
                 for phone in order.site.profile.manager_phones.split(','):
                     notify_manager_sms.s(order.id, phone).apply_async(priority=PRIORITY_HIGH)
+
             """ wait 5 minutes to let user supply comments and other stuff """
             notify_manager.apply_async((order.id,), countdown=300)
 
+            if not order.integration and order.meta and 'clientID' in order.meta:
+                ym_upload_user.apply_async((order.user.id, order.id), countdown=300)
+
         if order.integration and order.integration.uses_api:
             return
+
+        if not order.integration and order.meta and 'clientID' in order.meta:
+            ym_upload_order.apply_async((order.id,), countdown=360)  # let user data be uploaded before order data for new order
 
         if order.status == Order.STATUS_ACCEPTED:
             for item in order.items.all():

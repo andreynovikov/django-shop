@@ -15,6 +15,7 @@ class Integration(models.Model):
     output_template = models.CharField('шаблон выгрузки', max_length=20)
     output_all = models.BooleanField('выгражать все', default=False, help_text="Выгружать товары по дереву категорий, а не по флагу интеграции")
     output_available = models.BooleanField('выгражать только в наличии', default=False)
+    output_with_images = models.BooleanField('выгражать только с картинками', default=False)
     output_stock = models.BooleanField('выгражать остатки', default=False)
     uses_api = models.BooleanField('использует API', default=False)
     uses_boxes = models.BooleanField('использует коробки', default=False)
