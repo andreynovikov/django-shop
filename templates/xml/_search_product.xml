@@ -7,31 +7,28 @@
 <oldprice>{{ product.price|quantize:"1" }}</oldprice>
 {% endif %}
 <price>{{ product.cost|quantize:"1" }}</price>
-<currencyId>RUR</currencyId>
+<categories>
 {% for category in product.categories.all %}
-{% with top_category=category_map|get_dict_item:category.pk %}
-{% if top_category %}
-<categoryId>{{ top_category }}</categoryId>
-{% endif %}
-{% endwith %}
+  <categoryId>{{ category.pk }}</categoryId>
 {% endfor %}
+</categories>
 <picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image_prefix }}.jpg</picture>
+{% if product.whatis %}
 <typePrefix>{{ product.whatis }}</typePrefix>
+{% endif %}
+{% if product.manufacturer %}
 <vendor>{{ product.manufacturer.name }}</vendor>
-<vendorCode>{{ product.partnumber }}</vendorCode>
-<name>{{ product.title }}</name>
-<description>{{ product.yandexdescr }} 
+{% endif %}
 {% if product.partnumber %}
-Partnumber: {{ product.partnumber }}
+<vendorCode>{{ product.partnumber }}</vendorCode>
 {% endif %}
+<name>{{ product.title }}</name>
+<param name="идентификатор">{{ product.code }}</param>
 {% if product.article %}
-Код: {{ product.article }}
+<param name="sku">{{ product.article }}</param>
 {% endif %}
-</description>
-{% if product.manufacturer_warranty > 0 %}
-<manufacturer_warranty>true</manufacturer_warranty>
+{% if product.gtin %}
+<param name="gtin">{{ product.gtin }}</param>
 {% endif %}
-{% if product.sales_notes %}
-<sales_notes>{{ product.sales_notes }}</sales_notes>
-{% endif %}
+<param name="гарантия производителя">{% if product.manufacturer_warranty %}true{% else %}false{% endif %}</param>
 </offer>
