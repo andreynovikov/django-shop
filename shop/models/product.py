@@ -115,6 +115,7 @@ class Product(models.Model):
     whatis = models.TextField('Что это такое', blank=True)
     whatisit = models.CharField('Что это такое, кратко', max_length=50, blank=True)
     variations = models.CharField('вариации', max_length=255, blank=True)
+    comment_packer = models.CharField('комментарий для сборщика', max_length=255, blank=True)
 
     sales_actions = models.ManyToManyField(SalesAction, related_name='products', related_query_name='product', verbose_name='акции', blank=True)
     related = models.ManyToManyField('self', through='ProductRelation', symmetrical=False, blank=True)

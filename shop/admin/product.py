@@ -286,6 +286,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         ('Остальное', {
             'classes': ('collapse',),
             'fields': (
+                'comment_packer',
                 'order',
                 'swcode',
                 'coupon',
