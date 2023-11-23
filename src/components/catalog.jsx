@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import { useQuery } from 'react-query';
+
+import Link from 'next/link';
 
 import { categoryKeys, loadCategories } from '@/lib/queries';
 import { columns, rows } from '@/lib/partition';
@@ -67,14 +68,14 @@ export default function Catalog({visible, setVisible, buttonRef}) {
                     <>
                         <div className="d-flex flex-wrap flex-md-nowrap justify-content-between mb-4">
                             <Link className="w-100 d-flex align-items-center bg-faded-info rounded-3 py-2 ps-2 mb-4 mx-2" href={`/catalog/${categoryNew.slug}/`}>
-                                <img src="/media/cache/aa/a0/aaa0178369c842e19ba0512cb7ff4c01.jpg" width={120} height={120} alt={categoryNew.name} />
+                                { categoryNew.image && <img className="sw-category-image" src={categoryNew.image} alt={categoryNew.name} /> }
                                 <div className="py-4 px-3">
                                     <div className="h5 mb-2">{categoryNew.name}</div>
                                     <div className="text-info fs-sm">Посмотреть все<i className="ci-arrow-right fs-xs ms-1" /></div>
                                 </div>
                             </Link>
                             <Link className="w-100 d-flex align-items-center bg-faded-warning rounded-3 py-2 ps-2 mb-4 mx-2" href={`/catalog/${categoryPromo.slug}/`}>
-                                <img src="/media/cache/c6/e3/c6e33af587fa52efda6f766832ea5781.jpg" width={120} height={120} alt={categoryPromo.name} />
+                                { categoryPromo.image && <img className="sw-category-image" src={categoryPromo.image} alt={categoryPromo.name} /> }
                                 <div className="py-4 px-3">
                                     <div className="h5 mb-2">{categoryPromo.name}</div>
                                     <div className="text-warning fs-sm">Посмотреть все<i className="ci-arrow-right fs-xs ms-1" /></div>
@@ -88,7 +89,8 @@ export default function Catalog({visible, setVisible, buttonRef}) {
                                     <div className="w-100 mb-3 mx-4" key={category.id}>
                                         <div className="h6 mb-3">
                                             <Link href={`/catalog/${category.slug}/`}>
-                                                <i className="ci-printer opacity-60 fs-lg mt-n1 me-2" />{category.name}
+                                                { category.svg_icon && <span className="sw-catalog-icon me-1" dangerouslySetInnerHTML={{__html: category.svg_icon }}></span> }
+                                                {category.name}
                                             </Link>
                                         </div>
                                         { category.children && (
@@ -115,7 +117,8 @@ export default function Catalog({visible, setVisible, buttonRef}) {
                             <div className={"mx-4 mb-3" + (index === 0 ? " mt-4" : "")} key={category.id}>
                                 <div className="h7 mb-3">
                                     <Link href={`/catalog/${category.slug}/`}>
-                                        <i className="ci-printer opacity-60 fs-lg mt-n1 me-2" />{category.name}
+                                        { category.svg_icon && <span className="sw-catalog-icon me-1" dangerouslySetInnerHTML={{__html: category.svg_icon }}></span> }
+                                        {category.name}
                                     </Link>
                                 </div>
                                 { category.children && (
@@ -142,7 +145,7 @@ export default function Catalog({visible, setVisible, buttonRef}) {
 
                         <div className="d-flex flex-wrap flex-md-nowrap justify-content-between mt-4">
                             <Link className="w-100 d-flex align-items-center bg-faded-success rounded-3 py-2 ps-2 mx-2" href={`/catalog/${categoryDiscount.slug}/`}>
-                                <img src="/media/cache/e7/ba/e7ba2e565a2fedc80a76a1976a8beeb8.jpg" width={120} height={120} alt={categoryDiscount.name} />
+                                { categoryDiscount.image && <img className="sw-category-image" src={categoryDiscount.image} alt={categoryDiscount.name} /> }
                                 <div className="py-4 px-3">
                                     <div className="h5 mb-2">{categoryDiscount.name}</div>
                                     <div className="text-success fs-sm">Посмотреть все<i className="ci-arrow-right fs-xs ml-1" /></div>

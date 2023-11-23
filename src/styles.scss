@@ -37,6 +37,12 @@ body {
     }
 }
 
+// Bootstrap tweaks
+
+.tooltip {
+    margin: 0; // https://github.com/react-bootstrap/react-bootstrap/issues/5081
+}
+
 // Cartzilla tweaks
 
 .navbar-brand > img { // make logo highly responsive
@@ -152,6 +158,20 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
         border-bottom-right-radius: $border-radius;
         border-bottom-left-radius: $border-radius;
         border-top: 0 !important;
+    }
+
+    .sw-catalog-icon {
+        display: inline-block;
+
+        svg {
+            width: 20px;
+            height: 20px;
+        }
+    }
+
+    .sw-category-image {
+        height: 120px;
+        width: auto;
     }
 }
 
