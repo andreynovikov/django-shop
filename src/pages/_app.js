@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider, Hydrate } from 'react-query';
 import { ReactQueryDevtools } from 'react-query/devtools';
 
-import SSRProvider from 'react-bootstrap/SSRProvider';
-
 import { SiteProvider } from '@/lib/site';
 import { SessionProvider } from '@/lib/session';
 import { ToolbarProvider } from '@/lib/toolbar';
@@ -81,9 +79,7 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
                 <SiteProvider site={site}>
                     <SessionProvider session={session}>
                         <ToolbarProvider>
-                            <SSRProvider>
-                                { getLayout(<Component {...pageProps} />) }
-                            </SSRProvider>
+                            { getLayout(<Component {...pageProps} />) }
                         </ToolbarProvider>
                     </SessionProvider>
                 </SiteProvider>
