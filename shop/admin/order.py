@@ -7,7 +7,7 @@ from django import forms
 from django.urls import reverse
 from django.db import connection
 from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, \
-    DateTimeField, DecimalField, Q
+    DateTimeField, DecimalField
 from django.core.exceptions import PermissionDenied
 from django.contrib import admin, messages
 from django.http import HttpResponse, HttpResponseRedirect
@@ -24,7 +24,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from daterangefilter.filters import FutureDateRangeFilter, PastDateRangeFilter
-from django_admin_listfilter_dropdown.filters import ChoiceDropdownFilter
+from django_admin_listfilter_dropdown.filters import ChoiceDropdownFilter, RelatedDropdownFilter
 from tagging.utils import parse_tag_input
 
 from yandex_delivery.tasks import create_delivery_draft_order, get_delivery_options
@@ -271,53 +271,6 @@ class FutureDateFieldListFilter(admin.FieldListFilter):
             }
 
 
-class SiteListFilter(admin.filters.RelatedFieldListFilter):
-    template = 'django_admin_listfilter_dropdown/dropdown_filter.html'
-
-    def __init__(self, field, request, params, model, model_admin, field_path):
-        self.lookup_kwarg_integrated = 'integration__isnull'
-        self.lookup_val_integrated = params.get(self.lookup_kwarg_integrated)
-        super().__init__(field, request, params, model, model_admin, field_path)
-
-    def expected_parameters(self):
-        return [self.lookup_kwarg, self.lookup_kwarg_isnull, self.lookup_kwarg_integrated]
-
-    def queryset(self, request, queryset):
-        excludes = {}
-        for key in list(self.used_parameters.keys()):
-            if key.startswith('not__'):
-                excludes[key[5:]] = self.used_parameters[key]
-                del self.used_parameters[key]
-        qs = super().queryset(request, queryset)
-        if excludes:
-            qs = qs.filter(~Q(**excludes))
-        return qs
-
-    def choices(self, changelist):
-        yield {
-            'selected': self.lookup_val is None and self.lookup_val_integrated is None and not self.lookup_val_isnull,
-            'query_string': changelist.get_query_string(remove=[self.lookup_kwarg, self.lookup_kwarg_isnull, self.lookup_kwarg_integrated]),
-            'display': _('All'),
-        }
-        yield {
-            'selected': bool(self.lookup_val_integrated),
-            'query_string': changelist.get_query_string({self.lookup_kwarg_integrated: 'True'}, [self.lookup_kwarg, self.lookup_kwarg_isnull]),
-            'display': 'Кроме интеграций'
-        }
-        for pk_val, val in self.lookup_choices:
-            yield {
-                'selected': self.lookup_val == str(pk_val),
-                'query_string': changelist.get_query_string({self.lookup_kwarg: pk_val}, [self.lookup_kwarg_isnull, self.lookup_kwarg_integrated]),
-                'display': val,
-            }
-        if self.include_empty_choice:
-            yield {
-                'selected': bool(self.lookup_val_isnull),
-                'query_string': changelist.get_query_string({self.lookup_kwarg_isnull: 'True'}, [self.lookup_kwarg, self.lookup_kwarg_integrated]),
-                'display': self.empty_value_display,
-            }
-
-
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     @mark_safe
@@ -482,8 +435,8 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'user_bonuses', 'pos_status',
                        'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
                        'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
-    list_filter = [OrderStatusListFilter, ('site', SiteListFilter), ('created', PastDateRangeFilter), ('payment', ChoiceDropdownFilter),
-                   'paid', OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
+    list_filter = [OrderStatusListFilter, ('site', RelatedDropdownFilter), ('integration', RelatedDropdownFilter), ('created', PastDateRangeFilter),
+                   ('payment', ChoiceDropdownFilter), 'paid', OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
                    ('delivery_handing_date', FutureDateRangeFilter), 'manager', 'courier']
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment', 'delivery_tracking_number',
                      'delivery_info', 'delivery_yd_order', 'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
@@ -916,7 +869,7 @@ class OrderAdmin(admin.ModelAdmin):
 
         try:
             results = get_delivery_options(order.total, order.paid, settings.YANDEX_DOSTAVKA['warehouses'][0]['id'], context['city'],
-                                          context['weight'], context['width'], context['height'], context['length'])
+                                           context['weight'], context['width'], context['height'], context['length'])
 
             colors = [
                 '#1E98FF',  # blue
