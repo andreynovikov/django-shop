@@ -269,33 +269,6 @@ def notify_user_order_delivered(order_id):
         )
 
 
-@shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
-def notify_user_order_done(order_id):
-    order = Order.objects.get(id=order_id)
-
-    if order.email:
-        if not validate_email(order.email):
-            return
-        site = get_site_for_order(order)
-        reload_maybe()
-        context = {
-            'site': site,
-            'site_profile': SiteProfile.objects.get(site=site),
-            'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
-            'order': order
-        }
-        msg_plain = render_to_string('mail/shop/order_done.txt', context)
-        msg_html = render_to_string('mail/shop/order_done.html', context)
-
-        return send_mail(
-            'Заказ №%s выполнен' % order_id,
-            msg_plain,
-            config.sw_email_from,
-            [order.email],
-            html_message=msg_html,
-        )
-
-
 @shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def notify_user_review_products(self, order_id):
     order = Order.objects.get(id=order_id)

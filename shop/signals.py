@@ -19,9 +19,9 @@ from reviews.signals import review_was_posted
 
 from shop.models import Product, Order, OrderItem, News
 from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, \
-    notify_user_order_delivered, notify_user_order_done, notify_user_review_products, \
-    notify_review_posted, create_modulpos_order, delete_modulpos_order, \
-    notify_manager, notify_manager_sms, revalidate_nextjs, ym_upload_user, ym_upload_order
+    notify_user_order_delivered, notify_user_review_products, notify_review_posted, \
+    create_modulpos_order, delete_modulpos_order, notify_manager, notify_manager_sms, \
+    revalidate_nextjs, ym_upload_user, ym_upload_order
 
 import logging
 
@@ -126,7 +126,6 @@ def order_saved(sender, **kwargs):
                 order.user.discount = 5
                 order.user.save()
             if order.status == Order.STATUS_DONE:
-                notify_user_order_done.delay(order.id)
                 if order.site == SITE_SW or order.site == SITE_YANDEX:
                     next_week = timezone.now() + timedelta(days=7)
                     notify_user_review_products.apply_async((order.id,), eta=next_week)
