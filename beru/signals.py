@@ -19,7 +19,7 @@ def product_saved(sender, **kwargs):
             notify_beru_product_stocks.s([product.id], integration.utm_source).apply_async(priority=PRIORITY_IDLE, countdown=900)  # wait 15 minutes for import to finish
 
 
-@receiver(post_save, sender=OrderItem, dispatch_uid='order_item_saved_ozon_receiver')
+@receiver(post_save, sender=OrderItem, dispatch_uid='order_item_saved_beru_receiver')
 def order_item_saved(sender, **kwargs):
     """ This is redundant as product stock is reset on quantity change """
     order_item = kwargs['instance']
