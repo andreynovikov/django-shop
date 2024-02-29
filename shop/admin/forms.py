@@ -38,6 +38,11 @@ class CategoryAdminForm(forms.ModelForm):
 
 
 class IntegrationAdminForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(IntegrationAdminForm, self).__init__(*args, **kwargs)
+        self.fields['buyer'].queryset = Contractor.objects.filter(is_seller=False)
+        self.fields['seller'].queryset = Contractor.objects.filter(is_seller=True)
+
     class Meta:
         widgets = {
             'settings': JsonAutosizedTextarea(attrs={'rows': 1}),

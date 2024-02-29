@@ -10,7 +10,7 @@ __all__ = [
 
 class Integration(models.Model):
     name = models.CharField('название', max_length=100)
-    utm_source = models.CharField('источник', max_length=20)
+    utm_source = models.CharField('источник', max_length=20, unique=True, db_index=True)
     site = models.ForeignKey(Site, verbose_name='сайт', related_name='integrations', related_query_name='integration', on_delete=models.PROTECT)
     output_template = models.CharField('шаблон выгрузки', max_length=20)
     output_all = models.BooleanField('выгражать все', default=False, help_text="Выгружать товары по дереву категорий, а не по флагу интеграции")
@@ -21,6 +21,7 @@ class Integration(models.Model):
     uses_boxes = models.BooleanField('использует коробки', default=False)
     settings = models.JSONField('настройки', null=True, blank=True)
     admin_user_fields = models.JSONField('поля покупателя', null=True, blank=True)
+    seller = models.ForeignKey(Contractor, verbose_name='продавец 1С по-умолчанию', related_name='+', blank=True, null=True, on_delete=models.SET_NULL)
     buyer = models.ForeignKey(Contractor, verbose_name='покупатель 1С по-умолчанию', related_name='+', blank=True, null=True, on_delete=models.SET_NULL)
     wirehouse = models.ForeignKey(Supplier, verbose_name='склад отгрузки по-умолчанию', related_name='+', blank=True, null=True,
                                   on_delete=models.SET_NULL, limit_choices_to={'show_in_list': True})

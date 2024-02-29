@@ -7,7 +7,7 @@ from .forms import IntegrationAdminForm
 @admin.register(Integration)
 class IntegrationAdmin(admin.ModelAdmin):
     form = IntegrationAdminForm
-    list_display = ['name', 'utm_source', 'site', 'output_template', 'supplier_list', 'uses_api']
+    list_display = ['name', 'uses_api', 'utm_source', 'site', 'output_template', 'seller', 'supplier_list']
     exclude = ['products']
     filter_horizontal = ('suppliers',)
 
