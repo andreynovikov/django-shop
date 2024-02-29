@@ -53,7 +53,7 @@ table thead th.sorted .sortoptions { padding: 0 }
 <td>
   <a href="/admin/shop/product/{{ product.product_id }}/">{{ product.title }}</a>
   {% if product.comment_packer %}
-  <br/><i>{{ product.comment_packer }}</i>
+  <br/><i>{{ product.comment_packer|safe }}</i>
   {% endif %}
 </td>
 <td>{{ product.quantity }}</td>

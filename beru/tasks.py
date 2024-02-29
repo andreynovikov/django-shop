@@ -5,6 +5,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
 import django.db
+from django.db.models import Sum, F, Q
 
 from celery import shared_task
 
@@ -252,7 +253,7 @@ def notify_beru_integration_stocks(self):
         if integration.settings.get('warehouse_id', '') != '':
             products = Product.objects.order_by().filter(integration=integration)
 
-            if integration and integration.output_available:
+            if integration.output_available:
                 products = products.annotate(
                     quantity=Sum('stock_item__quantity', filter=Q(stock_item__supplier__integration=integration)),
                     correction=Sum('stock_item__correction', filter=Q(stock_item__supplier__integration=integration)),

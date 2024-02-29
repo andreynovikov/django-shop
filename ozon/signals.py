@@ -32,4 +32,4 @@ def order_item_saved(sender, **kwargs):
     order_item = kwargs['instance']
     if order_item.tracker.has_changed('quantity'):
         for integration in order_item.product.integrations.filter(pk__in=SITE_OZON.integrations.all()):
-            notify_product_stocks.s(order_item.product.id, integration.utm_source).apply_async(priority=PRIORITY_IDLE, countdown=900)  # wait 15 minutes for import to finish
+            notify_product_stocks.s(order_item.product.id, integration.utm_source).apply_async(priority=PRIORITY_IDLE, countdown=900)
