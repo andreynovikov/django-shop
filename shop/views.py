@@ -26,7 +26,7 @@ from sewingworld.tasks import PRIORITY_HIGHEST, PRIORITY_IDLE
 
 from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail
-from shop.models import Product, Basket, BasketItem, Order, OrderItem, ShopUser, ShopUserManager
+from shop.models import Product, Basket, BasketItem, Order, OrderItem, ShopUser, ShopUserManager, Contractor
 from shop.forms import UserForm, WarrantyCardForm
 
 import logging
@@ -753,6 +753,7 @@ def print_warranty_card(request):
             else:
                 context = {
                     'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
+                    'default_seller': Contractor.objects.filter(is_default_seller=True).first(),
                     'order': item.order,
                     'product': item.product,
                     'serial_number': item.serial_number,

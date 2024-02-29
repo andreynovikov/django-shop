@@ -273,7 +273,14 @@ class City(models.Model):
 class Contractor(models.Model):
     code = models.CharField('код 1С', max_length=64)
     name = models.CharField('название', max_length=100)
+    is_seller = models.BooleanField('продавец', default=False)
     is_default_seller = models.BooleanField('продавец по-умолчанию', default=False)
+    inn = models.CharField('ИНН', max_length=12, blank=True)
+    kpp = models.CharField('КПП', max_length=9, blank=True)
+    ogrn = models.CharField('ОГРН', max_length=13, blank=True)
+    legal_address = models.TextField('юр. адрес', blank=True)
+    postal_address = models.TextField('физ. адрес', blank=True)
+    bank_requisites = models.TextField('банковские реквизиты', blank=True)
 
     class Meta:
         verbose_name = 'контрагент'
