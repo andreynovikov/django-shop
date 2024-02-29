@@ -7,6 +7,13 @@ from django import template
 register=template.Library()
 
 @register.filter
+def percentage(value, percent=100):
+    """
+    Calculates percentage of a number and rounds it up.
+    """
+    return int(math.ceil(value * percent / 100))
+
+@register.filter
 def round_up(value, decimals=0):
     """
     Takes a number and rounds it up to a specified
