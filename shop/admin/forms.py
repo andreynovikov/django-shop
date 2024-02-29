@@ -19,7 +19,7 @@ from djconfig import config
 
 from sewingworld.widgets import AutosizedTextarea, JsonAutosizedTextarea
 
-from shop.models import Supplier, Product, Order, OrderItem, ShopUser, Box, ActOrder, Integration
+from shop.models import Supplier, Product, Order, OrderItem, ShopUser, Box, ActOrder, Integration, Contractor
 from shop.tasks import import1c
 
 from .widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
@@ -317,6 +317,8 @@ class OrderAdminForm(forms.ModelForm):
         super(OrderAdminForm, self).__init__(*args, **kwargs)
         try:
             instance = kwargs['instance']
+            self.fields['buyer'].queryset = Contractor.objects.filter(is_seller=False)
+            self.fields['seller'].queryset = Contractor.objects.filter(is_seller=True)
             self.fields['user_tags'].initial = instance.user.tags
             self.fields['user_tags'].widget = TagAutoComplete(model=type(instance.user), attrs=self.fields['user_tags'].widget.attrs)
 

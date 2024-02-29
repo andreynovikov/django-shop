@@ -51,8 +51,8 @@ body     { font-size:9pt; font-family:Verdana,sans-serif; }
 <td colspan="{% if admin %}3{% else %}2{% endif %}">
 Интернет-магазин "Швейный Мир"<br>
 www.sewing-world.ru<br>
-{{ owner_info.full_name }}<br>
-ИНН {{ owner_info.inn }}<br>
+{{ order.seller.name|default:default_seller.name }}<br>
+ИНН {% if order.seller.name %}{{ order.seller.inn }}{% else %}{{ default_seller.inn }}{% endif %}<br>
 {{ owner_info.phone }}</td>
 {% if not admin %}<td><img src="{% static 'i/stamp.jpg' %}" width="150" height="150"></td>{% endif %}
 </tr>

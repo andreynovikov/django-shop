@@ -77,7 +77,7 @@ def get_unfulfilled_orders(self, account):
 
             order = Order.objects.filter(delivery_tracking_number=posting_number).first()
             if order is None:
-                basket = Basket.objects.create(session_id=session.session_key, utm_source=account, secondary=True)
+                basket = Basket.objects.create(site=integration.site, session_id=session.session_key, utm_source=account, secondary=True)
 
                 for ozon_item in posting.get('products', []):
                     try:
@@ -97,6 +97,7 @@ def get_unfulfilled_orders(self, account):
                 basket.save()
 
                 kwargs = {
+                    'integration': integration,
                     'delivery_tracking_number': posting_number
                 }
                 if posting.get('is_express', False):

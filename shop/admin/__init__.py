@@ -137,7 +137,7 @@ class ManufacturerAdmin(admin.ModelAdmin):
 
 @admin.register(Contractor)
 class ContractorAdmin(admin.ModelAdmin):
-    list_display = ['code', 'name', 'is_default_seller']
+    list_display = ['code', 'name', 'inn', 'is_seller', 'is_default_seller']
     list_display_links = ['name']
     search_fields = ['name']
     ordering = ['code']

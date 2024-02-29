@@ -4,6 +4,8 @@ __pycache__/
 *~
 *.pyc
 settings_local.py
+import/
 media/
 static/
-st_search/
+.cache/
+.touch_reload

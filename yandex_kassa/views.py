@@ -65,7 +65,7 @@ def payment(request, order_id, return_url=None):
     items = []
     for item in order.items.all():
         items.append({
-            'description': str(item.product),
+            'description': str(item.product)[:128],
             'quantity': item.quantity,
             'amount': {
                 'value': str(item.cost.quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)),
