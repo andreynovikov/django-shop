@@ -12,7 +12,7 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 
-from shop.models import Product, Basket, BasketItem, Order, ShopUser
+from shop.models import Product, Basket, BasketItem, Order, ShopUser, Integration
 
 
 logger = logging.getLogger('sber')
@@ -53,6 +53,7 @@ def new_order(request):
     sber_order = data.get('data', {})
 
     user = ShopUser.objects.get(phone='0001')
+    integration = Integration.objects.filter(utm_source='sber').first()
 
     if not request.session.session_key:
         request.session.save()
@@ -61,7 +62,7 @@ def new_order(request):
     request.session.save()
 
     for shipment in sber_order.get('shipments', []):
-        basket = Basket.objects.create(session_id=request.session.session_key, utm_source='sber', secondary=True)
+        basket = Basket.objects.create(site=integration.site, session_id=request.session.session_key, utm_source='sber', secondary=True)
 
         for sber_item in shipment.get('items', []):
             try:
