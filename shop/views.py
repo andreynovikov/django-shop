@@ -22,6 +22,8 @@ from django.core.exceptions import MultipleObjectsReturned
 from django.db import IntegrityError
 from django.utils.formats import localize
 
+from djconfig import config
+
 from sewingworld.tasks import PRIORITY_HIGHEST, PRIORITY_IDLE
 
 from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase
@@ -753,7 +755,7 @@ def print_warranty_card(request):
             else:
                 context = {
                     'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
-                    'default_seller': Contractor.objects.filter(is_default_seller=True).first(),
+                    'default_seller': config.sw_default_seller,
                     'order': item.order,
                     'product': item.product,
                     'serial_number': item.serial_number,
