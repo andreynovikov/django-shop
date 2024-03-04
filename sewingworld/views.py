@@ -49,8 +49,6 @@ def products_stream(request, integration, template, filter_type):
     if integration:
         template = integration.output_template
         utm_source = integration.utm_source
-        if integration.utm_source in ['yandex', 'beru', 'google', 'avito']:
-            children = children.filter(ya_active=True)
     else:
         utm_source = filter_type
 
@@ -81,9 +79,6 @@ def products_stream(request, integration, template, filter_type):
     if integration and not integration.output_all:
         filters['integration'] = integration
 
-    if filter_type == 'yandex':
-        filters['market'] = True
-        filters['num__gt'] = 0
     if filter_type == 'prym':
         filters['market'] = True
         filters['num__gt'] = 0
