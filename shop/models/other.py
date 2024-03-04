@@ -280,6 +280,8 @@ class Contractor(models.Model):
     legal_address = models.TextField('юр. адрес', blank=True)
     postal_address = models.TextField('физ. адрес', blank=True)
     bank_requisites = models.TextField('банковские реквизиты', blank=True)
+    stamp = models.ImageField('печать', upload_to='contractors', blank=True)
+    script = models.ImageField('подпись', upload_to='contractors', blank=True)
 
     class Meta:
         verbose_name = 'контрагент'

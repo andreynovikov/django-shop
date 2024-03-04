@@ -43,13 +43,16 @@ table    { width:800px; }
 Поставщик:
 </td>
 <td>
-<p>{{ owner_info.full_name }}</p>
-<p>ИНН: {{ owner_info.inn }}, ОГРНИП: {{ owner_info.ogrn }}</p>
+<p>{{ order.seller.name|default:default_seller.name }}</p>
+<p>
+ИНН: {% if order.seller.name %}{{ order.seller.inn }}{% else %}{{ default_seller.inn }}{% endif %},
+ОГРНИП: {% if order.seller.name %}{{ order.seller.ogrn }}{% else %}{{ default_seller.ogrn }}{% endif %}
+</p>
 {% if order.is_firm %}
 {% else %}
 <p><i>Памятка для операциониста Сбербанка: КПП у ИП отсутствует. Пробуйте провести платеж в режиме "Произвольный платеж"</i></p>
 {% endif %}
-<p>{{ owner_info.legal_address }}</p>
+<p>{% if order.seller.name %}{{ order.seller.legal_address }}{% else %}{{ default_seller.legal_address }}{% endif %}</p>
 </td>
 </tr>
 <tr>
@@ -57,8 +60,7 @@ table    { width:800px; }
 Расчетный счет:
 </td>
 <td>
-<p>{{ owner_info.account_no }} в {{ owner_info.account_bank }}</p>
-<p>БИК: {{ owner_info.bik }}, к/с: {{ owner_info.cor_account }}</p>
+<p>{% if order.seller.name %}{{ order.seller.bank_requisites }}{% else %}{{ default_seller.bank_requisites }}{% endif %}</p>
 </td>
 </tr>
 <tr>
@@ -122,8 +124,8 @@ table    { width:800px; }
 </td>
 <td class="left">
 <br><br><br>
-Индивидуальный Предприниматель ____________ {{ owner_info.director }}<br><br><br>
-Главный бухгалтер ____________ {{ owner_info.director }}
+{{ order.seller.name|default:default_seller.name }} ____________ <br />
+(также исполняет обязанности главного бухгалтера)
 </td>
 </tr>
 </table>

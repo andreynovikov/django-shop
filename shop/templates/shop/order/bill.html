@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -43,13 +44,16 @@ table    { width:800px; }
 Поставщик:
 </td>
 <td>
-<p>{{ owner_info.full_name }}</p>
-<p>ИНН: {{ owner_info.inn }}, ОГРНИП: {{ owner_info.ogrn }}</p>
+<p>{{ order.seller.name|default:default_seller.name }}</p>
+<p>
+ИНН: {% if order.seller.name %}{{ order.seller.inn }}{% else %}{{ default_seller.inn }}{% endif %},
+ОГРНИП: {% if order.seller.name %}{{ order.seller.ogrn }}{% else %}{{ default_seller.ogrn }}{% endif %}
+</p>
 {% if order.is_firm %}
 {% else %}
 <p><i>Памятка для операциониста Сбербанка: КПП у ИП отсутствует. Пробуйте провести платеж в режиме "Произвольный платеж"</i></p>
 {% endif %}
-<p>{{ owner_info.legal_address }}</p>
+<p>{% if order.seller.name %}{{ order.seller.legal_address }}{% else %}{{ default_seller.legal_address }}{% endif %}</p>
 </td>
 </tr>
 <tr>
@@ -57,8 +61,7 @@ table    { width:800px; }
 Расчетный счет:
 </td>
 <td>
-<p>{{ owner_info.account_no }} в {{ owner_info.account_bank }}</p>
-<p>БИК: {{ owner_info.bik }}, к/с: {{ owner_info.cor_account }}</p>
+<p>{% if order.seller.name %}{{ order.seller.bank_requisites }}{% else %}{{ default_seller.bank_requisites }}{% endif %}</p>
 </td>
 </tr>
 <tr>
@@ -118,11 +121,11 @@ table    { width:800px; }
 <table>
 <tr>
 <td class="right">
-<img src="/static/i/stamp.jpg" width="177" height="177">
+<img src="{% if order.seller.stamp %}{{ order.seller.stamp.url }}{% else %}{% static 'i/stamp.jpg' %}{% endif %}" style="max-width: 180px; height: auto">
 </td>
 <td class="left">
-<img src="/static/i/script-dir.jpg" width="137" height="75"><br />
-Индивидуальный Предприниматель {{ owner_info.director }}<br />
+<img src="{% if order.seller.script %}{{ order.seller.script.url }}{% else %}{% static 'i/script-dir.jpg' %}{% endif %}" style="max-width: 150px; height: auto"><br />
+{{ order.seller.name|default:default_seller.name }}<br />
 (также исполняет обязанности главного бухгалтера)
 </td>
 </tr>
