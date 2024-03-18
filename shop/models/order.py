@@ -13,7 +13,7 @@ from model_utils import FieldTracker
 from colorfield.fields import ColorField
 from tagging.utils import parse_tag_input
 
-from . import Product, ProductSet, Store, ShopUser, Integration, Contractor, Supplier
+from . import Product, ProductSet, Store, ShopUser, Integration, Contractor, PosTerminal, Supplier
 
 __all__ = [
     'Manager', 'Courier', 'Order', 'OrderItem', 'Box'
@@ -37,7 +37,7 @@ class Manager(models.Model):
 class Courier(models.Model):
     name = models.CharField('имя', max_length=100)
     color = ColorField(default='#000000')
-    pos_id = models.CharField('идентификатор кассы', max_length=100, blank=True)
+    pos_terminal = models.ForeignKey(PosTerminal, verbose_name='pos-терминал', on_delete=models.SET_NULL, null=True)
 
     class Meta:
         verbose_name = 'курьер'

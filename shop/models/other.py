@@ -14,8 +14,8 @@ from tagging.fields import TagField
 
 __all__ = [
     'ShopUserManager', 'ShopUser', 'Category', 'Currency', 'Country', 'Region', 'City',
-    'Contractor', 'Supplier', 'Store', 'StoreImage', 'ServiceCenter', 'Manufacturer',
-    'Advert', 'SalesAction', 'News'
+    'Contractor', 'PosTerminal', 'Supplier', 'Store', 'StoreImage', 'ServiceCenter',
+    'Manufacturer', 'Advert', 'SalesAction', 'News'
 ]
 
 logger = logging.getLogger(__name__)
@@ -282,6 +282,10 @@ class Contractor(models.Model):
     bank_requisites = models.TextField('банковские реквизиты', blank=True)
     stamp = models.ImageField('печать', upload_to='contractors', blank=True)
     script = models.ImageField('подпись', upload_to='contractors', blank=True)
+    yookassa_id = models.CharField('ID аккаунта ЮKassa', max_length=20, blank=True)
+    yookassa_key = models.CharField('секретный ключ ЮKassa', max_length=255, blank=True)
+    modulkassa_login = models.CharField('логин МодульКасса', max_length=255, blank=True)
+    modulkassa_password = models.CharField('пароль МодульКасса', max_length=255, blank=True)
 
     class Meta:
         verbose_name = 'контрагент'
@@ -289,6 +293,18 @@ class Contractor(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class PosTerminal(models.Model):
+    id = models.CharField('идентификатор кассы', max_length=100, primary_key=True)
+    seller = models.ForeignKey(Contractor, verbose_name='продавец', on_delete=models.PROTECT)
+
+    class Meta:
+        verbose_name = 'pos-терминал'
+        verbose_name_plural = 'pos-терминалы'
+
+    def __str__(self):
+        return self.id
 
 
 class Supplier(models.Model):

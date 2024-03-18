@@ -50,6 +50,12 @@ class IntegrationAdminForm(forms.ModelForm):
         }
 
 
+class PosTerminalAdminForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super(PosTerminalAdminForm, self).__init__(*args, **kwargs)
+        self.fields['seller'].queryset = Contractor.objects.filter(is_seller=True)
+
+
 class OneSImportForm(forms.Form):
     file = forms.ChoiceField(label="CSV файл 1С", required=True, widget=forms.RadioSelect)
 

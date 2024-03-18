@@ -2,7 +2,6 @@ import logging
 import json
 from decimal import Decimal, ROUND_HALF_EVEN
 
-from django.conf import settings
 from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
@@ -24,8 +23,6 @@ from shop.tasks import update_order
 
 from .tasks import get_receipt
 
-KASSA_ACCOUNT_ID = getattr(settings, 'KASSA_ACCOUNT_ID', 0)
-KASSA_SECRET_KEY = getattr(settings, 'KASSA_SECRET_KEY', '')
 
 logger = logging.getLogger('yandex_kassa')
 
@@ -59,8 +56,8 @@ def payment(request, order_id, return_url=None):
         """ This is not the user's order, someone tries to hack us """
         return HttpResponseForbidden()
 
-    Configuration.account_id = KASSA_ACCOUNT_ID
-    Configuration.secret_key = KASSA_SECRET_KEY
+    Configuration.account_id = order.seller.yookassa_id
+    Configuration.secret_key = order.seller.yookassa_key
 
     items = []
     for item in order.items.all():
@@ -184,8 +181,8 @@ def receipt(request, order_id):
     if not payment_id:
         return JsonResponse({})
 
-    Configuration.account_id = KASSA_ACCOUNT_ID
-    Configuration.secret_key = KASSA_SECRET_KEY
+    Configuration.account_id = order.seller.yookassa_id
+    Configuration.secret_key = order.seller.yookassa_key
 
     receipts = Receipt.list({'payment_id': payment_id})
 

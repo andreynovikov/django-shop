@@ -731,7 +731,7 @@ def create_modulpos_order(self, order_id):
     order = Order.objects.get(id=order_id)
     if not order.courier:
         return 'Отсутствует привязка курьера'
-    if not order.courier.pos_id:
+    if not order.courier.pos_terminal:
         return 'Отсутствует привязка кассы к курьеру'
     items = []
     for item in order.items.all():
@@ -767,11 +767,11 @@ def create_modulpos_order(self, order_id):
     }
     data_encoded = json.dumps(data, cls=DecimalEncoder).encode('utf-8')
 
-    reload_maybe()
-
-    url = 'https://service.modulpos.ru/api/v2/retail-point/{}/order'.format(order.courier.pos_id)
+    pos_terminal = order.courier.pos_terminal
+    seller = pos_terminal.seller
+    url = 'https://service.modulpos.ru/api/v2/retail-point/{}/order'.format(pos_terminal.id)
     headers = {
-        'Authorization': 'Basic {token}'.format(token=base64.standard_b64encode('{}:{}'.format(config.sw_modulkassa_login, config.sw_modulkassa_password).encode('utf-8')).decode('utf-8')),
+        'Authorization': 'Basic {token}'.format(token=base64.standard_b64encode('{}:{}'.format(seller.modulkassa_login, seller.modulkassa_password).encode('utf-8')).decode('utf-8')),
         'Content-Type': 'application/json; charset=utf-8'
     }
     request = Request(url, data_encoded, headers, method='POST')
@@ -822,17 +822,17 @@ def delete_modulpos_order(self, order_id):
     order = Order.objects.get(id=order_id)
     if not order.courier:
         return 'Отсутствует привязка курьера'
-    if not order.courier.pos_id:
+    if not order.courier.pos_terminal:
         return 'Отсутствует привязка кассы к курьеру'
     if not order.hidden_tracking_number:
         return 'Отсутствует ID документа в кассе'
 
-    reload_maybe()
-
+    pos_terminal = order.courier.pos_terminal
+    seller = pos_terminal.seller
     # get fiscal info
-    url = 'https://service.modulpos.ru/api/v1/retail-point/{}/cashdocs?count=1&q=linkedDocId=={}'.format(order.courier.pos_id, order.hidden_tracking_number)
+    url = 'https://service.modulpos.ru/api/v1/retail-point/{}/cashdocs?count=1&q=linkedDocId=={}'.format(pos_terminal.id, order.hidden_tracking_number)
     headers = {
-        'Authorization': 'Basic {token}'.format(token=base64.standard_b64encode('{}:{}'.format(config.sw_modulkassa_login, config.sw_modulkassa_password).encode('utf-8')).decode('utf-8')),
+        'Authorization': 'Basic {token}'.format(token=base64.standard_b64encode('{}:{}'.format(seller.modulkassa_login, seller.modulkassa_password).encode('utf-8')).decode('utf-8')),
         'Content-Type': 'application/json; charset=utf-8'
     }
     request = Request(url, None, headers, method='GET')
@@ -858,11 +858,7 @@ def delete_modulpos_order(self, order_id):
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
 
     # delete order from pos terminal
-    url = 'https://service.modulpos.ru/api/v2/retail-point/{}/order/{}'.format(order.courier.pos_id, order.hidden_tracking_number)
-    headers = {
-        'Authorization': 'Basic {token}'.format(token=base64.standard_b64encode('{}:{}'.format(config.sw_modulkassa_login, config.sw_modulkassa_password).encode('utf-8')).decode('utf-8')),
-        'Content-Type': 'application/json; charset=utf-8'
-    }
+    url = 'https://service.modulpos.ru/api/v2/retail-point/{}/order/{}'.format(pos_terminal.id, order.hidden_tracking_number)
     request = Request(url, None, headers, method='DELETE')
     try:
         urlopen(request)
