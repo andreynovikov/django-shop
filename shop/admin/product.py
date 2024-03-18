@@ -10,6 +10,7 @@ from django.conf.urls import url
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
+from django_better_admin_arrayfield.admin.mixins import DynamicArrayMixin
 from django_admin_listfilter_dropdown.filters import SimpleDropdownFilter
 from django_admin_listfilter_dropdown.filters import DropdownFilter, RelatedDropdownFilter
 from reviews.admin import ReviewAdmin, ReviewAdminForm
@@ -131,7 +132,7 @@ class IntegrationsFilter(SimpleDropdownFilter):
 
 
 @admin.register(Product)
-class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
+class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
     @mark_safe
     def product_codes(self, obj):
         code = obj.code or '--'
@@ -217,7 +218,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         ('Основное', {
             'classes': ('collapse',),
             'fields': (('code', 'article'), ('partnumber', 'tnved'), 'title', 'runame', 'whatis', 'whatisit', 'kind', 'categories',
-                       ('manufacturer', 'gtin'), ('country', 'developer_country'), 'variations', 'spec', 'shortdescr',
+                       'manufacturer', ('gtin', 'gtins'), ('country', 'developer_country'), 'variations', 'spec', 'shortdescr',
                        'yandexdescr', 'descr', 'manuals', 'state', 'complect', 'dealertxt')
         }),
         ('Деньги', {
