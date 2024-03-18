@@ -96,11 +96,11 @@ def order_saved(sender, **kwargs):
                     order.append_user_tags(tags)
 
         if order.status == Order.STATUS_SENT:
-            if order.courier and order.courier.pos_id:
+            if order.courier and order.courier.pos_terminal:
                 create_modulpos_order.delay(order.id)
 
         if order.tracker.previous('status') == Order.STATUS_SENT:
-            if order.courier and order.courier.pos_id and order.hidden_tracking_number:
+            if order.courier and order.courier.pos_terminal and order.hidden_tracking_number:
                 delete_modulpos_order.delay(order.id)
 
         if order.status == Order.STATUS_COLLECTED:

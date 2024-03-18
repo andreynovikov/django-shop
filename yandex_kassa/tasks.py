@@ -1,7 +1,6 @@
 import logging
 from decimal import Decimal, ROUND_HALF_EVEN
 
-from django.conf import settings
 from django.db import Error as DatabaseError
 
 from celery import shared_task
@@ -11,8 +10,6 @@ from yookassa import Configuration, Receipt
 from shop.models import Order
 from shop.tasks import update_order
 
-KASSA_ACCOUNT_ID = getattr(settings, 'KASSA_ACCOUNT_ID', 0)
-KASSA_SECRET_KEY = getattr(settings, 'KASSA_SECRET_KEY', '')
 
 logger = logging.getLogger('yandex_kassa')
 
@@ -21,8 +18,8 @@ logger = logging.getLogger('yandex_kassa')
 def get_receipt(self, order_id, payment_id):
     order = Order.objects.get(id=order_id)
 
-    Configuration.account_id = KASSA_ACCOUNT_ID
-    Configuration.secret_key = KASSA_SECRET_KEY
+    Configuration.account_id = order.seller.yookassa_id
+    Configuration.secret_key = order.seller.yookassa_key
 
     receipts = Receipt.list({'payment_id': payment_id})
 

@@ -8,11 +8,12 @@ from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.formats import date_format
 
+from djconfig import config
 from model_utils import FieldTracker
 from colorfield.fields import ColorField
 from tagging.utils import parse_tag_input
 
-from . import Product, ProductSet, Store, ShopUser, Integration, Contractor, Supplier
+from . import Product, ProductSet, Store, ShopUser, Integration, Contractor, PosTerminal, Supplier
 
 __all__ = [
     'Manager', 'Courier', 'Order', 'OrderItem', 'Box'
@@ -36,7 +37,7 @@ class Manager(models.Model):
 class Courier(models.Model):
     name = models.CharField('имя', max_length=100)
     color = ColorField(default='#000000')
-    pos_id = models.CharField('идентификатор кассы', max_length=100, blank=True)
+    pos_terminal = models.ForeignKey(PosTerminal, verbose_name='pos-терминал', on_delete=models.SET_NULL, null=True)
 
     class Meta:
         verbose_name = 'курьер'
@@ -287,11 +288,13 @@ class Order(models.Model):
         order.address = user.address
         order.phone = user.phone
         order.email = user.email
-        order.seller = Contractor.objects.filter(is_default_seller=True).first()
         order.integration = integration
         if integration:
+            order.seller = integration.seller
             order.buyer = integration.buyer
             order.wirehouse = integration.wirehouse
+        if order.seller is None:
+            order.seller = config.sw_default_seller
         order.save()
 
         wholesale = basket.site.profile.wholesale

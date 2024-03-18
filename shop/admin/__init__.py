@@ -12,11 +12,11 @@ from mptt.admin import DraggableMPTTAdmin
 
 from sewingworld.admin import get_sites
 from sewingworld.widgets import AutosizedTextarea
-from shop.models import Category, Supplier, Contractor, Currency, Country, Region, City, \
-    Store, StoreImage, ServiceCenter, Manufacturer, Advert, SalesAction, \
-    Manager, Courier, News
+from shop.models import Category, Supplier, Contractor, PosTerminal, Currency, \
+    Country, Region, City, Store, StoreImage, ServiceCenter, Manufacturer, \
+    Advert, SalesAction, Manager, Courier, News
 from .widgets import ImageWidget
-from .forms import CategoryAdminForm, NewsAdminForm
+from .forms import CategoryAdminForm, PosTerminalAdminForm, NewsAdminForm
 
 from .product import ProductAdmin  # NOQA
 from .order import OrderAdmin  # NOQA
@@ -137,10 +137,17 @@ class ManufacturerAdmin(admin.ModelAdmin):
 
 @admin.register(Contractor)
 class ContractorAdmin(admin.ModelAdmin):
-    list_display = ['code', 'name', 'inn', 'is_seller', 'is_default_seller']
+    list_display = ['code', 'name', 'inn', 'is_seller', 'yookassa_id', 'modulkassa_login']
     list_display_links = ['name']
     search_fields = ['name']
     ordering = ['code']
+
+
+@admin.register(PosTerminal)
+class PosTerminalAdmin(admin.ModelAdmin):
+    list_display = ['id', 'seller']
+    ordering = ['id']
+    form = PosTerminalAdminForm
 
 
 class AdvertAdminForm(ModelForm):
@@ -197,7 +204,7 @@ class CourierAdmin(admin.ModelAdmin):
     colorbar.admin_order_field = 'color'
     colorbar.short_description = 'цвет'
 
-    list_display = ['name', 'colorbar', 'pos_id']
+    list_display = ['name', 'colorbar', 'pos_terminal']
     list_display_links = ['name']
     search_fields = ['name']
     ordering = ['name']

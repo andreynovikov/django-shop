@@ -1,4 +1,5 @@
 import logging
+import re
 import sys
 import traceback
 
@@ -6,6 +7,7 @@ from importlib import import_module
 from urllib.parse import urlparse
 
 from django.conf import settings
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.sites.models import Site
 from django.core.exceptions import MiddlewareNotUsed
 from django.db.models import Q
@@ -102,4 +104,51 @@ class BlockedIpMiddleware:
 class ProcessExceptionMiddleware(object):
     def process_exception(self, request, exception):
         print('\n'.join(traceback.format_exception(*sys.exc_info())), file=sys.stderr)
+        return None
+
+
+class RequireStaffMiddleware(object):
+    """
+    Middleware component that wraps the staff_member_required decorator around
+    matching URL patterns. To use, add the class to MIDDLEWARE_CLASSES and
+    define STAFF_REQUIRED_URLS and STAFF_REQUIRED_URLS_EXCEPTIONS in your
+    settings.py. For example:
+    ------
+    STAFF_REQUIRED_URLS = (
+        r'/topsecret/(.*)$',
+    )
+    STAFF_REQUIRED_URLS_EXCEPTIONS = (
+        r'/topsecret/login(.*)$',
+        r'/topsecret/logout(.*)$',
+    )
+    ------
+    STAFF_REQUIRED_URLS is where you define URL patterns; each pattern must
+    be a valid regex.
+
+    STAFF_REQUIRED_URLS_EXCEPTIONS is, conversely, where you explicitly
+    define any exceptions (like login and logout URLs).
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.STAFF_REQUIRED_URLS = getattr(settings, 'STAFF_REQUIRED_URLS', None)
+        if self.STAFF_REQUIRED_URLS is None:
+            return MiddlewareNotUsed()
+        self.STAFF_REQUIRED_URLS_EXCEPTIONS = getattr(settings, 'STAFF_REQUIRED_URLS_EXCEPTIONS', ())
+        self.required = tuple([re.compile(url) for url in self.STAFF_REQUIRED_URLS])
+        self.exceptions = tuple([re.compile(url) for url in self.STAFF_REQUIRED_URLS_EXCEPTIONS])
+
+    def __call__(self, request):
+        return self.get_response(request)
+
+    def process_view(self,request,view_func,view_args,view_kwargs):
+        # No need to process URLs if user already logged in
+        if request.user.is_authenticated: return None
+        # An exception match should immediately return None
+        for url in self.exceptions:
+            if url.match(request.path): return None
+        # Requests matching a restricted URL pattern are returned
+        # wrapped with the login_required decorator
+        for url in self.required:
+            if url.match(request.path): return staff_member_required(view_func)(request,*view_args,**view_kwargs)
+        # Explicitly return None for all non-matching requests
         return None
