@@ -1,4 +1,5 @@
 import logging
+import os
 
 from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
@@ -23,10 +24,20 @@ from model_field_list import ModelFieldListField
 from . import Category, Country, Currency, Manufacturer, SalesAction, Supplier
 
 __all__ = [
-    'Product', 'ProductRelation', 'ProductSet', 'ProductKind', 'ProductReview', 'Stock'
+    'Product', 'ProductImage', 'ProductRelation', 'ProductSet', 'ProductKind', 'ProductReview', 'Stock'
 ]
 
 logger = logging.getLogger(__name__)
+
+
+def product_image_path(instance, filename):
+    _, extension = os.path.splitext(filename)
+    return 'products/{0}/{1}{2}'.format(instance.manufacturer.code, instance.code, extension)
+
+
+def product_big_image_path(instance, filename):
+    _, extension = os.path.splitext(filename)
+    return 'products/{0}/{1}.b{2}'.format(instance.manufacturer.code, instance.code, extension)
 
 
 class Product(models.Model):
@@ -55,6 +66,8 @@ class Product(models.Model):
     # todo: not used in logic, only in templates
     max_val_discount = models.DecimalField('макс. скидка, руб', max_digits=10, decimal_places=2, null=True, blank=True)
     ws_max_discount = models.PositiveSmallIntegerField('опт. макс. скидка, %', default=10)
+    image = models.ImageField('изображение', upload_to=product_image_path, max_length=255, null=True, blank=True)
+    big_image = models.ImageField('большое изображение', upload_to=product_big_image_path, max_length=255, null=True, blank=True)
     image_prefix = models.CharField('префикс изображения', max_length=200)
     kind = models.ManyToManyField('shop.ProductKind', verbose_name='тип', related_name='products',
                                   related_query_name='product', blank=True)
@@ -229,7 +242,6 @@ class Product(models.Model):
             self.sp_price = self.sp_cur_price * self.sp_cur_code.rate
         else:
             self.update_set_price()
-        self.image_prefix = ''.join(['images/', self.manufacturer.code, '/', self.code])
         super(Product, self).save(*args, **kwargs)
         self.update_fts_vector()
         self.update_sets()
@@ -379,6 +391,22 @@ class Product(models.Model):
     def __str__(self):
         # return " ".join([self.partnumber, self.title])
         return self.title
+
+
+def product_extra_image_path(instance, filename):
+    logger.error("IMAGE {} {}".format(filename, instance.order))
+    return 'products/{0}/{1}/{2}'.format(instance.product.manufacturer.code, instance.product.code, filename)
+
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, related_name='images', on_delete=models.CASCADE)
+    image = models.ImageField('изображение', upload_to=product_extra_image_path, max_length=255)
+    order = models.PositiveIntegerField()
+
+    class Meta:
+        verbose_name = 'изображение товара'
+        verbose_name_plural = 'изображения товара'
+        ordering = ['order']
 
 
 class ProductRelation(models.Model):

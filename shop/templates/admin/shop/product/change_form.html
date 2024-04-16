@@ -16,6 +16,7 @@
     (function($) {
         $(document).ready(function() {
             $("#set_constituents-group").detach().appendTo($("#id_recalculate_price").closest("fieldset"));
+            $("#images-group").detach().appendTo($("#id_image").closest("fieldset"));
             $(".add-array-item").each(function(index, element) {
                 $(element).attr("value", "Добавить ещё");
             });

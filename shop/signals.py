@@ -12,6 +12,9 @@ from tagging.utils import parse_tag_input
 
 from django.contrib.flatpages.models import FlatPage
 
+from django_cleanup.signals import cleanup_pre_delete
+from sorl.thumbnail import delete as delete_thumbnail
+
 from sewingworld.tasks import PRIORITY_HIGH, PRIORITY_NORMAL, PRIORITY_LOW, PRIORITY_IDLE
 
 from reviews import get_review_model
@@ -157,3 +160,8 @@ def news_saved(sender, **kwargs):
     }
     for site in news.sites.exclude(profile__revalidation_token__exact=''):
         revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
+
+
+@receiver(cleanup_pre_delete)
+def sorl_delete(**kwargs):
+    delete_thumbnail(kwargs['file'])
