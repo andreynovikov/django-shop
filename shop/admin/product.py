@@ -1,7 +1,7 @@
 from django.forms import TextInput
 from django.urls import reverse
 from django.db.models import PositiveSmallIntegerField, PositiveIntegerField, \
-    DecimalField, FloatField, Q
+    DecimalField, FloatField, ImageField, Q
 from django.core.exceptions import PermissionDenied
 from django.contrib import admin
 from django.http import JsonResponse
@@ -10,6 +10,7 @@ from django.conf.urls import url
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
+from adminsortable2.admin import SortableInlineAdminMixin
 from django_better_admin_arrayfield.admin.mixins import DynamicArrayMixin
 from django_admin_listfilter_dropdown.filters import SimpleDropdownFilter
 from django_admin_listfilter_dropdown.filters import DropdownFilter, RelatedDropdownFilter
@@ -20,13 +21,14 @@ from import_export.admin import ImportExportMixin
 
 from flags.state import flag_enabled
 
-from shop.models import Product, ProductRelation, ProductSet, ProductKind, ProductReview, \
-    Stock, Integration, Order
+from shop.models import Product, ProductImage, ProductRelation, ProductSet, ProductKind, \
+    ProductReview, Stock, Integration, Order
 from .forms import ProductImportForm, ProductConfirmImportForm, ProductExportForm, \
     ProductAdminForm, ProductListAdminForm, ProductKindForm, StockInlineForm, IntegrationInlineForm, \
     OneSImportForm
 from .decorators import admin_changelist_link
 from .views import product_stock_view
+from .widgets import ImageWidget
 
 
 @admin.register(ProductRelation)
@@ -49,6 +51,18 @@ class ProductRelationAdmin(admin.ModelAdmin):
     search_fields = ['parent_product__title', 'parent_product__code', 'parent_product__article', 'parent_product__partnumber',
                      'child_product__title', 'child_product__code', 'child_product__article', 'child_product__partnumber']
     autocomplete_fields = ('parent_product', 'child_product')
+
+
+class ProductImageInline(SortableInlineAdminMixin, admin.TabularInline):
+    model = ProductImage
+    extra = 0
+    formfield_overrides = {
+        ImageField: {
+            'widget': ImageWidget
+        }
+    }
+    verbose_name = "дополнительное изображение"
+    verbose_name_plural = "дополнительные изображения"
 
 
 class StockInline(admin.TabularInline):
@@ -205,7 +219,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
     save_as = True
     save_on_top = True
     view_on_site = True
-    inlines = (ProductSetInline, ProductRelationInline, IntegrationInline, StockInline)
+    inlines = (ProductImageInline, ProductSetInline, ProductRelationInline, IntegrationInline, StockInline)
     filter_vertical = ('categories',)
     autocomplete_fields = ('manufacturer',)
     formfield_overrides = {
@@ -330,6 +344,10 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
         ('Комплект', {
             'classes': ('collapse',),
             'fields': ('recalculate_price', 'hide_contents')
+        }),
+        ('Изображения товара', {
+            'classes': ('collapse',),
+            'fields': ('image', 'big_image')
         }),
     )
 
