@@ -34,7 +34,7 @@ class Product(models.Model):
     article = models.CharField('код 1С', max_length=20, blank=True, db_index=True)
     partnumber = models.CharField('partnumber', max_length=200, blank=True, db_index=True)
     gtin = models.CharField('штрих-код', max_length=17, blank=True, db_index=True)
-    gtins = ArrayField(models.CharField(max_length=255, blank=True), verbose_name='дополнительные штих-коды', db_index=True)
+    gtins = ArrayField(models.CharField(max_length=255, blank=True), verbose_name='дополнительные штих-коды', default=list, blank=True, db_index=True)
     tnved = models.CharField('ТН ВЭД', max_length=16, blank=True)
     enabled = models.BooleanField('включён', default=False, db_index=True)
     title = models.CharField('название', max_length=200, db_index=True)
