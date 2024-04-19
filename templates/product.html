@@ -7,6 +7,7 @@
 {% load shop_filters %}
 {% load mptt_tags %}
 {% load reviews %}
+{% load thumbnail %}
 {% load cache %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}{{ product.title }}{% endblock %}
@@ -111,12 +112,12 @@ gtm_products = [];
 
 
 <div class="product-image">
-{% if product.image_prefix|add:'.jpg'|file_exists %}
-{% if product.image_prefix|add:'.b.jpg'|file_exists %}
-<div class="popup-gallery"><a href="{{ MEDIA_URL }}{{ product.image_prefix }}.b.jpg">
+{% if product.image %}
+{% if product.big_image %}
+<div class="popup-gallery"><a href="{{ MEDIA_URL }}{{ product.big_image }}">
 {% endif %}
-<img id="{{ product.id }}" src="{{ MEDIA_URL }}{{ product.image_prefix }}.jpg" alt="{{ product.title }} {{ product.whatis }}" itemprop="image"  class="img-responsive"/>
-{% if product.image_prefix|add:'.b.jpg'|file_exists %}
+<img id="{{ product.id }}" src="{{ MEDIA_URL }}{{ product.image }}" alt="{{ product.title }} {{ product.whatis }}" itemprop="image"  class="img-responsive"/>
+{% if product.big_image %}
 </a></div>
 {% endif %}
 {% endif %}
@@ -230,8 +231,10 @@ gtm_products = [];
 {% cache 3600 product_description product.id %}
 {% if product.images %}
 <div class="popup-gallery">
-{% for image in product.images %}
-<a href="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.jpg"><img src="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.s.jpg" alt="{{ product.title }} - Фото №{{ forloop.counter }}" border="0" /></a>
+{% for product_image in product.images.all %}
+{% thumbnail product_image.image '120x120' padding=True as im %}
+<a href="{{ MEDIA_URL }}{{ product_image.image }}"><img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} - Фото №{{ forloop.counter }}" border="0" loading="lazy" /></a>
+{% endthumbnail %}
 {% endfor %}
 </div>
 {% endif %}
@@ -245,8 +248,10 @@ gtm_products = [];
 <div class="panel-body">
 <div class="sw-p-l-image text-center">
 <a href="{% url 'product' product.code %}">
-{% if product.image_prefix|add:'.s.jpg'|file_exists %}
-<img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" />
+{% if product.image %}
+{% thumbnail product.image '120x120' padding=True as im %}
+<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}" loading="lazy" /></a>
+{% endthumbnail %}
 {% endif %}
 </a>
 </div>

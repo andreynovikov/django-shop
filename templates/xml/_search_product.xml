@@ -1,5 +1,6 @@
 {% load static %}
 {% load site %}
+{% load shop_filters %}
 {% load decimals %}
 <offer id="{{ product.id }}" available="{% if product.instock > 0 %}true{% else %}false{% endif %}">
 <url>{% site_url_prefix %}{% url 'product' product.code %}</url>
@@ -12,7 +13,9 @@
   <categoryId>{{ category.pk }}</categoryId>
 {% endfor %}
 </categories>
-<picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image_prefix }}.jpg</picture>
+{% if product.image %}
+<picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image }}</picture>
+{% endif %}
 {% if product.whatis %}
 <typePrefix>{{ product.whatis }}</typePrefix>
 {% endif %}

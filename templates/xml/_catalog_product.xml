@@ -17,9 +17,11 @@
 {% endif %}
 {% endwith %}
 {% endfor %}
-    <picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image_prefix }}.jpg</picture>
-{% for image in product.images %}
-    <picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image_prefix }}/{{ image }}.jpg</picture>
+{% if product.image %}
+    <picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image }}</picture>
+{% endif %}
+{% for product_image in product.images.all %}
+    <picture>{% site_url_prefix %}{% get_media_prefix %}{{ product_image.image }}</picture>
 {% endfor %}
     <vendor>{{ product.manufacturer.name }}</vendor>
 {% if product.partnumber %}
