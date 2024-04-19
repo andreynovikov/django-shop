@@ -246,7 +246,7 @@ class ProductSerializer(NonNullModelSerializer):
         exclude = ('sp_price', 'sp_cur_price', 'cur_price', 'max_discount', 'ws_max_discount',
                    'forbid_price_import', 'forbid_ws_price_import', 'show_on_sw', 'market', 'firstpage',
                    'num', 'recalculate_price', 'ws_cur_price', 'cur_code', 'ws_cur_code', 'sp_cur_code',
-                   'sales_actions', 'categories', 'stock', 'related', 'image_prefix', 'bid', 'cbid', 'fts_vector')
+                   'sales_actions', 'categories', 'stock', 'related', 'bid', 'cbid', 'fts_vector')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

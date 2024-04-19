@@ -1,5 +1,5 @@
 {% load static %}
-{% load shop_filters %}
+{% load thumbnail %}
 <html>
 <body>
 <style type="text/css">
@@ -31,8 +31,10 @@
 {% for item in basket.items.all %}
 <p>
 <div style="width:130px; float:left; text-align:center;">
-{% if item.product.image_prefix|add:'.s.jpg'|file_exists %}
-<img src="{{ owner_info.www }}{% get_media_prefix %}{{ item.product.image_prefix }}.s.jpg" />
+{% if item.product.image %}
+{% thumbnail item.product.image '120x120' padding=True as im %}
+<img src="{{ owner_info.www }}{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}" />
+{% endthumbnail %}
 {% endif %}
 </div>
 <b>{{ item.product.title }}</b></p>
