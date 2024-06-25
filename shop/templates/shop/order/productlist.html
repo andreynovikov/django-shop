@@ -4,9 +4,11 @@
   <title>Товарный чек</title>
 </head>
 <body bgcolor="#FFFFFF" text="#000000">
-<h3>Товарный чек к заказу №{{ order.id }}</h3>
+<h3>Заказ №{{ order.id }}</h3>
+<p><b>
+  {{ order.seller.name|default:default_seller.name }}
+</b></p>
 
-<p>{{ owner_info.full_name }}, ИНН: {{ owner_info.inn }}, {{ owner_info.legal_address }}</p>
 
 <table width="800">
     <tr><td colspan=7><hr size=1></td></tr>
@@ -28,8 +30,8 @@
   {{ item.product.whatis }}
   {{ item.product.partnumber }}
   {{ item.product.title }}
-  {% if product.comment_packer %}
-  <br/><i>{{ product.comment_packer }}</i>
+  {% if item.product.comment_packer %}
+  <br/><i>{{ item.product.comment_packer|safe }}</i>
   {% endif %}
 </font></td>
 <td valign=top align=right><font size=-1>{{ item.product_price }}</font></td>
@@ -51,7 +53,6 @@
 <tr valign=top>
  <td align=right colspan=5><b>Сумма к оплате:</b></td><td align=right colspan=2><b>{{ order.total }}&nbsp;руб.</b></td>
 </tr>
-<tr><td colspan=4>Менеджер ____________________________</td></tr>
 </table>
 </body>
 </html>

@@ -25,11 +25,11 @@ table    { border-collapse:collapse; width:800px; }
 <tr>
 <td>
 <h2>Поставщик:</h2>
-{{ owner_info.full_name }}<br />
-{{ owner_info.legal_address }}<br />
-ИНН: {{ owner_info.inn }}, ОГРНИП: {{ owner_info.ogrn }}<br />
-р/с {{ owner_info.account_no }} в {{ owner_info.account_bank }}<br />
-к/с  {{ owner_info.cor_account }}, БИК {{ owner_info.bik }}
+{{ order.seller.name|default:default_seller.name }}<br />
+{% if order.seller.name %}{{ order.seller.legal_address }}{% else %}{{ default_seller.legal_address }}{% endif %}<br />
+ИНН: {% if order.seller.name %}{{ order.seller.inn }}{% else %}{{ default_seller.inn }}{% endif %},
+ОГРНИП: {% if order.seller.name %}{{ order.seller.ogrn }}{% else %}{{ default_seller.ogrn }}{% endif %}<br />
+{% if order.seller.name %}{{ order.seller.bank_requisites }}{% else %}{{ default_seller.bank_requisites }}{% endif %}<br />
 <h2>Грузоотправитель:</h2>
 он же
 <h2>Плательщик:</h2>
