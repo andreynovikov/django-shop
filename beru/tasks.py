@@ -48,23 +48,14 @@ def notify_beru_order_status(self, order_id, status, substatus):
                 if item.box == box:
                     items.append({
                         'id': beru_product_ids[item.product.article],
-                        'count': item.quantity
+                        'fullCount': item.quantity
                     })
             boxes.append({
-                'fulfilmentId': '%s-%d' % (beru_order_id, count),
-                'weight': int(box.weight * 1000),
-                'width': int(box.width),
-                'height': int(box.height),
-                'depth': int(box.length),
                 'items': items
             })
-        data = {'boxes': boxes}
+        data = {'boxes': boxes, 'allowRemove': False}
         data_encoded = json.dumps(data).encode('utf-8')
-        shipments = beru_order.get('delivery', {}).get('shipments', [])
-        if not shipments:
-            raise self.retry(countdown=60 * 60, max_retries=12)  # 60 minutes
-        shipment_id = str(shipments[0].get('id', 0))
-        url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}/delivery/shipments/{shipmentId}/boxes.json'.format(campaignId=campaign_id, orderId=beru_order_id, shipmentId=shipment_id)
+        url = 'https://api.partner.market.yandex.ru/campaigns/{campaignId}/orders/{orderId}/boxes'.format(campaignId=campaign_id, orderId=beru_order_id)
         headers = {
             'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=oauth_token, oauth_application=oauth_application),
             'Content-Type': 'application/json; charset=utf-8'
@@ -89,11 +80,6 @@ def notify_beru_order_status(self, order_id, status, substatus):
         except HTTPError as e:
             content = e.read()
             logger.error(content)
-            """
-            INFO <<< https://api.partner.market.yandex.ru/v2/campaigns/22478010/orders/168524598/delivery/shipments/163754467/boxes.json
-            INFO b'{"boxes": [{"fulfilmentId": "168524598-1", "weight": 4200, "width": 27, "height": 33, "depth": 48, "items": [{"id": 248335221, "count": 1}]}]}'
-            ERROR b'{"status":"ERROR","errors":[{"code":"BAD_REQUEST","message":"You could not change boxes for order 168524598 in this status PROCESSING (SHIPPED)"}]}'
-            """
             error = json.loads(content.decode('utf-8'))
             message = error.get('errors', [{}])[0].get('message', 'Неизвестная ошибка взаимодействия с Беру!')
             order.status = Order.STATUS_PROBLEM

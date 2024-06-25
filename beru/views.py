@@ -209,16 +209,6 @@ BERU_ORDER_SUBSTATUS = {
 }
 
 
-BERU_PAYMENT_METHODS = {
-    'CASH_ON_DELIVERY': Order.PAYMENT_CASH,
-    'CARD_ON_DELIVERY': Order.PAYMENT_POS,
-    'YANDEX': Order.PAYMENT_CARD,
-    'APPLE_PAY': Order.PAYMENT_CARD,
-    'GOOGLE_PAY': Order.PAYMENT_CARD,
-    'CREDIT': Order.PAYMENT_CREDIT
-}
-
-
 @require_POST
 @csrf_exempt
 @token_required
@@ -289,8 +279,6 @@ def order_status(request, account='beru'):
         if date:
             order.delivery_dispatch_date = datetime.strptime(date, '%d-%m-%Y')
 
-        payment = beru_order.get('paymentMethod', 'CASH_ON_DELIVERY')
-        order.payment = BERU_PAYMENT_METHODS.get(payment, Order.PAYMENT_UNKNOWN)
         order.save()
     except Order.MultipleObjectsReturned:
         logger.error("Ошибка поиска внутреннего заказа с заказом Беру №{}".format(order_id))
