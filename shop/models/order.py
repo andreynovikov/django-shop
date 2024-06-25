@@ -290,6 +290,7 @@ class Order(models.Model):
         order.email = user.email
         order.integration = integration
         if integration:
+            order.payment = Order.PAYMENT_COD
             order.seller = integration.seller
             order.buyer = integration.buyer
             order.wirehouse = integration.wirehouse
