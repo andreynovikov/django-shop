@@ -6,7 +6,11 @@
 <body bgcolor="#FFFFFF" text="#000000">
 <h3>Товарный чек к заказу №{{ order.id }}</h3>
 
-<p>{{ owner_info.full_name }}, ИНН: {{ owner_info.inn }}, {{ owner_info.legal_address }}</p>
+<p>
+  {{ order.seller.name|default:default_seller.name }},
+  ИНН: {% if order.seller.name %}{{ order.seller.inn }}{% else %}{{ default_seller.inn }}{% endif %},
+  {% if order.seller.name %}{{ order.seller.legal_address }}{% else %}{{ default_seller.legal_address }}{% endif %}
+</p>
 
 <table width="800">
     <tr><td colspan=7><hr size=1></td></tr>
@@ -43,7 +47,7 @@
 </tr>
 <tr valign=top>
  <td align=right colspan=5><b>Сумма к оплате:</b></td><td align=right colspan=2><b>{{ order.total }}&nbsp;руб.</b></td>
-</tr>	
+</tr>
 <tr><td colspan=7>Товар отпустил: ____________________________</td></tr>
 <tr><td colspan=7>
 <p>С образцом товара (в т.ч. с техническими характеристиками, габаритами, расцветкой, комплектацией, условиями подключения и правильной эксплуатации) полностью ознакомлен.</p>

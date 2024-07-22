@@ -21,7 +21,9 @@
 {% endwith %}
 {% endfor %}
     <name>{{ product.whatis }} {{ product.title }}</name>
-    <picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image_prefix }}.jpg</picture>
+{% if product.image %}
+    <picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image }}</picture>
+{% endif %}
     <vendor>{{ product.manufacturer.name }}</vendor>
     <model>{{ product.title }}</model>
     {% if product.whatis %}

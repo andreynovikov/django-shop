@@ -1,10 +1,15 @@
+import logging
+import os
+
 from django.forms import TextInput
 from django.urls import reverse
 from django.db.models import PositiveSmallIntegerField, PositiveIntegerField, \
     DecimalField, FloatField, ImageField, Q
 from django.core.exceptions import PermissionDenied
+from django.core.files import File
+from django.core.files.storage import default_storage
 from django.contrib import admin
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.template.response import TemplateResponse
 from django.conf.urls import url
 from django.utils.safestring import mark_safe
@@ -25,10 +30,13 @@ from shop.models import Product, ProductImage, ProductRelation, ProductSet, Prod
     ProductReview, Stock, Integration, Order
 from .forms import ProductImportForm, ProductConfirmImportForm, ProductExportForm, \
     ProductAdminForm, ProductListAdminForm, ProductKindForm, StockInlineForm, IntegrationInlineForm, \
-    OneSImportForm
+    ProductCloneForm, OneSImportForm
 from .decorators import admin_changelist_link
 from .views import product_stock_view
 from .widgets import ImageWidget
+
+
+logger = logging.getLogger(__name__)
 
 
 @admin.register(ProductRelation)
@@ -128,7 +136,7 @@ class ProductResource(resources.ModelResource):
 
     class Meta:
         model = Product
-        exclude = ('categories', 'stock', 'num', 'related', 'constituents', 'image_prefix')
+        exclude = ('categories', 'stock', 'num', 'related', 'constituents', 'images')
 
 
 class IntegrationsFilter(SimpleDropdownFilter):
@@ -212,11 +220,9 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
                    'forbid_price_import', 'cur_code', ('pct_discount', DropdownFilter), ('val_discount', DropdownFilter),
                    ('categories', RelatedDropdownFilter), ('manufacturer', RelatedDropdownFilter)]
     list_per_page = 50
-    exclude = ['image_prefix']
     search_fields = ['code', 'article', 'partnumber', 'title', 'tags']
     readonly_fields = ['price', 'ws_price', 'sp_price']
     ordering = ('-id',)
-    save_as = True
     save_on_top = True
     view_on_site = True
     inlines = (ProductImageInline, ProductSetInline, ProductRelationInline, IntegrationInline, StockInline)
@@ -416,6 +422,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
         info = self.get_model_info()
         my_urls = [
             url(r'(\d+)/stock/$', self.admin_site.admin_view(self.stock_view), name='%s_%s_stock' % info),
+            url(r'(\d+)/clone/$', self.admin_site.admin_view(self.clone_form), name='%s_%s_clone' % info),
             url(r'^stock/correction/$', self.admin_site.admin_view(self.stock_correction_view), name='%s_%s_stock_correction' % info),
             url(r'^import1c/$', self.admin_site.admin_view(self.import_1c_view), name='%s_%s_import_1c' % info),
             url(r'^import1c/status/$', self.admin_site.admin_view(self.import_1c_status_view), name='%s_%s_import_1c_status' % info),
@@ -450,6 +457,70 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
             **self.admin_site.each_context(request)
         }
         return TemplateResponse(request, 'admin/shop/product/stock_correction.html', context)
+
+    def clone_form(self, request, id):
+        if not request.user.is_staff:
+            raise PermissionDenied
+        product = Product.objects.get(pk=id)
+        messages = None
+        if request.method != 'POST':
+            form = ProductCloneForm()
+            is_popup = request.GET.get('_popup', 0)
+        else:
+            form = ProductCloneForm(request.POST)
+            is_popup = request.POST.get('_popup', 0)
+            if form.is_valid():
+                try:
+                    product_code = form.cleaned_data['product_code']
+                    other_product = Product.objects.filter(code=product_code).first()
+                    if other_product:
+                        form.add_error('product_code', "Товар с таким кодом уже существует")
+                    else:
+                        # remember relations
+                        old_kind = product.kind.all()
+                        old_categories = product.categories.all()
+                        old_sales_actions = product.sales_actions.all()
+                        old_related = product.related.all()
+                        old_constituents = product.constituents.all()
+                        old_image = product.image
+                        old_big_image = product.big_image
+                        old_images = list(product.images.all())
+                        # clone object
+                        product.image = None
+                        product.big_image = None
+                        product.pk = None
+                        product._state.adding = True
+                        product.code = product_code
+                        product.save()
+                        product.kind.set(old_kind)
+                        product.categories.set(old_categories)
+                        product.sales_actions.set(old_sales_actions)
+                        product.related.set(old_related)
+                        product.constituents.set(old_constituents)
+                        # copy images
+                        product.image.save(os.path.basename(old_image.path), old_image)
+                        product.big_image.save(os.path.basename(old_big_image.path), old_big_image)
+                        for image in old_images:
+                            product_image = ProductImage(product=product, order=image.order)
+                            product_image.image.save(os.path.basename(image.image.path), image.image)
+                            product_image.save()
+
+                        return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
+                                            '<script type="text/javascript">opener.dismissPopupAndReload(window);</script>'
+                                            '</body></html>')
+                except Exception as e:
+                    form.errors['__all__'] = form.error_class([str(e)])
+
+        context = self.admin_site.each_context(request)
+        context['cl'] = self
+        context['opts'] = self.model._meta
+        context['form'] = form
+        context['is_popup'] = is_popup
+        context['messages'] = messages
+        context['title'] = "Укажите новый код товара"
+        context['action_title'] = "Клонировать"
+
+        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
 
     def import_1c_view(self, request):
         if not request.user.is_staff:

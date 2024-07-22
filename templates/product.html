@@ -7,6 +7,7 @@
 {% load shop_filters %}
 {% load mptt_tags %}
 {% load reviews %}
+{% load thumbnail %}
 {% load cache %}
 {% load django_bootstrap_breadcrumbs %}
 {% block title %}{{ product.title }}{% endblock %}
@@ -111,12 +112,12 @@ gtm_products = [];
 
 
 <div class="product-image">
-{% if product.image_prefix|add:'.jpg'|file_exists %}
-{% if product.image_prefix|add:'.b.jpg'|file_exists %}
-<div class="popup-gallery"><a href="{{ MEDIA_URL }}{{ product.image_prefix }}.b.jpg">
+{% if product.image %}
+{% if product.big_image %}
+<div class="popup-gallery"><a href="{{ MEDIA_URL }}{{ product.big_image }}">
 {% endif %}
-<img id="{{ product.id }}" src="{{ MEDIA_URL }}{{ product.image_prefix }}.jpg" alt="{{ product.title }} {{ product.whatis }}" itemprop="image"  class="img-responsive"/>
-{% if product.image_prefix|add:'.b.jpg'|file_exists %}
+<img id="{{ product.id }}" src="{{ MEDIA_URL }}{{ product.image }}" alt="{{ product.title }} {{ product.whatis }}" itemprop="image"  class="img-responsive"/>
+{% if product.big_image %}
 </a></div>
 {% endif %}
 {% endif %}
@@ -159,7 +160,9 @@ gtm_products = [];
 <div id="yandex-credit" style="margin: -7pt 0 7pt"></div>
 {% endif %}
 {% endif %}{# cost > 0 #}
-
+{% if product.present %}
+<p class="product-salesnotes">{{ product.present }}</p>
+{% endif %}
 {% if not product.preorder %}
 <p><span class="product-nal-caption">Наличие в интернет-магазине:</span>
 {% if product.instock > 1 %}
@@ -209,9 +212,6 @@ gtm_products = [];
 {% if product.article %}
 <div style="color:#888888"><small>Код товара: {{ product.article }}</small></div>
 {% endif %}
-{% if perms.shop_change_order %}
-<div style="color:#880000">{{ product.markup }}%</div>
-{% endif %}
 </div>
 {% else %}
 <span class="product-nal-false">Товар снят с продажи</span>
@@ -231,8 +231,10 @@ gtm_products = [];
 {% cache 3600 product_description product.id %}
 {% if product.images %}
 <div class="popup-gallery">
-{% for image in product.images %}
-<a href="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.jpg"><img src="{{ MEDIA_URL }}{{ product.image_prefix }}/{{image}}.s.jpg" alt="{{ product.title }} - Фото №{{ forloop.counter }}" border="0" /></a>
+{% for product_image in product.images.all %}
+{% thumbnail product_image.image '120x120' padding=True as im %}
+<a href="{{ MEDIA_URL }}{{ product_image.image }}"><img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} - Фото №{{ forloop.counter }}" border="0" loading="lazy" /></a>
+{% endthumbnail %}
 {% endfor %}
 </div>
 {% endif %}
@@ -246,8 +248,10 @@ gtm_products = [];
 <div class="panel-body">
 <div class="sw-p-l-image text-center">
 <a href="{% url 'product' product.code %}">
-{% if product.image_prefix|add:'.s.jpg'|file_exists %}
-<img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" />
+{% if product.image %}
+{% thumbnail product.image '120x120' padding=True as im %}
+<img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}" loading="lazy" /></a>
+{% endthumbnail %}
 {% endif %}
 </a>
 </div>
@@ -373,12 +377,6 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 {% endif %}
 </div>
 </div> <!--- /product-page --->
-
-<noscript>
-<div style="display:inline;">
-<img height="1" width="1" style="border-style:none;" alt="" src="//googleads.g.doubleclick.net/pagead/viewthroughconversion/826531590/?guid=ON&amp;script=0"/>
-</div>
-</noscript>
 </div>
 {% endblock content %}
 {% block javascript %}
@@ -399,8 +397,6 @@ $(document).ready(function() {
 $('#p_{{ product.id }}').click(function(){
   dataLayer.push({'event': 'addToCart','ecommerce': {'currencyCode': 'RUB','add': {'products': [{'name':'{{ product.partnumber}} {{ product.title }}','id':'{{ product.id }}','category':'{{ category.name }}','brand':'{{ product.manufacturer.code }}','price':'{{ product.cost|quantize:"1" }}','quantity': 1}]}}
   });
-  var VK_add_to_cart_Params = {'products': [{'id': '{{ product.id }}'}]};
-  VK.Retargeting.ProductEvent(3195, "add_to_cart", VK_add_to_cart_Params);
 });
 
 var google_tag_params = {
@@ -408,18 +404,5 @@ ecomm_prodid: '{{ product.id }}',
 ecomm_pagetype: 'product',
 ecomm_totalvalue: {{ product.cost|quantize:"1" }},
 };
-
-/* <![CDATA[ */
-var google_conversion_id = 826531590;
-var google_custom_params = window.google_tag_params;
-var google_remarketing_only = true;
-/* ]]> */
 </script>
-<script type="text/javascript" src="//www.googleadservices.com/pagead/conversion.js" async></script>
 {% endblock javascript %}
-{% block vk_retargeting_event %}
-  var eventParams = {'products': [{'id': '{{ product.id }}'}], 'category_ids':'{{ category.id }},473', 'products_recommended_ids':
-    '{% with product as parent %}{% for product in accessories %}{{ product.id }},{% endfor %}{% for product in similar %}{{ product.id }},{% endfor %}{% endwith %}12476,11820'
-  };
-  VK.Retargeting.ProductEvent(3195, "view_product", eventParams);
-{% endblock vk_retargeting_event %}

@@ -260,7 +260,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True)
     def images(self, request, pk=None):
         product = self.get_object()
-        return Response(self.get_serializer(product, context=self.get_serializer_context()).data)
+        return Response(self.get_serializer(product.images, context=self.get_serializer_context()).data)
 
     @action(detail=True, permission_classes=[IsAuthenticated])
     def price(self, request, pk=None):

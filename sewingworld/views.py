@@ -98,16 +98,6 @@ def products_stream(request, integration, template, filter_type):
 
     for product in products:
         context['product'] = product
-        product.images = []
-        if default_storage.exists(product.image_prefix):
-            try:
-                dirs, files = default_storage.listdir(product.image_prefix)
-                if files is not None:
-                    for file in sorted(files):
-                        if file.endswith('.jpg') and not file.endswith('.s.jpg'):
-                            product.images.append(file[:-4])
-            except NotADirectoryError:
-                pass
         if integration:
             if integration.output_with_images and len(product.images) == 0:
                 yield ''
@@ -283,16 +273,6 @@ def product(request, code):
     product = get_object_or_404(Product, code=code)
     if product.categories.exists() and not product.breadcrumbs:
         raise Http404("Product does not exist")
-    product.images = []
-    if default_storage.exists(product.image_prefix):
-        try:
-            dirs, files = default_storage.listdir(product.image_prefix)
-            if files is not None:
-                for file in sorted(files):
-                    if file.endswith('.jpg') and not file.endswith('.s.jpg'):
-                        product.images.append(file[:-4])
-        except NotADirectoryError:
-            pass
     category = None
     cat_id = request.GET.get('cat', None)
     if cat_id is not None:

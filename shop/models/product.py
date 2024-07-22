@@ -68,7 +68,6 @@ class Product(models.Model):
     ws_max_discount = models.PositiveSmallIntegerField('опт. макс. скидка, %', default=10)
     image = models.ImageField('изображение', upload_to=product_image_path, max_length=255, null=True, blank=True)
     big_image = models.ImageField('большое изображение', upload_to=product_big_image_path, max_length=255, null=True, blank=True)
-    image_prefix = models.CharField('префикс изображения', max_length=200)
     kind = models.ManyToManyField('shop.ProductKind', verbose_name='тип', related_name='products',
                                   related_query_name='product', blank=True)
     categories = TreeManyToManyField('shop.Category', related_name='products',

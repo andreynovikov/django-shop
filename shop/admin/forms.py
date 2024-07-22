@@ -56,6 +56,10 @@ class PosTerminalAdminForm(forms.ModelForm):
         self.fields['seller'].queryset = Contractor.objects.filter(is_seller=True)
 
 
+class ProductCloneForm(forms.Form):
+    product_code = forms.CharField(label='Новый код товара', max_length=30, required=True)
+
+
 class OneSImportForm(forms.Form):
     file = forms.ChoiceField(label="CSV файл 1С", required=True, widget=forms.RadioSelect)
 

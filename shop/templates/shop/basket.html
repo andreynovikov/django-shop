@@ -2,19 +2,20 @@
 {% block title %}Оформление заказа{% endblock %}
 {% block css %}
 <style type="text/css">
-	.sw-basket-total span    { font-weight:bold; color:darkgreen; }
-	.sw-basket-product-title { font-size:1.2em; }
-	.sw-phone-input          { height:auto; color:black; }
-	.sw-phone-input:-moz-placeholder { color:#e0e0e0; }
-	.sw-phone-input::-webkit-input-placeholder { color:#e0e0e0; }
-	.sw-basket-quantity      { height:auto; text-align:center; }
+    .sw-basket-total span    { font-weight:bold; color:darkgreen; }
+    .sw-basket-product-title { font-size:1.2em; }
+    .sw-phone-input          { height:auto; color:black; }
+    .sw-phone-input:-moz-placeholder { color:#e0e0e0; }
+    .sw-phone-input::-webkit-input-placeholder { color:#e0e0e0; }
+    .sw-basket-quantity      { height:auto; text-align:center; }
         .sw-p-l-quantity-notice  { font-size:10pt; color:#e61; }
-	.sw-small-jumbotron      { font-size:10pt; }
+    .sw-small-jumbotron      { font-size:10pt; }
 </style>
 {% endblock %}
 
 {% block content %}
 {% load static %}
+{% load thumbnail %}
 {% load decimals %}
 {% load humanize %}
 {% load shop_filters %}
@@ -25,8 +26,10 @@
     <div class="sw-p-l panel panel-default sw-product-row">
        <div class="panel-body">
           <div class="sw-p-l-image text-center">
-             {% if item.product.image_prefix|add:'.s.jpg'|file_exists %}
-                 <img src="{{ MEDIA_URL }}{{ item.product.image_prefix }}.s.jpg"/>
+             {% if item.product.image %}
+                 {% thumbnail item.product.image '120x120' padding=True as im %}
+                 <img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}" />
+                 {% endthumbnail %}
              {% else %}
                  <img src="{% static 'i/noimage.png' %}"/>
              {% endif %}

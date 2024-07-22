@@ -16,9 +16,9 @@ body     { font-size:9pt; font-family:Verdana,sans-serif; }
 <p class="center">ШВЕЙНЫЙ МИР</p>
 <p class="center">***************************</p>
 <p class="center">Товарный чек</p>
-<p class="center">{{ owner_info.full_name }}</p>
-<p class="center">ИНН: {{ owner_info.inn }}</p>
-<p class="center">{{ owner_info.legal_address }}</p>
+<p class="center">{{ order.seller.name|default:default_seller.name }}</p>
+<p class="center">ИНН: {% if order.seller.name %}{{ order.seller.inn }}{% else %}{{ default_seller.inn }}{% endif %}</p>
+<p class="center">{% if order.seller.name %}{{ order.seller.legal_address }}{% else %}{{ default_seller.legal_address }}{% endif %}</p>
 <p class="center">***************************</p>
 {% for item in order.items.all %}
 <p>{{ item.product.article }} {{ item.product.whatis }} {{ item.product.partnumber }} {{ item.product.title }}</p>

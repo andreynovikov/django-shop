@@ -145,26 +145,19 @@ class SalesActionSerializer(NonNullModelSerializer):
 
 
 class ProductImagesSerializer(serializers.BaseSerializer):  # BaseSerializer is used to be able to return list instead of dict
-    def to_representation(self, instance):
+    def to_representation(self, obj):
+        request = self.context.get('request')
         images = []
-        if instance.image_prefix and default_storage.exists(instance.image_prefix):
-            try:
-                dirs, files = default_storage.listdir(instance.image_prefix)
-                if files is not None:
-                    for image_file in sorted(files):
-                        if image_file.endswith('.jpg') and not image_file.endswith('.s.jpg'):
-                            image_path = instance.image_prefix + '/' + image_file
-                            thumbnail = get_thumbnail(image_path, '80x80', padding=True)
-                            images.append({
-                                'src': default_storage.base_url + image_path,
-                                'thumbnail': {
-                                    'src': thumbnail.url,
-                                    'width': thumbnail.width,
-                                    'height': thumbnail.height
-                                }
-                            })
-            except NotADirectoryError:
-                pass
+        for product_image in obj.all():
+            thumbnail = get_thumbnail(product_image.image, '80x80', padding=True)
+            images.append({
+                'src': request.build_absolute_uri(product_image.image.url),
+                'thumbnail': {
+                    'src': request.build_absolute_uri(thumbnail.url),
+                    'width': thumbnail.width,
+                    'height': thumbnail.height
+                }
+            })
         return images
 
 
@@ -172,7 +165,6 @@ class ProductListSerializer(NonNullModelSerializer):
     price = serializers.SerializerMethodField()
     cost = serializers.SerializerMethodField()
     instock = serializers.SerializerMethodField()
-    image = serializers.SerializerMethodField()
     thumbnail = serializers.SerializerMethodField()
     sales = serializers.SerializerMethodField()
     rank = serializers.ReadOnlyField()
@@ -208,31 +200,17 @@ class ProductListSerializer(NonNullModelSerializer):
     def get_instock(self, obj):
         return max(min(obj.instock, 10), 0)
 
-    def get_image(self, obj):
-        if not obj.image_prefix:
-            return None
-        filepath = obj.image_prefix + '.jpg'
-        if default_storage.exists(filepath):
-            return default_storage.base_url + filepath
-        else:
-            return None
-
     def get_thumbnail(self, obj):
-        if not obj.image_prefix:
+        if not obj.image:
             return None
-        filepath = obj.image_prefix + '.jpg'
-        if not default_storage.exists(filepath):
-            filepath = obj.image_prefix + '.s.jpg'  # special case for variants
-        if default_storage.exists(filepath):
-            thumbnail_size = '{}x{}'.format(self.context.get('product_thumbnail_size'), self.context.get('product_thumbnail_size'))
-            image = get_thumbnail(filepath, thumbnail_size, padding=True, upscale=False)
-            return {
-                'url': image.url,
-                'width': image.width,
-                'height': image.height
-            }
-        else:
-            return None
+        request = self.context.get('request')
+        thumbnail_size = '{}x{}'.format(self.context.get('product_thumbnail_size'), self.context.get('product_thumbnail_size'))
+        image = get_thumbnail(obj.image, thumbnail_size, padding=True, upscale=False)
+        return {
+            'url': request.build_absolute_uri(image.url),
+            'width': image.width,
+            'height': image.height
+        }
 
     def get_sales(self, obj):
         request = self.context.get('request')
@@ -246,9 +224,7 @@ class ProductListSerializer(NonNullModelSerializer):
 
 
 class ProductSerializer(NonNullModelSerializer):
-    image = serializers.SerializerMethodField()
-    big_image = serializers.SerializerMethodField()
-    images = serializers.SerializerMethodField()
+    images = ProductImagesSerializer(read_only=True)
     thumbnail = serializers.SerializerMethodField()
     thumbnail_small = serializers.SerializerMethodField()
     country = CountrySerializer(read_only=True)
@@ -270,7 +246,7 @@ class ProductSerializer(NonNullModelSerializer):
         exclude = ('sp_price', 'sp_cur_price', 'cur_price', 'max_discount', 'ws_max_discount',
                    'forbid_price_import', 'forbid_ws_price_import', 'show_on_sw', 'market', 'firstpage',
                    'num', 'recalculate_price', 'ws_cur_price', 'cur_code', 'ws_cur_code', 'sp_cur_code',
-                   'sales_actions', 'categories', 'stock', 'related', 'image_prefix', 'bid', 'cbid', 'fts_vector')
+                   'sales_actions', 'categories', 'stock', 'related', 'bid', 'cbid', 'fts_vector')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -293,56 +269,29 @@ class ProductSerializer(NonNullModelSerializer):
     def get_instock(self, obj):
         return obj.instock  # TODO: limit output
 
-    def get_image(self, obj):
-        if not obj.image_prefix:
-            return None
-        filepath = obj.image_prefix + '.jpg'
-        if default_storage.exists(filepath):
-            return default_storage.base_url + filepath
-        else:
-            return None
-
-    def get_big_image(self, obj):
-        if not obj.image_prefix:
-            return None
-        filepath = obj.image_prefix + '.b.jpg'
-        if default_storage.exists(filepath):
-            return default_storage.base_url + filepath
-        else:
-            return None
-
-    def get_images(self, obj):
-        return ProductImagesSerializer(instance=obj).data
-
     def get_thumbnail(self, obj):
-        if not obj.image_prefix:
+        if not obj.image:
             return None
-        filepath = obj.image_prefix + '.jpg'
-        if default_storage.exists(filepath):
-            thumbnail_size = '{}x{}'.format(self.context.get('product_thumbnail_size'), self.context.get('product_thumbnail_size'))
-            image = get_thumbnail(filepath, thumbnail_size, padding=True)
-            return {
-                'url': image.url,
-                'width': image.width,
-                'height': image.height
-            }
-        else:
-            return None
+        request = self.context.get('request')
+        thumbnail_size = '{}x{}'.format(self.context.get('product_thumbnail_size'), self.context.get('product_thumbnail_size'))
+        image = get_thumbnail(obj.image, thumbnail_size, padding=True)
+        return {
+            'url': request.build_absolute_uri(image.url),
+            'width': image.width,
+            'height': image.height
+        }
 
     def get_thumbnail_small(self, obj):
-        if not obj.image_prefix:
+        if not obj.image:
             return None
-        filepath = obj.image_prefix + '.jpg'
-        if default_storage.exists(filepath):
-            thumbnail_size = '{}x{}'.format(self.context.get('product_small_thumbnail_size'), self.context.get('product_small_thumbnail_size'))
-            image = get_thumbnail(filepath, thumbnail_size, padding=True)
-            return {
-                'url': image.url,
-                'width': image.width,
-                'height': image.height
-            }
-        else:
-            return None
+        request = self.context.get('request')
+        thumbnail_size = '{}x{}'.format(self.context.get('product_small_thumbnail_size'), self.context.get('product_small_thumbnail_size'))
+        image = get_thumbnail(obj.image, thumbnail_size, padding=True)
+        return {
+            'url': request.build_absolute_uri(image.url),
+            'width': image.width,
+            'height': image.height
+        }
 
     def get_accessories(self, obj):
         accessories = obj.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_ACCESSORY)
@@ -368,9 +317,9 @@ class ProductSerializer(NonNullModelSerializer):
     def get_stitches(self, obj):
         filepath = 'images/{manufacturer}/stitches/{code}_stitches.jpg'.format(manufacturer=obj.manufacturer.code, code=obj.code)
         if default_storage.exists(filepath):
-            img = '<div><img class="img-fluid" src="{media}{filepath}" alt="Строчки швейной машины {title}" /></div>'.format(
-                media=settings.MEDIA_URL,
-                filepath=filepath,
+            request = self.context.get('request')
+            img = '<div><img class="img-fluid" src="{src}" alt="Строчки швейной машины {title}" /></div>'.format(
+                src=request.build_absolute_uri(settings.MEDIA_URL + filepath),
                 title=obj.title
             )
             if obj.stitches:
@@ -398,32 +347,26 @@ class BasketItemProductSerializer(NonNullModelSerializer):
             return obj.price
 
     def get_thumbnail(self, obj):
-        if not obj.image_prefix:
+        if not obj.image:
             return None
-        filepath = obj.image_prefix + '.jpg'
-        if default_storage.exists(filepath):
-            image = get_thumbnail(filepath, '160x160', padding=True)
-            return {
-                'url': image.url,
-                'width': image.width,
-                'height': image.height
-            }
-        else:
-            return None
+        request = self.context.get('request')
+        image = get_thumbnail(obj.image, '160x160', padding=True)
+        return {
+            'url': request.build_absolute_uri(image.url),
+            'width': image.width,
+            'height': image.height
+        }
 
     def get_thumbnail_small(self, obj):
-        if not obj.image_prefix:
+        if not obj.image:
             return None
-        filepath = obj.image_prefix + '.jpg'
-        if default_storage.exists(filepath):
-            image = get_thumbnail(filepath, '64x64', padding=True)
-            return {
-                'url': image.url,
-                'width': image.width,
-                'height': image.height
-            }
-        else:
-            return None
+        request = self.context.get('request')
+        image = get_thumbnail(obj.image, '64x64', padding=True)
+        return {
+            'url': request.build_absolute_uri(image.url),
+            'width': image.width,
+            'height': image.height
+        }
 
 
 class BasketItemSerializer(serializers.ModelSerializer):
