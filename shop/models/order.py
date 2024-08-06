@@ -4,6 +4,8 @@ from decimal import Decimal, ROUND_UP, ROUND_DOWN, ROUND_HALF_EVEN
 
 from django.contrib.sites.models import Site
 from django.db import models
+from django.db.models import Index
+from django.db.models.functions import Upper
 from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.formats import date_format
@@ -450,6 +452,11 @@ class OrderItem(models.Model):
     meta = models.JSONField(null=True, blank=True, editable=False)
 
     tracker = FieldTracker(fields=['quantity'])
+
+    class Meta:
+        indexes = [
+            Index(Upper('serial_number'), name='shop_order_item_serial_number_idx')
+        ]
 
     @property
     def price(self):

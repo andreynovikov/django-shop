@@ -22,6 +22,7 @@ from .product import ProductAdmin  # NOQA
 from .order import OrderAdmin  # NOQA
 from .act import ActAdmin  # NOQA
 from .integration import IntegrationAdmin  # NOQA
+from .serial import SerialAdmin  # NOQA
 from .user import ShopUserAdmin  # NOQA
 
 

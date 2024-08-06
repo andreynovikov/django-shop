@@ -1,5 +1,6 @@
 from django.http import Http404, StreamingHttpResponse, JsonResponse
 from django.conf import settings
+from django.db import IntegrityError
 from django.db.models import Sum, F, Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.files.storage import default_storage
@@ -11,8 +12,10 @@ from django.utils.text import capfirst
 from sewingworld.models import SiteProfile
 from facebook.tasks import FACEBOOK_TRACKING, notify_view_content
 from shop.models import Category, Product, ProductRelation, ProductSet, ProductKind, Manufacturer, \
-    Advert, SalesAction, City, Store, ServiceCenter, Stock, Favorites, Integration, ProductIntegration
+    Advert, SalesAction, City, Store, ServiceCenter, Stock, Favorites, Integration, ProductIntegration, \
+    Order, OrderItem, Serial
 from shop.filters import get_product_filter
+from shop.tasks import update_order
 
 
 def index(request):
@@ -468,3 +471,65 @@ def review_product(request, code):
         'target': product,
     }
     return render(request, 'reviews/post.html', context)
+
+
+def extend_warranty(request):
+    if request.method == 'POST':
+        sn = request.POST.get('sn', '').strip()
+    else:
+        sn = request.GET.get('sn', '').strip()
+    serial = None
+    registered = False
+    if request.user.is_authenticated and sn:
+        item = OrderItem.objects.filter(serial_number__iexact=sn).first()
+        if item is not None:
+            if item.order.user == request.user:
+                # Вариант 1: пользователь зарегистрирован и покупал товар с таким номером
+                serial = Serial(number=sn, user=request.user, product=item.product, order=item.order, purchase_date=item.order.created, approved=True)
+
+            elif 'FBO' in item.order.name:  # TODO: find proper way to identify such orders
+                # Вариант 2: товар с таким номером отгружался по FBO
+                order = Order(
+                    site=item.order.site,
+                    user=request.user,
+                    name=request.user.name,
+                    phone=request.user.phone,
+                    created=item.order.created,
+                    status=Order.STATUS_DONE,
+                    manager_comment='Заказ сформирован при регистрации гарантийного талона из заказа №{}'.format(item.order.pk)
+                )
+                order.save()
+                order.items.create(
+                    product=item.product,
+                    product_price=item.product_price,
+                    quantity=1
+                )
+                update = {}
+                message = 'Товар с серийным номером {} перенесён в заказ №{}'.format(sn, order.pk)
+                if item.order.manager_comment:
+                    update['manager_comment'] = '\n'.join([item.order.manager_comment, message])
+                else:
+                    update['manager_comment'] = message
+                update_order.delay(item.order.pk, update)
+
+                serial = Serial(number=sn, user=request.user, product=item.product, order=order, approved=True)
+
+            else:
+                # Вариант 3: кто-то другой покупал товар с таким номером
+                serial = Serial(number=sn, user=request.user, product=item.product, order=item.order, purchase_date=item.order.created)
+
+        else:
+            # Вариант 4: о таком номере ничего неизвестно
+            serial = Serial(number=sn, user=request.user)
+
+        try:
+            serial.save()
+        except IntegrityError:
+            registered = True
+
+    context = {
+        'registered': registered,
+        'serial_number': sn,
+        'serial': serial
+    }
+    return render(request, 'extend_warranty.html', context)

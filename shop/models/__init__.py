@@ -1,3 +1,5 @@
+from .user import *  # NOQA
+from .user import __all__ as user_all
 from .other import *  # NOQA
 from .other import __all__ as other_all
 from .product import *  # NOQA
@@ -10,5 +12,7 @@ from .order import *  # NOQA
 from .order import __all__ as order_all
 from .act import *  # NOQA
 from .act import __all__ as act_all
+from .serial import *  # NOQA
+from .serial import __all__ as serial_all
 
-__all__ = product_all + other_all + basket_all + order_all + act_all + integration_all
+__all__ = product_all + user_all + other_all + basket_all + order_all + act_all + integration_all + serial_all
