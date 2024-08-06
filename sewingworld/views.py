@@ -89,6 +89,9 @@ def products_stream(request, integration, template, filter_type):
 
     products = Product.objects.order_by().filter(**filters).distinct()
 
+    if integration and integration.output_with_images:
+        products.exclude(image__isnull=True).exclude(image__exact='')
+
     if integration and integration.output_available:
         products = products.annotate(
             quantity=Sum('stock_item__quantity', filter=Q(stock_item__supplier__integration=integration)),
@@ -99,8 +102,6 @@ def products_stream(request, integration, template, filter_type):
     for product in products:
         context['product'] = product
         if integration:
-            if integration.output_with_images and len(product.images) == 0:
-                yield ''
             if not integration.output_all:
                 context['integration'] = ProductIntegration.objects.get(product=product, integration=integration)
             if integration.output_stock:
