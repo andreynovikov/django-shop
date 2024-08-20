@@ -481,7 +481,7 @@ def extend_warranty(request):
     serial = None
     registered = False
     if request.user.is_authenticated and sn:
-        item = OrderItem.objects.filter(serial_number__iexact=sn).first()
+        item = OrderItem.objects.filter(serial_number__iexact=sn).order_by('-order').first()
         if item is not None:
             if item.order.user == request.user:
                 # Вариант 1: пользователь зарегистрирован и покупал товар с таким номером
@@ -502,6 +502,7 @@ def extend_warranty(request):
                 order.items.create(
                     product=item.product,
                     product_price=item.product_price,
+                    serial_number=sn,
                     quantity=1
                 )
                 update = {}

@@ -195,6 +195,16 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
             </td>
             <td class="left">
                 {{ item.product.title }}
+                {% if item.serial_number %}
+                <div style="color: grey">
+                    Серийный номер: {{ item.serial_number }}
+                    {% for serial in order.serials.all %}
+                    {% if item.serial_number == serial.number and serial.approved %}
+                    - <span style="color: green">гарантия продлена</span>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
             </td>
             <td>
                 {{ item.product_price|quantize:'1'|intcomma }}
