@@ -67,7 +67,7 @@
 
     <p class="sw-basket-total lead">Итого, без учета стоимости доставки: <span id="total">{{ basket.total|intcomma }}</span>&nbsp;руб.</p>
 
-    {% include "shop/_send_order.html" %}
+    {% include "shop/_authorize.html" with action="Оформить заказ" %}
 
 </div>
 {% endblock %}
@@ -163,13 +163,6 @@
                 var csrf = Cookies.get("csrftoken");
                 $('input[type="hidden"][name="csrfmiddlewaretoken"]').prop("value", csrf);
             };
-            CustomHandlers.prototype.passwordReset = function (e, $el) {
-                $("#password-help").text("Новый пароль выслан на указанный телефон.");
-                $("#password-help").removeClass("hide").show();
-                $("#reset-password").addClass("hide").hide();
-                $("#send-order").addClass("has-warning");
-                delayShowPasswordReset("пароль");
-            };
             CustomHandlers.prototype.processError = function (e, $el, jqXHR, error, ex) {
                 // is not used anymore
                 if (jqXHR.status == 403)
@@ -190,10 +183,6 @@
             $(document).on("eldarion-ajax:success", ".delete", CustomHandlers.prototype.removeProduct);
             $(document).on("eldarion-ajax:begin",   ".update", CustomHandlers.prototype.setQuantityWarning);
             $(document).on("eldarion-ajax:success", ".update", CustomHandlers.prototype.setQuantity);
-            $(document).on("eldarion-ajax:success", "#send-order", CustomHandlers.prototype.updateCSRF);
-            $(document).on("eldarion-ajax:error",   "#send-order", CustomHandlers.prototype.processError);
-            $(document).on("eldarion-ajax:success", "#reset-password", CustomHandlers.prototype.passwordReset);
-            $(document).on("eldarion-ajax:complete", initHandlers);
 
             var inputTimer;
             var inputTimerRef;
@@ -238,59 +227,7 @@
                 $form.submit();
                 return false;
             });
-
-            initHandlers();
         });
-
-        function initHandlers() {
-            //$("#order-submit").prop("disabled", true);
-
-            $("#send-order").on("submit", function () {
-                 var complete = $("#phone-input").inputmask("isComplete");
-                 if (!complete)
-                     $("#phone-block").addClass("has-error");
-                 return complete;
-            });
-
-            $("#password-input").inputmask({
-                mask: ["9999", "*{5,30}"],
-                placeholder: "",
-                oncomplete: function() {
-                    $("#order-submit").prop("disabled", false);
-                }
-            });
-            $("#password-input").on("paste keydown", function () {
-                $("#send-order").removeClass("has-error");
-                $("#send-order").removeClass("has-warning");
-                $("#password-help").hide();
-                $("#password-help").text("");
-            });
-            $("#password-input").focus();
-
-            // https://github.com/RobinHerbots/Inputmask
-            $("#phone-input").inputmask({
-                mask: ["(999) 999-99-99", "* (999) 999-99-99"],
-                definitions: {
-                    "*": { validator: "[78]" }
-                },
-                onBeforePaste: function(pastedValue, opts) {
-                    return pastedValue.replace("+7", "");
-                },
-                onBeforeMask: function(value, opts) {
-                    return value.replace("+7", "");
-                },
-                oncomplete: function() {
-                    $("#phone-block").removeClass("has-error");
-                    var value = this.inputmask.unmaskedvalue();
-                    if (value.length > 10) {
-                        value = value.substr(1);
-                        this.inputmask.setValue(value);
-                    }
-                    $("#order-submit").prop("disabled", false);
-                },
-                keepStatic: true
-            });
-        }
     </script>
     <script type="text/javascript">
         var google_tag_params = {

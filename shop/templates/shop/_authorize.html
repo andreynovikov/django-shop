@@ -1,0 +1,177 @@
+
+<form id="authorize" class="form-inline jumbotron ajax{% if wrong_password %} has-error{% endif %}" action="{% url 'shop:authorize' %}" method="post" data-replace="#authorize">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="{{ action }}"/>
+    {% if next %}
+    <input type="hidden" name="next" value="{{ next }}"/>
+    {% endif %}
+    {% if basket %}
+    <input type="hidden" name="meta" id="basket-meta"/>
+    <script type="text/javascript">
+      document.addEventListener("DOMContentLoaded", function() {
+          ym(35990, 'getClientID', function(clientID) {
+              console.log(clientID);
+              console.log(JSON.stringify({clientID}));
+              document.getElementById('basket-meta').value = JSON.stringify({clientID});
+          });
+      });
+    </script>
+    {% endif %}
+
+    {% if user and user.is_authenticated %}
+        {# Пользователь залогинился #}
+        <p>Добро пожаловать, {{ user.name|default:"уважаемый покупатель" }}!</p>
+        <input type="submit" class="btn btn-success btn-lg" value="{{ action }}"/>
+        <p><a href="{% url 'shop:logout' %}" class="sw-small-jumbotron">Я хочу оформить заказ от другого имени</a></p>
+    {% elif shop_user %}
+        {# Пользователь с таким телефоном уже есть #}
+        {# Требуем подтверждение пароля #}
+        {% load shop_filters %}
+        <p>{{ shop_user.phone|format_phone }}</p>
+        {% if basket %}
+        <p><a href="{% url 'shop:unbind' %}" id="unbind-phone" class="sw-small-jumbotron">Это не мой телефон</a></p>
+        {% endif %}
+        <label class="control-label lead" for="password-input">Пароль:</label>
+        <input type="password" class="form-control input-lg" name="password" id="password-input" value="" size="20"/>
+        <span class="help-block">
+        {% if wrong_password %}
+        <span id="password-help">Вы ввели неправильный пароль.</span>
+        {% elif shop_user.permanent_password %}
+        <span id="password-help" class="hide"></span>
+        {% else %}
+        <span id="password-help">Пароль выслан на указанный телефон по смс.</span>
+        <script>
+            // This code is loaded both as separate Ajax and as a part of document before main js code
+            // so we need to take into account both variants.
+            if (typeof delayShowPasswordReset === "function") {
+                delayShowPasswordReset("пароль");
+            } else {
+                document.addEventListener("DOMContentLoaded", function() {
+                    delayShowPasswordReset("пароль");
+                });
+            }
+        </script>
+        {% endif %}
+        <span id="reset-counter"></span>
+        {% if shop_user.permanent_password %}
+        <span id="reset-password"><a href="{% url 'shop:reset_password' %}" class="ajax sw-small-jumbotron">Сбросить забытый пароль</a></span>
+        {% else %}
+        <span id="reset-password" class="hide"><a href="{% url 'shop:reset_password' %}" class="ajax sw-small-jumbotron">Прислать пароль повторно</a></span>
+        {% endif %}
+        </span>
+        <input type="submit" id="order-submit" class="btn btn-success btn-lg" value="Продолжить"/>
+    {% else %}
+        {# Анонимный пользователь #}
+        <p>Для продолжения укажите номер мобильного телефона:</p>
+        <div id="phone-block" class="input-group">
+            <span class="input-group-addon input-lg sw-phone-input">+7</span>
+            <input type="tel" class="form-control input-lg sw-phone-input" name="phone" id="phone-input" value="" size="20" placeholder="(999) 111-22-33"/>
+        </div>
+        <input type="submit" id="order-submit" class="btn btn-success btn-lg" value="{{ action }}"/>
+        <p style="font-size:8pt">
+            Нажимая на кнопку &laquo;{{ action }}&raquo;, вы
+            даёте <a href="/pages/personaldata/">согласие на обработку персональных данных</a> и
+            подтверждаете согласие с условиями <a href="/pages/oferta/">публичной оферты</a>.
+        </p>
+    {% endif %}
+</form>
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function() {
+            var CustomHandlers = function () {
+            };
+            CustomHandlers.prototype.addAjaxFlag = function (e, $el) {
+                $el.on("eldarion-ajax:modify-data", function (e, data) {
+                    if (typeof data === "object") // using FormData
+                        data.append("ajax", 1);
+                    else if (data != null)
+                        data = data + "&ajax=1";
+                    else
+                        data = "ajax=1";
+                    return data;
+                });
+            };
+            CustomHandlers.prototype.updateCSRF = function (e, $el) {
+                var csrf = Cookies.get("csrftoken");
+                $('input[type="hidden"][name="csrfmiddlewaretoken"]').prop("value", csrf);
+            };
+            CustomHandlers.prototype.passwordReset = function (e, $el) {
+                $("#password-help").text("Новый пароль выслан на указанный телефон.");
+                $("#password-help").removeClass("hide").show();
+                $("#reset-password").addClass("hide").hide();
+                $("#authorize").addClass("has-warning");
+                delayShowPasswordReset("пароль");
+            };
+            CustomHandlers.prototype.processError = function (e, $el, jqXHR, error, ex) {
+                // is not used anymore
+                if (jqXHR.status == 403)
+                {
+                    $("#password-help").text("Вы ввели неправильный пароль");
+                    $("#password-help").removeClass("hide").show();
+                    $el.addClass("has-error");
+                }
+            };
+            $(document).on("eldarion-ajax:begin", function(evt, $el) {
+                $("body").css("cursor", "progress");
+            });
+            $(document).on("eldarion-ajax:complete", function(evt, $el) {
+                $("body").css("cursor", "auto");
+            });
+            $(document).on("eldarion-ajax:begin",   ".ajax", CustomHandlers.prototype.addAjaxFlag);
+            $(document).on("eldarion-ajax:success", "#authorize", CustomHandlers.prototype.updateCSRF);
+            $(document).on("eldarion-ajax:error",   "#authorize", CustomHandlers.prototype.processError);
+            $(document).on("eldarion-ajax:success", "#reset-password", CustomHandlers.prototype.passwordReset);
+            $(document).on("eldarion-ajax:complete", initHandlers);
+
+            initHandlers();
+        });
+
+        function initHandlers() {
+            //$("#order-submit").prop("disabled", true);
+
+            $("#authorize").on("submit", function () {
+                 var complete = $("#phone-input").inputmask("isComplete");
+                 if (!complete)
+                     $("#phone-block").addClass("has-error");
+                 return complete;
+            });
+
+            $("#password-input").inputmask({
+                mask: ["9999", "*{5,30}"],
+                placeholder: "",
+                oncomplete: function() {
+                    $("#order-submit").prop("disabled", false);
+                }
+            });
+            $("#password-input").on("paste keydown", function () {
+                $("#authorize").removeClass("has-error");
+                $("#authorize").removeClass("has-warning");
+                $("#password-help").hide();
+                $("#password-help").text("");
+            });
+            $("#password-input").focus();
+
+            // https://github.com/RobinHerbots/Inputmask
+            $("#phone-input").inputmask({
+                mask: ["(999) 999-99-99", "* (999) 999-99-99"],
+                definitions: {
+                    "*": { validator: "[78]" }
+                },
+                onBeforePaste: function(pastedValue, opts) {
+                    return pastedValue.replace("+7", "");
+                },
+                onBeforeMask: function(value, opts) {
+                    return value.replace("+7", "");
+                },
+                oncomplete: function() {
+                    $("#phone-block").removeClass("has-error");
+                    var value = this.inputmask.unmaskedvalue();
+                    if (value.length > 10) {
+                        value = value.substr(1);
+                        this.inputmask.setValue(value);
+                    }
+                    $("#order-submit").prop("disabled", false);
+                },
+                keepStatic: true
+            });
+        }
+    </script>

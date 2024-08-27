@@ -301,35 +301,46 @@ def clear_basket(request, basket_sign):
 @require_POST
 def authorize(request):
     ensure_session(request)
-    basket = get_object_or_404(Basket, session_id=request.session.session_key)
+    basket = Basket.objects.filter(site=Site.objects.get_current(), session_id=request.session.session_key).first()
     phone = request.POST.get('phone')
     password = request.POST.get('password')
+    next_url = request.POST.get('next')
+    action = request.POST.get('action')
     request.session['meta'] = request.POST.get('meta')
     data = None
 
     if password:
-        norm_phone = ShopUserManager.normalize_phone(basket.phone)
+        norm_phone = request.session.get('phone', None)
         user = authenticate(username=norm_phone, password=password)
         if user and user.is_active:
             login(request, user)
-            basket.update_session(request.session.session_key)
+            if basket is not None:
+                basket.update_session(request.session.session_key)
             """
             We disabled this because Nikolay wants order to be registered as soon as user authenticates
             data = {
                 'user': user,
+                'basket': basket,
+                'next': next_url,
+                'action': action
             }
             """
         else:
             """ Bad password """
             data = {
                 'shop_user': ShopUser.objects.get(phone=norm_phone),
-                'wrong_password': True
+                'wrong_password': True,
+                'basket': basket,
+                'next': next_url,
+                'action': action
             }
 
     if phone:
         norm_phone = ShopUserManager.normalize_phone(phone)
-        basket.phone = norm_phone
-        basket.save()
+        request.session['phone'] = norm_phone
+        if basket is not None:
+            basket.phone = norm_phone
+            basket.save()
         user, created = ShopUser.objects.get_or_create(phone=norm_phone)
         if not user.permanent_password:
             """ Generate new password for user """
@@ -340,7 +351,8 @@ def authorize(request):
             """ Login new user """
             user = authenticate(username=norm_phone, password=password)
             login(request, user)
-            basket.update_session(request.session.session_key)
+            if basket is not None:
+                basket.update_session(request.session.session_key)
             request.session['password'] = password
         else:
             """ User exists, request password """
@@ -351,23 +363,33 @@ def authorize(request):
                     mail_admins('Task error', 'Failed to send password: %s' % e, fail_silently=True)
             data = {
                 'shop_user': user,
+                'basket': basket,
+                'next': next_url,
+                'action': action
             }
 
     if request.user.is_authenticated and not data:
+        location = next_url or reverse('shop:confirm')
         if request.POST.get('ajax'):
-            return JsonResponse({'location': reverse('shop:confirm')})
+            return JsonResponse({'location': location})
         else:
-            return HttpResponseRedirect(reverse('shop:confirm'))
+            return HttpResponseRedirect(location)
     else:
+        location = next_url or reverse('shop:basket')
         if request.POST.get('ajax'):
             data = {
-                'html': render_to_string('shop/_send_order.html', data, request),
+                'html': render_to_string('shop/_authorize.html', data, request),
             }
             return JsonResponse(data)
         elif data and 'wrong_password' in data:
-            return HttpResponseRedirect(reverse('shop:basket') + '?wrong_password=1')
+            if '?' in location:
+                location += '&'
+            else:
+                location += '?'
+            location += 'wrong_password=1'
+            return HttpResponseRedirect(location)
         else:
-            return HttpResponseRedirect(reverse('shop:basket'))
+            return HttpResponseRedirect(location)
 
 
 def register_user(request):

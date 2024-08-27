@@ -7,6 +7,7 @@ from django.core.files.storage import default_storage
 from django.contrib.auth.decorators import login_required
 from django.contrib.sites.models import Site
 from django.template import loader
+from django.urls import reverse
 from django.utils.text import capfirst
 
 from sewingworld.models import SiteProfile
@@ -531,6 +532,8 @@ def extend_warranty(request):
     context = {
         'registered': registered,
         'serial_number': sn,
-        'serial': serial
+        'serial': serial,
+        'next': reverse('extend_warranty') + '?sn=' + sn,
+        'wrong_password': request.GET.get('wrong_password', '0') == '1'
     }
     return render(request, 'extend_warranty.html', context)
