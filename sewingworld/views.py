@@ -48,7 +48,7 @@ def search(request):
 
 def products_stream(request, integration, template, filter_type):
     root = Category.objects.get(slug=settings.MPTT_ROOT)
-    children = root.get_children()
+    children = root.get_children().filter(active=True, feed=True)
 
     if integration:
         template = integration.output_template
@@ -59,7 +59,7 @@ def products_stream(request, integration, template, filter_type):
     categories = {}
     for child in children:
         categories[child.pk] = child.pk
-        descendants = child.get_descendants()
+        descendants = child.get_descendants().filter(active=True, feed=True)
         for descendant in descendants:
             categories[descendant.pk] = child.pk
 
@@ -77,7 +77,7 @@ def products_stream(request, integration, template, filter_type):
         'enabled': True,
         'price__gt': 0,
         'variations__exact': '',
-        'categories__in': root.get_descendants(include_self=True)
+        'categories__in': root.get_descendants(include_self=True).filter(active=True, feed=True)
     }
 
     if integration and not integration.output_all:

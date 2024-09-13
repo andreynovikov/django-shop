@@ -22,6 +22,7 @@ class Category(MPTTModel):
     parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True, on_delete=models.PROTECT)
     active = models.BooleanField('включена', default=True, db_index=True)
     hidden = models.BooleanField('спрятана', default=False, db_index=True)
+    feed = models.BooleanField('выдавать в фиды', default=True)
     filters = models.CharField('фильтры', max_length=255, blank=True)
     brief = models.TextField('описание', blank=True)
     description = models.TextField('статья', blank=True)
@@ -35,7 +36,6 @@ class Category(MPTTModel):
     promo_image_width = models.IntegerField(null=True, blank=True)
     promo_image_height = models.IntegerField(null=True, blank=True)
     product_order = models.CharField('поле сортировки товаров', max_length=50, default='-price')
-    ya_active = models.BooleanField('выдавать в Яндекс.Маркет', default=True)
 
     def get_api_path(self):
         # TODO: refactor: remove mptt_urls get_path injection, use this instead

@@ -66,6 +66,11 @@ def filter_qs_by_pk(queryset, ids):
 
 
 @register.filter
+def get_unique_mapped_list(queryset, dictionary):
+    return set(filter(lambda pk: pk is not None, [dictionary.get(o.pk, None) for o in queryset]))
+
+
+@register.filter
 def get_dict_item(dictionary, key):
     return dictionary.get(key)
 
