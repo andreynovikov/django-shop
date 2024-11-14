@@ -164,6 +164,10 @@ def sales_action(request, slug):
 
 def stores(request):
     stores = Store.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+    if request.GET.get('marketplace', None):
+        stores = stores.filter(marketplace=True)
+    if request.GET.get('lottery', None):
+        stores = stores.filter(lottery=True)
     store_groups = []
     cur_country = None
     cur_country_index = -1
@@ -184,6 +188,8 @@ def stores(request):
 
     site_profile = SiteProfile.objects.get(site=Site.objects.get_current())
     context = {
+        'marketplace': True if request.GET.get('marketplace', None) else False,
+        'lottery': True if request.GET.get('lottery', None) else False,
         'stores': stores,
         'store_groups': store_groups,
         'city': site_profile.city

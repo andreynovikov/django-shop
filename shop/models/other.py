@@ -217,6 +217,8 @@ class Store(models.Model):
     name = models.CharField('название', max_length=100)
     enabled = models.BooleanField('включён', default=True)
     publish = models.BooleanField('публиковать в картах', default=True)
+    marketplace = models.BooleanField('участник акции с маркетплейсами', default=False)
+    lottery = models.BooleanField('участник лотереи', default=False)
     description = models.TextField('описание', blank=True)
     latitude = models.FloatField('широта', default=0, blank=True, null=True)
     longitude = models.FloatField('долгота', default=0, blank=True, null=True)
