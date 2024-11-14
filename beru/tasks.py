@@ -198,18 +198,14 @@ def notify_beru_product_stocks(self, products, account):
         'Content-Type': 'application/json'
     }
 
-    warehouseId = integration.settings.get('warehouse_id', '')
     updatedAt = datetime.utcnow().replace(microsecond=0).isoformat() + '+00:00'
-
     skus = []
 
     for product in Product.objects.filter(pk__in=products):
         skus.append({
             'sku': product.article,
-            'warehouseId': int(warehouseId),
             'items': [
                 {
-                    'type': 'FIT',
                     'count': max(int(product.get_stock(integration=integration)), 0),
                     'updatedAt': updatedAt
                 }
@@ -236,16 +232,15 @@ def notify_beru_product_stocks(self, products, account):
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_beru_integration_stocks(self):
     for integration in Integration.objects.filter(settings__has_key='ym_campaign'):
-        if integration.settings.get('warehouse_id', '') != '':
-            products = Product.objects.order_by().filter(integration=integration)
+        products = Product.objects.order_by().filter(integration=integration)
 
-            if integration.output_available:
-                products = products.annotate(
-                    quantity=Sum('stock_item__quantity', filter=Q(stock_item__supplier__integration=integration)),
-                    correction=Sum('stock_item__correction', filter=Q(stock_item__supplier__integration=integration)),
-                    available=F('quantity') + F('correction')
-                ).filter(available__gt=0)
+        if integration.output_available:
+            products = products.annotate(
+                quantity=Sum('stock_item__quantity', filter=Q(stock_item__supplier__integration=integration)),
+                correction=Sum('stock_item__correction', filter=Q(stock_item__supplier__integration=integration)),
+                available=F('quantity') + F('correction')
+            ).filter(available__gt=0)
 
-            products = list(products.values_list('id', flat=True).distinct())
+        products = list(products.values_list('id', flat=True).distinct())
 
-            notify_beru_product_stocks.s(products, integration.utm_source).apply_async(priority=PRIORITY_IDLE)
+        notify_beru_product_stocks.s(products, integration.utm_source).apply_async(priority=PRIORITY_IDLE)
