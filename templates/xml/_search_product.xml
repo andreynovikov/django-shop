@@ -9,8 +9,8 @@
 {% endif %}
 <price>{{ product.cost|quantize:"1" }}</price>
 <categories>
-{% for category in product.categories.all %}
-  <categoryId>{{ category.pk }}</categoryId>
+{% for top_category in product.categories.all|get_unique_mapped_list:category_map %}
+    <categoryId>{{ top_category }}</categoryId>
 {% endfor %}
 </categories>
 {% if product.image %}
