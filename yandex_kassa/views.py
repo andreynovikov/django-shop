@@ -68,7 +68,7 @@ def payment(request, order_id, return_url=None):
                 'value': str(item.cost.quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)),
                 'currency': 'RUB'
             },
-            'vat_code': 1
+            'vat_code': order.seller.vat_rate
         })
     if order.delivery_price > 0:
         items.append({
@@ -78,7 +78,7 @@ def payment(request, order_id, return_url=None):
                 'value': str(order.delivery_price.quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)),
                 'currency': 'RUB'
             },
-            'vat_code': 1
+            'vat_code': order.seller.vat_rate
         })
 
     if return_url is None:
@@ -97,7 +97,7 @@ def payment(request, order_id, return_url=None):
                 'phone': order.phone,
                 'full_name': order.name
             },
-            'tax_system_code': 2,
+            'tax_system_code': order.seller.tax_system,
             'items': items
         },
         'confirmation': {

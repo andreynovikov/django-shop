@@ -740,9 +740,7 @@ def create_modulpos_order(self, order_id):
             'measure': 'pcs',
             'inventoryType': 'INVENTORY',
             'quantity': item.quantity,
-            'vatSum': 0,
-            'vatTag': '1105',
-            'sumWithVat': item.price
+            'price': item.cost
         })
     if order.delivery_price > 0:
         items.append({
@@ -750,9 +748,7 @@ def create_modulpos_order(self, order_id):
             'measure': 'other',
             'inventoryType': 'SERVICE',
             'quantity': 1,
-            'vatSum': 0,
-            'vatTag': '1105',
-            'sumWithVat': str(order.delivery_price.quantize(Decimal('1'), rounding=ROUND_HALF_EVEN))
+            'price': str(order.delivery_price.quantize(Decimal('1'), rounding=ROUND_HALF_EVEN))
         })
     data = {
         'documentNumber': str(order.id),

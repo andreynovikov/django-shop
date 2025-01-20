@@ -138,7 +138,7 @@ class ManufacturerAdmin(admin.ModelAdmin):
 
 @admin.register(Contractor)
 class ContractorAdmin(admin.ModelAdmin):
-    list_display = ['code', 'name', 'inn', 'is_seller', 'yookassa_id', 'modulkassa_login']
+    list_display = ['code', 'name', 'inn', 'is_seller', 'tax_system', 'yookassa_id', 'modulkassa_login']
     list_display_links = ['name']
     search_fields = ['name']
     ordering = ['code']
