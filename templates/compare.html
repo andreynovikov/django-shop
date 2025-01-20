@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load thumbnail %}
 {% load decimals %}
 {% load humanize %}
 {% load shop_filters %}
@@ -47,8 +48,10 @@
         </div></div>
 <div class="sw-p-l-image text-center">
         <a href="{% url 'product' product.code %}">
-        {% if product.image_prefix|add:'.s.jpg'|file_exists %}
-        <img src="{{ MEDIA_URL }}{{ product.image_prefix }}.s.jpg" alt="{{ product.title }} {{ product.whatis }}" /><br/>
+        {% if product.image %}
+        {% thumbnail product.image '120x120' padding=True as im %}
+        <img src="{{ im.url }}" width="{{ im.width }}" height="{{ im.height }}" alt="{{ product.title }} {{ product.whatis }}" /><br />
+        {% endthumbnail %}
         {% endif %}
         </a>
 </div>
