@@ -1,0 +1,16 @@
+//
+// user-variables.scss
+// Use this to override Bootstrap and Cartzilla variables
+//
+
+// Example of a variable override to change Cartzilla background color
+// Remove the "//" to comment it in and see it in action!
+// $body-bg: #12263F;
+
+$primary: #EF7F1A;
+$warning: #F7C869; // #F6CF69; // #fea569;
+// https://colordesigner.io/gradient-generator
+
+$icons-font-path:             '../../fonts';
+
+$navbar-mega-dropdown-column-width: 35rem;
