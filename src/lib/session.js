@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import Router, { useRouter } from 'next/router';
 import { useQuery, useQueryClient } from 'react-query';
 
 import { apiClient, userKeys, userReferences, userDependencies, currentUser } from '@/lib/queries';
@@ -13,15 +14,15 @@ export function useSession(options) {
     const value = useContext(SessionContext);
 
     const { onUnauthenticated } = options || {};
-    const requiredAndNotLoading = onUnauthenticated !== undefined && value.status === 'unauthenticated';
+    const required = onUnauthenticated !== undefined && value.status === 'unauthenticated';
 
     useEffect(() => {
-        if (requiredAndNotLoading)
+        if (required && !value.isRouting)
             onUnauthenticated();
         /* eslint-disable react-hooks/exhaustive-deps */
-    }, [requiredAndNotLoading]);
+    }, [required, value.isRouting]);
 
-    if (requiredAndNotLoading)
+    if (required)
         return { user: value.user, status: 'loading' };
 
     return value;
@@ -55,7 +56,7 @@ export async function signOut(options) {
         .then(function () {
             __SESSION.invalidate();
             if (callbackUrl)
-                router.push(callbackUrl);
+                Router.push(callbackUrl);
         });
 }
 
@@ -81,15 +82,25 @@ export async function register(data) {
 }
 
 export function SessionProvider({children}) {
+    const [isRouting, setIsRouting] = useState(false);
+    const router = useRouter();
     const queryClient = useQueryClient();
+
+    const handleRouteChangeStart = () => setIsRouting(true);
+    const handleRouteChangeComplete = () => setIsRouting(false);
 
     useEffect(() => {
         __SESSION.invalidate = () => {
             queryClient.invalidateQueries(userKeys.current());
         }
 
+        router.events.on('routeChangeStart', handleRouteChangeStart);
+        router.events.on('routeChangeComplete', handleRouteChangeComplete);
+
         return () => {
-            __SESSION.invalidate = () => {}
+            __SESSION.invalidate = () => {};
+            router.events.off('routeChangeStart', handleRouteChangeStart);
+            router.events.off('routeChangeComplete', handleRouteChangeComplete);
         }
         /* eslint-disable react-hooks/exhaustive-deps */
     }, []);
@@ -119,10 +130,11 @@ export function SessionProvider({children}) {
 
     const value = useMemo(() => ({
         user,
+        isRouting,
         status: isLoading ? 'loading'
             : isSuccess && user?.id > 0 ? 'authenticated'
             : 'unauthenticated'
-    }), [user, isLoading, isSuccess]);
+    }), [user, isLoading, isSuccess], isRouting);
 
     return (
         <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
