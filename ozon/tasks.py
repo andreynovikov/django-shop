@@ -102,6 +102,9 @@ def get_unfulfilled_orders(self, account):
                 }
                 if posting.get('is_express', False):
                     kwargs['delivery'] = Order.DELIVERY_EXPRESS
+                date = posting.get('shipment_date', '')
+                if date:
+                    kwargs['delivery_dispatch_date'] = datetime.strptime(date.split('T')[0], '%Y-%m-%d')
 
                 order = Order.register(basket, **kwargs)
 
@@ -121,10 +124,6 @@ def get_unfulfilled_orders(self, account):
             date = analytics_data.get('delivery_date_end', '')
             if date:
                 order.delivery_handing_date = datetime.strptime(date.split('T')[0], '%Y-%m-%d')
-
-            date = posting.get('shipment_date', '')
-            if date:
-                order.delivery_dispatch_date = datetime.strptime(date.split('T')[0], '%Y-%m-%d')
 
             order.save()
             num = num + 1

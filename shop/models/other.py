@@ -142,12 +142,35 @@ class City(models.Model):
 
 
 class Contractor(models.Model):
+    # numerical values taken from https://yookassa.ru/developers/payment-acceptance/receipts/54fz/other-services/parameters-values
+    TAX_SYSTEM_GTS = 1
+    TAX_SYSTEM_STS = 2
+    TAX_SYSTEM_CHOICES = (
+        (TAX_SYSTEM_GTS, 'ОСН'),
+        (TAX_SYSTEM_STS, 'УСН'),
+    )
+    VAT_RATE_NONE = 1
+    VAT_RATE_ZERO = 2
+    VAT_RATE_TEN = 3
+    VAT_RATE_RECEIPT_TWENTY = 4
+    VAT_RATE_FIVE = 7
+    VAT_RATE_SEVEN = 8
+    VAT_RATE_CHOICES = (
+        (VAT_RATE_NONE, 'Без НДС'),
+        (VAT_RATE_ZERO, 'НДС по ставке 0%'),
+        (VAT_RATE_FIVE, 'НДС по ставке 5%'),
+        (VAT_RATE_SEVEN, 'НДС по ставке 7%'),
+        (VAT_RATE_TEN, 'НДС по ставке 10%'),
+        (VAT_RATE_RECEIPT_TWENTY, 'НДС чека по ставке 20%'),
+    )
     code = models.CharField('код 1С', max_length=64)
     name = models.CharField('название', max_length=100)
     is_seller = models.BooleanField('продавец', default=False)
     inn = models.CharField('ИНН', max_length=12, blank=True)
     kpp = models.CharField('КПП', max_length=9, blank=True)
     ogrn = models.CharField('ОГРН', max_length=13, blank=True)
+    tax_system = models.SmallIntegerField('система налогообложения', choices=TAX_SYSTEM_CHOICES, blank=True, null=True)
+    vat_rate = models.SmallIntegerField('ставка НДС', choices=VAT_RATE_CHOICES, blank=True, null=True)
     legal_address = models.TextField('юр. адрес', blank=True)
     postal_address = models.TextField('физ. адрес', blank=True)
     bank_requisites = models.TextField('банковские реквизиты', blank=True)
@@ -217,6 +240,8 @@ class Store(models.Model):
     name = models.CharField('название', max_length=100)
     enabled = models.BooleanField('включён', default=True)
     publish = models.BooleanField('публиковать в картах', default=True)
+    marketplace = models.BooleanField('участник акции с маркетплейсами', default=False)
+    lottery = models.BooleanField('участник лотереи', default=False)
     description = models.TextField('описание', blank=True)
     latitude = models.FloatField('широта', default=0, blank=True, null=True)
     longitude = models.FloatField('долгота', default=0, blank=True, null=True)

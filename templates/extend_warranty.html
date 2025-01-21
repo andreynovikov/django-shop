@@ -1,36 +1,55 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}Расширение гарантии{% endblock %}
+{% block css %}
+<style>
+  .form_wrap {
+    display: flex;
+    flex-direction: column;
+    row-gap: 20px;
+  }
+
+  .all_wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    flex-direction: row;
+    width: 100%;
+  }
+</style>
+{% endblock %}
 {% block content %}
-<h1>Расширение гарантии</h1>
-{% if registered %}{# серийный номер уже был зарегистрирован #}
-<p>
-  Серийный номер <b>{{ serial.number }}</b> уже зарегистрирован.
-</p>
-{% elif serial %}{# серийный номер зарегистрирован #}
-<p>
-  Серийный номер <b>{{ serial.number }}</b> зарегистрирован.
-  {% if serial.approved %}И{% else %}После проверки и{% endif %}нформация о нём
-  {% if not serial.approved %}будет {% endif %}доступна в личном кабинете.
-</p>
-{% elif serial_number %}{# сюда мы попадаем только, если пользователь не авторизован #}
-{% include "shop/_authorize.html" with action="Продолжить" %}
-<!--
-<p>
-  Для регистрации гарантии вам необходимо
-  <a href="{% url 'shop:register' %}?next={{ request.get_full_path|urlencode }}?sn={{ serial_number }}">зарегистрироваться</a>
-  или
-  <a href="{% url 'shop:login' %}?next={{ request.get_full_path|urlencode }}?sn={{ serial_number }}">войти в личный кабинет</a>,
-  если вы уже ранее регистрировались на сайте.
-</p>
--->
-{% else %}{# первичный экран #}
-<form method="post">
-  {% csrf_token %}
-  <input type="text" name="sn"  placeholder="Серийный номер" autocomplete="off" class="form-control input-lg" />
-  <input type="submit" value="Продлить" class="btn btn-lg btn-warning" />
-</form>
-{% endif %}
+
+<div class="all_wrap">
+  <div class=" col-lg-15 col-md-20 form_wrap">
+    <h1>Расширение гарантии</h1>
+    {% if registered %}{# серийный номер уже был зарегистрирован #}
+    <p>
+      Серийный номер <b>{{ serial.number }}</b> уже зарегистрирован.
+    </p>
+    {% elif serial %}{# серийный номер зарегистрирован #}
+    <p>
+      Серийный номер <b>{{ serial.number }}</b> зарегистрирован.
+      {% if serial.approved %}И{% else %}После проверки и{% endif %}нформация о нём
+      {% if not serial.approved %}будет {% endif %}доступна в личном кабинете.
+    </p>
+    {% elif serial_number %}{# сюда мы попадаем только, если пользователь не авторизован #}
+    {% include "shop/_authorize.html" with action="Продолжить" %}
+    {% else %}{# первичный экран #}
+    <h2>Заполните форму и увеличьте период бесплатного ремонта</h2>
+    <p>Введите серийный номер швейной машины и продлите право на бесплатное устранение недостатков, возникших по вине
+      изготовителя.</p>
+    <p>Серийный номер указан на самой швейной машине (как правило, на наклейке на задней стороне корпуса), а также на
+      упаковочной коробке</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="text" name="sn" placeholder="Серийный номер" autocomplete="off" class="form-control input-lg" />
+      <input type="submit" value="Продлить" class="btn btn-lg btn-success" style="margin:10px 0 0 0" />
+    </form>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}
 {% block javascript_wrapper %}
 <script src="{% static 'js/eldarion-ajax.min.js' %}"></script>

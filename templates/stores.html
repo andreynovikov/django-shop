@@ -11,8 +11,13 @@
 {% block content %}
 <div class="container">
 <div class="product-page">
+{% if marketplace %}
+<h1>В этих магазинах можно пройти бесплатное обучение работе на швейной машине при предъявлении гарантийного талона</h1>
+{% elif lottery %}
+<h1>Покупатели этих магазинов принимают участие в юбилейной лотерее</h1>
+{% else %}
 <h1>Наши магазины рядом с Вами</h1>
-
+{% endif %}
 <p>
 <select style="font-size: 12pt" id="search_form">
 <option>Выберите город:</option>
@@ -27,6 +32,7 @@
 </p>
 <div id="map" class="sw-map"></div>
 
+{% if not marketplace and not lottery %}
 <h1>Наши телефоны</h1>
 <table border="0" style="padding:3px"><tr>
 <td>Единая справочная розничной сети:</td>
@@ -49,6 +55,7 @@
 <a href="mailto:info@thsm.ru">info@thsm.ru</a>
 </td>
 </tr></table>
+{% endif %}
 
 {% for country_group in store_groups %}
 <a href="#" name="{{ country_group.country.name }}"></a><h2>{{ country_group.country.name }}</h2>

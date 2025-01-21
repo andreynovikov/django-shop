@@ -82,6 +82,7 @@ def new_order(request):
         basket.save()
 
         kwargs = {
+            'integration': integration,
             'delivery_tracking_number': shipment.get('shipmentId', None)
         }
         order = Order.register(basket, **kwargs)

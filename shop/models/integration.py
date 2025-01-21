@@ -41,3 +41,6 @@ class ProductIntegration(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     integration = models.ForeignKey(Integration, on_delete=models.CASCADE)
     price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0)
+
+    class Meta:
+        unique_together = ('product', 'integration')

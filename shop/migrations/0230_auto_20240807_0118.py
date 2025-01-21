@@ -8,7 +8,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('shop', '0229_remove_product_image_prefix'),
+        ('shop', '0230_auto_20240529_2206'),
     ]
 
     operations = [

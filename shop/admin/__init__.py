@@ -94,8 +94,8 @@ class StoreImageInline(SortableInlineAdminMixin, admin.TabularInline):
 class StoreAdmin(admin.ModelAdmin):
     list_display = ['city', 'address', 'name', 'supplier', 'enabled', 'latitude', 'longitude']
     list_display_links = ['address', 'name']
-    list_filter = [('city', RelatedDropdownFilter), 'enabled', 'publish']
-    search_fields = ['name', 'address', 'address2']
+    list_filter = [('city', RelatedDropdownFilter), 'enabled', 'publish', 'marketplace', 'lottery']
+    search_fields = ['name', 'address', 'address2', 'city__name']
     ordering = ['city', 'address']
     inlines = [StoreImageInline]
 
@@ -138,7 +138,7 @@ class ManufacturerAdmin(admin.ModelAdmin):
 
 @admin.register(Contractor)
 class ContractorAdmin(admin.ModelAdmin):
-    list_display = ['code', 'name', 'inn', 'is_seller', 'yookassa_id', 'modulkassa_login']
+    list_display = ['code', 'name', 'inn', 'is_seller', 'tax_system', 'yookassa_id', 'modulkassa_login']
     list_display_links = ['name']
     search_fields = ['name']
     ordering = ['code']

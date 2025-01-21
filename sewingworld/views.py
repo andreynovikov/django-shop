@@ -93,6 +93,9 @@ def products_stream(request, integration, template, filter_type):
 
     products = Product.objects.order_by().filter(**filters).distinct()
 
+    if integration and integration.output_with_images:
+        products.exclude(image__isnull=True).exclude(image__exact='')
+
     if integration and integration.output_available:
         products = products.annotate(
             quantity=Sum('stock_item__quantity', filter=Q(stock_item__supplier__integration=integration)),
@@ -103,8 +106,6 @@ def products_stream(request, integration, template, filter_type):
     for product in products:
         context['product'] = product
         if integration:
-            if integration.output_with_images and len(product.images) == 0:
-                yield ''
             if not integration.output_all:
                 context['integration'] = ProductIntegration.objects.get(product=product, integration=integration)
             if integration.output_stock:
@@ -163,6 +164,10 @@ def sales_action(request, slug):
 
 def stores(request):
     stores = Store.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+    if request.GET.get('marketplace', None):
+        stores = stores.filter(marketplace=True)
+    if request.GET.get('lottery', None):
+        stores = stores.filter(lottery=True)
     store_groups = []
     cur_country = None
     cur_country_index = -1
@@ -183,6 +188,8 @@ def stores(request):
 
     site_profile = SiteProfile.objects.get(site=Site.objects.get_current())
     context = {
+        'marketplace': True if request.GET.get('marketplace', None) else False,
+        'lottery': True if request.GET.get('lottery', None) else False,
         'stores': stores,
         'store_groups': store_groups,
         'city': site_profile.city

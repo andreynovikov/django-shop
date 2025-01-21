@@ -15,12 +15,8 @@
       <outlet id="0" instock="{% if stock > 10 %}10{% else %}{{ stock|quantize:"1" }}{% endif %}" />
     </outlets>
     {% endif %}
-{% for category in product.categories.all %}
-{% with top_category=category_map|get_dict_item:category.pk %}
-{% if top_category %}
+{% for top_category in product.categories.all|get_unique_mapped_list:category_map %}
     <categoryId>{{ top_category }}</categoryId>
-{% endif %}
-{% endwith %}
 {% endfor %}
     <name>{{ product.whatis }} {{ product.title }}</name>
 {% if product.image %}

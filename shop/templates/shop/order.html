@@ -82,7 +82,12 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
 {% if order.paid %}
 {% if order.meta %}
 {% if order.has_fiscal %}
+{% if order.id > 152982 %}
+<!-- TODO: move to order.seller -->
+<a class="btn btn-success" href="https://consumer.1-ofd.ru/ticket?s={{ order.meta.fiscalInfo.sum }}&fn={{ order.meta.fiscalInfo.fnNumber }}&i={{ order.meta.fiscalInfo.fnDocNumber }}&fp={{ order.meta.fiscalInfo.fnDocMark }}&n=1" id="receipt-check-link" target="_blank">Посмотреть кассовый чек</a>
+{% else %}
 <a class="btn btn-success" href="https://receipt.taxcom.ru/v01/show?fp={{ order.meta.fiscalInfo.fnDocMark }}&s={{ order.meta.fiscalInfo.sum }}" id="receipt-check-link" target="_blank">Посмотреть кассовый чек</a>
+{% endif %}
 {% elif order.meta.yookassa %}
 <a class="btn btn-success hide" href="" id="receipt-check-link" target="_blank">Посмотреть кассовый чек</a>
 <script type="text/javascript">
@@ -98,7 +103,10 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
                 var data = xhr.response;
                 if (data.registration === "succeeded") {
                     var link = document.getElementById("receipt-check-link");
-                    link.href = "https://receipt.taxcom.ru/v01/show?fp=" + data.fnDocMark + "&s=" + data.sum;
+                    if ({{ order.id }} > 152982)
+                        link.href = "https://consumer.1-ofd.ru/ticket?s=" + data.sum + "&fn=" + data.fnNumber + "&i=" + data.fnDocNumber + "&fp=" + data.fnDocMark + "&n=1";
+                    else
+                        link.href = "https://receipt.taxcom.ru/v01/show?fp=" + data.fnDocMark + "&s=" + data.sum;
                     link.classList.remove("hide");
                 }
             }
@@ -113,7 +121,9 @@ $('#f96bae27a7dbbcfc794595702bd9024d').on('DOMNodeInserted', function(e) {
 {% else %} {# not paid #}
 {% if order.status == order.STATUS_COLLECTED %}
 {% if order.payment == order.PAYMENT_CARD or order.payment == order.PAYMENT_CREDIT %}
+{% if order.seller.yookassa_id %}
 <a class="btn btn-success" href="{% url 'yandex_kassa:payment' order.id %}">{% if order.payment == order.PAYMENT_CREDIT %}Оформить кредит{% else %}Оплатить заказ{% endif %}</a>
+{% endif %}
 {% elif order.payment == order.PAYMENT_TRANSFER %}
 <a href="{% url 'shop:order_document' order.id 'bill' %}">Скачать счёт для оплаты в любом банке</a>
 {% endif %}

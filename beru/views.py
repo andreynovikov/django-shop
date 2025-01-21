@@ -34,42 +34,6 @@ def token_required(func):
 @require_POST
 @csrf_exempt
 @token_required
-def stocks(request, account='beru'):
-    if request.body:
-        data = json.loads(request.body.decode('utf-8'))
-    else:
-        data = json.loads("""
-        { "warehouseId": 1234, "skus": [ "01057", "00159" ] }
-        """)
-    logger.info('>>> ' + request.path)
-    logger.debug(data)
-    integration = Integration.objects.filter(utm_source=account).first()
-    skus = []
-    warehouseId = data.get('warehouseId', '')
-    updatedAt = datetime.utcnow().replace(microsecond=0).isoformat() + '+00:00'
-    for sku in data.get('skus', []):
-        try:
-            product = Product.objects.get(article=sku)
-            count = max(int(product.get_stock(integration=integration)), 0)
-            skus.append({
-                'sku': sku,
-                'warehouseId': str(warehouseId),
-                'items': [
-                    {
-                        'type': 'FIT',
-                        'count': str(count),
-                        'updatedAt': updatedAt
-                    }
-                ]
-            })
-        except Exception:
-            pass
-    return JsonResponse({'skus': skus})
-
-
-@require_POST
-@csrf_exempt
-@token_required
 def cart(request, account='beru'):
     if request.body:
         data = json.loads(request.body.decode('utf-8'))
@@ -152,6 +116,7 @@ def accept_order(request, account='beru'):
     basket.save()
 
     kwargs = {
+        'integration': integration,
         'delivery_tracking_number': order_id
     }
     if integration.settings.get('is_taxi', False):
