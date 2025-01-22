@@ -13,7 +13,7 @@
 <div id="filters" class="panel panel-default pull-right"><div class="panel-body">
   <form id="filtersForm" class="form-inline">
     <div class="checkbox">
-      <label><input autocomplete="off" name="sort" value="aprice" type="checkbox"/>
+      <label><input autocomplete="off" name="sort" value="PRICE_ASC" type="checkbox"/>
       Сортировать по цене</label>
     </div>
     <div>
@@ -21,7 +21,7 @@
       <input name="priceLow" autocomplete="off" placeholder="от"/><input name="priceHigh" autocomplete="off" placeholder="до"/>
     </div>
     <div class="checkbox">
-      <label><input autocomplete="off" name="available" value="true" type="checkbox">
+      <label><input autocomplete="off" name="available" value="true" type="checkbox" checked="checked">
       Есть в наличии</label>
     </div>
     <div id="filterCategories">
@@ -34,12 +34,12 @@
 <ul id="pages"></ul>
 
 {% verbatim %}
-<script id="documentTemplate" type="text/x-jsrender">
+<script id="productTemplate" type="text/x-jsrender">
 <div class="sw-p-l panel panel-default">
   <div class="panel-body">
-    <div class="sw-p-l-image text-center">{{if origSnippet}}<a href="{{:url}}"><img src="{{:origSnippet}}" alt="{{:name}}"/></a>{{/if}}</div>
+    <div class="sw-p-l-image text-center">{{if image_url}}<a href="{{:link_url}}"><img src="{{:image_url}}" alt="{{:name}}"/></a>{{/if}}</div>
     <div class="sw-p-l-name">
-      <h3 class="sw-p-l-name-h"><a href="{{:url}}">{{:name}}</a></h3>
+      <h3 class="sw-p-l-name-h"><a href="{{:link_url}}">{{:name}}</a></h3>
       <div class="sw-p-l-brif">
       {{:description}}
       </div>
@@ -71,7 +71,7 @@
 <script id="categoryTemplate" type="text/x-jsrender">
   <div><div class="radio">
     <label><input name="categoryId" autocomplete="off" value="{{:id}}" type="radio">
-    {{:value}}</label>
+    {{:name}}</label>
   </div></div>
 </script>
 {% endverbatim %}
@@ -83,7 +83,9 @@
 <script>
 (function() {
   var yandexAPI = "https://catalogapi.site.yandex.net/v1.0";
-  var apiKey = "067e33cf-0ff4-4dbc-851b-0861a04c7af8";
+  // var apiKey = "067e33cf-0ff4-4dbc-851b-0861a04c7af8";
+  var searchAPI = "https://sort.diginetica.net/search";
+  var apiKey = "OHZ51IBWQJ";
 
   var categoryFilter = 0;
 
@@ -94,7 +96,7 @@
   var $topForm = $("#topSearchForm");
   var $searchText = $("#topSearchText");
 
-  var documentTemplate = $.templates("#documentTemplate");
+  var productTemplate = $.templates("#productTemplate");
   var categoryTemplate = $.templates("#categoryTemplate");
 
   var defaultOpts = {
@@ -142,78 +144,109 @@
     return params;
   };
 
-  var callSearch = function(text, page, category) {
+  var callSearch = function(text, page, filters) {
     page = page || 1;
     page--;
-    perPage = 10;
+    var perPage = 10;
 
     var request = {
-      apikey: apiKey,
-      searchid: "2316299",
-      text: text,
-      page: page,
-      perPage: perPage
+      apiKey: apiKey,
+      st: text,
+      offset: perPage * page,
+      size: perPage,
+      strategy: 'advanced_xname,zero_queries',
+      fullData: 'true',
+      withCorrection: 'true',
+      withSku: 'false',
+      withFacets: 'true',
+      treeFacets: 'true',
+      useCategoryPrediction: 'false',
+      regionId: 'global',
+      showUnavailable: 'true',
+      unavailableMultiplier: 0.2,
+      preview: 'false',
+      sort: 'DEFAULT'
     };
 
+    var category = 0;
     var queryString = window.location.search;
     queryString = updateQueryString(queryString, "text", text);
 
-    categoryFilter = $("input[name=categoryId]:checked").val() || category || 0;
+    if (filters) {
+      for (var f of filters.split(',')) {
+        var [name, value] = f.split(':');
+        if (name === 'categories') {
+          category = Number(value);
+        } else if (name === 'price') {
+          var [low, high] = value.split(';');
+          $("input[name=priceLow]").val(low);
+          $("input[name=priceHigh]").val(high);
+        }
+      }
+    }
+
+    var filter = [];
+    categoryFilter = $("input[name=categoryId]:checked").val() || category;
     if (categoryFilter > 0)
-      request["category_id"] = categoryFilter;
-    queryString = updateQueryString(queryString, "category_id", categoryFilter);
+      filter.push("categories:" + categoryFilter);
     var priceLowFilter = Number($("input[name=priceLow]").val());
-    if (priceLowFilter > 0)
-      request["price_low"] = priceLowFilter;
-    queryString = updateQueryString(queryString, "price_low", priceLowFilter);
     var priceHighFilter = Number($("input[name=priceHigh]").val());
-    if (priceHighFilter > 0)
-      request["price_high"] = priceHighFilter;
-    queryString = updateQueryString(queryString, "price_high", priceHighFilter);
+    if (priceLowFilter > 0 || priceHighFilter > 0)
+      filter.push("price:" + priceLowFilter + ";" + (priceHighFilter > 0 ? priceHighFilter : 1000000))
+
+    if (filter.length > 0) {
+      request["filter"] = filter;
+      queryString = updateQueryString(queryString, "filter", filter);
+    }
+
     var availableFilter = $("input[name=available]:checked").val();
-    if (availableFilter)
-      request["available"] = availableFilter;
-    queryString = updateQueryString(queryString, "available", availableFilter);
+    if (!availableFilter)
+      request["showUnavailable"] = true;
+    queryString = updateQueryString(queryString, "unavailable", availableFilter ? undefined : true);
+
     var sortFilter = $("input[name=sort]:checked").val();
     if (sortFilter)
-      request["how"] = sortFilter;
-    queryString = updateQueryString(queryString, "how", sortFilter);
+      request["sort"] = sortFilter;
+    queryString = updateQueryString(queryString, "sort", sortFilter);
     if (page > 0)
       queryString = queryString + '#' + (page + 1);
 
     history.pushState(null, null, queryString);
-    //$.getJSON(yandexAPI, request).done(function(data) {
-    $.ajax({dataType: "json", url: yandexAPI, data: request}).done(function(data) {
-      //$result.text(JSON.stringify(data, null, '\t'));
-
+    $.ajax({dataType: "json", url: searchAPI, traditional: true, data: request}).done(function(data) {
       $categories.empty();
-      $categories.append(categoryTemplate.render({id: 0, value: "Все разделы"}));
-      $.each(data.categoryList, function(i, category) {
-	$categories.append(categoryTemplate.render(category));
+      $categories.append(categoryTemplate.render({id: 0, name: "Все разделы"}));
+      var categories = [];
+      for (var facet of data.facets) {
+        if (facet.name === 'categories') {
+          categories = facet.values;
+        }
+      }
+      $.each(categories, function(i, category) {
+        if (category.value > 2)
+          $categories.append(categoryTemplate.render(category));
       });
       $("input[name=categoryId]").val([categoryFilter]);
 
       $pages.twbsPagination('destroy');
 
-      if (! data.documents) {
+      if (data.totalHits === 0) {
         $documents.text("По вашему запросу ничего не нашлось. Попробуйте сократить запрос или задать его по-другому. Убедитесь, что название бренда и модели написано правильно.");
         return;
       }
       $documents.empty();
-      $.each(data.documents, function(i, document) {
-        //$( "<p>" ).attr( "src", item.media.m ).appendTo( "#documents" );
-        //document["snippet"] = document["snippet"].replace(/^http:\/\//i, 'https://');
-	$documents.append(documentTemplate.render(document));
+      $.each(data.products, function(i, product) {
+        product.price = Number(product.price);
+        $documents.append(productTemplate.render(product));
       });
       $('.addProduct').each(addProduct);
 
       $pages.twbsPagination($.extend({}, defaultOpts, {
-        startPage: data.page + 1,
-        totalPages: Math.ceil(data.docsTotal / data.perPage),
-        onPageClick: function (evt, page) {
+        startPage: page + 1,
+        totalPages: Math.ceil(data.totalHits / perPage),
+        onPageClick: function (evt, pg) {
           // initiateStartPageClick: false + hideOnlyOnePage: true do not work together
-          if (page != data.page + 1)
-            callSearch(text, page);
+          if (pg != page + 1)
+            callSearch(text, pg);
         }
       }));
     });
@@ -232,16 +265,16 @@
   var text = getQueryString('text');
   if (text != null) {
     $searchText.val(text);
-    var category = getQueryString('category_id');
+    var filter = getQueryString('filter');
     $("input[name=priceLow]").val(getQueryString('price_low'));
     $("input[name=priceHigh]").val(getQueryString('price_high'));
-    $("input[name=available]").prop('checked', getQueryString('available') == 'true');
-    $("input[name=sort]:checked").prop('checked', getQueryString('how') == 'aprice');
+    $("input[name=available]").prop('checked', getQueryString('unavailable') !== 'true');
+    $("input[name=sort]").prop('checked', getQueryString('sort') === 'PRICE_ASC');
     page = 1;
     var hash = location.hash.substr(1);
     if (hash > 0)
         page = hash;
-    callSearch(text, page, category);
+    callSearch(text, page, filter);
   }
 })();
 </script>
