@@ -98,9 +98,3 @@ $(document).ready(function() {
 });
 </script>
 {% endblock javascript %}
-{% block vk_retargeting_event %}
-  const eventParams = {
-    "category_ids":"{{ category.id }}","products_recommended_ids" : "12725,12476,12703"
-  };
-  VK.Retargeting.ProductEvent(3195, "view_category", eventParams);
-{% endblock vk_retargeting_event %}

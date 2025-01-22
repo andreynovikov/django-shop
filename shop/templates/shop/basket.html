@@ -143,10 +143,6 @@
                         'quantity': 1
                     }]}}});
                 }
-                // VK
-                if (typeof VK !== "undefined") { // protect from ad blockers
-                    VK.Retargeting.ProductEvent(3195, "remove_from_cart", {'products': [{'id': $el.data("id")}]});
-                }
             };
             CustomHandlers.prototype.addAjaxFlag = function (e, $el) {
                 $el.on("eldarion-ajax:modify-data", function (e, data) {
@@ -252,11 +248,4 @@
         <img height="1" width="1" style="border-style:none;" alt="" src="//googleads.g.doubleclick.net/pagead/viewthroughconversion/826531590/?guid=ON&amp;script=0"/>
         </div>
     </noscript>
-{% endblock %}
-{% block vk_retargeting_event %}
-  VK.Retargeting.ProductEvent(3195, "init_checkout", {'products': [
-{% for item in basket.items.all %}
-    {'id': '{{ item.product.id }}'}{% if not forloop.last %},{% endif %}
-{% endfor %}
-  ]});
 {% endblock %}
