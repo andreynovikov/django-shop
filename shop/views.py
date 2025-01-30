@@ -27,8 +27,9 @@ from djconfig import config
 from sewingworld.tasks import PRIORITY_HIGHEST, PRIORITY_IDLE
 
 from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase
+from rarus.tasks import get_bonus_value
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail
-from shop.models import Product, Basket, BasketItem, Order, OrderItem, ShopUser, ShopUserManager, Contractor
+from shop.models import Product, Basket, BasketItem, Order, OrderItem, ShopUser, ShopUserManager, Contractor, Bonus
 from shop.forms import UserForm, WarrantyCardForm
 
 import logging
@@ -764,6 +765,28 @@ def update_user(request):
         return JsonResponse(data)
     else:
         return render(request, 'shop/_update_user.html', context)
+
+
+@login_required
+def bonuses(request):
+    user = request.user
+    if not hasattr(user, 'bonus'):
+        user.bonus = Bonus()
+    if not user.bonus.is_fresh and not user.bonus.is_updating:
+        user.bonus.status = Bonus.STATUS_PENDING
+        user.bonus.save()
+        get_bonus_value.delay(user.phone)
+
+    context = {
+        'user': user
+    }
+    if request.GET.get('ajax') or request.POST.get('ajax'):
+        data = {
+            'html': render_to_string('shop/_user_bonuses.html', context, request),
+        }
+        return JsonResponse(data)
+    else:
+        return render(request, 'shop/_user_bonuses.html', context)
 
 
 def print_warranty_card(request):

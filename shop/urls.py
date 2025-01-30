@@ -56,6 +56,8 @@ urlpatterns = [
     url(r'^user/orders/(?P<order_id>\d+)/$', views.order, name='order'),
     # ex: /shop/user/orders/8/bill/
     url(r'^user/orders/(?P<order_id>\d+)/(?P<template_name>[a-z]+)/$', views.order_document, name='order_document'),
+    # ex: /shop/user/bonuses/
+    url(r'^user/bonuses/$', views.bonuses, name='user_bonuses'),
     # ex: /shop/warranty_card/
     url(r'^warranty_card/$', views.print_warranty_card, name='warranty_card'),
 ]

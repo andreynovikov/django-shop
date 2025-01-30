@@ -25,14 +25,12 @@
 </div>
 </div>
 
-{% if user.bonuses %}
 <div class="panel panel-default">
-<div class="panel-body">
-<h2 style="margin-top: 0">Накопленные бонусы</h2>
-<div class="alert alert-info lead" style="display: inline-block; margin-bottom: 0">{{ user.bonuses }}</div>
+  <div class="panel-body">
+    <h2 style="margin-top: 0">Накопленные бонусы</h2>
+    {% include "shop/_user_bonuses.html" %}
+  </div>
 </div>
-</div>
-{% endif %}
 
     </div>
     <div class="col-md-12 col-md-pull-6">
@@ -77,6 +75,6 @@
                 $("body").css("cursor", "auto");
             });
             $(document).on("eldarion-ajax:begin", "#update-user", CustomHandlers.prototype.addAjaxFlag);
-	});
+        });
     </script>
 {% endblock %}
