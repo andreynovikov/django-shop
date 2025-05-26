@@ -1,12 +1,12 @@
 {
     "name": "dortak",
-    "version": "2023.10.10",
+    "version": "2025.05.25",
     "scripts": {
         "dev": "next dev -H 127.0.0.1 -p 3005",
         "start": "next start -H 127.0.0.1 -p 4005",
         "lint": "next lint",
         "build": "next build",
-        "docker-build": "sudo docker compose build && sudo docker tag dortak dortak:$npm_package_version",
+        "docker-build": "sudo docker compose build && sudo docker tag dortak dortak:$npm_package_version && sudo docker builder prune",
         "docker-deploy": "sudo docker compose up -d"
     },
     "dependencies": {

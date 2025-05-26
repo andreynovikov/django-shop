@@ -19,7 +19,6 @@ export default function Layout({ title, hideTitle, contentWrapper, children, ...
                 <meta name="robots" content="all,follow" />
                 <meta name="yandex-verification" content="9067b839ade4914a" />
                 <meta name="yandex-verification" content="ffa29a305777f97e" />
-                <meta name="google-site-verification" content="elbR3NMMIrSTGQYchNZOd-6h4UcRgIXRBVy18HfeGLY" />
                 <link rel="icon" href="/images/favicon.png" type="image/png" />
             </Head>
 
