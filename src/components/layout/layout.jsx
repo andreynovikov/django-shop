@@ -17,7 +17,6 @@ export default function Layout({ title, transparentHeader, contentWrapper, child
 	            <meta name="yandex-verification" content="9d6d54901642b029" />
 	            <meta name="yandex-verification" content="0c2c065329da0681" />
 	            <meta name="yandex-verification" content="6462f73cb6863828" />
-	            <meta name="google-site-verification" content="EDYJTRf3vq0dN_qGl4AKqLJ3QzazyENONErE2gIyHzo" />
             </Head>
 
             <Header transparent={transparentHeader} />

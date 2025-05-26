@@ -17,7 +17,7 @@ export default async function handler(req, res) {
                 await res.revalidate(`/products/${req.body.code}/`);
                 break;
             case 'page':
-                await res.revalidate(`/pages/${req.body.uri}/`);
+                await res.revalidate(`/pages${req.body.uri}`);
                 break;
             case 'news':
                 await res.revalidate('/news/');

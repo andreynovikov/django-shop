@@ -1,5 +1,5 @@
 .env*
-.next*/
+.next/
 .docker/
 node_modules/
 

@@ -110,8 +110,8 @@ export default function Index() {
             <ParallaxBanner className="vh-100 d-flex align-items-center">
                 <ParallaxBannerLayer image="/i/photo/acc.jpg" expanded={false} speed={-20} className="opacity-25" />
                 <div className="container py-5 overflow-hidden overlay-content mx-auto text-center">
-		            <h1 className="mb-3 display-4 fw-bold text-uppercase">Обзор машин серии Gold Master</h1>
-			        <div className="ratio ratio-16x9">
+                    <h1 className="mb-3 display-4 fw-bold text-uppercase">Обзор машин серии Gold Master</h1>
+                    <div className="ratio ratio-16x9">
                         <iframe src="https://www.youtube.com/embed/7csbLjVYw68" title="YouTube video player" frameborder="0"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen />
                     </div>
