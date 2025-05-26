@@ -1,4 +1,5 @@
 import { dehydrate, QueryClient, useQuery } from 'react-query';
+import InnerHTML from 'dangerously-set-html-content';
 
 import Layout from '@/components/layout';
 
@@ -8,7 +9,7 @@ export default function Page({ uri }) {
     const { data, isSuccess } = useQuery(pageKeys.detail(uri), () => loadPage(uri));
 
     return (
-        isSuccess ? <div dangerouslySetInnerHTML={{__html: data.content }} /> : null
+        isSuccess ? <InnerHTML html={data.content} /> : null
     )
 }
 

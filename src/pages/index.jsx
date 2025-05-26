@@ -11,7 +11,7 @@ export default function Index() {
                 </h3>
                 <div className="thumb">
                     <Link href="/catalog/electronic/">
-                        <img src="/media/images/Singer/Singer9960.jpg" alt="Электронные машины" />
+                        <img src="/media/products/Singer/Singer9960.jpg" alt="Электронные машины" />
                     </Link>
                 </div>
             </div>
@@ -21,7 +21,7 @@ export default function Index() {
                 </h3>
                 <div className="thumb">
                     <Link href="/catalog/basic/">
-                        <img src="/media/images/Singer/Singer_2290.jpg" alt="Механические машины" />
+                        <img src="/media/products/Singer/Singer_2290.jpg" alt="Механические машины" />
                     </Link>
                 </div>
             </div>
@@ -31,7 +31,7 @@ export default function Index() {
                 </h3>
                 <div className="thumb">
                     <Link href="/catalog/serger/">
-                        <img src="/media/images/Singer/Singer_14hd854.jpg" alt="Оверлоки" />
+                        <img src="/media/products/Singer/Singer_14hd854.jpg" alt="Оверлоки" />
                     </Link>
                 </div>
             </div>
@@ -41,7 +41,7 @@ export default function Index() {
                 </h3>
                 <div className="thumb">
                     <Link href="/catalog/irons/">
-                        <img src="/media/images/Singer/Singer4020.jpg" alt="Уход за домом" />
+                        <img src="/media/products/Singer/Singer4020.jpg" alt="Уход за домом" />
                     </Link>
                 </div>
             </div>

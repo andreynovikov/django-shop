@@ -1,6 +1,6 @@
 {
     "name": "singer",
-    "version": "2023.03.27",
+    "version": "2025.05.26",
     "scripts": {
         "dev": "next dev -H 127.0.0.1 -p 3002",
         "start": "next start -H 127.0.0.1 -p 4002",

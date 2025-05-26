@@ -23,7 +23,7 @@ export default function Footer() {
                     <input type="hidden" name="is_v5" value="1" />
                 </form>
                 <div className="mt-2 mt-lg-3">
-                    <a className="d-block d-sm-inline" href="http://www.singer.com">&copy;2004-2022 Singer Sourcing Limited LLC</a>
+                    <a className="d-block d-sm-inline" href="http://www.singer.com">&copy;2004-2025 Singer Sourcing Limited LLC</a>
                     <span className="d-none d-sm-inline">|</span>
                     <a className="d-block d-sm-inline" href="http://www.sewing-world.ru">Представитель в России - &laquo;Швейный Мир&raquo;</a>
                     <span className="d-none d-sm-inline">|</span>
