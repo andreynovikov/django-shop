@@ -29,7 +29,7 @@ export default function Footer() {
             <div className="row footer p-4">
                 <div className="col-md-6">
                     <p>
-                        Copyright (C) 2013-2023{' '}
+                        Copyright (C) 2013-2025{' '}
                         <a href="http://www.janome.co.jp/e1.htm">Janome</a>
                         {' '}&amp;{' '}
                         <a href="http://www.sewing-world.ru">Швейный Мир</a>
