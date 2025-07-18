@@ -1,6 +1,6 @@
 import { useState, useReducer, useMemo } from 'react';
 import { useRouter } from 'next/router';
-import { useQuery } from 'react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 
 import Offcanvas from 'react-bootstrap/Offcanvas';
 
@@ -41,13 +41,11 @@ export default function Search({text, page}) {
 
     useToolbar(toolbarItem);
 
-    const { data: products, isSuccess, isLoading, isError } = useQuery(
-        productKeys.list(page || 1, 15, currentFilters, null),
-        () => loadProducts(page || 1, 15, currentFilters, null),
-        {
-            keepPreviousData : true // required for filters not to loose choices and attributes
-        }
-    );
+    const { data: products, isSuccess, isLoading, isError } = useQuery({
+        queryKey: productKeys.list(page || 1, 15, currentFilters, null),
+        queryFn: () => loadProducts(page || 1, 15, currentFilters, null),
+        placeholderData: keepPreviousData // required for filters not to loose choices and attributes
+    });
 
     const selectedFilters = useMemo(() => {
         const filters = {};

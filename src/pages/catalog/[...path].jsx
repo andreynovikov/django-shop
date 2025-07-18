@@ -1,7 +1,7 @@
 import { useState, useReducer, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery, keepPreviousData } from '@tanstack/react-query';
 
 import Offcanvas from 'react-bootstrap/Offcanvas';
 
@@ -54,13 +54,11 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
     const router = useRouter();
     useCatalog();
 
-    const { data: category, isSuccess } = useQuery(
-        categoryKeys.detail(path),
-        () => loadCategory(path),
-        {
-            enabled: !!path // path is not set on first render
-        }
-    );
+    const { data: category, isSuccess } = useQuery({
+        queryKey: categoryKeys.detail(path),
+        queryFn: () => loadCategory(path),
+        enabled: !!path // path is not set on first render
+    });
 
     const toolbarItem = useMemo(() => {
         return category?.filters ? (
@@ -73,14 +71,12 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
 
     useToolbar(toolbarItem);
 
-    const { data: products, isSuccess: isProductsSuccess } = useQuery(
-        productKeys.list(currentPage, pageSize, currentFilters, currentOrder),
-        () => loadProducts(currentPage, pageSize, currentFilters, currentOrder),
-        {
-            enabled: isSuccess,
-            keepPreviousData : true // required for filters not to loose choices and attributes
-        }
-    );
+    const { data: products, isSuccess: isProductsSuccess } = useQuery({
+        queryKey: productKeys.list(currentPage, pageSize, currentFilters, currentOrder),
+        queryFn: () => loadProducts(currentPage, pageSize, currentFilters, currentOrder),
+        enabled: isSuccess,
+        placeholderData: keepPreviousData // required for filters not to loose choices and attributes
+    });
 
     const selectedFilters = useMemo(() => {
         if (!isSuccess || !!!category.filters)
@@ -271,12 +267,18 @@ export async function getStaticProps(context) {
         }
     }
     const queryClient = new QueryClient();
-    const category = await queryClient.fetchQuery(categoryKeys.detail(path), () => loadCategory(path));
+    const category = await queryClient.fetchQuery({
+        queryKey: categoryKeys.detail(path),
+        queryFn: () => loadCategory(path)
+    });
 
     const pageSize = 1000; // category.categories || category.filters ? 15 : 16;
     const productFilters = [{field: 'categories', value: category.id}, ...baseFilters];
     const productOrder = category.product_order || defaultOrder;
-    await queryClient.prefetchQuery(productKeys.list(currentPage, pageSize, productFilters, productOrder), () => loadProducts(currentPage, pageSize, productFilters, productOrder));
+    await queryClient.prefetchQuery({
+        queryKey: productKeys.list(currentPage, pageSize, productFilters, productOrder),
+        queryFn: () => loadProducts(currentPage, pageSize, productFilters, productOrder)
+    });
 
     return {
         props: {

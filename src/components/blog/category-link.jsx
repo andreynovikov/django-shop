@@ -1,14 +1,14 @@
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import Link from 'next/link';
 
 import { blogKeys, loadBlogCategory } from '@/lib/queries';
 
 export default function BlogCategoryLink({id}) {
-    const { data: category, isSuccess } = useQuery(
-        blogKeys.category(id),
-        () => loadBlogCategory(id)
-    );
+    const { data: category, isSuccess } = useQuery({
+        queryKey: blogKeys.category(id),
+        queryFn: () => loadBlogCategory(id)
+    });
 
     if (!isSuccess)
         return null;

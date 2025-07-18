@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Script from 'next/script';
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 
 import PageLayout from '@/components/layout/page';
 
@@ -9,7 +9,10 @@ import { storeKeys, loadStores, loadStore } from '@/lib/queries';
 export default function Store({ id }) {
     const [ymapsReady, setYMapsReady] = useState(false);
 
-    const { data: store, isSuccess } = useQuery(storeKeys.detail(id), () => loadStore(id));
+    const { data: store, isSuccess } = useQuery({
+        queryKey: storeKeys.detail(id),
+        queryFn: () => loadStore(id)
+    });
 
     useEffect(() => {
         if (!ymapsReady || !isSuccess)
@@ -159,7 +162,10 @@ Store.getLayout = function getLayout(page) {
 export async function getStaticProps(context) {
     const id = context.params?.id;
     const queryClient = new QueryClient();
-    const store = await queryClient.fetchQuery(storeKeys.detail(id), () => loadStore(id));
+    const store = await queryClient.fetchQuery({
+        queryKey: storeKeys.detail(id),
+        queryFn: () => loadStore(id)
+    });
 
     return {
         props: {

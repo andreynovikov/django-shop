@@ -1,4 +1,4 @@
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 
 import PageLayout from '@/components/layout/page';
 import BlogEntryPreview from '@/components/blog/entry-preview';
@@ -9,10 +9,10 @@ import { blogKeys, loadBlogEntries, loadBlogTags } from '@/lib/queries';
 export default function BlogEntries({tag, currentPage}) {
     const filters = [{ field: 'tags', value: tag }];
 
-    const { data: entries, isSuccess } = useQuery(
-        blogKeys.list(currentPage, filters),
-        () => loadBlogEntries(currentPage, filters)
-    );
+    const { data: entries, isSuccess } = useQuery({
+        queryKey: blogKeys.list(currentPage, filters),
+        queryFn: () => loadBlogEntries(currentPage, filters)
+    });
 
     if (isSuccess)
         return (
@@ -64,7 +64,10 @@ export async function getStaticProps(context) {
 
     const filters = [{ field: 'tags', value: tag }];
     const queryClient = new QueryClient();
-    await queryClient.prefetchQuery(blogKeys.list(currentPage, filters), () => loadBlogEntries(currentPage, filters));
+    await queryClient.prefetchQuery({
+        queryKey: blogKeys.list(currentPage, filters),
+        queryFn: () => loadBlogEntries(currentPage, filters)
+    });
 
     return {
         props: {

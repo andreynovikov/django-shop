@@ -1,4 +1,4 @@
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 
 import BaseLayout from '@/components/layout/base';
@@ -12,18 +12,18 @@ const itemsPerSection = 16;
 const sort = '-price';
 
 export default function Index() {
-    const { data: recomended, isSuccess: isRecomendedSuccess } = useQuery(
-        productKeys.list(null, itemsPerSection, recomendedFilters, sort),
-        () => loadProducts(null, itemsPerSection, recomendedFilters, sort)
-    );
-    const { data: gifts, isSuccess: isGiftsSuccess } = useQuery(
-        productKeys.list(null, itemsPerSection, giftsFilters, sort),
-        () => loadProducts(null, itemsPerSection, giftsFilters, sort)
-    );
-    const { data: firstpage, isSuccess: isFirstPageSuccess } = useQuery(
-        productKeys.list(null, itemsPerSection, firstPageFilters, sort),
-        () => loadProducts(null, itemsPerSection, firstPageFilters, sort)
-    );
+    const { data: recomended, isSuccess: isRecomendedSuccess } = useQuery({
+        queryKey: productKeys.list(null, itemsPerSection, recomendedFilters, sort),
+        queryFn: () => loadProducts(null, itemsPerSection, recomendedFilters, sort)
+    });
+    const { data: gifts, isSuccess: isGiftsSuccess } = useQuery({
+        queryKey: productKeys.list(null, itemsPerSection, giftsFilters, sort),
+        queryFn: () => loadProducts(null, itemsPerSection, giftsFilters, sort)
+    });
+    const { data: firstpage, isSuccess: isFirstPageSuccess } = useQuery({
+        queryKey: productKeys.list(null, itemsPerSection, firstPageFilters, sort),
+        queryFn: () => loadProducts(null, itemsPerSection, firstPageFilters, sort)
+    });
 
     useCatalog();
 
@@ -143,9 +143,18 @@ Index.getLayout = function getLayout(page) {
 export async function getStaticProps() {
     const queryClient = new QueryClient();
 
-    await queryClient.prefetchQuery(productKeys.list(null, itemsPerSection, recomendedFilters, sort), () => loadProducts(null, itemsPerSection, recomendedFilters, sort));
-    await queryClient.prefetchQuery(productKeys.list(null, itemsPerSection, giftsFilters, sort), () => loadProducts(null, itemsPerSection, giftsFilters, sort));
-    await queryClient.prefetchQuery(productKeys.list(null, itemsPerSection, firstPageFilters, sort), () => loadProducts(null, itemsPerSection, firstPageFilters, sort));
+    await queryClient.prefetchQuery({
+        queryKey: productKeys.list(null, itemsPerSection, recomendedFilters, sort),
+        queryFn: () => loadProducts(null, itemsPerSection, recomendedFilters, sort)
+    });
+    await queryClient.prefetchQuery({
+        queryKey: productKeys.list(null, itemsPerSection, giftsFilters, sort),
+        queryFn: () => loadProducts(null, itemsPerSection, giftsFilters, sort)
+    });
+    await queryClient.prefetchQuery({
+        queryKey: productKeys.list(null, itemsPerSection, firstPageFilters, sort),
+        queryFn: () => loadProducts(null, itemsPerSection, firstPageFilters, sort)
+    });
 
     return {
         props: {

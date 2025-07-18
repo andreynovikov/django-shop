@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { QueryClient } from 'react-query';
+import { QueryClient } from '@tanstack/react-query';
 
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Popover from 'react-bootstrap/Popover';
@@ -96,7 +96,10 @@ export async function getStaticProps(context) {
     const uri = context.params.entry;
 
     const queryClient = new QueryClient();
-    const entry = await queryClient.fetchQuery(blogKeys.detail(uri), () => loadBlogEntry(uri));
+    const entry = await queryClient.fetchQuery({
+        queryKey: blogKeys.detail(uri),
+        queryFn: () => loadBlogEntry(uri)
+    });
     if (uri.length === 1 && entry?.id)
         return {
             redirect: {

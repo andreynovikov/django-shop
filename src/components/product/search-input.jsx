@@ -1,22 +1,20 @@
 import { useState, useMemo, useDeferredValue } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 
 import { AsyncTypeahead } from 'react-bootstrap-typeahead';
 
 import { productKeys, loadProductSuggestions } from '@/lib/queries';
 
-export default function ProductSearchInput({ mobile }) {
+export default function ProductSearchInput({ mobile=false }) {
     const [searchText, setSearchText] = useState('');
     const deferredSearchText = useDeferredValue(searchText);
 
-    const { data: titles, isLoading } = useQuery(
-        productKeys.suggestions(deferredSearchText),
-        () => loadProductSuggestions(deferredSearchText),
-        {
-            enabled: searchText.length > 2,
-            keepPreviousData : true
-        }
-    );
+    const { data: titles, isLoading } = useQuery({
+        queryKey: productKeys.suggestions(deferredSearchText),
+        queryFn: () => loadProductSuggestions(deferredSearchText),
+        enabled: searchText.length > 2,
+        placeholderData: keepPreviousData
+    });
 
     const options = useMemo(() => (
         titles && titles.count > 0 && titles.results.filter((x, i, a) => a.indexOf(x) == i) || []
@@ -62,7 +60,3 @@ export default function ProductSearchInput({ mobile }) {
         </form>
     )
 }
-
-ProductSearchInput.defaultProps = {
-    mobile: false
-};

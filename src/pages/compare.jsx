@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useQuery, useQueries } from 'react-query';
+import { useQuery, useQueries } from '@tanstack/react-query';
 
 import PageLayout from '@/components/layout/page';
 import FieldHelp from '@/components/product/field-help';
@@ -48,7 +48,10 @@ export default function Compare({kindId, productIds}) {
     }, [comparisons, isComparisonSuccess, kindId]);
 
     // get list of comparable kinds
-    const { data: kinds, isSuccess: isKindsSuccess } = useQuery(kindKeys.list(comparisons), () => loadKinds(comparisons));
+    const { data: kinds, isSuccess: isKindsSuccess } = useQuery({
+        queryKey: kindKeys.list(comparisons),
+        queryFn: () => loadKinds(comparisons)
+    });
 
     // if nothing is passed, redirect to first comparable kind
     useEffect(() => {
@@ -78,7 +81,9 @@ export default function Compare({kindId, productIds}) {
             setCurrentKind(products[0].data.kind[0]);
     }, [isProductsSuccess]);
 
-    const { data: kind, isSuccess: isKindSuccess } = useQuery(kindKeys.detail(currentKind), () => loadKind(currentKind), {
+    const { data: kind, isSuccess: isKindSuccess } = useQuery({
+        queryKey: kindKeys.detail(currentKind),
+        queryFn: () => loadKind(currentKind),
         enabled: currentKind !== null
     });
 

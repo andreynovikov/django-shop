@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import Collapse from 'react-bootstrap/Collapse';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
@@ -29,13 +29,11 @@ export default function UserSidebar() {
 
     const { favorites } = useFavorites();
 
-    const { data: orders } = useQuery(
-        orderKeys.list(1, ''),
-        () => loadOrders(1, ''),
-        {
-            enabled: status === 'authenticated'
-        }
-    );
+    const { data: orders } = useQuery({
+        queryKey: orderKeys.list(1, ''),
+        queryFn: () => loadOrders(1, ''),
+        enabled: status === 'authenticated'
+    });
 
     if (status === 'loading' || !!!user) {
         return (

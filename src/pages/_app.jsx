@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { QueryClient, QueryClientProvider, Hydrate } from 'react-query';
-import { ReactQueryDevtools } from 'react-query/devtools';
+import { QueryClient, QueryClientProvider, HydrationBoundary } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 import { SiteProvider } from '@/lib/site';
 import { SessionProvider } from '@/lib/session';
@@ -60,7 +60,7 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
         }
     }));
 
-    queryClient.setQueryDefaults(categoryKeys.all, { cacheTime: 1000 * 60 * 10, staleTime: Infinity }); // cache for ten minutes, mark fresh forever
+    queryClient.setQueryDefaults(categoryKeys.all, { staleTime: Infinity }); // mark fresh forever
     queryClient.setQueryDefaults(productKeys.all, { staleTime: 1000 * 60 * 10 }); // mark fresh for ten minutes
     queryClient.setQueryDefaults(pageKeys.all, { staleTime: Infinity }); // mark fresh forever
 
@@ -75,7 +75,7 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
 
     return (
         <QueryClientProvider client={queryClient}>
-            <Hydrate state={pageProps.dehydratedState}>
+            <HydrationBoundary state={pageProps.dehydratedState}>
                 <SiteProvider site={site}>
                     <SessionProvider session={session}>
                         <ToolbarProvider>
@@ -84,7 +84,7 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
                     </SessionProvider>
                 </SiteProvider>
                 <ReactQueryDevtools initialIsOpen={false} />
-            </Hydrate>
+            </HydrationBoundary>
         </QueryClientProvider>
     );
 }

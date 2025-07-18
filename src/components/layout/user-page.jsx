@@ -19,14 +19,17 @@ const userPageContentWrapper = ({title, dark, overlapped, children}) => {
     });
 };
 
-export default function UserPageLayout(props) {
+export default function UserPageLayout({
+    dark=true,
+    overlapped=true,
+    contentWrapper=userPageContentWrapper,
+    ...props
+}) {
     return (
-        <PageLayout {...props} />
+        <PageLayout
+            dark={dark}
+            overlapped={overlapped}
+            contentWrapper={contentWrapper}
+            {...props} />
     )
-};
-
-UserPageLayout.defaultProps = {
-    dark: true,
-    overlapped: true,
-    contentWrapper: userPageContentWrapper
 };

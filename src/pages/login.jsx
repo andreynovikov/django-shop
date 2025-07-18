@@ -1,7 +1,7 @@
 import BaseLayout from '@/components/layout/base';
 import LoginForm from '@/components/login-form';
 
-export default function Login({ctx, phone}) {
+export default function Login({ctx='login', phone=''}) {
     return (
         <div className="container py-3 py-lg-4 my-4">
             <div className="row justify-content-md-center">
@@ -12,11 +12,6 @@ export default function Login({ctx, phone}) {
             </div>
         </div>
     )
-}
-
-Login.defaultProps = {
-    ctx: 'login',
-    phone: ''
 }
 
 Login.getLayout = function getLayout(page) {

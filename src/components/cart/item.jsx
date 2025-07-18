@@ -8,8 +8,8 @@ import debounce from '@/lib/debounce';
 export default function CartItem({item, first, last, removeItem, setQuantity}) {
     const handleKeyDown = (e) => {
         if (e.key === 'Enter') {
-            event.preventDefault();
-            event.target.blur();
+            e.preventDefault();
+            e.target.blur();
         }
     };
 
@@ -23,8 +23,7 @@ export default function CartItem({item, first, last, removeItem, setQuantity}) {
             v = 10000;
         if (v != e.target.value)
             e.target.value = v;
-        if (v != item.quantity)
-            setQuantity(item.product.id, v);
+        setQuantity(item.product.id, v);
     };
 
     const debouncedValueChange = useCallback(debounce(handleValueChange), []);

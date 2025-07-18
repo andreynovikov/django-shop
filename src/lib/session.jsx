@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import Router, { useRouter } from 'next/router';
-import { useQuery, useQueryClient } from 'react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiClient, userKeys, userReferences, userDependencies, currentUser } from '@/lib/queries';
 
@@ -91,7 +91,7 @@ export function SessionProvider({children}) {
 
     useEffect(() => {
         __SESSION.invalidate = () => {
-            queryClient.invalidateQueries(userKeys.current());
+            queryClient.invalidateQueries({queryKey: userKeys.current()});
         }
 
         router.events.on('routeChangeStart', handleRouteChangeStart);
@@ -105,25 +105,19 @@ export function SessionProvider({children}) {
         /* eslint-disable react-hooks/exhaustive-deps */
     }, []);
 
-    const { data: user, isSuccess, isLoading } = useQuery(
-        userKeys.current(),
-        () => currentUser(),
-        {
-            cacheTime: 1000 * 60 * 60, // cache for one hour
-            staleTime: Infinity,
-            refetchOnWindowFocus: 'always',
-            onError: (error) => {
-                console.log(error);
-            }
-        }
-    );
+    const { data: user, isSuccess, isLoading } = useQuery({
+        queryKey: userKeys.current(),
+        queryFn: () => currentUser(),
+        staleTime: Infinity,
+        refetchOnWindowFocus: 'always',
+    });
 
     useEffect(() => {
         console.log("SessionProvider", user?.id, "isLoading", isLoading);
         if (!isLoading) {
             if (!(user?.id > 0))
-                userReferences.map((keys) => queryClient.resetQueries(keys));
-            userDependencies.map((keys) => queryClient.invalidateQueries(keys));
+                userReferences.map((key) => queryClient.resetQueries({queryKey: key}));
+            userDependencies.map((key) => queryClient.invalidateQueries({queryKey: key}));
         }
         /* eslint-disable react-hooks/exhaustive-deps */
     }, [user, isLoading]);

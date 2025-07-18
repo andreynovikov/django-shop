@@ -1,4 +1,4 @@
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import ReviewRating from '@/components/review/rating';
 
@@ -6,10 +6,10 @@ import rupluralize from '@/lib/rupluralize';
 import { reviewKeys, getProductRating } from '@/lib/queries';
 
 export default function ProductRating({product, anchor}) {
-    const { data: average, isSuccess } = useQuery(
-        reviewKeys.rating(product),
-        () => getProductRating(product)
-    );
+    const { data: average, isSuccess } = useQuery({
+        queryKey: reviewKeys.rating(product),
+        queryFn: () => getProductRating(product)
+    });
 
     if (!isSuccess || average.count === 0)
         return null;

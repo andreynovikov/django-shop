@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import Button from 'react-bootstrap/Button';
 import Collapse from 'react-bootstrap/Collapse';
@@ -29,7 +29,9 @@ function Collapsable({title, children}) {
 }
 
 export default function ProductStock({ id }) {
-    const { data: stores, isSuccess, isLoading } = useQuery(productKeys.stock(id), () => loadProductStock(id), {
+    const { data: stores, isSuccess, isLoading } = useQuery({
+        queryKey: productKeys.stock(id),
+        queryFn: () => loadProductStock(id),
         enabled: id > 0
     });
 

@@ -1,5 +1,5 @@
 import { Fragment, useState, useEffect, useMemo } from 'react';
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 
 import Link from 'next/link';
 import Script from 'next/script';
@@ -11,7 +11,10 @@ import { serviceCenterKeys, loadServiceCenters } from '@/lib/queries';
 export default function Service() {
     const [ymapsReady, setYMapsReady] = useState(false);
 
-    const { data: services, isSuccess } = useQuery(serviceCenterKeys.lists(), () => loadServiceCenters());
+    const { data: services, isSuccess } = useQuery({
+        queryKey: serviceCenterKeys.lists(),
+        queryFn: () => loadServiceCenters()
+    });
 
     useEffect(() => {
         if (!ymapsReady || !isSuccess)
@@ -186,7 +189,10 @@ Service.getLayout = function getLayout(page) {
 
 export async function getStaticProps() {
     const queryClient = new QueryClient();
-    await queryClient.prefetchQuery(serviceCenterKeys.lists(), () => loadServiceCenters());
+    await queryClient.prefetchQuery({
+        queryKey: serviceCenterKeys.lists(),
+        queryFn: () => loadServiceCenters()
+    });
 
     return {
         props: {

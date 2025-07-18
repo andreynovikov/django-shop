@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Script from 'next/script';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import { formatPhone } from '@/lib/format';
 import { signIn } from '@/lib/session';
@@ -11,7 +11,7 @@ import { useCountdown } from '@/lib/countdown';
 
 const CODE_RESEND_DELAY = 240;
 
-export default function LoginForm({embedded, ctx, phone, hideModal}) {
+export default function LoginForm({embedded='', ctx, phone, hideModal}) {
     const [loginPhone, setLoginPhone] = useState('');
     const [reset, setReset] = useState(false);
     const [error, setError] = useState({});
@@ -28,32 +28,11 @@ export default function LoginForm({embedded, ctx, phone, hideModal}) {
             setLoginPhone(phone);
     }, [phone]);
 
-    const { data: shopUser, isSuccess, isFetching, refetch } = useQuery(
-        userKeys.check(loginPhone),
-        () => checkUser(loginPhone, reset),
-        {
-            enabled: !!loginPhone,
-            onError: (error) => {
-                if (error.response?.status === 404) {
-                    if (ctx === 'order') {
-                        // register user in background when making order
-                        signIn({ phone: loginPhone, ctx })
-                            .then(result => {
-                                if (result.ok) {
-                                    if (embedded && hideModal)
-                                        hideModal();
-                                } else {
-                                    setError({ phone: result.error });
-                                }
-                            });
-                    } else {
-                        setError({ phone: "Пользователь с таким телефоном не зарегистрирован" });
-                    }
-                }
-                console.log(error);
-            }
-        }
-    );
+    const { data: shopUser, isSuccess, isFetching, error: queryError, refetch } = useQuery({
+        queryKey: userKeys.check(loginPhone),
+        queryFn: () => checkUser(loginPhone, reset),
+        enabled: !!loginPhone
+    });
 
     useEffect(() => {
         if (isSuccess && !isFetching) {
@@ -70,8 +49,26 @@ export default function LoginForm({embedded, ctx, phone, hideModal}) {
         if (reset) {
             refetch();
         }
-        /* eslint-disable react-hooks/exhaustive-deps */
     }, [reset]);
+
+    useEffect(() => {
+        if (queryError?.response?.status === 404) {
+            if (ctx === 'order') {
+                // register user in background when making order
+                signIn({ phone: loginPhone, ctx })
+                    .then(result => {
+                        if (result.ok) {
+                            if (embedded && hideModal)
+                                hideModal();
+                        } else {
+                            setError({ phone: result.error });
+                        }
+                    });
+            } else {
+                setError({ phone: "Пользователь с таким телефоном не зарегистрирован" });
+            }
+        }
+    }, [queryError]);
 
     const phoneRef = useRef(null);
     const passwordRef = useRef(null);
@@ -312,7 +309,3 @@ export default function LoginForm({embedded, ctx, phone, hideModal}) {
         </form>
     )
 }
-
-LoginForm.defaultProps = {
-    embedded: ''
-};

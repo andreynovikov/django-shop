@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
@@ -22,13 +22,11 @@ export default function Orders({filter, page, track}) {
     const router = useRouter();
     const { status } = useSession();
 
-    const { data: lastOrder } = useQuery(
-        orderKeys.last(),
-        () => getLastOrder(),
-        {
-            enabled: status === 'authenticated' && isTracking
-        }
-    );
+    const { data: lastOrder } = useQuery({
+        queryKey: orderKeys.last(),
+        queryFn: () => getLastOrder(),
+        enabled: status === 'authenticated' && isTracking
+    });
 
     useEffect(() => {
         setIsTracking(track !== undefined);
@@ -47,13 +45,11 @@ export default function Orders({filter, page, track}) {
         }
     }, [lastOrder, router, isTracking]);
 
-    const { data: orders, isSuccess, isLoading } = useQuery(
-        orderKeys.list(page || 1, currentFilter),
-        () => loadOrders(page || 1, currentFilter),
-        {
-            enabled: status === 'authenticated'
-        }
-    );
+    const { data: orders, isSuccess, isLoading } = useQuery({
+        queryKey: orderKeys.list(page || 1, currentFilter),
+        queryFn: () => loadOrders(page || 1, currentFilter),
+        enabled: status === 'authenticated'
+    });
 
     const onFilterChanged = (value) => {
         if (+page > 1) {

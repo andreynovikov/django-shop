@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import ReviewRating from '@/components/review/rating';
 import ReviewItem from '@/components/review/item';
@@ -18,10 +18,10 @@ export default function ProductReviews({product}) {
 
     const { status } = useSession();
 
-    const { data: reviews, isSuccess } = useQuery(
-        reviewKeys.list(product.id),
-        () => loadProductReviews(product.id)
-    );
+    const { data: reviews, isSuccess } = useQuery({
+        queryKey: reviewKeys.list(product.id),
+        queryFn: () => loadProductReviews(product.id)
+    });
 
     useEffect(() => {
         if (isSuccess && reviews.count > 0) {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import PageLayout from '@/components/layout/page';
 import NoImage from '@/components/product/no-image';
@@ -28,17 +28,19 @@ export default function Confirmation() {
 
     const queryClient = useQueryClient();
 
-    const createOrderMutation = useMutation(() => createOrder(), {
+    const createOrderMutation = useMutation({
+        mutationFn: () => createOrder(),
         onSuccess: (data) => {
-            queryClient.invalidateQueries(basketKeys.all);
-            queryClient.invalidateQueries(orderKeys.lists());
+            queryClient.invalidateQueries({queryKey: basketKeys.all});
+            queryClient.invalidateQueries({queryKey: orderKeys.lists()});
             queryClient.setQueryData(orderKeys.detail(data.id), data);
         }
     });
 
-    const updateOrderMutation = useMutation((formData) => updateOrder(order.id, formData), {
+    const updateOrderMutation = useMutation({
+        mutationFn: (formData) => updateOrder(order.id, formData),
         onSuccess: () => {
-            queryClient.invalidateQueries(orderKeys.details(order.id));
+            queryClient.invalidateQueries({queryKey: orderKeys.details(order.id)});
         }
     });
 
@@ -72,14 +74,12 @@ export default function Confirmation() {
         /* eslint-disable react-hooks/exhaustive-deps */
     }, [isLoading, isEmpty, status, orderId]);
 
-    const { data: order, isSuccess, isFetching, isError } = useQuery(
-        orderKeys.detail(orderId),
-        () => loadOrder(orderId),
-        {
-            enabled: orderId > 0 && status === 'authenticated',
-            refetchInterval: orderStatus === STATUS_NEW ? 60 * 1000 : false // check for updates every minute
-        }
-    );
+    const { data: order, isSuccess, isFetching, isError } = useQuery({
+        queryKey: orderKeys.detail(orderId),
+        queryFn: () => loadOrder(orderId),
+        enabled: orderId > 0 && status === 'authenticated',
+        refetchInterval: orderStatus === STATUS_NEW ? 60 * 1000 : false // check for updates every minute
+    });
 
     useEffect(() => {
         if (order)

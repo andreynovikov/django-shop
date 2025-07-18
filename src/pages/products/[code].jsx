@@ -1,7 +1,7 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
 
 import Accordion from 'react-bootstrap/Accordion';
@@ -127,9 +127,14 @@ export default function Product({code}) {
     const { favorites, favoritize, unfavoritize } = useFavorites();
     const { comparisons, compare } = useComparison();
 
-    const { data: fields } = useQuery(productKeys.fields(), () => getProductFields());
+    const { data: fields } = useQuery({
+        queryKey: productKeys.fields(),
+        queryFn: () => getProductFields()
+    });
 
-    const { data: product, isSuccess, isLoading } = useQuery(productKeys.detail(code), () => loadProductByCode(code), {
+    const { data: product, isSuccess, isLoading } = useQuery({
+        queryKey: productKeys.detail(code),
+        queryFn: () => loadProductByCode(code),
         enabled: code !== undefined
     });
 
@@ -672,8 +677,14 @@ export async function getStaticProps(context) {
     const code = context.params.code;
 
     const queryClient = new QueryClient();
-    const fieldsQuery = queryClient.fetchQuery(productKeys.fields(), () => getProductFields());
-    const dataQuery = queryClient.fetchQuery(productKeys.detail(code), () => loadProductByCode(code));
+    const fieldsQuery = queryClient.fetchQuery({
+        queryKey: productKeys.fields(),
+        queryFn: () => getProductFields()
+    });
+    const dataQuery = queryClient.fetchQuery({
+        queryKey: productKeys.detail(code),
+        queryFn: () => loadProductByCode(code)
+    });
     try {
         // run queries in parallel
         await fieldsQuery;

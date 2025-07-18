@@ -1,37 +1,37 @@
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { basketKeys, loadBasket, createBasket, addBasketItem, removeBasketItem, updateBasketItem } from '@/lib/queries';
 
 export default function useBasket() {
     const queryClient = useQueryClient();
 
-    const { data: baskets, isSuccess, isLoading, isError } = useQuery(
-        basketKeys.details(),
-        () => loadBasket(),
-        {
-            onError: (error) => {
-                console.log(error);
-            }
-        }
-    );
+    const { data: baskets, isSuccess, isLoading, isError } = useQuery({
+        queryKey: basketKeys.details(),
+        queryFn: () => loadBasket()
+    });
 
     const isEmpty = baskets === undefined || baskets.length === 0 || baskets[0].items.length === 0;
     const basket = isEmpty ? {} : baskets[0];
 
-    const createBasketMutation = useMutation(() => createBasket());
-    const addBasketItemMutation = useMutation(({basketId, productId, quantity}) => addBasketItem(basketId, productId, quantity), {
+    const createBasketMutation = useMutation({
+        mutationFn: () => createBasket()
+    });
+    const addBasketItemMutation = useMutation({
+        mutationFn: ({basketId, productId, quantity}) => addBasketItem(basketId, productId, quantity),
         onSuccess: () => {
-            queryClient.invalidateQueries(basketKeys.all);
+            queryClient.invalidateQueries({queryKey: basketKeys.all});
         }
     });
-    const removeBasketItemMutation = useMutation(({basketId, productId}) => removeBasketItem(basketId, productId), {
+    const removeBasketItemMutation = useMutation({
+        mutationFn: ({basketId, productId}) => removeBasketItem(basketId, productId),
         onSuccess: () => {
-            queryClient.invalidateQueries(basketKeys.all);
+            queryClient.invalidateQueries({queryKey: basketKeys.all});
         }
     });
-    const updateBasketItemMutation = useMutation(({basketId, productId, quantity}) => updateBasketItem(basketId, productId, quantity), {
+    const updateBasketItemMutation = useMutation({
+        mutationFn: ({basketId, productId, quantity}) => updateBasketItem(basketId, productId, quantity),
         onSuccess: () => {
-            queryClient.invalidateQueries(basketKeys.all);
+            queryClient.invalidateQueries({queryKey: basketKeys.all});
         }
     });
 

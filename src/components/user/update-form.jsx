@@ -1,6 +1,6 @@
 import { useState, useEffect, useReducer, forwardRef, useImperativeHandle, useRef } from 'react';
 import Script from 'next/script';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useSession } from '@/lib/session';
 import { userKeys, getUserForm, updateUser } from '@/lib/queries';
@@ -17,15 +17,10 @@ export default forwardRef(function UpdateForm({embedded, onReady, onUpdated}, re
         return {...state, ...update}
     }, {});
 
-    const { data: form, isSuccess } = useQuery(
-        userKeys.form(),
-        () => getUserForm(),
-        {
-            onError: (error) => {
-                console.log(error);
-            }
-        }
-    );
+    const { data: form, isSuccess } = useQuery({
+        queryKey: userKeys.form(),
+        queryFn: () => getUserForm(),
+    });
 
     useEffect(() => {
         if (status === 'authenticated' && isSuccess) {
@@ -55,9 +50,10 @@ export default forwardRef(function UpdateForm({embedded, onReady, onUpdated}, re
         }
     }, [updated]);
 
-    const updateUserMutation = useMutation(() => updateUser(user.id, formData), {
+    const updateUserMutation = useMutation({
+        mutationFn: () => updateUser(user.id, formData),
         onSuccess: () => {
-            queryClient.invalidateQueries(userKeys.details());
+            queryClient.invalidateQueries({queryKey: userKeys.details()});
         }
     });
 

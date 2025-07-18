@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import UserUpdateModal from '@/components/user/update-modal';
 
@@ -13,26 +13,16 @@ export default function ReviewForm({product, review: reviewId}) {
     const modalRef = useRef();
     const { user } = useSession();
 
-    const { data: form, isSuccess: isFormSuccess } = useQuery(
-        reviewKeys.form(product.id),
-        () => getReviewForm(product.id),
-        {
-            onError: (error) => {
-                console.log(error);
-            }
-        }
-    );
+    const { data: form, isSuccess: isFormSuccess } = useQuery({
+        queryKey: reviewKeys.form(product.id),
+        queryFn: () => getReviewForm(product.id),
+    });
 
-    const { data: review, isSuccess: isReviewSuccess } = useQuery(
-        reviewKeys.detail(product.id, reviewId),
-        () => loadProductReview(product.id, reviewId),
-        {
-            enabled: reviewId !== undefined,
-            onError: (error) => {
-                console.log(error);
-            }
-        }
-    );
+    const { data: review, isSuccess: isReviewSuccess } = useQuery({
+        queryKey: reviewKeys.detail(product.id, reviewId),
+        queryFn: () => loadProductReview(product.id, reviewId),
+        enabled: reviewId !== undefined,
+    });
 
     useEffect(() => {
         if (updated) {
@@ -43,16 +33,18 @@ export default function ReviewForm({product, review: reviewId}) {
         }
     }, [updated]);
 
-    const createReviewMutation = useMutation((data) => createProductReview(product.id, data), {
+    const createReviewMutation = useMutation({
+        mutationFn: (data) => createProductReview(product.id, data),
         onSuccess: () => {
-            queryClient.invalidateQueries(reviewKeys.list(product.id));
+            queryClient.invalidateQueries({queryKey: reviewKeys.list(product.id)});
         }
     });
 
-    const updateReviewMutation = useMutation((data) => updateProductReview(product.id, reviewId, data), {
+    const updateReviewMutation = useMutation({
+        mutationFn: (data) => updateProductReview(product.id, reviewId, data),
         onSuccess: () => {
-            queryClient.invalidateQueries(reviewKeys.detail(product.id, reviewId));
-            queryClient.invalidateQueries(reviewKeys.list(product.id));
+            queryClient.invalidateQueries({queryKey: reviewKeys.detail(product.id, reviewId)});
+            queryClient.invalidateQueries({queryKey: reviewKeys.list(product.id)});
         }
     });
 

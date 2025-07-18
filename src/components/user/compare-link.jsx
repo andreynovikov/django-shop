@@ -1,6 +1,6 @@
 import useComparison from '@/lib/comparison';
 
-export default function CompareLink({ mobile }) {
+export default function CompareLink({ mobile=false }) {
     const { comparisons } = useComparison();
 
     return (
@@ -13,7 +13,3 @@ export default function CompareLink({ mobile }) {
         </>
     )
 }
-
-CompareLink.defaultProps = {
-    mobile: false
-};

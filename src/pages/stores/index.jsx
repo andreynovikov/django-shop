@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 
 import PageLayout from '@/components/layout/page';
 
@@ -13,7 +13,10 @@ export default function Stores() {
     const [ymap, setYMap] = useState(null);
     const [currentCity, setCurrentCity] = useState(null);
 
-    const { data: stores, isSuccess } = useQuery(storeKeys.lists(), () => loadStores());
+    const { data: stores, isSuccess } = useQuery({
+        queryKey: storeKeys.lists(),
+        queryFn: () => loadStores()
+    });
 
     useEffect(() => {
         if (!ymapsReady || !isSuccess)
@@ -272,7 +275,10 @@ Stores.getLayout = function getLayout(page) {
 
 export async function getStaticProps() {
     const queryClient = new QueryClient();
-    await queryClient.prefetchQuery(storeKeys.lists(), () => loadStores());
+    await queryClient.prefetchQuery({
+        queryKey: storeKeys.lists(),
+        queryFn: () => loadStores()
+    });
 
     return {
         props: {

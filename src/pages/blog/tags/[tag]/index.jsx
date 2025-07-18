@@ -1,4 +1,4 @@
-import { dehydrate, QueryClient } from 'react-query';
+import { dehydrate, QueryClient } from '@tanstack/react-query';
 
 import { blogKeys, loadBlogEntries, loadBlogTags } from '@/lib/queries';
 
@@ -10,7 +10,10 @@ export async function getStaticProps(context) {
     const tag = context.params.tag;
     const filters = [{ field: 'tags', value: tag }];
     const queryClient = new QueryClient();
-    await queryClient.prefetchQuery(blogKeys.list('1', filters), () => loadBlogEntries('1', filters));
+    await queryClient.prefetchQuery({
+        queryKey: blogKeys.list('1', filters),
+        queryFn: () => loadBlogEntries('1', filters)
+    });
 
     return {
         props: {

@@ -1,4 +1,4 @@
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 
 import PageLayout from '@/components/layout/page';
 import BlogEntryPreview from '@/components/blog/entry-preview';
@@ -10,10 +10,10 @@ import range from 'lodash/range';
 
 export default function BlogEntries({currentPage}) {
 
-    const { data: entries, isSuccess } = useQuery(
-        blogKeys.list(currentPage, null),
-        () => loadBlogEntries(currentPage, null)
-    );
+    const { data: entries, isSuccess } = useQuery({
+        queryKey: blogKeys.list(currentPage, null),
+        queryFn: () => loadBlogEntries(currentPage, null)
+    });
 
     if (isSuccess)
         return (
@@ -64,7 +64,10 @@ export async function getStaticProps(context) {
     }
 
     const queryClient = new QueryClient();
-    await queryClient.prefetchQuery(blogKeys.list(currentPage, null), () => loadBlogEntries(currentPage, null));
+    await queryClient.prefetchQuery({
+        queryKey: blogKeys.list(currentPage, null),
+        queryFn: () => loadBlogEntries(currentPage, null)
+    });
 
     return {
         props: {

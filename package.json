@@ -2,8 +2,8 @@
     "name": "sworld",
     "version": "2023.11.24",
     "scripts": {
-        "dev": "next dev -H 127.0.0.1 -p 3004",
-        "start": "next start -H 127.0.0.1 -p 4004",
+        "dev": "next dev -H 127.0.0.1 -p 3000 --experimental-https",
+        "start": "next start -H 127.0.0.1 -p 4000",
         "lint": "next lint",
         "build": "next build",
         "docker-build": "sudo docker compose build && sudo docker tag sworld sworld:$npm_package_version",
@@ -30,8 +30,13 @@
     "devDependencies": {
         "@eslint/eslintrc": "^3.3.1",
         "@tanstack/eslint-plugin-query": "^5.81.2",
-        "eslint": "^9.30.1",
+        "@tanstack/react-query-devtools": "^5.83.0",
+        "@types/node": "^24.0.14",
+        "@types/react": "^19.1.8",
+        "@types/react-dom": "^19.1.6",
+        "eslint": "^9.31.0",
         "eslint-config-next": "^15.3.5",
-        "sass": "^1.89.2"
+        "sass": "^1.89.2",
+        "typescript": "^5.8.3"
     }
 }

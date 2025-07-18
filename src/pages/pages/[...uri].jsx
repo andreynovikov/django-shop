@@ -1,11 +1,14 @@
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 
 import PageLayout from '@/components/layout/page';
 
 import { pageKeys, loadPages, loadPage } from '@/lib/queries';
 
 export default function Page({ uri }) {
-    const { data, isSuccess } = useQuery(pageKeys.detail(uri), () => loadPage(uri));
+    const { data, isSuccess } = useQuery({
+        queryKey: pageKeys.detail(uri),
+        queryFn: () => loadPage(uri)
+    });
 
     return (
         <div className="container py-5 mb-2 mb-md-4">
@@ -25,7 +28,10 @@ Page.getLayout = function getLayout(page) {
 export async function getStaticProps(context) {
     const uri = context.params?.uri;
     const queryClient = new QueryClient();
-    const data = await queryClient.fetchQuery(pageKeys.detail(uri), () => loadPage(uri));
+    const data = await queryClient.fetchQuery({
+        queryKey: pageKeys.detail(uri),
+        queryFn: () => loadPage(uri)
+    });
 
     return {
         props: {

@@ -18,15 +18,19 @@ export const pageContentWrapper = ({title, titleAddon, dark, overlapped, childre
     )
 };
 
-export default function PageLayout(props) {
+export default function PageLayout({
+    titleAddon=null,
+    dark=false,
+    overlapped=false,
+    contentWrapper=pageContentWrapper,
+    ...props
+}) {
     return (
-        <BaseLayout {...props} />
+        <BaseLayout
+            titleAddon={titleAddon}
+            dark={dark}
+            overlapped={overlapped}
+            contentWrapper={contentWrapper}
+            {...props} />
     )
-};
-
-PageLayout.defaultProps = {
-    titleAddon: null,
-    dark: false,
-    overlapped: false,
-    contentWrapper: pageContentWrapper
 };

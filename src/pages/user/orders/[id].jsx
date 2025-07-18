@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 import Tooltip from 'react-bootstrap/Tooltip';
@@ -41,14 +41,12 @@ export default function Order({id}) {
     const { site } = useSite();
     const { status } = useSession();
 
-    const { data: order, isSuccess } = useQuery(
-        orderKeys.detail(id),
-        () => loadOrder(id),
-        {
-            enabled: status === 'authenticated',
-            refetchInterval: [STATUS_NEW, STATUS_ACCEPTED].includes(orderStatus) ? 60 * 1000 : false // check for updates every minute
-        }
-    );
+    const { data: order, isSuccess } = useQuery({
+        queryKey: orderKeys.detail(id),
+        queryFn: () => loadOrder(id),
+        enabled: status === 'authenticated',
+        refetchInterval: [STATUS_NEW, STATUS_ACCEPTED].includes(orderStatus) ? 60 * 1000 : false // check for updates every minute
+    });
 
     useEffect(() => {
         if (order)

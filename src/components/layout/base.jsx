@@ -7,7 +7,15 @@ import BottomBar from './bottombar';
 import HandheldBottomBar from './handheld-bottombar';
 import ScrollTopButton from './scroll-top-button';
 
-export default function BaseLayout({ title, htmlTitle, hideSignIn, hideCartNotice, contentWrapper, children, ...props }) {
+export default function BaseLayout({
+    title,
+    htmlTitle,
+    hideSignIn = false,
+    hideCartNotice = false,
+    contentWrapper = ({children}) => children,
+    children,
+    ...props
+}) {
     const [topMenuOpen, setTopMenuOpen] = useState(false);
 
     const router = useRouter();
@@ -42,9 +50,3 @@ export default function BaseLayout({ title, htmlTitle, hideSignIn, hideCartNotic
         </>
     )
 }
-
-BaseLayout.defaultProps = {
-    hideSignIn: false,
-    hideCartNotice: false,
-    contentWrapper: ({children}) => children
-};

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import NoImage from '@/components/product/no-image';
 import ProductPrice from '@/components/product/price';
@@ -23,13 +23,11 @@ export default function Favorites() {
         }, []));
     }, [favorites]);
 
-    const { data: products, isSuccess } = useQuery(
-        productKeys.list(1, 999, filters, 'title'),
-        () => loadProducts(1, 999, filters, 'title'),
-        {
-            enabled : filters.length > 0
-        }
-    );
+    const { data: products, isSuccess } = useQuery({
+        queryKey: productKeys.list(1, 999, filters, 'title'),
+        queryFn: () => loadProducts(1, 999, filters, 'title'),
+        enabled : filters.length > 0
+    });
 
     const handleClick = (product) => {
         if (product.variations) {

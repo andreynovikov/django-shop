@@ -1,5 +1,6 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
     reactStrictMode: true,
     trailingSlash: true,
     output: 'standalone',
@@ -11,7 +12,7 @@ const nextConfig = {
                 permanent: true
             },
         ]
-    }
+    },
 }
 
 export default nextConfig;

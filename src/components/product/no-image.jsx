@@ -1,4 +1,4 @@
-export default function NoImage({size, block, ...props}) {
+export default function NoImage({size=200, block=false, ...props}) {
     const style = block ? {
         width: size,
         fontSize: size
@@ -12,9 +12,4 @@ export default function NoImage({size, block, ...props}) {
     return (
         <i className={(block ? "d-block mx-auto" : "d-inline-block") + " ci-camera text-muted"} style={style} {...props} />
     )
-}
-
-NoImage.defaultProps = {
-    size: 200,
-    block: false
 }

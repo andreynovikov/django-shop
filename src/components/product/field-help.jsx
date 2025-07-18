@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from 'react-query';
-import { usePopper } from 'react-popper';
+import { useQuery } from '@tanstack/react-query';
+// import { usePopper } from 'react-popper';
 
 import { pageKeys, loadPage } from '@/lib/queries';
 
@@ -18,6 +18,7 @@ export default function FieldHelp({field}) {
     const [popperElement, setPopperElement] = useState(null);
     const [arrowElement, setArrowElement] = useState(null);
 
+    /*
     const { styles, attributes, update } = usePopper(referenceElement, popperElement, {
         placement: 'auto',
         modifiers: [
@@ -25,17 +26,22 @@ export default function FieldHelp({field}) {
             { name: 'offset', options: { offset: [0, 10] } },
         ],
     });
+    */
 
     const uri = ['help', field];
 
-    const { data, isSuccess } = useQuery(pageKeys.detail(uri), () => loadPage(uri), {
+    const { data, isSuccess } = useQuery({
+        queryKey: pageKeys.detail(uri),
+        queryFn: () => loadPage(uri),
         enabled: visible
     });
 
+    /*
     useEffect(() => {
         if (isSuccess && update !== null)
             update();
     }, [isSuccess, update]);
+    */
 
     useEffect(() => {
         if (popperElement && referenceElement) {
@@ -62,6 +68,7 @@ export default function FieldHelp({field}) {
                 <i className="ci-message fs-ms text-muted" />
             </button>
             { visible && (
+                {/*
                 <div className="popover bs-popover-auto sw-field-help" ref={setPopperElement} style={styles.popper} {...attributes.popper}>
                     <div className="popover-arrow" ref={setArrowElement} style={styles.arrow} {...attributes.arrow} />
                     <div className="popover-body">
@@ -72,6 +79,8 @@ export default function FieldHelp({field}) {
                         )}
                     </div>
                 </div>
+                    */
+                   }
             )}
         </>
     )

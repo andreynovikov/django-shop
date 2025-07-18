@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import Link from 'next/link';
 
@@ -42,10 +42,10 @@ export default function Catalog({visible, setVisible, buttonRef}) {
         };
     }, [setVisible]);
 
-    const { data: categories, isSuccess } = useQuery(
-        categoryKeys.lists(),
-        () => loadCategories()
-    );
+    const { data: categories, isSuccess } = useQuery({
+        queryKey: categoryKeys.lists(),
+        queryFn: () => loadCategories()
+    });
 
     useEffect(() => {
         if (isSuccess) {

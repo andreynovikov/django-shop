@@ -5,7 +5,7 @@ import Script from 'next/script';
 import { register } from '@/lib/session';
 import { normalizePhone } from '@/lib/queries';
 
-export default function RegistrationForm({embedded, onComplete}) {
+export default function RegistrationForm({embedded='', onComplete}) {
     const [error, setError] = useState({});
 
     const router = useRouter();
@@ -166,7 +166,3 @@ export default function RegistrationForm({embedded, onComplete}) {
         </form>
     )
 }
-
-RegistrationForm.defaultProps = {
-    embedded: ''
-};
