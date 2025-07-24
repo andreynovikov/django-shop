@@ -11,7 +11,7 @@ import { useCountdown } from '@/lib/countdown';
 
 const CODE_RESEND_DELAY = 240;
 
-export default function LoginForm({embedded='', ctx, phone, hideModal}) {
+export default function LoginForm({ctx, phone, hideModal=undefined, embedded=''}) {
     const [loginPhone, setLoginPhone] = useState('');
     const [reset, setReset] = useState(false);
     const [error, setError] = useState({});
@@ -53,8 +53,8 @@ export default function LoginForm({embedded='', ctx, phone, hideModal}) {
 
     useEffect(() => {
         if (queryError?.response?.status === 404) {
-            if (ctx === 'order') {
-                // register user in background when making order
+            if (['order', 'warranty'].includes(ctx)) {
+                // register user in background when making order or registering warranty
                 signIn({ phone: loginPhone, ctx })
                     .then(result => {
                         if (result.ok) {
@@ -224,7 +224,7 @@ export default function LoginForm({embedded='', ctx, phone, hideModal}) {
                             )}
                         </div>
                     </div>
-                    { ctx !== 'order' && isSuccess && !shopUser.permanent_password && (
+                    { !['order', 'warranty'].includes(ctx) && isSuccess && !shopUser.permanent_password && (
                         showPermanentPassword ? (
                             <div className="row">
                                 <div className="mb-3 col-md">
@@ -284,6 +284,10 @@ export default function LoginForm({embedded='', ctx, phone, hideModal}) {
             { ctx === 'order' ? (
                 <button className="btn btn-primary btn-shadow d-block w-100 mt-4">
                     <i className={"fs-lg me-2 " + (!!shopUser ? "ci-sign-in" : "ci-basket-alt")} />Оформить заказ
+                </button>
+            ) : ctx === 'warranty' ? (
+                <button className="btn btn-primary btn-shadow d-block mt-4">
+                    <i className={"fs-lg me-2 " + (!!shopUser ? "ci-sign-in" : "ci-unlocked")} />Продолжить
                 </button>
             ) : (
                 <div className="text-end">

@@ -108,6 +108,13 @@ export const serviceCenterKeys = {
     detail: (id) => [...serviceCenterKeys.details(), id],
 };
 
+export const serialKeys = {
+    all: ['serial'],
+    lists: () => [...serialKeys.all, 'list'],
+    details: () => [...serialKeys.all, 'detail'],
+    detail: (id) => [...serialKeys.details(), id],
+};
+
 export const siteKeys = {
     all: ['sites'],
     current: () => [...siteKeys.all, 'current'],
@@ -500,6 +507,11 @@ export async function loadServiceCenter(id) {
 
 export async function loadCurrentSite() {
     const response = await apiClient.get('sites/current/');
+    return response.data;
+}
+
+export async function createSerial(data) {
+    const response = await apiClient.post(`serials/`, data);
     return response.data;
 }
 

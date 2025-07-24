@@ -9,7 +9,7 @@ import ScrollTopButton from './scroll-top-button';
 
 export default function BaseLayout({
     title,
-    htmlTitle,
+    htmlTitle = undefined,
     hideSignIn = false,
     hideCartNotice = false,
     contentWrapper = ({children}) => children,

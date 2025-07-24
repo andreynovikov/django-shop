@@ -1,4 +1,9 @@
+import type { ReactElement, ReactNode } from 'react'
+import type { NextPage } from 'next'
+import type { AppProps } from 'next/app'
+
 import { useState, useEffect } from 'react';
+
 import { QueryClient, QueryClientProvider, HydrationBoundary } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
@@ -15,7 +20,7 @@ import 'react-bootstrap-typeahead/css/Typeahead.css';
 import 'react-bootstrap-typeahead/css/Typeahead.bs5.css';
 import '../styles.scss';
 
-import moment from 'moment';
+import moment, { type MomentInput, type Moment } from 'moment';
 import 'moment/locale/ru';
 
 moment.locale('ru');
@@ -25,9 +30,9 @@ moment.updateLocale('ru', {
         standalone: 'янв_фев_март_апр_май_июнь_июль_авг_сен_окт_ноя_дек'.split('_')
     },
     calendar: {
-        lastWeek: function (now) {
-            if (now.week() !== this.week()) {
-                switch (this.day()) {
+        lastWeek: function (m?: MomentInput, now?: Moment) {
+            if (now?.week() !== (this as unknown as Moment).week()) {
+                switch ((this as unknown as Moment).day()) {
                 case 0:
                     return '[В прошлое] dddd';
                 case 1:
@@ -38,9 +43,11 @@ moment.updateLocale('ru', {
                 case 5:
                 case 6:
                     return '[В прошлую] dddd';
+                default:
+                    return '[В прошлое] dddd';
                 }
             } else {
-                if (this.day() === 2) {
+                if ((this as unknown as Moment).day() === 2) {
                     return '[Во] dddd';
                 } else {
                     return '[В] dddd';
@@ -50,7 +57,15 @@ moment.updateLocale('ru', {
     },
 });
 
-export default function App({ Component, pageProps: { site, session, ...pageProps }}) {
+export type NextPageWithLayout<P = object, IP = P> = NextPage<P, IP> & {
+  getLayout?: (page: ReactElement) => ReactNode
+}
+ 
+type AppPropsWithLayout = AppProps & {
+  Component: NextPageWithLayout
+}
+
+export default function App({ Component, pageProps }: AppPropsWithLayout) {
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
             queries: {
@@ -76,8 +91,8 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
     return (
         <QueryClientProvider client={queryClient}>
             <HydrationBoundary state={pageProps.dehydratedState}>
-                <SiteProvider site={site}>
-                    <SessionProvider session={session}>
+                <SiteProvider>
+                    <SessionProvider>
                         <ToolbarProvider>
                             { getLayout(<Component {...pageProps} />) }
                         </ToolbarProvider>
