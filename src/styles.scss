@@ -277,6 +277,28 @@ p.bottom {
     color: #5cb85c;
 }
 
+.sw-btn-wb {
+    color: #ffffff;
+    background-color: #a83afb;
+    border-color: #a83afb;
+
+    &:hover {
+        background-color: #ad3d86;
+        border-color: #ad3d86;
+    }
+}
+
+.sw-btn-ozon {
+    color: #ffffff;
+    background-color: #005bff;
+    border-color: #005bff;
+
+    &:hover {
+        background-color: #007bfb;
+        border-color: #007bfb;
+    }
+}
+
 .product-page {
     h2 {
         font-size: $h2-font-size * 0.85;

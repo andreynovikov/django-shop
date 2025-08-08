@@ -162,7 +162,7 @@ export default function Product({code, title}) {
                             <div className="text-center">
                                 <a className="glightbox" href={product.big_image || product.image} data-title={product.title}>
                                     <img
-                                        className="img-responsive"
+                                        className="img-fluid"
                                         src={product.image}
                                         alt={`${product.title} ${product.whatis}`}
                                         itemProp="image" />
@@ -199,17 +199,22 @@ export default function Product({code, title}) {
                                         </Popover>
                                     </>
                                 )}
-                                <div>
+                                <div class="text-end">
                                     <span className="align-middle fs-md fw-bold">
                                         <span className="lead fw-bold sw-price" itemProp="price">{ product.cost.toLocaleString('ru') }</span>&nbsp;руб.
                                     </span>
+                                    <span itemProp="priceCurrency" className="d-none">RUB</span>
 
                                     <button className="btn btn-success fw-bold ms-2 align-middle" type="button" onClick={handlePrimaryClick}>
                                         { product.instock > 0 ? "Купить" : "Сообщить о поступлении" }
                                     </button>
-
-                                    <span itemProp="priceCurrency" className="d-none">RUB</span>
                                 </div>
+                                { product.wb_link && <div className="text-end mt-2">
+                                    <a href={product.wb_link} className="btn sw-btn-wb fw-bold" role="button">Купить на WB</a>
+                                </div> }
+                                { product.ozon_link && <div className="text-end mt-2">
+                                    <a href={ product.ozon_link } className="btn sw-btn-ozon fw-bold" role="button">Купить на Ozon</a>
+                                </div> }
 
                                 { product.deshevle && (
                                     <div className="my-1">
