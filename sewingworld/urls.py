@@ -5,9 +5,8 @@ from django.urls import path
 # from django.contrib import admin
 from django.contrib.sitemaps.views import index, sitemap
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from django.views.decorators.cache import cache_page
 
-import mptt_urls
+from two_factor.urls import urlpatterns as tf_urls
 
 from zinnia.sitemaps import EntrySitemap
 from forum.sitemaps import ThreadSitemap
@@ -141,16 +140,4 @@ urlpatterns = [
     path('', include('django_prometheus.urls')),
 ]
 
-# Add Yandex integrations
-for integration in Integration.objects.filter(uses_api=True):
-    if integration.settings:
-        ym_campaign = integration.settings.get('ym_campaign', None)
-        if ym_campaign is not None:
-            urlpatterns.append(path(integration.utm_source + '/', include('beru.urls'), {'account': integration.utm_source}))
-
 urlpatterns += staticfiles_urlpatterns()
-
-if settings.DEBUG:
-    import debug_toolbar
-    urlpatterns += [path('__debug__/', include(debug_toolbar.urls))]
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

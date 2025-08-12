@@ -15,7 +15,7 @@ from django.urls import reverse
 
 from mptt.models import TreeManyToManyField
 
-from tagging.fields import TagField
+# from tagging.fields import TagField
 
 from reviews.models import UserReviewAbstractModel, REVIEW_MAX_LENGTH
 
@@ -73,7 +73,7 @@ class Product(models.Model):
                                   related_query_name='product', blank=True)
     categories = TreeManyToManyField('shop.Category', related_name='products',
                                      related_query_name='product', verbose_name='категории', blank=True)
-    tags = TagField('теги')
+    tags = models.CharField('теги', max_length=255, blank=True)  # TagField('теги')
     forbid_price_import = models.BooleanField('не импортировать цену', default=False)
     forbid_ws_price_import = models.BooleanField('не импортировать опт. цену', default=False)
     service_life = models.PositiveSmallIntegerField('срок службы, мес', default=60)

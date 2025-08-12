@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
 from django.conf import settings
-from django.conf.urls import url
 from django.template.response import TemplateResponse
+from django.urls import re_path
 
 from djconfig import config, reload_maybe
 
@@ -40,7 +40,7 @@ class ActAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super(ActAdmin, self).get_urls()
         my_urls = [
-            url(r'(\d+)/print/$', self.admin_site.admin_view(self.print_document), name='shop_act_print'),
+            re_path(r'(\d+)/print/$', self.admin_site.admin_view(self.print_document), name='shop_act_print'),
         ]
         return my_urls + urls
 

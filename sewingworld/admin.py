@@ -1,14 +1,15 @@
 from django.contrib import admin
 from django.urls import path
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 import djconfig
+from two_factor.admin import AdminSiteOTPRequired
 
 from .models import SiteProfile
 from .forms import SWConfigForm
 
 
-class SWAdminSite(admin.AdminSite):
+class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
     site_header = "Швейный Мир"
     site_title = "Административный сайт Швейный Мир"
 
@@ -19,6 +20,56 @@ class SWAdminSite(admin.AdminSite):
             path('goto_order/', self.admin_view(shop.admin.views.goto_order), name='goto_order')
         ] + urls
         return urls
+
+    def get_app_list(self, request, app_label=None):
+        apps = super().get_app_list(request, app_label)
+
+        shop = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'shop'), None)
+        if shop is not None:
+            apps.insert(0, apps.pop(shop))
+            shop = 0
+
+        sewingworld = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'sewingworld'), None)
+        if sewingworld is not None:
+            index = 0 if shop is None else 1
+            apps.insert(index, apps.pop(sewingworld))
+            sewingworld = index
+
+        auth = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'auth'), None)
+        flatpages = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'flatpages'), None)
+        sites = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'sites'), None)
+        phonenumber = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'phonenumber'), None)
+        otp_static = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'otp_static'), None)
+        otp_totp = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'otp_totp'), None)
+
+        indexes = []
+
+        if phonenumber is not None:
+            apps[phonenumber]['name'] = 'Two Factor Authentication'
+            apps[phonenumber]['app_url'] = '/admin/'
+            if otp_static is not None:
+                apps[phonenumber]['models'].extend(apps[otp_static]['models'])
+                indexes.append(otp_static)
+            if otp_totp is not None:
+                apps[phonenumber]['models'].extend(apps[otp_totp]['models'])
+                indexes.append(otp_totp)
+
+        if shop is not None and auth is not None:
+            user = next((index for (index, model) in enumerate(apps[shop]['models']) if model['object_name'] == 'ShopUser'), None)
+            if user is not None:
+                apps[auth]['models'].append(apps[shop]['models'][user])
+
+        if sewingworld is not None:
+            if flatpages is not None:
+                apps[sewingworld]['models'].extend(apps[flatpages]['models'])
+                indexes.append(flatpages)
+            if sites is not None:
+                apps[sewingworld]['models'].extend(apps[sites]['models'])
+                indexes.append(sites)
+
+        for i in sorted(indexes, reverse=True):
+            del(apps[i])
+        return apps
 
 
 class SWConfigAdmin(djconfig.admin.ConfigAdmin):
@@ -83,11 +134,13 @@ def configure_admin():
     admin.site.unregister(Site)
     admin.site.register(Site, SWSiteAdmin)
 
+    """
     from tagging.admin import TagAdmin
     from tagging.models import Tag
     SWTagAdmin = type('SWTagAdmin', (TagAdmin,), {'search_fields': ['name'], 'ordering': ['name']})
     admin.site.unregister(Tag)
     admin.site.register(Tag, SWTagAdmin)
+    """
 
     from django.contrib.flatpages.admin import FlatPageAdmin
     from django.contrib.flatpages.models import FlatPage

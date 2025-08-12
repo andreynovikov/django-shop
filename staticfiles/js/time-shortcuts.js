@@ -1,4 +1,6 @@
-(function ($) {
+'use strict';
+{
+    const $ = django.jQuery;
     $(document).ready(function () {
 
         DateTimeShortcuts.clockHours.default_ = [];
@@ -26,4 +28,4 @@
         }
 
     });
-})(django.jQuery);
+}

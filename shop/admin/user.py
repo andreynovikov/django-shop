@@ -2,9 +2,9 @@ from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from tagging.models import Tag, TaggedItem
+# from tagging.models import Tag, TaggedItem
 from import_export import resources
 from import_export.admin import ExportMixin
 from django_admin_listfilter_dropdown.filters import SimpleDropdownFilter, DropdownFilter
@@ -73,14 +73,15 @@ class TagListFilter(SimpleDropdownFilter):
     parameter_name = 'tag'
 
     def lookups(self, request, model_admin):
-        model_tags = [tag.name for tag in Tag.objects.usage_for_model(model_admin.model)]
+        model_tags = []  # tag.name for tag in Tag.objects.usage_for_model(model_admin.model)]
         model_tags.sort()
         return tuple([(tag, tag) for tag in model_tags])
 
     def queryset(self, request, queryset):
         if self.value() is not None:
             # return ShopUser.tagged.with_all(self.value(), queryset)
-            return TaggedItem.objects.get_by_model(queryset, self.value())
+            # return TaggedItem.objects.get_by_model(queryset, self.value())
+            return None
 
 
 class ShopUserResource(resources.ModelResource):

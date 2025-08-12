@@ -30,12 +30,12 @@ def product_stock_view(product, order=None):
         suppliers = product.stock.filter(show_in_order=True).order_by('order')
         if suppliers.exists():
             if order is None:
-                result = '<span style="color: #009">%s</span><br/>' % floatformat(product.num)
+                result = '<span style="color: var(--link-hover-color)">%s</span><br/>' % floatformat(product.num)
             for supplier in suppliers:
                 stock = Stock.objects.get(product=product, supplier=supplier)
                 result = result + ('%s:&nbsp;' % supplier.code)
                 if stock.quantity == 0:
-                    result = result + '<span style="color: #c00">'
+                    result = result + '<span style="color: var(--error-fg)">'
                 result = result + ('%s' % floatformat(stock.quantity))
                 if stock.quantity == 0:
                     result = result + '</span>'
@@ -44,14 +44,14 @@ def product_stock_view(product, order=None):
                     if stock.correction > 0.0:
                         result = result + '#090'
                     else:
-                        result = result + '#c00'
+                        result = result + 'var(--error-fg)'
                     result = result + ('" title="%s">' % escape(stock.reason))
                     if stock.correction > 0.0:
                         result = result + '+'
                     result = result + ('%s</span>' % floatformat(stock.correction))
                 result = result + '<br/>'
         else:
-            result = '<span style="color: #f00">отсутствует</span><br/>'
+            result = '<span style="color: var(--error-fg)">отсутствует</span><br/>'
         if order:
             cursor = connection.cursor()
             cursor.execute("""SELECT shop_orderitem.order_id, shop_orderitem.quantity AS quantity FROM shop_orderitem
@@ -64,7 +64,7 @@ def product_stock_view(product, order=None):
                     ids.append(str(row[0]))
                     ordered = ordered + int(row[1])
                 url = '%s?id__in=%s&status=all' % (reverse("admin:shop_order_changelist"), ','.join(ids))
-                result = result + '<a href="%s" style="color: #00c">Зак:&nbsp;%s<br/></a>' % (url, floatformat(ordered))
+                result = result + '<a href="%s" style="color: var(--link-hover-color)">Зак:&nbsp;%s<br/></a>' % (url, floatformat(ordered))
             cursor.close()
     else:
         result = floatformat(product.instock)

@@ -9,7 +9,6 @@ import json
 import logging
 import os
 import re
-import requests
 import tempfile
 
 from collections import defaultdict
@@ -36,7 +35,7 @@ from django.db.models.fields.reverse_related import ForeignObjectRel
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import dateparse, timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.formats import date_format
 from django.contrib.sites.models import Site
 
@@ -105,7 +104,7 @@ class DecimalEncoder(json.JSONEncoder):
 @shared_task(queue="revalidation")  # , rate_limit='2/s')
 def revalidate_nextjs(domain, token, payload):
     url = 'https://{}/api/revalidate'.format(domain)
-    request_data = {
+    data = {
         'secret': token,
         **payload
     }
@@ -148,7 +147,7 @@ def update_order(self, order_id, data):
             user_id=order.user.id,
             content_type_id=ContentType.objects.get_for_model(order).pk,
             object_id=order.pk,
-            object_repr=force_text(order),
+            object_repr=force_str(order),
             action_flag=CHANGE,
             change_message=change_message
         )

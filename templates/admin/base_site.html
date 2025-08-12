@@ -8,9 +8,11 @@
 <style>
     @media (max-width: 1200px) {
       #branding h1 { display: none }
+      #user-tools > span { display: none }
     }
     @media (max-width: 1024px) {
       #branding h1 { display: block }
+      #user-tools > span { display: inline }
     }
     #brandng { order: 1 }
     #quick-links, #order-quick-link, #stocks_status { order: 2 }
@@ -20,6 +22,7 @@
 {% endblock %}
 {% block extrahead %}
 {{ block.super }}
+{% if user.is_authenticated %}
 <script>
     function check1CImportStatus() {
         var xmlhttp = new XMLHttpRequest();
@@ -45,8 +48,10 @@
         setTimeout(check1CImportStatus, 20000);
     });
 </script>
+{% endif %}
 {% endblock %}
 {% block nav-global %}
+{% if user.is_authenticated %}
 <div id="order-quick-link">
     <form action="{% url 'admin:goto_order' %}">
         Заказ: <input type="text" name="order" size="5" autocomplete="off" />
@@ -65,10 +70,19 @@
     <span id="import1c_status" style="color: {% if copying_flag %}red{% elif running_flag %}gold{% else %}limegreen{% endif %}">&#9670;</span>
     Актуализация склада: {% last_1c_import %}
 </div>
+{% endif %}
+{% endblock %}
+{% block welcome-msg %}
+  <span>{% translate 'Welcome,' %}</span>
+  <strong>{% firstof user.get_short_name user.get_username %}</strong>.
 {% endblock %}
 {% block userlinks %}
     {% if user.has_usable_password %}
     <a href="{% url 'admin:password_change' %}">{% trans 'Change password' %}</a> /
     {% endif %}
-    <a href="{% url 'admin:logout' %}">{% trans 'Log out' %}</a>
+    <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
+    {% csrf_token %}
+    <button type="submit">{% translate 'Log out' %}</button>
+    </form>
+    {% include "admin/color_theme_toggle.html" %}
 {% endblock %}

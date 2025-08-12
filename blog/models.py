@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import linebreaks
 
-from tagging.fields import TagField
+# from tagging.fields import TagField
 
 from .preview import HTMLPreview
 
@@ -63,7 +63,7 @@ class Entry(models.Model):
     featured = models.BooleanField('популярная', default=False)
     author = models.ForeignKey(settings.AUTH_USER_MODEL, blank=True, on_delete=models.RESTRICT, verbose_name='автор')
     categories = models.ManyToManyField(Category, blank=True, related_name='entries', verbose_name='категории')
-    tags = TagField('тэги')
+    tags = models.CharField('тэги', max_length=255, blank=True)  # TagField('тэги')
 
     class Meta:
         verbose_name = 'запись'
