@@ -9,7 +9,6 @@ import json
 import logging
 import os
 import re
-import requests
 import tempfile
 
 from collections import defaultdict
@@ -36,7 +35,7 @@ from django.db.models.fields.reverse_related import ForeignObjectRel
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import dateparse, timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.formats import date_format
 from django.contrib.sites.models import Site
 
@@ -104,13 +103,18 @@ class DecimalEncoder(json.JSONEncoder):
 @shared_task(autoretry_for=(Exception,), rate_limit='2/s', default_retry_delay=300, retry_backoff=True)
 def revalidate_nextjs(domain, token, payload):
     url = 'https://{}/api/revalidate'.format(domain)
-    request_data = {
+    data = {
         'secret': token,
         **payload
     }
-    response = requests.post(url, json=request_data)
-    response_data = response.json()
-    return response_data
+    data_encoded = json.dumps(data).encode('utf-8')
+    headers = {
+        'Content-Type': 'application/json; charset=utf-8'
+    }
+    request = Request(url, data_encoded, headers, method='POST')
+    response = urlopen(request)
+    result = json.loads(response.read().decode('utf-8'))
+    return result
 
 
 @shared_task(bind=True, autoretry_for=(DatabaseError,), retry_backoff=300, retry_jitter=False)
@@ -141,7 +145,7 @@ def update_order(self, order_id, data):
             user_id=order.user.id,
             content_type_id=ContentType.objects.get_for_model(order).pk,
             object_id=order.pk,
-            object_repr=force_text(order),
+            object_repr=force_str(order),
             action_flag=CHANGE,
             change_message=change_message
         )
@@ -150,17 +154,17 @@ def update_order(self, order_id, data):
     return change_message
 
 
-@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
+@shared_task(queue="priority", autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def send_message(phone, message):
     return send_sms(phone, message)
 
 
-@shared_task(autoretry_for=(Exception,), default_retry_delay=15, retry_backoff=True)
+@shared_task(queue="priority", autoretry_for=(Exception,), default_retry_delay=15, retry_backoff=True)
 def send_password(phone, password):
     return send_sms(phone, "Код для доступа на сайт: %s" % password)
 
 
-@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
+@shared_task(queue="priority", autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_user_order_new_sms(order_id, password=None):
     order = Order.objects.get(id=order_id)
     site = get_site_for_order(order)
@@ -309,7 +313,7 @@ def notify_user_review_products(self, order_id):
                     return r['id']
 
 
-@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
+@shared_task(queue="priority", autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_manager(order_id):
     order = Order.objects.get(id=order_id)
 
@@ -334,7 +338,7 @@ def notify_manager(order_id):
     )
 
 
-@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
+@shared_task(queue="priority", autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_manager_sms(order_id, phone):
     return send_sms(phone, "Новый заказ №%s" % order_id)
 
@@ -400,7 +404,7 @@ def update_1c_stocks(self):
         f.write(result)
         f.close()
 
-        import1c.delay(filename)
+        import1c.s(filename).apply_async(queue=self.request.delivery_info['routing_key'])
         return modified
     except HTTPError as e:
         content = e.read()
@@ -726,7 +730,7 @@ def notify_abandoned_baskets(first_try=True):
     return num
 
 
-@shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
+@shared_task(queue="integrations", bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
 def create_modulpos_order(self, order_id):
     order = Order.objects.get(id=order_id)
     if not order.courier:
@@ -813,7 +817,7 @@ def create_modulpos_order(self, order_id):
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
 
 
-@shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
+@shared_task(queue="integrations", bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
 def delete_modulpos_order(self, order_id):
     order = Order.objects.get(id=order_id)
     if not order.courier:

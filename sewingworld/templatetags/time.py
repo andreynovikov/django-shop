@@ -5,7 +5,6 @@ Copyright (c) 2015 Esteban Castro Borsani <ecastroborsani@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
-                                                           
 'Software'), to deal in the Software without restriction, including
 without limitation the rights to use, copy, modify, merge, publish,
 distribute, sublicense, and/or sell copies of the Software, and to
@@ -27,7 +26,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 from datetime import datetime
 
 from django.template import defaultfilters
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.utils.timezone import is_aware, utc
 from django import template
 

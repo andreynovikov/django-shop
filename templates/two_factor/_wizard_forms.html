@@ -1,0 +1,25 @@
+{% load i18n static %}
+
+{{ wizard.management_form }}
+
+{% if wizard.form.errors and not wizard.form.non_field_errors %}
+<p class="errornote">
+{% blocktranslate count counter=wizard.form.errors.items|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktranslate %}
+</p>
+{% endif %}
+
+{% if wizard.form.non_field_errors %}
+{% for error in wizard.form.non_field_errors %}
+<p class="errornote">
+    {{ error }}
+</p>
+{% endfor %}
+{% endif %}
+
+{% for field in wizard.form %}
+  <div class="form-row">
+    {{ field.errors }}
+    {{ field.label_tag }}
+    {{ field }}
+ </div>
+{% endfor %}

@@ -1,12 +1,13 @@
 from django.forms import ModelForm
 from django.db.models import ImageField
-from django.core.exceptions import PermissionDenied
+from django.conf import settings
 from django.contrib import admin
+from django.core.exceptions import PermissionDenied
 from django.template.response import TemplateResponse
-from django.conf.urls import url
+from django.urls import path, reverse
 from django.utils.safestring import mark_safe
 
-from adminsortable2.admin import SortableAdminMixin, SortableInlineAdminMixin
+from adminsortable2.admin import SortableAdminBase, SortableAdminMixin, SortableInlineAdminMixin
 from django_admin_listfilter_dropdown.filters import RelatedDropdownFilter
 from mptt.admin import DraggableMPTTAdmin
 
@@ -24,6 +25,8 @@ from .act import ActAdmin  # NOQA
 from .integration import IntegrationAdmin  # NOQA
 from .serial import SerialAdmin  # NOQA
 from .user import ShopUserAdmin  # NOQA
+
+SHOP_INFO = getattr(settings, 'SHOP_INFO', {})
 
 
 @admin.register(Category)
@@ -91,7 +94,7 @@ class StoreImageInline(SortableInlineAdminMixin, admin.TabularInline):
 
 
 @admin.register(Store)
-class StoreAdmin(admin.ModelAdmin):
+class StoreAdmin(SortableAdminBase, admin.ModelAdmin):
     list_display = ['city', 'address', 'name', 'supplier', 'enabled', 'latitude', 'longitude']
     list_display_links = ['address', 'name']
     list_filter = [('city', RelatedDropdownFilter), 'enabled', 'publish', 'marketplace', 'lottery']
@@ -99,10 +102,14 @@ class StoreAdmin(admin.ModelAdmin):
     ordering = ['city', 'address']
     inlines = [StoreImageInline]
 
+    def view_on_site(self, obj):
+        prefix = SHOP_INFO.get('url_prefix','')
+        return f'{prefix}/stores/{obj.id}/'
+
     def get_urls(self):
         urls = super().get_urls()
         my_urls = [
-            url(r'^yandexmapfeed/$', self.admin_site.admin_view(self.yandex_map_feed_view), name='%s_%s_yandexmapfeed' % (self.model._meta.app_label, self.model._meta.model_name))
+            path('yandexmapfeed/', self.admin_site.admin_view(self.yandex_map_feed_view), name='%s_%s_yandexmapfeed' % (self.model._meta.app_label, self.model._meta.model_name))
         ]
         return my_urls + urls
 
@@ -181,6 +188,10 @@ class SalesActionAdmin(SortableAdminMixin, admin.ModelAdmin):
     list_display_links = ['name']
     search_fields = ['name', 'slug']
     form = SalesActionAdminForm
+
+    def view_on_site(self, obj):
+        prefix = SHOP_INFO.get('url_prefix','')
+        return f'{prefix}/actions/{obj.slug}/'
 
 
 @admin.register(Manager)

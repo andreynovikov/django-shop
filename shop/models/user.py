@@ -5,7 +5,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.db import models
 from django.utils import timezone
 
-from tagging.fields import TagField
+# from tagging.fields import TagField
 
 __all__ = [
     'ShopUserManager', 'ShopUser'
@@ -100,7 +100,7 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField('сотрудник', default=False)
     permanent_password = models.BooleanField('постоянный пароль', default=False)
     date_joined = models.DateTimeField('дата регистрации', default=timezone.now)
-    tags = TagField('теги')
+    tags = models.CharField('теги', max_length=255, blank=True)  # TagField('теги')
     first_name = AliasField(db_column='name', blank=True)
     last_name = AliasField(db_column='name', blank=True)
 

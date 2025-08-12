@@ -1,10 +1,11 @@
+import logging
 import re
 import datetime
 from collections import defaultdict
 from decimal import Decimal, ROUND_UP
+from urllib.parse import quote
 
 from django import forms
-from django.urls import reverse
 from django.db import connection
 from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, \
     DateTimeField, DecimalField
@@ -15,28 +16,32 @@ from django.template.loader import get_template
 from django.template.defaultfilters import floatformat
 from django.template.response import TemplateResponse
 from django.conf import settings
-from django.conf.urls import url
 from django.shortcuts import render
+from django.urls import path, re_path, reverse
 from django.utils import timezone
 from django.utils.formats import date_format, number_format
-from django.utils.http import urlquote
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from daterangefilter.filters import FutureDateRangeFilter, PastDateRangeFilter
 from django_admin_listfilter_dropdown.filters import ChoiceDropdownFilter, RelatedDropdownFilter
-from tagging.utils import parse_tag_input
+# from tagging.utils import parse_tag_input
+
+from djconfig import config
 
 from yandex_delivery.tasks import create_delivery_draft_order, get_delivery_options
 
 from shop.models import ShopUserManager, ShopUser, Supplier, Order, OrderItem, Box, \
-    Act, ActOrder
+    Act, ActOrder, Contractor
 from shop.tasks import send_message
 
 from .forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
     OrderDiscountForm, SendSmsForm, SelectTagForm, SelectSupplierForm, \
     OrderItemInlineAdminForm, BoxInlineAdminForm, YandexDeliveryForm
 from .views import product_stock_view
+
+
+logger = logging.getLogger(__name__)
 
 
 class OrderItemInline(admin.TabularInline):
@@ -46,7 +51,11 @@ class OrderItemInline(admin.TabularInline):
         article = obj.product.article or '--'
         partnumber = obj.product.partnumber or '--'
         code = '<a href="{}">{}</a>'.format(reverse('admin:shop_product_change', args=[obj.product.id]), code)
-        return '<br/>'.join([code, article, partnumber])
+        if obj.product.state:
+            state = '<span title="{}" class="sw-product-state">'.format(obj.product.state)
+        else:
+            state = '<span>'
+        return state + '<br/>'.join([code, article, partnumber]) + '</span>'
     product_codes.admin_order_field = 'product__code'
     product_codes.short_description = 'Ид/1С/PN'
 
@@ -348,7 +357,10 @@ class OrderAdmin(admin.ModelAdmin):
         checkmark = ''
         if obj.paid and obj.has_fiscal:
             style = '; color: green'
-            checkmark = '<a href="https://receipt.taxcom.ru/v01/show?fp=%s&s=%s" target="_blank" style="color: green"><i class="fas fa-receipt fa-xs"></i></a>' % (obj.meta['fiscalInfo']['fnDocMark'], obj.meta['fiscalInfo']['sum'])
+            if obj.id > 152982:  # TODO: move to order.seller
+                checkmark = '<a href="https://consumer.1-ofd.ru/ticket?s=%s&fn=%s&i=%s&fp=%s&n=1" target="_blank" style="color: green"><i class="fas fa-receipt fa-xs"></i></a>' % (obj.meta['fiscalInfo']['sum'], obj.meta['fiscalInfo']['fnNumber'], obj.meta['fiscalInfo']['fnDocNumber'], obj.meta['fiscalInfo']['fnDocMark'])
+            else:
+                checkmark = '<a href="https://receipt.taxcom.ru/v01/show?fp=%s&s=%s" target="_blank" style="color: green"><i class="fas fa-receipt fa-xs"></i></a>' % (obj.meta['fiscalInfo']['fnDocMark'], obj.meta['fiscalInfo']['sum'])
         elif obj.paid:
             style = 'color: green'
             checkmark = '<span style="color: green"><i class="fas fa-check fa-xs"></i></span>'
@@ -436,8 +448,9 @@ class OrderAdmin(admin.ModelAdmin):
                        'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
                        'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
     list_filter = [OrderStatusListFilter, ('site', RelatedDropdownFilter), ('integration', RelatedDropdownFilter), ('created', PastDateRangeFilter),
-                   ('payment', ChoiceDropdownFilter), 'paid', OrderDeliveryListFilter, ('delivery_dispatch_date', FutureDateRangeFilter),
-                   ('delivery_handing_date', FutureDateRangeFilter), 'manager', 'courier']
+                   ('seller', RelatedDropdownFilter), ('payment', ChoiceDropdownFilter), 'paid', OrderDeliveryListFilter,
+                   ('delivery_dispatch_date', FutureDateRangeFilter), ('delivery_handing_date', FutureDateRangeFilter),
+                   ('manager', RelatedDropdownFilter), ('courier', RelatedDropdownFilter)]
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment', 'delivery_tracking_number',
                      'delivery_info', 'delivery_yd_order', 'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
                      'item__serial_number']
@@ -512,8 +525,8 @@ class OrderAdmin(admin.ModelAdmin):
         readonly_fields = [elem for elem in self.readonly_fields]
         if obj and not request.user.is_superuser:
             readonly_fields += ['site']
-        if obj and obj.integration and obj.integration.uses_api:
-            readonly_fields += ['delivery_handing_date']
+        # if obj and obj.integration and obj.integration.uses_api:
+        #     readonly_fields += ['delivery_handing_date']
         if obj and obj.paid and obj.meta and 'fiscalInfo' in obj.meta:
             readonly_fields += ['paid']
         return readonly_fields
@@ -584,16 +597,16 @@ class OrderAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super(OrderAdmin, self).get_urls()
         my_urls = [
-            url(r'(\d+)/document/([a-z]+)/$', self.admin_site.admin_view(self.document), name='shop_order_document'),
-            url(r'products/$', self.admin_site.admin_view(self.order_product_list), name='shop_order_product_list'),
-            url(r'(\d+)/item/(\d+)/print_warranty_card/$', self.admin_site.admin_view(self.print_warranty_card), name='print-warranty-card'),
-            url(r'(\d+)/combine/$', self.admin_site.admin_view(self.combine_form), name='shop_order_combine'),
-            url(r'(\d+)/discount/$', self.admin_site.admin_view(self.discount_form), name='shop_order_discount'),
-            url(r'(\d+)/yandex_delivery/$', self.admin_site.admin_view(self.yandex_delivery_form), name='shop_order_yandex_delivery'),
-            url(r'(\d+)/yandex_delivery_estimate/$', self.admin_site.admin_view(self.yandex_delivery_estimate), name='shop_order_yandex_delivery_estimate'),
-            url(r'(\d+)/beru_labels/$', self.admin_site.admin_view(self.beru_labels), name='shop_order_beru_labels'),
-            url(r'(\d+)/unlock/$', self.admin_site.admin_view(self.unlock), name='shop_order_unlock'),
-            url(r'sms/(\+\d+)/$', self.admin_site.admin_view(self.send_sms_form), name='shop_order_send_sms'),
+            re_path(r'(\d+)/document/([a-z]+)/$', self.admin_site.admin_view(self.document), name='shop_order_document'),
+            re_path(r'products/$', self.admin_site.admin_view(self.order_product_list), name='shop_order_product_list'),
+            re_path(r'(\d+)/item/(\d+)/print_warranty_card/$', self.admin_site.admin_view(self.print_warranty_card), name='print-warranty-card'),
+            re_path(r'(\d+)/combine/$', self.admin_site.admin_view(self.combine_form), name='shop_order_combine'),
+            re_path(r'(\d+)/discount/$', self.admin_site.admin_view(self.discount_form), name='shop_order_discount'),
+            re_path(r'(\d+)/yandex_delivery/$', self.admin_site.admin_view(self.yandex_delivery_form), name='shop_order_yandex_delivery'),
+            re_path(r'(\d+)/yandex_delivery_estimate/$', self.admin_site.admin_view(self.yandex_delivery_estimate), name='shop_order_yandex_delivery_estimate'),
+            re_path(r'(\d+)/beru_labels/$', self.admin_site.admin_view(self.beru_labels), name='shop_order_beru_labels'),
+            re_path(r'(\d+)/unlock/$', self.admin_site.admin_view(self.unlock), name='shop_order_unlock'),
+            re_path(r'sms/(\+\d+)/$', self.admin_site.admin_view(self.send_sms_form), name='shop_order_send_sms'),
         ]
         return my_urls + urls
 
@@ -603,6 +616,7 @@ class OrderAdmin(admin.ModelAdmin):
         order = Order.objects.get(pk=id)
         return render(request, 'shop/order/' + template + '.html', {
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
+            'default_seller': config.sw_default_seller,
             'order': order,
             'opts': self.model._meta,
         })
@@ -628,7 +642,7 @@ class OrderAdmin(admin.ModelAdmin):
         cursor = connection.cursor()
         inner_cursor = connection.cursor()
         cursor.execute("""SELECT shop_product.id AS product_id, shop_product.article, shop_product.partnumber, shop_product.title,
-                          shop_order.id AS order_id, shop_order.status AS order_status,
+                          shop_product.comment_packer, shop_order.id AS order_id, shop_order.status AS order_status,
                           SUM(shop_orderitem.quantity) AS quantity
                           FROM shop_product
                           INNER JOIN shop_orderitem ON (shop_product.id = shop_orderitem.product_id)
@@ -685,6 +699,7 @@ class OrderAdmin(admin.ModelAdmin):
                     item.save()
                     context = {
                         'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
+                        'default_seller': config.sw_default_seller,
                         'order': order,
                         'product': item.product,
                         'serial_number': serial_number,
@@ -1122,6 +1137,7 @@ class OrderAdmin(admin.ModelAdmin):
             if aux_supplier:
                 suppliers.append(aux_supplier.id)
             supplier_ids = ','.join(map(str, suppliers))
+            has_missing = False
             for row in cursor.fetchall():
                 columns = (x[0] for x in cursor.description)
                 product = dict(zip(columns, row))
@@ -1131,22 +1147,33 @@ class OrderAdmin(admin.ModelAdmin):
                                         WHERE product_id = %s AND supplier_id IN (""" + supplier_ids + """)
                                         ORDER BY shop_supplier.order""", (product['product_id'],))
                 quantity = float(product['quantity'])
+                available = 0
                 stock = 0
                 aux_stock = 0
                 if inner_cursor.rowcount:
                     for row in inner_cursor.fetchall():
                         if row[0] == supplier_ur.id:
-                            quantity = quantity - row[1] - row[2]
+                            available = row[1] + row[2]
                         if row[0] == supplier.id:
                             stock = row[1] + row[2]
                         if aux_supplier and row[0] == aux_supplier.id:
                             aux_stock = row[1] + row[2]
-                if quantity > 0:
+                if available < quantity:
+                    product['own'] = Decimal(available).quantize(Decimal('1'), rounding=ROUND_UP)
                     if stock > 0:
-                        product['stock'] = Decimal(quantity).quantize(Decimal('1'), rounding=ROUND_UP)
-                    if aux_stock > 0 and quantity - stock > 0:
-                        product['aux_stock'] = Decimal(quantity-stock).quantize(Decimal('1'), rounding=ROUND_UP)
-                    products.append(product)
+                        taken = min(stock, quantity - available)
+                        available += taken
+                        product['stock'] = Decimal(taken).quantize(Decimal('1'), rounding=ROUND_UP)
+                    if aux_stock > 0 and available < quantity:
+                        taken = min(aux_stock, quantity - available)
+                        available += taken
+                        product['aux_stock'] = Decimal(taken).quantize(Decimal('1'), rounding=ROUND_UP)
+                    if available < quantity:
+                        has_missing = True
+                        product['missing'] = quantity - available
+                else:
+                    product['own'] = product['quantity']
+                products.append(product)
             cursor.close()
             inner_cursor.close()
             if not products:
@@ -1175,12 +1202,29 @@ class OrderAdmin(admin.ModelAdmin):
                             sheet.write(idx, 0, product['article'])
                             sheet.write(idx, 1, aux_stock)
                             idx += 1
+                sheet = workbook.add_worksheet(supplier_ur.name)
+                idx = 0
+                for product in products:
+                    own = product.get('own', None)
+                    if own and own > 0:
+                        sheet.write(idx, 0, product['article'])
+                        sheet.write(idx, 1, product['own'])
+                        idx += 1
+                if has_missing:
+                    sheet = workbook.add_worksheet('Нет на складах')
+                    idx = 0
+                    for product in products:
+                        missing = product.get('missing', None)
+                        if missing:
+                            sheet.write(idx, 0, product['article'])
+                            sheet.write(idx, 1, missing)
+                            idx += 1
                 workbook.close()
 
                 response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
                 response['Content-Disposition'] = 'attachment; filename={0}-{2}.xlsx; filename*=UTF-8\'\'{1}-{2}.xlsx'.format(
                     'stock',
-                    urlquote(supplier.code),
+                    quote(supplier.code),
                     datetime.date.today().isoformat())
                 return response
 
@@ -1241,10 +1285,10 @@ class OrderAdmin(admin.ModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied
         if 'set_user_tag' in request.POST:
-            tags = parse_tag_input(request.POST.get('tags'))
-            for order in queryset:
-                order.append_user_tags(tags)
-            self.message_user(request, "Добавлен тег {} пользователям".format(queryset.count()))
+            # tags = parse_tag_input(request.POST.get('tags'))
+            # for order in queryset:
+            #     order.append_user_tags(tags)
+            self.message_user(request, "НЕ(!!!)добавлен тег {} пользователям".format(queryset.count()))
             return HttpResponseRedirect(request.get_full_path())
 
         messages = None

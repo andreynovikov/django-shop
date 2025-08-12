@@ -47,9 +47,6 @@ class Category(MPTTModel):
     def get_active_descendants(self):
         return self.get_descendants().filter(active=True, hidden=False)
 
-    def get_absolute_url(self):
-        return reverse('category', kwargs={'path': self.get_path()})
-
     def __str__(self):
         # return self.name
         show_path = False

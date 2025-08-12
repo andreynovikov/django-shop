@@ -14,7 +14,7 @@ from django.urls import reverse
 
 from mptt.models import TreeManyToManyField
 
-from tagging.fields import TagField
+# from tagging.fields import TagField
 
 from reviews.models import UserReviewAbstractModel, REVIEW_MAX_LENGTH
 
@@ -72,7 +72,7 @@ class Product(models.Model):
                                   related_query_name='product', blank=True)
     categories = TreeManyToManyField('shop.Category', related_name='products',
                                      related_query_name='product', verbose_name='категории', blank=True)
-    tags = TagField('теги')
+    tags = models.CharField('теги', max_length=255, blank=True)  # TagField('теги')
     forbid_price_import = models.BooleanField('не импортировать цену', default=False)
     forbid_ws_price_import = models.BooleanField('не импортировать опт. цену', default=False)
     service_life = models.PositiveSmallIntegerField('срок службы, мес', default=60)
@@ -90,6 +90,8 @@ class Product(models.Model):
     gift = models.BooleanField('Годится в подарок', default=False)
     merchant = models.BooleanField('мерчант', default=False, db_index=True)
     market = models.BooleanField('маркет', default=False, db_index=True)
+    wb_link = models.URLField('ссылка на WB', max_length=512, blank=True)
+    ozon_link = models.URLField('ссылка на Озон', max_length=512, blank=True)
     manufacturer = models.ForeignKey(Manufacturer, verbose_name="Производитель", on_delete=models.PROTECT, default=49)
     country = models.ForeignKey(Country, verbose_name="Страна производства", on_delete=models.PROTECT, default=1)
     developer_country = models.ForeignKey(Country, verbose_name="Страна разработки", on_delete=models.PROTECT, related_name="developed_product", default=1)
@@ -131,7 +133,7 @@ class Product(models.Model):
     variations = models.CharField('вариации', max_length=255, blank=True)
     comment_packer = models.CharField('комментарий для сборщика', max_length=255, blank=True)
 
-    sales_actions = models.ManyToManyField(SalesAction, related_name='products', related_query_name='product', verbose_name='акции', blank=True)
+    sales_actions = models.ManyToManyField(SalesAction, related_name='products', related_query_name='product', verbose_name='акции', blank=True, limit_choices_to={'active': True})
     related = models.ManyToManyField('self', through='ProductRelation', symmetrical=False, blank=True)
     constituents = models.ManyToManyField('self', through='ProductSet', related_name='+', symmetrical=False, blank=True)
     recalculate_price = models.BooleanField('пересчитывать цену', default=True)
@@ -235,15 +237,22 @@ class Product(models.Model):
         return reverse('product', args=[str(self.code)])
 
     def save(self, *args, **kwargs):
-        if self.pk is None or self.constituents.count() == 0 or not self.recalculate_price:
-            self.price = self.cur_price * self.cur_code.rate
-            self.ws_price = self.ws_cur_price * self.ws_cur_code.rate
-            self.sp_price = self.sp_cur_price * self.sp_cur_code.rate
+        deferred = self.get_deferred_fields()
+        if 'cur_code' not in deferred:
+            if self.pk is None or self.constituents.count() == 0 or not self.recalculate_price:
+                self.price = self.cur_price * self.cur_code.rate
+                self.ws_price = self.ws_cur_price * self.ws_cur_code.rate
+                self.sp_price = self.sp_cur_price * self.sp_cur_code.rate
+            else:
+                self.update_set_price()
         else:
-            self.update_set_price()
+            logger.error("Skip update price")
         super(Product, self).save(*args, **kwargs)
-        self.update_fts_vector()
-        self.update_sets()
+        if 'title' not in deferred:
+            # skip updates during price imports
+            self.update_fts_vector()
+        if 'num' not in deferred:
+            self.update_sets()
 
     def update_sets(self):
         product_sets = ProductSet.objects.filter(constituent=self)

@@ -8,7 +8,7 @@ from django.conf import settings
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.sites.models import Site
 from django.core.cache import cache
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_str
 from django.utils.html import conditional_escape, mark_safe
 
 from mptt.forms import TreeNodeMultipleChoiceField
@@ -168,7 +168,7 @@ class IntegrationInlineForm(forms.ModelForm):
 
 class SWTreeNodeMultipleChoiceField(TreeNodeMultipleChoiceField):
     def label_from_instance(self, obj):
-        return mark_safe(conditional_escape(smart_text('/'.join([x['name'] for x in obj.get_ancestors(include_self=True).values()]))))
+        return mark_safe(conditional_escape(smart_str('/'.join([x['name'] for x in obj.get_ancestors(include_self=True).values()]))))
 
 
 class ProductImportForm(ImportForm):
@@ -373,7 +373,10 @@ class OrderAdminForm(forms.ModelForm):
         }
 
     class Media:
+        # select2 must be loaded before jquery.init.js (#62)
         js = [
+            "admin/js/vendor/select2/select2.full.js",
+            "admin/js/jquery.init.js",
             'js/time-shortcuts.js'
         ]
         css = {

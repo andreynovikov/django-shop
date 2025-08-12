@@ -3,23 +3,25 @@ import uuid
 import json
 
 from django import forms
-from django.urls import reverse
+from django.conf import settings
 from django.contrib.admin import widgets
 from django.contrib.sites.models import Site
 from django.forms.utils import flatatt
 from django.forms.widgets import Widget, TextInput
+from django.urls import reverse
 from django.utils.safestring import mark_safe
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.html import format_html, escape
 from django.conf import settings
 
-from tagging.models import Tag
+# from tagging.models import Tag
 
+SHOP_INFO = getattr(settings, 'SHOP_INFO', {})
 
 BOOTSTRAP_INPUT_TEMPLATE = {
     2: """
        %(rendered_widget)s
-       <a id="%(id)s_link" class="button related-widget-wrapper-link" style="display: inline-block" href="%(popup)s?_popup=1"><i class="fas fa-%(glyphicon)s"></i></a>
+       <a id="%(id)s_link" class="button related-widget-wrapper-link" data-popup="yes" style="display: inline-block" href="%(popup)s?_popup=1"><i class="fas fa-%(glyphicon)s"></i></a>
        <script>
            (function($) {
                $("#%(id)s_link").click(function() {
@@ -95,21 +97,24 @@ class YandexDeliveryWidget(TextInput):
                 yd_id = value
                 popup = 'https://partner.market.yandex.ru/delivery/{}/orders/item/{}'.format(self.yd_campaign, yd_id)
             link_class = ''
+            data = ''
         else:
             glyphicon = 'plus-circle'
             popup = reverse('admin:shop_order_yandex_delivery', args=[self.order_id]) + '?_popup=1'
             link_class = ' related-widget-wrapper-link'
+            data = ' data-popup="yes"'
 
         output = [super(YandexDeliveryWidget, self).render(name, value, attrs, renderer)]
-        output.append('''<a class="button%(link_class)s" style="display: inline-block; margin-left: 7px"
+        output.append('''<a class="button%(link_class)s"%(data) style="display: inline-block; margin-left: 7px"
                           id="%(id)s_create_link" href="%(popup)s"><i class="fas fa-%(glyphicon)s"></i></a>''' % dict(
                               id=id,
                               glyphicon=glyphicon,
                               popup=popup,
-                              link_class=link_class
+                              link_class=link_class,
+                              data=data
                           ))
         if not value:
-            output.append('''<a class="button related-widget-wrapper-link" style="display: inline-block"
+            output.append('''<a class="button related-widget-wrapper-link" data-popup="yes" style="display: inline-block"
                               id="%(id)s_estimate_link" href="%(popup)s?_popup=1"><i class="fas fa-hand-holding-usd"></i></a>''' % dict(
                                   id=id,
                                   popup=reverse('admin:shop_order_yandex_delivery_estimate', args=[self.order_id])
@@ -153,7 +158,7 @@ class DeliveryTrackingNumberWidget(TextInput):
                 glyphicon = 'pencil-alt'
                 link_class = ''
                 final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
-                # final_attrs['value'] = force_text(self.format_value(value))
+                # final_attrs['value'] = force_str(self.format_value(value))
                 # final_attrs['type'] = 'hidden'
                 output = ['<input{0} />№{1}'.format(flatatt(final_attrs), value)]
                 output.append('''<a class="button%(link_class)s" style="display: inline-block; margin-left: 7px"
@@ -182,10 +187,13 @@ class TagAutoComplete(widgets.AdminTextInputWidget):
         """
         Returns the list of tags to auto-complete.
         """
+        """
         if self.model is None:
             return [tag.name for tag in Tag.objects.all()]
         else:
             return [tag.name for tag in Tag.objects.usage_for_model(self.model)]
+        """
+        return []
 
     def format_value(self, value):
         value = super(TagAutoComplete, self).format_value(value)
@@ -318,10 +326,10 @@ class OrderItemProductLink(Widget):
         else:
             dimensions = ""
         return format_html(
-            '<p><a href="{}" target="_blank" style="margin-right: 8px"><i class="fas fa-external-link-alt"></i></a>'
-            '<input{} /><a href="{}?_popup=1" class="related-widget-wrapper-link">{}</a>'
-            ' <a href="{}?_popup=1" class="related-widget-wrapper-link" title="Гарантийный талон"><i class="fas fa-envelope-open-text"></i></a>'
-            '&nbsp;<span class="tiny">{}</span>{}</p>', self.object.product.get_absolute_url(), flatatt(final_attrs),
+            '<p><a href="{}/products/{}.html" target="_blank" style="margin-right: 8px"><i class="fas fa-external-link-alt"></i></a>'
+            '<input{} /><a href="{}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">{}</a>'
+            ' <a href="{}?_popup=1" class="related-widget-wrapper-link" data-popup="yes" title="Гарантийный талон"><i class="fas fa-envelope-open-text"></i></a>'
+            '&nbsp;<span class="tiny">{}</span>{}</p>', SHOP_INFO.get('url_prefix',''), self.object.product.code, flatatt(final_attrs),
             reverse('admin:shop_product_stock', args=[self.object.product.id]), str(self.object.product),
             reverse('admin:print-warranty-card', args=[self.object.order.id, self.object.pk]), self.object.serial_number, dimensions)
 
@@ -336,7 +344,7 @@ class DisablePluralText(forms.TextInput):
             value = ''
         final_attrs = self.build_attrs(attrs, extra_attrs={'type': self.input_type, 'name': name, **self.attrs})
         if value != '':
-            final_attrs['value'] = force_text(self.format_value(value))
+            final_attrs['value'] = force_str(self.format_value(value))
         if self.object.total > 0:
             return mark_safe('<input{0} readonly="readonly" />'.format(flatatt(final_attrs)))
         else:
@@ -353,7 +361,7 @@ class OrderItemTotalText(forms.TextInput):
             value = ''
         final_attrs = self.build_attrs(attrs, extra_attrs={'type': self.input_type, 'name': name, **self.attrs})
         if value != '':
-            final_attrs['value'] = force_text(self.format_value(value))
+            final_attrs['value'] = force_str(self.format_value(value))
         if self.object.total > 0:
             return mark_safe('<input{0} />'.format(flatatt(final_attrs)))
         else:

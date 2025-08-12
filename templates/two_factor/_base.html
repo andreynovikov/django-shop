@@ -1,0 +1,43 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block title %}Административный сайт Швейный Мир{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">Швейный Мир</h1>
+{% include "admin/color_theme_toggle.html" %}
+{% endblock %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static "admin/css/login.css" %}">
+{{ form.media }}
+<style>
+  .form-row input[type='text'], .form-row input[type='password'] {
+      width: 100%;
+      padding-left: 0;
+      padding-right: 0;
+  }
+  form .button {
+      padding: 4px 5px;
+  }
+  form .submit-row .button {
+      padding: 10px 15px;
+  }
+  @media (max-width: 1024px) {
+    form .submit-row .button {
+        padding: 7px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} login{% endblock %}
+
+{% block usertools %}{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block nav-sidebar %}{% endblock %}
+
+{% block content_title %}{% endblock %}
+
+{% block nav-breadcrumbs %}{% endblock %}

@@ -55,6 +55,8 @@
 
         /* Custom styling */
         #id_alert { font-weight: bold; color: #ba2121; }
+        span.sw-product-state { display: inline-block; }
+        div.tabular tr.form-row:has(span.sw-product-state) { background-color: #fff8dc; }
 
         /* Document list box */
         .documentlist a:focus, .documentlist a:hover { background: #79aec8; color: white; }
@@ -98,9 +100,9 @@
         }
 
         var Delivery_Price = $("input[name='delivery_price']").val();
-        var Products_Price = $("div.field-products_price > div > div.readonly").html();
-        var Total = $("div.field-total > div > div.readonly").html();
-        var Number = $("div.field-id > div > div.readonly").html();
+        var Products_Price = $("div.field-products_price > div > div > div.readonly").html();
+        var Total = $("div.field-total > div > div > div.readonly").html();
+        var Number = $("div.field-id > div > div > div.readonly").html();
         $("#items-group").after("<div style=\"text-align:right;\" class=\"lead\">Итого: " + Total + "</div>");
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Доставка: " + Delivery_Price + "</div>");
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Всего: " + Products_Price + "</div>");
@@ -185,34 +187,34 @@
 <div id="documentbox" class="documentbox module" style="display: none; position: absolute">
     <ul class="documentlist">
     {% url opts|admin_urlname:'document' original.pk 'stock'|admin_urlquote as stock_url %}
-    <li><a href="{% add_preserved_filters stock_url %}?_popup=1" class="related-widget-wrapper-link">
+    <li><a href="{% add_preserved_filters stock_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Задание на отбор" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'bill'|admin_urlquote as bill_url %}
-    <li><a href="{% add_preserved_filters bill_url %}?_popup=1" class="related-widget-wrapper-link">
+    <li><a href="{% add_preserved_filters bill_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Счёт" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'billwostamp'|admin_urlquote as billwostamp_url %}
-    <li><a href="{% add_preserved_filters billwostamp_url %}?_popup=1" class="related-widget-wrapper-link">
+    <li><a href="{% add_preserved_filters billwostamp_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Счёт без печати" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'slip'|admin_urlquote as slip_url %}
-    <li><a href="{% add_preserved_filters slip_url %}?_popup=1" class="related-widget-wrapper-link">
+    <li><a href="{% add_preserved_filters slip_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Накладная" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'slipandrules'|admin_urlquote as slipandrules_url %}
-    <li><a href="{% add_preserved_filters slipandrules_url %}?_popup=1" class="related-widget-wrapper-link">
+    <li><a href="{% add_preserved_filters slipandrules_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Накладная с правилами" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'packing'|admin_urlquote as packing_url %}
-    <li><a href="{% add_preserved_filters packing_url %}?_popup=1" class="related-widget-wrapper-link">
+    <li><a href="{% add_preserved_filters packing_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Сопроводительный лист" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'productlist'|admin_urlquote as productlist_url %}
-    <li><a href="{% add_preserved_filters productlist_url %}?_popup=1" class="related-widget-wrapper-link">
+    <li><a href="{% add_preserved_filters productlist_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Товарный чек" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'productlistandrules'|admin_urlquote as productlistandrules_url %}
-    <li><a href="{% add_preserved_filters productlistandrules_url %}?_popup=1" class="related-widget-wrapper-link">
+    <li><a href="{% add_preserved_filters productlistandrules_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Товарный чек для покупателя" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'label'|admin_urlquote as label_url %}
-    <li><a href="{% add_preserved_filters label_url %}?_popup=1" class="related-widget-wrapper-link">
+    <li><a href="{% add_preserved_filters label_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Наклейка" %}</span></a></li>
     {% url opts|admin_urlname:'document' original.pk 'check'|admin_urlquote as check_url %}
-    <li><a href="{% add_preserved_filters check_url %}?_popup=1" class="related-widget-wrapper-link">
+    <li><a href="{% add_preserved_filters check_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Чек" %}</span></a></li>
     </ul>
     <p class="documentlist-cancel"><a href="#">{% trans "Cancel" %}</a></p>
@@ -231,17 +233,17 @@
 {% block object-tools-items %}
     {% if original.integration and original.integration.settings and original.integration.settings.ym_campaign and original.status == original.STATUS_COLLECTED %}
     {% url opts|admin_urlname:'beru_labels' original.pk|admin_urlquote as beru_labels_url %}
-    <li><a href="{% add_preserved_filters beru_labels_url %}?_popup=1" class="related-widget-wrapper-link">
+    <li><a href="{% add_preserved_filters beru_labels_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Наклейки Беру!" %}</span></a></li>
     {% endif %}
-    <li><a id="documentboxlink" href="#" class="related-widget-wrapper-link">Документы</a></li>
+    <li><a id="documentboxlink" href="#" class="related-widget-wrapper-link" data-popup="yes">Документы</a></li>
     {% if original.owner == request.user %}
     {% if not original.integration or not original.integration.uses_api %}
     {% url opts|admin_urlname:'combine' original.pk|admin_urlquote as combine_url %}
-    <li><a href="{% add_preserved_filters combine_url %}?_popup=1" class="related-widget-wrapper-link">
+    <li><a href="{% add_preserved_filters combine_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Объединение заказов" %}</span></a></li>
     {% url opts|admin_urlname:'discount' original.pk|admin_urlquote as discount_url %}
-    <li><a href="{% add_preserved_filters discount_url %}?_popup=1" class="related-widget-wrapper-link">
+    <li><a href="{% add_preserved_filters discount_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Скидка" %}</span></a></li>
     {% endif %}
     {% endif %}

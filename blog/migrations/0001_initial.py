@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db import migrations, models
 import django.db.models.deletion
 import django.utils.timezone
-import tagging.fields
+# import tagging.fields
 
 
 class Migration(migrations.Migration):
@@ -47,7 +47,8 @@ class Migration(migrations.Migration):
                 ('image_height', models.IntegerField(null=True)),
                 ('image_caption', models.TextField(blank=True, verbose_name='подпись')),
                 ('featured', models.BooleanField(default=False, verbose_name='популярная')),
-                ('tags', tagging.fields.TagField(blank=True, max_length=255, verbose_name='тэги')),
+                ('tags', models.CharField(blank=True, max_length=255, verbose_name='тэги')),
+                # ('tags', tagging.fields.TagField(blank=True, max_length=255, verbose_name='тэги')),
                 ('author', models.ForeignKey(blank=True, on_delete=django.db.models.deletion.RESTRICT, to=settings.AUTH_USER_MODEL, verbose_name='автор')),
                 ('categories', models.ManyToManyField(blank=True, related_name='entries', to='blog.Category', verbose_name='категории')),
                 ('related', models.ManyToManyField(blank=True, related_name='_blog_entry_related_+', to='blog.Entry', verbose_name='связанные записи')),

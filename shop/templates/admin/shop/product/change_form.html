@@ -18,6 +18,7 @@
         $(document).ready(function() {
             $("#set_constituents-group").detach().appendTo($("#id_recalculate_price").closest("fieldset"));
             $("#images-group").detach().appendTo($("#id_image").closest("fieldset"));
+            $("#productintegration_set-group").detach().appendTo($("#id_ozon_link").closest("fieldset"));
             $(".add-array-item").each(function(index, element) {
                 $(element).attr("value", "Добавить ещё");
             });
@@ -35,7 +36,7 @@
 {% endblock %}
 {% block object-tools-items %}
     {% url opts|admin_urlname:'clone' original.pk|admin_urlquote as clone_url %}
-    <li><a href="{% add_preserved_filters clone_url True %}" class="related-widget-wrapper-link">
+    <li><a href="{% add_preserved_filters clone_url True %}" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Клонировать" %}</span></a></li>
     {{ block.super }}
 {% endblock %}

@@ -66,6 +66,7 @@ def product_saved(sender, **kwargs):
 def order_item_saved(sender, **kwargs):
     order_item = kwargs['instance']
     if order_item.tracker.has_changed('quantity'):
+        logger.error("### " + order_item.product.code + "saved in order_item_saved signal")
         order_item.product.num = -1
         order_item.product.save()
 
@@ -119,6 +120,7 @@ def order_saved(sender, **kwargs):
 
         if order.status == Order.STATUS_DONE or order.status == Order.STATUS_FINISHED:
             total = 0
+            """ (by Sigalev request)
             complete_orders = order.user.orders.filter(Q(status=Order.STATUS_DONE) | Q(status=Order.STATUS_FINISHED))
             for complete_order in complete_orders:
                 total += complete_order.total
@@ -128,6 +130,7 @@ def order_saved(sender, **kwargs):
             if total >= 3000 and order.user.discount < 5:
                 order.user.discount = 5
                 order.user.save()
+            """
             if order.status == Order.STATUS_DONE:
                 if order.site == SITE_SW or order.site == SITE_YANDEX:
                     next_week = timezone.now() + timedelta(days=7)

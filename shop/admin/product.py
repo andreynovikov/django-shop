@@ -1,25 +1,27 @@
 import logging
 import os
 
+from urllib.parse import quote
+
 from django.forms import TextInput
-from django.urls import reverse
 from django.db.models import PositiveSmallIntegerField, PositiveIntegerField, \
     DecimalField, FloatField, ImageField, Q
+from django.conf import settings
+from django.contrib import admin
 from django.core.exceptions import PermissionDenied
 from django.core.files import File
 from django.core.files.storage import default_storage
-from django.contrib import admin
 from django.http import JsonResponse, HttpResponse
 from django.template.response import TemplateResponse
-from django.conf.urls import url
+from django.urls import re_path
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from adminsortable2.admin import SortableInlineAdminMixin
+from adminsortable2.admin import SortableInlineAdminMixin, SortableAdminBase
 from django_better_admin_arrayfield.admin.mixins import DynamicArrayMixin
 from django_admin_listfilter_dropdown.filters import SimpleDropdownFilter
 from django_admin_listfilter_dropdown.filters import DropdownFilter, RelatedDropdownFilter
-from reviews.admin import ReviewAdmin, ReviewAdminForm
+from reviews.admin import ReviewAdmin, ReviewAdminForm, REVIEW_ADMIN_LINK_SYMBOL
 
 from import_export import resources
 from import_export.admin import ImportExportMixin
@@ -35,6 +37,7 @@ from .decorators import admin_changelist_link
 from .views import product_stock_view
 from .widgets import ImageWidget
 
+SHOP_INFO = getattr(settings, 'SHOP_INFO', {})
 
 logger = logging.getLogger(__name__)
 
@@ -90,12 +93,11 @@ class StockInline(admin.TabularInline):
 class IntegrationInline(admin.TabularInline):
     model = Integration.products.through
     form = IntegrationInlineForm
-    fields = ['integration', 'price']
+    fields = ['integration', 'price', 'notify_stock']
     ordering = ['integration__name']
     extra = 0
-    classes = ['collapse']
-    verbose_name = "интеграция"
-    verbose_name_plural = "интеграции"
+    verbose_name = "внешняя интеграция"
+    verbose_name_plural = "внешние интеграции"
 
 
 class ProductSetInline(admin.TabularInline):
@@ -153,8 +155,45 @@ class IntegrationsFilter(SimpleDropdownFilter):
             return queryset
 
 
+
+class OzonLinkFilter(admin.SimpleListFilter):
+    title = 'ссылка Озон'
+    parameter_name = 'ozon_link'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('blank', 'нет'),
+            ('not_blank', 'есть'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'blank':
+            return queryset.filter(ozon_link='')
+        if self.value() == 'not_blank':
+            return queryset.exclude(ozon_link='')
+        return queryset
+
+
+class WBLinkFilter(admin.SimpleListFilter):
+    title = 'ссылка WB'
+    parameter_name = 'wb_link'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('blank', 'нет'),
+            ('not_blank', 'есть'),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() == 'blank':
+            return queryset.filter(wb_link='')
+        if self.value() == 'not_blank':
+            return queryset.exclude(wb_link='')
+        return queryset
+
+
 @admin.register(Product)
-class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
+class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, DynamicArrayMixin):
     @mark_safe
     def product_codes(self, obj):
         code = obj.code or '--'
@@ -168,7 +207,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
     def combined_price(self, obj):
         result = '%s&nbsp;руб' % obj.price
         if obj.forbid_price_import:
-            result = result + '&nbsp;<span style="color: red">&#10004;</span>'
+            result = result + '&nbsp;<span style="color: var(--error-fg)">&#10004;</span>'
         if not obj.cur_code.code == 643:
             result = result + '<br/>%s&nbsp;%s' % (obj.cur_price, obj.cur_code)
         return result
@@ -179,14 +218,14 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
     def combined_discount(self, obj):
         result = '<span style="color: '
         if obj.val_discount > 0:
-            result = result + 'black'
+            result = result + 'var(--body-fg)'
         else:
-            result = result + 'grey'
+            result = result + 'var(--border-color)'
         result = result + '">%s&nbsp;руб<br/><span style="color: ' % obj.val_discount
         if obj.pct_discount > 0:
-            result = result + 'black'
+            result = result + 'var(--body-fg)'
         else:
-            result = result + 'grey'
+            result = result + 'var(--border-color)'
         result = result + '">%s%%</span>' % obj.pct_discount
         return result
     combined_discount.short_description = 'скидка'
@@ -201,7 +240,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
 
     @mark_safe
     def product_link(self, obj):
-        url = reverse('product', args=[obj.code])
+        url = self.view_on_site(obj)
         return '<a href="%s" target="_blank"><i class="fas fa-external-link-alt"></i></a>' % url
     product_link.short_description = 'о'
 
@@ -210,13 +249,15 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
     integrations.short_description = 'внешние интеграции'
 
     form = ProductAdminForm
-    change_list_template = 'admin/shop/product/change_list.html'
+    # change_list_template = 'admin/shop/product/change_list.html'
+    import_export_change_list_template = 'admin/shop/product/change_list.html'
     resource_class = ProductResource
     list_display = ['product_codes', 'title', 'combined_price', 'combined_discount', 'enabled', 'show_on_sw',
                     'market', 'integrations', 'product_stock', 'orders_link', 'product_link']
     list_display_links = ['title']
     list_editable = ['enabled', 'show_on_sw', 'market']
-    list_filter = ['enabled', 'preorder', 'show_on_sw', IntegrationsFilter, 'market', 'isnew', 'recomended',
+    list_filter = ['enabled', 'preorder', 'show_on_sw', OzonLinkFilter, WBLinkFilter, IntegrationsFilter,
+                   'market', 'isnew', 'recomended',
                    'forbid_price_import', 'cur_code', ('pct_discount', DropdownFilter), ('val_discount', DropdownFilter),
                    ('categories', RelatedDropdownFilter), ('manufacturer', RelatedDropdownFilter)]
     list_per_page = 50
@@ -224,7 +265,6 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
     readonly_fields = ['price', 'ws_price', 'sp_price']
     ordering = ('-id',)
     save_on_top = True
-    view_on_site = True
     inlines = (ProductImageInline, ProductSetInline, ProductRelationInline, IntegrationInline, StockInline)
     filter_vertical = ('categories',)
     autocomplete_fields = ('manufacturer',)
@@ -355,6 +395,10 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
             'classes': ('collapse',),
             'fields': ('image', 'big_image')
         }),
+        ('Интеграции', {
+            'classes': ('collapse',),
+            'fields': ('ozon_link', 'wb_link')
+        }),
     )
 
     """
@@ -363,6 +407,10 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
             if request.user.is_superuser or not request.user.has_perm('shop.change_order_spb'):
                 yield inline.get_formset(request, obj), inline
     """
+
+    def view_on_site(self, obj):
+        prefix = SHOP_INFO.get('url_prefix','')
+        return f'{prefix}/products/{quote(obj.code)}.html'
 
     def get_changelist_form(self, request, **kwargs):
         return ProductListAdminForm
@@ -421,11 +469,11 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin, DynamicArrayMixin):
         urls = super().get_urls()
         info = self.get_model_info()
         my_urls = [
-            url(r'(\d+)/stock/$', self.admin_site.admin_view(self.stock_view), name='%s_%s_stock' % info),
-            url(r'(\d+)/clone/$', self.admin_site.admin_view(self.clone_form), name='%s_%s_clone' % info),
-            url(r'^stock/correction/$', self.admin_site.admin_view(self.stock_correction_view), name='%s_%s_stock_correction' % info),
-            url(r'^import1c/$', self.admin_site.admin_view(self.import_1c_view), name='%s_%s_import_1c' % info),
-            url(r'^import1c/status/$', self.admin_site.admin_view(self.import_1c_status_view), name='%s_%s_import_1c_status' % info),
+            re_path(r'(\d+)/stock/$', self.admin_site.admin_view(self.stock_view), name='%s_%s_stock' % info),
+            re_path(r'(\d+)/clone/$', self.admin_site.admin_view(self.clone_form), name='%s_%s_clone' % info),
+            re_path(r'^stock/correction/$', self.admin_site.admin_view(self.stock_correction_view), name='%s_%s_stock_correction' % info),
+            re_path(r'^import1c/$', self.admin_site.admin_view(self.import_1c_view), name='%s_%s_import_1c' % info),
+            re_path(r'^import1c/status/$', self.admin_site.admin_view(self.import_1c_status_view), name='%s_%s_import_1c_status' % info),
         ]
         return my_urls + urls
 
@@ -587,5 +635,15 @@ class ProductReviewAdmin(ReviewAdmin):
             {'fields': ('submit_date', 'ip_address', 'is_public')}
         ),
     )
+
+    @mark_safe
+    def link(self, obj):
+        if obj.is_public:
+            product = Product.objects.get(pk=obj.object_pk)
+            prefix = SHOP_INFO.get('url_prefix','')
+            return f'<a href="{prefix}/products/{quote(product.code)}.html#r{obj.id}">{REVIEW_ADMIN_LINK_SYMBOL}</a>'
+        else:
+            return ''
+    link.short_description = _('link')
 
 admin.site.register(ProductReview, ProductReviewAdmin)

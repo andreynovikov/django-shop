@@ -1,10 +1,29 @@
 {% extends "admin/change_form.html" %}
+{% block extrastyle %}{{ block.super }}
+<style>
+    /* Move button(s) */
+    .submit-row > a.deletelink {
+        order: 1;
+        margin-left: 0px;
+        margin-right: auto;
+    }
+    .submit-row > input[name="_save"] {
+        order: 4;
+    }
+    .submit-row > input[name="_addanother"] {
+        order: 2;
+    }
+    .submit-row > input[name="_continue"] {
+        order: 3;
+    }
+</style>
+{% endblock %}
 {% block extrahead %}
 {{ block.super }}
 <script>
     (function($) {
         $(document).ready(function() {
-            $("div.submit-row > p.deletelink-box > a.deletelink").each(function(index, element) {
+            $("div.submit-row > a.deletelink").each(function(index, element) {
                 if ($(element).text() === "Удалено") {
                     $(element).text("Удалить");
                 }

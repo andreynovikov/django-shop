@@ -11,7 +11,7 @@ from celery import shared_task
 
 from sewingworld.tasks import PRIORITY_IDLE
 
-from shop.models import Integration, Order, Product
+from shop.models import Integration, Order, Product, ProductIntegration
 
 
 logger = logging.getLogger('beru')
@@ -184,7 +184,8 @@ def get_beru_labels_data(order_id):
         raise TaskFailure(message) from e
 
 
-@shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), rate_limit='1/s', retry_backoff=300, retry_jitter=False)
+# @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), rate_limit='1/s', retry_backoff=300, retry_jitter=False)
+@shared_task(bind=True, autoretry_for=(OSError, django.db.Error), rate_limit='1/s', retry_backoff=300, retry_jitter=False)
 def notify_beru_product_stocks(self, products, account):
     integration = Integration.objects.get(utm_source=account)
 
@@ -201,12 +202,13 @@ def notify_beru_product_stocks(self, products, account):
     updatedAt = datetime.utcnow().replace(microsecond=0).isoformat() + '+00:00'
     skus = []
 
-    for product in Product.objects.filter(pk__in=products):
+    products = Product.objects.filter(pk__in=products)
+    for product in products:
         skus.append({
             'sku': product.article,
             'items': [
                 {
-                    'count': max(int(product.get_stock(integration=integration)), 0),
+                    'count': max(0, min(20, int(product.get_stock(integration=integration)))),
                     'updatedAt': updatedAt
                 }
             ]
@@ -220,6 +222,13 @@ def notify_beru_product_stocks(self, products, account):
     try:
         response = urlopen(request)
         result = json.loads(response.read().decode('utf-8'))
+
+        for product in products:
+            product_integration = ProductIntegration.objects.order_by().filter(product=product, integration=integration).first()
+            if product_integration is not None:
+                product_integration.notify_stock = False
+                product_integration.save()
+
         return result
     except HTTPError as e:
         content = e.read()
@@ -227,6 +236,16 @@ def notify_beru_product_stocks(self, products, account):
         logger.error(error)
         message = error.get('errors', [{}])[0].get('message', 'Неизвестная ошибка взаимодействия с Беру!')
         raise TaskFailure(message) from e
+
+
+@shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
+def notify_beru_marked_stocks(self):
+    for integration in Integration.objects.filter(settings__has_key='ym_campaign'):
+        products = ProductIntegration.objects.order_by().filter(integration=integration, notify_stock=True)
+        products = list(products.values_list('product_id', flat=True).distinct())
+        if products:
+            notify_beru_product_stocks.s(products, integration.utm_source).apply_async(priority=PRIORITY_IDLE)
+        return len(products)
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
@@ -243,4 +262,6 @@ def notify_beru_integration_stocks(self):
 
         products = list(products.values_list('id', flat=True).distinct())
 
-        notify_beru_product_stocks.s(products, integration.utm_source).apply_async(priority=PRIORITY_IDLE)
+        if products:
+            notify_beru_product_stocks.s(products, integration.utm_source).apply_async(priority=PRIORITY_IDLE)
+        return len(products)

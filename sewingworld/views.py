@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils.text import capfirst
 
 from sewingworld.models import SiteProfile
-from facebook.tasks import FACEBOOK_TRACKING, notify_view_content
+# from facebook.tasks import FACEBOOK_TRACKING, notify_view_content
 from shop.models import Category, Product, ProductRelation, ProductSet, ProductKind, Manufacturer, \
     Advert, SalesAction, City, Store, ServiceCenter, Stock, Favorites, Integration, ProductIntegration, \
     Order, OrderItem, Serial
@@ -309,9 +309,9 @@ def product(request, code):
 
     favorite = request.user.is_authenticated and Favorites.objects.filter(user=request.user, product=product).exists()
 
-    if FACEBOOK_TRACKING:
-        notify_view_content.delay(product.id, request.build_absolute_uri(),
-                                  request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
+    # if FACEBOOK_TRACKING:
+    #     notify_view_content.delay(product.id, request.build_absolute_uri(),
+    #                               request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
 
     context = {
         'category': category,

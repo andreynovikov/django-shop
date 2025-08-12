@@ -6,7 +6,7 @@ from celery import Celery
 from django.conf import settings
 
 # set the default Django settings module for the 'celery' program.
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sewingworld.settings.production')
+# os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sewingworld.settings.production')
 
 app = Celery('sewingworld')
 
@@ -20,7 +20,11 @@ if hasattr(main, '__file__') and 'celery' in main.__file__:
 # Using a string here means the worker will not have to
 # pickle the object when using Windows.
 app.config_from_object('django.conf:settings', namespace='CELERY')
+app.conf.worker_prefetch_multiplier = 1
 app.conf.worker_send_task_events = True
 app.conf.task_send_sent_event = True
 app.conf.task_track_started = True
+app.conf.task_acks_late = True
+app.conf.task_default_queue = 'default'
+# app.conf.task_default_priority = 4
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
