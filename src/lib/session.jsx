@@ -4,7 +4,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiClient, userKeys, userReferences, userDependencies, currentUser } from '@/lib/queries';
 
-export const SessionContext = createContext(undefined);
+export const SessionContext = createContext({
+    user: undefined,
+    isRouting: false,
+    status: 'unauthenticated'
+});
 
 const __SESSION = {
     _invalidate: () => {}

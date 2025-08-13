@@ -7,6 +7,7 @@ export const userKeys = {
     detail: (id) => [...userKeys.details(), id],
     check: (phone) => [...userKeys.details(), 'check', phone],
     current: () => [...userKeys.details(), 'current'],
+    bonus: () => [...userKeys.details(), 'bonus'],
 };
 
 export const categoryKeys = {
@@ -421,6 +422,11 @@ export async function currentUser() {
 
 export async function getUserForm() {
     const response = await apiClient.get('users/form/');
+    return response.data;
+}
+
+export async function getUserBonus() {
+    const response = await apiClient.get('users/bonus/');
     return response.data;
 }
 
