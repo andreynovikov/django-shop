@@ -10,7 +10,7 @@ import rupluralize from '@/lib/rupluralize';
 import { useSession } from '@/lib/session';
 import { reviewKeys, loadProductReviews } from '@/lib/queries';
 
-const colors = ['#42d697', '#a7e453', '#ffda75', '#fea569', '#f34770'];
+const colors = ['#f34770', '#fea569', '#ffda75', '#a7e453', '#42d697'];
 
 export default function ProductReviews({product}) {
     const modalRef = useRef();
@@ -58,11 +58,11 @@ export default function ProductReviews({product}) {
                     <div className="row pb-3">
                         <div className="col-lg-4 col-md-5">
                             <h2 className="h3 mb-4">{ reviews.count } { rupluralize(reviews.count, ['обзор', 'обзора', 'обзоров']) }</h2>
-                            <ReviewRating value={reviews.statistics.value} classAddon="text-accent fs-sm me-1" />
+                            <ReviewRating value={reviews.statistics.value} classAddon="fs-sm me-1" />
                             <span className="d-inline-block align-middle ms-1">{ reviews.statistics.value.toFixed(1) } &ndash; { reviews.statistics.text }</span>
                         </div>
                         <div className="col-lg-8 col-md-7">
-                            { ratingChoices.map((choice, index) => (
+                            { ratingChoices.toReversed().map((choice, index) => (
                                 <div className="d-flex align-items-center mb-2" key={index}>
                                     <div className="text-nowrap me-3">
                                         <span className="d-inline-block align-middle text-muted">{ choice.rating }</span>

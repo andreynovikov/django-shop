@@ -136,7 +136,11 @@ export default function ReviewForm({product, review: reviewId}) {
                                     onChange={handleChange}
                                     required={field.required}>
                                     { field.choices.map((choice) => (
-                                        <option value={choice[0]} key={choice[0]}>{choice[1]}</option>
+                                        <option value={choice[0]} key={choice[0]}>
+                                            {choice[1]}
+                                            {' '}
+                                            {choice[0] && <>({choice[0]})</>}
+                                        </option>
                                     ))}
                                 </select>
                             ) : field.widget === 'Textarea' ? (

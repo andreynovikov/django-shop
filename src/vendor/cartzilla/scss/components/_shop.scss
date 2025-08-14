@@ -233,15 +233,17 @@
   white-space: nowrap;
   line-height: 1;
   vertical-align: middle;
-  .star-rating-icon {
-    display: inline-block;
-    margin-right: .1875rem;
+  i {
     color: $star-color;
-    font-size: $star-size;
-    vertical-align: middle;
     &.active {
       color: $star-active-color;
     }
+  }
+  .star-rating-icon {
+    display: inline-block;
+    margin-right: .1875rem;
+    font-size: $star-size;
+    vertical-align: middle;
   }
 }
 
