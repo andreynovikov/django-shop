@@ -4,6 +4,11 @@ const nextConfig: NextConfig = {
     reactStrictMode: true,
     trailingSlash: true,
     output: 'standalone',
+    images: {
+        remotePatterns: [
+            new URL('https://api.sewing-world.ru/media/**')
+        ],
+    },
     async redirects() {
         return [
             {

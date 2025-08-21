@@ -1,6 +1,6 @@
 {
     "name": "sworld",
-    "version": "2025.08.14",
+    "version": "2025.08.21",
     "scripts": {
         "dev": "next dev -H 127.0.0.1 -p 3000 --experimental-https",
         "start": "next start -H 127.0.0.1 -p 4000",
@@ -25,6 +25,7 @@
         "react-dom": "^19.1.0",
         "react-intersection-observer": "^9.16.0",
         "simplebar-react": "^3.3.2",
+        "swiper": "^11.2.10",
         "tiny-slider": "^2.9.4"
     },
     "devDependencies": {

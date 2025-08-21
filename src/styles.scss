@@ -206,3 +206,11 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
 .ratio + h5 {
     margin-top: map-get($spacers, 2);
 }
+
+// swiper.js tweaks
+
+:root {
+    --swiper-theme-color: #fff !important;
+    --swiper-navigation-size: 25px !important;
+    --swiper-navigation-sides-offset: 5px;
+}

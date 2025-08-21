@@ -1,3 +1,12 @@
+export interface ProductImage {
+    src: string,
+    thumbnail: {
+        src: string,
+        width: number,
+        height: number
+    }
+}
+
 export interface Serial {
     number: string,
     approved: boolean,
