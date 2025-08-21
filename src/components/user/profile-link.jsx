@@ -39,7 +39,7 @@ export default function UserProfileLink() {
                     <i className="navbar-tool-icon ci-user" />
                 </a>
                 <a className="navbar-tool-text ms-n3" onClick={() => modalRef.current.showModal()} style={{cursor:'pointer'}}>
-                    <small>Вход в</small>аккаунт
+                    <small>Вход в</small>личный кабинет
                 </a>
             </div>
         )
