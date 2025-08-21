@@ -1,4 +1,4 @@
-FROM node:20.10.0-bullseye-slim AS base
+FROM node:22.18.0-bookworm-slim AS base
 
 FROM base AS deps
 WORKDIR /app
@@ -12,7 +12,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY src ./src
 COPY public ./public
 COPY .env* ./
-COPY next.config.js jsconfig.json .eslintrc.json ./
+COPY next-env.d.ts next.config.ts tsconfig.json eslint.config.mjs ./
 COPY package.json package-lock.json* ./
 COPY startup.sh ./
 
