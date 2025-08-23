@@ -1,5 +1,7 @@
 'use client'
 
+import { Dispatch, SetStateAction } from 'react'
+
 import Image from 'next/image'
 
 import { Swiper, SwiperSlide } from 'swiper/react'
@@ -13,10 +15,11 @@ import 'swiper/css/navigation'
 
 interface ImageCarouselProps {
     images: ProductImage[],
+    setImage: Dispatch<SetStateAction<string>>
     className?: string
 }
 
-export default function ImageCarousel({ images, className }: ImageCarouselProps) {
+export default function ImageCarousel({ images, setImage, className }: ImageCarouselProps) {
     return (
         <Swiper
             slidesPerView={'auto'}
@@ -28,13 +31,13 @@ export default function ImageCarousel({ images, className }: ImageCarouselProps)
         >
             {images.map(image => (
                 <SwiperSlide key={image.src} className="d-inline-block w-auto">
-                    <a href={image.src} className="glightbox gallery-item rounded border">
+                    <div onClick={() => setImage(image.src)} className="rounded border" role="button">
                         <Image
                             src={image.thumbnail.src}
                             width={image.thumbnail.width}
                             height={image.thumbnail.height}
                             alt="" />
-                    </a>
+                    </div>
                 </SwiperSlide>
             ))}
         </Swiper>

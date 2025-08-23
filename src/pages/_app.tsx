@@ -15,7 +15,6 @@ import { apiClient, categoryKeys, productKeys, pageKeys } from '@/lib/queries';
 import 'simplebar-react/dist/simplebar.min.css';
 import '@/vendor/nouislider.css'; // price filter // TODO: this breaks external font import
 import 'tiny-slider/dist/tiny-slider.css'; // carousel
-import 'glightbox/dist/css/glightbox.css'; // image gallery
 import 'react-bootstrap-typeahead/css/Typeahead.css';
 import 'react-bootstrap-typeahead/css/Typeahead.bs5.css';
 import '../styles.scss';

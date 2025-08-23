@@ -213,4 +213,8 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
     --swiper-theme-color: #fff !important;
     --swiper-navigation-size: 25px !important;
     --swiper-navigation-sides-offset: 5px;
+
+    :has(.sw-no-body-scroll) {
+        overflow: hidden;
+    }
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, Suspense, lazy } from 'react'
 import { useRouter } from 'next/router'
+import Image from 'next/image'
 import Link from 'next/link'
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 import { useInView } from 'react-intersection-observer'
@@ -14,6 +15,7 @@ import NoImage from '@/components/product/no-image'
 import ProductMiniCard from '@/components/product/mini-card'
 import ProductPrice from '@/components/product/price'
 import ProductRating from '@/components/product/rating'
+import ImageGallery from '@/components/product/image-gallery'
 import ImageCarousel from '@/components/product/image-carousel'
 import Loading from '@/components/loading'
 
@@ -47,10 +49,6 @@ const fieldList = [
     'prom_needle_width', 'prom_needle_num', 'prom_platform_type', 'prom_button_diaouter',
     'prom_button_diainner', 'prom_needle_height', 'prom_stitch_type', 'prom_autothread'
 ]
-
-const gallerySettings = {
-    touchNavigation: true
-}
 
 const sliderSettings = {
     mouseDrag: true,
@@ -126,10 +124,11 @@ function renderTemplate(template, product) {
 };
 
 export default function Product({ code }) {
-    const [glightboxModule, setGlightboxModule] = useState(null)
     const [tnsModule, setTnsModule] = useState(null)
     const [productFields, setProductFields] = useState([])
     const [fieldNames, setFieldNames] = useState({})
+    const [currentImage, setCurrentImage] = useState()
+    const [galleryOpen, setGalleryOpen] = useState(false)
     const [stockVisible, setStockVisible] = useState(false)
     const [reviewsVisible, setReviewsVisible] = useState(false)
     const [quantity, setQuantity] = useState(1)
@@ -153,17 +152,17 @@ export default function Product({ code }) {
     })
 
     useEffect(() => {
-        import('glightbox').then((module) => {
-            setGlightboxModule(module)
-        })
         import('tiny-slider').then((module) => {
             setTnsModule(module)
         })
     }, [])
 
     useEffect(() => {
-        if (isSuccess)
+        if (isSuccess) {
             setProductFields(filterProductFields(product))
+            if (product.image)
+                setCurrentImage(product.image)
+        }
     }, [product, isSuccess])
 
     useEffect(() => {
@@ -178,15 +177,6 @@ export default function Product({ code }) {
             setFieldNames(names)
         }
     }, [fields])
-
-    useEffect(() => {
-        if (isSuccess && product.image && glightboxModule !== null) {
-            const lightbox = glightboxModule.default(gallerySettings)
-            return () => {
-                lightbox.destroy()
-            }
-        }
-    }, [product, isSuccess, glightboxModule])
 
     useEffect(() => {
         if (isSuccess && (product.accessories || product.similar) && tnsModule !== null) {
@@ -249,19 +239,31 @@ export default function Product({ code }) {
                     <div className="px-lg-3">
                         <div className="row">
                             <div className="col-lg-7 pe-lg-0">
-                                {product.image ? (
-                                    <div className="d-block">
-                                        <a href={product.big_image || product.image}
-                                            className="glightbox gallery-item"
-                                            data-title={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`}>
-                                            <img
-                                                src={product.image}
-                                                alt={`${product.title} ${product.whatis}`}
-                                                itemProp="image" />
-                                        </a>
+                                {currentImage ? (
+                                    <div className="d-block text-center">
+                                        <div className="position-relative w-100" style={{ height: "600px" }}>
+                                            <Image
+                                                src={currentImage}
+                                                priority
+                                                loading="eager"
+                                                fill
+                                                style={{ objectFit: 'contain' }}
+                                                alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`}
+                                                onClick={() => setGalleryOpen(true)}
+                                                itemProp="image"
+                                                role="button" />
+                                        </div>
                                         {product.images && (
-                                            <ImageCarousel images={product.images} className="my-2" />
+                                            <ImageCarousel images={product.images} setImage={setCurrentImage} className="my-2" />
                                         )}
+                                        <ImageGallery
+                                            currentImage={currentImage}
+                                            images={[
+                                                product.big_image || product.image,
+                                                ...product.images.map(image => image.src)
+                                            ]}
+                                            open={galleryOpen}
+                                            setOpen={setGalleryOpen} />
                                     </div>
                                 ) : (
                                     <div className="d-none d-lg-block">
@@ -698,8 +700,8 @@ export async function getStaticProps(context) {
                 code,
                 dehydratedState: dehydrate(queryClient),
                 title: data.title,
-                whatis: data.whatis,
-                runame: data.runame,
+                whatis: data.whatis || null,
+                runame: data.runame || null,
                 id: data.id,
                 allowReviews: data.allow_reviews
             }
