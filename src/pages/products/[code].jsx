@@ -638,7 +638,7 @@ export default function Product({ code }) {
                 <div className="border-top pt-5">
                     <div className="container pt-lg-2 pb-5 mb-md-3">
                         <h2 className="h3 text-center pb-4">Обратите внимание!</h2>
-                        <div>{product.dealertxt}</div>
+                        <div dangerouslySetInnerHTML={{ __html: product.dealertxt }} />
                     </div>
                 </div>
             )}
