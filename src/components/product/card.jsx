@@ -104,11 +104,11 @@ export default function ProductCard({product, limitedBadges}) {
                 { product.sales_notes && <div className="fs-ms text-info pb-2">{ product.sales_notes }</div> }
                 <div className="d-flex mb-2">
                     { product.variations ? (
-                        <Link className="btn btn-primary btn-sm d-block w-100" href={product.variations}>
+                        <Link className="btn btn-success btn-sm d-block w-100" href={product.variations}>
                             Выбрать
                         </Link>
                     ) : product.enabled && product.instock ? (
-                        <button className="btn btn-primary btn-sm d-block w-100" type="button" onClick={handleCartClick}>
+                        <button className="btn btn-success btn-sm d-block w-100" type="button" onClick={handleCartClick}>
                             <i className="ci-cart fs-sm me-1" />
                             Купить
                         </button>

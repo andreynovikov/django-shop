@@ -260,7 +260,7 @@ export default function Product({ code }) {
                                             currentImage={currentImage}
                                             images={[
                                                 product.big_image || product.image,
-                                                ...product.images.map(image => image.src)
+                                                ...(product.images ?? []).map(image => image.src)
                                             ]}
                                             open={galleryOpen}
                                             setOpen={setGalleryOpen} />
@@ -366,12 +366,12 @@ export default function Product({ code }) {
                                                         </select>
                                                     )}
                                                     {product.instock > 0 ? (
-                                                        <button className="btn btn-primary btn-shadow d-block w-100" type="button" onClick={handleCartClick}>
+                                                        <button className="btn btn-success btn-shadow d-block w-100" type="button" onClick={handleCartClick}>
                                                             <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                                             <i className="ci-cart fs-lg me-2" />Купить
                                                         </button>
                                                     ) : (
-                                                        <a className="btn btn-primary btn-shadow d-block w-100 add-to-cart" href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}">
+                                                        <a className="btn btn-success btn-shadow d-block w-100 add-to-cart" href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}">
                                                             <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                                             <i className="ci-loudspeaker fs-lg me-2" />Сообщить о поступлении
                                                         </a>
