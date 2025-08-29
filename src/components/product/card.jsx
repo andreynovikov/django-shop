@@ -11,7 +11,7 @@ import useBasket from '@/lib/basket';
 import useFavorites from '@/lib/favorites';
 import { useSession } from '@/lib/session';
 
-export default function ProductCard({product, limitedBadges}) {
+export default function ProductCard({product, limitedBadges=false}) {
     const { status } = useSession();
 
     const cardRef = useRef();

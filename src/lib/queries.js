@@ -21,12 +21,14 @@ export const productKeys = {
     all: ['products'],
     fields: () => [...productKeys.all, 'fields'],
     suggestions: (text) => [...productKeys.all, 'suggestions', text],
+    search: (text, page, size, filters, ordering) => [...productKeys.all, { text, page, size, filters, ordering }],
     images: (id) => [...productKeys.all, id, 'images'],
     stock: (id) => [...productKeys.all, id, 'stock'],
     lists: () => [...productKeys.all, 'list'],
     list: (page, size, filters, ordering) => [...productKeys.lists(), { page, size, filters, ordering }],
     details: () => [...productKeys.all, 'detail'],
-    detail: (id) => [...productKeys.details(), id]
+    detail: (id) => [...productKeys.details(), id],
+    info: (id) => [...productKeys.details(), id]
 };
 
 export const reviewKeys = {
@@ -400,6 +402,11 @@ export async function loadProduct(id) {
 
 export async function loadProductByCode(code) {
     const response = await apiClient.get(`products/${code}/bycode/`);
+    return response.data;
+}
+
+export async function loadProductInfo(id) {
+    const response = await apiClient.get(`products/${id}/info/`);
     return response.data;
 }
 

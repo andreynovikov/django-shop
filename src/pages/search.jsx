@@ -1,34 +1,28 @@
-import { useState, useReducer, useMemo } from 'react';
-import { useRouter } from 'next/router';
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useState, useMemo } from 'react'
+import { useRouter } from 'next/router'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 
-import Offcanvas from 'react-bootstrap/Offcanvas';
+import Offcanvas from 'react-bootstrap/Offcanvas'
 
-import PageLayout from '@/components/layout/page';
-import ProductCard from '@/components/product/card';
-import MultipleChoiceFilter from '@/components/product/filters/multiple-choice-filter';
-import PriceFilter from '@/components/product/filters/price-filter';
-import PageSelector, { SmallPageSelector } from '@/components/page-selector';
+import PageLayout from '@/components/layout/page'
+import ProductSearchCard from '@/components/product/search-card'
+import MultipleChoiceFilter from '@/components/product/filters/multiple-choice-filter'
+import PriceFilter from '@/components/product/filters/price-filter'
+import PageSelector, { SmallPageSelector } from '@/components/page-selector'
 
-import { productKeys, loadProducts } from '@/lib/queries';
-import { useToolbar } from '@/lib/toolbar';
-import useCatalog from '@/lib/catalog';
-import rupluralize from '@/lib/rupluralize';
+import { productKeys } from '@/lib/queries'
+import { loadProducts } from '@/lib/diginetica'
+import { useToolbar } from '@/lib/toolbar'
+import useCatalog from '@/lib/catalog'
+import rupluralize from '@/lib/rupluralize'
 
-function filterReducer(filters, {field, value}) {
-    const newFilters = filters.filter(filter => filter.field !== field);
-    if (value !== undefined)
-        newFilters.push({field, value});
-    return newFilters;
-}
+export default function Search({ text, page }) {
+    const [showFilters, setShowFilters] = useState(false)
+    const [currentFilters, setFilter] = useState({ text })
 
-export default function Search({text, page}) {
-    const [showFilters, setShowFilters] = useState(false);
-    const [currentFilters, setFilter] = useReducer(filterReducer, [{field: 'text', value: text}]);
+    const router = useRouter()
 
-    const router = useRouter();
-
-    useCatalog();
+    useCatalog()
 
     const toolbarItem = useMemo(() => {
         return (
@@ -37,45 +31,50 @@ export default function Search({text, page}) {
                 <span className="handheld-toolbar-label">Фильтры</span>
             </a>
         )
-    }, []);
+    }, [])
 
-    useToolbar(toolbarItem);
+    useToolbar(toolbarItem)
 
-    const { data: products, isSuccess, isLoading, isError } = useQuery({
-        queryKey: productKeys.list(page || 1, 15, currentFilters, null),
-        queryFn: () => loadProducts(page || 1, 15, currentFilters, null),
+    const { data: result, isSuccess, isLoading, isError } = useQuery({
+        queryKey: productKeys.search(text, page || 1, 15, currentFilters, null),
+        queryFn: () => loadProducts(text, page || 1, 15, currentFilters, null),
         placeholderData: keepPreviousData // required for filters not to loose choices and attributes
-    });
+    })
 
-    const selectedFilters = useMemo(() => {
-        const filters = {};
-        const minPrice = currentFilters.reduce((value, f) => f.field === 'price_min' ? f.value : value, undefined);
-        const maxPrice = currentFilters.reduce((value, f) => f.field === 'price_max' ? f.value : value, undefined);
-        filters['price'] = [minPrice, maxPrice];
-        const manufacturer = currentFilters.reduce((value, f) => f.field === 'manufacturer' ? f.value : value, undefined);
-        filters['manufacturer'] = manufacturer;
-        filters['available'] = currentFilters.reduce((value, f) => f.field === 'instock' ? f.value : value, undefined);
-        return filters;
-    }, [currentFilters]);
+    const pages = Math.ceil((result?.totalHits ?? 0) / 15)
+
+    const priceFilter = useMemo(() => {
+        const priceFacet = result?.facets.reduce((selected, facet) => facet.name === 'price' ? facet : selected, undefined)
+        if (priceFacet !== undefined)
+            return priceFacet.values.reduce((filter, value) => {
+                filter[`${value.id}_value`] = value.value
+                return filter
+            }, {})
+        return undefined
+    }, [result])
+
+    const brandsFilter = useMemo(() => {
+        const brandsFacet = result?.facets.reduce((selected, facet) => facet.name === 'brands' ? facet : selected, undefined)
+        if (brandsFacet?.values.length > 1)
+            return brandsFacet.values.reduce((filter, value) => {
+                filter.push([value.id, value.name]) 
+                return filter
+            }, [])
+        return undefined
+    }, [result])
 
     const handleFilterChanged = (field, value) => {
-        console.log(field, value);
+        console.log(field, value)
         router.push({
             pathname: router.pathname,
             query: { ...router.query, page: 1 }
-        });
-        if (field === 'price') {
-            setFilter({field: `${field}_min`, value: value?.[0]});
-            setFilter({field: `${field}_max`, value: value?.[1]});
-        } else {
-            setFilter({field, value});
-        }
-    };
+        })
+        setFilter(filter => ({ ...filter, [field]: value }))
+    }
 
     const handleAvailableChange = (e) => {
-        const value = e.currentTarget.checked ? 1 : undefined;
-        setFilter({field: 'enabled', value});
-        setFilter({field: 'instock', value});
+        const value = e.currentTarget.checked ? 1 : undefined
+        setFilter(filter => ({ ...filter, available: value }))
     }
 
     if (isSuccess) {
@@ -88,32 +87,32 @@ export default function Search({text, page}) {
                             onHide={() => setShowFilters(false)}
                             responsive="lg"
                             className="offcanvas bg-white w-100 rounded-3 shadow-lg py-1"
-                            style={{maxWidth: "22rem"}}>
+                            style={{ maxWidth: "22rem" }}>
                             <Offcanvas.Header className="align-items-center shadow-sm" closeButton>
                                 <h2 className="h5 mb-0">Фильтры</h2>
                             </Offcanvas.Header>
                             <Offcanvas.Body className="py-grid-gutter px-lg-grid-gutter">
-                                <div className="widget pb-4 mb-4 border-bottom">
+                                {brandsFilter && <div className="widget pb-4 mb-4 border-bottom">
                                     <h3 className="widget-title">Производитель</h3>
                                     <MultipleChoiceFilter
-                                        filter={{name: 'manufacturer', ...products.filters['manufacturer']}}
-                                        filterValue={selectedFilters['manufacturer']}
+                                        filter={{name: 'manufacturer', choices: brandsFilter}}
+                                        filterValue={currentFilters['manufacturer']}
                                         onFilterChanged={handleFilterChanged} />
-                                </div>
-                                <div className="widget pb-4 mb-4 border-bottom">
+                                </div>}
+                                {priceFilter && <div className="widget pb-4 mb-4 border-bottom">
                                     <h3 className="widget-title">Цена</h3>
                                     <PriceFilter
-                                        filter={{name: 'price', unit: 'руб', ...products.filters['price']}}
-                                        filterValue={selectedFilters['price']}
+                                        filter={{ name: 'price', unit: 'руб', attrs: priceFilter }}
+                                        filterValue={currentFilters['price']}
                                         onFilterChanged={handleFilterChanged} />
-                                </div>
+                                </div>}
                                 <div className="widget">
                                     <div className="form-check">
                                         <input
                                             className="form-check-input"
                                             type="checkbox"
                                             id="sw-awailable-check"
-                                            checked={selectedFilters['available'] !== undefined}
+                                            checked={currentFilters['available'] !== undefined}
                                             onChange={handleAvailableChange} />
                                         <label className="form-check-label" htmlFor="sw-awailable-check">Доступно к покупке</label>
                                     </div>
@@ -125,50 +124,54 @@ export default function Search({text, page}) {
                     <section className="col-lg-8">
                         <div className="d-flex justify-content-center justify-content-sm-between align-items-center pt-2 pb-4 pb-sm-5">
                             <div className="d-flex pb-3">
-                                { products.count > 0 && (
+                                {result?.totalHits > 0 && (
                                     <span className="text-light opacity-75 text-nowrap">
-                                        { rupluralize(products.count, ['Найден','Найдены','Найдены']) }
-                                        {' '}{ products.count }{' '}
-                                        { rupluralize(products.count, ['товар','товара','товаров']) }
+                                        {rupluralize(result.totalHits, ['Найден', 'Найдены', 'Найдены'])}
+                                        {' '}{result.totalHits}{' '}
+                                        {rupluralize(result.totalHits, ['товар', 'товара', 'товаров'])}
                                     </span>
                                 )}
                             </div>
-                            { products?.totalPages > 1 && (
+                            {pages > 1 && (
                                 <SmallPageSelector
                                     pathname={router.pathname}
                                     query={router.query}
-                                    totalPages={products.totalPages}
-                                    currentPage={products.currentPage} />
+                                    totalPages={pages}
+                                    currentPage={+page} />
                             )}
                         </div>
 
                         <div className="row mx-n2">
-                            { products.count > 0 ? (
-                                products.results.map((product) => (
+                            {result?.totalHits > 0 ? (
+                                result.products.map((product) => (
                                     <div className="col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
-                                        <ProductCard product={product} />
+                                        <ProductSearchCard result={product} />
                                         <hr className="d-sm-none" />
                                     </div>
                                 ))
                             ) : (
-                                <div className="lead my-4">Ничего не найдено</div>
+                                <div className="lead my-4">
+                                    По вашему запросу ничего не найдено.
+                                    Попробуйте сократить запрос или задать его по-другому.
+                                    Убедитесь, что название бренда и модели написано правильно.
+                                </div>
                             )}
                         </div>
 
-                        { products.totalPages > 1 && (
+                        {pages > 1 && (
                             <>
                                 <hr className="my-3" />
                                 <PageSelector
                                     pathname={router.pathname}
                                     query={router.query}
-                                    totalPages={products.totalPages}
-                                    currentPage={products.currentPage} />
+                                    totalPages={pages}
+                                    currentPage={+page} />
                             </>
                         )}
                     </section>
                 </div>
             </div>
-        );
+        )
     }
 
     if (isLoading) {
@@ -189,10 +192,10 @@ export default function Search({text, page}) {
                     <div className="lead ms-3">Error!</div>
                 </div>
             </div>
-        );
+        )
     }
 
-    return <></>;
+    return <></>
 }
 
 Search.getLayout = function getLayout(page) {

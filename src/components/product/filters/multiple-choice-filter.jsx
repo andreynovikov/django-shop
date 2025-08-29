@@ -6,6 +6,8 @@ export default function MultipleChoiceFilter({filter, filterValue, onFilterChang
 
     const handleChange = (event) => {
         let value = +event.target.value;
+        if (isNaN(value))
+            value = event.target.value;
         let newValue;
         if (event.target.checked)
             newValue = [value, ...currentValue];
