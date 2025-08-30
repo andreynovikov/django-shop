@@ -2,7 +2,7 @@ import Script from 'next/script';
 import SimpleBar from 'simplebar-react';
 
 export default function MultipleChoiceFilter({filter, filterValue, onFilterChanged}) {
-    const currentValue = filterValue !== undefined  ? filterValue : [];
+    const currentValue = filterValue !== undefined && filterValue !== null ? filterValue : [];
 
     const handleChange = (event) => {
         let value = +event.target.value;

@@ -6,7 +6,7 @@ export default function PriceFilter({filter, filterValue, onFilterChanged}) {
 
     const minValue = filter.attrs?.min_value || 0;
     const maxValue = filter.attrs?.max_value || 990000;
-    const currentValue = filterValue !== undefined ? filterValue : [minValue, maxValue];
+    const currentValue = filterValue !== undefined && filterValue !== null ? filterValue : [minValue, maxValue];
 
     const sliderRef = useRef();
     const minValueRef = useRef();
