@@ -46,14 +46,10 @@ body {
 // Cartzilla tweaks
 
 .navbar-brand > img { // make logo highly responsive
-    width: 34px;
-    height: 34px;
+    width: auto;
+    height: 26px;
     object-position: left;
     object-fit: cover;
-
-    @include media-breakpoint-up(sm) {
-        width: auto;
-    }
 
     @include media-breakpoint-up(xl) {
         height: 53px;
