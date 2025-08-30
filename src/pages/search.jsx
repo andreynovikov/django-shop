@@ -1,6 +1,9 @@
+'use client'
+
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
+import { useQueryStates, parseAsString, parseAsBoolean, parseAsInteger, parseAsArrayOf } from 'nuqs'
 
 import Offcanvas from 'react-bootstrap/Offcanvas'
 
@@ -16,9 +19,17 @@ import { useToolbar } from '@/lib/toolbar'
 import useCatalog from '@/lib/catalog'
 import rupluralize from '@/lib/rupluralize'
 
+const searchParams = {
+    text: parseAsString,
+    price: parseAsArrayOf(parseAsInteger, '-'),
+    manufacturer: parseAsArrayOf(parseAsString, ';'),
+    available: parseAsBoolean.withDefault(false),
+    page: parseAsInteger.withDefault(1),
+}
+
 export default function Search({ text, page }) {
     const [showFilters, setShowFilters] = useState(false)
-    const [currentFilters, setFilter] = useState({ text })
+    const [filters, setFilters] = useQueryStates(searchParams)
 
     const router = useRouter()
 
@@ -36,8 +47,8 @@ export default function Search({ text, page }) {
     useToolbar(toolbarItem)
 
     const { data: result, isSuccess, isLoading, isError } = useQuery({
-        queryKey: productKeys.search(text, page || 1, 15, currentFilters, null),
-        queryFn: () => loadProducts(text, page || 1, 15, currentFilters, null),
+        queryKey: productKeys.search(filters, null),
+        queryFn: () => loadProducts(text, filters.page, 15, filters),
         placeholderData: keepPreviousData // required for filters not to loose choices and attributes
     })
 
@@ -64,17 +75,10 @@ export default function Search({ text, page }) {
     }, [result])
 
     const handleFilterChanged = (field, value) => {
-        console.log(field, value)
-        router.push({
-            pathname: router.pathname,
-            query: { ...router.query, page: 1 }
+        setFilters({
+            [field]: value,
+            page: 1
         })
-        setFilter(filter => ({ ...filter, [field]: value }))
-    }
-
-    const handleAvailableChange = (e) => {
-        const value = e.currentTarget.checked ? 1 : undefined
-        setFilter(filter => ({ ...filter, available: value }))
     }
 
     if (isSuccess) {
@@ -96,14 +100,14 @@ export default function Search({ text, page }) {
                                     <h3 className="widget-title">Производитель</h3>
                                     <MultipleChoiceFilter
                                         filter={{name: 'manufacturer', choices: brandsFilter}}
-                                        filterValue={currentFilters['manufacturer']}
+                                        filterValue={filters.manufacturer}
                                         onFilterChanged={handleFilterChanged} />
                                 </div>}
                                 {priceFilter && <div className="widget pb-4 mb-4 border-bottom">
                                     <h3 className="widget-title">Цена</h3>
                                     <PriceFilter
                                         filter={{ name: 'price', unit: 'руб', attrs: priceFilter }}
-                                        filterValue={currentFilters['price']}
+                                        filterValue={filters.price}
                                         onFilterChanged={handleFilterChanged} />
                                 </div>}
                                 <div className="widget">
@@ -112,8 +116,8 @@ export default function Search({ text, page }) {
                                             className="form-check-input"
                                             type="checkbox"
                                             id="sw-awailable-check"
-                                            checked={currentFilters['available'] !== undefined}
-                                            onChange={handleAvailableChange} />
+                                            checked={filters.available}
+                                            onChange={(e) => handleFilterChanged('available', e.currentTarget.checked)} />
                                         <label className="form-check-label" htmlFor="sw-awailable-check">Доступно к покупке</label>
                                     </div>
                                 </div>
@@ -137,7 +141,7 @@ export default function Search({ text, page }) {
                                     pathname={router.pathname}
                                     query={router.query}
                                     totalPages={pages}
-                                    currentPage={+page} />
+                                    currentPage={filters.page} />
                             )}
                         </div>
 
@@ -165,7 +169,7 @@ export default function Search({ text, page }) {
                                     pathname={router.pathname}
                                     query={router.query}
                                     totalPages={pages}
-                                    currentPage={+page} />
+                                    currentPage={filters.page} />
                             </>
                         )}
                     </section>

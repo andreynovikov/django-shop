@@ -1,9 +1,9 @@
-import type { ReactElement, ReactNode } from 'react'
+import { useState, useEffect,ReactElement, ReactNode } from 'react'
 import type { NextPage } from 'next'
 import type { AppProps } from 'next/app'
 
-import { useState, useEffect } from 'react';
 
+import { NuqsAdapter } from 'nuqs/adapters/next/pages'
 import { QueryClient, QueryClientProvider, HydrationBoundary } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
@@ -90,13 +90,15 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
     return (
         <QueryClientProvider client={queryClient}>
             <HydrationBoundary state={pageProps.dehydratedState}>
-                <SiteProvider>
-                    <SessionProvider>
-                        <ToolbarProvider>
-                            { getLayout(<Component {...pageProps} />) }
-                        </ToolbarProvider>
-                    </SessionProvider>
-                </SiteProvider>
+                <NuqsAdapter>
+                    <SiteProvider>
+                        <SessionProvider>
+                            <ToolbarProvider>
+                                { getLayout(<Component {...pageProps} />) }
+                            </ToolbarProvider>
+                        </SessionProvider>
+                    </SiteProvider>
+                </NuqsAdapter>
                 <ReactQueryDevtools initialIsOpen={false} />
             </HydrationBoundary>
         </QueryClientProvider>

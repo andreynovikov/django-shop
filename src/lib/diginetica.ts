@@ -109,11 +109,11 @@ export async function loadProducts(text: string, page: number = 1, pageSize: num
     searchUrl.searchParams.set('offset', String((page - 1) * pageSize))
     searchUrl.searchParams.set('size', String(pageSize))
 
-    searchUrl.searchParams.set('showUnavailable', String(!filters?.available))
+    searchUrl.searchParams.set('showUnavailable', String(!filters.available))
     searchUrl.searchParams.delete('filter')
-    if (filters?.price)
-        searchUrl.searchParams.append('filter', `price:${(filters.price as number[])[0]};${(filters.price as number[])[1]}`)
-    if (filters?.manufacturer)
+    if (filters.price)
+        searchUrl.searchParams.append('filter', `price:${(filters.price as number[]).join(';')}`)
+    if (filters.manufacturer)
         searchUrl.searchParams.append('filter', `brands:${(filters.manufacturer as string[]).join(';')}`)
 
     const response = await fetch(searchUrl)

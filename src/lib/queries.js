@@ -21,7 +21,7 @@ export const productKeys = {
     all: ['products'],
     fields: () => [...productKeys.all, 'fields'],
     suggestions: (text) => [...productKeys.all, 'suggestions', text],
-    search: (text, page, size, filters, ordering) => [...productKeys.all, { text, page, size, filters, ordering }],
+    search: (filters, ordering) => [...productKeys.all, { filters, ordering }],
     images: (id) => [...productKeys.all, id, 'images'],
     stock: (id) => [...productKeys.all, id, 'stock'],
     lists: () => [...productKeys.all, 'list'],
