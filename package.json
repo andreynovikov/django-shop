@@ -1,6 +1,6 @@
 {
     "name": "sworld",
-    "version": "2025.08.31",
+    "version": "2025.09.01",
     "scripts": {
         "dev": "next dev -H 127.0.0.1 -p 3000 --experimental-https",
         "start": "next start -H 127.0.0.1 -p 4000",
@@ -12,6 +12,7 @@
     },
     "dependencies": {
         "@popperjs/core": "^2.11.8",
+        "@tabler/icons-react": "^3.34.1",
         "@tanstack/react-query": "^5.81.5",
         "axios": "^1.10.0",
         "gana": "^1.1.1",
