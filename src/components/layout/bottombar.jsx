@@ -6,9 +6,9 @@ export default function BottomBar() {
             <div className="container">
                 <div className="d-md-flex justify-content-between">
                     <div className="pb-4 fs-xs text-light opacity-50 text-center text-md-start">
-                        &copy; 2003-2023 Швейный Мир. Все права защищены.{' '}
+                        &copy; 2003-{new Date().getFullYear()} Швейный Мир. Все права защищены.{' '}
                         <span className="opacity-50">
-                            Developed by <a className="text-light" href="https://andreynovikov.info/" target="_blank" rel="noopener">Andrey Novikov</a>.
+                            Developed by <a className="text-light" href="https://newf.ru/" target="_blank" rel="noopener">Andrey Novikov</a>.
                             Design by <a className="text-light" href="https://createx.studio/" target="_blank" rel="noopener">Createx Studio</a>.
                         </span>
                     </div>
