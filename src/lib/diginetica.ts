@@ -90,7 +90,7 @@ export interface Results {
   totalHits: number,
   zeroQueries: boolean,
   products: ProductResult[],
-  facets: Facet[],
+  facets?: Facet[],
   selectedFacets: unknown[]
 }
 

@@ -55,7 +55,7 @@ export default function Search({ text, page }) {
     const pages = Math.ceil((result?.totalHits ?? 0) / 15)
 
     const priceFilter = useMemo(() => {
-        const priceFacet = result?.facets.reduce((selected, facet) => facet.name === 'price' ? facet : selected, undefined)
+        const priceFacet = result?.facets?.reduce((selected, facet) => facet.name === 'price' ? facet : selected, undefined)
         if (priceFacet !== undefined)
             return priceFacet.values.reduce((filter, value) => {
                 filter[`${value.id}_value`] = value.value
@@ -65,7 +65,7 @@ export default function Search({ text, page }) {
     }, [result])
 
     const brandsFilter = useMemo(() => {
-        const brandsFacet = result?.facets.reduce((selected, facet) => facet.name === 'brands' ? facet : selected, undefined)
+        const brandsFacet = result?.facets?.reduce((selected, facet) => facet.name === 'brands' ? facet : selected, undefined)
         if (brandsFacet?.values.length > 1)
             return brandsFacet.values.reduce((filter, value) => {
                 filter.push([value.id, value.name]) 
