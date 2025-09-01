@@ -76,7 +76,7 @@ export default function Search({ text, page }) {
 
     const handleFilterChanged = (field, value) => {
         setFilters({
-            [field]: value,
+            [field]: value ?? null,
             page: 1
         })
     }
