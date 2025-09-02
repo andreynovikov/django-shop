@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import { useRef } from 'react'
 import Link from 'next/link'
 
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
@@ -10,12 +10,14 @@ import ProductPrice from '@/components/product/price'
 import useBasket from '@/lib/basket'
 import useFavorites from '@/lib/favorites'
 import { useSession } from '@/lib/session'
+import { useBreakpoint } from '@/lib/breakpoint'
 
 export default function ProductCard({ product, limitedBadges = false }) {
     const { status } = useSession()
 
     const cardRef = useRef()
 
+    const breakpoint = useBreakpoint()
     const { addItem } = useBasket()
     const { favorites, favoritize, unfavoritize } = useFavorites()
 
@@ -32,6 +34,7 @@ export default function ProductCard({ product, limitedBadges = false }) {
         }
     }
 
+    const buttonClass = breakpoint === 'xs' ? '' : '-outline'
     const productLink = product.variations ? product.variations : { pathname: '/products/[code]', query: { code: product.code } }
 
     return (
@@ -89,15 +92,17 @@ export default function ProductCard({ product, limitedBadges = false }) {
                     </div>
                     <div>
                         {product.variations ? (
-                            <Link className="btn btn-success btn-sm d-block w-100" href={product.variations}>
-                                <i class="ci-eye fs-sm" />
+                            <Link className={`btn btn${buttonClass}-secondary btn-sm d-block w-100`} href={product.variations}>
+                                <i className="ci-eye fs-sm" />
                             </Link>
                         ) : product.enabled && product.instock ? (
-                            <button className="btn btn-success btn-sm d-block w-100" type="button" onClick={handleCartClick}>
+                            <button className={`btn btn${buttonClass}-success btn-sm d-block w-100`} type="button" onClick={handleCartClick}>
                                 <i className="ci-cart fs-sm" />
                             </button>
                         ) : (
-                            null
+                            <Link className={`btn btn${buttonClass}-secondary btn-sm d-block w-100`} href={productLink}>
+                                <i className="ci-eye fs-sm" />
+                            </Link>
                         )}
                     </div>
                     { /* TODO
