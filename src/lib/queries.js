@@ -51,6 +51,7 @@ export const orderKeys = {
     lists: () => [...orderKeys.all, 'list'],
     list: (page, filter) => [...orderKeys.lists(), { page, filter }],
     last: () => [...orderKeys.lists(), 'last'],
+    unpaid: () => [...orderKeys.lists(), 'unpaid'],
     details: () => [...orderKeys.all, 'detail'],
     detail: (id) => [...orderKeys.details(), id],
 };
@@ -243,6 +244,11 @@ export async function loadOrders(page, filter, site=undefined) {
 
 export async function getLastOrder() {
     const response = await apiClient.post('orders/last/');
+    return response.data;
+}
+
+export async function getUnpaidOrder() {
+    const response = await apiClient.post('orders/unpaid/');
     return response.data;
 }
 

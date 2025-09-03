@@ -8,11 +8,17 @@ import Tooltip from 'react-bootstrap/Tooltip';
 
 import UserPageLayout from '@/components/layout/user-page';
 import UserTopbar from '@/components/user/topbar';
+import OrderPaymentButton from '@/components/order/payment-button';
 import OrderStatusBadge from '@/components/order/status-badge';
 import PageSelector from '@/components/page-selector';
 
 import { useSession } from '@/lib/session';
 import { orderKeys, loadOrders, getLastOrder } from '@/lib/queries';
+import {
+    STATUS_COLLECTED,
+    PAYMENT_CARD,
+    PAYMENT_CREDIT,
+} from '@/components/order/status-badge';
 
 import moment from 'moment';
 
@@ -112,7 +118,14 @@ export default function Orders({filter, page, track}) {
                                             </OverlayTrigger>
                                         </td>
                                         <td className="py-3"><OrderStatusBadge status={order.status} text={order.status_text} /></td>
-                                        <td className="d-none d-sm-table-cell py-3">{ order.total.toLocaleString('ru') }<small>&nbsp;руб</small></td>
+                                        <td className="d-none d-sm-table-cell py-3">
+                                            {order.total.toLocaleString('ru') }<small>&nbsp;руб</small>
+                                            {(order.status === STATUS_COLLECTED && !order.paid && ( order.payment === PAYMENT_CARD || order.payment === PAYMENT_CREDIT)) && (
+                                                <span className="ps-2">
+                                                    <OrderPaymentButton orderId={order.id} iconOnly />
+                                                </span>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

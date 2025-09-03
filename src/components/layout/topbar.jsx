@@ -7,6 +7,7 @@ import Collapse from 'react-bootstrap/Collapse'
 
 import CartNotice from '@/components/cart/notice'
 import Catalog from '@/components/catalog'
+import OrderTracking from '@/components/order/tracking'
 import CompareLink from '@/components/user/compare-link'
 import UserProfileLink from '@/components/user/profile-link'
 import ProductSearchInput from '@/components/product/search-input'
@@ -66,7 +67,7 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
         <>
             <div className="topbar topbar-light sw-bg-light">
                 <div className="container">
-                    <div className="d-flex w-100 justify-content-between d-md-inline-block">
+                    <div className="d-flex flex-grow-1 justify-content-between d-md-inline-block">
                         {site.phone && (
                             <div className="topbar-text text-nowrap">
                                 <i className="ci-support mt-n1" />
@@ -88,9 +89,7 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
                                 <CompareLink />
                             </Link>
                         )}
-                        <Link className="topbar-link text-nowrap" href="/user/orders?track" rel="nofollow">
-                            <i className="ci-delivery mt-n1" />Отслеживание заказа
-                        </Link>
+                        <OrderTracking />
                     </div>
                 </div>
             </div>

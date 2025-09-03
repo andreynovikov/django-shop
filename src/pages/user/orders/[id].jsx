@@ -13,6 +13,7 @@ import { formatPhone } from '@/lib/format';
 import NoImage from '@/components/product/no-image';
 import UserPageLayout from '@/components/layout/user-page';
 import UserTopbar from '@/components/user/topbar';
+import OrderPaymentButton from '@/components/order/payment-button';
 import OrderStatusBadge from '@/components/order/status-badge';
 import {
     STATUS_NEW,
@@ -71,19 +72,6 @@ export default function Order({id}) {
         },
         [isSuccess, order]
     );
-
-    const handlePayment = () => {
-        apiClient.post(`orders/${id}/pay/`, {
-            'return_url': process.env.NEXT_PUBLIC_ORIGIN.slice(0, -1) + router.asPath
-        }, {
-            maxRedirects: 0 // maxRedirects does not work so API returns JSON with location
-        }).then(function (response) {
-            window.location = response.data.location;
-        }).catch(function (error) {
-            // handle error
-            console.log(error);
-        })
-    };
 
     if (!isSuccess)
         return (
@@ -234,18 +222,8 @@ export default function Order({id}) {
                                     ) : (
                                         order.status === STATUS_COLLECTED ? (
                                             order.payment === PAYMENT_CARD || order.payment === PAYMENT_CREDIT ? (
-                                                <li>
-                                                    <button type="button" className="btn btn-sm btn-primary mt-2" onClick={handlePayment}>
-                                                        { order.payment === PAYMENT_CREDIT ? (
-                                                            <>
-                                                                <i className="ci-money-bag fs-lg me-2" />Оформить кредит
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <i className="ci-card fs-lg me-2" />Оплатить заказ
-                                                            </>
-                                                        )}
-                                                    </button>
+                                                <li className="pt-2">
+                                                    <OrderPaymentButton orderId={order.id} />
                                                 </li>
                                             ) : order.payment === PAYMENT_TRANSFER ? (
                                                 <li>
