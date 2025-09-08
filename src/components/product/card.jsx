@@ -71,14 +71,14 @@ export default function ProductCard({ product, limitedBadges = false }) {
                         src={product.thumbnail.url}
                         width={product.thumbnail.width}
                         height={product.thumbnail.height}
-                        alt={`${product.title} ${product.whatis}`} />
+                        alt={`${product.title} ${product.whatisit ?? product.whatis}`} />
                 ) : (
                     <NoImage />
                 )}
             </Link>
             <div className="card-body py-2">
                 <Link className="product-meta d-block fs-xs pb-1" href={productLink}>
-                    {product.whatis} {product.partnumber}
+                    {product.whatisit ?? product.whatis} {product.partnumber}
                 </Link>
                 <h3 className="product-title fs-sm">
                     <Link href={productLink}>
