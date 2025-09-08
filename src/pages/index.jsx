@@ -5,7 +5,7 @@ import BaseLayout from '@/components/layout/base'
 import ProductCard from '@/components/product/card'
 import TopCategoriesCard from '@/components/top-categories-card'
 
-import { productKeys, loadProducts } from '@/lib/queries'
+import { advertKeys, productKeys, loadAdverts, loadProducts } from '@/lib/queries'
 import useCatalog, { recomendedFilters, firstPageFilters } from '@/lib/catalog'
 
 const itemsPerSection = 16
@@ -19,6 +19,11 @@ export default function Index() {
     const { data: firstpage, isSuccess: isFirstPageSuccess } = useQuery({
         queryKey: productKeys.list(null, itemsPerSection, firstPageFilters, sort),
         queryFn: () => loadProducts(null, itemsPerSection, firstPageFilters, sort)
+    })
+
+    const { data: adverts, isSuccess: isAdvertsSuccess } = useQuery({
+        queryKey: advertKeys.list(['index_top_new']),
+        queryFn: () => loadAdverts(['index_top_new'])
     })
 
     useCatalog()
@@ -35,6 +40,19 @@ export default function Index() {
                     <TopCategoriesCard />
                 </section>
             </div>
+
+            {isAdvertsSuccess && (
+                <section className="container pt-5">
+                    <div className="row mx-n2">
+                        {adverts.map((advert) => (
+                            <div className="col-lg-3 col-sm-6 px-2 mb-4" key={advert.id}>
+                                <div className="card overflow-hidden h-100" dangerouslySetInnerHTML={{ __html: advert.content }} />
+                                <hr className="d-sm-none" />
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {isRecomendedSuccess && (
                 <section className="container pt-5">

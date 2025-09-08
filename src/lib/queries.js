@@ -87,6 +87,12 @@ export const newsKeys = {
     lists: () => [...newsKeys.all, 'list'],
 };
 
+export const advertKeys = {
+    all: ['adverts'],
+    lists: () => [...advertKeys.all, 'list'],
+    list: (places) => [...advertKeys.lists(), places]
+};
+
 export const blogKeys = {
     all: ['blog'],
     lists: () => [...blogKeys.all, 'list'],
@@ -465,6 +471,19 @@ export async function loadPage(uri) {
 
 export async function loadNews() {
     const response = await apiClient.get('news/');
+    return response.data;
+}
+
+export async function loadAdverts(places) {
+    const url = new URL(API + 'adverts/');
+    if (places !== undefined)
+        if (Array.isArray(places)) {
+            for (const place of places)
+                url.searchParams.append('place', place);
+        } else {
+            url.searchParams.append('place', places);
+        }
+    const response = await apiClient.get(url);
     return response.data;
 }
 
