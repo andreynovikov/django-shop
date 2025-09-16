@@ -16,7 +16,8 @@ import useCatalog from '@/lib/catalog';
 import rupluralize from '@/lib/rupluralize';
 
 const baseFilters = [
-    { field: 'enabled', value: 1}
+    { field: 'enabled', value: 1},
+    { field: 'show_on_sw', value: 1 }
 ];
 const defaultOrder = 'title';
 
