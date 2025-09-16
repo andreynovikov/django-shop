@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import Script from 'next/script';
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 
@@ -152,8 +153,17 @@ export default function Store({ id }) {
 }
 
 Store.getLayout = function getLayout(page) {
+    const breadcrumbs = [
+        {
+            label: 'Магазины',
+            href: '/stores'
+        },
+        {
+            label: page.props.title
+        }
+    ]
     return (
-        <PageLayout title={page.props.title}>
+        <PageLayout title={page.props.title} breadcrumbs={breadcrumbs}>
             {page}
         </PageLayout>
     )

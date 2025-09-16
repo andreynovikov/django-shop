@@ -329,8 +329,21 @@ export default function Order({id}) {
 }
 
 Order.getLayout = function getLayout(page) {
+    const breadcrumbs = [
+        {
+            label: 'Личный кабинет',
+            href: '/user/profile'
+        },
+        {
+            label: 'Заказы',
+            href: '/user/orders'
+        },
+        {
+            label: `Заказ №${page.props.id}`
+        }
+    ]
     return (
-        <UserPageLayout title={`Заказ №${page.props.id}`}>
+        <UserPageLayout title={`Заказ №${page.props.id}`} breadcrumbs={breadcrumbs}>
             {page}
         </UserPageLayout>
     )

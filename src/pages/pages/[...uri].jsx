@@ -18,8 +18,13 @@ export default function Page({ uri }) {
 }
 
 Page.getLayout = function getLayout(page) {
+    const breadcrumbs = [
+        {
+            label: page.props.title
+        }
+    ]
     return (
-        <PageLayout title={page.props.title}>
+        <PageLayout title={page.props.title} breadcrumbs={breadcrumbs}>
             {page}
         </PageLayout>
     )

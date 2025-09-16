@@ -88,8 +88,17 @@ export default function Favorites() {
 }
 
 Favorites.getLayout = function getLayout(page) {
+    const breadcrumbs = [
+        {
+            label: 'Личный кабинет',
+            href: '/user/profile'
+        },
+        {
+            label: 'Избранное',
+        }
+    ]
     return (
-        <UserPageLayout title="Избранное">
+        <UserPageLayout title="Избранное" breadcrumbs={breadcrumbs}>
             {page}
         </UserPageLayout>
     )

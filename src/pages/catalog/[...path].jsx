@@ -244,8 +244,14 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
 }
 
 Category.getLayout = function getLayout(page) {
+    const breadcrumbs = page.props.breadcrumbs.map((breadcrumb, index, breadcrumbs) => (
+        {
+            href: index < breadcrumbs.length - 1 ? `/catalog/${breadcrumb.path.join('/')}` : undefined,
+            label: breadcrumb.name
+        }
+    ))
     return (
-        <PageLayout title={page.props.title} dark overlapped>
+        <PageLayout title={page.props.title} breadcrumbs={breadcrumbs} dark overlapped>
             {page}
         </PageLayout>
     )
@@ -280,12 +286,21 @@ export async function getStaticProps(context) {
         queryFn: () => loadProducts(currentPage, pageSize, productFilters, productOrder)
     });
 
+    const breadcrumbs = category.path.breadcrumbs.reduce((breadcrumbs, breadcrumb) => {
+        const parentPath = breadcrumbs.length > 0 ? breadcrumbs.at(-1).path : []
+        breadcrumbs.push({
+            name: breadcrumb.name,
+            path: [...parentPath, breadcrumb.slug]
+        })
+        return breadcrumbs
+    }, [])
     return {
         props: {
             dehydratedState: dehydrate(queryClient),
             title: category.name,
             filters: productFilters,
             order: productOrder,
+            breadcrumbs,
             path,
             currentPage,
             pageSize

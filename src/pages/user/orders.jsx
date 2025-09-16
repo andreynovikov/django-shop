@@ -154,8 +154,17 @@ export default function Orders({filter, page, track}) {
 }
 
 Orders.getLayout = function getLayout(page) {
+    const breadcrumbs = [
+        {
+            label: 'Личный кабинет',
+            href: '/user/profile'
+        },
+        {
+            label: 'Заказы',
+        }
+    ]
     return (
-        <UserPageLayout title="Список заказов">
+        <UserPageLayout title="Список заказов" breadcrumbs={breadcrumbs}>
             {page}
         </UserPageLayout>
     )

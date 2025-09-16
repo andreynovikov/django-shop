@@ -28,8 +28,13 @@ export default function Profile() {
 }
 
 Profile.getLayout = function getLayout(page) {
+    const breadcrumbs = [
+        {
+            label: 'Личный кабинет'
+        }
+    ]
     return (
-        <UserPageLayout title="Профиль">
+        <UserPageLayout title="Профиль" breadcrumbs={breadcrumbs}>
             {page}
         </UserPageLayout>
     )

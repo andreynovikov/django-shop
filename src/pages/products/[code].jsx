@@ -659,6 +659,15 @@ export default function Product({ code }) {
 }
 
 Product.getLayout = function getLayout(page) {
+    const breadcrumbs = page.props.breadcrumbs?.map((breadcrumb) => (
+        {
+            href: `/catalog/${breadcrumb.path.join('/')}`,
+            label: breadcrumb.label
+        }
+    )) ?? []
+    breadcrumbs.push({
+        label: page.props.title
+    })
     return (
         <PageLayout
             title={page.props.title}
@@ -672,6 +681,7 @@ Product.getLayout = function getLayout(page) {
                     {page.props.allowReviews && <ProductRating product={page.props.id} anchor="reviews" />}
                 </>
             }
+            breadcrumbs={breadcrumbs}
             dark overlapped>
             {page}
         </PageLayout>
@@ -695,6 +705,17 @@ export async function getStaticProps(context) {
         await fieldsQuery
         const data = await dataQuery
 
+        const breadcrumbs = data.categories
+            .filter(category => !['New', 'promo', 'Discount'].includes(category.slug))[0]?.path.breadcrumbs
+            .reduce((breadcrumbs, breadcrumb) => {
+                const parentPath = breadcrumbs.length > 0 ? breadcrumbs.at(-1).path : []
+                breadcrumbs.push({
+                    label: breadcrumb.name,
+                    path: [...parentPath, breadcrumb.slug]
+                })
+                return breadcrumbs
+            }, []) ?? []
+
         return {
             props: {
                 code,
@@ -703,11 +724,12 @@ export async function getStaticProps(context) {
                 whatis: data.whatis || null,
                 runame: data.runame || null,
                 id: data.id,
-                allowReviews: data.allow_reviews
+                allowReviews: data.allow_reviews,
+                breadcrumbs
             }
         }
     } catch (error) {
-        if (error.response.status === 404)
+        if (error.response?.status === 404)
             return { notFound: true }
         else
             throw (error)

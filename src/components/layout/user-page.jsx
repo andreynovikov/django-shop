@@ -1,11 +1,8 @@
 import PageLayout, { pageContentWrapper } from './page';
 import UserSidebar from '@/components/user/sidebar';
 
-const userPageContentWrapper = ({title, dark, overlapped, children}) => {
+const userPageContentWrapper = ({children, ...props}) => {
     return pageContentWrapper({
-        title,
-        dark,
-        overlapped,
         children: (
             <div className="container pb-5 mb-2 mb-md-4">
                 <div className="row">
@@ -15,7 +12,8 @@ const userPageContentWrapper = ({title, dark, overlapped, children}) => {
                     </section>
                 </div>
             </div>
-        )
+        ),
+        ...props
     });
 };
 

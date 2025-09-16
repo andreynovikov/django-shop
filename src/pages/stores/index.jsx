@@ -266,8 +266,13 @@ export default function Stores() {
 }
 
 Stores.getLayout = function getLayout(page) {
+    const breadcrumbs = [
+        {
+            label: 'Магазины'
+        }
+    ]
     return (
-        <PageLayout htmlTitle="Адреса магазинов" title="Наши магазины рядом с Вами">
+        <PageLayout htmlTitle="Адреса магазинов" title="Наши магазины рядом с Вами" breadcrumbs={breadcrumbs}>
             {page}
         </PageLayout>
     )
