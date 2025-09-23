@@ -247,7 +247,7 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
 Category.getLayout = function getLayout(page) {
     const breadcrumbs = page.props.breadcrumbs.map((breadcrumb, index, breadcrumbs) => (
         {
-            href: index < breadcrumbs.length - 1 ? `/catalog/${breadcrumb.path.join('/')}` : undefined,
+            href: `/${breadcrumb.path.join('/')}`,
             label: breadcrumb.name
         }
     ))
@@ -287,14 +287,21 @@ export async function getStaticProps(context) {
         queryFn: () => loadProducts(currentPage, pageSize, productFilters, productOrder)
     });
 
-    const breadcrumbs = category.path.breadcrumbs.reduce((breadcrumbs, breadcrumb) => {
-        const parentPath = breadcrumbs.length > 0 ? breadcrumbs.at(-1).path : []
+    const breadcrumbs = category.path.breadcrumbs.reduce((breadcrumbs, breadcrumb, index, original) => {
+        if (index === original.length - 1) // skip last item
+            return breadcrumbs
+
+        const parentPath = breadcrumbs.at(-1).path
         breadcrumbs.push({
             name: breadcrumb.name,
             path: [...parentPath, breadcrumb.slug]
         })
         return breadcrumbs
-    }, [])
+    }, [{
+        name: 'Каталог',
+        path: ['catalog']
+    }])
+
     return {
         props: {
             dehydratedState: dehydrate(queryClient),

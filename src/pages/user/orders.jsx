@@ -158,9 +158,6 @@ Orders.getLayout = function getLayout(page) {
         {
             label: 'Личный кабинет',
             href: '/user/profile'
-        },
-        {
-            label: 'Заказы',
         }
     ]
     return (

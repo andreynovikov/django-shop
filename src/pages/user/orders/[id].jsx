@@ -337,9 +337,6 @@ Order.getLayout = function getLayout(page) {
         {
             label: 'Заказы',
             href: '/user/orders'
-        },
-        {
-            label: `Заказ №${page.props.id}`
         }
     ]
     return (

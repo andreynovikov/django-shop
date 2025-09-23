@@ -180,16 +180,10 @@ export default function Service() {
 }
 
 Service.getLayout = function getLayout(page) {
-    const breadcrumbs = [
-        {
-            label: 'Сервисные центры'
-        }
-    ]
     return (
         <PageLayout
             htmlTitle="Сервисные центры"
             title={<>Сервисное обслуживание и ремонт<span className="d-lg-none"> швейных машин, оверлоков, вышивальных и вязальных машин</span></>}
-            breadcrumbs={breadcrumbs}
         >
             {page}
         </PageLayout>

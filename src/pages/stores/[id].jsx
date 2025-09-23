@@ -157,9 +157,6 @@ Store.getLayout = function getLayout(page) {
         {
             label: 'Магазины',
             href: '/stores'
-        },
-        {
-            label: page.props.title
         }
     ]
     return (

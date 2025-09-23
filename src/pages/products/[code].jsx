@@ -665,9 +665,6 @@ Product.getLayout = function getLayout(page) {
             label: breadcrumb.label
         }
     )) ?? []
-    breadcrumbs.push({
-        label: page.props.title
-    })
     return (
         <PageLayout
             title={page.props.title}
