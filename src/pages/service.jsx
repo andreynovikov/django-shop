@@ -88,9 +88,9 @@ export default function Service() {
         <>
             <main className="container-fluid px-0">
                 <section className="row g-0">
-                    <div
-                        className="col-md-6 bg-position-center bg-size-cover bg-secondary order-md-2"
-                        style={{ minHeight: '15rem', backgroundImage: 'url(https://cartzilla.createx.studio/img/about/02.jpg)' }} />
+                    <div className="col-lg-6 iframe-full-height-wrap order-md-2" style={{ minHeight: '26rem' }}>
+                        <div className="iframe-full-height" id="map"></div>
+                    </div>
                     <div className="col-md-6 px-3 px-md-5 py-5 order-md-1">
                         <div className="mx-auto py-lg-5" style={{ maxWidth: '35rem' }}>
                             <p className="lead">Наши сервисные центры предлагают следующие работы и услуги:</p>
@@ -102,21 +102,6 @@ export default function Service() {
                                 </li>
                                 <li>Поставку запасных частей для швейного оборудования.</li>
                                 <li>Послегарантийный ремонт машин Pfaff, Husqvarna, Family, Janome, Silver Reed и NewHome.</li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
-                <section className="row g-0">
-                    <div className="col-lg-6 iframe-full-height-wrap" style={{ minHeight: '26rem' }}>
-                        <div className="iframe-full-height" id="map"></div>
-                    </div>
-                    <div className="col-md-6 px-3 px-md-5 py-5">
-                        <div className="mx-auto py-lg-5" style={{ maxWidth: '35rem' }}>
-                            <h2 className="h3 pb-3">Новости</h2>
-                            <ul className="list-style pb-3">
-                                <li>Сервисный центр на &laquo;Академической&raquo; переехал с ул. Кедрова по адресу ул. Дмитрия Ульянова д.31<br />Телефон: +7 495 718-86-02</li>
-                                <li><Link className="nav-link-style" href="/blog/O/">Наши механики прошли обучение в Швеции</Link></li>
-                                <li>Теперь в наших сервисных центрах можно купить педали для швейных машин</li>
                             </ul>
                         </div>
                     </div>
