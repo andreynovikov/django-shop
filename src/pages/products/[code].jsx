@@ -241,7 +241,7 @@ export default function Product({ code }) {
                             <div className="col-lg-7 pe-lg-0">
                                 {currentImage ? (
                                     <div className="d-block text-center">
-                                        <div className="position-relative w-100" style={{ height: "600px" }}>
+                                        <div className="position-relative w-100" style={{ aspectRatio: "4/3" }}>
                                             <Image
                                                 src={currentImage}
                                                 priority

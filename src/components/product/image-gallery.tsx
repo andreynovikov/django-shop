@@ -35,11 +35,11 @@ export default function ImageGallery({ currentImage, images, open, setOpen }: Im
                 onClick={() => setOpen(false)}>
                 <i className="ci-close" />
             </button>
-            <div className="container-fluid w-100 h-100 p-4 overflow-auto">
-                <div className="row g-2">
+            <div className="container-fluid w-100 h-100 p-2 p-lg-4 overflow-auto">
+                <div className="row g-2 g-lg-3">
                     {images.map((image, index) => (
                         <div key={image} id={`gallery-image-${index}`} className="col-12 col-lg-6">
-                            <div className="position-relative m-2 bg-white" style={{ height: '600px' }}>
+                            <div className="position-relative mx-0 mx-lg-1 bg-white" style={{ width: "100%", aspectRatio: "4/3" }}>
                                 <Image
                                     src={image}
                                     alt=""
