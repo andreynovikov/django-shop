@@ -42,7 +42,7 @@ export default function OrderPaymentButton({ orderId, iconOnly = false }: { orde
                 </Tooltip> : <></>
             }
         >
-            <button type="button" className={`btn btn-sm btn${iconOnly ? '-outline' : ''}-primary ${iconOnly ? 'py-0 px-1' : ''}`} onClick={handlePayment}>
+            <button type="button" className={`btn btn-sm btn${iconOnly ? '-outline' : ''}-success ${iconOnly ? 'py-0 px-1' : ''}`} onClick={handlePayment}>
                 {order.payment === PAYMENT_CREDIT ? (
                     <>
                         <i className={`ci-money-bag fs-${iconOnly ? 'sm' : 'lg'}`} />

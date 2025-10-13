@@ -136,7 +136,7 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
     background-color: #fffaee
 }
 
-.sw-catalog {
+.sw-catalog-dropdown {
     padding-top: $card-spacer-y;
     padding-bottom: $card-spacer-y;
     background-color: $white;
@@ -155,7 +155,9 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
         border-bottom-left-radius: $border-radius;
         border-top: 0 !important;
     }
+}
 
+.sw-catalog {
     .sw-catalog-icon {
         display: inline-block;
 

@@ -65,14 +65,14 @@ export default function Compare({kindId, productIds}) {
     }, [isKindsSuccess, kinds, kindId, productIds, isComparisonSuccess, comparisons]);
 
     // if product list is passed compare them
-    const products = useQueries(
-        productIds.map(productId => {
+    const products = useQueries({
+        queries: productIds.map(productId => {
             return {
                 queryKey: productKeys.detail(productId),
                 queryFn: () => loadProduct(productId),
             }
         })
-    );
+    });
 
     const isProductsSuccess = productIds.length > 0 && products.every(result => result.isSuccess);
 
@@ -87,7 +87,10 @@ export default function Compare({kindId, productIds}) {
         enabled: currentKind !== null
     });
 
-    const { data: fields } = useQuery(productKeys.fields(), () => getProductFields());
+    const { data: fields } = useQuery({
+        queryKey: productKeys.fields(),
+        queryFn: () => getProductFields()
+    });
 
     useEffect(() => {
         if (fields !== undefined) {
@@ -203,7 +206,7 @@ export default function Compare({kindId, productIds}) {
                                         </Link>
                                     </h3>
                                     { product.enabled && product.instock > 0 && (
-                                        <button type="button" className="btn btn-primary btn-sm" onClick={() => handleCartClick(product)}>
+                                        <button type="button" className="btn btn-success btn-sm" onClick={() => handleCartClick(product)}>
                                             { product.variations ? "Выбрать" : "Купить" }
                                         </button>
                                     )}
@@ -260,7 +263,7 @@ export default function Compare({kindId, productIds}) {
                                 {products.map(({data: product}) => (
                                     <td key={product.id}>
                                         { product.instock > 0 && (
-                                            <button type="button" className="btn btn-primary d-block w-100" onClick={() => handleCartClick(product)}>
+                                            <button type="button" className="btn btn-success d-block w-100" onClick={() => handleCartClick(product)}>
                                                 { product.variations ? "Выбрать" : "Купить" }
                                             </button>
                                         )}

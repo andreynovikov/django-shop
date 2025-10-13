@@ -189,7 +189,11 @@
   box-shadow: 0 .5rem 1.125rem -.5rem #25d366;
   &.bs-light { color: #25d366; }
 }
-
+.bs-dzen:hover {
+  background-color: #353535;
+  box-shadow: 0 .5rem 1.125rem -.5rem rgba(#353535, .9);
+  &.bs-light { color: #353535; }
+}
 
 // Share buttons
 

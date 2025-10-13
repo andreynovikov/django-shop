@@ -1,5 +1,7 @@
 import Link from 'next/link'
 
+import DzenIcon from '@/assets/icons/social/dzen'
+
 export default function BottomBar() {
     return (
         <footer className="footer bg-dark pt-5">
@@ -23,12 +25,23 @@ export default function BottomBar() {
                         </div>
 
                     </div>
-                    <div class="col-md-6 text-center text-md-end mb-4">
-                        <div class="mb-3">
-                            <a class="btn-social bs-outline bs-light bs-vk ms-2 mb-2" href="https://vk.com/sew.world"><i class="ci-vk"></i></a>
-                            <a class="btn-social bs-outline bs-light bs-telegram ms-2 mb-2" href="https://t.me/sewingworldrus"><i class="ci-telegram"></i></a>
-                            <a class="btn-social bs-outline bs-light bs-youtube ms-2 mb-2" href="https://youtube.com/%D0%A8%D0%B2%D0%B5%D0%B9%D0%BD%D1%8B%D0%B9%D0%9C%D0%B8%D1%80%D0%A0%D0%BE%D1%81%D1%81%D0%B8%D1%8F"><i class="ci-youtube"></i></a>
+                    <div className="col-md-6 text-center text-md-end mb-4">
+                        <div className="fs-xs text-light opacity-50 mb-2">Наши страницы в соцсетях:</div>
+                        <div className="d-flex justify-content-end gap-2 mb-2">
+                            <a className="btn-social bs-outline bs-light bs-vk" href="https://vk.com/sew.world">
+                                <i className="ci-vk"></i>
+                            </a>
+                            <a className="btn-social bs-outline bs-light bs-dzen d-block align-content-center p-2" href="https://dzen.ru/sewingworld">
+                                <DzenIcon className="align-baseline" />
+                            </a>
+                            <a className="btn-social bs-outline bs-light bs-telegram" href="https://t.me/sewingworldrus">
+                                <i className="ci-telegram"></i>
+                            </a>
+                            <a className="btn-social bs-outline bs-light bs-youtube" href="https://youtube.com/%D0%A8%D0%B2%D0%B5%D0%B9%D0%BD%D1%8B%D0%B9%D0%9C%D0%B8%D1%80%D0%A0%D0%BE%D1%81%D1%81%D0%B8%D1%8F">
+                                <i className="ci-youtube"></i>
+                            </a>
                         </div>
+                        <div className="fs-xs text-light opacity-50 mb-3">Присоединяйтесь!</div>
                     </div>
                 </div>
                 <div className="pb-4 fs-xs text-light opacity-50 text-center text-md-start">

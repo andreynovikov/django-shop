@@ -6,11 +6,12 @@ import { IconCategory, IconX } from '@tabler/icons-react'
 import Collapse from 'react-bootstrap/Collapse'
 
 import CartNotice from '@/components/cart/notice'
-import Catalog from '@/components/catalog'
 import OrderTracking from '@/components/order/tracking'
 import CompareLink from '@/components/user/compare-link'
 import UserProfileLink from '@/components/user/profile-link'
 import ProductSearchInput from '@/components/product/search-input'
+
+import CatalogDropDown from './catalog-dropdown'
 
 import useComparison from '@/lib/comparison'
 import useFavorites from '@/lib/favorites'
@@ -39,7 +40,7 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
             const navbar = document.querySelector('.navbar-sticky')
             const navbarHeight = navbar.offsetHeight
             if (event.currentTarget.pageYOffset > topbar.offsetHeight && !catalogVisible) {
-                document.body.style.paddingTop = navbarHeight + 'px'
+                //document.body.style.paddingTop = navbarHeight + 'px'
                 navbar.classList.add('navbar-stuck')
             } else {
                 document.body.style.paddingTop = ''
@@ -65,6 +66,7 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
 
     return (
         <>
+            <div className="navbar-sticky bg-light">
             <div className="topbar topbar-light sw-bg-light">
                 <div className="container">
                     <div className="d-flex flex-grow-1 justify-content-between d-md-inline-block">
@@ -93,7 +95,6 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
                     </div>
                 </div>
             </div>
-            <div className="navbar-sticky bg-light">
                 <div className="navbar navbar-expand-lg navbar-light">
                     <div className="container">
                         <Link className="navbar-brand flex-shrink-0" href="/">
@@ -145,7 +146,7 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
                                             </span>
                                             Каталог
                                         </button>
-                                        <Catalog visible={catalogVisible} setVisible={setCatalogVisible} buttonRef={catalogButtonRef} />
+                                        <CatalogDropDown visible={catalogVisible} setVisible={setCatalogVisible} buttonRef={catalogButtonRef} />
                                     </li>
                                 </ul>
                                 <ul className="navbar-nav">
