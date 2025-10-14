@@ -25,6 +25,7 @@
         "react-bootstrap-typeahead": "^6.4.1",
         "react-dom": "^19.1.0",
         "react-intersection-observer": "^9.16.0",
+        "react-metrika": "^0.3.3",
         "simplebar-react": "^3.3.2",
         "swiper": "^11.2.10",
         "tiny-slider": "^2.9.4"
