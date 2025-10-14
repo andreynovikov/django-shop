@@ -82,7 +82,7 @@ export default function UserSidebar() {
                                 <i className="ci-user opacity-60 me-2" />Профиль
                             </Link>
                         </li>
-                        <li className="d-lg-none border-top mb-0">
+                        <li className="border-top mb-0">
                             <a className="nav-link-style d-flex align-items-center px-4 py-3" onClick={() => signOut({callbackUrl: '/'})} style={{cursor:'pointer'}}>
                                 <i className="ci-sign-out opacity-60 me-2" />Выйти
                             </a>

@@ -39,7 +39,7 @@ export default function Favorites() {
     return (
         <>
             <UserTopbar>
-                <h6 className="fs-base text-light mb-0">Список отложенных товаров:</h6>
+                <div className="d-flex w-100 text-light text-center me-3"></div>
             </UserTopbar>
             { favorites.length > 0 ? (
                 isSuccess && products.results.map((product, index) => (
@@ -67,9 +67,9 @@ export default function Favorites() {
                                 <div className="fs-lg text-accent pt-2"><ProductPrice product={product} /></div>
                             </div>
                         </div>
-                        <div className="pt-2 ps-sm-3 mx-auto mx-sm-0 text-center">
+                        <div className="pt-2 ps-sm-3 mx-auto mx-sm-0 text-center text-nowrap">
                             { product.enabled && product.instock > 0 && (
-                                <button className="btn btn-primary btn-sm me-2" type="button" onClick={() => handleClick(product)}>
+                                <button className="btn btn-success btn-sm me-2" type="button" onClick={() => handleClick(product)}>
                                     <i className="ci-cart fs-sm me-1" />
                                     { product.variations ? "Выбрать" : "Купить" }
                                 </button>
