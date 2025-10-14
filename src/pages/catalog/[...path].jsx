@@ -124,41 +124,47 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                 <div className="row">
                     { (category.children || category.filters) && (
                         <aside className="col-lg-4">
-                            <Offcanvas
-                                show={showFilters}
-                                onHide={() => setShowFilters(false)}
-                                responsive="lg"
-                                className="offcanvas bg-white w-100 rounded-3 shadow-lg py-1"
-                                style={{maxWidth: "22rem"}}>
-                                <Offcanvas.Header className="align-items-center shadow-sm" closeButton>
-                                    <h2 className="h5 mb-0">Фильтры</h2>
-                                </Offcanvas.Header>
-                                <Offcanvas.Body className="py-grid-gutter px-lg-grid-gutter">
-                                    { category.children && (
-                                        <div className={"widget widget-links d-none d-lg-block mb-4 pb-4" + (category.filters ? " border-bottom" : "")}>
+                            {category.children && (
+                                <div className={"d-none d-lg-block bg-white w-100 rounded-3 shadow-lg py-1" + (category.filters ? " mb-4" : "")} style={{ maxWidth: "22rem" }}>
+                                    <div className="py-grid-gutter px-lg-grid-gutter">
+                                        <div className="widget widget-links">
                                             <h3 className="widget-title">Категории</h3>
                                             <ul className="widget-list">
-                                                {category.children.map((subcategory) => (
-                                                    <li className="widget-list-item" key={subcategory.id}>
+                                                {category.children.map((subcategory, index) => (
+                                                    <li className={"widget-list-item" + (index > 0 ? " pt-2" : "")} key={subcategory.id}>
                                                         <Link className="widget-list-link" href={{ pathname: router.pathname, query: { path: [...path, subcategory.slug] } }}>
-                                                            { subcategory.name }
+                                                            {subcategory.name}
                                                         </Link>
                                                     </li>
                                                 ))}
                                             </ul>
                                         </div>
-                                    )}
-                                    { category.filters && category.filters.map((filter, index) => (
-                                        <div className={"widget" + (index === category.filters.length-1 ? "" : " pb-4 mb-4 border-bottom")} key={filter.id}>
-                                            <h3 className="widget-title">{ filter.label }</h3>
-                                            <ProductFilter
-                                                filter={{...filter, ...products?.filters?.[filter.name]}}
-                                                filterValue={selectedFilters[filter.name]}
-                                                onFilterChanged={handleFilterChanged} />
-                                        </div>
-                                    ))}
-                                </Offcanvas.Body>
-                            </Offcanvas>
+                                    </div>
+                                </div>
+                            )}
+                            {category.filters && (
+                                <Offcanvas
+                                    show={showFilters}
+                                    onHide={() => setShowFilters(false)}
+                                    responsive="lg"
+                                    className="offcanvas bg-white w-100 rounded-3 shadow-lg py-1"
+                                    style={{ maxWidth: "22rem" }}>
+                                    <Offcanvas.Header className="align-items-center shadow-sm" closeButton>
+                                        <h2 className="h5 mb-0">Фильтры</h2>
+                                    </Offcanvas.Header>
+                                    <Offcanvas.Body className="py-grid-gutter px-lg-grid-gutter">
+                                        {category.filters && category.filters.map((filter, index) => (
+                                            <div className={"widget" + (index === category.filters.length - 1 ? "" : " pb-4 mb-4 border-bottom")} key={filter.id}>
+                                                <h3 className="widget-title">{filter.label}</h3>
+                                                <ProductFilter
+                                                    filter={{ ...filter, ...products?.filters?.[filter.name] }}
+                                                    filterValue={selectedFilters[filter.name]}
+                                                    onFilterChanged={handleFilterChanged} />
+                                            </div>
+                                        ))}
+                                    </Offcanvas.Body>
+                                </Offcanvas>
+                            )}
                         </aside>
                     )}
                     <section className={`col-lg-${(category.children || category.filters) ? 8 : 12}`}>
