@@ -665,6 +665,13 @@ Product.getLayout = function getLayout(page) {
             label: breadcrumb.label
         }
     )) ?? []
+
+    const secondaryTitle = page.props.manufacturerLogo ? (
+    <div>
+        <img alt={page.props.manufacturer} src={page.props.manufacturerLogo} style={{ height: "60px" }} />
+    </div>
+    ) : null
+
     return (
         <PageLayout
             title={page.props.title}
@@ -678,6 +685,7 @@ Product.getLayout = function getLayout(page) {
                     {page.props.allowReviews && <ProductRating product={page.props.id} anchor="reviews" />}
                 </>
             }
+            secondaryTitle={secondaryTitle}
             breadcrumbs={breadcrumbs}
             dark overlapped>
             {page}
@@ -720,6 +728,8 @@ export async function getStaticProps(context) {
                 title: data.title,
                 whatis: data.whatis || null,
                 runame: data.runame || null,
+                manufacturer: data.manufacturer?.name || null,
+                manufacturerLogo: data.manufacturer?.logo || null,
                 id: data.id,
                 allowReviews: data.allow_reviews,
                 breadcrumbs

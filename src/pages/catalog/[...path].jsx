@@ -251,7 +251,7 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
 }
 
 Category.getLayout = function getLayout(page) {
-    const breadcrumbs = page.props.breadcrumbs.map((breadcrumb, index, breadcrumbs) => (
+    const breadcrumbs = page.props.breadcrumbs.map((breadcrumb) => (
         {
             href: `/${breadcrumb.path.join('/')}`,
             label: breadcrumb.name
