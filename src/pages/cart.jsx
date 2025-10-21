@@ -79,11 +79,6 @@ export default function Cart() {
                             <LoginForm embedded={true} ctx="order" />
                         )}
 
-                        <div id="oferta-notice" className="mt-4 fs-xs">
-                            Нажимая на кнопку &laquo;Оформить заказ&raquo;, вы подтверждаете согласие с условиями{' '}
-                            <Link href="/pages/oferta/">публичной оферты</Link>.
-                        </div>
-
                         { status === 'authenticated' && (
                             <div className="mt-3">
                                 <a className="fs-sm link-primary" onClick={signOut} style={{cursor:'pointer'}}>Оформить заказ от другого имени</a>

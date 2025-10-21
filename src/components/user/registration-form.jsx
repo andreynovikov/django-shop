@@ -1,11 +1,13 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Script from 'next/script';
+import Link from 'next/link';
 
 import { register } from '@/lib/session';
 import { normalizePhone } from '@/lib/queries';
 
 export default function RegistrationForm({embedded='', onComplete}) {
+    const [consent, setConsent] = useState(false);
     const [error, setError] = useState({});
 
     const router = useRouter();
@@ -25,6 +27,8 @@ export default function RegistrationForm({embedded='', onComplete}) {
                 return filtered;
             }, {}));
         }
+        if (field === 'consent')
+            setConsent(e.target.checked)
     };
 
     const handleSubmit = async (e) => {
@@ -32,6 +36,10 @@ export default function RegistrationForm({embedded='', onComplete}) {
         setError(false);
         if (!validatePhone()) {
             setError({'phone': ["Введите корректный номер"]});
+            return;
+        }
+        if (!consent) {
+            setError({'consent': ["Регистрация возможна только после предоставления согласия"]});
             return;
         }
         const formData = new FormData(e.currentTarget);
@@ -151,6 +159,25 @@ export default function RegistrationForm({embedded='', onComplete}) {
                     <div className="invalid-feedback" key={index}>{ err }</div>
                 ))}
                 <small className="form-text text-muted">если Вы не хотите, чтобы Ваше настоящее имя отображалось в отзывах</small>
+            </div>
+            <div className="form-check mb-3">
+                <input
+                    type="checkbox"
+                    className={"form-check-input" + ((error && 'consent' in error) ? " is-invalid" : "")}
+                    name="consent"
+                    id="sw-consent-check"
+                    checked={consent}
+                    onChange={handleChange} />
+                {" "}
+                <label className="form-check-label" htmlFor="sw-consent-check">
+                    Я даю{" "}
+                    <Link href="/pages/personaldata/">
+                        согласие на обработку персональных данных
+                    </Link>
+                </label>
+                { error && 'consent' in error && error['consent'].map((err, index) => (
+                    <div className="invalid-feedback" key={index}>{ err }</div>
+                ))}
             </div>
             <div className="text-end">
                 <button className={"btn btn-primary ms-4" + (embedded && " btn-shadow")} type="submit">

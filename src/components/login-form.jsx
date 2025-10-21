@@ -13,6 +13,8 @@ const CODE_RESEND_DELAY = 240;
 
 export default function LoginForm({ctx, phone, hideModal=undefined, embedded=''}) {
     const [loginPhone, setLoginPhone] = useState('');
+    const [pdConsent, setPdConsent] = useState(false);
+    const [ofConsent, setOfConsent] = useState(false);
     const [reset, setReset] = useState(false);
     const [error, setError] = useState({});
 
@@ -95,23 +97,45 @@ export default function LoginForm({ctx, phone, hideModal=undefined, embedded=''}
         return err;
     };
 
+    const handleChange = (e) => {
+        const field = e.currentTarget.name
+        if (error && field in error) {
+            setError(Object.keys(error).reduce(function (filtered, key) {
+                if (key !== field)
+                    filtered[key] = error[key]
+                return filtered
+            }, {}))
+        }
+        if (field === 'pd-consent')
+            setPdConsent(e.target.checked)
+        if (field === 'of-consent')
+            setOfConsent(e.target.checked)
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError({});
+        let err = {};
+        if (['order', 'warranty'].includes(ctx)) {
+            if (!pdConsent)
+                err = {...err, 'pd-consent': "Продолжение возможно только после предоставления согласия"};
+            if (ctx === 'order' && !ofConsent)
+                err = {...err, 'of-consent': "Оформление заказа возможно только после подтверждения согласия"};
+
+        }
         if (e.target.elements.phone) {
-            const err = validatePhone();
+            err = {...err, ...validatePhone()};
             if (Object.keys(err).length > 0) {
                 setError(err);
             } else {
                 setLoginPhone(normalizePhone(e.target.elements.phone.value));
             }
         } else if (e.target.elements.password) {
-            let err = validatePassword(e.target.elements.password.value);
+            err = {...err, ...validatePassword(e.target.elements.password.value)};
             if (showPermanentPassword)
                 err = {...err, ...validatePermanentPasswords(e.target.elements.permanent_password.value, e.target.elements.permanent_password2.value)};
             if (Object.keys(err).length > 0) {
                 setError(err);
-                console.log(err);
             } else {
                 const credentials = {
                     phone: loginPhone,
@@ -205,6 +229,7 @@ export default function LoginForm({ctx, phone, hideModal=undefined, embedded=''}
                             ref={passwordRef.current}
                             id={`${embedded}${ctx}-password-input`}
                             placeholder={ shopUser?.permanent_password ? "Пароль" : "Код из смс" }
+                            onChange={handleChange}
                             required
                             autoFocus />
                         { 'password' in error && <div className="invalid-feedback">{ error.password }</div> }
@@ -273,6 +298,7 @@ export default function LoginForm({ctx, phone, hideModal=undefined, embedded=''}
                                 ref={phoneRef}
                                 id={`${embedded}${ctx}-phone-input`}
                                 placeholder="(999) 111-22-33"
+                                onChange={handleChange}
                                 autoComplete="phone"
                                 required />
                             { 'phone' in error && <div className="invalid-feedback">{ error.phone }</div> }
@@ -281,7 +307,47 @@ export default function LoginForm({ctx, phone, hideModal=undefined, embedded=''}
                 </>
             )}
 
-            { ctx === 'order' ? (
+            {['order', 'warranty'].includes(ctx) && (
+                <>
+                    <div className="form-check mb-3">
+                        <input
+                            type="checkbox"
+                            className={"form-check-input" + ('pd-consent' in error ? " is-invalid" : "")}
+                            name="pd-consent"
+                            id="sw-pd-consent-check"
+                            checked={pdConsent}
+                            onChange={handleChange} />
+                        {" "}
+                        <label className="form-check-label" htmlFor="sw-pd-consent-check">
+                            Я даю{" "}
+                            <Link href="/pages/personaldata/">
+                                согласие на обработку персональных данных
+                            </Link>
+                        </label>
+                        { 'pd-consent' in error && <div className="invalid-feedback">{ error['pd-consent'] }</div> }
+                    </div>
+                    {ctx === 'order' && (
+                        <div className="form-check mb-3">
+                            <input
+                                type="checkbox"
+                                className={"form-check-input" + ('of-consent' in error ? " is-invalid" : "")}
+                                name="of-consent"
+                                id="sw-of-consent-check"
+                                checked={ofConsent}
+                                onChange={handleChange} />
+                            {" "}
+                            <label className="form-check-label" htmlFor="sw-of-consent-check">
+                                Я подтверждаю согласие с{" "}
+                                <Link href="/pages/oferta/">
+                                    условиями публичной оферты
+                                </Link>
+                            </label>
+                            { 'of-consent' in error && <div className="invalid-feedback">{ error['of-consent'] }</div> }
+                        </div>
+                    )}
+                </>
+            )}
+            {ctx === 'order' ? (
                 <button className="btn btn-primary btn-shadow d-block w-100 mt-4">
                     <i className={"fs-lg me-2 " + (!!shopUser ? "ci-sign-in" : "ci-basket-alt")} />Оформить заказ
                 </button>
