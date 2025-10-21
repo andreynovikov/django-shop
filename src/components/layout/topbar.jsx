@@ -27,11 +27,12 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
     const stuckMenuRef = useRef()
     const catalogButtonRef = useRef()
 
+    /*
     useEffect(() => {
         const topbar = document.querySelector('.topbar')
 
         if (catalogVisible) {
-            if (window.innerWidth > 992 /* lg */ && window.pageYOffset > topbar.offsetHeight) {
+            if (window.innerWidth > 992 && window.pageYOffset > topbar.offsetHeight) { // lg
                 window.scrollTo(0, topbar.offsetHeight)
             }
         }
@@ -54,6 +55,7 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
             window.removeEventListener('scroll', setStickyState)
         }
     }, [catalogVisible])
+    */
 
     const handleStuckToggler = () => {
         stuckMenuRef.current?.classList.toggle('show')
@@ -66,7 +68,7 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
 
     return (
         <>
-            <div className="navbar-sticky bg-light">
+            <div className="navbar-sticky-turned-off bg-light">
             <div className="topbar topbar-light sw-bg-light">
                 <div className="container">
                     <div className="d-flex flex-grow-1 justify-content-between d-md-inline-block">
