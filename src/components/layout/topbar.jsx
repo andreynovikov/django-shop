@@ -24,41 +24,39 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
     const { site } = useSite()
     const { status } = useSession()
 
+    const navbarRef = useRef()
+    const stickyRef = useRef()
     const stuckMenuRef = useRef()
     const catalogButtonRef = useRef()
 
-    /*
     useEffect(() => {
-        const topbar = document.querySelector('.topbar')
-
         if (catalogVisible) {
-            if (window.innerWidth > 992 && window.pageYOffset > topbar.offsetHeight) { // lg
-                window.scrollTo(0, topbar.offsetHeight)
+            if (window.innerWidth > 992 /* lg */ && navbarRef.current?.classList.contains('sw-sticky')) {
+                window.scrollTo(0, 0)
+            }
+        }
+        stickyRef.current?.classList.toggle('sw-sticky', !catalogVisible)
+
+        const setNavbarState = (event) => {
+            const headerHeight = (navbarRef.current?.offsetHeight ?? 0) - 15
+            const offset = (stickyRef.current?.getBoundingClientRect().bottom ?? 0) + event.currentTarget.pageYOffset
+            if (offset >= headerHeight && !navbarRef.current?.classList.contains('sw-sticky') && !catalogVisible) {
+                navbarRef.current?.classList.remove('show')
+                navbarRef.current?.classList.add('sw-sticky')
+            } else if (offset < headerHeight && navbarRef.current?.classList.contains('sw-sticky')) {
+                navbarRef.current?.classList.remove('sw-sticky')
             }
         }
 
-        const setStickyState = (event) => {
-            const navbar = document.querySelector('.navbar-sticky')
-            const navbarHeight = navbar.offsetHeight
-            if (event.currentTarget.pageYOffset > topbar.offsetHeight && !catalogVisible) {
-                //document.body.style.paddingTop = navbarHeight + 'px'
-                navbar.classList.add('navbar-stuck')
-            } else {
-                document.body.style.paddingTop = ''
-                navbar.classList.remove('navbar-stuck')
-            }
-        }
-
-        window.addEventListener('scroll', setStickyState)
+        window.addEventListener('scroll', setNavbarState)
 
         return () => {
-            window.removeEventListener('scroll', setStickyState)
+            window.removeEventListener('scroll', setNavbarState)
         }
     }, [catalogVisible])
-    */
 
     const handleStuckToggler = () => {
-        stuckMenuRef.current?.classList.toggle('show')
+        navbarRef.current?.classList.toggle('show')
     }
 
     const { comparisons } = useComparison()
@@ -67,36 +65,36 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
     const seoLogoAlt = "Швейный Мир - всероссийская сеть швейных супермаркетов.&#10; Швейные машинки, вышивальные и вязальные машины, оверлоки и аксессуары."
 
     return (
-        <>
-            <div className="navbar-sticky-turned-off bg-light">
-            <div className="topbar topbar-light sw-bg-light">
-                <div className="container">
-                    <div className="d-flex flex-grow-1 justify-content-between d-md-inline-block">
-                        {site.phone && (
-                            <div className="topbar-text text-nowrap">
-                                <i className="ci-support mt-n1" />
-                                <a className="topbar-link" href={"tel:" + "+74957440087"}>{formatPhone("+74957440087")}</a>
-                                <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;розничные магазины</span>
-                            </div>
-                        )}
-                        {site.phone && (
-                            <div className="topbar-text text-nowrap border-start ps-md-3 ms-md-3">
-                                <i className="ci-support mt-n1" />
-                                <a className="topbar-link" href={"tel:" + site.phone}>{formatPhone(site.phone)}</a>
-                                <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;интернет-магазин</span>
-                            </div>
-                        )}
-                    </div>
-                    <div className="d-none d-md-inline-block">
-                        {comparisons.length > 0 && (
-                            <Link className="topbar-link text-nowrap border-end pe-3 me-3" href="/compare" rel="nofollow">
-                                <CompareLink />
-                            </Link>
-                        )}
-                        <OrderTracking />
+        <div className="sw-navbar" ref={navbarRef}>
+            <div className="sw-navbar-sticky bg-light" ref={stickyRef}>
+                <div className="topbar topbar-light sw-bg-light">
+                    <div className="container">
+                        <div className="d-flex flex-grow-1 justify-content-between d-md-inline-block">
+                            {site.phone && (
+                                <div className="topbar-text text-nowrap">
+                                    <i className="ci-support mt-n1" />
+                                    <a className="topbar-link" href={"tel:" + "+74957440087"}>{formatPhone("+74957440087")}</a>
+                                    <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;розничные магазины</span>
+                                </div>
+                            )}
+                            {site.phone && (
+                                <div className="topbar-text text-nowrap border-start ps-md-3 ms-md-3">
+                                    <i className="ci-support mt-n1" />
+                                    <a className="topbar-link" href={"tel:" + site.phone}>{formatPhone(site.phone)}</a>
+                                    <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;интернет-магазин</span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="d-none d-md-inline-block">
+                            {comparisons.length > 0 && (
+                                <Link className="topbar-link text-nowrap border-end pe-3 me-3" href="/compare" rel="nofollow">
+                                    <CompareLink />
+                                </Link>
+                            )}
+                            <OrderTracking />
+                        </div>
                     </div>
                 </div>
-            </div>
                 <div className="navbar navbar-expand-lg navbar-light">
                     <div className="container">
                         <Link className="navbar-brand flex-shrink-0" href="/">
@@ -127,57 +125,56 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
                             )}
                             {!hideSignIn && <UserProfileLink />}
                             {!hideCartNotice && <CartNotice />}
-
                         </div>
-                    </div>
-                </div>
-                <div className="navbar navbar-expand-lg navbar-light navbar-stuck-menu mt-n2 pt-0 pb-2" ref={stuckMenuRef}>
-                    <div className="container">
-                        <div className="flex-grow-1 d-md-none my-3">
-                            <ProductSearchInput mobile />
-                        </div>
-                        <Collapse in={topMenuOpen} className="navbar-collapse">
-                            <div>
-                                <ul className="navbar-nav pe-lg-2 me-lg-2">
-                                    <li className="nav-item bg-transparent">
-                                        <button ref={catalogButtonRef}
-                                            className="btn btn-primary w-100 fw-bold text-start text-lg-center dropdown-toggle"
-                                            onClick={() => setCatalogVisible(!catalogVisible)}>
-                                            <span className="me-2 align-text-bottom">
-                                                {catalogVisible ? <IconX strokeWidth={1.5} /> : <IconCategory strokeWidth={1.5} />}
-                                            </span>
-                                            Каталог
-                                        </button>
-                                        <CatalogDropDown visible={catalogVisible} setVisible={setCatalogVisible} buttonRef={catalogButtonRef} />
-                                    </li>
-                                </ul>
-                                <ul className="navbar-nav">
-                                    <li className="nav-item">
-                                        <Link className="nav-link" href="/stores/">
-                                            Магазины
-                                        </Link>
-                                    </li>
-                                    <li className="nav-item">
-                                        <Link className="nav-link" href="/service/">
-                                            Сервисные центры
-                                        </Link>
-                                    </li>
-                                    <li className="nav-item">
-                                        <Link className="nav-link" href="/pages/delivery/">
-                                            Доставка
-                                        </Link>
-                                    </li>
-                                    <li className="nav-item d-md-none">
-                                        <Link className="nav-link" href="/user/orders?track" rel="nofollow">
-                                            Отслеживание заказа
-                                        </Link>
-                                    </li>
-                                </ul>
-                            </div>
-                        </Collapse>
                     </div>
                 </div>
             </div>
-        </>
+            <div className="navbar navbar-expand-lg navbar-light navbar-stuck-menu bg-light pt-0 pb-2" ref={stuckMenuRef}>
+                <div className="container">
+                    <div className="flex-grow-1 d-md-none my-3">
+                        <ProductSearchInput mobile />
+                    </div>
+                    <Collapse in={topMenuOpen} className="navbar-collapse">
+                        <div>
+                            <ul className="navbar-nav pe-lg-2 me-lg-2">
+                                <li className="nav-item bg-transparent">
+                                    <button ref={catalogButtonRef}
+                                        className="btn btn-primary w-100 fw-bold text-start text-lg-center dropdown-toggle"
+                                        onClick={() => setCatalogVisible(!catalogVisible)}>
+                                        <span className="me-2 align-text-bottom">
+                                            {catalogVisible ? <IconX strokeWidth={1.5} /> : <IconCategory strokeWidth={1.5} />}
+                                        </span>
+                                        Каталог
+                                    </button>
+                                    <CatalogDropDown visible={catalogVisible} setVisible={setCatalogVisible} buttonRef={catalogButtonRef} />
+                                </li>
+                            </ul>
+                            <ul className="navbar-nav">
+                                <li className="nav-item">
+                                    <Link className="nav-link" href="/stores/">
+                                        Магазины
+                                    </Link>
+                                </li>
+                                <li className="nav-item">
+                                    <Link className="nav-link" href="/service/">
+                                        Сервисные центры
+                                    </Link>
+                                </li>
+                                <li className="nav-item">
+                                    <Link className="nav-link" href="/pages/delivery/">
+                                        Доставка
+                                    </Link>
+                                </li>
+                                <li className="nav-item d-md-none">
+                                    <Link className="nav-link" href="/user/orders?track" rel="nofollow">
+                                        Отслеживание заказа
+                                    </Link>
+                                </li>
+                            </ul>
+                        </div>
+                    </Collapse>
+                </div>
+            </div>
+        </div>
     )
 }

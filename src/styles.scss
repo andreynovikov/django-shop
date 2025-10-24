@@ -136,6 +136,45 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
     background-color: #fffaee
 }
 
+@include media-breakpoint-up(lg) {
+    .sw-sticky {
+        position: sticky;
+        top: 0;
+        z-index: $zindex-fixed;
+    }
+
+    .sw-navbar {
+        &.sw-sticky {
+            .sw-navbar-sticky {
+                box-shadow: $navbar-stuck-box-shadow;
+            }
+
+            .navbar-stuck-toggler {
+                display: flex;
+            }
+
+            .navbar-stuck-menu {
+                opacity: 0;
+            }
+
+            &.show {
+                .sw-navbar-sticky {
+                    box-shadow: none;
+                }
+
+                .navbar-stuck-menu {
+                    opacity: 1;
+                    box-shadow: $navbar-stuck-box-shadow;
+                }
+            }
+        }
+
+        .sw-navbar-sticky {
+            background-color: $light;
+        }
+    }
+}
+
 .sw-catalog-dropdown {
     padding-top: $card-spacer-y;
     padding-bottom: $card-spacer-y;
@@ -143,7 +182,7 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
     background-clip: border-box;
 
     @include media-breakpoint-up(lg) {
-        top: $navbar-nav-link-padding-y - .125rem - $btn-padding-y + ( $font-size-base - $btn-font-size ) / 2 + map-get($spacers, 2);
+        top: $navbar-nav-link-padding-y - .25rem - $btn-padding-y + ( $font-size-base - $btn-font-size ) / 2 + map-get($spacers, 2);
         position: absolute;
         min-width: 50rem;
         z-index: $zindex-dropdown - 5;

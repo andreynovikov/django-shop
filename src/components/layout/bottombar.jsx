@@ -6,8 +6,8 @@ export default function BottomBar() {
     return (
         <footer className="footer bg-dark pt-5">
             <div className="container">
-                <div class="row pb-2">
-                    <div class="col-md-6 text-center text-md-start mb-4">
+                <div className="row pb-2">
+                    <div className="col-md-6 text-center text-md-start mb-4">
                         <div className="widget widget-links widget-light">
                             <ul className="widget-list d-flex flex-wrap justify-content-center justify-content-md-start">
                                 { /* <li class="nav-item"><a class="nav-link" href="{% url 'sales_actions' %}">Акции</a></li> */}
