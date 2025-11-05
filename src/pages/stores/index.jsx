@@ -158,7 +158,7 @@ export default function Stores() {
                             </button>
                         </div>
                         <div className="d-flex mt-1">
-                            { storeGroups.length > 0 && rows(storeGroups.filter(({city}) => city.id !== 2 && city.id !== 21), 4).map((column, index) => (
+                            { storeGroups.length > 0 && rows(storeGroups, 4).map((column, index) => (
                                 <div className="pe-1" key={index}>
                                     { column.map(({ city }) => (
                                         <button
