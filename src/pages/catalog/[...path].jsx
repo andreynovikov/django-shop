@@ -171,6 +171,8 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                         <div className="d-flex justify-content-center justify-content-sm-between align-items-center pt-2 pb-4 pb-sm-5">
                             <div className="d-flex flex-wrap">
                                 <div className="d-flex align-items-center flex-nowrap me-3 me-sm-4 pb-3">
+                                    &nbsp;
+                                    {/*
                                     <label className="text-light opacity-75 text-nowrap fs-sm me-2 d-none d-sm-block" htmlFor="sorting">Сортировать:</label>
                                     <select className="form-select" id="sorting" value={currentOrder} onChange={(event) => handleOrderSelect(event.target.value)}>
                                         <option value={order}>по-умолчанию</option>
@@ -186,6 +188,8 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                                             { rupluralize(products.count, ['товара','товаров','товаров']) }
                                         </span>
                                     )}
+                                    */
+                                    }
                                 </div>
                             </div>
                             { products?.totalPages > 1 && (
