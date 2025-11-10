@@ -96,6 +96,7 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
     .offcanvas-lg { // Collapse off-canvas down from lg breakpoint
         display: block;
         position: static;
+        z-index: inherit !important;
         top: auto !important;
         right: auto !important;
         bottom: auto !important;

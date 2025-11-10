@@ -1,4 +1,4 @@
-import { useState, useReducer, useEffect, useMemo } from 'react';
+import { useState, useReducer, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { dehydrate, QueryClient, useQuery, keepPreviousData } from '@tanstack/react-query';
@@ -36,6 +36,62 @@ function filterReducer(filters, action) {
     }
 }
 
+function updateFiltersStyle(container, filters, scrollOffset) {
+    if (filters === undefined || filters === null)
+        return;
+
+    filters = filters.parentElement;
+    const containerRect = container.getBoundingClientRect();
+    const filtersRect = filters.getBoundingClientRect();
+    const parentWidth = filters.parentElement.offsetWidth;
+
+    const state = filters.dataset.state;
+    const navbar = document.querySelector('.sw-navbar');
+
+    //console.log('container', container.offsetHeight, containerRect)
+    //console.log('filters', state) //, filters.offsetHeight, filtersRect)
+
+    if ([undefined, 'relativeBottom'].includes(state) && scrollOffset > 0 && containerRect.top < navbar.offsetHeight && filtersRect.bottom < window.innerHeight - 20) {
+        filters.style.setProperty('position', 'fixed');
+        filters.style.setProperty('top', 'auto', 'important');
+        filters.style.setProperty('bottom', '20px', 'important');
+        filters.style.setProperty('width', parentWidth + 'px', 'important');
+        filters.dataset.state = 'fixedBottom';
+    }
+    if (['fixedTop', 'fixedBottom'].includes(state) && containerRect.bottom < window.innerHeight - 20) {
+        filters.style.setProperty('position', 'absolute');
+        filters.style.setProperty('top', 'auto', 'important');
+        filters.style.setProperty('bottom', '20px', 'important');
+        filters.style.setProperty('width', parentWidth + 'px', 'important');
+        filters.dataset.state = 'absoluteBottom';
+    }
+    if (
+        (['absoluteBottom'].includes(state) && filtersRect.bottom > window.innerHeight) ||
+        (['fixedBottom', 'absoluteBottom'].includes(state) && scrollOffset < 0) ||
+        (['fixedTop'].includes(state) && scrollOffset > 0)
+    ) {
+        filters.style.setProperty('position', 'relative');
+        filters.style.setProperty('top', (filtersRect.top - containerRect.top) + 'px', 'important');
+        filters.style.setProperty('bottom', 'auto', 'important');
+        filters.style.removeProperty('width');
+        filters.dataset.state = 'relativeBottom';
+    }
+    if (['relativeBottom', 'fixedBottom', 'absoluteBottom'].includes(state) && scrollOffset < 0 && containerRect.bottom > window.innerHeight && filtersRect.bottom > window.innerHeight && filtersRect.top > navbar.offsetHeight) {
+        filters.style.setProperty('position', 'fixed');
+        filters.style.setProperty('top', navbar.offsetHeight + 'px', 'important');
+        filters.style.setProperty('bottom', 'auto', 'important');
+        filters.style.setProperty('width', parentWidth + 'px', 'important');
+        filters.dataset.state = 'fixedTop';
+    }
+    if (['fixedTop', 'fixedBottom'].includes(state) && containerRect.top > navbar.offsetHeight) {
+        filters.style.setProperty('position', 'relative');
+        filters.style.setProperty('top', 'auto', 'important');
+        filters.style.setProperty('bottom', 'auto', 'important');
+        filters.style.removeProperty('width');
+        delete filters.dataset.state;
+    }
+}
+
 /*
   TODO:
   - refactor price filter on server side
@@ -46,6 +102,37 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
     const [currentFilters, setFilter] = useReducer(filterReducer, filters);
     const [currentOrder, setOrder] = useState(order);
     const [showFilters, setShowFilters] = useState(false);
+
+    const containerRef = useRef()
+    const filtersRef = useRef()
+    const pageYOffset = useRef(0)
+
+    useEffect(() => {
+        const updateFiltersWidth = () => {
+            if (filtersRef.current === undefined || filtersRef.current === null)
+                return;
+
+            const filters = filtersRef.current.parentElement;
+            const parentWidth = filters.parentElement.offsetWidth;
+            const state = filters.dataset.state;
+            if (['fixedTop', 'fixedBottom', 'absoluteBottom'].includes(state))
+                filters.style.setProperty('width', parentWidth + 'px', 'important');
+
+        }
+        const updateFiltersStyleRef = (event) => {
+            const scrollOffset = event.currentTarget.pageYOffset - pageYOffset.current
+            updateFiltersStyle(containerRef.current, filtersRef.current, scrollOffset)
+            pageYOffset.current = event.currentTarget.pageYOffset
+        }
+
+        window.addEventListener('resize', updateFiltersWidth)
+        window.addEventListener('scroll', updateFiltersStyleRef)
+
+        return () => {
+            window.removeEventListener('resize', updateFiltersWidth)
+            window.removeEventListener('scroll', updateFiltersStyleRef)
+        }
+    }, [])
 
     // reset filters on page change
     useEffect(() => {
@@ -122,8 +209,8 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
         return (
             <div className="container pb-5 mb-2 mb-md-4">
                 <div className="row">
-                    { (category.children || category.filters) && (
-                        <aside className="col-lg-4">
+                    {(category.children || category.filters) && (
+                        <aside className="col-lg-4 position-relative" ref={containerRef}>
                             {category.children && (
                                 <div className={"d-none d-lg-block bg-white w-100 rounded-3 shadow-lg py-1" + (category.filters ? " mb-4" : "")} style={{ maxWidth: "22rem" }}>
                                     <div className="py-grid-gutter px-lg-grid-gutter">
@@ -143,27 +230,29 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                                 </div>
                             )}
                             {category.filters && (
-                                <Offcanvas
-                                    show={showFilters}
-                                    onHide={() => setShowFilters(false)}
-                                    responsive="lg"
-                                    className="offcanvas bg-white w-100 rounded-3 shadow-lg py-1"
-                                    style={{ maxWidth: "22rem" }}>
-                                    <Offcanvas.Header className="align-items-center shadow-sm" closeButton>
-                                        <h2 className="h5 mb-0">Фильтры</h2>
-                                    </Offcanvas.Header>
-                                    <Offcanvas.Body className="py-grid-gutter px-lg-grid-gutter">
-                                        {category.filters && category.filters.map((filter, index) => (
-                                            <div className={"widget" + (index === category.filters.length - 1 ? "" : " pb-4 mb-4 border-bottom")} key={filter.id}>
-                                                <h3 className="widget-title">{filter.label}</h3>
-                                                <ProductFilter
-                                                    filter={{ ...filter, ...products?.filters?.[filter.name] }}
-                                                    filterValue={selectedFilters[filter.name]}
-                                                    onFilterChanged={handleFilterChanged} />
-                                            </div>
-                                        ))}
-                                    </Offcanvas.Body>
-                                </Offcanvas>
+                                <div style={{ maxWidth: "22rem" }}>
+                                    <Offcanvas
+                                        show={showFilters}
+                                        onHide={() => setShowFilters(false)}
+                                        responsive="lg"
+                                        className="offcanvas bg-white w-100 rounded-3 shadow-lg py-1"
+                                        style={{ maxWidth: "22rem" }}>
+                                        <Offcanvas.Header className="align-items-center shadow-sm" closeButton>
+                                            <h2 className="h5 mb-0">Фильтры</h2>
+                                        </Offcanvas.Header>
+                                        <Offcanvas.Body className="py-grid-gutter px-lg-grid-gutter" ref={filtersRef}>
+                                            {category.filters && category.filters.map((filter, index) => (
+                                                <div className={"widget" + (index === category.filters.length - 1 ? "" : " pb-4 mb-4 border-bottom")} key={filter.id}>
+                                                    <h3 className="widget-title">{filter.label}</h3>
+                                                    <ProductFilter
+                                                        filter={{ ...filter, ...products?.filters?.[filter.name] }}
+                                                        filterValue={selectedFilters[filter.name]}
+                                                        onFilterChanged={handleFilterChanged} />
+                                                </div>
+                                            ))}
+                                        </Offcanvas.Body>
+                                    </Offcanvas>
+                                </div>
                             )}
                         </aside>
                     )}
