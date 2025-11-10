@@ -87,6 +87,14 @@ export const newsKeys = {
     lists: () => [...newsKeys.all, 'list'],
 };
 
+export const salesActionKeys = {
+    all: ['salesactions'],
+    lists: () => [...salesActionKeys.all, 'list'],
+    details: () => [...salesActionKeys.all, 'detail'],
+    detail: (slug) => [...salesActionKeys.details(), slug],
+    products: (slug) => [...salesActionKeys.detail(slug), 'products'],
+};
+
 export const advertKeys = {
     all: ['adverts'],
     lists: () => [...advertKeys.all, 'list'],
@@ -471,6 +479,21 @@ export async function loadPage(uri) {
 
 export async function loadNews() {
     const response = await apiClient.get('news/');
+    return response.data;
+}
+
+export async function loadSalesActions() {
+    const response = await apiClient.get('salesactions/');
+    return response.data;
+};
+
+export async function loadSalesAction(slug) {
+    const response = await apiClient.get(`salesactions/${slug}/`);
+    return response.data;
+}
+
+export async function loadSalesActionProducts(slug) {
+    const response = await apiClient.get(`salesactions/${slug}/products/`);
     return response.data;
 }
 
