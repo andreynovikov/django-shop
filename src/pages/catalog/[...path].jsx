@@ -36,59 +36,65 @@ function filterReducer(filters, action) {
     }
 }
 
-function updateFiltersStyle(container, filters, scrollOffset) {
-    if (filters === undefined || filters === null)
+function updateSidebarStyle(container, sidebar, scrollOffset) {
+    if (sidebar === undefined || sidebar === null)
         return;
 
-    filters = filters.parentElement;
     const containerRect = container.getBoundingClientRect();
-    const filtersRect = filters.getBoundingClientRect();
-    const parentWidth = filters.parentElement.offsetWidth;
+    const sidebarRect = sidebar.getBoundingClientRect();
+    const parentWidth = sidebar.parentElement.offsetWidth;
 
-    const state = filters.dataset.state;
+    const state = sidebar.dataset.state;
     const navbar = document.querySelector('.sw-navbar');
 
     //console.log('container', container.offsetHeight, containerRect)
-    //console.log('filters', state) //, filters.offsetHeight, filtersRect)
+    //console.log('sidebar', state) //, sidebar.offsetHeight, sidebarRect)
+    const availableHeight = window.innerHeight - 20
+    const isSidebarTopVisible = sidebarRect.top > navbar.offsetHeight
+    const isSidebarTaller = sidebarRect.height > availableHeight - navbar.offsetHeight
 
-    if ([undefined, 'relativeBottom'].includes(state) && scrollOffset > 0 && containerRect.top < navbar.offsetHeight && filtersRect.bottom < window.innerHeight - 20) {
-        filters.style.setProperty('position', 'fixed');
-        filters.style.setProperty('top', 'auto', 'important');
-        filters.style.setProperty('bottom', '20px', 'important');
-        filters.style.setProperty('width', parentWidth + 'px', 'important');
-        filters.dataset.state = 'fixedBottom';
+    if ([undefined, 'relativeBottom'].includes(state) && scrollOffset > 0 && containerRect.top < navbar.offsetHeight && sidebarRect.bottom < availableHeight && isSidebarTaller) {
+        sidebar.style.setProperty('position', 'fixed');
+        sidebar.style.setProperty('top', 'auto', 'important');
+        sidebar.style.setProperty('bottom', '20px', 'important');
+        sidebar.style.setProperty('width', parentWidth + 'px', 'important');
+        sidebar.dataset.state = 'fixedBottom';
     }
-    if (['fixedTop', 'fixedBottom'].includes(state) && containerRect.bottom < window.innerHeight - 20) {
-        filters.style.setProperty('position', 'absolute');
-        filters.style.setProperty('top', 'auto', 'important');
-        filters.style.setProperty('bottom', '20px', 'important');
-        filters.style.setProperty('width', parentWidth + 'px', 'important');
-        filters.dataset.state = 'absoluteBottom';
+    if (['fixedTop', 'fixedBottom'].includes(state) && containerRect.bottom < availableHeight && scrollOffset > 0) {
+        sidebar.style.setProperty('position', 'absolute');
+        sidebar.style.setProperty('top', 'auto', 'important');
+        sidebar.style.setProperty('bottom', '20px', 'important');
+        sidebar.style.setProperty('width', parentWidth + 'px', 'important');
+        sidebar.dataset.state = 'absoluteBottom';
     }
     if (
-        (['absoluteBottom'].includes(state) && filtersRect.bottom > window.innerHeight) ||
+        (['absoluteBottom'].includes(state) && sidebarRect.bottom > window.innerHeight) ||
         (['fixedBottom', 'absoluteBottom'].includes(state) && scrollOffset < 0) ||
-        (['fixedTop'].includes(state) && scrollOffset > 0)
+        (['fixedTop'].includes(state) && scrollOffset > 0 && isSidebarTaller)
     ) {
-        filters.style.setProperty('position', 'relative');
-        filters.style.setProperty('top', (filtersRect.top - containerRect.top) + 'px', 'important');
-        filters.style.setProperty('bottom', 'auto', 'important');
-        filters.style.removeProperty('width');
-        filters.dataset.state = 'relativeBottom';
+        sidebar.style.setProperty('position', 'relative');
+        sidebar.style.setProperty('top', (sidebarRect.top - containerRect.top) + 'px', 'important');
+        sidebar.style.setProperty('bottom', 'auto', 'important');
+        sidebar.style.removeProperty('width');
+        sidebar.dataset.state = 'relativeBottom';
     }
-    if (['relativeBottom', 'fixedBottom', 'absoluteBottom'].includes(state) && scrollOffset < 0 && containerRect.bottom > window.innerHeight && filtersRect.bottom > window.innerHeight && filtersRect.top > navbar.offsetHeight) {
-        filters.style.setProperty('position', 'fixed');
-        filters.style.setProperty('top', navbar.offsetHeight + 'px', 'important');
-        filters.style.setProperty('bottom', 'auto', 'important');
-        filters.style.setProperty('width', parentWidth + 'px', 'important');
-        filters.dataset.state = 'fixedTop';
+    if (
+        (['relativeBottom', 'absoluteBottom'].includes(state) && scrollOffset < 0 && isSidebarTopVisible && !isSidebarTaller) ||
+        (['relativeBottom', 'fixedBottom', 'absoluteBottom'].includes(state) && scrollOffset < 0 && isSidebarTopVisible && containerRect.bottom > window.innerHeight && sidebarRect.bottom > window.innerHeight) ||
+        ([undefined].includes(state) && scrollOffset > 0 && !isSidebarTopVisible && !isSidebarTaller)
+    ) {
+        sidebar.style.setProperty('position', 'fixed');
+        sidebar.style.setProperty('top', navbar.offsetHeight + 'px', 'important');
+        sidebar.style.setProperty('bottom', 'auto', 'important');
+        sidebar.style.setProperty('width', parentWidth + 'px', 'important');
+        sidebar.dataset.state = 'fixedTop';
     }
     if (['fixedTop', 'fixedBottom'].includes(state) && containerRect.top > navbar.offsetHeight) {
-        filters.style.setProperty('position', 'relative');
-        filters.style.setProperty('top', 'auto', 'important');
-        filters.style.setProperty('bottom', 'auto', 'important');
-        filters.style.removeProperty('width');
-        delete filters.dataset.state;
+        sidebar.style.setProperty('position', 'relative');
+        sidebar.style.setProperty('top', 'auto', 'important');
+        sidebar.style.setProperty('bottom', 'auto', 'important');
+        sidebar.style.removeProperty('width');
+        delete sidebar.dataset.state;
     }
 }
 
@@ -98,39 +104,38 @@ function updateFiltersStyle(container, filters, scrollOffset) {
   - более строгие фильтры не на первой странице приводят к пустой странице
   - debounce currentFilters (useDeferredValue does not work)
 */
-export default function Category({path, currentPage, pageSize, order, filters}) {
+export default function Category({ path, currentPage, pageSize, order, filters }) {
     const [currentFilters, setFilter] = useReducer(filterReducer, filters);
     const [currentOrder, setOrder] = useState(order);
     const [showFilters, setShowFilters] = useState(false);
 
     const containerRef = useRef()
-    const filtersRef = useRef()
+    const sidebarRef = useRef()
     const pageYOffset = useRef(0)
 
     useEffect(() => {
-        const updateFiltersWidth = () => {
-            if (filtersRef.current === undefined || filtersRef.current === null)
+        const updateSidebarWidth = () => {
+            if (sidebarRef.current === undefined || sidebarRef.current === null)
                 return;
 
-            const filters = filtersRef.current.parentElement;
-            const parentWidth = filters.parentElement.offsetWidth;
-            const state = filters.dataset.state;
+            const parentWidth = sidebarRef.current.parentElement.offsetWidth;
+            const state = sidebarRef.current.dataset.state;
             if (['fixedTop', 'fixedBottom', 'absoluteBottom'].includes(state))
-                filters.style.setProperty('width', parentWidth + 'px', 'important');
+                sidebarRef.current.style.setProperty('width', parentWidth + 'px', 'important');
 
         }
-        const updateFiltersStyleRef = (event) => {
+        const updateSidebarStyleRef = (event) => {
             const scrollOffset = event.currentTarget.pageYOffset - pageYOffset.current
-            updateFiltersStyle(containerRef.current, filtersRef.current, scrollOffset)
+            updateSidebarStyle(containerRef.current, sidebarRef.current, scrollOffset)
             pageYOffset.current = event.currentTarget.pageYOffset
         }
 
-        window.addEventListener('resize', updateFiltersWidth)
-        window.addEventListener('scroll', updateFiltersStyleRef)
+        window.addEventListener('resize', updateSidebarWidth)
+        window.addEventListener('scroll', updateSidebarStyleRef)
 
         return () => {
-            window.removeEventListener('resize', updateFiltersWidth)
-            window.removeEventListener('scroll', updateFiltersStyleRef)
+            window.removeEventListener('resize', updateSidebarWidth)
+            window.removeEventListener('scroll', updateSidebarStyleRef)
         }
     }, [])
 
@@ -211,26 +216,26 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                 <div className="row">
                     {(category.children || category.filters) && (
                         <aside className="col-lg-4 position-relative" ref={containerRef}>
-                            {category.children && (
-                                <div className={"d-none d-lg-block bg-white w-100 rounded-3 shadow-lg py-1" + (category.filters ? " mb-4" : "")} style={{ maxWidth: "22rem" }}>
-                                    <div className="py-grid-gutter px-lg-grid-gutter">
-                                        <div className="widget widget-links">
-                                            <h3 className="widget-title">Категории</h3>
-                                            <ul className="widget-list">
-                                                {category.children.map((subcategory, index) => (
-                                                    <li className={"widget-list-item" + (index > 0 ? " pt-2" : "")} key={subcategory.id}>
-                                                        <Link className="widget-list-link" href={{ pathname: router.pathname, query: { path: [...path, subcategory.slug] } }}>
-                                                            {subcategory.name}
-                                                        </Link>
-                                                    </li>
-                                                ))}
-                                            </ul>
+                            <div style={{ maxWidth: "22rem" }}><div ref={sidebarRef}>
+                                {category.children && (
+                                    <div className={"d-none d-lg-block bg-white w-100 rounded-3 shadow-lg py-1" + (category.filters ? " mb-4" : "")} style={{ maxWidth: "22rem" }}>
+                                        <div className="py-grid-gutter px-lg-grid-gutter">
+                                            <div className="widget widget-links">
+                                                <h3 className="widget-title">Категории</h3>
+                                                <ul className="widget-list">
+                                                    {category.children.map((subcategory, index) => (
+                                                        <li className={"widget-list-item" + (index > 0 ? " pt-2" : "")} key={subcategory.id}>
+                                                            <Link className="widget-list-link" href={{ pathname: router.pathname, query: { path: [...path, subcategory.slug] } }}>
+                                                                {subcategory.name}
+                                                            </Link>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
-                            {category.filters && (
-                                <div style={{ maxWidth: "22rem" }}>
+                                )}
+                                {category.filters && (
                                     <Offcanvas
                                         show={showFilters}
                                         onHide={() => setShowFilters(false)}
@@ -240,7 +245,7 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                                         <Offcanvas.Header className="align-items-center shadow-sm" closeButton>
                                             <h2 className="h5 mb-0">Фильтры</h2>
                                         </Offcanvas.Header>
-                                        <Offcanvas.Body className="py-grid-gutter px-lg-grid-gutter" ref={filtersRef}>
+                                        <Offcanvas.Body className="py-grid-gutter px-lg-grid-gutter">
                                             {category.filters && category.filters.map((filter, index) => (
                                                 <div className={"widget" + (index === category.filters.length - 1 ? "" : " pb-4 mb-4 border-bottom")} key={filter.id}>
                                                     <h3 className="widget-title">{filter.label}</h3>
@@ -252,8 +257,8 @@ export default function Category({path, currentPage, pageSize, order, filters}) 
                                             ))}
                                         </Offcanvas.Body>
                                     </Offcanvas>
-                                </div>
-                            )}
+                                )}
+                            </div></div>
                         </aside>
                     )}
                     <section className={`col-lg-${(category.children || category.filters) ? 8 : 12}`}>
