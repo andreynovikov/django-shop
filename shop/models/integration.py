@@ -14,9 +14,11 @@ class Integration(models.Model):
     site = models.ForeignKey(Site, verbose_name='сайт', related_name='integrations', related_query_name='integration', on_delete=models.PROTECT)
     output_template = models.CharField('шаблон выгрузки', max_length=20)
     output_all = models.BooleanField('выгражать все', default=False, help_text="Выгружать товары по дереву категорий, а не по флагу интеграции")
+    output_paged = models.BooleanField('выгражать постранично', default=False)
     output_available = models.BooleanField('выгражать только в наличии', default=False)
     output_with_images = models.BooleanField('выгражать только с картинками', default=False)
     output_stock = models.BooleanField('выгражать остатки', default=False)
+    output_skip_categories = models.BooleanField('не выгражать категории', default=False)
     uses_api = models.BooleanField('использует API', default=False)
     uses_boxes = models.BooleanField('использует коробки', default=False)
     settings = models.JSONField('настройки', null=True, blank=True)
@@ -41,6 +43,7 @@ class ProductIntegration(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     integration = models.ForeignKey(Integration, on_delete=models.CASCADE)
     price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0)
+    notify_stock = models.BooleanField('требуется уведомление остатков', default=False)
 
     class Meta:
         unique_together = ('product', 'integration')

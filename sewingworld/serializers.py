@@ -17,9 +17,9 @@ from sewingworld.models import SiteProfile
 from sewingworld.templatetags.gravatar import get_gravatar_url
 
 from shop.filters import get_product_filter
-from shop.models import Basket, BasketItem, Order, OrderItem, Favorites, \
-    Category, Product, ProductRelation, ProductKind, ShopUser, ShopUserManager, Country, City, Store, \
-    ServiceCenter, News, SalesAction, Manufacturer
+from shop.models import Basket, BasketItem, Order, OrderItem, Favorites, Serial, \
+    Category, Product, ProductRelation, ProductKind, ShopUser, ShopUserManager, Bonus, \
+    Country, City, Store, ServiceCenter, News, Advert, SalesAction, Manufacturer
 
 
 logger = logging.getLogger("django")
@@ -78,6 +78,27 @@ class CategoryTreeSerializer(NonNullModelSerializer):
         fields = ('id', 'name', 'slug', 'svg_icon', 'image', 'children')
 
 
+class CategoryBriefSerializer(NonNullModelSerializer):
+    path = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Category
+        fields = ('id', 'name', 'slug', 'path')
+
+    def get_path(self, obj):
+        ancestors = obj.get_ancestors(include_self=True)[1:]  # exclude root category
+        uri = '/'.join([item.slug for item in ancestors])
+        breadcrumbs = [{
+            'id': item.id,
+            'slug': item.slug,
+            'name': item.name
+        } for item in ancestors]
+        return {
+            'uri': uri,
+            'breadcrumbs': breadcrumbs
+        }
+
+
 class CategorySerializer(NonNullModelSerializer):
     path = serializers.SerializerMethodField()
     children = RecursiveField(many=True, source='get_active_children')
@@ -85,7 +106,7 @@ class CategorySerializer(NonNullModelSerializer):
 
     class Meta:
         model = Category
-        exclude = ('active', 'hidden', 'ya_active', 'tree_id', 'lft', 'rght')
+        exclude = ('active', 'hidden', 'feed', 'tree_id', 'lft', 'rght')
 
     def get_path(self, obj):
         ancestors = obj.get_ancestors(include_self=True)[1:]  # exclude root category
@@ -171,9 +192,10 @@ class ProductListSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Product
-        fields = ('id', 'code', 'article', 'partnumber', 'whatis', 'title', 'variations', 'price',
+        fields = ('id', 'code', 'article', 'partnumber', 'whatis', 'whatisit', 'title', 'variations', 'price',
                   'cost', 'discount', 'instock', 'image', 'thumbnail', 'enabled', 'isnew', 'recomended',
-                  'ws_pack_only', 'pack_factor', 'sales', 'sales_notes', 'shortdescr', 'rank')
+                  'ws_pack_only', 'pack_factor', 'sales', 'sales_notes', 'shortdescr', 'rank',
+                  'wb_link', 'ozon_link')
 
     def to_representation(self, instance):
         request = self.context.get('request')
@@ -230,6 +252,7 @@ class ProductSerializer(NonNullModelSerializer):
     country = CountrySerializer(read_only=True)
     developer_country = CountrySerializer(read_only=True)
     manufacturer = ManufacturerSerializer(read_only=True)
+    categories = CategoryBriefSerializer(many=True, read_only=True)
     constituents = ProductListSerializer(many=True, read_only=True)
     price = serializers.SerializerMethodField()
     cost = serializers.SerializerMethodField()
@@ -246,7 +269,7 @@ class ProductSerializer(NonNullModelSerializer):
         exclude = ('sp_price', 'sp_cur_price', 'cur_price', 'max_discount', 'ws_max_discount',
                    'forbid_price_import', 'forbid_ws_price_import', 'show_on_sw', 'market', 'firstpage',
                    'num', 'recalculate_price', 'ws_cur_price', 'cur_code', 'ws_cur_code', 'sp_cur_code',
-                   'sales_actions', 'categories', 'stock', 'related', 'bid', 'cbid', 'fts_vector')
+                   'sales_actions', 'stock', 'related', 'bid', 'cbid', 'fts_vector')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -327,7 +350,6 @@ class ProductSerializer(NonNullModelSerializer):
             else:
                 return img
         return obj.stitches
-
 
 class BasketItemProductSerializer(NonNullModelSerializer):
     price = serializers.SerializerMethodField()
@@ -424,7 +446,7 @@ class OrderListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ('id', 'total', 'created', 'status', 'status_text')
+        fields = ('id', 'total', 'created', 'status', 'status_text', 'payment', 'paid')
 
     def get_status_text(self, obj):
         return obj.get_status_display()
@@ -465,6 +487,25 @@ class FavoritesSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         return instance.product.id
+
+
+class SerialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Serial
+        exclude = ('id', 'user', 'comment')
+        read_only_fields = ('purchase_date', 'product', 'order', 'approved')
+        extra_kwargs = {
+            'number': {'validators': []}  # we validate it in create method by ourselves
+        }
+
+    def create(self, validated_data):
+        if validated_data['number'] is None or validated_data['number'].strip() == '':
+            raise serializers.ValidationError("Необходимо указать серийный номер")
+        request = self.context.get('request')
+        serial = Serial.register(validated_data['number'], request.user)
+        if serial is None:
+            raise serializers.ValidationError("Серийный номер {} уже был ранее зарегистрирован".format(validated_data['number']))
+        return serial
 
 
 class ComparisonSerializer(serializers.Serializer):
@@ -592,6 +633,12 @@ class LoginSerializer(serializers.Serializer):
         raise serializers.ValidationError("Невозможно войти с указанными учетными данными")
 
 
+class UserBonusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Bonus
+        fields = ('value', 'is_fresh', 'is_undefined', 'is_updating')
+
+
 class FlatPageListSerializer(serializers.ModelSerializer):
     class Meta:
         model = FlatPage
@@ -607,6 +654,12 @@ class FlatPageSerializer(serializers.ModelSerializer):
 class NewsSerializer(serializers.ModelSerializer):
     class Meta:
         model = News
+        exclude = ('sites', 'active')
+
+
+class AdvertSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Advert
         exclude = ('sites', 'active')
 
 

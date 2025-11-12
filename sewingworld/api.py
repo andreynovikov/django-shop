@@ -6,14 +6,15 @@ from django.contrib.auth import login, logout
 from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.core.mail import mail_admins
 from django.db.models import F
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import redirect
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 
 from rest_framework import views, viewsets, filters, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.exceptions import MethodNotAllowed, NotFound
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
@@ -21,22 +22,26 @@ from rest_framework.response import Response
 from django.contrib.flatpages.models import FlatPage
 from django_ipgeobase.models import IPGeoBase
 
+from qrcode import QRCode
+from qrcode.image.svg import SvgPathImage
+
 from yandex_kassa.views import payment as yandex_payment
 
 from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase  # TODO: add all tasks
+from rarus.tasks import get_bonus_value
 from shop.filters import get_product_filter
-from shop.models import Category, ProductKind, Product, Basket, BasketItem, Order, OrderItem, Favorites, \
-    ShopUser, News, Store, ServiceCenter
+from shop.models import Category, ProductKind, Product, ProductSet, Stock, Basket, BasketItem, Order, OrderItem, \
+    Favorites, ShopUser, Bonus, News, SalesAction, Advert, Store, ServiceCenter, Serial
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 
 from .models import SiteProfile
 from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSerializer, ProductListSerializer, \
     ProductKindSerializer, ProductImagesSerializer, \
     BasketSerializer, BasketItemActionSerializer, OrderListSerializer, OrderSerializer, OrderActionSerializer, \
-    FavoritesSerializer, ComparisonSerializer, \
-    UserListSerializer, UserSerializer, AnonymousUserSerializer, LoginSerializer, \
-    FlatPageListSerializer, FlatPageSerializer, NewsSerializer, StoreSerializer, ServiceCenterSerializer, \
-    SiteProfileSerializer
+    FavoritesSerializer, ComparisonSerializer, SerialSerializer, \
+    UserListSerializer, UserSerializer, AnonymousUserSerializer, LoginSerializer, UserBonusSerializer, \
+    FlatPageListSerializer, FlatPageSerializer, NewsSerializer, SalesActionSerializer, AdvertSerializer, \
+    StoreSerializer, ServiceCenterSerializer, SiteProfileSerializer
 
 
 logger = logging.getLogger("django")
@@ -79,6 +84,14 @@ class StandardResultsSetPagination(PageNumberPagination):
             'pageSize': self.get_page_size(self.request),
             'results': data
         })
+
+
+class ProductListSerializerContextMixin:
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['product_thumbnail_size'] = self.request.site.profile.product_thumbnail_size
+        context['product_small_thumbnail_size'] = self.request.site.profile.product_small_thumbnail_size
+        return context
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -131,7 +144,7 @@ class ProductKindViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset.distinct()
 
 
-class ProductViewSet(viewsets.ReadOnlyModelViewSet):
+class ProductViewSet(ProductListSerializerContextMixin, viewsets.ReadOnlyModelViewSet):
     lookup_value_regex = '[^/]+'
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.OrderingFilter]
@@ -140,18 +153,11 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     product_filter = None
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action in ('list', 'info'):
             return ProductListSerializer
         if self.action == 'images':
             return ProductImagesSerializer
         return ProductSerializer
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        self.request.site.profile.product_thumbnail_size
-        context['product_thumbnail_size'] = self.request.site.profile.product_thumbnail_size
-        context['product_small_thumbnail_size'] = self.request.site.profile.product_small_thumbnail_size
-        return context
 
     def get_queryset(self):
         queryset = Product.objects.all().order_by('code')
@@ -181,7 +187,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                 queryset = self.product_filter.qs
             elif field in ('show_on_sw', 'gift', 'recomended', 'firstpage', 'enabled'):
                 key = '{}__exact'.format(field)
-                queryset = queryset.filter(**{key: int(values[0])})
+                queryset = queryset.filter(**{key: values[0] == '1'})
             elif field == 'title':
                 key = '{}__icontains'.format(field)
                 queryset = queryset.filter(**{key: values[0]})
@@ -250,11 +256,18 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False)
     def fields(self, request):
-        return Response({f.name: f.verbose_name for f in Product._meta.get_fields() if hasattr(f, 'verbose_name')})
+        return Response({f.name: f.verbose_name.capitalize() for f in Product._meta.get_fields() if hasattr(f, 'verbose_name')})
 
     @action(detail=True)
     def bycode(self, request, pk=None):
         product = self.get_queryset().filter(code=pk).first()
+        if product == None:
+            raise NotFound()
+        return Response(self.get_serializer(product, context=self.get_serializer_context()).data)
+
+    @action(detail=True)
+    def info(self, request, pk=None):
+        product = self.get_object()
         return Response(self.get_serializer(product, context=self.get_serializer_context()).data)
 
     @action(detail=True)
@@ -272,6 +285,50 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             'price': product.price,
             'cost': Basket.product_cost_for_user(request.site.profile.wholesale, product, user)
         })
+
+    @action(detail=True)
+    def stock(self, request, pk=None):
+        product = self.get_object()
+        if product.constituents.count() == 0:
+            suppliers = product.stock.all()
+            stores = Store.objects.filter(enabled=True, supplier__in=suppliers).order_by('city__country__ename', 'city__name')
+        else:
+            stores = Store.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+        results = []
+        for store in stores:
+            if product.constituents.count() == 0:
+                stock = Stock.objects.get(product=product, supplier=store.supplier)
+                quantity = stock.quantity + stock.correction
+            else:
+                quantity = 32767
+                for item in ProductSet.objects.filter(declaration=product):
+                    try:
+                        stock = Stock.objects.get(product=item.constituent, supplier=store.supplier)
+                        q = stock.quantity + stock.correction
+                        if item.quantity > 1:
+                            q = int(q / item.quantity)
+                    except Stock.DoesNotExist:
+                        q = 0.0
+                        if q < quantity:
+                            quantity = q
+            if quantity > 0.0:
+                results.append(store)
+        return Response(StoreSerializer(results, many=True, context=self.get_serializer_context()).data)
+
+    @action(detail=True)
+    def video(self, request, pk=None):
+        product = self.get_queryset().filter(code=pk).first()
+        if product == None or not product.video_url:
+            raise NotFound()
+        return redirect(product.video_url)
+
+    @action(detail=True, url_path='video/qr')
+    def video_qr(self, request, pk=None):
+        product = self.get_object()
+        qr = QRCode(border=0, image_factory=SvgPathImage)
+        qr.add_data('https://www.sewing-world.ru/products/{}/video/'.format(product.code))
+        img = qr.make_image()
+        return HttpResponse(img.to_string(encoding='unicode').encode(), content_type='image/svg+xml')
 
 
 """
@@ -462,6 +519,14 @@ class OrderViewSet(viewsets.ModelViewSet):
             'id': last
         })
 
+    @action(detail=False, methods=['post'])
+    def unpaid(self, request):
+        queryset = self.get_queryset().order_by('-id').values_list('id', flat=True)
+        unpaid = queryset.filter(status=Order.STATUS_COLLECTED, paid=False, payment__in=[Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_CREDIT]).first()
+        return Response({
+            'id': unpaid
+        })
+
 
 class FavoritesViewSet(viewsets.ModelViewSet):
     serializer_class = FavoritesSerializer
@@ -555,16 +620,20 @@ class UserViewSet(viewsets.ModelViewSet):
             return AnonymousUserSerializer
         elif self.action == 'login':
             return LoginSerializer
+        elif self.action == 'bonus':
+            return UserBonusSerializer
         return UserSerializer
 
     def get_permissions(self):
-        # Only superuser can destroy, list
-        self.permission_classes = [IsSuperUser]
         if self.action in ('retrieve', 'update', 'partial_update'):
             self.permission_classes = [IsSelf]
+        elif self.action == 'bonus':
+            self.permission_classes = [IsAuthenticated]
         elif self.action in ('create', 'check', 'login', 'logout', 'form'):
             self.permission_classes = []
-
+        else:
+            # Only superuser can destroy, list
+            self.permission_classes = [IsSuperUser]
         return super().get_permissions()
 
     def get_object(self):
@@ -582,6 +651,17 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request):
         raise MethodNotAllowed(request.method)
+
+    @action(detail=False, methods=['get'])
+    def bonus(self, request):
+        user = self.request.user
+        if not hasattr(user, 'bonus'):
+            user.bonus = Bonus()
+        if not user.bonus.is_fresh and not user.bonus.is_updating:
+            user.bonus.status = Bonus.STATUS_PENDING
+            user.bonus.save()
+            get_bonus_value.delay(user.phone)
+        return Response(self.get_serializer(user.bonus, context=self.get_serializer_context()).data)
 
     @action(detail=True, methods=['post'])
     def check(self, request, pk=None):
@@ -662,6 +742,21 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(fields)
 
 
+class SerialViewSet(viewsets.ModelViewSet):
+    serializer_class = SerialSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Serial.objects.filter(user=self.request.user)
+        return queryset
+
+    def destroy(self, request):
+        raise MethodNotAllowed(request.method)
+
+    def update(self, request, *args, **kwargs):
+        raise MethodNotAllowed(request.method)
+
+
 class CsrfTokenView(views.APIView):
     @method_decorator(ensure_csrf_cookie)
     def get(self, request, *args, **kwargs):
@@ -717,6 +812,34 @@ class NewsViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return News.objects.filter(sites=self.request.site, active=True)
+
+
+class SalesActionViewSet(ProductListSerializerContextMixin, viewsets.ReadOnlyModelViewSet):
+    lookup_field = 'slug'
+    ordering = ('order',)
+    serializer_class = SalesActionSerializer
+
+    def get_queryset(self):
+        queryset = SalesAction.objects.filter(active=True, sites=self.request.site)
+        if self.action == 'list':
+            queryset = queryset.filter(show_in_list=True)
+        return queryset
+
+    @action(detail=True)
+    def products(self, request, slug=None):
+        action = self.get_object()
+        return Response(ProductListSerializer(action.products.filter(enabled=True).order_by('-price'), many=True, context=self.get_serializer_context()).data)
+
+
+class AdvertViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = AdvertSerializer
+
+    def get_queryset(self):
+        queryset = Advert.objects.filter(sites=self.request.site, active=True)
+        places = self.request.query_params.getlist('place')
+        if len(places) > 0:
+            queryset = queryset.filter(place__in=places)
+        return queryset
 
 
 class StoreViewSet(viewsets.ReadOnlyModelViewSet):

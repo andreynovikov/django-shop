@@ -42,8 +42,8 @@ def product_big_image_path(instance, filename):
 
 class Product(models.Model):
     code = models.CharField('идентификатор', max_length=20, unique=True, db_index=True)
-    article = models.CharField('код 1С', max_length=20, blank=True, db_index=True)
-    partnumber = models.CharField('partnumber', max_length=200, blank=True, db_index=True)
+    article = models.CharField('код товара', help_text='код 1С', max_length=20, blank=True, db_index=True)
+    partnumber = models.CharField('артикул', max_length=200, blank=True, db_index=True)
     gtin = models.CharField('штрих-код', max_length=17, blank=True, db_index=True)
     gtins = ArrayField(models.CharField(max_length=255, blank=True), verbose_name='дополнительные штих-коды', default=list, blank=True, db_index=True)
     tnved = models.CharField('ТН ВЭД', max_length=16, blank=True)
@@ -90,6 +90,8 @@ class Product(models.Model):
     gift = models.BooleanField('Годится в подарок', default=False)
     merchant = models.BooleanField('мерчант', default=False, db_index=True)
     market = models.BooleanField('маркет', default=False, db_index=True)
+    wb_link = models.URLField('ссылка на WB', max_length=512, blank=True)
+    ozon_link = models.URLField('ссылка на Озон', max_length=512, blank=True)
     manufacturer = models.ForeignKey(Manufacturer, verbose_name="Производитель", on_delete=models.PROTECT, default=49)
     country = models.ForeignKey(Country, verbose_name="Страна производства", on_delete=models.PROTECT, default=1)
     developer_country = models.ForeignKey(Country, verbose_name="Страна разработки", on_delete=models.PROTECT, related_name="developed_product", default=1)
@@ -121,6 +123,7 @@ class Product(models.Model):
     stitches = models.TextField('Строчки', blank=True)
     complect = models.TextField('Комплектация', blank=True)
     dealertxt = models.TextField('Текст про официального дилера', blank=True)
+    video_url = models.URLField('Ссылка на видео-описание', max_length=255, blank=True)
     num = models.IntegerField('в наличии', default=-1)
     stock = models.ManyToManyField(Supplier, through='Stock')
     pack_factor = models.SmallIntegerField('Количество в упаковке', default=1)
@@ -131,7 +134,7 @@ class Product(models.Model):
     variations = models.CharField('вариации', max_length=255, blank=True)
     comment_packer = models.CharField('комментарий для сборщика', max_length=255, blank=True)
 
-    sales_actions = models.ManyToManyField(SalesAction, related_name='products', related_query_name='product', verbose_name='акции', blank=True)
+    sales_actions = models.ManyToManyField(SalesAction, related_name='products', related_query_name='product', verbose_name='акции', blank=True, limit_choices_to={'active': True})
     related = models.ManyToManyField('self', through='ProductRelation', symmetrical=False, blank=True)
     constituents = models.ManyToManyField('self', through='ProductSet', related_name='+', symmetrical=False, blank=True)
     recalculate_price = models.BooleanField('пересчитывать цену', default=True)
@@ -235,15 +238,20 @@ class Product(models.Model):
         return reverse('product', args=[str(self.code)])
 
     def save(self, *args, **kwargs):
-        if self.pk is None or self.constituents.count() == 0 or not self.recalculate_price:
-            self.price = self.cur_price * self.cur_code.rate
-            self.ws_price = self.ws_cur_price * self.ws_cur_code.rate
-            self.sp_price = self.sp_cur_price * self.sp_cur_code.rate
+        deferred = self.get_deferred_fields()
+        if 'cur_code' not in deferred:
+            if self.pk is None or self.constituents.count() == 0 or not self.recalculate_price:
+                self.price = self.cur_price * self.cur_code.rate
+                self.ws_price = self.ws_cur_price * self.ws_cur_code.rate
+                self.sp_price = self.sp_cur_price * self.sp_cur_code.rate
+            else:
+                self.update_set_price()
         else:
-            self.update_set_price()
+            logger.error("Skip update price")
         super(Product, self).save(*args, **kwargs)
-        self.update_fts_vector()
-        self.update_sets()
+        if 'num' not in deferred:
+            self.update_sets()
+
 
     def update_sets(self):
         product_sets = ProductSet.objects.filter(constituent=self)

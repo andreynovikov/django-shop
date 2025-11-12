@@ -115,7 +115,7 @@ class Order(models.Model):
     STATUS_UNCLAIMED = 0x04000000
     STATUS_FINISHED = 0x0F000000
     STATUS_CHOICES = (
-        (STATUS_NEW, 'новый'),
+        (STATUS_NEW, 'новый заказ'),
         (STATUS_ACCEPTED, 'принят в работу'),
         (STATUS_WAITING, 'ожидает подтверждения'),
         (STATUS_COLLECTING, 'комплектуется'),
