@@ -10,15 +10,17 @@ from decimal import Decimal
 import django.db
 from django.conf import settings
 from django.contrib import auth
+from django.contrib.sites.models import Site
 from django.utils import timezone
 
 from celery import shared_task
 
-from shop.models import Integration, Basket, Order, Product, ShopUser
+from sewingworld.tasks import PRIORITY_IDLE
 
+from shop.models import Integration, Basket, Order, Product, ProductIntegration, ShopUser
 
 logger = logging.getLogger('ozon')
-
+SITE_OZON = Site.objects.get(domain='ozon.ru')
 
 class TaskFailure(Exception):
     pass
@@ -137,7 +139,7 @@ def get_unfulfilled_orders(self, account):
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), rate_limit='1/s', retry_backoff=300, retry_jitter=False)
-def notify_product_stocks(self, product_id, account):
+def notify_product_stocks(self, products, account):
     integration = Integration.objects.get(utm_source=account)
     client_id = integration.settings.get('client_id', '')
     api_key = integration.settings.get('api_key', '')
@@ -148,26 +150,28 @@ def notify_product_stocks(self, product_id, account):
         'Api-Key': api_key,
         'Content-Type': 'application/json'
     }
-    product = Product.objects.get(pk=product_id)
 
-    stock = max(0, min(10, int(product.get_stock(integration=integration))))
-    express_stock = max(0, min(10, int(product.get_stock(integration=integration, express=True))))
+    stocks = []
 
-    data = {
-        "stocks": []
-    }
+    products = Product.objects.filter(pk__in=products)
+    for product in products:
+        stock = max(0, min(20, int(product.get_stock(integration=integration))))
+        express_stock = max(0, min(20, int(product.get_stock(integration=integration, express=True))))
+        for warehouse in integration.settings.get('warehouses', []):
+            if warehouse.get('is_express', False):
+                warehouse_stock = express_stock
+            else:
+                warehouse_stock = stock
+            stocks.append({
+                "offer_id": product.article,
+                "stock": warehouse_stock,
+                "warehouse_id": warehouse.get('id', 0)
+            })
+        if len(stocks) > 99:
+            break
+    products = list(products)[:len(stocks)]
 
-    for warehouse in integration.settings.get('warehouses', []):
-        if warehouse.get('is_express', False):
-            warehouse_stock = express_stock
-        else:
-            warehouse_stock = stock
-        data['stocks'].append({
-            "offer_id": product.article,
-            "stock": warehouse_stock,
-            "warehouse_id": warehouse.get('id', 0)
-        })
-
+    data = {'stocks': stocks}
     data_encoded = json.dumps(data).encode('utf-8')
     request = Request(url, data_encoded, headers, method='POST')
     logger.info('<<< ' + request.full_url)
@@ -175,6 +179,13 @@ def notify_product_stocks(self, product_id, account):
     try:
         response = urlopen(request)
         result = json.loads(response.read().decode('utf-8'))
+
+        for product in products:
+            product_integration = ProductIntegration.objects.order_by().filter(product=product, integration=integration).first()
+            if product_integration is not None:
+                product_integration.notify_stock = False
+                product_integration.save()
+
         logger.debug(result)
         """
         {'result': [
@@ -190,3 +201,13 @@ def notify_product_stocks(self, product_id, account):
         logger.error(error)
         message = error.get('message', 'Неизвестная ошибка взаимодействия с Ozon!')
         raise TaskFailure(message) from e
+
+
+@shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
+def notify_marked_stocks(self):
+    for integration in Integration.objects.filter(site=SITE_OZON):
+        products = ProductIntegration.objects.order_by().filter(integration=integration, notify_stock=True)
+        products = list(products.values_list('product_id', flat=True).distinct())
+        if products:
+            notify_product_stocks.s(products, integration.utm_source).apply_async(priority=PRIORITY_IDLE)
+        return len(products)
