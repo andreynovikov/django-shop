@@ -1,7 +1,5 @@
 {% if product.manufacturer.code == 'Family' %}
 {% include "./family.html" %}
-{% elif product.manufacturer.code == 'Silver' %}
-{% include "./silver.html" %}
 {% elif product.manufacturer.code == 'Hague' %}
 {% include "./hague.html" %}
 {% else %}
@@ -46,7 +44,12 @@ body     { font-size:9pt; font-family:Verdana,sans-serif; }
 </tr>
 {% endif %}
 </table>
-
+{{ product.video_url }}
+{% if product.video_url %}
+<div>
+  <img src="https://api.sewing-world.ru/api/v0/products/{{ product.id }}/video/qr/" style="width: 3cm; height: 3cm" />
+</div>
+{% endif %}
 </div>
 </body>
 </html>
