@@ -90,7 +90,7 @@ class StockInline(admin.TabularInline):
 class IntegrationInline(admin.TabularInline):
     model = Integration.products.through
     form = IntegrationInlineForm
-    fields = ['integration', 'price']
+    fields = ['integration', 'price', 'notify_stock']
     ordering = ['integration__name']
     extra = 0
     classes = ['collapse']
