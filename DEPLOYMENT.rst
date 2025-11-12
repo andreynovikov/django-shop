@@ -72,6 +72,10 @@ Reconfigure Exim for internet mode to be able to send mails:
 ::
     dpkg-reconfigure exim4-config
 
+Increase memcached limits in ``/etc/memcached.conf`` file:
+::
+   -m 256
+
 Two factor authentication
 *************************
 
