@@ -11,6 +11,15 @@
   .ui-autocomplete { z-index: 2000 }
   .ui-autocomplete-loading { background: white url("{% static '/i/ui-anim_basic_16x16.gif' %}") right center no-repeat; }
 
+  .search {color:#204070; font-size: 16px; line-height: 18px; font-family: Tahoma; display: flex; flex-direction: row;justify-content: flex-start; column-gap: 8px; margin: 8px 16px;}
+  .search:hover {color:#F07327;}
+  .search_popular {color:#204070; font-size: 16px; line-height: 18px; font-family: Tahoma; display: flex; flex-direction: row;justify-content: flex-start; column-gap: 16px; margin: 8px 16px;}
+  .search_popular:hover {color:#F07327;}
+  .search_header {color:#204070; font-size: 16px; font-weight: 700; line-height: 18px; margin: 4px 16px;}
+  .search_image {width: 64px;}
+  .search_text {display: flex; flex-direction: column; row-gap: 8px;}
+  .search_text_price {font-size: 16px; font-weight: 700; line-height: 18px;}
+
   /* SHOULD BE ADDED IN LESS FILE */
   .sw-navbar .dropdown-menu li li { list-style:none; margin-right:5px; }
   .sw-navbar .dropdown-menu li li a { font-weight:normal; }
@@ -43,6 +52,7 @@
 <input type="search" name="text"  placeholder="Поиск товара" id="topSearchText" autocomplete="off" class="form-control input-sm" style="width: 80%; height:22pt"/>
 <input type="submit" value="Найти" class="btn btn-sm btn-warning" style="font-weight:700" />
 </form>
+<div id="SearchFormSuggestions"></div>
 {% endblock %}
 <div class="" style="display:inline-block;"><a href="/stores/" class="hidden-xs"><img src="{% static '/i/placemark.svg' %}" alt="Магазины" height="15"></a> <a href="/stores/" style="text-decoration:underline;">Адреса магазинов</a></div>
 <div class="" style="font-weight:bold; display:inline-block;"><small style="font-weight:normal;">Розничные магазины:</small>&nbsp;+7&nbsp;495&nbsp;744-00-87 <small style="font-weight:normal;">Интернет-магазин:</small>&nbsp;+7&nbsp;495&nbsp;766-56-75</div>
@@ -145,38 +155,106 @@
 </div> <!-- /container-fluid -->
 {% endblock %}
 {% block javascript_wrapper %}
+<!-- diginetica search -->
 <script>
-  $(function() {
-    var cache = {};
-    $("#topSearchText").autocomplete({
-      minLength: 3,
-      source: function(request, response) {
-        var term = request.term;
-        if (term in cache) {
-          response(cache[term]);
-          return;
+  (function($) {
+    var proto = $.ui.autocomplete.prototype, initSource = proto._initSource;
+    function filter(array, term) {
+      var matcher = new RegExp($.ui.autocomplete.escapeRegex(term), "i");
+      return $.grep(array, function(value) {
+        return matcher.test($("<div>").html(value.label || value.value || value ).text());
+      });
+    }
+    $.extend(proto, {
+      _initSource: function() {
+        if (this.options.html && $.isArray(this.options.source)) {
+          this.source = function(request, response) {
+            response(filter(this.options.source, request.term));
+          };
+        } else {
+          initSource.call(this);
         }
+      },
+      _renderItem: function(ul, item) {
+        return $("<li></li>")
+          .data("item.autocomplete", item)
+          .append($( "<a></a>")[this.options.html ? "html" : "text"](item.label))
+          .appendTo(ul);
+      }
+    });
+  })(jQuery);
+
+  $(function() {
+    $("#topSearchText").autocomplete({
+      minLength: 2,
+      html: true,
+      source: function(request, response) {
+        var request_param = {
+          apiKey: "OHZ51IBWQJ",
+          st: request.term,
+          strategy: "advanced_xname,zero_queries",
+          productsSize: 6,
+          regionId: "global",
+          forIs: true,
+          showUnavailable: true,
+          unavailableMultiplier: 0.2,
+          withContent: true,
+          withSku: false
+        };
         $.ajax({
-          url: "https://sitesearch-suggest.yandex.ru/v1/suggest",
-          dataType: "jsonp",
-          data: {
-            text: request.term,
-            format: "jsonp",
-            search_id: 2316299
-          },
+          url: "https://autocomplete.diginetica.net/autocomplete",
+          dataType: "json",
+          data: request_param,
           success: function(data) {
-            cache[term] = data[1];
-            response(data[1]);
+            var suggestions = data?.correction? [{label:"<span class='search'>" + data.correction + "</span>", value: data.correction}] : [];
+            var sts = data?.sts || [];
+            var {suggestions} = sts.reduce(({suggestions, header}, item) => {
+              if (!header) {
+                suggestions.push({label: ("<span class='search_header'>Часто ищут</span>"), value: ("")});
+                header = true;
+              }
+              suggestions.push({label:"<span class='search'><span class='glyphicon glyphicon-search'></span>"+item.st + "</span>", value: item.st});
+              return {suggestions, header};
+            }, {suggestions, header: false});
+
+            var products = data?.products || [];
+            var {suggestions} = products.reduce(({suggestions, header}, item) => {
+              if (!header) {
+                suggestions.push({label: ("<span class='search_header'>Популярные товары</span>"), value: ("")});
+                header = true;
+              }
+              suggestions.push({label: "<span class='search_popular'>" + (item.image_url ? "<img class='search_image' src='"+item.image_url+"'>" : "") + "<span class='search_text'>" + item.name + "<span class='search_text_price'>" + item.price + "</span>" + "</span>", value:  (""), product: 1, url: item.link_url});
+              return {suggestions, header};
+            }, {suggestions, header: false});
+
+            var categories = data?.categories || [];
+            var {suggestions} = categories.reduce(({suggestions, header}, item) => {
+              if (!header) {
+                suggestions.push({ label: ("<span class='search_header'>Искать в категории</span>"), value: ("")});
+                header = true;
+              }
+              suggestions.push({ label:"<span class='search'><span class='glyphicon glyphicon-th-large'></span>" + item.name + "</span>", value: (""), query:data.query, catid:item.id});
+              return {suggestions, header};
+            }, {suggestions, header: false});
+            response(suggestions);
           }
         });
       },
       select: function(event, ui) {
-        $("#topSearchText").val(ui.item.label);
-        $("#topSearchText").closest("form").submit();
+        if (ui.item.product == 1) {
+          document.location.href = ui.item.url;
+        } else if (ui.item.query) {
+          document.location.href = "/search/?text=" + ui.item.query + "&filter=categories:" + ui.item.catid;
+        } else if (ui.item.value == "") {
+        } else {
+          $("#topSearchText").val(ui.item.value);
+          $("#topSearchText").closest("form").submit();
+        }
       }
     });
   });
 </script>
+<!-- / diginetica search -->
 {% block javascript %}
 {% endblock %}
 {% endblock %}

@@ -71,10 +71,3 @@
         });
     </script>
 {% endblock %}
-{% block vk_retargeting_event %}
-  VK.Retargeting.ProductEvent(3195, "purchase", {'products': [
-{% for item in order.items.all %}
-    {'id': '{{ item.product.id }}'}{% if not forloop.last %},{% endif %}
-{% endfor %}
-  ]});
-{% endblock %}

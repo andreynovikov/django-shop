@@ -87,8 +87,7 @@
 <div class="sw-p-l-buy">
 {% if product.instock > 0 %}
 <a href="{% url 'shop:add' product.id %}"
-class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}" onclick="var VK_add_to_cart_Params = {'products': [{'id': '{{ product.id }}'}]};
-    VK.Retargeting.ProductEvent(3195, 'add_to_cart', VK_add_to_cart_Params); dataLayer.push({'event': 'addToCart','ecommerce': {'currencyCode': 'RUB','add': {'products': [{'name':'{{ product.partnumber}} {{ product.title }}','id':'{{ product.id }}','category':'{{ category.name }}','brand':'{{ product.manufacturer.code }}','price':'{{ product.cost|quantize:"1" }}','quantity': 1}]}}});">Купить</a>
+class="addProduct btn btn-xs btn-success sw-addProduct-sm" role="button" id="p_{{ product.id }}" onclick="dataLayer.push({'event': 'addToCart','ecommerce': {'currencyCode': 'RUB','add': {'products': [{'name':'{{ product.partnumber}} {{ product.title }}','id':'{{ product.id }}','category':'{{ category.name }}','brand':'{{ product.manufacturer.code }}','price':'{{ product.cost|quantize:"1" }}','quantity': 1}]}}});">Купить</a>
 {% endif %}
 </div>
 {% endif %}
