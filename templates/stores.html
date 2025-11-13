@@ -16,7 +16,7 @@
 {% elif lottery %}
 <h1>Покупатели этих магазинов принимают участие в юбилейной лотерее</h1>
 {% else %}
-<h1>Наши магазины рядом с Вами</h1>
+<h1>Адреса магазинов</h1>
 {% endif %}
 <p>
 <select style="font-size: 12pt" id="search_form">
@@ -32,7 +32,7 @@
 </p>
 <div id="map" class="sw-map"></div>
 
-{% if not marketplace and not lottery %}
+{% if not marketplace and not lottery and 1 > 2 %}
 <h1>Наши телефоны</h1>
 <table border="0" style="padding:3px"><tr>
 <td>Единая справочная розничной сети:</td>
@@ -87,9 +87,6 @@
 <span class="shop-phone" itemprop="telephone">{{ store.phone }}</span> <span class="shop-phone2">{{ store.phone2 }}</span><br>
 {% if store.url %}
 <span class="shop-homepage"><a href="{{ store.url }}">{{ store.url }}</a></span><br>
-{% endif %}
-{% if store.description %}
-<p>{{ store.description|safe }}</p><br>
 {% endif %}
 </div>
 {% endfor %}

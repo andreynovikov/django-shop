@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% load cache %}
-{% block title %}Швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов{% endblock %}
+{% block title %}Швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары {% endblock %}
 {% block content %}
 {% cache 1800 index %}
 <div class="row">
@@ -47,8 +47,10 @@
 gtm_products = [];
 </script>
 
-<h2><a href="/catalog/promo/">Специальные предложения!</a></h2>
 {% for product in recomended_products %}
+{% if forloop.first %}
+<h2><a href="/catalog/promo/">Специальные предложения!</a></h2>
+{% endif %}
 {% include "_product_info.html" %}
 <script>
 gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Первая страница акции','position':{{ forloop.counter }}});
@@ -85,8 +87,10 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 </div>
 {% endif %}
 
-<h2>Идеи для подарков</h2>
 {% for product in gift_products %}
+{% if forloop.first %}
+<h2>Идеи для подарков</h2>
+{% endif %}
 {% include "_product_info.html" %}
 <script>
 gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Первая страница акции','position':{{ forloop.counter }}});
@@ -124,8 +128,10 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 </div>
 {% endif %}
 
-<h2><a href="/catalog/New/">Новинки</a></h2>
 {% for product in first_page_products %}
+{% if forloop.first %}
+<h2><a href="/catalog/New/">Новинки</a></h2>
+{% endif %}
 {% include "_product_info.html" %}
 <script>
 gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':'{{ product.price }}','brand':'{{ product.manufacturer.code }}','list':'Первая страница акции','position':{{ forloop.counter }}});

@@ -1,7 +1,7 @@
 <div class="white-popup-block">
 {% for country_group in store_groups %}
 {% if forloop.first %}
-<h3>Товар есть в наличии в этих магазинах:</h3>
+<h3>Товар <b>есть в наличии</b> в этих магазинах:</h3>
 {% endif %}
 <h2 class="hide">{{ country_group.country.name }}</h2>
 <ul class="product-city-list">

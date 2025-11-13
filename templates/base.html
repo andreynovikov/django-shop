@@ -1,7 +1,7 @@
 {% extends "seo.html" %}
 {% load static %}
 {% load shop_tags %}
-{% block meta-keywords %}Швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов Швейный Мир, швейная, швейные, вышивальная, вышивальные, вязальная, вязальные, машинка, машина, машинки, машины, оверлок, оверлоки,  шитье, вышивка, вязание, купить, интернет, магазин, pfaff, brother, janome, bernina, husqvarna, huskystar, viking, оверлок, строчка, петля, челнок, стежок, ткань, рукав{% endblock %}
+{% block meta-keywords %}Швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары Швейный Мир, швейная, швейные, вышивальная, вышивальные, вязальная, вязальные, машинка, машина, машинки, машины, оверлок, оверлоки,  шитье, вышивка, вязание, купить, интернет, магазин, pfaff, brother, janome, bernina, husqvarna, huskystar, viking, оверлок, строчка, петля, челнок, стежок, ткань, рукав{% endblock %}
 {% block meta-description %}Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары{% endblock %}
 
 {% block css_wrapper %}
@@ -29,6 +29,9 @@
   .catalog ul { padding-left:7px }
   .catalog li li { list-style:none; padding-left:7px; }
 
+  .glyphicon-chevron-left {margin-left:0px !important}
+  .glyphicon-chevron-right {margin-right:0px !important}
+
   #profile-block, #orderpaymentbutton, #cartholder { margin-bottom: 5px; }
 </style>
 {% block css %}
@@ -40,22 +43,21 @@
 
 <div class="col-md-9 sw-header-left">
 <div class="sw-logo" style="max-width: 380px">
-<a href="/"><img src="{% static '/i/logo.svg' %}" class="img-responsive" alt="Швейный Мир - всероссийская сеть швейных супермаркетов.&#10; Швейные машинки, вышивальные и вязальные машины, оверлоки и аксессуары."></a>
-<p class="hidden-xs"><a href="/stores/">Больше 100 магазинов швейных машин и товаров для рукоделия</a></p>
+<a href="/"><img src="{% static '/i/logo.svg' %}" class="img-responsive" alt="Швейный Мир&#10; Швейные машинки, вышивальные и вязальные машины, оверлоки и аксессуары."></a>
 </div>
 </div>
 
-<div class="col-md-10" style="margin-top:20px;">
+<div class="col-md-10" style="margin-top:25px;">
 
 {% block search_form %}
 <form id="topSearchForm" action="/search/" class="form-inline">
-<input type="search" name="text"  placeholder="Поиск товара" id="topSearchText" autocomplete="off" class="form-control input-sm" style="width: 80%; height:22pt"/>
-<input type="submit" value="Найти" class="btn btn-sm btn-warning" style="font-weight:700" />
+<input type="search" name="text"  placeholder="Поиск товара" id="topSearchText" autocomplete="off" class="form-control input-sm" style="width: 70%; height:22pt"/>
+<input type="submit" value="Найти" class="btn btn-sm btn-warning" style="padding:8pt;font-weight:700"/>
 </form>
 <div id="SearchFormSuggestions"></div>
 {% endblock %}
-<div class="" style="display:inline-block;"><a href="/stores/" class="hidden-xs"><img src="{% static '/i/placemark.svg' %}" alt="Магазины" height="15"></a> <a href="/stores/" style="text-decoration:underline;">Адреса магазинов</a></div>
-<div class="" style="font-weight:bold; display:inline-block;"><small style="font-weight:normal;">Розничные магазины:</small>&nbsp;+7&nbsp;495&nbsp;744-00-87 <small style="font-weight:normal;">Интернет-магазин:</small>&nbsp;+7&nbsp;495&nbsp;766-56-75</div>
+<div style="font-weight:bold; display:inline-block;"><span style="font-weight:normal;">Розничные магазины:</span>&nbsp;+7&nbsp;495&nbsp;744-00-87 <span style="font-weight:normal;">Интернет-магазин:</span>&nbsp;+7&nbsp;495&nbsp;766-56-75</div>
+
 </div>
 
 <div class="col-md-5" style="margin-top:20px; margin-bottom:5px;">
@@ -89,7 +91,7 @@
 </div>
 
 <div class="navbar navbar-default navbar-static-top sw-navbar" role="navigation" style="margin-bottom:4px;">
-      <div class="container-fluid">
+      <div class="container-fluid text-center">
         <div class="navbar-header">
           <button type="button" class="navbar-toggle sw-navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
             <span class="sr-only">Меню</span>
@@ -98,11 +100,11 @@
             <span class="icon-bar"></span>
           </button>
           <ul class="list-inline visible-xs sw-xsnavigation">
-            <li><a href="/shop/user/orders/">Состояние заказа</a></li>
+            <li><a href="/stores/">Адреса магазинов</a></li>
           </ul>
         </div>
-        <div class="navbar-collapse collapse  text-center">
-          <ul class="nav navbar-nav navbar-left">
+        <div class="navbar-collapse collapse text-center">
+          <ul class="nav navbar-nav navbar-center">
             <li class="hidden-xs"><a href="/stores/">Адреса магазинов</a></li>
             <li class="dropdown hidden-xs">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown">Каталог <span class="caret"></span></a>
@@ -115,14 +117,14 @@
             <li><a href="/blog/">Блог</a></li>
             <li><a href="/service/">Сервисные центры</a></li>
             <li><a href="/pages/delivery/">Доставка и оплата</a></li>
-            <li class="hidden-xs"><a href="{% url 'shop:user_orders' %}">Состояние заказа</a></li>
+            <li><a href="{% url 'shop:user_orders' %}">Состояние заказа</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
 </div>
 
 <div class="sw-header-lower-block" style="background:#fffaee;margin-bottom:10px;padding-bottom:4px;">
-<div class="center-block row hidden-xs" style="max-width:1200px;">
+<div class="center-block row hidden-xs" style="max-width:1200px; align:center;">
 <!--
 <div class="col-sm-3 text-center"><a href="/actions/"><img src="{% static '/i/categories/gifts.svg' %}" alt="Акции" height="75" width="75"><br>Акции</a></div>
 -->
@@ -132,18 +134,11 @@
 <div class="col-sm-3 text-center"><a href="/catalog/sergers/"><img src="{% static '/i/categories/overlock.svg' %}" alt="Оверлоки, коверлоки и распошивальные машины" height="75" width="75"><br>Оверлоки и коверлоки</a></div>
 <div class="col-sm-3 text-center"><a href="/catalog/knitting_machines/"><img src="{% static '/i/categories/knitting.svg' %}" alt="Вязальные машины" height="75" width="94"><br>Вязальные машины</a></div>
 <div class="col-sm-3 text-center"><a href="/catalog/accessories/"><img src="{% static '/i/categories/accessories.svg' %}" alt="Аксессуары" height="75" width="75"><br>Аксессуары</a></div>
-{#<div class="col-sm-3 text-center"><a href="/catalog/irons/"><img src="{% static '/i/categories/irons.svg' %}" alt="Гладильное оборудование" height="75" width="94"><br>Гладильное оборудование</a></div>#}
-{#<div class="col-sm-3 text-center"><a href="/catalog/Prom/"><img src="{% static '/i/categories/prom.svg' %}" alt="Промышленное оборудование" height="75" width="94"><br>Промышленное оборудование</a></div>#}
 </div>
 </div>
 {% endblock %}
 {% block content_wrapper %}
-<div class="container-fluid">
-<!--
-<div class="center-block"><p  class="text-center" style="color:red; font-weight:bold;">Уважаемые покупатели!<br> 3 марта интернет-магазин не работает.<br>
-Режим работы розничных магазинов можно узнать по <a href="https://www.sewing-world.ru/stores/">телефонам магазинов</a>
-</p></div>
--->
+<div class="container-fluid content_wrapper">
 <!-- ------------------------------------------------------------------------------------------------------------ -->
 {% load django_bootstrap_breadcrumbs %}
 {% block breadcrumbs %}
@@ -271,31 +266,19 @@
 <td colspan="2"><h3>Телефоны</h3></td>
 </tr>
 <tr>
-<td class="sw-bottom-phones-left">Справочная <a href="/stores/">розничных магазинов:</a></td>
+<td class="sw-bottom-phones-left">Розничные магазины:</td>
 <td class="sw-bottom-phones-right">+7 495 744-00-87</td>
 </tr>
 <tr>
-<td class="sw-bottom-phones-left">Заказать швейную машину в Москве:</td>
+<td class="sw-bottom-phones-left">Интернет-магазин:</td>
 <td class="sw-bottom-phones-right">+7 495 766-56-75</td>
 </tr>
 <tr>
-<td class="sw-bottom-phones-left">Заказать в Санкт-Петербурге:</td>
-<td class="sw-bottom-phones-right">+7 812 536-22-92</td>
+<td class="sw-bottom-phones-left">Оптовые продажи фурнитуры:</td>
+<td class="sw-bottom-phones-right">+7 916 948-97-98</td>
 </tr>
 <tr>
-<td class="sw-bottom-phones-left">Заказать в Казани:</td>
-<td class="sw-bottom-phones-right">+7 843 293-03-20</td>
-</tr>
-<tr>
-<td class="sw-bottom-phones-left">Заказать в Нижнем Новгороде:</td>
-<td class="sw-bottom-phones-right">+7 831 291-01-41</td>
-</tr>
-<tr>
-<td class="sw-bottom-phones-left">Промышленное оборудование:</td>
-<td class="sw-bottom-phones-right">+7 499 158-06-87</td>
-</tr>
-<tr>
-<td class="sw-bottom-phones-left">Оптовые продажи:</td>
+<td class="sw-bottom-phones-left">Оптовые продажи швейных машин:</td>
 <td class="sw-bottom-phones-right">+7 495 744-00-87</td>
 </tr>
 <tr>
@@ -305,17 +288,8 @@
 </table>
 </div>
 <div class="col-md-8 text-center small">
-<p>
-Принимаем платежи по картам<br>
-<img src="{% static 'i/mastercard.gif' %}" border="0" loading="lazy">
-<img src="{% static 'i/visa.gif' %}" border="0" loading="lazy"><br>
-при поддержке <a href="https://yookassa.ru">ЮKassa</a>
-</p>
-<p>
-<a href="https://clck.yandex.ru/redir/dtype=stred/pid=47/cid=2508/*https://market.yandex.ru/shop/4767/reviews"><img src="https://clck.yandex.ru/redir/dtype=stred/pid=47/cid=2506/*https://grade.market.yandex.ru/?id=4767&action=image&size=1" border="0" width="120" height="110" alt="Читайте отзывы покупателей и оценивайте качество магазина на Яндекс.Маркете" /></a>
-</p>
-<p>&copy;1996-2023 Торговый Дом Швейных Машин</p>
-<p><a href="mailto:info@thsm.ru">info@thsm.ru</a></p>
+<h3><a href="mailto:info@thsm.ru">info@thsm.ru</a></h3>
+<p>&copy;1996 Торговый Дом Швейных Машин</p>
 </div>
 <div class="col-md-8 text-center">
   <h3>Наши страницы в соцсетях.<br> Присоединяйтесь!</h3>

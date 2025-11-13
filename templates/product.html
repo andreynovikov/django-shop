@@ -132,8 +132,8 @@ gtm_products = [];
 <p class="oldprice">{{ product.price|quantize:"1"|intcomma }}&nbsp;руб. <a href="#dialog_discount" class="opener"><img src="{% static 'i/icons/more_icon.png' %}"></a></p>
 <div id="dialog_discount" class="mfp-hide white-popup-block">
 <h4>Скидка!</h4>
-<p>Базовая цена в магазинах &laquo;Швейный Мир&raquo; без учета скидок <b>{{ product.price|quantize:"1"|intcomma }}&nbsp;руб.</b></p>
-<p>Скидка при покупке в интернет-магазине составляет <b>{{ product.discount }}&nbsp;руб.</b></p>
+<p>Базовая цена в магазинах без учета скидок <b>{{ product.price|quantize:"1"|intcomma }}&nbsp;руб.</b></p>
+<p>Скидка при покупке в интернет-магазине составляет <b>{{ product.discount|quantize:"1"|intcomma }}&nbsp;руб.</b></p>
 </div>
 {% endif %}{# discount > 0 #}
 <p class="price"><span itemprop="price">{{ product.cost|quantize:"1"|intcomma }}</span>&nbsp;руб.
@@ -157,7 +157,7 @@ gtm_products = [];
 {% endif %}
 </p>
 {% if product.credit_allowed and product.instock > 0 %}
-<div id="yandex-credit" style="margin: -7pt 0 7pt"></div>
+{# <div id="yandex-credit" style="margin: -7pt 0 7pt"></div> #}
 {% endif %}
 {% endif %}{# cost > 0 #}
 {% if product.present %}
@@ -172,20 +172,22 @@ gtm_products = [];
 <span class="product-nal-true">Мало</span>
 {% endif %}
 {% if product.instock < 1 %}
-<span class="product-nal-false" style="color: red">Нет, но может быть в розничных магазинах:</span>
+<span class="product-nal-false">Нет, но может быть в розничных магазинах:</span>
 {% endif %}
 {% if product.cost > 0 %}
-<a class="product-nal-store-link opener-ajax" href="{% url 'product_stock' product.code %}" rel="nofollow">Проверить наличие в розничных магазинах</a>
+<a href="{% url 'product_stock' product.code %}" class="btn btn-info sw-addProduct-sm opener-ajax" role="button">Проверить наличие в магазинах</a>
 {% endif %}
 </p>
 {% endif %}
+{% if product.instock > 0 %}
 {% for action in product.get_sales_actions %}
 <p class="product-salesnotes">{% render_as_template action.brief %}</p>
 {% endfor %}
+{% endif %}
 {% if product.state %}
 <p>{{ product.state }}</p>
 {% endif %}
-{% if product.sales_notes %}
+{% if product.sales_notes and product.instock > 0 %}
 <p class="product-salesnotes">{{ product.sales_notes }}</p>
 {% endif %}
 {% if product.utilisation %}
@@ -346,7 +348,7 @@ gtm_products.push({'name':'{{ product.title }}','id':'{{ product.id }}','price':
 
 {% if product.dealertxt %}
 <h2>Обратите внимание!</h2>
-<p>{{ product.dealertxt }}</p>
+<p>{{ product.dealertxt|safe }}</p>
 {% endif %}
 {% endcache %}
 
