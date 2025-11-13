@@ -21,7 +21,23 @@
     {% if user and user.is_authenticated %}
         {# Пользователь залогинился #}
         <p>Добро пожаловать, {{ user.name|default:"уважаемый покупатель" }}!</p>
-        <input type="submit" class="btn btn-success btn-lg" value="{{ action }}"/>
+        <div style="margin-bottom: 10px">
+          <div class="checkbox">
+            <input type="checkbox" id="personal-data-check" />
+            <label for="personal-data-check">
+              Я даю <a href="/pages/personaldata/">согласие на обработку персональных данных</a>
+            </label>
+          </div>
+        </div>
+        <div style="margin-bottom: 15px">
+          <div class="checkbox">
+            <input type="checkbox" id="oferta-check" />
+            <label class="control-label" for="oferta-check">
+              Я подтверждаю согласие с условиями <a href="/pages/oferta/">публичной оферты</a>
+            </label>
+          </div>
+        </div>
+        <input type="submit" id="order-submit" class="btn btn-success btn-lg" value="{{ action }}" disabled />
         <p><a href="{% url 'shop:logout' %}" class="sw-small-jumbotron">Я хочу оформить заказ от другого имени</a></p>
     {% elif shop_user %}
         {# Пользователь с таким телефоном уже есть #}
@@ -59,7 +75,7 @@
         <span id="reset-password" class="hide"><a href="{% url 'shop:reset_password' %}" class="ajax sw-small-jumbotron">Прислать пароль повторно</a></span>
         {% endif %}
         </span>
-        <input type="submit" id="order-submit" class="btn btn-success btn-lg" value="Продолжить"/>
+        <input type="submit" id="order-submit" class="btn btn-success btn-lg" value="Продолжить" />
     {% else %}
         {# Анонимный пользователь #}
         <p>Для продолжения укажите номер мобильного телефона:</p>
@@ -67,12 +83,23 @@
             <span class="input-group-addon input-lg sw-phone-input">+7</span>
             <input type="tel" class="form-control input-lg sw-phone-input" name="phone" id="phone-input" value="" size="20" placeholder="(999) 111-22-33"/>
         </div>
-        <input type="submit" id="order-submit" class="btn btn-success btn-lg" value="{{ action }}"/>
-        <p style="font-size:8pt">
-            Нажимая на кнопку &laquo;{{ action }}&raquo;, вы
-            даёте <a href="/pages/personaldata/">согласие на обработку персональных данных</a> и
-            подтверждаете согласие с условиями <a href="/pages/oferta/">публичной оферты</a>.
-        </p>
+        <input type="submit" id="order-submit" class="btn btn-success btn-lg" value="{{ action }}" disabled />
+        <div style="margin-top: 15px">
+          <div class="checkbox">
+            <input type="checkbox" id="personal-data-check" />
+            <label for="personal-data-check">
+              Я даю <a href="/pages/personaldata/">согласие на обработку персональных данных</a>
+            </label>
+          </div>
+        </div>
+        <div style="margin-top: 10px">
+          <div class="checkbox">
+            <input type="checkbox" id="oferta-check" />
+            <label class="control-label" for="oferta-check">
+              Я подтверждаю согласие с условиями <a href="/pages/oferta/">публичной оферты</a>
+            </label>
+          </div>
+        </div>
     {% endif %}
 </form>
 <script type="text/javascript">
@@ -135,11 +162,17 @@
                  return complete;
             });
 
+            $("#personal-data-check").change(function () {
+                $("#order-submit").prop("disabled", !($(this).is(":checked") && $("#oferta-check").is(":checked")));
+            });
+            $("#oferta-check").change(function () {
+                $("#order-submit").prop("disabled", !($(this).is(":checked") && $("#personal-data-check").is(":checked")));
+            });
             $("#password-input").inputmask({
                 mask: ["9999", "*{5,30}"],
                 placeholder: "",
                 oncomplete: function() {
-                    $("#order-submit").prop("disabled", false);
+                    // $("#order-submit").prop("disabled", false);
                 }
             });
             $("#password-input").on("paste keydown", function () {
@@ -169,7 +202,7 @@
                         value = value.substr(1);
                         this.inputmask.setValue(value);
                     }
-                    $("#order-submit").prop("disabled", false);
+                    // $("#order-submit").prop("disabled", false);
                 },
                 keepStatic: true
             });

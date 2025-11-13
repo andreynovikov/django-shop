@@ -38,9 +38,17 @@
     <div>
         <input type="text" class="form-control input-lg sw-username-input" name="username" id="username-input" value="{{ username }}" size="20"/>
     </div>
+    <p>
+      <div class="checkbox">
+        <input type="checkbox" id="personal-data-check" />
+        <label for="personal-data-check">
+          Я даю <a href="/pages/personaldata/">согласие на обработку персональных данных</a>
+        </label>
+      </div>
+    </p>
     <div>
     <input type="hidden" id="reg-flag" name="reg" value="1" />
-    <input type="submit" id="registration-submit" class="btn btn-success btn-lg" value="Продолжить" />
+    <input type="submit" id="registration-submit" class="btn btn-success btn-lg" value="Продолжить" disabled />
     </div>
 </form>
 {% endblock %}
@@ -56,6 +64,10 @@
                  if (!complete)
                      $("#phone-block").addClass("has-error");
                  return complete;
+            });
+
+            $("#personal-data-check").change(function () {
+                $("#registration-submit").prop("disabled", !($(this).is(":checked") && $("#phone-input").inputmask("isComplete")));
             });
 
             // https://github.com/RobinHerbots/Inputmask
@@ -77,7 +89,7 @@
                         value = value.substr(1);
                         this.inputmask.setValue(value);
                     }
-                    $("#registration-submit").prop("disabled", false);
+                    $("#registration-submit").prop("disabled", !$("#personal-data-check").is(":checked"));
                 },
                 keepStatic: true
             });
