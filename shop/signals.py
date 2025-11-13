@@ -3,8 +3,6 @@ from datetime import timedelta
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.core.cache import InvalidCacheBackendError, caches
-from django.core.cache.utils import make_template_fragment_key
 from django.contrib.sites.models import Site
 from django.utils import timezone
 
@@ -32,34 +30,6 @@ logger = logging.getLogger(__name__)
 
 SITE_SW = Site.objects.get(domain='www.sewing-world.ru')
 SITE_YANDEX = Site.objects.get(domain='market.yandex.ru')
-
-
-@receiver(post_save, sender=Product, dispatch_uid='product_saved_receiver')
-def product_saved(sender, **kwargs):
-    product = kwargs['instance']
-    if product.num >= 0:  # renew pages only if stock is reset (this disables double renew on stocks import)
-        return
-
-    try:
-        fragment_cache = caches['template_fragments']
-    except InvalidCacheBackendError:
-        fragment_cache = caches['default']
-    vary_on = [product.id]
-    cache_key = make_template_fragment_key('product', vary_on)
-    fragment_cache.delete(cache_key)
-    cache_key = make_template_fragment_key('product_description', vary_on)
-    fragment_cache.delete(cache_key)
-
-    payload = {
-        'model': 'product',
-        'pk': product.pk,
-        'code': product.code
-    }
-    root_slugs = set()
-    for category in product.categories.all():
-        root_slugs.add(category.get_root().slug)
-    for site in Site.objects.filter(profile__category_root_slug__in=root_slugs).exclude(profile__revalidation_token__exact=''):
-        revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
 
 
 @receiver(post_save, sender=OrderItem, dispatch_uid='order_item_saved_receiver')
@@ -119,6 +89,7 @@ def order_saved(sender, **kwargs):
 
         if order.status == Order.STATUS_DONE or order.status == Order.STATUS_FINISHED:
             total = 0
+            """ (by Sigalev request)
             complete_orders = order.user.orders.filter(Q(status=Order.STATUS_DONE) | Q(status=Order.STATUS_FINISHED))
             for complete_order in complete_orders:
                 total += complete_order.total
@@ -128,6 +99,7 @@ def order_saved(sender, **kwargs):
             if total >= 3000 and order.user.discount < 5:
                 order.user.discount = 5
                 order.user.save()
+            """
             if order.status == Order.STATUS_DONE:
                 if order.site == SITE_SW or order.site == SITE_YANDEX:
                     next_week = timezone.now() + timedelta(days=7)

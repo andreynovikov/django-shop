@@ -23,7 +23,8 @@ from urllib.error import HTTPError
 from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.contenttypes.models import ContentType
 from django.core import signing
-from django.core.cache import cache
+from django.core.cache import cache, InvalidCacheBackendError, caches
+from django.core.cache.utils import make_template_fragment_key
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from django.core.mail import send_mail
 from django.core.validators import EmailValidator
@@ -44,6 +45,8 @@ from celery import shared_task
 
 from djconfig import config, reload_maybe
 from flags.state import enable_flag, disable_flag
+from sorl.thumbnail.default import kvstore
+from sorl.thumbnail.images import ImageFile
 
 import reviews
 
@@ -51,6 +54,7 @@ from unisender import Unisender
 
 from sewingworld.models import SiteProfile
 from sewingworld.sms import send_sms
+from sewingworld.tasks import PRIORITY_HIGH, PRIORITY_NORMAL, PRIORITY_LOW, PRIORITY_IDLE
 from sewingworld.templatetags.rupluralize import rupluralize
 
 from shop.models import ShopUser, ShopUserManager, Supplier, Currency, Product, Stock, Basket, Order
@@ -150,17 +154,17 @@ def update_order(self, order_id, data):
     return change_message
 
 
-@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
+@shared_task(queue="priority", autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def send_message(phone, message):
     return send_sms(phone, message)
 
 
-@shared_task(autoretry_for=(Exception,), default_retry_delay=15, retry_backoff=True)
+@shared_task(queue="priority", autoretry_for=(Exception,), default_retry_delay=15, retry_backoff=True)
 def send_password(phone, password):
     return send_sms(phone, "Код для доступа на сайт: %s" % password)
 
 
-@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
+@shared_task(queue="priority", autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_user_order_new_sms(order_id, password=None):
     order = Order.objects.get(id=order_id)
     site = get_site_for_order(order)
@@ -309,7 +313,7 @@ def notify_user_review_products(self, order_id):
                     return r['id']
 
 
-@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
+@shared_task(queue="priority", autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_manager(order_id):
     order = Order.objects.get(id=order_id)
 
@@ -334,7 +338,7 @@ def notify_manager(order_id):
     )
 
 
-@shared_task(autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
+@shared_task(queue="priority", autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_manager_sms(order_id, phone):
     return send_sms(phone, "Новый заказ №%s" % order_id)
 
@@ -354,7 +358,43 @@ def notify_review_posted(review_id):
     )
 
 
-@shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
+@shared_task
+def post_update_product(product_id, origin):
+    product = Product.objects.get(pk=product_id)
+
+    if origin == 'admin':
+        product.update_fts_vector()
+        image_file = ImageFile(product.image)
+        kvstore.delete(image_file, delete_thumbnails=True)
+        for product_image in product.images.all():
+            image_file = ImageFile(product_image.image)
+            kvstore.delete(image_file, delete_thumbnails=True)
+
+    try:
+        fragment_cache = caches['template_fragments']
+    except InvalidCacheBackendError:
+        fragment_cache = caches['default']
+    vary_on = [product.id]
+    cache_key = make_template_fragment_key('product', vary_on)
+    fragment_cache.delete(cache_key)
+    cache_key = make_template_fragment_key('product_description', vary_on)
+    fragment_cache.delete(cache_key)
+
+    payload = {
+        'model': 'product',
+        'pk': product.pk,
+        'code': product.code
+    }
+    root_slugs = set()
+    for category in product.categories.all():
+        root_slugs.add(category.get_root().slug)
+    for site in Site.objects.filter(profile__category_root_slug__in=root_slugs).exclude(profile__revalidation_token__exact=''):
+        revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
+
+    return None
+
+
+@shared_task(bind=True, queue="import", autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def update_1c_stocks(self):
     reload_maybe()
     filename = 'ВыгрузкаНаСайтПоВсемСкладам.csv'
@@ -400,7 +440,7 @@ def update_1c_stocks(self):
         f.write(result)
         f.close()
 
-        import1c.delay(filename)
+        import1c.s(filename).apply_async(queue=self.request.delivery_info['routing_key'])
         return modified
     except HTTPError as e:
         content = e.read()
@@ -428,7 +468,7 @@ class fragile(object):
         return error
 
 
-@shared_task(time_limit=7200, autoretry_for=(Exception,), retry_backoff=True)
+@shared_task(time_limit=7200, retry_backoff=True)
 @single_instance_task(60 * 20)
 def import1c(file):
     log.error('Import1C')
@@ -596,13 +636,14 @@ def import1c(file):
     tmp_file.close()
 
     for product_id in products:
-        product = Product.objects.only('num').get(id=product_id)
+        product = Product.objects.only('num').get(pk=product_id)
         product.num = -1
         product.save()
+        post_update_product.s(product.pk, 'import').delay()
         if product_id in frozen_products.keys() and product.instock > 0:
             orders.update(frozen_products[product_id])
         if product_id in frozen_products.keys():
-            log.error('F %d %d' % (product.id, product.instock))
+            log.error('F %d %d' % (product.pk, product.instock))
 
     log.info('Frozen orders %s' % str(orders))
 
@@ -726,7 +767,7 @@ def notify_abandoned_baskets(first_try=True):
     return num
 
 
-@shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
+@shared_task(queue="integrations", bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
 def create_modulpos_order(self, order_id):
     order = Order.objects.get(id=order_id)
     if not order.courier:
@@ -813,7 +854,7 @@ def create_modulpos_order(self, order_id):
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
 
 
-@shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
+@shared_task(queue="integrations", bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
 def delete_modulpos_order(self, order_id):
     order = Order.objects.get(id=order_id)
     if not order.courier:
@@ -960,8 +1001,8 @@ def update_user_bonuses(self):
     return 0
 
 
-@shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
-def notify_expiring_bonus(self, phone):
+@shared_task(autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
+def notify_expiring_bonus(phone):
     user = ShopUser.objects.get(phone=phone)
     today = datetime.today()
     base_format = SINGLE_DATE_FORMAT if today.year == user.expiration_date.year else SINGLE_DATE_FORMAT_WITH_YEAR
