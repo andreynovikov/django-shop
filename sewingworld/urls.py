@@ -2,7 +2,7 @@ from django.conf import settings
 from django.conf.urls import include, url
 from django.conf.urls.static import static
 from django.urls import path
-from django.contrib import admin
+# from django.contrib import admin
 from django.contrib.sitemaps.views import index, sitemap
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.views.decorators.cache import cache_page
@@ -43,9 +43,12 @@ router.register(r'comparisons', api.ComparisonsViewSet, basename='comparison')
 router.register(r'categories', api.CategoryViewSet, basename='category')
 router.register(r'products', api.ProductViewSet, basename='product')
 router.register(r'kinds', api.ProductKindViewSet, basename='kind')
+router.register(r'serials', api.SerialViewSet, basename='serial')
 router.register(r'users', api.UserViewSet, basename='user')
 router.register(r'pages', api.FlatPageViewSet, basename='page')
 router.register(r'news', api.NewsViewSet, basename='news')
+router.register(r'salesactions', api.SalesActionViewSet, basename='salesaction')
+router.register(r'adverts', api.AdvertViewSet, basename='advert')
 router.register(r'stores', api.StoreViewSet, basename='store')
 router.register(r'servicecenters', api.ServiceCenterViewSet, basename='servicecenter')
 router.register(r'reviews', ReviewViewSet, basename='review')
@@ -63,11 +66,13 @@ urlpatterns = [
     path('sitemap.xml', cache_page(60 * 60 * 24, cache='files')(index), {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.index'),
     path('sitemap-<section>.xml', cache_page(60 * 60 * 24, cache='files')(sitemap), {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
     # ex: /search.xml
-    url(r'^search\.xml$', views.products, {'template': 'search', 'filters': None}, name='search_xml'),
+    path('search.xml', views.products, {'template': 'ya_search', 'filters': None}, name='ya_search_xml'),
+    # ex: /xml/search.xml
+    path('xml/search.xml', views.products, {'template': 'search', 'filters': None}, name='search_xml'),
     # ex: /full.xml
     url(r'^full\.xml$', views.products, {'template': 'products', 'filters': None}, name='full'),
     # ex: /products.xml
-    url(r'^products\.xml$', views.products, {'template': 'products', 'filters': 'yandex'}, name='products'),
+    url(r'^products\.xml$', views.products, {'template': 'products', 'filters': None}, name='products'),
     # ex: /cc-prym.xml
     url(r'^cc-prym\.xml$', views.products, {'template': 'prym', 'filters': 'prym'}, name='cc-prym'),
     # ex: /beru.xml
@@ -84,6 +89,8 @@ urlpatterns = [
     url(r'^products/(?P<code>[-\.\w]+)\.html$', views.product, name='product'),
     # ex: /products/JanomeEQ60/stock/
     url(r'^products/(?P<code>[-\.\w]+)/stock/$', views.product_stock, name='product_stock'),
+    # ex: /products/JanomeEQ60/video/
+    url(r'^products/(?P<code>[-\.\w]+)/video/$', views.product_video_redirect, name='product_video'),
     # ex: /products/JanomeEQ60/review/
     url(r'^products/(?P<code>[-\.\w]+)/review/$', views.review_product, name='review_product'),
     # ex: /products/JanomeEQ60/compare/
@@ -108,6 +115,7 @@ urlpatterns = [
     url(r'^stores/(?P<id>\d+)/$', views.store, name='store'),
     # ex: /service/
     url(r'^service/$', views.service, name='service'),
+    path('extend_warranty/', views.extend_warranty, name='extend_warranty'),
     # /pages/*
     url(r'^pages/', include('django.contrib.flatpages.urls')),
     # /shop/*
@@ -119,10 +127,12 @@ urlpatterns = [
     url(r'^comments/', include('django_comments.urls')),
     url(r'^reviews/', include('reviews.urls')),
     url(r'^oldforum/', include('forum.urls')),
+    path('notifications/', include('django_nyt.urls')),
+    path('wiki/', include('wiki.urls')),
 
-    path('admin/', include('massadmin.urls')),
-    path('admin/', include('loginas.urls')),
-    path('admin/', admin.site.urls),
+    # path('admin/', include('massadmin.urls')),
+    # path('admin/', include('loginas.urls')),
+    # path('admin/', admin.site.urls),
     path('', include('django_prometheus.urls')),
 ]
 

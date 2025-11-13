@@ -1,7 +1,10 @@
+import logging
+import time
+
 from django.http import Http404, StreamingHttpResponse, JsonResponse
 from django.conf import settings
-from django.db import IntegrityError
-from django.db.models import Sum, F, Q
+from django.core.paginator import Paginator
+from django.db.models import Sum, F, Q, Case, When, OuterRef, Subquery
 from django.shortcuts import render, redirect, get_object_or_404
 from django.core.files.storage import default_storage
 from django.contrib.auth.decorators import login_required
@@ -14,9 +17,10 @@ from sewingworld.models import SiteProfile
 from facebook.tasks import FACEBOOK_TRACKING, notify_view_content
 from shop.models import Category, Product, ProductRelation, ProductSet, ProductKind, Manufacturer, \
     Advert, SalesAction, City, Store, ServiceCenter, Stock, Favorites, Integration, ProductIntegration, \
-    Order, OrderItem, Serial
+    Serial
 from shop.filters import get_product_filter
-from shop.tasks import update_order
+
+logger = logging.getLogger(__name__)
 
 
 def index(request):
@@ -47,8 +51,8 @@ def search(request):
 
 
 def products_stream(request, integration, template, filter_type):
-    root = Category.objects.get(slug=settings.MPTT_ROOT)
-    children = root.get_children().filter(active=True, feed=True)
+    started = time.monotonic()
+    use_categories = integration is None or not integration.output_skip_categories
 
     if integration:
         template = integration.output_template
@@ -56,32 +60,36 @@ def products_stream(request, integration, template, filter_type):
     else:
         utm_source = filter_type
 
-    categories = {}
-    for child in children:
-        categories[child.pk] = child.pk
-        descendants = child.get_descendants().filter(active=True, feed=True)
-        for descendant in descendants:
-            categories[descendant.pk] = child.pk
-
-    context = {
-        'utm_source': utm_source,
-        'children': children,
-        'category_map': categories
-    }
-    t = loader.get_template('xml/_{}_header.xml'.format(template))
-    yield t.render(context, request)
-
-    t = loader.get_template('xml/_{}_product.xml'.format(template))
-
     filters = {
         'enabled': True,
         'price__gt': 0,
-        'variations__exact': '',
-        'categories__in': root.get_descendants(include_self=True).filter(active=True, feed=True)
+        'variations__exact': ''
+    }
+    context = {
+        'utm_source': utm_source,
     }
 
-    if integration and not integration.output_all:
-        filters['integration'] = integration
+    categories = {}
+    if use_categories:
+        root = Category.objects.get(slug=settings.MPTT_ROOT)
+        children = root.get_children().filter(active=True, feed=True)
+        for child in children:
+            categories[child.pk] = child.pk
+            descendants = child.get_descendants().filter(active=True, feed=True)
+            for descendant in descendants:
+                categories[descendant.pk] = child.pk
+        filters['categories__in'] = root.get_descendants(include_self=True).filter(active=True, feed=True)
+        context['children'] = children
+        context['category_map'] = categories
+
+    pre_t = time.monotonic()
+
+    t = loader.get_template('xml/_{}_header.xml'.format(template))
+    yield t.render(context, request)
+
+    pre_p = time.monotonic()
+
+    t = loader.get_template('xml/_{}_product.xml'.format(template))
 
     if filter_type == 'prym':
         filters['market'] = True
@@ -93,30 +101,68 @@ def products_stream(request, integration, template, filter_type):
 
     products = Product.objects.order_by().filter(**filters).distinct()
 
-    if integration and integration.output_with_images:
-        products.exclude(image__isnull=True).exclude(image__exact='')
+    if integration:
+        if not integration.output_all:
+            products = products.filter(
+                integration=integration
+            ).annotate(
+                integration_price=Subquery(
+                    ProductIntegration.objects.filter(
+                        product=OuterRef('id'),
+                        integration=integration
+                    ).values('price')
+                )
+            )
 
-    if integration and integration.output_available:
-        products = products.annotate(
-            quantity=Sum('stock_item__quantity', filter=Q(stock_item__supplier__integration=integration)),
-            correction=Sum('stock_item__correction', filter=Q(stock_item__supplier__integration=integration)),
-            available=F('quantity') + F('correction')
-        ).filter(available__gt=0)
+        if integration.output_with_images:
+            products.exclude(image__isnull=True).exclude(image__exact='')
+
+        if integration.output_available:
+            products = products.annotate(
+                quantity=Sum('stock_item__quantity', filter=Q(stock_item__supplier__integration=integration)),
+                correction=Sum('stock_item__correction', filter=Q(stock_item__supplier__integration=integration)),
+                available=F('quantity') + F('correction')
+            ).filter(available__gt=0)
+
+        if integration.output_paged:
+            paginator = Paginator(products, 500)
+            products = paginator.get_page(request.GET.get('page'))
+
+    pre_loop = time.monotonic()
 
     for product in products:
         context['product'] = product
         if integration:
-            if not integration.output_all:
-                context['integration'] = ProductIntegration.objects.get(product=product, integration=integration)
             if integration.output_stock:
                 context['stock'] = product.get_stock(integration=integration)
         yield t.render(context, request)
+
+    post_loop = time.monotonic()
 
     context.pop('product', None)
     context.pop('integration', None)
     context.pop('stock', None)
     t = loader.get_template('xml/_{}_footer.xml'.format(template))
     yield t.render(context, request)
+
+    ended = time.monotonic()
+
+    logger.error(
+        """
+        Total: %s
+        Prepare: %s
+        Header: %s
+        Products prepare: %s
+        Products output: %s
+        Footer: %s
+        """,
+        ended - started,
+        pre_t - started,
+        pre_p - pre_t,
+        pre_loop - pre_p,
+        post_loop - pre_loop,
+        ended - post_loop
+    )
 
 
 def products(request, integration=None, template=None, filters=None):
@@ -384,6 +430,13 @@ def product_stock(request, code):
     return response
 
 
+def product_video_redirect(request, code):
+    product = get_object_or_404(Product, code=code)
+    if not product.video_url:
+            raise Http404("Video does not exist")
+    return redirect('https://api.sewing-world.ru/api/v0/products/{}/video/'.format(product.code))
+
+
 def compare_product(request, code):
     product = get_object_or_404(Product, code=code)
     if product.categories.exists() and not product.breadcrumbs:
@@ -488,52 +541,8 @@ def extend_warranty(request):
     serial = None
     registered = False
     if request.user.is_authenticated and sn:
-        item = OrderItem.objects.filter(serial_number__iexact=sn).order_by('-order').first()
-        if item is not None:
-            if item.order.user == request.user:
-                # Вариант 1: пользователь зарегистрирован и покупал товар с таким номером
-                serial = Serial(number=sn, user=request.user, product=item.product, order=item.order, purchase_date=item.order.created, approved=True)
-
-            elif 'FBO' in item.order.name:  # TODO: find proper way to identify such orders
-                # Вариант 2: товар с таким номером отгружался по FBO
-                order = Order(
-                    site=item.order.site,
-                    user=request.user,
-                    name=request.user.name,
-                    phone=request.user.phone,
-                    created=item.order.created,
-                    status=Order.STATUS_DONE,
-                    manager_comment='Заказ сформирован при регистрации гарантийного талона из заказа №{}'.format(item.order.pk)
-                )
-                order.save()
-                order.items.create(
-                    product=item.product,
-                    product_price=item.product_price,
-                    serial_number=sn,
-                    quantity=1
-                )
-                update = {}
-                message = 'Товар с серийным номером {} перенесён в заказ №{}'.format(sn, order.pk)
-                if item.order.manager_comment:
-                    update['manager_comment'] = '\n'.join([item.order.manager_comment, message])
-                else:
-                    update['manager_comment'] = message
-                update_order.delay(item.order.pk, update)
-
-                serial = Serial(number=sn, user=request.user, product=item.product, order=order, approved=True)
-
-            else:
-                # Вариант 3: кто-то другой покупал товар с таким номером
-                serial = Serial(number=sn, user=request.user, product=item.product, order=item.order, purchase_date=item.order.created)
-
-        else:
-            # Вариант 4: о таком номере ничего неизвестно
-            serial = Serial(number=sn, user=request.user)
-
-        try:
-            serial.save()
-        except IntegrityError:
-            registered = True
+        serial = Serial.register(sn, request.user)
+        registered = serial is None
 
     context = {
         'registered': registered,

@@ -1,0 +1,35 @@
+{% load static %}
+{% load site %}
+{% load decimals %}
+<offer id="{{ product.id }}" available="{% if product.instock > 0 %}true{% else %}false{% endif %}">
+<url>{% site_url_prefix %}{% url 'product' product.code %}</url>
+{% if product.discount > 0 %}
+<oldprice>{{ product.price|quantize:"1" }}</oldprice>
+{% endif %}
+<price>{{ product.cost|quantize:"1" }}</price>
+<currencyId>RUR</currencyId>
+{% for top_category in product.categories.all|get_unique_mapped_list:category_map %}
+<categoryId>{{ top_category }}</categoryId>
+{% endfor %}
+{% if product.image %}
+<picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image }}</picture>
+{% endif %}
+<typePrefix>{{ product.whatis }}</typePrefix>
+<vendor>{{ product.manufacturer.name }}</vendor>
+<vendorCode>{{ product.partnumber }}</vendorCode>
+<name>{{ product.title }}</name>
+<description>{{ product.yandexdescr }}
+{% if product.partnumber %}
+Partnumber: {{ product.partnumber }}
+{% endif %}
+{% if product.article %}
+Код: {{ product.article }}
+{% endif %}
+</description>
+{% if product.manufacturer_warranty > 0 %}
+<manufacturer_warranty>true</manufacturer_warranty>
+{% endif %}
+{% if product.sales_notes %}
+<sales_notes>{{ product.sales_notes }}</sales_notes>
+{% endif %}
+</offer>
