@@ -1,0 +1,26 @@
+{% load static %}
+{% load site %}
+{% load decimals %}
+<offer id="{{ product.id }}" type="vendor.model" {% if product.instock > 0 %}available="true"{% else %}available="false"{% endif %}>
+    <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=yamarket&amp;utm_term={{ product.id }}</url>
+    <price>{{ product.cost|quantize:"1" }}</price>
+    <currencyId>RUR</currencyId>
+{% for top_category in product.categories.all|get_unique_mapped_list:category_map %}
+    <categoryId>{{ top_category }}</categoryId>
+{% endfor %}
+{% if product.image %}
+    <picture>{% site_url_prefix %}{% get_media_prefix %}{{ product.image }}</picture>
+{% endif %}
+    <vendor>{{ product.manufacturer.name }}</vendor>
+    <model>{{ product.title }}</model>
+    {% if product.whatis %}
+    <typePrefix>{{ product.whatis }}</typePrefix>
+    {% endif %}
+    {% if product.gtin %}
+    <barcode>{{ product.gtin }}</barcode>
+    {% endif %}
+    {% if product.partnumber %}
+    <vendorCode>{{ product.partnumber }}</vendorCode>
+    {% endif %}
+    <description>{% if product.state %}{{ product.state|striptags }}{% endif %}</description>
+</offer>

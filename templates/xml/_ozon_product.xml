@@ -3,14 +3,14 @@
 {% load decimals %}
 {% load l10n %}
 <offer id="{{ product.article }}">
-    {% if integration.price > 0 %}
-    <price>{{ integration.price|quantize:"1" }}</price>
+    {% if product.integration_price > 0 %}
+    <price>{{ product.integration_price|quantize:"1" }}</price>
     {% else %}
     <price>{{ product.cost|quantize:"1" }}</price>
     {% endif %}
     {% if stock is not None %}
     <outlets>
-      <outlet id="0" instock="{% if stock > 10 %}10{% else %}{{ stock|quantize:"1" }}{% endif %}" />
+      <outlet instock="{% if stock > 20 %}20{% else %}{{ stock|quantize:"1" }}{% endif %}"></outlet>
     </outlets>
     {% endif %}
 </offer>
