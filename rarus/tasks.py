@@ -65,7 +65,7 @@ def get_cards():
         raise TaskFailure(error) from e
 
 
-@shared_task(autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=3, retry_jitter=False)
+@shared_task(queue='priority', autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=3, retry_jitter=False)
 def get_bonus_value(phone):
     user = ShopUser.objects.get(phone=phone)
     if not hasattr(user, 'bonus'):
