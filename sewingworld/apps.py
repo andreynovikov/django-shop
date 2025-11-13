@@ -7,7 +7,6 @@ class SWAppConfig(AppConfig):
     verbose_name = 'Швейный Мир'
 
     def ready(self):
-        import sewingworld.tasks  # noqa: F401
         import sewingworld.signals  # noqa: F401
 
         import djconfig
