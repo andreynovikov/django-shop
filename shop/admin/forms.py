@@ -180,7 +180,7 @@ class ProductConfirmImportForm(ConfirmImportForm):
 
 
 class ProductExportForm(ExportForm):
-    export_fields = ModelFieldListFormField(source_model=Product, label='Поля для экспорта', widget=FilteredSelectMultiple('свойства товара', False))
+    product_fields = ModelFieldListFormField(source_model=Product, label='Поля для экспорта', widget=FilteredSelectMultiple('свойства товара', False))
 
 
 class ProductAdminForm(forms.ModelForm):

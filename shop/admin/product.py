@@ -30,6 +30,7 @@ from flags.state import flag_enabled
 
 from shop.models import Product, ProductImage, ProductRelation, ProductSet, ProductKind, \
     ProductReview, Stock, Integration, Order
+from shop.tasks import post_update_product
 from .forms import ProductImportForm, ProductConfirmImportForm, ProductExportForm, \
     ProductAdminForm, ProductListAdminForm, ProductKindForm, StockInlineForm, IntegrationInlineForm, \
     ProductCloneForm, OneSImportForm
@@ -125,20 +126,18 @@ class ProductResource(resources.ModelResource):
     def __init__(self, **kwargs):
         super().__init__()
         self.id_field = kwargs.get('id_field', 'id')
-        self.export_fields = kwargs.get('export_fields', [])
+        self.product_fields = kwargs.get('product_fields')
 
     def get_import_id_fields(self):
         return (self.id_field,)
 
-    def get_export_fields(self):
-        if self.export_fields:
-            return filter(lambda f: f.attribute in self.export_fields, self.get_fields())
-        else:
-            return self.get_fields()  # import uses same list as export
+    def export(self, queryset=None, **kwargs):
+        kwargs.update(export_fields=self.product_fields)
+        return super().export(queryset, **kwargs)
 
     class Meta:
         model = Product
-        exclude = ('categories', 'stock', 'num', 'related', 'constituents', 'images')
+        exclude = ('categories', 'stock', 'num', 'sales_actions', 'related', 'constituents', 'images', 'fts_vector')
 
 
 class IntegrationsFilter(SimpleDropdownFilter):
@@ -251,7 +250,8 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
     form = ProductAdminForm
     # change_list_template = 'admin/shop/product/change_list.html'
     import_export_change_list_template = 'admin/shop/product/change_list.html'
-    resource_class = ProductResource
+    resource_classes = [ProductResource]
+    export_form_class = ProductExportForm
     list_display = ['product_codes', 'title', 'combined_price', 'combined_discount', 'enabled', 'show_on_sw',
                     'market', 'integrations', 'product_stock', 'orders_link', 'product_link']
     list_display_links = ['title']
@@ -347,6 +347,7 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
         ('Остальное', {
             'classes': ('collapse',),
             'fields': (
+                'video_url',
                 'comment_packer',
                 'order',
                 'swcode',
@@ -421,14 +422,14 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
     def get_confirm_import_form(self):
         return ProductConfirmImportForm
 
-    def get_export_form(self):
-        return ProductExportForm
-
+    """
     def get_form_kwargs(self, form, *args, **kwargs):
         if not isinstance(form, type) and form.is_valid():
             kwargs.update({'id_field': form.cleaned_data['id_field']})
         return kwargs
+    """
 
+    """
     def get_import_resource_kwargs(self, request, *args, **kwargs):
         if request.POST:
             form = self.get_confirm_import_form()(request.POST)
@@ -436,25 +437,21 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
             return {'id_field': form.cleaned_data['id_field']}
         else:
             return {}
+    """
 
     def get_export_resource_kwargs(self, request, *args, **kwargs):
-        if request.POST:
-            formats = self.get_export_formats()
-            form = self.get_export_form()(formats, request.POST)
-            form.full_clean()
-            return {'export_fields': form.cleaned_data['export_fields']}
-        else:
-            return {}
+        export_form = kwargs.get('export_form')
+        if export_form:
+            kwargs.update(product_fields=export_form.cleaned_data['product_fields'])
+        return kwargs
 
-    # обновляем кеш наличия при сохранении
     def save_model(self, request, obj, form, change):
-        """
-        if change:
-            obj.num = obj.get_stock()
-        else:
-        """
+        # обновляем кеш наличия при сохранении
         obj.num = -1
         super().save_model(request, obj, form, change)
+        # чистим кеши и обновляем мета-данные фоновой задачей
+        post_update_product.delay(obj.pk, 'admin')
+
 
     def save_related(self, request, form, formsets, change):
         # this is a hack to avoid stock saving for duplicated products (gives error if stock correction is not zero)
