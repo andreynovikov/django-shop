@@ -38,16 +38,7 @@ export default function ProductCard({ product, limitedBadges = false }) {
     const productLink = product.variations ? product.variations : { pathname: '/products/[code]', query: { code: product.code } }
 
     return (
-        <div ref={cardRef} className="card product-card">
-            {product.enabled && (
-                <div className="position-absolute ms-3 mt-2">
-                    {(product.isnew && !limitedBadges) && <span className="position-static badge bg-info badge-shadow me-2 mb-2">Новинка</span>}
-                    {(product.recomended && !limitedBadges) && <span className="position-static badge bg-warning badge-shadow me-2 mb-2">Рекомендуем</span>}
-                    {product.sales && product.sales.map((notice, index) => (
-                        notice && <span className="position-static badge bg-danger badge-shadow me-2 mb-2" key={index}>{notice}</span>
-                    ))}
-                </div>
-            )}
+        <div ref={cardRef} className="card product-card h-100">
             <OverlayTrigger
                 placement="left"
                 overlay={
@@ -76,45 +67,56 @@ export default function ProductCard({ product, limitedBadges = false }) {
                     <NoImage />
                 )}
             </Link>
-            <div className="card-body py-2">
+            <div className="d-flex flex-column card-body py-2">
                 <Link className="product-meta d-block fs-xs pb-1" href={productLink}>
                     {product.whatisit ?? product.whatis} {product.partnumber}
                 </Link>
-                <h3 className="product-title fs-sm">
+                <h3 className="product-title fs-6">
                     <Link href={productLink}>
                         {product.title}
                     </Link>
                 </h3>
-                <div className="d-flex justify-content-between align-items-center">
-                    <div className="product-price text-accent">
-                        {product.variations && "от "}
-                        <ProductPrice product={product} />
+                <div className="mt-auto">
+                    {product.enabled && (
+                        <div>
+                            {(product.isnew && !limitedBadges) && <span className="small fw-bold me-2 text-info">Новинка</span>}
+                            {(product.recomended && !limitedBadges) && <span className="small fw-bold me-2 text-success">Рекомендуем</span>}
+                            {product.sales && product.sales.map((notice, index) => (
+                                notice && <span className="small fw-bold me-2 text-danger" key={index}>{notice}</span>
+                            ))}
+                        </div>
+                    )}
+                    <div className="d-flex justify-content-between align-items-center">
+                        <div className="product-price text-accent">
+                            {product.variations && "от "}
+                            <ProductPrice product={product} />
+                        </div>
+                        <div>
+                            {product.variations ? (
+                                <Link className={`btn btn${buttonClass}-secondary btn-sm d-block w-100`} href={product.variations}>
+                                    <i className="ci-eye fs-sm" />
+                                </Link>
+                            ) : product.enabled && product.instock ? (
+                                <button className={`btn btn-success btn-sm d-block w-100`} type="button" onClick={handleCartClick}>
+                                    <i className="ci-cart fs-sm" />
+                                </button>
+                            ) : (
+                                <Link className={`btn btn${buttonClass}-secondary btn-sm d-block w-100`} href={productLink}>
+                                    <i className="ci-eye fs-sm" />
+                                </Link>
+                            )}
+                        </div>
+                        { /* TODO
+                        <div className="star-rating">
+                            <i className="star-rating-icon ci-star-filled active"></i>
+                            <i className="star-rating-icon ci-star-filled active"></i>
+                            <i className="star-rating-icon ci-star-filled active"></i>
+                            <i className="star-rating-icon ci-star"></i>
+                            <i className="star-rating-icon ci-star"></i>
+                        </div>
+                        */
+                        }
                     </div>
-                    <div>
-                        {product.variations ? (
-                            <Link className={`btn btn${buttonClass}-secondary btn-sm d-block w-100`} href={product.variations}>
-                                <i className="ci-eye fs-sm" />
-                            </Link>
-                        ) : product.enabled && product.instock ? (
-                            <button className={`btn btn${buttonClass}-success btn-sm d-block w-100`} type="button" onClick={handleCartClick}>
-                                <i className="ci-cart fs-sm" />
-                            </button>
-                        ) : (
-                            <Link className={`btn btn${buttonClass}-secondary btn-sm d-block w-100`} href={productLink}>
-                                <i className="ci-eye fs-sm" />
-                            </Link>
-                        )}
-                    </div>
-                    { /* TODO
-                    <div className="star-rating">
-                        <i className="star-rating-icon ci-star-filled active"></i>
-                        <i className="star-rating-icon ci-star-filled active"></i>
-                        <i className="star-rating-icon ci-star-filled active"></i>
-                        <i className="star-rating-icon ci-star"></i>
-                        <i className="star-rating-icon ci-star"></i>
-                    </div>
-                      */
-                    }
                 </div>
             </div>
             <div className="card-body card-body-hidden">

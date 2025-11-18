@@ -1,8 +1,8 @@
 {
     "name": "sworld",
-    "version": "2025.09.08",
+    "version": "2025.11.18",
     "scripts": {
-        "dev": "next dev -H 127.0.0.1 -p 3000 --experimental-https",
+        "dev": "next dev -H 127.0.0.1 -p 3004 --experimental-https",
         "start": "next start -H 127.0.0.1 -p 4000",
         "lint": "next lint",
         "build": "next build",
