@@ -75,7 +75,7 @@ class CategoryTreeSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Category
-        fields = ('id', 'name', 'slug', 'svg_icon', 'image', 'children')
+        fields = ('id', 'name', 'subname', 'slug', 'svg_icon', 'image', 'children')
 
 
 class CategoryBriefSerializer(NonNullModelSerializer):
@@ -83,7 +83,7 @@ class CategoryBriefSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Category
-        fields = ('id', 'name', 'slug', 'path')
+        fields = ('id', 'name', 'subname', 'slug', 'path')
 
     def get_path(self, obj):
         ancestors = obj.get_ancestors(include_self=True)[1:]  # exclude root category
