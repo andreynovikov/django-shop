@@ -13,7 +13,7 @@
   <title></title>
 <style type="text/css">
 body     { font-size:9pt; font-family:Verdana,sans-serif; }
-.wrapper { width:185mm; max-width:185mm; margin-left:14mm; margin-top:47mm;}
+.wrapper { width:195mm; max-width:195mm; margin-left:10mm; margin-top:40mm;}
 .left    { text-align:left;}
 .right   { text-align:right;}
 .center  { text-align:center;}
@@ -32,6 +32,9 @@ body     { font-size:9pt; font-family:Verdana,sans-serif; }
 <div class="wrapper">
 <table style="width:100%">
 <tr>
+<td>
+<table style="width:100%">
+<tr>
 <td>Модель</td>
 <td><b>{{ product.title }}</b></td>
 </tr>
@@ -46,7 +49,16 @@ body     { font-size:9pt; font-family:Verdana,sans-serif; }
 </tr>
 {% endif %}
 </table>
-
+</td>
+<td style="width:4cm" class="center">
+{% if product.video_url %}
+<div>Видеоинструкция:
+  <img src="https://api.sewing-world.ru/api/v0/products/{{ product.id }}/video/qr/" style="width: 25mm; height: 25mm; margin: 1rem" />
+</div>
+{% endif %}
+</td>
+</tr>
+</table>
 </div>
 </body>
 </html>

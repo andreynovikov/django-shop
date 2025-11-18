@@ -34,39 +34,11 @@ SITE_SW = Site.objects.get(domain='www.sewing-world.ru')
 SITE_YANDEX = Site.objects.get(domain='market.yandex.ru')
 
 
-@receiver(post_save, sender=Product, dispatch_uid='product_saved_receiver')
-def product_saved(sender, **kwargs):
-    product = kwargs['instance']
-    if product.num >= 0:  # renew pages only if stock is reset (this disables double renew on stocks import)
-        return
-
-    try:
-        fragment_cache = caches['template_fragments']
-    except InvalidCacheBackendError:
-        fragment_cache = caches['default']
-    vary_on = [product.id]
-    cache_key = make_template_fragment_key('product', vary_on)
-    fragment_cache.delete(cache_key)
-    cache_key = make_template_fragment_key('product_description', vary_on)
-    fragment_cache.delete(cache_key)
-
-    payload = {
-        'model': 'product',
-        'pk': product.pk,
-        'code': product.code
-    }
-    root_slugs = set()
-    for category in product.categories.all():
-        root_slugs.add(category.get_root().slug)
-    for site in Site.objects.filter(profile__category_root_slug__in=root_slugs).exclude(profile__revalidation_token__exact=''):
-        revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
-
-
 @receiver(post_save, sender=OrderItem, dispatch_uid='order_item_saved_receiver')
 def order_item_saved(sender, **kwargs):
     order_item = kwargs['instance']
     if order_item.tracker.has_changed('quantity'):
-        logger.error("### " + order_item.product.code + "saved in order_item_saved signal")
+        logger.error("### " + order_item.product.code + " saved in order_item_saved signal")
         order_item.product.num = -1
         order_item.product.save()
 
@@ -168,3 +140,4 @@ def news_saved(sender, **kwargs):
 @receiver(cleanup_pre_delete)
 def sorl_delete(**kwargs):
     delete_thumbnail(kwargs['file'])
+

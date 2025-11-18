@@ -22,7 +22,8 @@ from urllib.error import HTTPError
 from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.contenttypes.models import ContentType
 from django.core import signing
-from django.core.cache import cache
+from django.core.cache import cache, InvalidCacheBackendError, caches
+from django.core.cache.utils import make_template_fragment_key
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from django.core.mail import send_mail
 from django.core.validators import EmailValidator
@@ -43,6 +44,8 @@ from celery import shared_task
 
 from djconfig import config, reload_maybe
 from flags.state import enable_flag, disable_flag
+from sorl.thumbnail.default import kvstore
+from sorl.thumbnail.images import ImageFile
 
 import reviews
 
@@ -358,6 +361,42 @@ def notify_review_posted(review_id):
     )
 
 
+@shared_task
+def post_update_product(product_id, origin):
+    product = Product.objects.get(pk=product_id)
+
+    if origin == 'admin':
+        product.update_fts_vector()
+        image_file = ImageFile(product.image)
+        kvstore.delete(image_file, delete_thumbnails=True)
+        for product_image in product.images.all():
+            image_file = ImageFile(product_image.image)
+            kvstore.delete(image_file, delete_thumbnails=True)
+
+    try:
+        fragment_cache = caches['template_fragments']
+    except InvalidCacheBackendError:
+        fragment_cache = caches['default']
+    vary_on = [product.id]
+    cache_key = make_template_fragment_key('product', vary_on)
+    fragment_cache.delete(cache_key)
+    cache_key = make_template_fragment_key('product_description', vary_on)
+    fragment_cache.delete(cache_key)
+
+    payload = {
+        'model': 'product',
+        'pk': product.pk,
+        'code': product.code
+    }
+    root_slugs = set()
+    for category in product.categories.all():
+        root_slugs.add(category.get_root().slug)
+    for site in Site.objects.filter(profile__category_root_slug__in=root_slugs).exclude(profile__revalidation_token__exact=''):
+        revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
+
+    return None
+
+
 @shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def update_1c_stocks(self):
     reload_maybe()
@@ -603,6 +642,7 @@ def import1c(file):
         product = Product.objects.only('num').get(id=product_id)
         product.num = -1
         product.save()
+        post_update_product.s(product.pk, 'import').delay()
         if product_id in frozen_products.keys() and product.instock > 0:
             orders.update(frozen_products[product_id])
         if product_id in frozen_products.keys():
