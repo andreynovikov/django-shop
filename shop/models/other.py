@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 class Category(MPTTModel):
-    name = models.CharField(max_length=100)
+    name = models.CharField('заголовок', max_length=100)
+    subname = models.CharField('подзаголовок', max_length=255, blank=True)
     slug = models.CharField(max_length=100, db_index=True)
     parent = TreeForeignKey('self', null=True, blank=True, related_name='children', db_index=True, on_delete=models.PROTECT)
     active = models.BooleanField('включена', default=True, db_index=True)
