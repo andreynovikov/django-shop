@@ -12,7 +12,7 @@
 <h1>Каталог</h1>
 {% for node,structure in root.get_descendants|filter_qs:"active"|filter_qs:"!hidden"|tree_info %}
     {% if structure.new_level %}<ul><li>{% else %}</li><li>{% endif %}
-        <a href="{% url 'category' node.get_path %}">{{ node.name }}</a>
+        <a href="{% url 'category' node.get_path %}">{{ node.name }}{% if node.subname %} - {{ node.subname }}{% endif %}</a>
     {% for level in structure.closed_levels %}</li></ul>{% endfor %}
 {% endfor %}
 {% endblock %}
