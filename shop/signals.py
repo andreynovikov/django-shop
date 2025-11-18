@@ -33,7 +33,7 @@ SITE_YANDEX = Site.objects.get(domain='market.yandex.ru')
 def order_item_saved(sender, **kwargs):
     order_item = kwargs['instance']
     if order_item.tracker.has_changed('quantity'):
-        logger.error("### " + order_item.product.code + "saved in order_item_saved signal")
+        logger.error("### " + order_item.product.code + " saved in order_item_saved signal")
         order_item.product.num = -1
         order_item.product.save()
 
