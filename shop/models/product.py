@@ -42,8 +42,8 @@ def product_big_image_path(instance, filename):
 
 class Product(models.Model):
     code = models.CharField('идентификатор', max_length=20, unique=True, db_index=True)
-    article = models.CharField('код 1С', max_length=20, blank=True, db_index=True)
-    partnumber = models.CharField('partnumber', max_length=200, blank=True, db_index=True)
+    article = models.CharField('код товара', help_text='код 1С', max_length=20, blank=True, db_index=True)
+    partnumber = models.CharField('артикул', max_length=200, blank=True, db_index=True)
     gtin = models.CharField('штрих-код', max_length=17, blank=True, db_index=True)
     gtins = ArrayField(models.CharField(max_length=255, blank=True), verbose_name='дополнительные штих-коды', default=list, blank=True, db_index=True)
     tnved = models.CharField('ТН ВЭД', max_length=16, blank=True)
@@ -123,6 +123,7 @@ class Product(models.Model):
     stitches = models.TextField('Строчки', blank=True)
     complect = models.TextField('Комплектация', blank=True)
     dealertxt = models.TextField('Текст про официального дилера', blank=True)
+    video_url = models.URLField('Ссылка на видео-описание', max_length=255, blank=True)
     num = models.IntegerField('в наличии', default=-1)
     stock = models.ManyToManyField(Supplier, through='Stock')
     pack_factor = models.SmallIntegerField('Количество в упаковке', default=1)
@@ -248,9 +249,6 @@ class Product(models.Model):
         else:
             logger.error("Skip update price")
         super(Product, self).save(*args, **kwargs)
-        if 'title' not in deferred:
-            # skip updates during price imports
-            self.update_fts_vector()
         if 'num' not in deferred:
             self.update_sets()
 
