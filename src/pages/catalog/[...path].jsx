@@ -226,7 +226,8 @@ export default function Category({ path, currentPage, pageSize, order, filters }
                                                     {category.children.map((subcategory, index) => (
                                                         <li className={"widget-list-item" + (index > 0 ? " pt-2" : "")} key={subcategory.id}>
                                                             <Link className="widget-list-link" href={{ pathname: router.pathname, query: { path: [...path, subcategory.slug] } }}>
-                                                                {subcategory.name}
+                                                                <span className="fw-medium">{subcategory.name}</span>
+                                                                {subcategory.subname && <><br/>{subcategory.subname}</>}
                                                             </Link>
                                                         </li>
                                                     ))}
