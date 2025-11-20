@@ -148,7 +148,7 @@ class ProductViewSet(ProductListSerializerContextMixin, viewsets.ReadOnlyModelVi
     lookup_value_regex = '[^/]+'
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.OrderingFilter]
-    ordering_fields = ('id', 'code', 'article', 'title', 'price')
+    ordering_fields = [f.name for f in Product._meta.get_fields()]
     filtering_fields = [f.name for f in Product._meta.get_fields()] + ['text', 'instock']
     product_filter = None
 
