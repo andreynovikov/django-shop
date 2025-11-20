@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 import Link from 'next/link'
 
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
@@ -18,8 +18,18 @@ export default function ProductCard({ product, limitedBadges = false }) {
     const cardRef = useRef()
 
     const breakpoint = useBreakpoint()
-    const { addItem } = useBasket()
+    const { basket, addItem, isSuccess, isEmpty } = useBasket()
     const { favorites, favoritize, unfavoritize } = useFavorites()
+
+    const basketQuantity = useMemo(() => {
+        if (!isSuccess || isEmpty)
+            return 0
+        const items = basket.items.filter(item => item.product.id == product.id)
+        if (items.length > 0)
+            return items[0].quantity
+        else
+            return 0
+    }, [basket, product, isSuccess, isEmpty])
 
     const handleCartClick = () => {
         addItem(product.id)
@@ -99,6 +109,7 @@ export default function ProductCard({ product, limitedBadges = false }) {
                             ) : product.enabled && product.instock ? (
                                 <button className={`btn btn-success btn-sm d-block w-100`} type="button" onClick={handleCartClick}>
                                     <i className="ci-cart fs-sm" />
+                                    {basketQuantity > 0 && <span className="ps-1">{basketQuantity} шт</span>}
                                 </button>
                             ) : (
                                 <Link className={`btn btn${buttonClass}-secondary btn-sm d-block w-100`} href={productLink}>

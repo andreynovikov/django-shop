@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, lazy } from 'react'
+import { useState, useEffect, useMemo, Suspense, lazy } from 'react'
 import { useRouter } from 'next/router'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -15,11 +15,11 @@ import NoImage from '@/components/product/no-image'
 import ProductMiniCard from '@/components/product/mini-card'
 import ProductPrice from '@/components/product/price'
 import ProductRating from '@/components/product/rating'
+import ProductShopping from '@/components/product/shopping'
 import ImageGallery from '@/components/product/image-gallery'
 import ImageCarousel from '@/components/product/image-carousel'
 import Loading from '@/components/loading'
 
-import useBasket from '@/lib/basket'
 import useFavorites from '@/lib/favorites'
 import useComparison from '@/lib/comparison'
 import { useSession } from '@/lib/session'
@@ -131,12 +131,10 @@ export default function Product({ code }) {
     const [galleryOpen, setGalleryOpen] = useState(false)
     const [stockVisible, setStockVisible] = useState(false)
     const [reviewsVisible, setReviewsVisible] = useState(false)
-    const [quantity, setQuantity] = useState(1)
 
     const router = useRouter()
 
     const { status } = useSession()
-    const { addItem } = useBasket()
     const { favorites, favoritize, unfavoritize } = useFavorites()
     const { comparisons, compare } = useComparison()
 
@@ -198,11 +196,6 @@ export default function Product({ code }) {
         triggerOnce: true,
         onChange: (inView) => setReviewsVisible(inView)
     })
-
-    const handleCartClick = () => {
-        // TODO: {% if utm_source %}?utm_source={{ utm_source }}{% endif %}
-        addItem(product.id, quantity)
-    }
 
     const handleFavoritesClick = () => {
         if (status === 'authenticated') {
@@ -355,22 +348,11 @@ export default function Product({ code }) {
                                                 </div>
                                             </div>
                                             {product.cost > 0 ? (
-                                                <div className="d-flex align-items-center pt-2 pb-4" itemProp="offers" itemScope itemType="http://schema.org/Offer">
-                                                    {product.instock > 5 && (
-                                                        <select className="form-select me-3" style={{ width: "5rem" }} value={quantity} onChange={(e) => setQuantity(e.target.value)}>
-                                                            <option value="1">1</option>
-                                                            <option value="2">2</option>
-                                                            <option value="3">3</option>
-                                                            <option value="4">4</option>
-                                                            <option value="5">5</option>
-                                                        </select>
-                                                    )}
+                                                <div className="d-flex justify-content-between align-items-center pt-2 pb-4" itemProp="offers" itemScope itemType="http://schema.org/Offer">
                                                     {product.instock > 0 ? (
-                                                        <button className="btn btn-success btn-shadow d-block w-100" type="button" onClick={handleCartClick}>
-                                                            <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                                            <i className="ci-cart fs-lg me-2" />Купить
-                                                        </button>
+                                                        <ProductShopping product={product} />
                                                     ) : (
+                                                        /* TODO */
                                                         <a className="btn btn-success btn-shadow d-block w-100 add-to-cart" href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}">
                                                             <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                                                             <i className="ci-loudspeaker fs-lg me-2" />Сообщить о поступлении
