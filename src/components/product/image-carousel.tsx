@@ -31,11 +31,12 @@ export default function ImageCarousel({ images, setImage, className }: ImageCaro
         >
             {images.map(image => (
                 <SwiperSlide key={image.src} className="d-inline-block w-auto">
-                    <div onClick={() => setImage(image.src)} className="rounded border" role="button">
+                    <div onClick={() => setImage(image.src)} className="position-relative rounded border" style={{ width: 80, height: 80 }} role="button">
                         <Image
-                            src={image.thumbnail.src}
-                            width={image.thumbnail.width}
-                            height={image.thumbnail.height}
+                            src={image.src}
+                            fill
+                            style={{ objectFit: 'contain' }}
+                            loading="lazy"
                             alt="" />
                     </div>
                 </SwiperSlide>

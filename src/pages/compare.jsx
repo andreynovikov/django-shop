@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import Image from 'next/image'
 import { useQuery, useQueries } from '@tanstack/react-query';
 
 import PageLayout from '@/components/layout/page';
@@ -189,13 +190,16 @@ export default function Compare({kindId, productIds}) {
                                     <button type="button" className="btn btn-sm d-block w-100 text-danger mb-2" onClick={() => uncompareProduct(product.id)}>
                                         <i className="ci-trash me-1" />Удалить
                                     </button>
-                                    <Link className="d-inline-block mb-3" href={{ pathname: '/products/[code]', query: { code: product.code }}}>
-                                        { product.thumbnail_small ? (
-                                            <img
-                                                src={product.thumbnail_small.url}
-                                                width={product.thumbnail_small.width}
-                                                height={product.thumbnail_small.height}
-                                                alt={`${product.title} ${product.whatis}`} />
+                                    <Link
+                                        className="d-inline-block mb-3 position-relative"
+                                        style={{ width: 80, height: 80 }}
+                                        href={{ pathname: '/products/[code]', query: { code: product.code } }}>
+                                        {product.image ? (
+                                            <Image
+                                                src={product.image}
+                                                fill
+                                                style={{ objectFit: 'contain' }}
+                                                alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
                                         ) : (
                                             <NoImage size={80} />
                                         )}

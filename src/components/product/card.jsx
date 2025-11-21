@@ -1,5 +1,6 @@
 import { useMemo, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
@@ -66,16 +67,21 @@ export default function ProductCard({ product, limitedBadges = false }) {
                     <i className="ci-heart" />
                 </button>
             </OverlayTrigger>
-            <Link className="d-block mx-auto pt-3 overflow-hidden" href={productLink}>
-                {product.thumbnail ? (
-                    <img
-                        src={product.thumbnail.url}
-                        width={product.thumbnail.width}
-                        height={product.thumbnail.height}
-                        alt={`${product.title} ${product.whatisit ?? product.whatis}`} />
-                ) : (
-                    <NoImage />
-                )}
+            <Link className="d-block mt-3 p-6" href={productLink}>
+                <div className="m-3 p-3">
+                    <div className="position-relative p-3 overflow-hidden" style={{ aspectRatio: 1 }}>
+                        {product.image ? (
+                            <Image
+                                src={product.image}
+                                fill
+                                style={{ objectFit: "contain" }}
+                                loading="lazy"
+                                alt={`${product.title} ${product.whatisit ?? product.whatis}`} />
+                        ) : (
+                            <NoImage />
+                        )}
+                    </div>
+                </div>
             </Link>
             <div className="d-flex flex-column card-body py-2">
                 <Link className="product-meta d-block fs-xs pb-1" href={productLink}>

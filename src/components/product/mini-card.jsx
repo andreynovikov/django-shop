@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image'
 
 import NoImage from '@/components/product/no-image';
 import ProductPrice from '@/components/product/price';
@@ -6,13 +7,17 @@ import ProductPrice from '@/components/product/price';
 export default function ProductMiniCard({product}) {
     return (
         <div className="card product-card card-static">
-            <Link className="d-inline-block mx-auto overflow-hidden" href={{ pathname: '/products/[code]', query: { code: product.code }}}>
-                { product.thumbnail ? (
-                    <img
-                        src={product.thumbnail.url}
-                        width={product.thumbnail.width}
-                        height={product.thumbnail.height}
-                        alt={`${product.title} ${product.whatis}`} />
+            <Link
+                className="d-inline-block overflow-hidden position-relative w-100"
+                style={{ aspectRatio: "4/3" }}
+                href={{ pathname: '/products/[code]', query: { code: product.code } }}>
+                {product.image ? (
+                    <Image
+                        src={product.image}
+                        fill
+                        style={{ objectFit: "contain" }}
+                        loading="lazy"
+                        alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
                 ) : (
                     <NoImage />
                 )}

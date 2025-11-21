@@ -491,13 +491,17 @@ export default function Product({ code }) {
                         <div className="container px-0 mx-n2 d-flex flex-wrap">
                             {product.constituents.map((item) => (
                                 <div className="card m-2" style={{ maxWidth: "230px" }} key={item.id}>
-                                    {item.thumbnail ? (
-                                        <img
-                                            className="card-img-top"
-                                            src={item.thumbnail.url}
-                                            width={item.thumbnail.width}
-                                            height={item.thumbnail.height}
-                                            alt={`${product.title} ${product.whatis}`} />
+                                    {item.image ? (
+                                        <div className=" card-img-top px-3">
+                                            <div className="position-relative" style={{ aspectRatio: 1 }}>
+                                                <Image
+                                                    src={item.image}
+                                                    fill
+                                                    style={{ objectFit: "contain" }}
+                                                    loading="lazy"
+                                                    alt={`${item.whatis ? item.whatis + ' ' : ''}${item.title}`} />
+                                            </div>
+                                        </div>
                                     ) : (
                                         <div className="text-center">
                                             <NoImage size={200} />

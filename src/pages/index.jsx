@@ -29,7 +29,7 @@ export default function Index() {
     useCatalog()
 
     return (
-        <>
+        <div className="mb-3">
             <div className="bg-secondary">
                 <section className="pb-5">
                     <div className="bg-dark py-5"></div>
@@ -41,7 +41,7 @@ export default function Index() {
                 </section>
             </div>
 
-            {isAdvertsSuccess && (
+            {isAdvertsSuccess && adverts.length > 0 && (
                 <section className="container pt-5">
                     <div className="row mx-n2">
                         {adverts.map((advert) => (
@@ -54,7 +54,7 @@ export default function Index() {
                 </section>
             )}
 
-            {isRecomendedSuccess && (
+            {isRecomendedSuccess && recomended.results.length > 0 && (
                 <section className="container pt-5">
                     <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
                         <h2 className="h3 mb-0 pt-3 me-2">Специальные предложения</h2>
@@ -76,7 +76,7 @@ export default function Index() {
                 </section>
             )}
 
-            {isFirstPageSuccess && (
+            {isFirstPageSuccess && firstpage.results.length > 0 && (
                 <section className="container pt-5">
                     <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
                         <h2 className="h3 mb-0 pt-3 me-2">Новинки</h2>
@@ -97,7 +97,7 @@ export default function Index() {
                     </div>
                 </section>
             )}
-        </>
+        </div>
     )
 }
 

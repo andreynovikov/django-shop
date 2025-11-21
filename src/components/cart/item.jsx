@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image'
 
 import NoImage from '@/components/product/no-image';
 
@@ -32,12 +33,14 @@ export default function CartItem({item, first, last, removeItem, setQuantity}) {
         <div className={"d-sm-flex justify-content-between align-items-center my-2 " + (first ? "pb-3" : "py-3") + (!last && " border-bottom")}>
             <div className="d-block d-sm-flex align-items-center text-center text-sm-start">
                 <Link className="d-inline-block flex-shrink-0 mx-auto me-sm-4" href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
-                    { item.product.thumbnail ? (
-                        <img
-                            src={item.product.thumbnail.url}
-                            width={item.product.thumbnail.width}
-                            height={item.product.thumbnail.height}
-                            alt={`${item.product.title} ${item.product.whatis}`} />
+                    { item.product.image ? (
+                        <div className="position-relative" style={{ width: 160, height: 160 }}>
+                            <Image
+                                src={item.product.image}
+                                fill
+                                style={{ objectFit: 'contain' }}
+                                alt={`${item.product.whatis ? item.product.whatis + ' ' : ''}${item.product.title}`} />
+                        </div>
                     ) : (
                         <NoImage size={160} />
                     )}

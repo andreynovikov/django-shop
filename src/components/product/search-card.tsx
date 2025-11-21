@@ -20,11 +20,7 @@ function resultToProduct(result: ProductResult) {
         title: result.name,
         price: Number(result.price),
         cost: Number(result.price),
-        thumbnail: {
-            url: result.image_url,
-            width: 200,
-            height: 200
-        }
+        image: result.image_url,
     }
 }
 

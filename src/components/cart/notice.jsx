@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image'
 import SimpleBar from 'simplebar-react';
 
 import NoImage from '@/components/product/no-image';
@@ -53,13 +54,17 @@ export default function CartNotice() {
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                                 <div className="d-flex align-items-center">
-                                    <Link className="d-block flex-shrink-0" href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
-                                        { item.product.thumbnail_small ? (
-                                            <img
-                                                src={item.product.thumbnail_small.url}
-                                                width={item.product.thumbnail_small.width}
-                                                height={item.product.thumbnail_small.height}
-                                                alt={`${item.product.title} ${item.product.whatis}`} />
+                                    <Link
+                                        className="d-block flex-shrink-0 position-relative"
+                                        style={{ width: 64, height: 64 }}
+                                        href={{ pathname: '/products/[code]', query: { code: item.product.code } }}>
+                                        {item.product.image ? (
+                                            <Image
+                                                src={item.product.image}
+                                                fill
+                                                style={{ objectFit: 'contain' }}
+                                                loading="lazy"
+                                                alt={`${item.product.whatis ? item.product.whatis + ' ' : ''}${item.product.title}`} />
                                         ) : (
                                             <NoImage size={64} />
                                         )}

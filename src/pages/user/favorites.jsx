@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image'
 import { useQuery } from '@tanstack/react-query';
 
 import NoImage from '@/components/product/no-image';
@@ -46,12 +47,14 @@ export default function Favorites() {
                     <div className={"d-sm-flex justify-content-between mt-lg-4 mb-4 pb-3 pb-sm-2" + (index < favorites.length - 1 ? " border-bottom" : "")} key={product.id}>
                         <div className="d-block d-sm-flex align-items-start text-center text-sm-start">
                             <Link className="d-block flex-shrink-0 mx-auto me-sm-4" style={{width: "10rem"}} href={{ pathname: '/products/[code]', query: { code: product.code }}}>
-                                { product.thumbnail ? (
-                                    <img
-                                        src={product.thumbnail.url}
-                                        width={product.thumbnail.width}
-                                        height={product.thumbnail.height}
-                                        alt={`${product.title} ${product.whatis}`} />
+                                { product.image ? (
+                                    <div className="position-relative" style={{ width: 160, height: 160 }}>
+                                        <Image
+                                            src={product.image}
+                                            fill
+                                            style={{ objectFit: 'contain' }}
+                                            alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
+                                    </div>
                                 ) : (
                                     <NoImage size={160} />
                                 )}
