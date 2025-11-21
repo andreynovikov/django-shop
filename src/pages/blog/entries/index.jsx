@@ -1,22 +1,22 @@
-import { dehydrate, QueryClient } from '@tanstack/react-query';
+import { dehydrate, QueryClient } from '@tanstack/react-query'
 
-import { blogKeys, loadBlogEntries } from '@/lib/queries';
+import { blogKeys, loadBlogEntries } from '@/lib/queries'
 
-import BlogEntries from './[page]';
+import BlogEntries from './[page]'
 
-export default BlogEntries;
+export default BlogEntries
 
 export async function getStaticProps() {
-    const queryClient = new QueryClient();
-    await queryClient.prefetchQuery({
-        queryKey: blogKeys.list('1', null),
-        queryFn: () => loadBlogEntries('1', null)
-    });
+  const queryClient = new QueryClient()
+  await queryClient.prefetchQuery({
+    queryKey: blogKeys.list('1', null),
+    queryFn: () => loadBlogEntries('1', null)
+  })
 
-    return {
-        props: {
-            dehydratedState: dehydrate(queryClient),
-            currentPage: '1'
-        }
-    };
+  return {
+    props: {
+      dehydratedState: dehydrate(queryClient),
+      currentPage: '1'
+    }
+  }
 }

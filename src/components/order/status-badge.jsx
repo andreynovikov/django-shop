@@ -42,39 +42,39 @@ export const DELIVERY_EXPRESS = 98
 export const DELIVERY_UNKNOWN = 99
 
 const getColor = (status) => {
-    // badge colors from https://demo.createx.studio/cartzilla/components/badge.html
-    // 'danger' is currently unused
-    switch (status) {
-        case STATUS_NEW:
-            return 'info';
-        case STATUS_ACCEPTED:
-        case STATUS_COLLECTING:
-        case STATUS_COLLECTED:
-        case STATUS_OTHERSHOP:
-        case STATUS_SENT:
-        case STATUS_DELIVERED_STORE:
-            return 'accent';
-        case STATUS_DELIVERED:
-        case STATUS_DELIVERED_SHOP:
-            return 'primary';
-        case STATUS_DONE:
-        case STATUS_FINISHED:
-            return 'success';
-        case STATUS_PROBLEM:
-        case STATUS_UNCLAIMED:
-        case STATUS_SERVICE:
-            return 'warning';
-        case STATUS_FROZEN:
-        case STATUS_CONSULTATION:
-        case STATUS_RETURNING:
-            return 'dark';
-        case STATUS_CANCELED:
-            return 'secondary';
-        default:
-            return 'light';
-    }
-};
+  // badge colors from https://demo.createx.studio/cartzilla/components/badge.html
+  // 'danger' is currently unused
+  switch (status) {
+    case STATUS_NEW:
+      return 'info'
+    case STATUS_ACCEPTED:
+    case STATUS_COLLECTING:
+    case STATUS_COLLECTED:
+    case STATUS_OTHERSHOP:
+    case STATUS_SENT:
+    case STATUS_DELIVERED_STORE:
+      return 'accent'
+    case STATUS_DELIVERED:
+    case STATUS_DELIVERED_SHOP:
+      return 'primary'
+    case STATUS_DONE:
+    case STATUS_FINISHED:
+      return 'success'
+    case STATUS_PROBLEM:
+    case STATUS_UNCLAIMED:
+    case STATUS_SERVICE:
+      return 'warning'
+    case STATUS_FROZEN:
+    case STATUS_CONSULTATION:
+    case STATUS_RETURNING:
+      return 'dark'
+    case STATUS_CANCELED:
+      return 'secondary'
+    default:
+      return 'light'
+  }
+}
 
-export default function OrderStatusBadge({status, text}) {
-    return <span className={"badge bg-" + getColor(status) + " fs-sm"}>{ text }</span>
+export default function OrderStatusBadge({ status, text }) {
+  return <span className={"badge bg-" + getColor(status) + " fs-sm"}>{text}</span>
 }
