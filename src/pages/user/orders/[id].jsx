@@ -277,6 +277,7 @@ export default function Order({ id }) {
                   src={item.product.image}
                   fill
                   style={{ objectFit: 'contain' }}
+                  sizes="10rem"
                   alt={`${item.product.whatis ? item.product.whatis + ' ' : ''}${item.product.title}`} />
               ) : (
                 <NoImage size={160} />

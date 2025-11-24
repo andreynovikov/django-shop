@@ -63,6 +63,7 @@ export default function CartNotice() {
                         src={item.product.image}
                         fill
                         style={{ objectFit: 'contain' }}
+                        sizes="64px"
                         loading="lazy"
                         alt={`${item.product.whatis ? item.product.whatis + ' ' : ''}${item.product.title}`} />
                     ) : (

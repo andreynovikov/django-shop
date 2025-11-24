@@ -39,6 +39,7 @@ export default function CartItem({ item, first, last, removeItem, setQuantity })
                 src={item.product.image}
                 fill
                 style={{ objectFit: 'contain' }}
+                sizes="160px"
                 alt={`${item.product.whatis ? item.product.whatis + ' ' : ''}${item.product.title}`} />
             </div>
           ) : (

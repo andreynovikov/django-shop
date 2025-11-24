@@ -74,6 +74,7 @@ export default function ProductCard({ product, limitedBadges = false }) {
                 src={product.image}
                 fill
                 style={{ objectFit: "contain" }}
+                sizes="(min-width: 500px) 50vw, (min-width: 768px) 33vw, 100vw"
                 loading="lazy"
                 alt={`${product.title} ${product.whatisit ?? product.whatis}`} />
             ) : (

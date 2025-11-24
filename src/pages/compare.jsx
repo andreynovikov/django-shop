@@ -199,6 +199,7 @@ export default function Compare({ kindId, productIds }) {
                         src={product.image}
                         fill
                         style={{ objectFit: 'contain' }}
+                        sizes="80px"
                         alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
                     ) : (
                       <NoImage size={80} />

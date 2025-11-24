@@ -45,6 +45,7 @@ export default function ImageGallery({ currentImage, images, open, setOpen }: Im
                   alt=""
                   fill
                   style={{ objectFit: 'contain' }}
+                  sizes="(min-width: 992px) 50vw, 100vw"
                 />
               </div>
             </div>

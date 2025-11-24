@@ -36,6 +36,7 @@ export default function ImageCarousel({ images, setImage, className }: ImageCaro
               src={image.src}
               fill
               style={{ objectFit: 'contain' }}
+              sizes="80px"
               loading="lazy"
               alt="" />
           </div>

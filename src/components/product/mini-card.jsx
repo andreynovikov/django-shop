@@ -16,6 +16,7 @@ export default function ProductMiniCard({ product }) {
             src={product.image}
             fill
             style={{ objectFit: "contain" }}
+            sizes="(min-width: 500px) 50vw, (min-width: 768px) 33vw, (min-width: 1100px) 25vw, 100vw"
             loading="lazy"
             alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
         ) : (

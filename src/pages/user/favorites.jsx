@@ -53,6 +53,7 @@ export default function Favorites() {
                       src={product.image}
                       fill
                       style={{ objectFit: 'contain' }}
+                      sizes="160px"
                       alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
                   </div>
                 ) : (

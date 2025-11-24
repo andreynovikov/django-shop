@@ -498,6 +498,7 @@ export default function Product({ code }) {
                           src={item.image}
                           fill
                           style={{ objectFit: "contain" }}
+                          sizes="230px"
                           loading="lazy"
                           alt={`${item.whatis ? item.whatis + ' ' : ''}${item.title}`} />
                       </div>
