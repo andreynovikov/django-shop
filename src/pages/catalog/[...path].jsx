@@ -1,7 +1,7 @@
 import { useState, useReducer, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { dehydrate, QueryClient, useQuery, keepPreviousData } from '@tanstack/react-query'
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 
 import Offcanvas from 'react-bootstrap/Offcanvas'
 
@@ -164,11 +164,19 @@ export default function Category({ path, currentPage, pageSize, order, filters }
 
   useToolbar(toolbarItem)
 
+  const keepPreviousData = (previousData, previousQuery) => {
+    const previousCategory = previousQuery.queryKey[2]['filters'].filter(filter => filter.field === 'categories').map(filter => filter.value)
+    // required for filters not to loose choices and attributes
+    if (previousCategory.includes(category.id))
+      return previousData
+    return undefined
+  }
+
   const { data: products, isSuccess: isProductsSuccess } = useQuery({
     queryKey: productKeys.list(currentPage, pageSize, currentFilters, currentOrder),
     queryFn: () => loadProducts(currentPage, pageSize, currentFilters, currentOrder),
     enabled: isSuccess,
-    placeholderData: keepPreviousData // required for filters not to loose choices and attributes
+    placeholderData: keepPreviousData
   })
 
   const selectedFilters = useMemo(() => {
