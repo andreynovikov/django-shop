@@ -45,7 +45,6 @@ export default function ProductCard({ product, limitedBadges = false }) {
     }
   }
 
-  const buttonClass = breakpoint === 'xs' ? '' : '-outline'
   const productLink = product.variations ? product.variations : { pathname: '/products/[code]', query: { code: product.code } }
 
   return (
@@ -109,16 +108,16 @@ export default function ProductCard({ product, limitedBadges = false }) {
             </div>
             <div>
               {product.variations ? (
-                <Link className={`btn btn${buttonClass}-secondary btn-sm d-block w-100`} href={product.variations}>
+                <Link className="btn btn-secondary btn-sm d-block w-100" href={product.variations}>
                   <i className="ci-eye fs-sm" />
                 </Link>
               ) : product.enabled && product.instock ? (
-                <button className={`btn btn-success btn-sm d-block w-100`} type="button" onClick={handleCartClick}>
+                <button className="btn btn-success btn-sm d-block w-100 sw-button" type="button" onClick={handleCartClick}>
                   <i className="ci-cart fs-sm" />
-                  {basketQuantity > 0 && <span className="ps-1">{basketQuantity} шт</span>}
+                  {basketQuantity > 0 && <span className="sw-button-label">{basketQuantity}</span>}
                 </button>
               ) : (
-                <Link className={`btn btn${buttonClass}-secondary btn-sm d-block w-100`} href={productLink}>
+                <Link className="btn btn-secondary btn-sm d-block w-100" href={productLink}>
                   <i className="ci-eye fs-sm" />
                 </Link>
               )}

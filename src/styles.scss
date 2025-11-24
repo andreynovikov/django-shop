@@ -137,6 +137,27 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
     background-color: #fffaee
 }
 
+.sw-button {
+    position: relative;
+
+    & .sw-button-label {
+        position: absolute;
+        top: -($navbar-tool-label-size * .5);
+        right: -($navbar-tool-label-size * .5);
+        width: $navbar-tool-label-size;
+        height: $navbar-tool-label-size;
+        border-radius: 50%;
+        background-color: $navbar-tool-label-bg;
+        color: $navbar-tool-label-color;
+        font: {
+            size: $navbar-tool-label-font-size;
+            weight: $navbar-tool-label-font-weight;
+        }
+        text-align: center;
+        line-height: $navbar-tool-label-size;
+    }
+}
+
 @include media-breakpoint-up(lg) {
     .sw-sticky {
         position: sticky;
