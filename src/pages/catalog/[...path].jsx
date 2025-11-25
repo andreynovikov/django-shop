@@ -8,6 +8,7 @@ import Offcanvas from 'react-bootstrap/Offcanvas'
 import PageLayout from '@/components/layout/page'
 import ProductCard from '@/components/product/card'
 import ProductFilter from '@/components/product/filter'
+import Loading from '@/components/loading'
 import PageSelector, { SmallPageSelector } from '@/components/page-selector'
 
 import { categoryKeys, productKeys, loadCategories, loadCategory, loadProducts } from '@/lib/queries'
@@ -172,7 +173,7 @@ export default function Category({ path, currentPage, pageSize, order, filters }
     return undefined
   }
 
-  const { data: products, isSuccess: isProductsSuccess } = useQuery({
+  const { data: products, isSuccess: isProductsSuccess, isLoading: isProductsLoading } = useQuery({
     queryKey: productKeys.list(currentPage, pageSize, currentFilters, currentOrder),
     queryFn: () => loadProducts(currentPage, pageSize, currentFilters, currentOrder),
     enabled: isSuccess,
@@ -214,8 +215,20 @@ export default function Category({ path, currentPage, pageSize, order, filters }
   }
 
   if (router.isFallback) {
-    // TODO: Test and make user friendly
-    return <div>Loading...</div>
+    return (
+      <div className="container pb-5 mb-2 mb-md-4">
+        <div className="row">
+          <section className="col-lg-12">
+            <div className="pt-2 pb-4 pb-sm-5">
+              <div className="pb-3">
+                &nbsp;
+              </div>
+            </div>
+            <Loading  className="my-3 py-3 text-center" mega />
+          </section>
+        </div>
+      </div>
+    )
   }
 
   if (isSuccess)
@@ -331,6 +344,7 @@ export default function Category({ path, currentPage, pageSize, order, filters }
             )}
 
             <div className="row mx-n2">
+              {isProductsLoading && <Loading className="text-center" mega />}
               {isProductsSuccess && products.results.map((product) => (
                 <div className={((category.children || category.filters) ? "" : "col-lg-3 ") + "col-md-4 col-sm-6 px-2 mb-4"} key={product.id}>
                   <ProductCard product={product} />
