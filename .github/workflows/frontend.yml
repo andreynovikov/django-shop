@@ -26,7 +26,6 @@ jobs:
         with:
           # list of Docker images to use as base name for tags
           images: |
-            sworld
             ghcr.io/andreynovikov/sworld
           # generate Docker tags based on the following events/attributes
           tags: |
