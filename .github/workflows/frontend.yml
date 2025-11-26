@@ -15,6 +15,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Create .env file
+        run: |
+          touch .env
+          echo "${{ secrets.ENV_FILE }}" > .env
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
