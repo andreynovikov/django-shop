@@ -16,7 +16,6 @@ st_search/
 node_modules/
 .docker/
 *.tsbuildinfo
-next-env.d.ts
 
 # temp:
 /public/static
