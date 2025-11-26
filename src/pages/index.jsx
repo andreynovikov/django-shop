@@ -11,6 +11,21 @@ import useCatalog, { recomendedFilters, firstPageFilters } from '@/lib/catalog'
 const itemsPerSection = 16
 const sort = '-price'
 
+function Adverts({ adverts }) {
+  return adverts.length > 0 && (
+    <section className="container pt-5">
+      <div className="row mx-n2">
+        {adverts.map((advert) => (
+          <div className="col-lg-3 col-sm-6 px-2 mb-4" key={advert.id}>
+            <div className="card overflow-hidden h-100" dangerouslySetInnerHTML={{ __html: advert.content }} />
+            <hr className="d-sm-none" />
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export default function Index() {
   const { data: recomended, isSuccess: isRecomendedSuccess } = useQuery({
     queryKey: productKeys.list(null, itemsPerSection, recomendedFilters, sort),
@@ -22,9 +37,13 @@ export default function Index() {
   })
 
   const { data: adverts, isSuccess: isAdvertsSuccess } = useQuery({
-    queryKey: advertKeys.list(['index_top_new']),
-    queryFn: () => loadAdverts(['index_top_new'])
+    queryKey: advertKeys.list(['index_top_new', 'index_middle_new', 'index_bottom_new']),
+    queryFn: () => loadAdverts(['index_top_new', 'index_middle_new', 'index_bottom_new'])
   })
+
+  const topAdverts = adverts?.filter(advert => advert.place === 'index_top_new') ?? []
+  const middleAdverts = adverts?.filter(advert => advert.place === 'index_middle_new') ?? []
+  const bottomAdverts = adverts?.filter(advert => advert.place === 'index_bottom_new') ?? []
 
   useCatalog()
 
@@ -41,18 +60,7 @@ export default function Index() {
         </section>
       </div>
 
-      {isAdvertsSuccess && adverts.length > 0 && (
-        <section className="container pt-5">
-          <div className="row mx-n2">
-            {adverts.map((advert) => (
-              <div className="col-lg-3 col-sm-6 px-2 mb-4" key={advert.id}>
-                <div className="card overflow-hidden h-100" dangerouslySetInnerHTML={{ __html: advert.content }} />
-                <hr className="d-sm-none" />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      <Adverts adverts={topAdverts} />
 
       {isRecomendedSuccess && recomended.results.length > 0 && (
         <section className="container pt-5">
@@ -76,6 +84,8 @@ export default function Index() {
         </section>
       )}
 
+      <Adverts adverts={middleAdverts} />
+
       {isFirstPageSuccess && firstpage.results.length > 0 && (
         <section className="container pt-5">
           <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
@@ -97,6 +107,8 @@ export default function Index() {
           </div>
         </section>
       )}
+
+      <Adverts adverts={bottomAdverts} />
     </div>
   )
 }
