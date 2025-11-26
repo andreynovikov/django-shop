@@ -3,7 +3,8 @@ import { useRouter } from 'next/router'
 
 export const recomendedFilters = [
   { field: 'enabled', value: 1 },
-  { field: 'recomended', value: 1 },
+  { field: 'categories', value: 473 },
+  { field: 'firstpage', value: 1 },
   { field: 'show_on_sw', value: 1 }
 ]
 
