@@ -498,9 +498,11 @@ export async function loadSalesActionProducts(slug) {
   return response.data
 }
 
-export async function loadAdverts(places) {
+export async function loadAdverts(places, categoryId=undefined) {
   const url = new URL(API + 'adverts/')
-  if (places !== undefined)
+  if (categoryId !== undefined)
+    url.searchParams.append('category', categoryId)
+  else if (places !== undefined)
     if (Array.isArray(places)) {
       for (const place of places)
         url.searchParams.append('place', place)
