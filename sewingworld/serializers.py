@@ -359,7 +359,7 @@ class BasketItemProductSerializer(NonNullModelSerializer):
     class Meta:
         model = Product
         fields = ('id', 'code', 'title', 'whatis', 'partnumber', 'article',
-                  'ws_pack_only', 'pack_factor', 'price', 'thumbnail', 'thumbnail_small')
+                  'ws_pack_only', 'pack_factor', 'price', 'image', 'thumbnail', 'thumbnail_small')
 
     def get_price(self, obj):
         request = self.context.get('request')
