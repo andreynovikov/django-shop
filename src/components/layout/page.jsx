@@ -9,7 +9,7 @@ export const pageContentWrapper = ({ title, titleAddon, secondaryTitle, dark, ov
           <div className="order-lg-2 flex-shrink-1 mb-3 mb-lg-0 pt-lg-2">
             {secondaryTitle}
           </div>
-          <div className="order-lg-1 flex-shrink-0 pe-lg-4 text-center text-lg-start">
+          <div className="order-lg-1 flex-shrink-0 mw-100 pe-lg-4 text-center text-lg-start">
             {breadcrumbs && <Breadcrumbs items={breadcrumbs} dark={dark} />}
             <h1 className={`h3 mb-0 text-${dark ? 'light' : 'dark'}`}>{title}</h1>
             {titleAddon}

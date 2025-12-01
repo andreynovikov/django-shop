@@ -115,6 +115,7 @@ export const blogKeys = {
 export const storeKeys = {
   all: ['stores'],
   lists: () => [...storeKeys.all, 'list'],
+  list: (filters) => [...storeKeys.lists(), filters],
   details: () => [...storeKeys.all, 'detail'],
   detail: (id) => [...storeKeys.details(), id],
 }
@@ -546,8 +547,13 @@ export async function loadBlogEntry(uri) {
   return response.data
 }
 
-export async function loadStores() {
-  const response = await apiClient.get('stores/')
+export async function loadStores(filters) {
+  const url = new URL(API + 'stores/')
+  if (filters.marketplace !== false)
+    url.searchParams.set('marketplace', filters.marketplace)
+  if (filters.lottery !== false)
+    url.searchParams.set('lottery', filters.lottery)
+  const response = await apiClient.get(url)
   return response.data
 }
 

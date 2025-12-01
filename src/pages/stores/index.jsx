@@ -8,14 +8,14 @@ import PageLayout from '@/components/layout/page'
 import { rows } from '@/lib/partition'
 import { storeKeys, loadStores } from '@/lib/queries'
 
-export default function Stores() {
+export default function Stores({marketplace, lottery}) {
   const [ymapsReady, setYMapsReady] = useState(false)
   const [ymap, setYMap] = useState(null)
   const [currentCity, setCurrentCity] = useState(null)
 
   const { data: stores, isSuccess } = useQuery({
-    queryKey: storeKeys.lists(),
-    queryFn: () => loadStores()
+    queryKey: storeKeys.lists({marketplace, lottery}),
+    queryFn: () => loadStores({marketplace, lottery})
   })
 
   useEffect(() => {
@@ -266,23 +266,27 @@ export default function Stores() {
 }
 
 Stores.getLayout = function getLayout(page) {
+  console.log(page.props)
+  const title =
+    page.props.marketplace !== false ? "В этих магазинах можно пройти бесплатное обучение работе на швейной машине при предъявлении гарантийного талона" :
+      page.props.lottery !== false ? "Покупатели этих магазинов принимают участие в юбилейной лотерее" :
+        "Наши магазины рядом с Вами"
+
   return (
-    <PageLayout htmlTitle="Адреса магазинов" title="Наши магазины рядом с Вами">
+    <PageLayout htmlTitle="Адреса магазинов" title={title}>
       {page}
     </PageLayout>
   )
 }
 
-export async function getStaticProps() {
-  const queryClient = new QueryClient()
-  await queryClient.prefetchQuery({
-    queryKey: storeKeys.lists(),
-    queryFn: () => loadStores()
-  })
+export async function getServerSideProps(context) {
+  const marketplace = context.query?.marketplace ?? false
+  const lottery = context.query?.lottery ?? false
 
   return {
     props: {
-      dehydratedState: dehydrate(queryClient)
+      marketplace,
+      lottery
     }
   }
 }
