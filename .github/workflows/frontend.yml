@@ -20,6 +20,10 @@ jobs:
           touch .env
           echo "${{ secrets.ENV_FILE }}" > .env
 
+      - name: Extract package version
+        id: package_version
+        run: echo "VERSION=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+        
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -29,7 +33,9 @@ jobs:
             ghcr.io/andreynovikov/sworld
           # generate Docker tags based on the following events/attributes
           tags: |
-            type=schedule
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'cartzilla') }}
+            type=raw,priority=1100,value=${{ steps.package_version.outputs.VERSION }}
+            type=edge,branch=cartzilla
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}
