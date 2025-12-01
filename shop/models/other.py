@@ -5,7 +5,7 @@ from django.db import models
 from django.utils import timezone
 from django.urls import reverse
 
-from mptt.models import MPTTModel, TreeForeignKey
+from mptt.models import MPTTModel, TreeForeignKey, TreeManyToManyField
 
 __all__ = [
     'Category', 'Currency', 'Country', 'Region', 'City',
@@ -356,6 +356,8 @@ class Advert(models.Model):
     name = models.CharField('название', max_length=100)
     place = models.CharField('место', max_length=100, db_index=True)
     sites = models.ManyToManyField(Site, verbose_name='сайты', db_index=True)
+    categories = TreeManyToManyField(Category, related_name='adverts',
+                                     related_query_name='advert', verbose_name='категории', blank=True)
     active = models.BooleanField('активная', db_index=True)
     content = models.TextField('содержимое')
     order = models.PositiveIntegerField()
