@@ -846,7 +846,12 @@ class StoreViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = StoreSerializer
 
     def get_queryset(self):
-        return Store.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+        stores = Store.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+        if self.request.query_params.get('marketplace', None) is not None:
+            stores = stores.filter(marketplace=True)
+        if self.request.query_params.get('lottery', None) is not None:
+            stores = stores.filter(lottery=True)
+        return stores
 
 
 class ServiceCenterViewSet(viewsets.ReadOnlyModelViewSet):
