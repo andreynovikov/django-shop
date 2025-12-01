@@ -411,3 +411,21 @@ class NewsAdminForm(forms.ModelForm):
             return content
         else:
             return fragment
+
+
+class AdvertAdminForm(forms.ModelForm):
+    class Meta:
+        field_classes = {
+            'categories': SWTreeNodeMultipleChoiceField,
+        }
+        widgets = {
+            'content': AutosizedTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'}),
+        }
+
+
+class SalesActionAdminForm(forms.ModelForm):
+    class Meta:
+        widgets = {
+            'brief': AutosizedTextarea(attrs={'rows': 3, 'style': 'width: 95%; max-height: 500px'}),
+            'description': AutosizedTextarea(attrs={'rows': 10, 'style': 'width: 95%; max-height: 500px'}),
+        }

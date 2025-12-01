@@ -1,4 +1,3 @@
-from django.forms import ModelForm
 from django.db.models import ImageField
 from django.conf import settings
 from django.contrib import admin
@@ -12,12 +11,12 @@ from django_admin_listfilter_dropdown.filters import RelatedDropdownFilter
 from mptt.admin import DraggableMPTTAdmin
 
 from sewingworld.admin import get_sites
-from sewingworld.widgets import AutosizedTextarea
 from shop.models import Category, Supplier, Contractor, PosTerminal, Currency, \
     Country, Region, City, Store, StoreImage, ServiceCenter, Manufacturer, \
     Advert, SalesAction, Manager, Courier, News
 from .widgets import ImageWidget
-from .forms import CategoryAdminForm, PosTerminalAdminForm, NewsAdminForm
+from .forms import CategoryAdminForm, PosTerminalAdminForm, NewsAdminForm, \
+    AdvertAdminForm, SalesActionAdminForm
 
 from .product import ProductAdmin  # NOQA
 from .order import OrderAdmin  # NOQA
@@ -158,28 +157,14 @@ class PosTerminalAdmin(admin.ModelAdmin):
     form = PosTerminalAdminForm
 
 
-class AdvertAdminForm(ModelForm):
-    class Meta:
-        widgets = {
-            'content': AutosizedTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'}),
-        }
-
-
 @admin.register(Advert)
 class AdvertAdmin(SortableAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'place', get_sites, 'active']
     list_display_links = ['name']
     search_fields = ['name']
-    list_filter = ['active', 'place']
+    list_filter = ['active', 'place', ('categories', RelatedDropdownFilter)]
     form = AdvertAdminForm
-
-
-class SalesActionAdminForm(ModelForm):
-    class Meta:
-        widgets = {
-            'brief': AutosizedTextarea(attrs={'rows': 3, 'style': 'width: 95%; max-height: 500px'}),
-            'description': AutosizedTextarea(attrs={'rows': 10, 'style': 'width: 95%; max-height: 500px'}),
-        }
+    filter_vertical = ('categories',)
 
 
 @admin.register(SalesAction)
