@@ -11,7 +11,7 @@ import ProductFilter from '@/components/product/filter'
 import Loading from '@/components/loading'
 import PageSelector, { SmallPageSelector } from '@/components/page-selector'
 
-import { categoryKeys, productKeys, loadCategories, loadCategory, loadProducts } from '@/lib/queries'
+import { categoryKeys, advertKeys, productKeys, loadCategories, loadCategory, loadAdverts, loadProducts } from '@/lib/queries'
 import { useToolbar } from '@/lib/toolbar'
 import useCatalog from '@/lib/catalog'
 import rupluralize from '@/lib/rupluralize'
@@ -165,6 +165,12 @@ export default function Category({ path, currentPage, pageSize, order, filters }
 
   useToolbar(toolbarItem)
 
+  const { data: adverts, isSuccess: isAdvertsSuccess } = useQuery({
+    queryKey: advertKeys.list({ 'categories': category.id }),
+    queryFn: () => loadAdverts(['categories'], category.id),
+    enabled: isSuccess
+  })
+
   const keepPreviousData = (previousData, previousQuery) => {
     const previousCategory = previousQuery.queryKey[2]['filters'].filter(filter => filter.field === 'categories').map(filter => filter.value)
     // required for filters not to loose choices and attributes
@@ -224,7 +230,7 @@ export default function Category({ path, currentPage, pageSize, order, filters }
                 &nbsp;
               </div>
             </div>
-            <Loading  className="my-3 py-3 text-center" mega />
+            <Loading className="my-3 py-3 text-center" mega />
           </section>
         </div>
       </div>
@@ -344,7 +350,20 @@ export default function Category({ path, currentPage, pageSize, order, filters }
             )}
 
             <div className="row mx-n2">
-              {isProductsLoading && <Loading className="text-center" mega />}
+              {isAdvertsSuccess && adverts.map(advert => (
+                <div className={((category.children || category.filters) ? "" : "col-lg-3 ") + "col-md-4 col-sm-6 px-2 mb-4"} key={advert.id}>
+                  <div className="card overflow-hidden h-100" dangerouslySetInnerHTML={{ __html: advert.content }} />
+                  <hr className="d-sm-none" />
+                </div>
+              ))}
+              {isProductsLoading && (
+                <Loading className={
+                  (isAdvertsSuccess ? (
+                    ((category.children || category.filters) ? "" : "col-lg-3 ") + "col-md-4 col-sm-6 px-2 mb-4"
+                  ) : "")
+                  + " d-flex align-items-center justify-content-center"
+                } mega />
+              )}
               {isProductsSuccess && products.results.map((product) => (
                 <div className={((category.children || category.filters) ? "" : "col-lg-3 ") + "col-md-4 col-sm-6 px-2 mb-4"} key={product.id}>
                   <ProductCard product={product} />

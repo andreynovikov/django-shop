@@ -1,7 +1,7 @@
 import { Fragment, useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import Script from 'next/script'
-import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 
 import PageLayout from '@/components/layout/page'
 
