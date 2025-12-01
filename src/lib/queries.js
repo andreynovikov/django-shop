@@ -549,9 +549,9 @@ export async function loadBlogEntry(uri) {
 
 export async function loadStores(filters) {
   const url = new URL(API + 'stores/')
-  if (filters.marketplace !== false)
+  if (filters?.marketplace ?? false !== false)
     url.searchParams.set('marketplace', filters.marketplace)
-  if (filters.lottery !== false)
+  if (filters?.lottery ?? false !== false)
     url.searchParams.set('lottery', filters.lottery)
   const response = await apiClient.get(url)
   return response.data
