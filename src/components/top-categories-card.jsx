@@ -8,43 +8,43 @@ export default function TopCategoriesCard() {
         <div className="row g-0 g-lg-3 justify-content-around">
           <div className="d-none d-lg-block col-lg-auto mb-grid-gutter text-center">
             <Link href="/catalog/promo/">
-              <img src="/images/categories/sale.svg" alt="Специальные предложения" height="75" width="75" />
+              <img src="/i/categories/sale.svg" alt="Специальные предложения" height="75" width="75" />
               <div>Специальные<br />предложения</div>
             </Link>
           </div>
           <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center">
             <Link href="/catalog/sewing_machines/">
-              <img src="/images/categories/compsewing.svg" alt="Швейные машины" height="75" width="75" />
+              <img src="/i/categories/compsewing.svg" alt="Швейные машины" height="75" width="75" />
               <div>Швейные<br />машины</div>
             </Link>
           </div>
           <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center">
             <Link href="/catalog/embroidery_machines/">
-              <img src="/images/categories/embroidery.svg" alt="Швейно-вышивальные машины" height="75" width="94" />
+              <img src="/i/categories/embroidery.svg" alt="Швейно-вышивальные машины" height="75" width="94" />
               <div>Вышивальные<br />машины</div>
             </Link>
           </div>
           <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center">
             <Link href="/catalog/sergers/">
-              <img src="/images/categories/overlock.svg" alt="Оверлоки, коверлоки и распошивальные машины" height="75" width="75" />
+              <img src="/i/categories/overlock.svg" alt="Оверлоки, коверлоки и распошивальные машины" height="75" width="75" />
               <div>Оверлоки и<br />коверлоки</div>
             </Link>
           </div>
           <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center">
             <Link href="/catalog/knitting_machines/">
-              <img src="/images/categories/knitting.svg" alt="Вязальные машины" height="75" width="94" />
+              <img src="/i/categories/knitting.svg" alt="Вязальные машины" height="75" width="94" />
               <div>Вязальные<br />машины</div>
             </Link>
           </div>
           <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center">
             <Link href="/catalog/accessories/threads/">
-              <img src="/images/categories/threads.svg" alt="Нитки" height="75" width="75" />
+              <img src="/i/categories/threads.svg" alt="Нитки" height="75" width="75" />
               <div>Нитки</div>
             </Link>
           </div>
           <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center">
             <Link href="/catalog/accessories/">
-              <img src="/images/categories/accessories.svg" alt="Аксессуары" height="75" width="75" />
+              <img src="/i/categories/accessories.svg" alt="Аксессуары" height="75" width="75" />
               <div>Аксессуары</div>
             </Link>
           </div>

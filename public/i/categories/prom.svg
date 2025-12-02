@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="25mm" height="20mm" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+viewBox="0 0 2000 1600"
+ xmlns:xlink="http://www.w3.org/1999/xlink">
+ <defs>
+  <style type="text/css">
+   <![CDATA[
+    .str3 {stroke:#EF7F1A;stroke-width:20}
+    .str2 {stroke:#EF7F1A;stroke-width:25}
+    .str4 {stroke:#EF7F1A;stroke-width:25;stroke-linecap:round}
+    .str1 {stroke:#EF7F1A;stroke-width:60}
+    .str0 {stroke:#EF7F1A;stroke-width:60;stroke-linecap:round}
+    .fil0 {fill:none}
+    .fil2 {fill:none;fill-rule:nonzero}
+    .fil1 {fill:white}
+   ]]>
+  </style>
+ </defs>
+ <g id="Слой_x0020_1">
+  <metadata id="CorelCorpID_0Corel-Layer"/>
+  <line class="fil0 str0" x1="1866" y1="517" x2="1866" y2= "802" />
+  <path class="fil1 str1" d="M1701 442c-361,-1 -899,-2 -1260,0 -24,0 -36,23 -41,49 -14,85 -26,92 -27,170 -1,44 7,306 26,338 5,9 18,27 32,27 64,-1 129,-2 193,-2 18,0 43,-20 53,-37 15,-24 29,-122 42,-146 13,-24 46,-36 72,-36 85,0 336,-1 421,0 34,1 90,38 90,62l-2 366 471 0 0 -718c0,-32 -41,-73 -70,-73z"/>
+  <circle class="fil2 str2" cx="657" cy="604" r="42"/>
+  <line class="fil0 str3" x1="522" y1="450" x2="522" y2= "735" />
+  <line class="fil0 str4" x1="518" y1="1133" x2="518" y2= "1044" />
+  <line class="fil0 str4" x1="534" y1="1069" x2="534" y2= "1012" />
+  <line class="fil0 str4" x1="503" y1="1069" x2="503" y2= "1012" />
+  <line class="fil0 str4" x1="551" y1="1133" x2="551" y2= "1044" />
+  <line class="fil0 str4" x1="569" y1="1069" x2="569" y2= "1012" />
+  <circle class="fil2 str2" cx="805" cy="604" r="42"/>
+  <rect class="fil0 str1" x="150" y="1233" width="1711" height="139" rx="31" ry="31"/>
+  <circle class="fil2 str2" cx="1533" cy="818" r="118"/>
+  <rect class="fil1 str3" x="992" y="290" width="644" height="302" rx="29" ry="29"/>
+  <rect class="fil1 str3" x="1421" y="336" width="160" height="209" rx="7" ry="20"/>
+  <circle class="fil2 str2" cx="1059" cy="386" r="24"/>
+  <circle class="fil2 str2" cx="1151" cy="386" r="24"/>
+  <circle class="fil2 str2" cx="1243" cy="386" r="24"/>
+  <circle class="fil2 str2" cx="1335" cy="386" r="24"/>
+  <circle class="fil2 str2" cx="1059" cy="498" r="24"/>
+  <circle class="fil2 str2" cx="1151" cy="498" r="24"/>
+  <circle class="fil2 str2" cx="1243" cy="498" r="24"/>
+  <circle class="fil2 str2" cx="1335" cy="498" r="24"/>
+ </g>
+</svg>

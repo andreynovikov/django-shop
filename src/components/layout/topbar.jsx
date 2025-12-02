@@ -98,7 +98,7 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
         <div className="navbar navbar-expand-lg navbar-light">
           <div className="container">
             <Link className="navbar-brand flex-shrink-0" href="/">
-              <img src="/images/logo.svg" alt={seoLogoAlt} />
+              <img src="/i/logo.svg" alt={seoLogoAlt} />
             </Link>
             <div className="d-none d-lg-flex w-100 mx-4">
               <ProductSearchInput />
