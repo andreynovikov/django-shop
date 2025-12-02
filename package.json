@@ -41,6 +41,7 @@
         "eslint": "^9.31.0",
         "eslint-config-next": "^15.4.1",
         "sass": "^1.89.2",
+        "sass-loader": "^16.0.3",
         "typescript": "^5.8.3"
     }
 }
