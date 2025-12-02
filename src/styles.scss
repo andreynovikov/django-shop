@@ -3,6 +3,7 @@
 // Global tweaks
 
 body {
+    position: relative;
     scroll-behavior: smooth;
     overflow: overlay;
     scrollbar-color: $body-color $light;
@@ -35,6 +36,12 @@ body {
     &::-webkit-scrollbar-corner, & *::-webkit-scrollbar-corner {
         background-color: $light;
     }
+}
+
+// Base UI
+
+.root {
+    isolation: isolate;
 }
 
 // Bootstrap tweaks

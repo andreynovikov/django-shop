@@ -40,16 +40,18 @@ export default function BaseLayout({
         <meta name="description" content="Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары" />
         <meta name="keywords" content="швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов Швейный Мир, швейная, швейные, вышивальная, вышивальные, вязальная, вязальные, машинка, машина, машинки, машины, оверлок, оверлоки,  шитье, вышивка, вязание, купить, интернет, магазин, pfaff, brother, janome, bernina, husqvarna, huskystar, viking, оверлок, строчка, петля, челнок, стежок, ткань, рукав" />
       </Head>
-      <div className="d-flex flex-column min-vh-100">
-        <main className="page-wrapper">
-          <TopBar hideSignIn={hideSignIn} hideCartNotice={hideCartNotice} topMenuOpen={topMenuOpen} toggleTopMenu={() => setTopMenuOpen((open) => !open)} />
-          {contentWrapper({ title, children, ...props })}
-        </main>
+      <div className="root">
+        <div className="d-flex flex-column min-vh-100">
+          <main className="page-wrapper">
+            <TopBar hideSignIn={hideSignIn} hideCartNotice={hideCartNotice} topMenuOpen={topMenuOpen} toggleTopMenu={() => setTopMenuOpen((open) => !open)} />
+            {contentWrapper({ title, children, ...props })}
+          </main>
 
-        <BottomBar />
+          <BottomBar />
+        </div>
+        <HandheldBottomBar topMenuOpen={topMenuOpen} toggleTopMenu={() => setTopMenuOpen((open) => !open)} />
+        <ScrollTopButton />
       </div>
-      <HandheldBottomBar topMenuOpen={topMenuOpen} toggleTopMenu={() => setTopMenuOpen((open) => !open)} />
-      <ScrollTopButton />
       {process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID && <MetrikaCounter
         id={process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID}
         options={{

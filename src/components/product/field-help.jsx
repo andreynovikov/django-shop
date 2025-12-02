@@ -1,87 +1,77 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-// import { usePopper } from 'react-popper';
+import { Popover } from '@base-ui-components/react/popover'
 
-import { pageKeys, loadPage } from '@/lib/queries'
+import styles from './field-help.module.scss'
 
-const fields = [
-  'km_class', 'km_font', 'sw_hoopsize', 'sw_datalink', 'sm_shuttletype', 'sm_stitchwidth', 'sm_stitchlenght',
-  'sm_maxi', 'sm_stitchquantity', 'sm_buttonhole', 'sm_alphabet', 'sm_dualtransporter', 'sm_platformlenght',
-  'sm_freearm', 'sm_feedwidth', 'sm_footheight', 'sm_constant', 'sm_speedcontrol', 'sm_needleupdown', 'sm_threader',
-  'sm_spool', 'sm_presscontrol', 'sm_power', 'sm_organizer', 'sm_autostop', 'sm_ruler', 'sm_cover', 'sm_advisor',
-  'sm_startstop', 'sm_kneelift', 'sm_diffeed', 'sm_easythreading', 'sm_needles'
-]
+import { pageKeys, loadPages, loadPage } from '@/lib/queries'
+
+const fieldMappings = {
+  'sm_stitchwidth': 'sm_stitchlength',
+  'sm_stitchlenght': 'sm_stitchlength',
+}
 
 export default function FieldHelp({ field }) {
-  const [visible, setVisible] = useState(false)
-  const [referenceElement, setReferenceElement] = useState(null)
-  const [popperElement, setPopperElement] = useState(null)
-  const [arrowElement, setArrowElement] = useState(null)
+  const [open, setOpen] = useState(false)
 
-  /*
-  const { styles, attributes, update } = usePopper(referenceElement, popperElement, {
-      placement: 'auto',
-      modifiers: [
-          { name: 'arrow', options: { element: arrowElement } },
-          { name: 'offset', options: { offset: [0, 10] } },
-      ],
-  });
-  */
+  const { data: fields } = useQuery({
+    queryKey: pageKeys.lists(),
+    queryFn: () => loadPages(),
+    select: (pages) => pages.filter(page => page.url.startsWith('/help/')).map(page => page.url.replace(/\/help\/(\w+)\/?/, (match, group) => group)),
+    placeholderData: []
+  })
 
-  const uri = ['help', field]
+  const uri = ['help', fieldMappings[field] ?? (fields.includes(field) ? field : null)]
 
   const { data, isSuccess } = useQuery({
     queryKey: pageKeys.detail(uri),
     queryFn: () => loadPage(uri),
-    enabled: visible
+    enabled: open && uri[1] !== null
   })
 
-  /*
-  useEffect(() => {
-      if (isSuccess && update !== null)
-          update();
-  }, [isSuccess, update]);
-  */
-
-  useEffect(() => {
-    if (popperElement && referenceElement) {
-      const handleClickOutside = (e) => {
-        const target = e.composedPath?.()?.[0] || e.target
-        if (!popperElement.contains(target) && !referenceElement.contains(target))
-          setVisible(false)
-      }
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [popperElement, referenceElement])
-
-  const handleClick = () => {
-    setVisible(!visible)
-  }
-
-  if (!fields.includes(field))
+  if (uri[1] === null)
     return null
 
   return (
-    <>
-      <button type="button" ref={setReferenceElement} onClick={handleClick} className="btn btn-link p-0 ps-1">
-        <i className="ci-message fs-ms text-muted" />
-      </button>
-      {visible && (
-        {/*
-                <div className="popover bs-popover-auto sw-field-help" ref={setPopperElement} style={styles.popper} {...attributes.popper}>
-                    <div className="popover-arrow" ref={setArrowElement} style={styles.arrow} {...attributes.arrow} />
-                    <div className="popover-body">
-                        { isSuccess ? (
-                            <div dangerouslySetInnerHTML={{__html: data.content }}></div>
-                        ) : (
-                            <div className="spinner-border" role="status"><span className="visually-hidden">Загрузка...</span></div>
-                        )}
-                    </div>
-                </div>
-                    */
-        }
-      )}
-    </>
+    <Popover.Root open={open} onOpenChange={open => setOpen(open)} modal>
+      <Popover.Trigger className="btn btn-link p-0 ps-1">
+        <i className="ci-message fs-ms text-muted" aria-label="Notifications" />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner side="right" sideOffset={8}>
+          <Popover.Popup className={styles.Popup}>
+            <Popover.Arrow className={styles.Arrow}>
+              <ArrowSvg />
+            </Popover.Arrow>
+            <Popover.Description className={styles.Description}>
+              {isSuccess ? (
+                <div className="fs-sm" dangerouslySetInnerHTML={{ __html: data.content }}></div>
+              ) : (
+                <div className="spinner-border" role="status"><span className="visually-hidden">Загрузка...</span></div>
+              )}
+            </Popover.Description>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  )
+}
+
+function ArrowSvg(props) {
+  return (
+    <svg width="20" height="10" viewBox="0 0 20 10" fill="none" {...props}>
+      <path
+        d="M9.66437 2.60207L4.80758 6.97318C4.07308 7.63423 3.11989 8 2.13172 8H0V10H20V8H18.5349C17.5468 8 16.5936 7.63423 15.8591 6.97318L11.0023 2.60207C10.622 2.2598 10.0447 2.25979 9.66437 2.60207Z"
+        className={styles.ArrowFill}
+      />
+      <path
+        d="M8.99542 1.85876C9.75604 1.17425 10.9106 1.17422 11.6713 1.85878L16.5281 6.22989C17.0789 6.72568 17.7938 7.00001 18.5349 7.00001L15.89 7L11.0023 2.60207C10.622 2.2598 10.0447 2.2598 9.66436 2.60207L4.77734 7L2.13171 7.00001C2.87284 7.00001 3.58774 6.72568 4.13861 6.22989L8.99542 1.85876Z"
+        className={styles.ArrowOuterStroke}
+      />
+      <path
+        d="M10.3333 3.34539L5.47654 7.71648C4.55842 8.54279 3.36693 9 2.13172 9H0V8H2.13172C3.11989 8 4.07308 7.63423 4.80758 6.97318L9.66437 2.60207C10.0447 2.25979 10.622 2.2598 11.0023 2.60207L15.8591 6.97318C16.5936 7.63423 17.5468 8 18.5349 8H20V9H18.5349C17.2998 9 16.1083 8.54278 15.1901 7.71648L10.3333 3.34539Z"
+        className={styles.ArrowInnerStroke}
+      />
+    </svg>
   )
 }
