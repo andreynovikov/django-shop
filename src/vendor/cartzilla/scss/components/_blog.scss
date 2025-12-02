@@ -2,6 +2,7 @@
 // Blog module styles
 // --------------------------------------------------
 
+@use "sass:color";
 
 // Entry title
 
@@ -76,7 +77,7 @@
   width: $border-width;
   height: 1rem;
   margin: 0 $spacer;
-  background-color: darken($border-color, 3%);
+  background-color: color.adjust($border-color, $lightness: -3%);
   vertical-align: middle;
 }
 

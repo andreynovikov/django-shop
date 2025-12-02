@@ -23,7 +23,9 @@
   @include border-radius($form-select-border-radius, 0);
   @include box-shadow($form-select-box-shadow);
   @include transition($form-select-transition);
-  appearance: none;
+  & {
+      appearance: none;
+  }
 
   &:focus {
     border-color: $form-select-focus-border-color;

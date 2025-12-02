@@ -1,3 +1,6 @@
+@use "sass:color";
+@use "sass:string";
+
 // Variables
 //
 // Variables should follow the `$component-state-property-size` formula for
@@ -1189,7 +1192,7 @@ $popover-arrow-width:               1rem !default;
 $popover-arrow-height:              .5rem !default;
 $popover-arrow-color:               $popover-bg !default;
 
-$popover-arrow-outer-color:         fade-in($popover-border-color, .05) !default;
+$popover-arrow-outer-color:         color.adjust($popover-border-color, $alpha: .05) !default;
 // scss-docs-end popover-variables
 
 
@@ -1363,7 +1366,7 @@ $breadcrumb-margin-bottom:          1rem !default;
 $breadcrumb-bg:                     null !default;
 $breadcrumb-divider-color:          $gray-600 !default;
 $breadcrumb-active-color:           $gray-600 !default;
-$breadcrumb-divider:                quote("/") !default;
+$breadcrumb-divider:                string.quote("/") !default;
 $breadcrumb-divider-flipped:        $breadcrumb-divider !default;
 $breadcrumb-border-radius:          null !default;
 // scss-docs-end breadcrumb-variables

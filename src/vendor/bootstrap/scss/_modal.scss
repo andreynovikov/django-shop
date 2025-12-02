@@ -1,3 +1,4 @@
+@use "sass:map";
 // .modal-open      - body class for killing the scroll
 // .modal           - container to scroll within
 // .modal-dialog    - positioning shell for the actual modal
@@ -34,7 +35,9 @@
   // When fading in the modal, animate it to slide down
   .modal.fade & {
     @include transition($modal-transition);
-    transform: $modal-fade-transform;
+    & {
+        transform: $modal-fade-transform;
+    }
   }
   .modal.show & {
     transform: $modal-show-transform;
@@ -185,7 +188,7 @@
 }
 
 // scss-docs-start modal-fullscreen-loop
-@each $breakpoint in map-keys($grid-breakpoints) {
+@each $breakpoint in map.keys($grid-breakpoints) {
   $infix: breakpoint-infix($breakpoint, $grid-breakpoints);
   $postfix: if($infix != "", $infix + "-down", "");
 

@@ -2,6 +2,7 @@
 // Forms
 // --------------------------------------------------
 
+@use "sass:color";
 
 // Label for use with horizontal and inline forms
 
@@ -175,7 +176,7 @@ input[type="search"]::-webkit-search-results-decoration {
   }
   &.status-success {
     background-color: rgba($success, .1);
-    color: darken($success, 10%);
+    color: color.adjust($success, $lightness: -10%);
   }
   &.status-error {
     background-color: rgba($danger, .1);
@@ -298,6 +299,6 @@ input[type="search"]::-webkit-search-results-decoration {
   }
 
   &:hover {
-    border-color: darken($input-border-color, 7%);
+    border-color: color.adjust($input-border-color, $lightness: -7%);
   }
 }

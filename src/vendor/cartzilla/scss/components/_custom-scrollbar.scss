@@ -3,6 +3,8 @@
 // based on https://github.com/Grsmto/simplebar
 // --------------------------------------------------
 
+@use "sass:color";
+
 .simplebar-track {
   transition: opacity .25s ease-in-out;
   background-color: $scrollbar-track-bg;
@@ -61,7 +63,7 @@
   .simplebar-track {
     background-color: transparent;
     .simplebar-scrollbar {
-      background-color: lighten($gray-700, 6%);
+      background-color: color.adjust($gray-700, $lightness: 6%);
     }
   }
 }

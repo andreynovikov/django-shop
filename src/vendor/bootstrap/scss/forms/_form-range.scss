@@ -33,7 +33,9 @@
     @include border-radius($form-range-thumb-border-radius);
     @include box-shadow($form-range-thumb-box-shadow);
     @include transition($form-range-thumb-transition);
-    appearance: none;
+    & {
+        appearance: none;
+    }
 
     &:active {
       @include gradient-bg($form-range-thumb-active-bg);
@@ -59,8 +61,9 @@
     @include border-radius($form-range-thumb-border-radius);
     @include box-shadow($form-range-thumb-box-shadow);
     @include transition($form-range-thumb-transition);
-    appearance: none;
-
+    & {
+        appearance: none;
+    }
     &:active {
       @include gradient-bg($form-range-thumb-active-bg);
     }

@@ -2,6 +2,7 @@
 // Navs (Navigation components)
 // --------------------------------------------------
 
+@use "sass:color";
 
 // Disble pointer events for active nav links
 .nav-link:not(.dropdown-toggle).active {
@@ -134,7 +135,7 @@ a.nav-link {
     width: 1.25rem;
     height: 1.25rem;
     border-radius: 50%;
-    background: lighten($success, 40%);
+    background: color.adjust($success, $lightness: 40%);
     border: $border-width solid $success;
     color: $success;
     font: {
@@ -178,7 +179,7 @@ a.nav-link {
       background-color: $nav-pills-link-hover-bg;
     }
     &.disabled {
-      background-color: lighten($nav-pills-link-bg, 2%);
+      background-color: color.adjust($nav-pills-link-bg, $lightness: 2%);
       color: $nav-link-disabled-color;
       &:hover:not(.active) {
         background-color: transparent;

@@ -2,6 +2,7 @@
 // Widgets
 // --------------------------------------------------
 
+@use "sass:color";
 
 // Component common styles
 
@@ -234,7 +235,7 @@
   .noUi-marker-horizontal {
     &.noUi-marker {
       width: $border-width;
-      background-color: darken($border-color, 6%);
+      background-color: color.adjust($border-color, $lightness: -6%);
     }
     &.noUi-marker-large { height: .75rem; }
   }

@@ -1,3 +1,4 @@
+@use "sass:map";
 // Contents
 //
 // Navbar
@@ -58,8 +59,10 @@
   padding-bottom: $navbar-brand-padding-y;
   margin-right: $navbar-brand-margin-end;
   @include font-size($navbar-brand-font-size);
-  text-decoration: if($link-decoration == none, null, none);
-  white-space: nowrap;
+  & {
+      white-space: nowrap;
+    text-decoration: if($link-decoration == none, null, none);
+  }
 
   &:hover,
   &:focus {
@@ -158,7 +161,7 @@
 // Generate series of `.navbar-expand-*` responsive classes for configuring
 // where your navbar collapses.
 .navbar-expand {
-  @each $breakpoint in map-keys($grid-breakpoints) {
+  @each $breakpoint in map.keys($grid-breakpoints) {
     $next: breakpoint-next($breakpoint, $grid-breakpoints);
     $infix: breakpoint-infix($next, $grid-breakpoints);
 

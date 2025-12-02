@@ -1,3 +1,6 @@
+@use 'sass:math';
+@use 'sass:map';
+
 @import 'vendor/cartzilla/scss/theme.scss';
 
 // Global tweaks
@@ -130,7 +133,7 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
 
 .rbt > .rbt-menu {
     .dropdown-item.active {
-        background-color: map-get($theme-faded-colors, 'dark');
+        background-color: map.get($theme-faded-colors, 'dark');
     }
 
     &::-webkit-scrollbar {
@@ -211,7 +214,7 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
     background-clip: border-box;
 
     @include media-breakpoint-up(lg) {
-        top: $navbar-nav-link-padding-y - .125rem - $btn-padding-y + ( $font-size-base - $btn-font-size ) / 2 + map-get($spacers, 2);
+        top: $navbar-nav-link-padding-y - .125rem - $btn-padding-y + math.div($font-size-base - $btn-font-size, 2) + map.get($spacers, 2);
         position: absolute;
         min-width: 50rem;
         z-index: $zindex-dropdown - 5;
@@ -270,7 +273,7 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
 
 // product details long description
 .ratio + h5 {
-    margin-top: map-get($spacers, 2);
+    margin-top: map.get($spacers, 2);
 }
 
 // swiper.js tweaks

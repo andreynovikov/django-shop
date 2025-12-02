@@ -5,12 +5,15 @@
 // highly repetitive declarations
 // --------------------------------------------------
 
+@use "sass:color";
+@use "sass:map";
+
 @import '../../bootstrap/scss/functions';
 @import '../../bootstrap/scss/variables';
 @import '../../bootstrap/scss/mixins';
 @import '../../bootstrap/scss/utilities';
 
-$utilities: map-merge(
+$utilities: map.merge(
   $utilities,
   (
 
@@ -22,11 +25,11 @@ $utilities: map-merge(
     ),
 
     // Background colors
-    'background-color': map-merge(
-      map-get($utilities, 'background-color'),
+    'background-color': map.merge(
+      map.get($utilities, 'background-color'),
       (
-        values: map-merge(
-          map-get(map-get($utilities, 'background-color'), 'values'),
+        values: map.merge(
+          map.get(map.get($utilities, 'background-color'), 'values'),
           (
             'secondary': $gray-100,
             'darker':    $gray-900,
@@ -98,11 +101,11 @@ $utilities: map-merge(
     ),
 
     // Font weight
-    'font-weight': map-merge(
-      map-get($utilities, 'font-weight'),
+    'font-weight': map.merge(
+      map.get($utilities, 'font-weight'),
       (
-        values: map-merge(
-          map-get(map-get($utilities, 'font-weight'), 'values'),
+        values: map.merge(
+          map.get(map.get($utilities, 'font-weight'), 'values'),
           (
             medium: $font-weight-medium
           )
@@ -131,14 +134,14 @@ $utilities: map-merge(
     'color': (
       property: color,
       class: text,
-      values: map-merge(
+      values: map.merge(
         $theme-colors,
         (
           'white': $white,
           'body': $body-color,
           'muted': $text-muted,
           'heading': $headings-color,
-          'border': darken($border-color, 8%),
+          'border': color.adjust($border-color, $lightness: -8%),
           'reset': inherit
         )
       )

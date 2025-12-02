@@ -2,6 +2,7 @@
 // Buttons
 // --------------------------------------------------
 
+@use "sass:color";
 
 // Override solid buttons
 
@@ -9,8 +10,8 @@
   .btn-#{$color} {
     &:hover, &:active, &:focus,
     &.active, &.show {
-      border-color: darken($value, 10%);
-      background-color: darken($value, 10%);
+      border-color: color.adjust($value, $lightness: -10%);
+      background-color: color.adjust($value, $lightness: -10%);
     }
   }
 }
@@ -128,7 +129,7 @@
     font-size: $btn-market-subtitle-font-size;
   }
   &:hover {
-    background-color: darken($btn-market-bg, 5%);
+    background-color: color.adjust($btn-market-bg, $lightness: -5%);
   }
 }
 
@@ -250,7 +251,7 @@
       right: .625rem;
       left: 0;
     }
-    border-right: $border-width solid darken($border-color, 3%);
+    border-right: $border-width solid color.adjust($border-color, $lightness: -3%);
   }
   &:focus { outline: none; }
   &:hover { color: $gray-700; }
