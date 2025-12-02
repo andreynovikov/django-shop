@@ -78,7 +78,7 @@ jobs:
       - name: Deploy Docker image
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.DEPLOY_SERVER }}
+          host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
