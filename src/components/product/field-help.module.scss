@@ -9,9 +9,9 @@
 .Popup {
   box-sizing: border-box;
   padding: 1rem 1.5rem;
-  border-radius: 0.5rem;
+  border-radius: $popover-border-radius;
   background-color: canvas;
-  color: $body-color;
+  color: $popover-body-color;
   transform-origin: var(--transform-origin);
   transition:
     transform 150ms,
@@ -27,10 +27,10 @@
     transform: scale(0.9);
   }
 
-    outline: 1px solid $gray-500;
+    outline: 1px solid $popover-border-color;
     box-shadow:
-      0 10px 15px -3px $gray-500,
-      0 4px 6px -4px $gray-500;
+      0 10px 15px -3px $popover-border-color,
+      0 4px 6px -4px $popover-border-color;
 }
 
 .Arrow {
@@ -62,7 +62,7 @@
 }
 
 .ArrowOuterStroke {
-  fill: $gray-500;
+  fill: $popover-arrow-outer-color;
 }
 
 .Container {
