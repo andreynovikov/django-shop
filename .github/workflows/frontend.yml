@@ -6,9 +6,14 @@ on:
     branches:
       - "cartzilla"
 
+env:
+  IMAGE: sworld
+
 jobs:
 
   build:
+    outputs:
+      VERSION: ${{ steps.package_version.outputs.VERSION }}
     runs-on: ubuntu-latest
 
     steps:
@@ -30,7 +35,7 @@ jobs:
         with:
           # list of Docker images to use as base name for tags
           images: |
-            ghcr.io/andreynovikov/sworld
+            ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE }}
           # generate Docker tags based on the following events/attributes
           tags: |
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'cartzilla') }}
@@ -55,12 +60,29 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push
+      - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           build-args: |
-            entity=sworld
+            entity=${{ env.IMAGE }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Docker image
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_SERVER }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+            docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE }}:latest
+            docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE }}:${{ needs.build.outputs.VERSION }}
+            docker logout ghcr.io
