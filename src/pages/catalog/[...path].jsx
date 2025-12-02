@@ -172,7 +172,7 @@ export default function Category({ path, currentPage, pageSize, order, filters }
   })
 
   const keepPreviousData = (previousData, previousQuery) => {
-    const previousCategory = previousQuery.queryKey[2]['filters'].filter(filter => filter.field === 'categories').map(filter => filter.value)
+    const previousCategory = previousQuery?.queryKey[2]['filters'].filter(filter => filter.field === 'categories').map(filter => filter.value) ?? []
     // required for filters not to loose choices and attributes
     if (previousCategory.includes(category.id))
       return previousData
