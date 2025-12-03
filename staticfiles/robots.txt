@@ -1,5 +1,0 @@
-User-Agent: *
-Disallow: /shop/basket/
-Disallow: /shop/user/
-Sitemap: https://www.sewing-world.ru/sitemap.xml
-Host: https://www.sewing-world.ru

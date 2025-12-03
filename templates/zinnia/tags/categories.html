@@ -1,6 +1,0 @@
-{% load i18n %}
-<ul class="widget-list">
-  {% for category in categories %}
-  <li class="widget-list-item"><a class="{% if category.slug != context_category.slug %}widget-list-link {% endif %}d-flex justify-content-between align-items-center" href="{{ category.get_absolute_url }}"><span>{{ category }}</span><span class="font-size-xs text-muted ml-3">{{ category.count_entries_published }}</span></a></li>
-  {% endfor %}
-</ul>

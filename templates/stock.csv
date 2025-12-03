@@ -1,2 +1,0 @@
-{% load decimals %}{% for product, stock in products %}{{ product.id }};{{ stock }};{% if product.avito_price > 0 %}{{ product.avito_price|quantize:"1" }}{% else %}{{ product.cost|quantize:"1" }}{% endif %};{% if product.avito_price > 0 %}{{ product.avito_price|quantize:"1" }}{% else %}{{ product.cost|quantize:"1" }}{% endif %}
-{% endfor %}

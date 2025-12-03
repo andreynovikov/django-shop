@@ -9,12 +9,7 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY src ./src
-COPY public ./public
-COPY .env* ./
-COPY next-env.d.ts next.config.ts tsconfig.json eslint.config.mjs ./
-COPY package.json package-lock.json* ./
-COPY startup.sh ./
+COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED 1
 
