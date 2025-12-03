@@ -4,8 +4,12 @@ import type { AppProps } from 'next/app'
 
 
 import { NuqsAdapter } from 'nuqs/adapters/next/pages'
-import { QueryClient, QueryClientProvider, HydrationBoundary } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { QueryClient, QueryClientProvider, HydrationBoundary } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+
+import { Toast } from '@base-ui-components/react/toast'
+
+import ToastList from '@/components/toast-list'
 
 import { SiteProvider } from '@/lib/site';
 import { SessionProvider } from '@/lib/session';
@@ -56,6 +60,8 @@ moment.updateLocale('ru', {
   },
 });
 
+const toastManager = Toast.createToastManager()
+
 export type NextPageWithLayout<P = object, IP = P> = NextPage<P, IP> & {
   getLayout?: (page: ReactElement) => ReactNode
 }
@@ -93,14 +99,21 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
         <NuqsAdapter>
           <SiteProvider>
             <SessionProvider>
-              <ToolbarProvider>
-                {getLayout(<Component {...pageProps} />)}
-              </ToolbarProvider>
+              <Toast.Provider toastManager={toastManager}>
+                <ToolbarProvider>
+                  {getLayout(<Component {...pageProps} />)}
+                </ToolbarProvider>
+                <Toast.Portal>
+                  <Toast.Viewport className="sw-toast-viewport">
+                    <ToastList />
+                  </Toast.Viewport>
+                </Toast.Portal>
+              </Toast.Provider>
             </SessionProvider>
           </SiteProvider>
         </NuqsAdapter>
         <ReactQueryDevtools initialIsOpen={false} />
       </HydrationBoundary>
     </QueryClientProvider>
-  );
+  )
 }

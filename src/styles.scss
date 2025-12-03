@@ -287,3 +287,22 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
         overflow: hidden;
     }
 }
+
+// toasts
+
+.sw-toast-viewport {
+  position: fixed;
+  z-index: 1;
+  width: 250px;
+  margin: 0 auto;
+  bottom: 1rem;
+  left: 1rem;
+  right: auto;
+  top: auto;
+
+  @media (min-width: 500px) {
+    bottom: 2rem;
+    left: 2rem;
+    width: 300px;
+  }
+}
