@@ -245,6 +245,13 @@ export async function createOrder() {
   return response.data
 }
 
+export async function createPreorder(product) {
+  const response = await apiClient.post('orders/preorder/', {
+    product
+  })
+  return response.data
+}
+
 export async function loadOrders(page, filter, site = undefined) {
   const url = new URL(API + 'orders/')
   if (+page !== 1)

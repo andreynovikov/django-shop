@@ -16,6 +16,7 @@ import ProductMiniCard from '@/components/product/mini-card'
 import ProductPrice from '@/components/product/price'
 import ProductRating from '@/components/product/rating'
 import ProductShopping from '@/components/product/shopping'
+import ProductPreorder from '@/components/product/preorder'
 import ImageGallery from '@/components/product/image-gallery'
 import ImageCarousel from '@/components/product/image-carousel'
 import Loading from '@/components/loading'
@@ -352,11 +353,7 @@ export default function Product({ code }) {
                           {product.instock > 0 ? (
                             <ProductShopping product={product} />
                           ) : (
-                            /* TODO */
-                            <a className="btn btn-success btn-shadow d-block w-100 add-to-cart" href="{% url 'shop:add' product.id %}{% if utm_source %}?utm_source={{ utm_source }}{% endif %}">
-                              <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                              <i className="ci-loudspeaker fs-lg me-2" />Сообщить о поступлении
-                            </a>
+                            <ProductPreorder product={product} />
                           )}
                         </div>
                       ) : (
