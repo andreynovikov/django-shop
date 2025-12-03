@@ -1,77 +1,86 @@
+@import '@/vendor/bootstrap/scss/mixins/breakpoints';
 @import '@/vendor/cartzilla/scss/variables';
 
 .Positioner {
-  width: var(--positioner-width);
-  height: var(--positioner-height);
-  max-width: var(--available-width);
+    width: var(--positioner-width);
+    height: var(--positioner-height);
+    max-width: var(--available-width);
 }
 
 .Popup {
-  box-sizing: border-box;
-  padding: 1rem 1.5rem;
-  border-radius: $popover-border-radius;
-  background-color: canvas;
-  color: $popover-body-color;
-  transform-origin: var(--transform-origin);
-  transition:
-    transform 150ms,
-    opacity 150ms;
+    box-sizing: border-box;
+    padding: 1rem 1.5rem;
+    border-radius: $popover-border-radius;
+    background-color: canvas;
+    color: $popover-body-color;
+    transform-origin: var(--transform-origin);
+    transition:
+        transform 150ms,
+        opacity 150ms;
 
-  width: var(--popup-width, auto);
-  height: var(--popup-height, auto);
-  max-width: 60vw;
-
-  &[data-starting-style],
-  &[data-ending-style] {
-    opacity: 0;
-    transform: scale(0.9);
-  }
 
     outline: 1px solid $popover-border-color;
     box-shadow:
-      0 10px 15px -3px $popover-border-color,
-      0 4px 6px -4px $popover-border-color;
+        0 10px 15px -3px $popover-border-color,
+        0 4px 6px -4px $popover-border-color;
+
+    width: var(--popup-width, auto);
+    height: var(--popup-height, auto);
+
+    max-width: 65vw;
+
+    @include media-breakpoint-down(lg) {
+        max-width: 95vw;
+    }
+
+    &[data-starting-style],
+    &[data-ending-style] {
+        opacity: 0;
+        transform: scale(0.9);
+    }
 }
 
 .Arrow {
-  display: flex;
+    display: flex;
 
-  &[data-side='top'] {
-    bottom: -8px;
-    rotate: 180deg;
-  }
+    &[data-side='top'] {
+        bottom: -8px;
+        rotate: 180deg;
+    }
 
-  &[data-side='bottom'] {
-    top: -8px;
-    rotate: 0deg;
-  }
+    &[data-side='bottom'] {
+        top: -8px;
+        rotate: 0deg;
+    }
 
-  &[data-side='left'] {
-    right: -13px;
-    rotate: 90deg;
-  }
+    &[data-side='left'] {
+        right: -13px;
+        rotate: 90deg;
+    }
 
-  &[data-side='right'] {
-    left: -13px;
-    rotate: -90deg;
-  }
+    &[data-side='right'] {
+        left: -13px;
+        rotate: -90deg;
+    }
 }
 
 .ArrowFill {
-  fill: canvas;
+    fill: canvas;
 }
 
 .ArrowOuterStroke {
-  fill: $popover-arrow-outer-color;
+    fill: $popover-arrow-outer-color;
 }
 
-.Container {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
+.Viewport {
+    img {
+        max-width: 100%;
+        height: auto;
+        margin-bottom: 0.625em;
 
-.Description {
-  margin: 0;
+        &[align="left"] {
+            max-width: 60%;
+            margin-right: 0.625em;
+        }
+    }
 }

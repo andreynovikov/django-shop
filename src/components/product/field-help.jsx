@@ -43,13 +43,13 @@ export default function FieldHelp({ field }) {
             <Popover.Arrow className={styles.Arrow}>
               <ArrowSvg />
             </Popover.Arrow>
-            <Popover.Description className={styles.Description}>
+            <Popover.Viewport className={styles.Viewport}>
               {isSuccess ? (
                 <div className="fs-sm" dangerouslySetInnerHTML={{ __html: data.content }}></div>
               ) : (
                 <div className="spinner-border" role="status"><span className="visually-hidden">Загрузка...</span></div>
               )}
-            </Popover.Description>
+            </Popover.Viewport>
           </Popover.Popup>
         </Popover.Positioner>
       </Popover.Portal>

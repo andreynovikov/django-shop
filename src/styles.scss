@@ -11,19 +11,27 @@ body {
     overflow: overlay;
     scrollbar-color: $body-color $light;
 
-    &::-webkit-scrollbar, & *::-webkit-scrollbar {
+    &::-webkit-scrollbar,
+    & *::-webkit-scrollbar {
         background-color: transparent;
+
         &:hover {
             background-color: $secondary;
         }
     }
-    &::-webkit-scrollbar:vertical, & *::-webkit-scrollbar:vertical {
+
+    &::-webkit-scrollbar:vertical,
+    & *::-webkit-scrollbar:vertical {
         width: $border-radius * 2;
     }
-    &::-webkit-scrollbar:horizontal, & *::-webkit-scrollbar:horizontal {
+
+    &::-webkit-scrollbar:horizontal,
+    & *::-webkit-scrollbar:horizontal {
         height: $border-radius * 2;
     }
-    &::-webkit-scrollbar-thumb, & *::-webkit-scrollbar-thumb {
+
+    &::-webkit-scrollbar-thumb,
+    & *::-webkit-scrollbar-thumb {
         background-color: tint-color($dark, 20%);
         min-height: 24px;
         border-radius: $border-radius;
@@ -36,7 +44,9 @@ body {
             border-width: 1px;
         }
     }
-    &::-webkit-scrollbar-corner, & *::-webkit-scrollbar-corner {
+
+    &::-webkit-scrollbar-corner,
+    & *::-webkit-scrollbar-corner {
         background-color: $light;
     }
 }
@@ -55,7 +65,8 @@ body {
 
 // Cartzilla tweaks
 
-.navbar-brand > img { // make logo highly responsive
+.navbar-brand>img {
+    // make logo highly responsive
     width: auto;
     height: 26px;
     object-position: left;
@@ -86,7 +97,8 @@ a.page-link {
     cursor: pointer
 }
 
-a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
+a:not([href]):not([class]) {
+    // undo Bootstrap reboot TODO: use buttons?
     cursor: pointer;
     color: $link-color;
     text-decoration: $link-decoration;
@@ -97,13 +109,15 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
     }
 }
 
-.gallery-item > img { // We have extremely vertical images that heavily zoom with preset settings
+.gallery-item>img {
+    // We have extremely vertical images that heavily zoom with preset settings
     width: unset !important;
     margin: auto;
 }
 
 @include media-breakpoint-up(lg) {
-    .offcanvas-lg { // Collapse off-canvas down from lg breakpoint
+    .offcanvas-lg {
+        // Collapse off-canvas down from lg breakpoint
         display: block;
         position: static;
         z-index: inherit !important;
@@ -116,7 +130,10 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
         transform: none !important;
         background-color: transparent;
 
-        .offcanvas-header, .offcanvas-footer { display: none; }
+        .offcanvas-header,
+        .offcanvas-footer {
+            display: none;
+        }
 
         .offcanvas-body {
             padding: 0;
@@ -131,7 +148,7 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
 
 // React Bootstrap Typeahead tweaks
 
-.rbt > .rbt-menu {
+.rbt>.rbt-menu {
     .dropdown-item.active {
         background-color: map.get($theme-faded-colors, 'dark');
     }
@@ -159,10 +176,12 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
         border-radius: 50%;
         background-color: $navbar-tool-label-bg;
         color: $navbar-tool-label-color;
+
         font: {
             size: $navbar-tool-label-font-size;
             weight: $navbar-tool-label-font-weight;
         }
+
         text-align: center;
         line-height: $navbar-tool-label-size;
     }
@@ -220,7 +239,7 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
         z-index: $zindex-dropdown - 5;
         padding-left: $card-spacer-x;
         padding-right: $card-spacer-x;
-        box-shadow: 0 1rem 1rem rgba($black,.15);
+        box-shadow: 0 1rem 1rem rgba($black, .15);
         border: $card-border-width solid $card-border-color;
         border-bottom-right-radius: $border-radius;
         border-bottom-left-radius: $border-radius;
@@ -244,35 +263,13 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
     }
 }
 
-#comparison > tbody th:first-letter, .product-spec > .row > .text-muted:first-letter {
+#comparison>tbody th:first-letter,
+.product-spec>.row>.text-muted:first-letter {
     text-transform: capitalize;
 }
 
-// product details field help popover
-.popover.sw-field-help {
-    max-width: 725px;
-
-    @include media-breakpoint-down(sm) {
-        margin: 0 2%;
-        max-width: 95%;
-    }
-
-    &>.popover-body {
-        img {
-            max-width: 100%;
-            height: auto;
-            margin-bottom: 0.625em;
-
-            &[align="left"] {
-                max-width: 60%;
-                margin-right: 0.625em;
-            }
-        }
-    }
-}
-
 // product details long description
-.ratio + h5 {
+.ratio+h5 {
     margin-top: map.get($spacers, 2);
 }
 
@@ -291,18 +288,18 @@ a:not([href]):not([class]) { // undo Bootstrap reboot TODO: use buttons?
 // toasts
 
 .sw-toast-viewport {
-  position: fixed;
-  z-index: 1;
-  width: 250px;
-  margin: 0 auto;
-  bottom: 1rem;
-  left: 1rem;
-  right: auto;
-  top: auto;
+    position: fixed;
+    z-index: 1;
+    width: 250px;
+    margin: 0 auto;
+    bottom: 1rem;
+    left: 1rem;
+    right: auto;
+    top: auto;
 
-  @media (min-width: 500px) {
-    bottom: 2rem;
-    left: 2rem;
-    width: 300px;
-  }
+    @media (min-width: 500px) {
+        bottom: 2rem;
+        left: 2rem;
+        width: 300px;
+    }
 }
