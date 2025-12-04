@@ -92,27 +92,30 @@ export default function ProductSearchInput({ mobile = false }) {
 
     const options = []
 
-    suggestions.correction && options.push(
-      {
-        section: 'correction',
-        label: suggestions.correction
-      }
-    )
+    if (suggestions.correction)
+      options.push(
+        {
+          section: 'correction',
+          label: suggestions.correction
+        }
+      )
 
-    suggestions.sts && suggestions.sts.forEach(st => options.push(
-      {
-        section: 'sts',
-        label: st.st
-      }
-    ))
+    if (suggestions.sts)
+      suggestions.sts.forEach(st => options.push(
+        {
+          section: 'sts',
+          label: st.st
+        }
+      ))
 
-    suggestions.products && suggestions.products.forEach(product => options.push(
-      {
-        section: 'products',
-        label: product.name,
-        product
-      }
-    ))
+    if (suggestions.products)
+      suggestions.products.forEach(product => options.push(
+        {
+          section: 'products',
+          label: product.name,
+          product
+        }
+      ))
 
     return options
   }, [suggestions])

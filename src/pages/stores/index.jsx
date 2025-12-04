@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useMemo } from 'react'
+import { Fragment, useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import Script from 'next/script'
 import { useQuery } from '@tanstack/react-query'
@@ -10,16 +10,17 @@ import { storeKeys, loadStores } from '@/lib/queries'
 
 export default function Stores({marketplace, lottery}) {
   const [ymapsReady, setYMapsReady] = useState(false)
-  const [ymap, setYMap] = useState(null)
   const [currentCity, setCurrentCity] = useState(null)
 
-  const { data: stores, isSuccess } = useQuery({
+  const ymap = useRef(null)
+
+  const { data: stores } = useQuery({
     queryKey: storeKeys.lists({marketplace, lottery}),
     queryFn: () => loadStores({marketplace, lottery})
   })
 
   useEffect(() => {
-    if (!ymapsReady || !isSuccess)
+    if (!ymapsReady || !stores)
       return
 
     const coords = [55.76, 37.64]
@@ -71,16 +72,16 @@ export default function Stores({marketplace, lottery}) {
       console.log(err)
     })
 
-    setYMap(map)
+    ymap.current = map
 
     return () => {
       map.destroy()
-      setYMap(null)
+      ymap.current = null
     }
-  }, [ymapsReady, isSuccess]) //eslint-disable-line react-hooks/exhaustive-deps
+  }, [ymapsReady, stores])
 
   const storeGroups = useMemo(() => {
-    if (!isSuccess)
+    if (!stores)
       return []
 
     const { groups } = stores.reduce(({ groups, city }, store) => {
@@ -93,17 +94,17 @@ export default function Stores({marketplace, lottery}) {
     }, { groups: [], city: null })
 
     return groups.sort((a, b) => a.city.name.localeCompare(b.city.name))
-  }, [stores, isSuccess])
+  }, [stores])
 
   const handleCitySelect = (id) => {
     setCurrentCity(id)
-    if (ymap === null)
+    if (ymap.current === null)
       return
 
     const { city, stores } = storeGroups.find(({ city }) => city.id === id)
     if (stores.length === 1 && stores[0].latitude && stores[0].longitude) {
-      ymap.setCenter([stores[0].latitude, stores[0].longitude])
-      ymap.setZoom(14)
+      ymap.current.setCenter([stores[0].latitude, stores[0].longitude])
+      ymap.current.setZoom(14)
       return
     }
 
@@ -114,21 +115,21 @@ export default function Stores({marketplace, lottery}) {
     }, [])
     if (points.length > 0) {
       // Set map bounds to make all city stores visible
-      ymap.setBounds(ymaps.util.bounds.fromPoints(points), {
+      ymap.current.setBounds(ymaps.util.bounds.fromPoints(points), {
         checkZoomRange: true,
-        preciseZoom: !ymap.options.get('avoidFractionalZoom'),
+        preciseZoom: !ymap.current.options.get('avoidFractionalZoom'),
         useMapMargin: true
       }).then(() => {
-        ymap.setZoom(Math.min(14, ymap.getZoom()))
+        ymap.current.setZoom(Math.min(14, ymap.current.getZoom()))
       })
     } else if (city.latitude !== undefined && city.longitude !== undefined) {
-      ymap.setCenter([city.latitude, city.longitude])
-      ymap.setZoom(12)
+      ymap.current.setCenter([city.latitude, city.longitude])
+      ymap.current.setZoom(12)
     } else {
       const str = 'город ' + city.name + ' ' + city.country.name
       ymaps.geocode(str, { results: 1 }).then((res) => {
-        ymap.setCenter(res.geoObjects.get(0).geometry.getCoordinates())
-        ymap.setZoom(12)
+        ymap.current.setCenter(res.geoObjects.get(0).geometry.getCoordinates())
+        ymap.current.setZoom(12)
       })
     }
   }

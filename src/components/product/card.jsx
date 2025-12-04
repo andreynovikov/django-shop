@@ -11,14 +11,12 @@ import ProductPrice from '@/components/product/price'
 import useBasket from '@/lib/basket'
 import useFavorites from '@/lib/favorites'
 import { useSession } from '@/lib/session'
-import { useBreakpoint } from '@/lib/breakpoint'
 
 export default function ProductCard({ product, limitedBadges = false }) {
   const { status } = useSession()
 
   const cardRef = useRef()
 
-  const breakpoint = useBreakpoint()
   const { basket, addItem, isSuccess, isEmpty } = useBasket()
   const { favorites, favoritize, unfavoritize } = useFavorites()
 

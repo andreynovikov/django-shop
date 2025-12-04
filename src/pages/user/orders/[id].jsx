@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery } from '@tanstack/react-query'
@@ -39,7 +39,6 @@ import {
 import moment from 'moment'
 
 export default function Order({ id }) {
-  const [orderStatus, setOrderStatus] = useState(STATUS_NEW)
   const { site } = useSite()
   const { status } = useSession()
 
@@ -50,10 +49,7 @@ export default function Order({ id }) {
     refetchInterval: [STATUS_NEW, STATUS_ACCEPTED].includes(orderStatus) ? 60 * 1000 : false // check for updates every minute
   })
 
-  useEffect(() => {
-    if (order)
-      setOrderStatus(order.status)
-  }, [order])
+  const orderStatus = order?.status ?? STATUS_NEW
 
   const created = useMemo(() => {
     if (isSuccess) {

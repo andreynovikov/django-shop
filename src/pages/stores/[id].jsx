@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/router'
 import Script from 'next/script'
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 

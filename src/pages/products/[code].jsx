@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, Suspense, lazy } from 'react'
+import { useState, useEffect, Suspense, lazy } from 'react'
 import { useRouter } from 'next/router'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -30,7 +30,7 @@ import { recomendedFilters, giftsFilters, firstPageFilters } from '@/lib/catalog
 const ProductReviews = lazy(() => import('@/components/product/reviews'))
 const ProductStock = lazy(() => import('@/components/product/stock'))
 
-const gana = require('gana')
+// const gana = require('gana')
 
 const fieldList = [
   'partnumber', 'manufacturer', 'article', 'developer_country', 'country', 'warranty',
@@ -120,8 +120,10 @@ function rebootstrap(value) {
 }
 
 function renderTemplate(template, product) {
-  const compileFn = gana(template)
-  return compileFn({ product })
+  // const compileFn = gana(template)
+  // return compileFn({ product })
+  // TODO: find solution for templates
+  return template
 };
 
 export default function Product({ code }) {
@@ -342,7 +344,7 @@ export default function Product({ code }) {
                             <div className="mb-2">
                               { /* TODO: refactor - move to actions */}
                               <i className="ci-gift text-danger pe-2" />
-                              Участник акции <a href="/actions/utilisation/">&laquo;Утилизация&raquo;</a>!
+                              Участник акции <Link href="/actions/utilisation/">&laquo;Утилизация&raquo;</Link>!
                               Скидка по акции <span className="price">{product.maxdiscount}%</span>!
                             </div>
                           )}

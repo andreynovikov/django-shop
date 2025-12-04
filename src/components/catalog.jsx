@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import Link from 'next/link'
@@ -10,29 +10,27 @@ const first = [14, 15, 16, 17]
 const other = [339, 473, 324, 14, 15, 16, 17] // other than these
 
 export default function Catalog() {
-  const [ready, setReady] = useState(false)
-  const [categoryNew, setCategoryNew] = useState(null)
-  const [categoryPromo, setCategoryPromo] = useState(null)
-  const [categoryDiscount, setCategoryDiscount] = useState(null)
-
   const { data: categories, isSuccess } = useQuery({
     queryKey: categoryKeys.lists(),
     queryFn: () => loadCategories()
   })
 
-  useEffect(() => {
+  const [categoryNew, categoryPromo, categoryDiscount] = useMemo(() => {
+    const specialCategories = [null, null, null]
     if (isSuccess) {
       for (const category of categories) {
         if (category.slug === 'New')
-          setCategoryNew(category)
+          specialCategories[0] = category
         if (category.slug === 'promo')
-          setCategoryPromo(category)
+          specialCategories[1] = category
         if (category.slug === 'Discount')
-          setCategoryDiscount(category)
+          specialCategories[2] = category
       }
-      setReady(true)
     }
+    return specialCategories
   }, [isSuccess, categories])
+
+  const ready = [categoryNew, categoryPromo, categoryDiscount].every(c => c !== null)
 
   return (
     <div className="sw-catalog">
