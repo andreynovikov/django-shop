@@ -499,6 +499,30 @@ class OrderViewSet(viewsets.ModelViewSet):
     def destroy(self, request):
         raise MethodNotAllowed(request.method)
 
+    @action(detail=False, methods=['post'])
+    def preorder(self, request):
+        request.session.save()  # ensure session is persisted
+        request.session.modified = True
+        basket = Basket.objects.create(site=request.site, session_id=request.session.session_key, secondary=True)
+        product = Product.objects.get(pk=request.data.get('product'))
+        item = basket.items.create(product=product, quantity=1)
+        item.save()
+        basket.save()
+        kwargs = {
+            'site': request.site,
+            'comment': 'Запрос о поступлении'
+        }
+        order = Order.register(basket, **kwargs)
+        ipgeobases = IPGeoBase.objects.by_ip(request.META.get('REMOTE_ADDR'))
+        if ipgeobases.exists():
+            for ipgeobase in ipgeobases:
+                if ipgeobase.city is not None:
+                    order.city = ipgeobase.city
+                    break
+        order.save()
+        basket.delete()
+        return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
+
     @action(detail=True, methods=['post'])
     def pay(self, request, pk=None):
         order = self.get_object()  # this looks redundant but we keep it for framework internal checks
@@ -839,6 +863,9 @@ class AdvertViewSet(viewsets.ReadOnlyModelViewSet):
         places = self.request.query_params.getlist('place')
         if len(places) > 0:
             queryset = queryset.filter(place__in=places)
+        category = self.request.query_params.getlist('category')
+        if len(category) > 0:
+            queryset = queryset.filter(categories__pk__exact=category[0])
         return queryset
 
 
