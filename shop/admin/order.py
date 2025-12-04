@@ -24,7 +24,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 from daterangefilter.filters import FutureDateRangeFilter, PastDateRangeFilter
-from django_admin_listfilter_dropdown.filters import ChoiceDropdownFilter, RelatedDropdownFilter
+from django_admin_listfilter_dropdown.filters import SimpleDropdownFilter, ChoiceDropdownFilter, RelatedDropdownFilter
 # from tagging.utils import parse_tag_input
 
 from djconfig import config
@@ -280,6 +280,20 @@ class FutureDateFieldListFilter(admin.FieldListFilter):
             }
 
 
+class OrderOwnerFilter(SimpleDropdownFilter):
+    title = _('владелец')
+    parameter_name = 'owner'
+
+    def lookups(self, request, model_admin):
+        return [(i.id, i.name) for i in ShopUser.objects.filter(is_staff=True)]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(owner__exact=self.value())
+        else:
+            return queryset
+
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     @mark_safe
@@ -448,9 +462,9 @@ class OrderAdmin(admin.ModelAdmin):
                        'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
                        'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
     list_filter = [OrderStatusListFilter, ('site', RelatedDropdownFilter), ('integration', RelatedDropdownFilter), ('created', PastDateRangeFilter),
-                   ('seller', RelatedDropdownFilter), ('payment', ChoiceDropdownFilter), 'paid', OrderDeliveryListFilter,
+                   ('seller', RelatedDropdownFilter), ('payment', ChoiceDropdownFilter), ('paid', ChoiceDropdownFilter), OrderDeliveryListFilter,
                    ('delivery_dispatch_date', FutureDateRangeFilter), ('delivery_handing_date', FutureDateRangeFilter),
-                   ('manager', RelatedDropdownFilter), ('courier', RelatedDropdownFilter)]
+                   ('manager', RelatedDropdownFilter), ('courier', RelatedDropdownFilter), OrderOwnerFilter]  # , ('owner', RelatedDropdownFilter)]
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment', 'delivery_tracking_number',
                      'delivery_info', 'delivery_yd_order', 'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
                      'item__serial_number']
@@ -509,6 +523,11 @@ class OrderAdmin(admin.ModelAdmin):
             has_boxes_form = 'boxes-TOTAL_FORMS' in request.POST
             if not inline.model == Box or is_integration_with_boxes or (is_yandex_delivery and (has_boxes_form or request.method == 'GET')):
                 yield inline.get_formset(request, obj), inline
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == 'owner':
+            kwargs['queryset'] = ShopUser.objects.filter(is_staff=True)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def lookup_allowed(self, lookup, value):
         if lookup == 'item__product__pk':
