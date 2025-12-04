@@ -261,7 +261,7 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
                    'forbid_price_import', 'cur_code', ('pct_discount', DropdownFilter), ('val_discount', DropdownFilter),
                    ('categories', RelatedDropdownFilter), ('manufacturer', RelatedDropdownFilter)]
     list_per_page = 50
-    search_fields = ['code', 'article', 'partnumber', 'title', 'tags']
+    search_fields = ['code', 'article', 'partnumber', 'title', 'gtin', 'gtins', 'tags']
     readonly_fields = ['price', 'ws_price', 'sp_price']
     ordering = ('-id',)
     save_on_top = True
@@ -408,6 +408,12 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
             if request.user.is_superuser or not request.user.has_perm('shop.change_order_spb'):
                 yield inline.get_formset(request, obj), inline
     """
+
+    def get_search_results(self, request, queryset, search_term):
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+        if search_term:
+            queryset |= self.model.objects.filter(gtins__contains=[search_term])
+        return queryset, use_distinct
 
     def view_on_site(self, obj):
         prefix = SHOP_INFO.get('url_prefix','')
