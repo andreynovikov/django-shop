@@ -47,7 +47,7 @@ export default function Search({ text, page }) {
   useToolbar(toolbarItem)
 
   const { data: result, isSuccess, isLoading, isError } = useQuery({
-    queryKey: productKeys.search(filters, null),
+    queryKey: productKeys.search(text, filters, null),
     queryFn: () => loadProducts(text, filters.page, 15, filters),
     placeholderData: keepPreviousData // required for filters not to loose choices and attributes
   })

@@ -22,7 +22,7 @@ export default function ExtendWarranty() {
 
   const queryClient = useQueryClient()
 
-  const createSerialMutation = useMutation<Serial, AxiosError<string[]>, string>({
+  const { mutate } = useMutation<Serial, AxiosError<string[]>, string>({
     mutationFn: (number) => createSerial({ number }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: serialKeys.lists() })
@@ -34,9 +34,9 @@ export default function ExtendWarranty() {
   useEffect(() => {
     if (!registered.current && sn !== undefined && session?.status === 'authenticated') {
       registered.current = true
-      createSerialMutation.mutate(sn)
+      mutate(sn)
     }
-  }, [createSerialMutation, sn, session?.status])
+  }, [mutate, sn, session?.status])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()

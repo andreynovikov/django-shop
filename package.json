@@ -13,18 +13,18 @@
   "dependencies": {
     "@base-ui-components/react": "^1.0.0-beta.7",
     "@popperjs/core": "^2.11.8",
-    "@tabler/icons-react": "^3.34.1",
-    "@tanstack/react-query": "^5.81.5",
-    "axios": "^1.12.2",
+    "@tabler/icons-react": "^3.35.0",
+    "@tanstack/react-query": "^5.90.12",
+    "axios": "^1.13.2",
     "gana": "^1.1.1",
     "lodash": "^4.17.21",
     "moment": "^2.30.1",
-    "next": "^15.4.1",
+    "next": "^16.0.7",
     "nuqs": "^2.5.2",
-    "react": "^19.1.0",
+    "react": "^19.2.1",
     "react-bootstrap": "^2.10.10",
     "react-bootstrap-typeahead": "^6.4.1",
-    "react-dom": "^19.1.0",
+    "react-dom": "^19.2.1",
     "react-intersection-observer": "^9.16.0",
     "react-metrika": "^0.3.3",
     "simplebar-react": "^3.3.2",
@@ -32,15 +32,14 @@
     "tiny-slider": "^2.9.4"
   },
   "devDependencies": {
-    "@tanstack/eslint-plugin-query": "^5.81.2",
-    "@tanstack/react-query-devtools": "^5.83.0",
-    "@types/node": "^24.0.14",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
+    "@tanstack/eslint-plugin-query": "^5.91.2",
+    "@tanstack/react-query-devtools": "^5.91.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.7",
-    "sass": "^1.89.2",
-    "sass-loader": "^16.0.3",
-    "typescript": "^5.8.3"
+    "sass": "^1.94.2",
+    "typescript": "^5.9.3"
   }
 }

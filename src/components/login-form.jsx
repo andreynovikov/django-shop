@@ -31,7 +31,7 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
   }, [phone])
 
   const { data: shopUser, isSuccess, isFetching, error: queryError, refetch } = useQuery({
-    queryKey: userKeys.check(loginPhone),
+    queryKey: userKeys.check(loginPhone, reset),
     queryFn: () => checkUser(loginPhone, reset),
     enabled: !!loginPhone
   })

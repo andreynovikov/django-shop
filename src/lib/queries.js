@@ -5,7 +5,7 @@ export const userKeys = {
   form: () => [...userKeys.all, 'form'],
   details: () => [...userKeys.all, 'detail'],
   detail: (id) => [...userKeys.details(), id],
-  check: (phone) => [...userKeys.details(), 'check', phone],
+  check: (phone, reset) => [...userKeys.details(), 'check', { phone, reset }],
   current: () => [...userKeys.details(), 'current'],
   bonus: () => [...userKeys.details(), 'bonus'],
 }
@@ -21,7 +21,7 @@ export const productKeys = {
   all: ['products'],
   fields: () => [...productKeys.all, 'fields'],
   suggestions: (text) => [...productKeys.all, 'suggestions', text],
-  search: (filters, ordering) => [...productKeys.all, { filters, ordering }],
+  search: (text, filters, ordering) => [...productKeys.all, { text, filters, ordering }],
   images: (id) => [...productKeys.all, id, 'images'],
   stock: (id) => [...productKeys.all, id, 'stock'],
   lists: () => [...productKeys.all, 'list'],
