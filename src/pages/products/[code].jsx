@@ -26,6 +26,7 @@ import useComparison from '@/lib/comparison'
 import { useSession } from '@/lib/session'
 import { productKeys, loadProducts, loadProductByCode, getProductFields } from '@/lib/queries'
 import { recomendedFilters, giftsFilters, firstPageFilters } from '@/lib/catalog'
+import { eCommerce } from '@/lib/ymec'
 
 const ProductReviews = lazy(() => import('@/components/product/reviews'))
 const ProductStock = lazy(() => import('@/components/product/stock'))
@@ -163,6 +164,39 @@ export default function Product({ code }) {
       setProductFields(filterProductFields(product))
       if (product.image)
         setCurrentImage(product.image)
+      const impressions = [
+        ...product.accessories?.map((product, index) => ({
+          id: product.id,
+          name: product.title,
+          price: product.price,
+          list: 'Сопутствующие товары',
+          position: index
+        })) ?? [],
+        ...product.similar?.map((product, index) => ({
+          id: product.id,
+          name: product.title,
+          price: product.price,
+          list: 'Похожие товары',
+          position: index
+        })) ?? []
+      ]
+      eCommerce({
+        ecommerce: {
+          currencyCode: 'RUB',
+          impressions,
+          detail: {
+            products: [
+              {
+                id: `${product.id}`,
+                name: `${product.partnumber ? product.partnumber + ' ' : ''}${product.title}`,
+                category: `${product.categories[0]?.name}`,
+                brand: `${product.manufacturer.code}`,
+                price: `${product.cost}`
+              }
+            ]
+          }
+        }
+      })
     }
   }, [product, isSuccess])
 
