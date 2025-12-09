@@ -14,7 +14,6 @@ import PageSelector, { SmallPageSelector } from '@/components/page-selector'
 import { categoryKeys, advertKeys, productKeys, loadCategories, loadCategory, loadAdverts, loadProducts } from '@/lib/queries'
 import { useToolbar } from '@/lib/toolbar'
 import useCatalog from '@/lib/catalog'
-import rupluralize from '@/lib/rupluralize'
 
 const baseFilters = [
   { field: 'enabled', value: 1 },
@@ -239,7 +238,7 @@ export default function Category({ path, currentPage, pageSize, order, filters }
 
   if (isSuccess)
     return (
-      <div className="container pb-5 mb-2 mb-md-4">
+      <div className="container py-5 mb-2 mb-md-4">
         <div className="row">
           {(category.children || category.filters) && (
             <aside className="col-lg-4 position-relative" ref={containerRef}>
@@ -290,40 +289,6 @@ export default function Category({ path, currentPage, pageSize, order, filters }
             </aside>
           )}
           <section className={`col-lg-${(category.children || category.filters) ? 8 : 12}`}>
-            <div className="d-flex justify-content-center justify-content-sm-between align-items-center pt-2 pb-4 pb-sm-5">
-              <div className="d-flex flex-wrap">
-                <div className="d-flex align-items-center flex-nowrap me-3 me-sm-4 pb-3">
-                  &nbsp;
-                  {/*
-                                    <label className="text-light opacity-75 text-nowrap fs-sm me-2 d-none d-sm-block" htmlFor="sorting">Сортировать:</label>
-                                    <select className="form-select" id="sorting" value={currentOrder} onChange={(event) => handleOrderSelect(event.target.value)}>
-                                        <option value={order}>по-умолчанию</option>
-                                        { order !== '-price' && <option value="-price">от дорогих к дешёвым</option> }
-                                        { order !== 'price' && <option value="price">сначала дешёвые</option> }
-                                        { order !== 'title' && <option value="title">по алфавиту</option> }
-                                        { order !== '-title' && <option value="-title">по алфавиту, наоборот</option> }
-                                    </select>
-                                    { isProductsSuccess && (
-                                        <span className="fs-sm text-light opacity-75 text-nowrap ms-2 d-none d-md-block">
-                                            из
-                                            {' '}{ products.count }{' '}
-                                            { rupluralize(products.count, ['товара','товаров','товаров']) }
-                                        </span>
-                                    )}
-                                    */
-                  }
-                </div>
-              </div>
-              {products?.totalPages > 1 && (
-                <SmallPageSelector
-                  pathname={router.pathname}
-                  query={router.query}
-                  path={path}
-                  totalPages={products.totalPages}
-                  currentPage={products.currentPage} />
-              )}
-            </div>
-
 
             {(category.description && currentPage == 1) && (
               <div className="card mb-grid-gutter">
@@ -402,7 +367,7 @@ Category.getLayout = function getLayout(page) {
   if (page.props.subTitle)
     title += ' - ' + page.props.subTitle
   return (
-    <PageLayout title={title} breadcrumbs={breadcrumbs} dark overlapped>
+    <PageLayout title={title} breadcrumbs={breadcrumbs} dark>
       {page}
     </PageLayout>
   )

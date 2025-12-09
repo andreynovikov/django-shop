@@ -85,7 +85,7 @@ export default function Catalog() {
 
           {categories.filter(category => !other.includes(category.id)).map((category, index) => (
             <div className={"mx-4 mb-3" + (index === 0 ? " mt-4" : "")} key={category.id}>
-              <div className="h7 mb-3">
+              <div className="h6 mb-3">
                 <Link href={`/catalog/${category.slug}/`}>
                   {category.svg_icon && <span className="sw-catalog-icon me-1" dangerouslySetInnerHTML={{ __html: category.svg_icon }}></span>}
                   {category.name}

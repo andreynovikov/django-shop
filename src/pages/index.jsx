@@ -55,7 +55,7 @@ export default function Index() {
           <div className="py-3"></div>
         </section>
 
-        <section className="container position-relative pt-3 pt-lg-0 pb-5 mt-n10" style={{ zIndex: 10 }}>
+        <section className="container position-relative pt-3 pt-lg-0 pb-4 mt-n10" style={{ zIndex: 10 }}>
           <TopCategoriesCard />
         </section>
       </div>
