@@ -13,7 +13,6 @@ services:
         - sworld
     volumes:
       - ./.docker/:/app/.docker/
-      - ./static/i:/app/public/i
     network_mode: bridge
     ports:
       - "127.0.0.1:4004:3000/tcp"
