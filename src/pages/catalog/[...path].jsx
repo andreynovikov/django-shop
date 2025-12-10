@@ -106,7 +106,6 @@ function updateSidebarStyle(container, sidebar, scrollOffset) {
 */
 export default function Category({ path, currentPage, pageSize, order, filters }) {
   const [currentFilters, setFilter] = useReducer(filterReducer, filters)
-  const [currentOrder, setOrder] = useState(order)
   const [showFilters, setShowFilters] = useState(false)
 
   const containerRef = useRef()
@@ -179,8 +178,8 @@ export default function Category({ path, currentPage, pageSize, order, filters }
   }
 
   const { data: products, isSuccess: isProductsSuccess, isLoading: isProductsLoading } = useQuery({
-    queryKey: productKeys.list(currentPage, pageSize, currentFilters, currentOrder),
-    queryFn: () => loadProducts(currentPage, pageSize, currentFilters, currentOrder),
+    queryKey: productKeys.list(currentPage, pageSize, currentFilters, order),
+    queryFn: () => loadProducts(currentPage, pageSize, currentFilters, order),
     enabled: isSuccess,
     placeholderData: keepPreviousData
   })
