@@ -196,7 +196,10 @@ a:not([href]):not([class]) {
 
     .sw-navbar {
         &.sw-sticky {
+            pointer-events: none;
+
             .sw-navbar-sticky {
+                pointer-events: auto;
                 box-shadow: $navbar-stuck-box-shadow;
             }
 
@@ -215,6 +218,7 @@ a:not([href]):not([class]) {
 
                 .navbar-stuck-menu {
                     visibility: visible;
+                    pointer-events: auto;
                     box-shadow: $navbar-stuck-box-shadow;
                 }
             }
