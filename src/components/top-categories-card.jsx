@@ -6,12 +6,6 @@ export default function TopCategoriesCard() {
     <div className="card mx-1 mx-md-5 mx-xl-0 border-0 box-shadow-lg">
       <div className="card-body px-3 pb-0">
         <div className="row g-0 g-lg-3 justify-content-around">
-          <div className="d-none d-lg-block col-lg-auto mb-grid-gutter text-center">
-            <Link href="/catalog/promo/">
-              <img src="/i/categories/sale.svg" alt="Специальные предложения" height="75" width="75" />
-              <div>Специальные<br />предложения</div>
-            </Link>
-          </div>
           <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center">
             <Link href="/catalog/sewing_machines/">
               <img src="/i/categories/compsewing.svg" alt="Швейные машины" height="75" width="75" />
@@ -46,6 +40,12 @@ export default function TopCategoriesCard() {
             <Link href="/catalog/accessories/">
               <img src="/i/categories/accessories.svg" alt="Аксессуары" height="75" width="75" />
               <div>Аксессуары</div>
+            </Link>
+          </div>
+          <div className="d-none d-lg-block col-lg-auto mb-grid-gutter text-center">
+            <Link href="/catalog/parts/">
+              <img src="/i/categories/parts.svg" alt="Запасные части" height="75" width="75" />
+              <div>Запасные<br />части</div>
             </Link>
           </div>
         </div>
