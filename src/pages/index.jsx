@@ -49,16 +49,14 @@ export default function Index() {
 
   return (
     <div className="mb-3">
-      <div className="bg-secondary">
-        <section className="pb-5">
-          <div className="bg-dark py-5"></div>
-          <div className="py-3"></div>
-        </section>
+      <section className="pb-5">
+        <div className="bg-dark py-5"></div>
+        <div className="py-3"></div>
+      </section>
 
-        <section className="container position-relative pt-3 pt-lg-0 pb-4 mt-n10" style={{ zIndex: 10 }}>
-          <TopCategoriesCard />
-        </section>
-      </div>
+      <section className="container position-relative pt-3 pt-lg-0 mt-n10" style={{ zIndex: 10 }}>
+        <TopCategoriesCard />
+      </section>
 
       <Adverts adverts={topAdverts} />
 

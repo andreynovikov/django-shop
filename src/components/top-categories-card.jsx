@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 export default function TopCategoriesCard() {
   return (
-    <div className="card mx-1 mx-md-5 mx-xl-0 border-0 box-shadow-lg">
+    <div className="card mx-1 mx-md-5 mx-xl-0 border-0 shadow-lg">
       <div className="card-body px-3 pb-0">
         <div className="row g-0 g-lg-3 justify-content-around">
           <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center">
