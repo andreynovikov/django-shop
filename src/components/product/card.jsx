@@ -67,6 +67,7 @@ export default function ProductCard({ product, limitedBadges = false }) {
       <Link className="d-block mt-3 p-6" href={productLink}>
         <div className="m-3 p-3">
           <div className="position-relative p-3 overflow-hidden" style={{ aspectRatio: 1 }}>
+            <div className="position-absolute fw-bold h1" style={{zIndex: 100}}>{product.order}</div>
             {product.image ? (
               <Image
                 src={product.image}
