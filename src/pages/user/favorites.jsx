@@ -32,7 +32,7 @@ export default function Favorites() {
   const handleClick = (product) => {
     if (product.variations) {
     } else {
-      addItem(product.id)
+      addItem(product)
     }
   }
 

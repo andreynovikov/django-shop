@@ -31,7 +31,7 @@ export default function ProductCard({ product, limitedBadges = false }) {
   }, [basket, product, isSuccess, isEmpty])
 
   const handleCartClick = () => {
-    addItem(product.id)
+    addItem(product)
   }
 
   const handleFavoritesClick = () => {

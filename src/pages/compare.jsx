@@ -143,7 +143,7 @@ export default function Compare({ kindId, productIds }) {
   const handleCartClick = (product) => {
     if (product.variations) {
     } else {
-      addItem(product.id)
+      addItem(product)
     }
   }
 

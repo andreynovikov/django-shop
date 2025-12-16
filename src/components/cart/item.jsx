@@ -24,7 +24,7 @@ export default function CartItem({ item, first, last, removeItem, setQuantity })
       v = 10000
     if (v != e.target.value)
       e.target.value = v
-    setQuantity(item.product.id, v)
+    setQuantity(item.product, v)
   }
 
   const debouncedValueChange = useCallback(debounce(handleValueChange), [])
@@ -68,7 +68,7 @@ export default function CartItem({ item, first, last, removeItem, setQuantity })
           onChange={debouncedValueChange}
           onBlur={handleValueChange}
           onKeyDown={handleKeyDown} />
-        <button className="btn btn-link px-0 text-danger" type="button" onClick={() => removeItem(item.product.id)}>
+        <button className="btn btn-link px-0 text-danger" type="button" onClick={() => removeItem(item.product)}>
           <i className="ci-close-circle me-2" />Удалить
         </button>
       </div>

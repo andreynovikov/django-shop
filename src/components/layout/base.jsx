@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Script from 'next/script'
 
-import { MetrikaCounter } from 'react-metrika'
+import { YandexMetrika } from '@/lib/ymec'
 
 import TopBar from './topbar'
 import BottomBar from './bottombar'
@@ -52,15 +52,14 @@ export default function BaseLayout({
         <HandheldBottomBar topMenuOpen={topMenuOpen} toggleTopMenu={() => setTopMenuOpen((open) => !open)} />
         <ScrollTopButton />
       </div>
-      {process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID && <MetrikaCounter
-        id={process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID}
-        options={{
-          trackHash: true,
-          webvisor: true,
-          clickmap: true,
-          accurateTrackBounce: true,
-          ecommerce: "dataLayer"
-        }}
+      {process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID && <YandexMetrika
+        ymId={process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID}
+        trackHash
+        trackLinks
+        accurateTrackBounce
+        webvisor
+        clickmap
+        ecommerce="dataLayer"
       />}
       {process.env.NEXT_PUBLIC_JIVO_KEY && <Script src={"https://code.jivo.ru/widget/" + process.env.NEXT_PUBLIC_JIVO_KEY} strategy="lazyOnload" />}
     </>

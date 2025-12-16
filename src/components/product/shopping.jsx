@@ -19,14 +19,14 @@ export default function ProductShopping({ product }) {
   const handleSetQuantity = (delta) => {
     const quantity = Math.max(0, Math.min(10000, basketQuantity + delta))
     if (quantity === 0)
-      removeItem(product.id)
+      removeItem(product)
     else
-      setQuantity(product.id, quantity)
+      setQuantity(product, quantity)
   }
 
   const handleCartClick = () => {
     // TODO: {% if utm_source %}?utm_source={{ utm_source }}{% endif %}
-    addItem(product.id, quantity)
+    addItem(product, quantity)
   }
 
   return basketQuantity > 0 ? (

@@ -25,8 +25,8 @@ export function MobileCartNotice() {
 export default function CartNotice() {
   const { basket, isEmpty, removeItem } = useBasket()
 
-  const handleItemRemoveClick = (productId) => {
-    removeItem(productId)
+  const handleItemRemoveClick = (product) => {
+    removeItem(product)
   }
 
   if (isEmpty)
@@ -50,7 +50,7 @@ export default function CartNotice() {
           <SimpleBar style={{ height: "15rem" }}>
             {basket.items.map((item, index) => (
               <div key={item.product.id} className={"widget-cart-item border-bottom " + (index === 0 ? "pb-2" : "py-2")}>
-                <button className="btn-close text-danger" onClick={() => handleItemRemoveClick(item.product.id)} aria-label="Удалить">
+                <button className="btn-close text-danger" onClick={() => handleItemRemoveClick(item.product)} aria-label="Удалить">
                   <span aria-hidden="true">&times;</span>
                 </button>
                 <div className="d-flex align-items-center">

@@ -1,6 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { basketKeys, loadBasket, createBasket, addBasketItem, removeBasketItem, updateBasketItem } from '@/lib/queries'
+import { eCommerce } from '@/lib/ymec'
+
+function report(event, product, quantity) {
+  eCommerce({
+    event,
+    ecommerce: {
+      currencyCode: 'RUB',
+      add: {
+        products: [{
+          id: `${product.id}`,
+          name: `${product.partnumber ? product.partnumber + ' ' : ''}${product.title}`,
+          price: `${product.cost}`,
+          quantity
+        }]
+      }
+    }
+  })
+}
 
 export default function useBasket() {
   const queryClient = useQueryClient()
@@ -17,43 +35,52 @@ export default function useBasket() {
     mutationFn: () => createBasket()
   })
   const addBasketItemMutation = useMutation({
-    mutationFn: ({ basketId, productId, quantity }) => addBasketItem(basketId, productId, quantity),
+    mutationFn: ({ basketId, product, quantity }) => addBasketItem(basketId, product.id, quantity),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: basketKeys.all })
     }
   })
   const removeBasketItemMutation = useMutation({
-    mutationFn: ({ basketId, productId }) => removeBasketItem(basketId, productId),
+    mutationFn: ({ basketId, product }) => removeBasketItem(basketId, product.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: basketKeys.all })
     }
   })
   const updateBasketItemMutation = useMutation({
-    mutationFn: ({ basketId, productId, quantity }) => updateBasketItem(basketId, productId, quantity),
+    mutationFn: ({ basketId, product, quantity }) => updateBasketItem(basketId, product.id, quantity),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: basketKeys.all })
     }
   })
 
-  const addItem = (productId, quantity = 1) => {
+  const addItem = (product, quantity = 1) => {
     if (baskets.length === 0) {
       createBasketMutation.mutate(undefined, {
         onSuccess: (data) => {
-          console.log(data)
-          addBasketItemMutation.mutate({ basketId: data.id, productId, quantity })
+          addBasketItemMutation.mutate(
+            { basketId: data.id, product, quantity },
+            {
+              onSuccess: async () => report('addToCart', product, quantity)
+            }
+          )
         }
       })
     } else {
-      addBasketItemMutation.mutate({ basketId: baskets[0].id, productId, quantity })
+      addBasketItemMutation.mutate(
+        { basketId: baskets[0].id, product, quantity },
+        {
+          onSuccess: async () => report('addToCart', product, quantity)
+        }
+      )
     }
   }
 
-  const removeItem = (productId) => {
-    removeBasketItemMutation.mutate({ basketId: baskets[0].id, productId })
+  const removeItem = (product) => {
+    removeBasketItemMutation.mutate({ basketId: baskets[0].id, product })
   }
 
-  const setQuantity = (productId, quantity) => {
-    updateBasketItemMutation.mutate({ basketId: baskets[0].id, productId, quantity })
+  const setQuantity = (product, quantity) => {
+    updateBasketItemMutation.mutate({ basketId: baskets[0].id, product, quantity })
   }
 
   return { basket, addItem, removeItem, setQuantity, isEmpty, isSuccess, isLoading, isError }
