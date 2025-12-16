@@ -1,5 +1,6 @@
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import Head from 'next/head'
 
 import BaseLayout from '@/components/layout/base'
 import ProductCard from '@/components/product/card'
@@ -48,66 +49,72 @@ export default function Index() {
   useCatalog()
 
   return (
-    <div className="mb-3">
-      <section className="pb-5">
-        <div className="bg-dark py-5"></div>
-        <div className="py-3"></div>
-      </section>
-
-      <section className="container position-relative pt-3 pt-lg-0 mt-n10" style={{ zIndex: 10 }}>
-        <TopCategoriesCard />
-      </section>
-
-      <Adverts adverts={topAdverts} />
-
-      {isRecomendedSuccess && recomended.results.length > 0 && (
-        <section className="container pt-5">
-          <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
-            <h2 className="h3 mb-0 pt-3 me-2">Специальные предложения</h2>
-            <div className="pt-3">
-              <Link className="btn btn-outline-accent btn-sm" href="/catalog/promo/">
-                Больше товаров
-                <i className="ci-arrow-right ms-1 me-n1" />
-              </Link>
-            </div>
-          </div>
-          <div className="row pt-2 mx-n2">
-            {recomended.results.map((product) => (
-              <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
-                <ProductCard product={product} />
-                <hr className="d-sm-none" />
-              </div>
-            ))}
-          </div>
+    <>
+      <Head>
+        {process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION && <meta name="google-site-verification" content={process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION} />}
+        {process.env.NEXT_PUBLIC_YANDEX_VERIFICATION && <meta name="yandex-verification" content={process.env.NEXT_PUBLIC_YANDEX_VERIFICATION} />}
+      </Head>
+      <div className="mb-3">
+        <section className="pb-5">
+          <div className="bg-dark py-5"></div>
+          <div className="py-3"></div>
         </section>
-      )}
 
-      <Adverts adverts={middleAdverts} />
-
-      {isFirstPageSuccess && firstpage.results.length > 0 && (
-        <section className="container pt-5">
-          <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
-            <h2 className="h3 mb-0 pt-3 me-2">Новинки</h2>
-            <div className="pt-3">
-              <Link className="btn btn-outline-accent btn-sm" href="/catalog/New/">
-                Больше товаров
-                <i className="ci-arrow-right ms-1 me-n1" />
-              </Link>
-            </div>
-          </div>
-          <div className="row pt-2 mx-n2">
-            {firstpage.results.map((product) => (
-              <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
-                <ProductCard product={product} />
-                <hr className="d-sm-none" />
-              </div>
-            ))}
-          </div>
+        <section className="container position-relative pt-3 pt-lg-0 mt-n10" style={{ zIndex: 10 }}>
+          <TopCategoriesCard />
         </section>
-      )}
 
-      <Adverts adverts={bottomAdverts} />
-    </div>
+        <Adverts adverts={topAdverts} />
+
+        {isRecomendedSuccess && recomended.results.length > 0 && (
+          <section className="container pt-5">
+            <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
+              <h2 className="h3 mb-0 pt-3 me-2">Специальные предложения</h2>
+              <div className="pt-3">
+                <Link className="btn btn-outline-accent btn-sm" href="/catalog/promo/">
+                  Больше товаров
+                  <i className="ci-arrow-right ms-1 me-n1" />
+                </Link>
+              </div>
+            </div>
+            <div className="row pt-2 mx-n2">
+              {recomended.results.map((product) => (
+                <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
+                  <ProductCard product={product} />
+                  <hr className="d-sm-none" />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <Adverts adverts={middleAdverts} />
+
+        {isFirstPageSuccess && firstpage.results.length > 0 && (
+          <section className="container pt-5">
+            <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
+              <h2 className="h3 mb-0 pt-3 me-2">Новинки</h2>
+              <div className="pt-3">
+                <Link className="btn btn-outline-accent btn-sm" href="/catalog/New/">
+                  Больше товаров
+                  <i className="ci-arrow-right ms-1 me-n1" />
+                </Link>
+              </div>
+            </div>
+            <div className="row pt-2 mx-n2">
+              {firstpage.results.map((product) => (
+                <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
+                  <ProductCard product={product} />
+                  <hr className="d-sm-none" />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <Adverts adverts={bottomAdverts} />
+      </div>
+    </>
   )
 }
 
