@@ -7,6 +7,8 @@ import Image from 'next/image'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { FreeMode, Navigation } from 'swiper/modules'
 
+import { IconCircleChevronLeftFilled, IconCircleChevronRightFilled } from '@tabler/icons-react'
+
 import { ProductImage } from '@/lib/types'
 
 import 'swiper/css'
@@ -25,10 +27,14 @@ export default function ImageCarousel({ images, setImage, className }: ImageCaro
       slidesPerView={'auto'}
       spaceBetween={10}
       freeMode={true}
-      navigation={true}
+      navigation={{
+        prevEl: '.swiper-button-prev',
+        nextEl: '.swiper-button-next'
+      }}
       modules={[FreeMode, Navigation]}
       className={className}
     >
+      <span className="swiper-button-prev text-light"><IconCircleChevronLeftFilled /></span>
       {images.map(image => (
         <SwiperSlide key={image.src} className="d-inline-block w-auto">
           <div onClick={() => setImage(image.src)} className="position-relative rounded border" style={{ width: 80, height: 80 }} role="button">
@@ -42,6 +48,7 @@ export default function ImageCarousel({ images, setImage, className }: ImageCaro
           </div>
         </SwiperSlide>
       ))}
+      <span className="swiper-button-next text-light"><IconCircleChevronRightFilled /></span>
     </Swiper>
   )
 }
