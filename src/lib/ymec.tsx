@@ -54,10 +54,14 @@ export function YandexMetrika(props: YMParams) {
 
 export function eCommerce(payload: Record<string, unknown>) {
   if (window['dataLayer'] === undefined) {
-    console.warn('Yandex metrika is not initialized')
+    console.warn('Yandex metrika is not initialized or Ad blocker is used')
     return
   }
 
-  window['dataLayer'].push(payload)
-  console.log(window['dataLayer'])
+  window['dataLayer'].push({
+    ecommerce: {
+      currencyCode: "RUB",
+    ...payload
+    }
+  })
 }

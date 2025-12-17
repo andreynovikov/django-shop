@@ -9,7 +9,7 @@ import PageLayout from '@/components/layout/page'
 import ProductCard from '@/components/product/card'
 import ProductFilter from '@/components/product/filter'
 import Loading from '@/components/loading'
-import PageSelector, { SmallPageSelector } from '@/components/page-selector'
+import PageSelector from '@/components/page-selector'
 
 import { categoryKeys, advertKeys, productKeys, loadCategories, loadCategory, loadAdverts, loadProducts } from '@/lib/queries'
 import { useToolbar } from '@/lib/toolbar'
@@ -214,10 +214,6 @@ export default function Category({ path, currentPage, pageSize, order, filters }
     }
   }
 
-  const handleOrderSelect = (value) => {
-    setOrder(value)
-  }
-
   if (router.isFallback) {
     return (
       <div className="container pb-5 mb-2 mb-md-4">
@@ -328,9 +324,9 @@ export default function Category({ path, currentPage, pageSize, order, filters }
                   + " d-flex align-items-center justify-content-center"
                 } mega />
               )}
-              {isProductsSuccess && products.results.map((product) => (
+              {isProductsSuccess && products.results.map((product, index) => (
                 <div className={((category.children || category.filters) ? "" : "col-lg-3 ") + "col-md-4 col-sm-6 px-2 mb-4"} key={product.id}>
-                  <ProductCard product={product} />
+                  <ProductCard product={product} gtmCategory={category} gtmList="Каталог" gtmPosition={index} />
                   <hr className="d-sm-none" />
                 </div>
               ))}

@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -11,8 +11,9 @@ import ProductPrice from '@/components/product/price'
 import useBasket from '@/lib/basket'
 import useFavorites from '@/lib/favorites'
 import { useSession } from '@/lib/session'
+import { eCommerce } from '@/lib/ymec'
 
-export default function ProductCard({ product, limitedBadges = false }) {
+export default function ProductCard({ product, limitedBadges = false, gtmCategory = undefined, gtmList = '', gtmPosition = 0 }) {
   const { status } = useSession()
 
   const cardRef = useRef()
@@ -29,6 +30,33 @@ export default function ProductCard({ product, limitedBadges = false }) {
     else
       return 0
   }, [basket, product, isSuccess, isEmpty])
+
+  useEffect(() => {
+    eCommerce({
+      impressions: [{
+        id: product.id,
+        name: product.title,
+        price: product.price,
+        list: gtmList,
+        position: gtmPosition + 1
+      }]
+    })
+  }, [product, gtmList, gtmPosition])
+
+  const handleClick = () => {
+    eCommerce({
+      click: {
+        products: [{
+          id: `${product.id}`,
+          name: `${product.partnumber ? product.partnumber + ' ' : ''}${product.title}`,
+          price: `${product.cost}`,
+          category: gtmCategory?.name ?? null,
+          list: gtmList,
+          position: gtmPosition + 1
+        }]
+      }
+    })
+  }
 
   const handleCartClick = () => {
     addItem(product)
@@ -64,10 +92,9 @@ export default function ProductCard({ product, limitedBadges = false }) {
           <i className="ci-heart" />
         </button>
       </OverlayTrigger>
-      <Link className="d-block mt-3 p-6" href={productLink}>
+      <Link className="d-block mt-3 p-6" href={productLink} onClick={handleClick}>
         <div className="m-3 p-3">
           <div className="position-relative p-3 overflow-hidden" style={{ aspectRatio: 1 }}>
-            <div className="position-absolute fw-bold h1" style={{zIndex: 100}}>{product.order}</div>
             {product.image ? (
               <Image
                 src={product.image}
@@ -83,11 +110,11 @@ export default function ProductCard({ product, limitedBadges = false }) {
         </div>
       </Link>
       <div className="d-flex flex-column card-body py-2">
-        <Link className="product-meta d-block fs-xs pb-1" href={productLink}>
+        <Link className="product-meta d-block fs-xs pb-1" href={productLink} onClick={handleClick}>
           {product.whatisit ?? product.whatis} {product.partnumber}
         </Link>
         <h3 className="product-title fs-6">
-          <Link href={productLink}>
+          <Link href={productLink} onClick={handleClick}>
             {product.title}
           </Link>
         </h3>
@@ -117,7 +144,7 @@ export default function ProductCard({ product, limitedBadges = false }) {
                   {basketQuantity > 0 && <span className="sw-button-label">{basketQuantity}</span>}
                 </button>
               ) : (
-                <Link className="btn btn-secondary btn-sm d-block w-100" href={productLink}>
+                <Link className="btn btn-secondary btn-sm d-block w-100" href={productLink} onClick={handleClick}>
                   <i className="ci-eye fs-sm" />
                 </Link>
               )}

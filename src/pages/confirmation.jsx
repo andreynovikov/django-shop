@@ -11,6 +11,7 @@ import { STATUS_NEW } from '@/components/order/status-badge'
 import useBasket from '@/lib/basket'
 import { useSession } from '@/lib/session'
 import { basketKeys, orderKeys, createOrder, loadOrder, updateOrder } from '@/lib/queries'
+import { eCommerce } from '@/lib/ymec'
 
 export default function Confirmation() {
   const [orderId, setOrderId] = useState(0)
@@ -57,6 +58,19 @@ export default function Confirmation() {
           console.error(data)
           sessionStorage.setItem('lastOrder', data.id)
           setOrderId(data.id)
+          eCommerce({
+            purchase: {
+              actionField: {
+                id: data.id
+              },
+              products: data.items.map(item => ({
+                id: item.product.id,
+                name: item.product.title,
+                price: item.price,
+                quantity: item.quantity
+              }))
+            }
+          })
         },
         onError: (error) => {
           console.error(error)

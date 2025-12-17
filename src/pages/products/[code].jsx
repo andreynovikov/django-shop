@@ -120,6 +120,7 @@ function rebootstrap(value) {
   return value
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function renderTemplate(template, product) {
   // const compileFn = gana(template)
   // return compileFn({ product })
@@ -170,31 +171,28 @@ export default function Product({ code }) {
           name: product.title,
           price: product.price,
           list: 'Сопутствующие товары',
-          position: index
+          position: index + 1
         })) ?? [],
         ...product.similar?.map((product, index) => ({
           id: product.id,
           name: product.title,
           price: product.price,
           list: 'Похожие товары',
-          position: index
+          position: index + 1
         })) ?? []
       ]
       eCommerce({
-        ecommerce: {
-          currencyCode: 'RUB',
-          impressions,
-          detail: {
-            products: [
-              {
-                id: `${product.id}`,
-                name: `${product.partnumber ? product.partnumber + ' ' : ''}${product.title}`,
-                category: `${product.categories[0]?.name}`,
-                brand: `${product.manufacturer.code}`,
-                price: `${product.cost}`
-              }
-            ]
-          }
+        impressions,
+        detail: {
+          products: [
+            {
+              id: `${product.id}`,
+              name: `${product.partnumber ? product.partnumber + ' ' : ''}${product.title}`,
+              category: `${product.categories[0]?.name}`,
+              brand: `${product.manufacturer.code}`,
+              price: `${product.cost}`
+            }
+          ]
         }
       })
     }
@@ -688,6 +686,7 @@ Product.getLayout = function getLayout(page) {
 
   const secondaryTitle = page.props.manufacturerLogo ? (
     <div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img alt={page.props.manufacturer} src={page.props.manufacturerLogo} style={{ height: "60px" }} />
     </div>
   ) : null

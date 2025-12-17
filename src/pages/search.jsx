@@ -27,7 +27,7 @@ const searchParams = {
   page: parseAsInteger.withDefault(1),
 }
 
-export default function Search({ text, page }) {
+export default function Search({ text }) {
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useQueryStates(searchParams)
 
@@ -147,9 +147,9 @@ export default function Search({ text, page }) {
 
             <div className="row mx-n2">
               {result?.totalHits > 0 ? (
-                result.products.map((product) => (
+                result.products.map((product, index) => (
                   <div className="col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
-                    <ProductSearchCard result={product} />
+                    <ProductSearchCard result={product} position={index} />
                     <hr className="d-sm-none" />
                   </div>
                 ))

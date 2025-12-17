@@ -3,19 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { basketKeys, loadBasket, createBasket, addBasketItem, removeBasketItem, updateBasketItem } from '@/lib/queries'
 import { eCommerce } from '@/lib/ymec'
 
-function report(event, product, quantity) {
+function report(action, product, price, quantity) {
   eCommerce({
-    event,
-    ecommerce: {
-      currencyCode: 'RUB',
-      add: {
-        products: [{
-          id: `${product.id}`,
-          name: `${product.partnumber ? product.partnumber + ' ' : ''}${product.title}`,
-          price: `${product.cost}`,
-          quantity
-        }]
-      }
+    [action]: {
+      products: [{
+        id: `${product.id}`,
+        name: `${product.partnumber ? product.partnumber + ' ' : ''}${product.title}`,
+        price,
+        quantity
+      }]
     }
   })
 }
@@ -60,7 +56,7 @@ export default function useBasket() {
           addBasketItemMutation.mutate(
             { basketId: data.id, product, quantity },
             {
-              onSuccess: async () => report('addToCart', product, quantity)
+              onSuccess: async () => report('addToCart', 'add', product, product.cost, product.quantity)
             }
           )
         }
@@ -69,18 +65,35 @@ export default function useBasket() {
       addBasketItemMutation.mutate(
         { basketId: baskets[0].id, product, quantity },
         {
-          onSuccess: async () => report('addToCart', product, quantity)
+          onSuccess: async () => report('add', product, product.cost, quantity)
         }
       )
     }
   }
 
   const removeItem = (product) => {
-    removeBasketItemMutation.mutate({ basketId: baskets[0].id, product })
+    const item = basket.items?.find(item => item.product.id === product.id)
+    const cost = item?.price
+    const quantity = item?.quantity
+    removeBasketItemMutation.mutate(
+      { basketId: baskets[0].id, product },
+      {
+        onSuccess: async () => report('remove', product, cost, quantity)
+      }
+    )
   }
 
   const setQuantity = (product, quantity) => {
-    updateBasketItemMutation.mutate({ basketId: baskets[0].id, product, quantity })
+    const previousQuantity = basket.items?.find(item => item.product.id === product.id)?.quantity
+    updateBasketItemMutation.mutate(
+      { basketId: baskets[0].id, product, quantity },
+      {
+        onSuccess: async () => {
+          if (previousQuantity < quantity)
+            report('add', product, product.cost, quantity - previousQuantity)
+        }
+      }
+    )
   }
 
   return { basket, addItem, removeItem, setQuantity, isEmpty, isSuccess, isLoading, isError }

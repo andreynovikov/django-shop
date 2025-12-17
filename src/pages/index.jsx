@@ -37,7 +37,7 @@ export default function Index() {
     queryFn: () => loadProducts(null, itemsPerSection, firstPageFilters, sort)
   })
 
-  const { data: adverts, isSuccess: isAdvertsSuccess } = useQuery({
+  const { data: adverts } = useQuery({
     queryKey: advertKeys.list(['index_top_new', 'index_middle_new', 'index_bottom_new']),
     queryFn: () => loadAdverts(['index_top_new', 'index_middle_new', 'index_bottom_new'])
   })
@@ -78,9 +78,9 @@ export default function Index() {
               </div>
             </div>
             <div className="row pt-2 mx-n2">
-              {recomended.results.map((product) => (
+              {recomended.results.map((product, index) => (
                 <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
-                  <ProductCard product={product} />
+                  <ProductCard product={product} gtmList="Первая страница акции" gtmPosition={index} />
                   <hr className="d-sm-none" />
                 </div>
               ))}
@@ -102,9 +102,9 @@ export default function Index() {
               </div>
             </div>
             <div className="row pt-2 mx-n2">
-              {firstpage.results.map((product) => (
+              {firstpage.results.map((product, index) => (
                 <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
-                  <ProductCard product={product} />
+                  <ProductCard product={product} gtmList="Первая страница акции" gtmPosition={index} />
                   <hr className="d-sm-none" />
                 </div>
               ))}

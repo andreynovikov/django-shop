@@ -24,7 +24,7 @@ function resultToProduct(result: ProductResult) {
   }
 }
 
-export default function ProductSearchCard({ result }: { result: ProductResult }) {
+export default function ProductSearchCard({ result, position }: { result: ProductResult, position: number }) {
   const searchProduct = useMemo(() => resultToProduct(result), [result])
 
   const { data: product, isSuccess } = useQuery({
@@ -32,5 +32,5 @@ export default function ProductSearchCard({ result }: { result: ProductResult })
     queryFn: () => loadProductInfo(result.id),
   })
 
-  return <ProductCard product={isSuccess ? product : searchProduct} />
+  return <ProductCard product={isSuccess ? product : searchProduct} gtmList="Результаты поиска" gtmPosition={position} />
 }

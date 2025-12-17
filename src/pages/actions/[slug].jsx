@@ -26,9 +26,9 @@ export default function SalesAction({ slug }) {
       <div dangerouslySetInnerHTML={{ __html: action.description }}></div>
       {isSuccessProducts && products !== undefined && (
         <div className="row pt-2 mx-n2">
-          {products.map((product) => (
+          {products.map((product, index) => (
             <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
-              <ProductCard product={product} />
+              <ProductCard product={product} gtmList={`Рекламная акция ${action.name}`} gpmPosition={index} />
               <hr className="d-sm-none" />
             </div>
           ))}
