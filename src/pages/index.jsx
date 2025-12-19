@@ -38,10 +38,11 @@ export default function Index() {
   })
 
   const { data: adverts } = useQuery({
-    queryKey: advertKeys.list(['index_top_new', 'index_middle_new', 'index_bottom_new']),
-    queryFn: () => loadAdverts(['index_top_new', 'index_middle_new', 'index_bottom_new'])
+    queryKey: advertKeys.list(['main', 'index_top_new', 'index_middle_new', 'index_bottom_new']),
+    queryFn: () => loadAdverts(['main', 'index_top_new', 'index_middle_new', 'index_bottom_new'])
   })
 
+  const mainAdvert = adverts?.find(advert => advert.place === 'main')
   const topAdverts = adverts?.filter(advert => advert.place === 'index_top_new') ?? []
   const middleAdverts = adverts?.filter(advert => advert.place === 'index_middle_new') ?? []
   const bottomAdverts = adverts?.filter(advert => advert.place === 'index_bottom_new') ?? []
@@ -63,6 +64,12 @@ export default function Index() {
         <section className="container position-relative pt-3 pt-lg-0 mt-n10" style={{ zIndex: 10 }}>
           <TopCategoriesCard />
         </section>
+
+        {mainAdvert && (
+          <section className="container pt-5">
+            <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainAdvert.content }} />
+          </section>
+        )}
 
         <Adverts adverts={topAdverts} />
 
