@@ -46,10 +46,11 @@ export default function Order({ id }) {
     queryKey: orderKeys.detail(id),
     queryFn: () => loadOrder(id),
     enabled: status === 'authenticated',
-    refetchInterval: [STATUS_NEW, STATUS_ACCEPTED].includes(orderStatus) ? 60 * 1000 : false // check for updates every minute
+    refetchInterval: (query) => {
+      const orderStatus = query.state.data?.status
+      return [STATUS_NEW, STATUS_ACCEPTED].includes(orderStatus) ? 60 * 1000 : false // check for updates every minute
+    }
   })
-
-  const orderStatus = order?.status ?? STATUS_NEW
 
   const created = useMemo(() => {
     if (isSuccess) {
