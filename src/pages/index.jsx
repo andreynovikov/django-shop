@@ -78,8 +78,8 @@ export default function Index() {
             <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
               <h2 className="h3 mb-0 pt-3 me-2">Специальные предложения</h2>
               <div className="pt-3">
-                <Link className="btn btn-outline-accent btn-sm" href="/catalog/promo/">
-                  Больше товаров
+                <Link className="btn btn-accent btn-sm" href="/catalog/promo/">
+                  Больше специальных предложений
                   <i className="ci-arrow-right ms-1 me-n1" />
                 </Link>
               </div>
@@ -102,8 +102,8 @@ export default function Index() {
             <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
               <h2 className="h3 mb-0 pt-3 me-2">Новинки</h2>
               <div className="pt-3">
-                <Link className="btn btn-outline-accent btn-sm" href="/catalog/New/">
-                  Больше товаров
+                <Link className="btn btn-accent btn-sm" href="/catalog/New/">
+                  Больше новикок
                   <i className="ci-arrow-right ms-1 me-n1" />
                 </Link>
               </div>
