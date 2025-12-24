@@ -12,7 +12,7 @@ export default function Profile() {
   return (
     <>
       <UserTopbar>
-        <div className="d-flex w-100 text-light text-center me-3"></div>
+        <div className="d-flex w-100 text-light text-center me-3">&nbsp;</div>
       </UserTopbar>
       <UpdateForm ref={formRef} onReady={() => setFormReady(true)} />
       {formReady && (

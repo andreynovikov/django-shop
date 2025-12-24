@@ -31,7 +31,7 @@ export default function Favorites() {
   return (
     <>
       <UserTopbar>
-        <div className="d-flex w-100 text-light text-center me-3"></div>
+        <div className="d-flex w-100 text-light text-center me-3">&nbsp;</div>
       </UserTopbar>
       {favorites.length > 0 ? (
         isSuccess && products.results.map((product, index) => (

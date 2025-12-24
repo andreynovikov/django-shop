@@ -21,7 +21,7 @@ export default function Cart() {
     padding: '50px'
   }
 
-  if (true || !isSuccess || isEmpty)
+  if (!isSuccess || isEmpty)
     return (
       <section className="col-lg-8">
         <div className="d-flex justify-content-between align-items-center pt-3 pb-2 pb-sm-5 mt-1">
@@ -32,7 +32,7 @@ export default function Cart() {
             <i className="ci-arrow-left me-2" />Продолжить покупки
           </Link>
         </div>
-        {true || isLoading ? (
+        {isLoading ? (
           <PageLoading />
         ) : isEmpty ? (
           <div className="d-flex flex-row align-items-center">

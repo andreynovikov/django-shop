@@ -1,10 +1,10 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/router'
-import Script from 'next/script'
 import Link from 'next/link'
 
 import { register } from '@/lib/session'
 import { normalizePhone } from '@/lib/queries'
+import phoneInputMask from '@/lib/phone-input-mask'
 
 export default function RegistrationForm({ embedded = '', onComplete }) {
   const [consent, setConsent] = useState(false)
@@ -13,6 +13,11 @@ export default function RegistrationForm({ embedded = '', onComplete }) {
   const router = useRouter()
 
   const phoneRef = useRef(null)
+
+  useEffect(() => {
+    if (phoneRef.current && !!!phoneRef.current.inputmask)
+      phoneInputMask.mask(phoneRef.current)
+  }, [phoneRef])
 
   const validatePhone = () => {
     return phoneRef.current && phoneRef.current.inputmask.isComplete()
@@ -64,31 +69,6 @@ export default function RegistrationForm({ embedded = '', onComplete }) {
         setError(result.error.response.data)
       else
         setError({ 'non_field_errors': [result.error.response?.statusText || result.error.message] })
-    }
-  }
-
-  const setupInputMask = () => {
-    if (window && window.Inputmask && phoneRef.current && !!!phoneRef.current.inputmask) {
-      window.Inputmask({
-        mask: ["(999) 999-99-99", "* (999) 999-99-99"],
-        definitions: {
-          "*": { validator: "[78]" }
-        },
-        onBeforePaste: function (pastedValue) {
-          return pastedValue.replace("+7", "")
-        },
-        onBeforeMask: function (value) {
-          return value.replace("+7", "")
-        },
-        oncomplete: function () {
-          var value = this.inputmask.unmaskedvalue()
-          if (value.length > 10) {
-            value = value.substr(1)
-            this.inputmask.setValue(value)
-          }
-        },
-        keepStatic: true
-      }).mask(phoneRef.current)
     }
   }
 
@@ -185,11 +165,6 @@ export default function RegistrationForm({ embedded = '', onComplete }) {
           Зарегистрироваться
         </button>
       </div>
-      <Script
-        id="inputmask"
-        src="/js/inputmask.js"
-        onReady={setupInputMask}
-        onLoad={setupInputMask} />
     </form>
   )
 }

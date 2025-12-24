@@ -1,11 +1,11 @@
 import { useState, useEffect, useReducer, forwardRef, useImperativeHandle, useRef } from 'react'
-import Script from 'next/script'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { Loading } from '@/components/loading'
 
 import { useSession } from '@/lib/session'
 import { userKeys, getUserForm, updateUser } from '@/lib/queries'
+import phoneInputMask from '@/lib/phone-input-mask'
 
 export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, ref) {
   const [ready, setReady] = useState(false)
@@ -62,6 +62,12 @@ export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, 
   const formRef = useRef()
   const phoneRef = useRef()
 
+  useEffect(() => {
+    console.log(phoneRef.current)
+    if (ready && phoneRef.current && !!!phoneRef.current.inputmask)
+      phoneInputMask.mask(phoneRef.current)
+  }, [ready, phoneRef])
+
   const validatePhone = () => {
     return phoneRef.current && phoneRef.current.inputmask.isComplete()
   }
@@ -96,31 +102,6 @@ export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, 
   useImperativeHandle(ref, () => ({
     submit: handleSubmit
   }))
-
-  const setupInputMask = () => {
-    if (window && window.Inputmask && phoneRef.current && !!!phoneRef.current.inputmask) {
-      window.Inputmask({
-        mask: ["(999) 999-99-99", "* (999) 999-99-99"],
-        definitions: {
-          "*": { validator: "[78]" }
-        },
-        onBeforePaste: function (pastedValue) {
-          return pastedValue.replace("+7", "")
-        },
-        onBeforeMask: function (value) {
-          return value.replace("+7", "")
-        },
-        oncomplete: function () {
-          var value = this.inputmask.unmaskedvalue()
-          if (value.length > 10) {
-            value = value.substr(1)
-            this.inputmask.setValue(value)
-          }
-        },
-        keepStatic: true
-      }).mask(phoneRef.current)
-    }
-  }
 
   if (!ready)
     return <Loading className="text-center" />
@@ -174,11 +155,6 @@ export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, 
           </div>
         ))}
       </div>
-      <Script
-        id="inputmask"
-        src="/js/inputmask.js"
-        onReady={setupInputMask}
-        onLoad={setupInputMask} />
     </form>
   )
 })

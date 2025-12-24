@@ -1,34 +1,29 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import Script from 'next/script'
 import { useQuery } from '@tanstack/react-query'
+
+import Countdown from '@/components/countdown'
 
 import { formatPhone } from '@/lib/format'
 import { signIn } from '@/lib/session'
 import { userKeys, checkUser, normalizePhone } from '@/lib/queries'
-import { useCountdown } from '@/lib/countdown'
+import phoneInputMask from '@/lib/phone-input-mask'
 
 const CODE_RESEND_DELAY = 240
 
 export default function LoginForm({ ctx, phone, hideModal = undefined, embedded = '' }) {
-  const [loginPhone, setLoginPhone] = useState('')
+  const [loginPhone, setLoginPhone] = useState(phone)
   const [pdConsent, setPdConsent] = useState(false)
   const [ofConsent, setOfConsent] = useState(false)
   const [reset, setReset] = useState(false)
   const [error, setError] = useState({})
 
   const [delay, setDelay] = useState(-1) // TODO: keep delay on page reload
-  const [countdown, countdownText] = useCountdown(delay) // TODO: put in child component to optimize rendering
 
   const [showPermanentPassword, setShowPermanentPassword] = useState(ctx === 'reg')
 
   const router = useRouter()
-
-  useEffect(() => {
-    if (phone != '')
-      setLoginPhone(phone)
-  }, [phone])
 
   const { data: shopUser, isSuccess, isFetching, error: queryError, refetch } = useQuery({
     queryKey: userKeys.check(loginPhone, reset),
@@ -51,7 +46,7 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
     if (reset) {
       refetch()
     }
-  }, [reset])
+  }, [refetch, reset])
 
   useEffect(() => {
     if (queryError?.response?.status === 404) {
@@ -70,15 +65,19 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
         setError({ phone: "Пользователь с таким телефоном не зарегистрирован" })
       }
     }
-  }, [queryError])
+  }, [queryError, loginPhone, ctx, embedded, hideModal])
 
   const phoneRef = useRef(null)
   const passwordRef = useRef(null)
 
+  useEffect(() => {
+    if (phoneRef.current && !!!phoneRef.current.inputmask)
+      phoneInputMask.mask(phoneRef.current)
+  }, [phoneRef])
+
   const validatePhone = () => {
     return phoneRef.current && phoneRef.current.inputmask.isComplete() ?
       {} : { phone: "Введите корректный номер" }
-
   }
 
   const validatePassword = (value) => {
@@ -165,7 +164,8 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
             } else {
               setError({ password: "Неизвестная ошибка входа" })
             }
-          } catch (e) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          } catch (error) {
             setError({ password: result.error.response?.statusText || result.error.message })
           }
         }
@@ -182,31 +182,6 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
   const resetPassword = () => {
     setDelay(-1)
     setReset(true)
-  }
-
-  const setupInputMask = () => {
-    if (window && window.Inputmask && phoneRef.current && !!!phoneRef.current.inputmask) {
-      window.Inputmask({
-        mask: ["(999) 999-99-99", "* (999) 999-99-99"],
-        definitions: {
-          "*": { validator: "[78]" }
-        },
-        onBeforePaste: function (pastedValue) {
-          return pastedValue.replace("+7", "")
-        },
-        onBeforeMask: function (value) {
-          return value.replace("+7", "")
-        },
-        oncomplete: function () {
-          var value = this.inputmask.unmaskedvalue()
-          if (value.length > 10) {
-            value = value.substr(1)
-            this.inputmask.setValue(value)
-          }
-        },
-        keepStatic: true
-      }).mask(phoneRef.current)
-    }
   }
 
   return (
@@ -226,7 +201,7 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
               name="password"
               className={"form-control" + ('password' in error ? " is-invalid" : "")}
               style={embedded ? {} : { maxWidth: "20rem" }}
-              ref={passwordRef.current}
+              ref={passwordRef}
               id={`${embedded}${ctx}-password-input`}
               placeholder={shopUser?.permanent_password ? "Пароль" : "Код из смс"}
               onChange={handleChange}
@@ -234,19 +209,7 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
               autoFocus />
             {'password' in error && <div className="invalid-feedback">{error.password}</div>}
             <div className="form-text">
-              {countdown > 180 && (
-                <span className="text-warning">Код выслан на указанный телефон по смс</span>
-              )}
-              {countdown > 0 && <div className="d-block">Запросить {shopUser?.permanent_password ? "пароль" : "код"} повторно можно<br />{countdownText}</div>}
-              {(isSuccess && delay >= 0 && countdown === 0) && (
-                <div><a className="link-primary" onClick={resetPassword} style={{ cursor: 'pointer' }}>
-                  {shopUser?.permanent_password ? (
-                    "Сбросить забытый пароль"
-                  ) : (
-                    "Прислать код повторно"
-                  )}
-                </a></div>
-              )}
+              <Countdown delay={delay} permanentPassword={shopUser?.permanent_password} reset={isSuccess ? resetPassword : undefined} />
             </div>
           </div>
           {!['order', 'preorder', 'warranty'].includes(ctx) && isSuccess && !shopUser.permanent_password && (
@@ -375,11 +338,6 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
           </Link>
         </div>
       )}
-      <Script
-        id="inputmask"
-        src="/js/inputmask.js"
-        onReady={setupInputMask}
-        onLoad={setupInputMask} />
     </form>
   )
 }

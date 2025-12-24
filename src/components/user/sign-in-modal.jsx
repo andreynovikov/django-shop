@@ -56,7 +56,7 @@ export default forwardRef(function SignInModal({ ctx: modalCtx }, ref) {
         <Modal.Body>
           <Tab.Content>
             <Tab.Pane eventKey="signin">
-              <LoginForm embedded={modalCtx} ctx={ctx} phone={phone} hideModal={hideModal} />
+              <LoginForm key={phone} embedded={modalCtx} ctx={ctx} phone={phone} hideModal={hideModal} />
             </Tab.Pane>
             <Tab.Pane eventKey="signup">
               <RegistrationForm embedded={modalCtx} onComplete={onRegistrationComplete} />
