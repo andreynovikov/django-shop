@@ -54,7 +54,8 @@ export function YandexMetrika(props: YMParams) {
 
 export function eCommerce(payload: Record<string, unknown>) {
   if (window['dataLayer'] === undefined) {
-    console.warn('Yandex metrika is not initialized or Ad blocker is used')
+    if (process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID)
+      console.warn('Yandex metrika is not initialized or Ad blocker is used')
     return
   }
 
