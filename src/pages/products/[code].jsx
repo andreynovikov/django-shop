@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 import { useInView } from 'react-intersection-observer'
 
-import Accordion from 'react-bootstrap/Accordion'
+import { Collapsible } from '@base-ui/react/collapsible'
+
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 
@@ -134,7 +135,6 @@ export default function Product({ code }) {
   const [fieldNames, setFieldNames] = useState({})
   const [currentImage, setCurrentImage] = useState()
   const [galleryOpen, setGalleryOpen] = useState(false)
-  const [stockVisible, setStockVisible] = useState(false)
   const [reviewsVisible, setReviewsVisible] = useState(false)
 
   const router = useRouter()
@@ -422,79 +422,20 @@ export default function Product({ code }) {
                     </div>
                   )}
 
-                  { /* Product panels */}
-                  <Accordion className={"mb-4" + (product.enabled ? "" : " mt-5")} defaultActiveKey={['information']} alwaysOpen>
-                    {/*
-                                        <Accordion.Item eventKey="information">
-                                            <Accordion.Header>
-                                                <i className="ci-lable text-muted lead align-middle mt-n1 me-2" />Информация
-                                            </Accordion.Header>
-                                            <Accordion.Body className="fs-sm">
-                                                { product.manufacturer && (
-                                                    <div className="d-flex justify-content-between pb-2">
-                                                        <div className="text-muted fw-light">Производитель</div>
-                                                        <div className="fw-normal">{ product.manufacturer.name }</div>
-                                                    </div>
-                                                )}
-                                                { product.partnumber && (
-                                                    <div className="d-flex justify-content-between pb-2">
-                                                        <div className="text-muted fw-light">Артикул</div>
-                                                        <div className="fw-normal">{ product.partnumber }</div>
-                                                    </div>
-                                                )}
-                                                { product.developer_country && product.developer_country.enabled && (
-                                                    <div className="d-flex justify-content-between pb-2">
-                                                        <div className="text-muted fw-light">Страна разработки</div>
-                                                        <div className="fw-normal">{ product.developer_country.name }</div>
-                                                    </div>
-                                                )}
-                                                { product.country && product.country.enabled && (
-                                                    <div className="d-flex justify-content-between pb-2">
-                                                        <div className="text-muted fw-light">Страна производства</div>
-                                                        <div className="fw-normal">{ product.country.name }</div>
-                                                    </div>
-                                                )}
-                                                { product.warranty && (
-                                                    <div className="d-flex justify-content-between pb-2">
-                                                        <div className="text-muted fw-light">Гарантия</div>
-                                                        <div className="fw-normal">{ product.warranty }</div>
-                                                    </div>
-                                                )}
-                                                { product.article && (
-                                                    <div className="d-flex justify-content-between pb-2">
-                                                        <div className="text-muted fw-light">Код товара</div>
-                                                        <div className="fw-normal">{ product.article }</div>
-                                                    </div>
-                                                )}
-                                            </Accordion.Body>
-                                        </Accordion.Item>
-                                        */
-                    }
-                    {product.enabled && product.cost > 0 && (
-                      <Accordion.Item eventKey="stock">
-                        <Accordion.Header>
-                          <i className="ci-location text-muted lead align-middle mt-n1 me-2" />Наличие в магазинах
-                        </Accordion.Header>
-                        <Accordion.Body className="fs-sm" onEnter={() => setStockVisible(true)}>
-                          {stockVisible && (
-                            <Suspense fallback={<Loading className="text-center" />}>
-                              <ProductStock id={product.id} />
-                            </Suspense>
-                          )}
-                        </Accordion.Body>
-                      </Accordion.Item>
-                    )}
-                    {product.manuals && (
-                      <Accordion.Item eventKey="instructions">
-                        <Accordion.Header>
-                          <i className="ci-clip text-muted lead align-middle mt-n1 me-2" />Инструкции
-                        </Accordion.Header>
-                        <Accordion.Body className="fs-sm">
-                          <div dangerouslySetInnerHTML={{ __html: product.manuals }}></div>
-                        </Accordion.Body>
-                      </Accordion.Item>
-                    )}
-                  </Accordion>
+                  {product.enabled && product.cost > 0 && (
+                    <Collapsible.Root className={"mb-4" + (product.enabled ? "" : " mt-5")}>
+                      <Collapsible.Trigger className="btn btn-outline-secondary btn-sm w-100">
+                        <i className="ci-location text-muted lead align-middle mt-n1 me-2" />Наличие в магазинах
+                      </Collapsible.Trigger>
+                      <Collapsible.Panel className="card mt-1">
+                        <div className="card-body">
+                          <Suspense fallback={<Loading className="text-center" />}>
+                            <ProductStock id={product.id} />
+                          </Suspense>
+                        </div>
+                      </Collapsible.Panel>
+                    </Collapsible.Root>
+                  )}
 
                   {product.enabled && product.gifts && (
                     <>
@@ -619,6 +560,13 @@ export default function Product({ code }) {
           <div className="pt-lg-2 pb-3 mb-md-3">
             <h2 className="h3 pb-2">Комплектация</h2>
             <div dangerouslySetInnerHTML={{ __html: product.complect }} />
+          </div>
+        )}
+
+        {product.manuals && (
+          <div className="pt-lg-2 pb-3 mb-md-3">
+            <h2 className="h3 pb-2">Инструкции {product.title}</h2>
+            <div dangerouslySetInnerHTML={{ __html: product.manuals }} />
           </div>
         )}
       </div>
