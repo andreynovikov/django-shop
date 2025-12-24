@@ -11,6 +11,7 @@ import UserTopbar from '@/components/user/topbar'
 import OrderPaymentButton from '@/components/order/payment-button'
 import OrderStatusBadge from '@/components/order/status-badge'
 import PageSelector from '@/components/page-selector'
+import { PageLoading } from '@/components/loading'
 
 import { useSession } from '@/lib/session'
 import { orderKeys, loadOrders, getLastOrder } from '@/lib/queries'
@@ -140,7 +141,7 @@ export default function Orders({ filter, page, track }) {
           )}
         </>
       ) : (isLoading || isTracking) ? (
-        <p className="lead">Загружается...</p>
+        <PageLoading />
       ) : (
         <p className="lead">У вас нет {
           filter === 'active' ? "активных"

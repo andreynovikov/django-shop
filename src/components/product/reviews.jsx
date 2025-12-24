@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
+import { Loading } from '@/components/loading'
 import ReviewRating from '@/components/review/rating'
 import ReviewItem from '@/components/review/item'
 import ReviewForm from '@/components/review/form'
@@ -47,9 +48,7 @@ export default function ProductReviews({ product }) {
   }, [isSuccess, reviews])
 
   if (!isSuccess)
-    return (
-      <div>Loading...</div>
-    )
+    return <Loading className="text-center" />
 
   return (
     <>

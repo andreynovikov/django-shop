@@ -3,6 +3,7 @@ import Link from 'next/link'
 import PageLayout from '@/components/layout/page'
 import LoginForm from '@/components/login-form'
 import CartItem from '@/components/cart/item'
+import { PageLoading } from '@/components/loading'
 
 import useBasket from '@/lib/basket'
 import { useSession, signOut } from '@/lib/session'
@@ -20,7 +21,7 @@ export default function Cart() {
     padding: '50px'
   }
 
-  if (!isSuccess || isEmpty)
+  if (true || !isSuccess || isEmpty)
     return (
       <section className="col-lg-8">
         <div className="d-flex justify-content-between align-items-center pt-3 pb-2 pb-sm-5 mt-1">
@@ -31,10 +32,8 @@ export default function Cart() {
             <i className="ci-arrow-left me-2" />Продолжить покупки
           </Link>
         </div>
-        {isLoading ? (
-          <div className="spinner-border" style={{ width: "5rem", height: "5rem" }} role="status">
-            <span className="visually-hidden">Загружается...</span>
-          </div>
+        {true || isLoading ? (
+          <PageLoading />
         ) : isEmpty ? (
           <div className="d-flex flex-row align-items-center">
             <i className="ci-cart d-block text-muted" style={noCartStyle} />

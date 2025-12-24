@@ -2,6 +2,8 @@ import { useState, useEffect, useReducer, forwardRef, useImperativeHandle, useRe
 import Script from 'next/script'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
+import { Loading } from '@/components/loading'
+
 import { useSession } from '@/lib/session'
 import { userKeys, getUserForm, updateUser } from '@/lib/queries'
 
@@ -121,7 +123,7 @@ export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, 
   }
 
   if (!ready)
-    return <div>Loading...</div>
+    return <Loading className="text-center" />
 
   return (
     <form ref={formRef} noValidate>

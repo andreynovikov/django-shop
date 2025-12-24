@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
+import { Loading } from '@/components/loading'
 import UserUpdateModal from '@/components/user/update-modal'
 
 import { useSession } from '@/lib/session'
@@ -79,7 +80,7 @@ export default function ReviewForm({ product, review: reviewId }) {
   }
 
   if (!isFormSuccess || (reviewId !== undefined && !isReviewSuccess))
-    return <div>Loading...</div>
+    return <Loading className="text-center" />
 
   return (
     <>

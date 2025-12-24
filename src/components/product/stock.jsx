@@ -7,7 +7,7 @@ import Collapse from 'react-bootstrap/Collapse'
 
 import SimpleBar from 'simplebar-react'
 
-import Loading from '@/components/loading'
+import { Loading } from '@/components/loading'
 
 import { productKeys, loadProductStock } from '@/lib/queries'
 

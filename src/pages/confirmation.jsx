@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import PageLayout from '@/components/layout/page'
 import NoImage from '@/components/product/no-image'
 import { STATUS_NEW } from '@/components/order/status-badge'
+import { Loading } from '@/components/loading'
 
 import useBasket from '@/lib/basket'
 import { useSession } from '@/lib/session'
@@ -120,14 +121,10 @@ export default function Confirmation() {
     return (
       <section className="col-lg-8">
         <div className="d-flex justify-content-between align-items-center pt-3 pb-2 pb-sm-5 mt-1">
-          <h2 className="h6 text-light mb-0">
-            {isFetching ? "Загружается..." : ""}
-          </h2>
+          <h2 className="h6 text-light mb-0"></h2>
         </div>
         {isFetching ? (
-          <div className="spinner-border" style={{ width: "5rem", height: "5rem" }} role="status">
-            <span className="visually-hidden">Загружается...</span>
-          </div>
+          <Loading />
         ) : isError ? (
           <div className="lead">Что-то пошло не так...</div>
         ) : (

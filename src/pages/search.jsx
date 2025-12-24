@@ -12,6 +12,7 @@ import ProductSearchCard from '@/components/product/search-card'
 import MultipleChoiceFilter from '@/components/product/filters/multiple-choice-filter'
 import PriceFilter from '@/components/product/filters/price-filter'
 import PageSelector, { SmallPageSelector } from '@/components/page-selector'
+import { PageLoading } from '@/components/loading'
 
 import { productKeys } from '@/lib/queries'
 import { loadProducts } from '@/lib/diginetica'
@@ -178,16 +179,8 @@ export default function Search({ text }) {
     )
   }
 
-  if (isLoading) {
-    return (
-      <div className="container pb-5 mb-2 mb-md-4">
-        <div className="d-flex align-items-center pt-2 pb-5">
-          <div className="spinner-border text-light" role="status"></div>
-          <div className="lead ms-3 text-light">Загружается...</div>
-        </div>
-      </div>
-    )
-  }
+  if (isLoading)
+    return <PageLoading className="pt-5" />
 
   if (isError) {
     return (

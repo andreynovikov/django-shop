@@ -9,8 +9,8 @@ import Offcanvas from 'react-bootstrap/Offcanvas'
 import PageLayout from '@/components/layout/page'
 import ProductCard from '@/components/product/card'
 import ProductFilter from '@/components/product/filter'
-import Loading from '@/components/loading'
 import PageSelector from '@/components/page-selector'
+import { Loading, PageLoading } from '@/components/loading'
 
 import { categoryKeys, advertKeys, productKeys, loadCategories, loadCategory, loadAdverts, loadProducts } from '@/lib/queries'
 import { useToolbar } from '@/lib/toolbar'
@@ -173,22 +173,8 @@ export default function Category({ path, currentPage, pageSize, order, filters }
     setCurrentFilters({[field]: value})
   }
 
-  if (router.isFallback) {
-    return (
-      <div className="container pb-5 mb-2 mb-md-4">
-        <div className="row">
-          <section className="col-lg-12">
-            <div className="pt-2 pb-4 pb-sm-5">
-              <div className="pb-3">
-                &nbsp;
-              </div>
-            </div>
-            <Loading className="my-3 py-3 text-center" mega />
-          </section>
-        </div>
-      </div>
-    )
-  }
+  if (router.isFallback)
+    return <PageLoading />
 
   if (isSuccess)
     return (

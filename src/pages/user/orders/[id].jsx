@@ -11,6 +11,7 @@ import { useSession } from '@/lib/session'
 import { orderKeys, loadOrder } from '@/lib/queries'
 import { formatPhone } from '@/lib/format'
 
+import { Loading } from '@/components/loading'
 import NoImage from '@/components/product/no-image'
 import UserPageLayout from '@/components/layout/user-page'
 import UserTopbar from '@/components/user/topbar'
@@ -72,7 +73,18 @@ export default function Order({ id }) {
 
   if (!isSuccess)
     return (
-      <div>Loading...</div>
+      <div className="container pb-5 mb-2 mb-md-4">
+        <div className="row">
+          <section className="col-lg-12">
+            <div className="pt-2 pb-4 pb-sm-5">
+              <div className="pb-3">
+                &nbsp;
+              </div>
+            </div>
+            <Loading className="my-3 py-3 text-center" mega />
+          </section>
+        </div>
+      </div>
     )
 
   return (

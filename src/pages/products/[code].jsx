@@ -20,7 +20,7 @@ import ProductShopping from '@/components/product/shopping'
 import ProductPreorder from '@/components/product/preorder'
 import ImageGallery from '@/components/product/image-gallery'
 import ImageCarousel from '@/components/product/image-carousel'
-import Loading from '@/components/loading'
+import { Loading, PageLoading } from '@/components/loading'
 
 import useFavorites from '@/lib/favorites'
 import useComparison from '@/lib/comparison'
@@ -250,13 +250,7 @@ export default function Product({ code }) {
   }
 
   if (isLoading || !isSuccess)
-    return (
-      <div className="container">
-        <div className="bg-light shadow-lg rounded-3 px-4 py-3 mb-5">
-          <Loading className="text-center my-5 py-5" mega />
-        </div>
-      </div>
-    )
+    return <PageLoading className="bg-light shadow-lg rounded-3 px-4 py-3 mb-5" />
 
   return (
     <>
