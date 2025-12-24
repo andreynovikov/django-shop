@@ -3,6 +3,7 @@ import UserAvatar from '@/components/user/avatar'
 
 import moment from 'moment'
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function ReviewItem({ review, first, last }) {
   return (
     <div className={"product-review mb-4 pb-4" + (!last && " border-bottom")} id={"r" + review.id}>
@@ -11,7 +12,7 @@ export default function ReviewItem({ review, first, last }) {
           <UserAvatar gravatar={review.user.gravatar} name={review.user.full_name} size="50" border />
           <div className="ps-3">
             <h6 className="fs-sm mb-0">{review.user.full_name}</h6>
-            <span className="fs-ms text-muted">{moment(review.submit_date).fromNow()}</span>
+            <span className="d-none fs-ms text-muted">{moment(review.submit_date).fromNow()}</span>
           </div>
         </div>
         <div>

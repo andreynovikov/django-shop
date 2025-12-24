@@ -13,8 +13,8 @@ export default function BlogEntryAuthor({ entry, wide = false }) {
         </div>
         {entry.author.full_name}
       </Link>
-      <span className="blog-entry-meta-divider"></span>
-      <Link className="blog-entry-meta-link" href={entry.urls.canonical}>
+      <span className="d-none blog-entry-meta-divider"></span>
+      <Link className="d-none blog-entry-meta-link" href={entry.urls.canonical}>
         {moment(entry.publication_date).format(wide ? 'LL' : "D MMM 'YY")}
       </Link>
     </>
