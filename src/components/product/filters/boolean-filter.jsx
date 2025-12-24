@@ -2,7 +2,7 @@ export default function BooleanFilter({ filter, filterValue, onFilterChanged }) 
   const handleChange = (event) => {
     let value = event.target.value
     if (value === '')
-      value = undefined
+      value = null
     onFilterChanged(filter.name, value)
   }
 
@@ -14,8 +14,8 @@ export default function BooleanFilter({ filter, filterValue, onFilterChanged }) 
           type="radio"
           name={filter.name}
           id={`${filter.id}-1`}
-          value="1"
-          checked={filterValue === '1'}
+          value="true"
+          checked={filterValue === 'true'}
           onChange={handleChange} />
         <label className="form-check-label" htmlFor={`${filter.id}-1`}>да</label>
       </div>
@@ -25,12 +25,12 @@ export default function BooleanFilter({ filter, filterValue, onFilterChanged }) 
           type="radio"
           name={filter.name}
           id={`${filter.id}-0`}
-          value="0"
-          checked={filterValue === '0'}
+          value="false"
+          checked={filterValue === 'false'}
           onChange={handleChange} />
         <label className="form-check-label" htmlFor={`${filter.id}-0`}>нет</label>
       </div>
-      <div className={"form-check form-check-inline" + (filterValue !== undefined ? "" : " d-none")}>
+      <div className={"form-check form-check-inline" + (filterValue !== null ? "" : " d-none")}>
         <input
           className="form-check-input"
           type="radio"

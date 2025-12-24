@@ -1,10 +1,10 @@
 export default function ChoiceFilter({ filter, filterValue, onFilterChanged }) {
-  const currentValue = filterValue !== undefined ? filterValue : ''
+  const currentValue = filterValue ?? ''
 
   const handleChange = (event) => {
     let value = event.target.value
     if (value === '')
-      value = undefined
+      value = null
     onFilterChanged(filter.name, value)
   }
 

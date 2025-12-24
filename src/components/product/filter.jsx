@@ -9,7 +9,7 @@ export default function ProductFilter({ filter, filterValue, onFilterChanged }) 
     filter.class === 'NullBooleanField' ? BooleanFilter
       : filter.class === 'ChoiceField' ? ChoiceFilter
         : filter.class === 'MultipleChoiceField' ? MultipleChoiceFilter
-          : filter.widget === 'PriceWidget' ? PriceFilter
+          : filter.widget === 'ShopRangeWidget' ? PriceFilter
             : filter.widget === 'ShopSliderWidget' ? SliderFilter
               : undefined
 

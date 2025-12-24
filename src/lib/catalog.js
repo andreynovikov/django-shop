@@ -1,24 +1,24 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 
-export const recomendedFilters = [
-  { field: 'enabled', value: 1 },
-  { field: 'categories', value: 473 },
-  { field: 'firstpage', value: 1 },
-  { field: 'show_on_sw', value: 1 }
-]
+export const recomendedFilters = {
+  enabled: true,
+  categories: 473,
+  firstpage: true,
+  show_on_sw: true
+}
 
-export const giftsFilters = [
-  { field: 'enabled', value: 1 },
-  { field: 'gift', value: 1 },
-  { field: 'show_on_sw', value: 1 }
-]
+export const giftsFilters = {
+  enabled: true,
+  gift: true,
+  show_on_sw: true
+}
 
-export const firstPageFilters = [
-  { field: 'enabled', value: 1 },
-  { field: 'firstpage', value: 1 },
-  { field: 'show_on_sw', value: 1 }
-]
+export const firstPageFilters = {
+  enabled: true,
+  firstpage: true,
+  show_on_sw: true
+}
 
 export default function useCatalog() {
   const router = useRouter()

@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery } from '@tanstack/react-query'
@@ -16,17 +15,10 @@ export default function Favorites() {
   const { addItem } = useBasket()
   const { favorites, unfavoritize } = useFavorites()
 
-  const filters = useMemo(() => {
-    return favorites.reduce((filters, id) => {
-      filters.push({ field: 'id', value: id })
-      return filters
-    }, [])
-  }, [favorites])
-
   const { data: products, isSuccess } = useQuery({
-    queryKey: productKeys.list(1, 999, filters, 'title'),
-    queryFn: () => loadProducts(1, 999, filters, 'title'),
-    enabled: filters.length > 0
+    queryKey: productKeys.list(1, 999, {id: favorites}, 'title'),
+    queryFn: () => loadProducts(1, 999, {id: favorites}, 'title'),
+    enabled: favorites.length > 0
   })
 
   const handleClick = (product) => {

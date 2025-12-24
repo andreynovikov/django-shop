@@ -1,7 +1,8 @@
-import { useState, useReducer, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
+import { useQueryStates } from 'nuqs'
 
 import Offcanvas from 'react-bootstrap/Offcanvas'
 
@@ -14,27 +15,14 @@ import PageSelector from '@/components/page-selector'
 import { categoryKeys, advertKeys, productKeys, loadCategories, loadCategory, loadAdverts, loadProducts } from '@/lib/queries'
 import { useToolbar } from '@/lib/toolbar'
 import useCatalog from '@/lib/catalog'
+import { productSearchParams } from '@/lib/search-params'
 
-const baseFilters = [
-  { field: 'enabled', value: 1 },
-  { field: 'show_on_sw', value: 1 }
-]
-const defaultOrder = 'title'
-
-function filterReducer(filters, action) {
-  switch (action.type) {
-    case 'reset':
-      return action.filters
-    case 'set':
-      const { field, value } = action.filter
-      const newFilters = filters.filter(filter => filter.field !== field)
-      if (value !== undefined)
-        newFilters.push({ field, value })
-      return newFilters
-    default:
-      return filters
-  }
+const baseFilters = {
+  enabled: true,
+  show_on_sw: true,
 }
+
+const defaultOrder = 'title'
 
 function updateSidebarStyle(container, sidebar, scrollOffset) {
   if (sidebar === undefined || sidebar === null)
@@ -100,12 +88,10 @@ function updateSidebarStyle(container, sidebar, scrollOffset) {
 
 /*
   TODO:
-  - refactor price filter on server side
   - более строгие фильтры не на первой странице приводят к пустой странице
-  - debounce currentFilters (useDeferredValue does not work)
 */
 export default function Category({ path, currentPage, pageSize, order, filters }) {
-  const [currentFilters, setFilter] = useReducer(filterReducer, filters)
+  const [currentFilters, setCurrentFilters] = useQueryStates(productSearchParams)
   const [showFilters, setShowFilters] = useState(false)
 
   const containerRef = useRef()
@@ -138,11 +124,6 @@ export default function Category({ path, currentPage, pageSize, order, filters }
     }
   }, [])
 
-  // reset filters on page change
-  useEffect(() => {
-    setFilter({ type: 'reset', filters })
-  }, [filters])
-
   const router = useRouter()
   useCatalog()
 
@@ -170,48 +151,26 @@ export default function Category({ path, currentPage, pageSize, order, filters }
   })
 
   const keepPreviousData = (previousData, previousQuery) => {
-    const previousCategory = previousQuery?.queryKey[2]['filters'].filter(filter => filter.field === 'categories').map(filter => filter.value) ?? []
+    const previousCategory = previousQuery?.queryKey[2]['filters']?.categories
     // required for filters not to loose choices and attributes
-    if (previousCategory.includes(category.id))
+    if (previousCategory === category.id)
       return previousData
     return undefined
   }
 
+  //console.log("current", currentFilters)
+
+  const productFilters = {...currentFilters, ...filters}
   const { data: products, isSuccess: isProductsSuccess, isLoading: isProductsLoading } = useQuery({
-    queryKey: productKeys.list(currentPage, pageSize, currentFilters, order),
-    queryFn: () => loadProducts(currentPage, pageSize, currentFilters, order),
+    queryKey: productKeys.list(currentPage, pageSize, productFilters, order),
+    queryFn: () => loadProducts(currentPage, pageSize, productFilters, order),
     enabled: isSuccess,
     placeholderData: keepPreviousData
   })
 
-  const selectedFilters = useMemo(() => {
-    if (!isSuccess || !!!category.filters)
-      return {}
-
-    return category.filters.reduce((filters, filter) => {
-      let value = undefined
-      if (filter.widget === 'PriceWidget') {
-        const minValue = currentFilters.reduce((value, f) => f.field === filter.name + '_min' ? f.value : value, undefined)
-        const maxValue = currentFilters.reduce((value, f) => f.field === filter.name + '_max' ? f.value : value, undefined)
-        if (minValue !== undefined || maxValue !== undefined)
-          value = [minValue, maxValue]
-      } else {
-        value = currentFilters.reduce((value, f) => f.field === filter.name ? f.value : value, undefined)
-      }
-      filters[filter.name] = value
-      return filters
-    }, {})
-  }, [currentFilters, category, isSuccess])
 
   const handleFilterChanged = (field, value) => {
-    console.log(field, value)
-    const filter = category.filters.reduce((value, filter) => field === filter.name ? filter : value, undefined)
-    if (filter.widget === 'PriceWidget') {
-      setFilter({ type: 'set', filter: { field: `${field}_min`, value: value?.[0] } })
-      setFilter({ type: 'set', filter: { field: `${field}_max`, value: value?.[1] } })
-    } else {
-      setFilter({ type: 'set', filter: { field, value } })
-    }
+    setCurrentFilters({[field]: value})
   }
 
   if (router.isFallback) {
@@ -273,7 +232,7 @@ export default function Category({ path, currentPage, pageSize, order, filters }
                           <h3 className="widget-title">{filter.label}</h3>
                           <ProductFilter
                             filter={{ ...filter, ...products?.filters?.[filter.name] }}
-                            filterValue={selectedFilters[filter.name]}
+                            filterValue={currentFilters[filter.name]}
                             onFilterChanged={handleFilterChanged} />
                         </div>
                       ))}
@@ -370,11 +329,11 @@ Category.getLayout = function getLayout(page) {
 
 export async function getStaticProps(context) {
   let path = context.params?.path
-  let currentPage = '1'
+  let currentPage = 1
   if (+path[path.length - 1] > 0) {
-    currentPage = path.pop()
+    currentPage = +(path.pop())
 
-    if (currentPage === '1') {
+    if (currentPage === 1) {
       return {
         redirect: {
           destination: '/catalog/' + path.join('/') + '/',
@@ -390,7 +349,7 @@ export async function getStaticProps(context) {
   })
 
   const pageSize = 1000 // category.categories || category.filters ? 15 : 16;
-  const productFilters = [{ field: 'categories', value: category.id }, ...baseFilters]
+  const productFilters = { categories: category.id, ...baseFilters }
   const productOrder = category.product_order || defaultOrder
   await queryClient.prefetchQuery({
     queryKey: productKeys.list(currentPage, pageSize, productFilters, productOrder),

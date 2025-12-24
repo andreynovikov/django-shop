@@ -1,5 +1,7 @@
 import axios from 'axios'
 
+import { productSearchParamsSerializer } from '@/lib/search-params'
+
 export const userKeys = {
   all: ['users'],
   form: () => [...userKeys.all, 'form'],
@@ -348,24 +350,14 @@ export async function loadKind(id) {
   return response.data
 }
 
-export async function loadProducts(page, pageSize, filters, ordering) {
-  const url = new URL(API + 'products/')
-
-  if (filters != null)
-    for (var filter of filters)
-      if (Array.isArray(filter.value)) {
-        for (const value of filter.value)
-          url.searchParams.append(filter.field, value)
-      } else {
-        url.searchParams.append(filter.field, filter.value)
-      }
-  if (page != null)
-    url.searchParams.set('page', page)
-  if (pageSize != null)
-    url.searchParams.set('page_size', pageSize)
-  if (ordering != null)
-    url.searchParams.set('ordering', ordering)
-  const response = await apiClient.get(url.toString())
+export async function loadProducts(page, page_size, filters, ordering) {
+  const url = API + 'products/' + productSearchParamsSerializer({
+    ...filters,
+    page,
+    page_size,
+    ordering,
+  })
+  const response = await apiClient.get(url)
   return response.data
 }
 

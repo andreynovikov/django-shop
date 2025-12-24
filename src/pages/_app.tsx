@@ -7,7 +7,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/pages'
 import { QueryClient, QueryClientProvider, HydrationBoundary } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
-import { Toast } from '@base-ui-components/react/toast'
+import { Toast } from '@base-ui/react/toast'
 
 import ToastList from '@/components/toast-list'
 
@@ -17,7 +17,6 @@ import { ToolbarProvider } from '@/lib/toolbar';
 import { apiClient, categoryKeys, productKeys, pageKeys } from '@/lib/queries';
 
 import 'simplebar-react/dist/simplebar.min.css';
-import '@/vendor/nouislider.css'; // price filter // TODO: this breaks external font import
 import 'tiny-slider/dist/tiny-slider.css'; // carousel
 import 'react-bootstrap-typeahead/css/Typeahead.css';
 import 'react-bootstrap-typeahead/css/Typeahead.bs5.css';

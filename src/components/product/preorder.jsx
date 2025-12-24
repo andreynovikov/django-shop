@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import { Toast } from '@base-ui-components/react/toast'
+import { Toast } from '@base-ui/react/toast'
 import Modal from 'react-bootstrap/Modal'
 
 import LoginForm from '@/components/login-form'
