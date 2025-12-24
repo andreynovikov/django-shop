@@ -135,7 +135,6 @@ export default function Product({ code }) {
   const [fieldNames, setFieldNames] = useState({})
   const [currentImage, setCurrentImage] = useState()
   const [galleryOpen, setGalleryOpen] = useState(false)
-  const [reviewsVisible, setReviewsVisible] = useState(false)
 
   const router = useRouter()
 
@@ -226,10 +225,9 @@ export default function Product({ code }) {
     }
   }, [product, isSuccess, tnsModule])
 
-  const { ref: reviewsRef } = useInView({
+  const { ref: reviewsRef, inView: reviewsVisible } = useInView({
     rootMargin: '300px',
     triggerOnce: true,
-    onChange: (inView) => setReviewsVisible(inView)
   })
 
   const handleFavoritesClick = () => {
