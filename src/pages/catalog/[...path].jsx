@@ -158,9 +158,7 @@ export default function Category({ path, currentPage, pageSize, order, filters }
     return undefined
   }
 
-  //console.log("current", currentFilters)
-
-  const productFilters = {...currentFilters, ...filters}
+  const productFilters = { ...currentFilters, ...filters }
   const { data: products, isSuccess: isProductsSuccess, isLoading: isProductsLoading } = useQuery({
     queryKey: productKeys.list(currentPage, pageSize, productFilters, order),
     queryFn: () => loadProducts(currentPage, pageSize, productFilters, order),
@@ -168,9 +166,20 @@ export default function Category({ path, currentPage, pageSize, order, filters }
     placeholderData: keepPreviousData
   })
 
+  // TODO: refactor for better approach
+  const recomendedFilters = { ...filters, categories: null, in_category: category.id, recomended: true }
+  const { data: recomendedProducts, isSuccess: isRecomendedSuccess, isLoading: isRecomendedLoading } = useQuery({
+    queryKey: productKeys.list(currentPage, pageSize, recomendedFilters, order),
+    queryFn: () => loadProducts(currentPage, pageSize, recomendedFilters, order),
+    enabled: isProductsSuccess && products.count === 0,
+  })
+
+  const currentProducts = isProductsSuccess && products.count > 0 ? products : recomendedProducts
+  const isCurrentSuccess = isProductsSuccess || isRecomendedSuccess
+  const isCurrentLoading = isProductsLoading || isRecomendedLoading
 
   const handleFilterChanged = (field, value) => {
-    setCurrentFilters({[field]: value})
+    setCurrentFilters({ [field]: value })
   }
 
   if (router.isFallback)
@@ -261,7 +270,7 @@ export default function Category({ path, currentPage, pageSize, order, filters }
                   <hr className="d-sm-none" />
                 </div>
               ))}
-              {isProductsLoading && (
+              {isCurrentLoading && (
                 <Loading className={
                   (isAdvertsSuccess ? (
                     ((category.children || category.filters) ? "" : "col-lg-3 ") + "col-md-4 col-sm-6 px-2 mb-4"
@@ -269,23 +278,27 @@ export default function Category({ path, currentPage, pageSize, order, filters }
                   + " d-flex align-items-center justify-content-center"
                 } mega />
               )}
-              {isProductsSuccess && products.results.map((product, index) => (
+              {isCurrentSuccess && currentProducts.results.map((product, index) => (
                 <div className={((category.children || category.filters) ? "" : "col-lg-3 ") + "col-md-4 col-sm-6 px-2 mb-4"} key={product.id}>
-                  <ProductCard product={product} gtmCategory={category} gtmList="Каталог" gtmPosition={index} />
+                  <ProductCard
+                    product={product}
+                    gtmCategory={category}
+                    gtmList={products.count > 0 ? "Каталог" : "Рекомендуем в каталоге"}
+                    gtmPosition={index} />
                   <hr className="d-sm-none" />
                 </div>
               ))}
             </div>
 
-            {products?.totalPages > 1 && (
+            {currentProducts?.totalPages > 1 && (
               <>
                 <hr className="my-3" />
                 <PageSelector
                   pathname={router.pathname}
                   query={router.query}
                   path={path}
-                  totalPages={products.totalPages}
-                  currentPage={products.currentPage} />
+                  totalPages={currentProducts.totalPages}
+                  currentPage={currentProducts.currentPage} />
               </>
             )}
           </section>

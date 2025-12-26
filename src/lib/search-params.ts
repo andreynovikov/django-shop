@@ -6,6 +6,7 @@ export const productSearchParams = {
   title: parseAsString,
   instock: parseAsInteger,
   categories: parseAsInteger,
+  in_category: parseAsInteger,
   enabled: parseAsBoolean,
   show_on_sw: parseAsBoolean,
   gift: parseAsBoolean,
