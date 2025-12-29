@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
 
 import { IconBell } from '@tabler/icons-react';
@@ -291,13 +292,14 @@ export default function Order({id}) {
             {order.items.map((item, index) => (
                 <div className={"d-sm-flex justify-content-between pb-3 pb-sm-2 " + (index === 0 ? "mb-3" : "my-3") + (!(index === order.items.length - 1) && " border-bottom")} key={item.product.id}>
                     <div className="d-sm-flex text-center text-sm-start">
-                        <Link className="d-inline-block flex-shrink-0 mx-auto" style={{width: "10rem"}} href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
-                            { item.product.thumbnail ? (
-                                <img
-                                    src={item.product.thumbnail.url}
-                                    width={item.product.thumbnail.width}
-                                    height={item.product.thumbnail.height}
-                                    alt={`${item.product.title} ${item.product.whatis}`} />
+                        <Link className="d-inline-block flex-shrink-0 mx-auto position-relative" style={{width: "10rem"}} href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
+                            { item.product.image ? (
+                                <Image
+                                    src={item.product.image}
+                                    fill
+                                    style={{ objectFit: 'contain' }}
+                                    sizes="10rem"
+                                    alt={`${item.product.whatis ? item.product.whatis + ' ' : ''}${item.product.title}`} />
                             ) : (
                                 <NoImage className="d-inline-block text-muted" />
                             )}

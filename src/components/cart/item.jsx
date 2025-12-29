@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 import { IconTrashX } from '@tabler/icons-react';
 
 import NoImage from '@/components/product/no-image';
@@ -12,12 +14,15 @@ export default function CartItem({item, first, last, removeItem, setQuantity, is
     return (
         <div className={"d-sm-flex justify-content-between align-items-center my-2 " + (first ? "pb-3" : "py-3") + (!last && " border-bottom")}>
             <div className="d-block d-sm-flex align-items-center text-center text-sm-start">
-                { item.product.thumbnail ? (
-                    <img
-                        src={item.product.thumbnail.url}
-                        width={item.product.thumbnail.width}
-                        height={item.product.thumbnail.height}
-                        alt={`${item.product.title} ${item.product.whatis}`} />
+                { item.product.image ? (
+                    <div className="position-relative" style={{ width: 160, height: 160 }}>
+                        <Image
+                            src={item.product.image}
+                            fill
+                            style={{ objectFit: 'contain' }}
+                            sizes="160px"
+                            alt={`${item.product.whatis ? item.product.whatis + ' ' : ''}${item.product.title}`} />
+                    </div>
                 ) : (
                     <NoImage className="d-inline-block text-muted" />
                 )}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useQuery } from '@tanstack/react-query';
 
 import Lightbox from 'yet-another-react-lightbox';
@@ -24,7 +25,7 @@ export default function ProductCard({product}) {
     const { data: images } = useQuery({
         queryKey: productKeys.images(product.id),
         queryFn: () => getProductImages(product.id),
-        enabled: !!product.thumbnail,
+        enabled: !!product.image,
         placeholderData: [],
     });
 
@@ -68,8 +69,15 @@ export default function ProductCard({product}) {
         <div className="sw-p-l card">
             <div className="card-body text-center">
                 <a onClick={handleClick} style={{cursor:'pointer'}}>
-                    { product.thumbnail ? (
-                        <img src={product.thumbnail.url} alt={`${product.title} ${product.whatis}`} />
+                    { product.image ? (
+                        <div className="mx-auto position-relative" style={{ width: 120, height: 120 }}>
+                            <Image
+                                src={product.image}
+                                fill
+                                style={{ objectFit: 'contain' }}
+                                sizes="160px"
+                                alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
+                        </div>
                     ) : (
                         <NoImage className="text-muted" />
                     )}
