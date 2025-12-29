@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useSession } from '@/lib/session';
 import { favoriteKeys, loadFavorites, addToFavorites, removeFromFavorites } from '@/lib/queries';
@@ -8,24 +8,24 @@ export default function useFavorites() {
 
     const queryClient = useQueryClient();
 
-    const { data: favorites, isSuccess, isLoading, isError } = useQuery(
-        favoriteKeys.details(),
-        () => loadFavorites(),
-        {
-            enabled: status === 'authenticated',
-            placeholderData: [],
-            onError: (error) => {
-                console.log(error);
-            }
+    const { data: favorites, isSuccess, isLoading, isError } = useQuery({
+        queryKey: favoriteKeys.details(),
+        queryFn: () => loadFavorites(),
+        enabled: status === 'authenticated',
+        placeholderData: [],
+        onError: (error) => {
+            console.log(error);
         }
-    );
+    });
 
-    const addToFavoritesMutation = useMutation((productId) => addToFavorites(productId), {
+    const addToFavoritesMutation = useMutation({
+        mutationFn: (productId) => addToFavorites(productId),
         onSuccess: () => {
             queryClient.invalidateQueries(favoriteKeys.all);
         }
     });
-    const removeFromFavoritesMutation = useMutation((productId) => removeFromFavorites(productId), {
+    const removeFromFavoritesMutation = useMutation({
+        mutationFn: (productId) => removeFromFavorites(productId),
         onSuccess: () => {
             queryClient.invalidateQueries(favoriteKeys.all);
         }

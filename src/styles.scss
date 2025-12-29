@@ -3,6 +3,7 @@
 $min-contrast-ratio: 3.4; // adjusted to have white text in success buttons
 
 $primary: #337ab7;
+$secondary: #e0e1e2;
 $success: #10A04E;
 
 $border-color: #ddd;
@@ -132,4 +133,12 @@ $navbar-nav-link-padding-x: .8rem;
 .product-nal-false {
     color: #aaa;
     font-weight: 700;
+}
+
+.yarl__root {
+  --yarl__color_backdrop: rgba(255, 255, 255, 1);
+  --yarl__color_button: rgba(192, 192, 192, 1);
+  --yarl__color_button_disabled: rgba(192, 192, 192, 0);
+  --yarl__color_button_active: #337ab7;
+  --yarl__button_filter: none;
 }

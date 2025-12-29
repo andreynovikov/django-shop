@@ -1,4 +1,4 @@
-export default function NoImage({size, ...props}) {
+export default function NoImage({size=160, ...props}) {
     const style = {
         width: size,
         height: size,
@@ -8,8 +8,4 @@ export default function NoImage({size, ...props}) {
     return (
         <span style={style} {...props}>&#8709;</span>
     )
-}
-
-NoImage.defaultProps = {
-    size: 160
 }

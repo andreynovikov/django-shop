@@ -2,8 +2,22 @@ import { useState, useEffect } from 'react';
 
 import axios from 'axios';
 
-export default function UserAvatar({gravatar, name, size, border, className}) {
+export default function UserAvatar({gravatar, name, size=50, border=false, className}) {
     const [avatar, setAvatar] = useState('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=');
+
+    const getUIAvatar = (name, size) => {
+        axios.get('https://ui-avatars.com/api/', {
+            params: {
+                size: size,
+                bold: 'true',
+                name: name
+            },
+            responseType: 'arraybuffer'
+        }).then((response) => {
+            const buffer = Buffer.from(response.data, 'binary').toString('base64');
+            setAvatar(`data:${response.headers['content-type'].toLowerCase()};base64,${buffer}`);
+        });
+    };
 
     useEffect(() => {
         if (gravatar !== '') {
@@ -22,26 +36,7 @@ export default function UserAvatar({gravatar, name, size, border, className}) {
         }
     }, [gravatar, name, size]);
 
-    const getUIAvatar = (name, size) => {
-        axios.get('https://ui-avatars.com/api/', {
-            params: {
-                size: size,
-                bold: 'true',
-                name: name
-            },
-            responseType: 'arraybuffer'
-        }).then((response) => {
-            const buffer = Buffer.from(response.data, 'binary').toString('base64');
-            setAvatar(`data:${response.headers['content-type'].toLowerCase()};base64,${buffer}`);
-        });
-    };
-
     return (
         <img className={className ? className : "rounded-circle" + (border ? " border border-1" : "")} width={size} height={size} src={avatar} alt={ name } />
     )
 }
-
-UserAvatar.defaultProps = {
-    size: 50,
-    border: false
-};

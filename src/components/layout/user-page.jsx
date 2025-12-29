@@ -12,13 +12,8 @@ const userPageContentWrapper = ({children}) => {
     )
 };
 
-export default function UserPageLayout(props) {
+export default function UserPageLayout({hideTitleBorder=true, contentWrapper=userPageContentWrapper, ...props}) {
     return (
-        <Layout {...props} />
+        <Layout hideTitleBorder={hideTitleBorder} contentWrapper={contentWrapper} {...props} />
     )
-};
-
-UserPageLayout.defaultProps = {
-    hideTitleBorder: true,
-    contentWrapper: userPageContentWrapper
 };

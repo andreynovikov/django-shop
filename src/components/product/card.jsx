@@ -1,12 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
-import Lightbox from 'react-spring-lightbox';
+import Lightbox from 'yet-another-react-lightbox';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faXmark, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { IconChevronCompactLeft, IconChevronCompactRight, IconX } from '@tabler/icons-react';
 
 import NoImage from '@/components/product/no-image';
 import QuantityInput from '@/components/cart/quantity-input';
@@ -22,17 +21,12 @@ export default function ProductCard({product}) {
 
     const router = useRouter();
 
-    const { data: images } = useQuery(
-        productKeys.images(product.id),
-        () => getProductImages(product.id),
-        {
-            enabled: !!product.thumbnail,
-            placeholderData: [],
-            select: useCallback(
-                (data) => data.reduce((images, image) => { images.push({src: image.src, loading: 'lazy'}); return images }, []), []
-            )
-        }
-    );
+    const { data: images } = useQuery({
+        queryKey: productKeys.images(product.id),
+        queryFn: () => getProductImages(product.id),
+        enabled: !!product.thumbnail,
+        placeholderData: [],
+    });
 
     useEffect(() => {
         if (!isSuccess)
@@ -65,9 +59,9 @@ export default function ProductCard({product}) {
 
     const updateQuantity = (v) => {
         if (item === null && v > 0)
-            addItem(product.id, v);
+            addItem(product, v);
         else if (item !== null && v != item.quantity)
-            setQuantity(product.id, v);
+            setQuantity(product, v);
     };
 
     return (
@@ -135,39 +129,22 @@ export default function ProductCard({product}) {
                 { product.nal && <p className="text-center">Наличие: <span className="sw-nal">{ product.nal }</span></p> }
                 { product.thumbnail && (
                     <Lightbox
-                        isOpen={showImage}
-                        onPrev={handlePrevImage}
-                        onNext={handleNextImage}
-                        onClose={() => setShowImage(false)}
-                        images={[{
+                        open={showImage}
+                        close={() => setShowImage(false)}
+                        slides={[{
                             src: product.big_image ? product.big_image : product.image
                         }, ...images]}
-                        currentIndex={currentImageIndex}
-                        singleClickToZoom
-                        renderHeader={() => (
-                            <button className="btn btn-link position-absolute top-0 end-0 me-2 mt-2" type="button" onClick={() => setShowImage(false)} style={{zIndex: 999}}>
-                                <FontAwesomeIcon icon={faXmark} size="4x" style={{color: 'rgb(192, 192, 192)'}} />
-                            </button>
-                        )}
-                        renderPrevButton={({canPrev}) => images.length > 0 && (
-                            <button className="btn btn-link ms-2" type="button" disabled={!canPrev} onClick={handlePrevImage} style={{zIndex: 999}}>
-                                <FontAwesomeIcon
-                                    icon={faChevronLeft}
-                                    size="4x"
-                                    style={{color: `rgba(192, 192, 192, ${canPrev ? 1 : .5})`}} />
-                            </button>
-                        )}
-                        renderNextButton={({canNext}) => images.length > 0 && (
-                            <button className="btn btn-link me-2" type="button" disabled={!canNext} onClick={handleNextImage} style={{zIndex: 999}}>
-                                <FontAwesomeIcon
-                                    icon={faChevronRight}
-                                    size="4x"
-                                    style={{color: `rgba(192, 192, 192, ${canNext ? 1 : .5})`}} />
-                            </button>
-                        )}
-                        style={{ background: 'white' }} />
+                        carousel={{
+                            finite: true
+                        }}
+                        render={{
+                            iconPrev: () => <IconChevronCompactLeft size={64} />,
+                            iconNext: () => <IconChevronCompactRight size={64} />,
+                            iconClose: () => <IconX size={64} />
+                        }}
+                    />
                 )}
             </div>
         </div>
-    )
+    );
 }

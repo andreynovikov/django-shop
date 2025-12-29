@@ -47,7 +47,7 @@ export default function Header() {
                             </ul>
                             <form className="d-flex" action="/search/">
                                 <input type="search" name="text" className="form-control me-2" placeholder="Введите номер цвета" autoComplete="off" />
-                                <button type="submit" className="btn btn-outline-secondary">Найти</button>
+                                <button type="submit" className="btn btn-outline-primary">Найти</button>
                             </form>
                         </div>
                     </Collapse>

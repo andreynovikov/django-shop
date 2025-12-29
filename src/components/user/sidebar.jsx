@@ -1,10 +1,8 @@
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBars, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
-import { faWindowRestore, faUser } from '@fortawesome/free-regular-svg-icons';
+import { IconLogout, IconMenu2, IconShoppingBag, IconUser } from '@tabler/icons-react';
 
 import UserAvatar from '@/components/user/avatar';
 
@@ -25,13 +23,11 @@ export default function UserSidebar() {
         }
     });
 
-    const { data: orders } = useQuery(
-        orderKeys.list(1, ''),
-        () => loadOrders(1, '', site.id),
-        {
-            enabled: status === 'authenticated' && site.id > 0
-        }
-    );
+    const { data: orders } = useQuery({
+        queryKey: orderKeys.list(1, ''),
+        queryFn: () => loadOrders(1, '', site.id),
+        enabled: status === 'authenticated' && site.id > 0
+    });
 
     if (status === 'loading' || !!!user) {
         return (
@@ -64,28 +60,28 @@ export default function UserSidebar() {
                         </div>
                     </div>
                     <a className="btn btn-primary d-lg-none mb-2 mt-3 mt-md-0" href="#account-menu" data-bs-toggle="collapse" aria-expanded="false">
-                        <FontAwesomeIcon icon={faBars} className="me-1" />
+                        <IconMenu2 size={20} stroke={1.5} className="me-1 align-text-bottom" />
                         Личный кабинет
                     </a>
                 </div>
                 <div className="d-lg-block collapse" id="account-menu">
                     <ul className="list-unstyled mb-0">
                         <li className="border-bottom mb-0">
-                            <Link className={"nav-link-style d-flex align-items-baseline px-4 py-3" + (router.pathname === '/user/orders' ? " active" : "")} href="/user/orders">
-                                <FontAwesomeIcon icon={faWindowRestore} className="me-1" />
+                            <Link className={"nav-link-style d-flex px-4 py-3" + (router.pathname === '/user/orders' ? " active" : "")} href="/user/orders">
+                                <IconShoppingBag size={20} stroke={1.5} className="me-1 align-text-bottom" />
                                 Заказы
                                 { orders?.count > 0 && <span className="fs-sm text-muted ms-auto">{ orders.count }</span> }
                             </Link>
                         </li>
                         <li className="border-bottom mb-0">
                             <Link className={"nav-link-style d-flex px-4 py-3" + (router.pathname === '/user/profile' ? " active" : "")} href="/user/profile">
-                                <FontAwesomeIcon icon={faUser} className="me-1" />
+                                <IconUser size={20} stroke={1.5} className="me-1 align-text-bottom" />
                                 Профиль
                             </Link>
                         </li>
                         <li className="mb-0">
                             <a className="nav-link-style d-flex px-4 py-3" onClick={() => signOut({callbackUrl: '/'})} style={{cursor:'pointer'}}>
-                                <FontAwesomeIcon icon={faRightFromBracket} className="me-1" />
+                                <IconLogout size={20} stroke={1.5} className="me-1 align-text-bottom" />
                                 Выйти
                             </a>
                         </li>

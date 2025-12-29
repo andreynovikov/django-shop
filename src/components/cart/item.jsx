@@ -1,5 +1,4 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleXmark } from '@fortawesome/free-regular-svg-icons';
+import { IconTrashX } from '@tabler/icons-react';
 
 import NoImage from '@/components/product/no-image';
 import QuantityInput from '@/components/cart/quantity-input';
@@ -7,7 +6,7 @@ import QuantityInput from '@/components/cart/quantity-input';
 export default function CartItem({item, first, last, removeItem, setQuantity, isLoading}) {
     const updateQuantity = (v) => {
         if (v != item.quantity)
-            setQuantity(item.product.id, v);
+            setQuantity(item.product, v);
     };
 
     return (
@@ -39,8 +38,8 @@ export default function CartItem({item, first, last, removeItem, setQuantity, is
                     packOnly={item.product.ws_pack_only}
                     packFactor={item.product.pack_factor}
                     isLoading={isLoading} />
-                <button className="btn btn-link px-0 text-danger" type="button" onClick={() => removeItem(item.product.id)}>
-                    <FontAwesomeIcon icon={faCircleXmark} className="me-1" />
+                <button className="btn btn-link px-0 text-danger" type="button" onClick={() => removeItem(item.product)}>
+                    <IconTrashX size={20} stroke={1.5} className="me-1 align-text-bottom" />
                     Удалить
                 </button>
             </div>

@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
-import { useMutation, useQueryClient } from 'react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import Layout from '@/components/layout';
 import LoginForm from '@/components/user/login-form';
@@ -18,17 +17,14 @@ export default function Cart() {
     const router = useRouter();
     const queryClient = useQueryClient();
 
-    const createOrderMutation = useMutation(() => createOrder(), {
+    const createOrderMutation = useMutation({
+        mutationFn: () => createOrder(),
         onSuccess: (data) => {
             queryClient.invalidateQueries(orderKeys.lists());
             queryClient.setQueryData(orderKeys.detail(data.id), data);
             sessionStorage.setItem('lastOrder', data.id);
             router.push('/confirmation');
-            console.log(data);
         },
-        onError: (error) => {
-            console.error(error);
-        }
     });
 
     useEffect(() => {
@@ -93,11 +89,6 @@ export default function Cart() {
                         ) : (
                             <LoginForm embedded={true} ctx="order" />
                         )}
-
-                        <div id="oferta-notice" className="mt-4 fs-xs">
-                            Нажимая на кнопку &laquo;Оформить заказ&raquo;, вы подтверждаете согласие с условиями{' '}
-                            <Link href="/pages/oferta/">публичной оферты</Link>.
-                        </div>
 
                         { status === 'authenticated' && (
                             <div className="mt-3">

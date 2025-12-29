@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { comparisonKeys, loadComparisons, addToComparison, removeFromComparison } from '@/lib/queries';
 
@@ -7,23 +7,23 @@ export default function useComparison(options) {
 
     const { kind } = options || { kind: null }; // we use null instead of undefined to comply with SSR props in '/compare'
 
-    const { data: comparisons, isSuccess, isLoading, isError } = useQuery(
-        comparisonKeys.list(kind),
-        () => loadComparisons(kind),
-        {
-            initialData: [],
-            onError: (error) => {
-                console.log(error);
-            }
+    const { data: comparisons, isSuccess, isLoading, isError } = useQuery({
+        queryKey: comparisonKeys.list(kind),
+        queryFn: () => loadComparisons(kind),
+        initialData: [],
+        onError: (error) => {
+            console.log(error);
         }
-    );
+    });
 
-    const addToComparisonMutation = useMutation((productId) => addToComparison(productId), {
+    const addToComparisonMutation = useMutation({
+        mutationFn: (productId) => addToComparison(productId),
         onSuccess: (data) => {
             queryClient.setQueryData(comparisonKeys.list(null), data);
         }
     });
-    const removeFromComparisonMutation = useMutation((productId) => removeFromComparison(productId), {
+    const removeFromComparisonMutation = useMutation({
+        mutationFn: (productId) => removeFromComparison(productId),
         onSuccess: (data) => {
             queryClient.invalidateQueries(comparisonKeys.lists());
             queryClient.setQueryData(comparisonKeys.list(null), data);
