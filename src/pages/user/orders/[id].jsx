@@ -1,11 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import Script from 'next/script';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBell } from '@fortawesome/free-regular-svg-icons';
+import { IconBell } from '@tabler/icons-react';
 
 import { useSite } from '@/lib/site';
 import { useSession } from '@/lib/session';
@@ -47,14 +45,12 @@ export default function Order({id}) {
 
     const router = useRouter();
 
-    const { data: order, isSuccess } = useQuery(
-        orderKeys.detail(id),
-        () => loadOrder(id),
-        {
-            enabled: status === 'authenticated',
-            refetchInterval: [STATUS_NEW, STATUS_ACCEPTED].includes(orderStatus) ? 60 * 1000 : false // check for updates every minute
-        }
-    );
+    const { data: order, isSuccess } = useQuery({
+        queryKey: orderKeys.detail(id),
+        queryFn: () => loadOrder(id),
+        enabled: status === 'authenticated',
+        refetchInterval: [STATUS_NEW, STATUS_ACCEPTED].includes(orderStatus) ? 60 * 1000 : false // check for updates every minute
+    });
 
     useEffect(() => {
         if (order)
@@ -80,12 +76,6 @@ export default function Order({id}) {
         [isSuccess, order]
     );
 
-    const initializeBootstrap = () => {
-        if (window && 'bootstrap' in window && bootstrap.Tooltip) {
-            return new bootstrap.Tooltip(document.querySelector('.sw-order-created'));
-        }
-    };
-
     const handlePayment = () => {
         apiClient.post(`orders/${id}/pay/`, {
             'return_url': process.env.NEXT_PUBLIC_ORIGIN.slice(0, -1) + router.asPath
@@ -106,11 +96,10 @@ export default function Order({id}) {
 
     return (
         <>
-            <Script id="bootstrap" src="/js/bootstrap.bundle.js" onReady={initializeBootstrap} onLoad={initializeBootstrap} />
             <div className="d-flex justify-content-between w-100 text-center mb-3">
                 <div className="fs-ms px-3">
                     <div className="fw-medium mb-1">Дата оформления</div>
-                    <div className="fs-lg text-muted sw-order-created" title={ moment(order.created).format('LLL') } data-bs-toggle="tooltip" data-bs-placement="bottom">{ created }</div>
+                    <div className="fs-lg text-muted">{ created }</div>
                 </div>
                 <div className="fs-ms px-3">
                     <div className="fw-medium mb-1">Статус</div>
@@ -311,7 +300,7 @@ export default function Order({id}) {
                                     height={item.product.thumbnail.height}
                                     alt={`${item.product.title} ${item.product.whatis}`} />
                             ) : (
-                                <NoImage className="d-inline-block text-muted" />
+                                <NoImage stroke={1.5} className="d-inline-block text-muted" />
                             )}
                         </Link>
                         <div className="ps-sm-4 pt-2">
@@ -349,7 +338,7 @@ export default function Order({id}) {
             ))}
             { site.phone && [STATUS_NEW, STATUS_ACCEPTED, STATUS_COLLECTING, STATUS_FROZEN, STATUS_COLLECTED].includes(order.status) && (
                 <div className="alert alert-info d-flex align-items-center mt-5" role="alert">
-                    <FontAwesomeIcon icon={faBell} className="me-3" />
+                    <IconBell stroke={1.5} className="me-3" />
                     <div>
                         Если Вы хотите внести изменения в заказ, позвоните по телефону{" "}
                         <a className="alert-link" href={"tel:" + site.phone} style={{whiteSpace: "nowrap"}}>{ formatPhone(site.phone) }</a>

@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import Link from 'next/link';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleXmark } from '@fortawesome/free-regular-svg-icons';
+
+import { IconTrashX } from '@tabler/icons-react';
 
 import NoImage from '@/components/product/no-image';
 
@@ -27,7 +27,7 @@ export default function CartItem({item, first, last, removeItem, setQuantity}) {
         if (v != e.target.value)
             e.target.value = v;
         if (v != item.quantity)
-            setQuantity(item.product.id, v);
+            setQuantity(item.product, v);
     };
 
     const debouncedValueChange = useCallback(debounce(handleValueChange), []);
@@ -43,7 +43,7 @@ export default function CartItem({item, first, last, removeItem, setQuantity}) {
                             height={item.product.thumbnail.height}
                             alt={`${item.product.title} ${item.product.whatis}`} />
                     ) : (
-                        <NoImage className="d-inline-block text-muted" />
+                        <NoImage className="d-inline-block text-muted" stroke={1.5} />
                     )}
                 </Link>
                 <div className="pt-2">
@@ -68,8 +68,8 @@ export default function CartItem({item, first, last, removeItem, setQuantity}) {
                     onChange={debouncedValueChange}
                     onBlur={handleValueChange}
                     onKeyDown={handleKeyDown} />
-                <button className="btn btn-link px-0 text-danger" type="button" onClick={() => removeItem(item.product.id)}>
-                    <FontAwesomeIcon icon={faCircleXmark} className="me-1" />
+                <button className="btn btn-link px-0 text-danger" type="button" onClick={() => removeItem(item.product)}>
+                    <IconTrashX size={20} stroke={1.5} className="me-1 align-text-bottom" />
                     Удалить
                 </button>
             </div>

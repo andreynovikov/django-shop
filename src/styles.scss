@@ -366,6 +366,10 @@ dl.product-spec {
     margin-top: map-get($spacers, 2);
 }
 
-:root {
-    --toastify-color-progress-light: #{$success};
+.yarl__root {
+  --yarl__color_backdrop: rgba(255, 255, 255, 1);
+  --yarl__color_button: rgba(192, 192, 192, 1);
+  --yarl__color_button_disabled: rgba(192, 192, 192, 0);
+  --yarl__color_button_active: $primary;
+  --yarl__button_filter: none;
 }

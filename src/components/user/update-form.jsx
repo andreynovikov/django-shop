@@ -1,12 +1,12 @@
 import { useState, useEffect, useReducer, forwardRef, useImperativeHandle, useRef } from 'react';
 import Script from 'next/script';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleCheck } from '@fortawesome/free-regular-svg-icons';
+import { IconCircleCheck } from '@tabler/icons-react';
 
 import { useSession } from '@/lib/session';
 import { userKeys, getUserForm, updateUser } from '@/lib/queries';
+import phoneInputMask from '@/lib/phone-input-mask';
 
 export default forwardRef(function UpdateForm({embedded, onReady, onUpdated}, ref) {
     const [ready, setReady] = useState(false);
@@ -20,15 +20,13 @@ export default forwardRef(function UpdateForm({embedded, onReady, onUpdated}, re
         return {...state, ...update}
     }, {});
 
-    const { data: form, isSuccess } = useQuery(
-        userKeys.form(),
-        () => getUserForm(),
-        {
-            onError: (error) => {
-                console.log(error);
-            }
+    const { data: form, isSuccess } = useQuery({
+        queryKey: userKeys.form(),
+        queryFn: () => getUserForm(),
+        onError: (error) => {
+            console.log(error);
         }
-    );
+    });
 
     useEffect(() => {
         if (status === 'authenticated' && isSuccess) {
@@ -58,7 +56,8 @@ export default forwardRef(function UpdateForm({embedded, onReady, onUpdated}, re
         }
     }, [updated]);
 
-    const updateUserMutation = useMutation(() => updateUser(user.id, formData), {
+    const updateUserMutation = useMutation({
+        mutationFn: () => updateUser(user.id, formData),
         onSuccess: () => {
             queryClient.invalidateQueries(userKeys.details());
         }
@@ -66,6 +65,11 @@ export default forwardRef(function UpdateForm({embedded, onReady, onUpdated}, re
 
     const formRef = useRef();
     const phoneRef = useRef();
+
+    useEffect(() => {
+        if (ready && phoneRef.current && !!!phoneRef.current.inputmask)
+            phoneInputMask.mask(phoneRef.current)
+    }, [ready, phoneRef])
 
     const validatePhone = () => {
         return phoneRef.current && phoneRef.current.inputmask.isComplete();
@@ -102,31 +106,6 @@ export default forwardRef(function UpdateForm({embedded, onReady, onUpdated}, re
         submit: handleSubmit
     }));
 
-    const setupInputMask = () => {
-        if (window && window.Inputmask && phoneRef.current && !!!phoneRef.current.inputmask) {
-            window.Inputmask({
-                mask: ["(999) 999-99-99", "* (999) 999-99-99"],
-                definitions: {
-                    "*": { validator: "[78]" }
-                },
-                onBeforePaste: function(pastedValue) {
-                    return pastedValue.replace("+7", "");
-                },
-                onBeforeMask: function(value) {
-                    return value.replace("+7", "");
-                },
-                oncomplete: function() {
-                    var value = this.inputmask.unmaskedvalue();
-                    if (value.length > 10) {
-                        value = value.substr(1);
-                        this.inputmask.setValue(value);
-                    }
-                },
-                keepStatic: true
-            }).mask(phoneRef.current);
-        }
-    };
-
     if (!ready)
         return <div>Loading...</div>
 
@@ -134,7 +113,7 @@ export default forwardRef(function UpdateForm({embedded, onReady, onUpdated}, re
         <form ref={formRef} noValidate>
             { updated && (
                 <div className="alert alert-success d-flex" role="alert">
-                    <FontAwesomeIcon icon={faCircleCheck} className="me-3" />
+                    <IconCircleCheck stroke={1.5} className="me-3" />
                     <div>Изменения успешно сохранены.</div>
                 </div>
             )}
@@ -179,11 +158,6 @@ export default forwardRef(function UpdateForm({embedded, onReady, onUpdated}, re
                     </div>
                 ))}
             </div>
-            <Script
-                id="inputmask"
-                src="/js/inputmask.js"
-                onReady={setupInputMask}
-                onLoad={setupInputMask} />
         </form>
     )
 });

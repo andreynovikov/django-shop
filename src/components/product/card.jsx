@@ -10,7 +10,7 @@ export default function ProductCard({product}) {
     const handlePrimaryClick = () => {
         if (product.variations) {
         } else {
-            addItem(product.id);
+            addItem(product);
         }
     };
 
@@ -22,7 +22,7 @@ export default function ProductCard({product}) {
                         { product.thumbnail ? (
                             <img src={product.thumbnail.url} alt={`${product.title} ${product.whatis}`} />
                         ) : (
-                            <NoImage className="text-muted" />
+                            <NoImage size={120} stroke={1.5} className="text-muted" />
                         )}
                     </Link>
                 </div>

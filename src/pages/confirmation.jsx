@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import Layout from '@/components/layout';
 import NoImage from '@/components/product/no-image';
@@ -25,7 +25,8 @@ export default function Confirmation() {
 
     const queryClient = useQueryClient();
 
-    const updateOrderMutation = useMutation((formData) => updateOrder(order.id, formData), {
+    const updateOrderMutation = useMutation({
+        mutationFn: (formData) => updateOrder(order.id, formData),
         onSuccess: () => {
             queryClient.invalidateQueries(orderKeys.details(order.id));
         }
@@ -51,14 +52,12 @@ export default function Confirmation() {
         /* eslint-disable react-hooks/exhaustive-deps */
     }, [status, orderId]);
 
-    const { data: order, isSuccess, isFetching, isError } = useQuery(
-        orderKeys.detail(orderId),
-        () => loadOrder(orderId),
-        {
-            enabled: orderId > 0,
-            refetchInterval: orderStatus === STATUS_NEW ? 60 * 1000 : false // check for updates every minute
-        }
-    );
+    const { data: order, isSuccess, isFetching, isError } = useQuery({
+        queryKey: orderKeys.detail(orderId),
+        queryFn: () => loadOrder(orderId),
+        enabled: orderId > 0,
+        refetchInterval: orderStatus === STATUS_NEW ? 60 * 1000 : false // check for updates every minute
+    });
 
     useEffect(() => {
         if (order)
@@ -157,7 +156,7 @@ export default function Confirmation() {
                                                 height={item.product.thumbnail_small.height}
                                                 alt={`${item.product.title} ${item.product.whatis}`} />
                                         ) : (
-                                            <NoImage className="d-inline-block text-muted" size={64} />
+                                            <NoImage className="d-inline-block text-muted" size={64} stroke={1.5} />
                                         )}
                                     </Link>
                                     <div className="ps-2">

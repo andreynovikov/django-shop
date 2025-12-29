@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { IconChevronCompactLeft, IconChevronCompactRight } from '@tabler/icons-react';
 
 import Layout from '@/components/layout';
 import ProductCard from '@/components/product/card';
@@ -20,13 +19,11 @@ export default function Search({text, page}) {
 
     const currentFilters = [{field: 'text', value: text}];
 
-    const { data: products, isSuccess, isLoading, isError } = useQuery(
-        productKeys.list(page || 1, 24, currentFilters, null),
-        () => loadProducts(page || 1, 24, currentFilters, null),
-        {
-            keepPreviousData : true // required for filters not to loose choices and attributes
-        }
-    );
+    const { data: products, isSuccess, isLoading, isError } = useQuery({
+        queryKey: productKeys.list(page || 1, 24, currentFilters, null),
+        queryFn: () => loadProducts(page || 1, 24, currentFilters, null),
+        keepPreviousData : true // required for filters not to loose choices and attributes
+    });
 
     useEffect(() => {
         if (isSuccess) {
@@ -61,13 +58,13 @@ export default function Search({text, page}) {
                             <div className="d-flex">
                                 { products.currentPage > 1 && (
                                     <Link className="me-3" href={{ pathname: router.pathname, query: { ...router.query, page: products.currentPage - 1 } }}>
-                                        <FontAwesomeIcon icon={faChevronLeft} />
+                                        <IconChevronCompactLeft size={20} stroke={1.5} />
                                     </Link>
                                 )}
                                 <span className="fs-md">{ products.currentPage } / { products.totalPages }</span>
                                 { products.currentPage < products.totalPages && (
                                     <Link className="ms-3" href={{ pathname: router.pathname, query: { ...router.query, page: products.currentPage + 1 } }}>
-                                        <FontAwesomeIcon icon={faChevronRight} />
+                                        <IconChevronCompactRight size={20} stroke={1.5} />
                                     </Link>
                                 )}
                             </div>
@@ -93,7 +90,7 @@ export default function Search({text, page}) {
                                 <ul className="pagination">
                                     <li className="page-item">
                                         <Link className="page-link" href={{ pathname: router.pathname, query: { ...router.query, page: products.currentPage - 1 } }}>
-                                            <FontAwesomeIcon className="me-2" icon={faChevronLeft} />
+                                            <IconChevronCompactLeft size={20} stroke={1.5} className="me-2 align-text-bottom" />
                                             Пред<span className="d-none d-sm-inline d-md-none d-xl-inline">ыдущая</span>
                                         </Link>
                                     </li>
@@ -136,7 +133,7 @@ export default function Search({text, page}) {
                                     <li className="page-item">
                                         <Link className="page-link" href={{ pathname: router.pathname, query: { ...router.query, page: products.currentPage + 1 } }}>
                                             След<span className="d-none d-sm-inline d-md-none d-xl-inline">ующая</span>
-                                            <FontAwesomeIcon className="ms-2" icon={faChevronRight} />
+                                            <IconChevronCompactRight size={20} stroke={1.5} className="ms-2 align-text-bottom" />
                                         </Link>
                                     </li>
                                 </ul>

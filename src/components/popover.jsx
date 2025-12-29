@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { usePopper } from 'react-popper';
 
 import { pageKeys, loadPage } from '@/lib/queries';
@@ -21,7 +21,9 @@ export default function Popover({page, anchorElement, onClose, children}) {
     console.log(anchorElement);
     console.log(uri)
 
-    const { data, isSuccess } = useQuery(pageKeys.detail(uri), () => loadPage(uri), {
+    const { data, isSuccess } = useQuery({
+        queryKey: pageKeys.detail(uri),
+        queryFn: () => loadPage(uri),
         enabled: anchorElement !== null && uri !== null
     });
 

@@ -1,20 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { QueryClient, QueryClientProvider, Hydrate } from 'react-query';
-import { ReactQueryDevtools } from 'react-query/devtools';
+import { QueryClient, QueryClientProvider, HydrationBoundary } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
-import SSRProvider from 'react-bootstrap/SSRProvider';
-import { ToastContainer } from 'react-toastify';
-
-import TagManager from 'react-gtm-module';
 import ym, { YMInitializer } from 'react-yandex-metrika';
 
 import { SiteProvider } from '@/lib/site';
 import { SessionProvider } from '@/lib/session';
 import { apiClient, categoryKeys, productKeys, pageKeys } from '@/lib/queries';
 
-import 'react-toastify/dist/ReactToastify.css';
-import 'glightbox/dist/css/glightbox.css';
+import 'yet-another-react-lightbox/styles.css';
 import '../styles.scss';
 
 export default function App({ Component, pageProps: { site, session, ...pageProps }}) {
@@ -26,9 +21,9 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
                 refetchOnWindowFocus: process.env.NODE_ENV !== "development",
                 retry: (failureCount, error) => {
                     if (error.request.status === 404)
-                        return 0;
+                        return false;
                     else
-                        return process.env.NODE_ENV === "development" ? 1 : 3;
+                        return failureCount < (process.env.NODE_ENV === "development" ? 1 : 3);
                 }
             }
         }
@@ -42,15 +37,6 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
         (async () => {
             await apiClient.get('csrf/');
         })();
-        if (!!process.env.NEXT_PUBLIC_GTM_ID) {
-            TagManager.initialize({gtmId: process.env.NEXT_PUBLIC_GTM_ID});
-            TagManager.dataLayer({
-                dataLayer: {
-                    event: 'pageview',
-                    page: router.asPath
-                }
-            });
-        }
         if (!!process.env.NEXT_PUBLIC_YM_COUNTER_ID) {
             ym('hit', router.asPath);
         }
@@ -58,14 +44,6 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
 
     useEffect(() => {
         const handleRouteChange = (url) => {
-            if (typeof window !== 'undefined' && !!process.env.NEXT_PUBLIC_GTM_ID) {
-                TagManager.dataLayer({
-                    dataLayer: {
-                        event: 'pageview',
-                        page: url
-                    }
-                });
-            }
             if (typeof window !== 'undefined' && !!process.env.NEXT_PUBLIC_YM_COUNTER_ID) {
                 ym('hit', url);
             }
@@ -83,12 +61,10 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
 
     return (
         <QueryClientProvider client={queryClient}>
-            <Hydrate state={pageProps.dehydratedState}>
+            <HydrationBoundary state={pageProps.dehydratedState}>
                 <SiteProvider site={site}>
                     <SessionProvider session={session}>
-                        <SSRProvider>
-                            { getLayout(<Component {...pageProps} />) }
-                        </SSRProvider>
+                        { getLayout(<Component {...pageProps} />) }
                         { !!process.env.NEXT_PUBLIC_YM_COUNTER_ID && (
                             <YMInitializer
                                 accounts={[parseInt(process.env.NEXT_PUBLIC_YM_COUNTER_ID)]}
@@ -102,11 +78,10 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
                                 }}
                                 version="2" />
                         )}
-                        <ToastContainer position="top-right" autoClose={2000} hideProgressBar={false} draggable={false} />
                     </SessionProvider>
                 </SiteProvider>
-                <ReactQueryDevtools initialIsOpen={false} />
-            </Hydrate>
+            </HydrationBoundary>
+            <ReactQueryDevtools />
         </QueryClientProvider>
     );
 }
