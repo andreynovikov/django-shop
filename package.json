@@ -1,6 +1,6 @@
 {
     "name": "janome",
-    "version": "2025.08.08",
+    "version": "2025.12.06",
     "scripts": {
         "dev": "next dev -H 127.0.0.1 -p 3003",
         "start": "next start -H 127.0.0.1 -p 4003",
