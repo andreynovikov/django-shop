@@ -1,7 +1,6 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCamera } from '@fortawesome/free-solid-svg-icons';
+import { IconCamera } from '@tabler/icons-react';
 
-export default function NoImage({size, ...props}) {
+export default function NoImage({size=160, ...props}) {
     const style = {
         width: size,
         height: size,
@@ -9,10 +8,6 @@ export default function NoImage({size, ...props}) {
     }
 
     return (
-        <FontAwesomeIcon icon={faCamera} style={style} {...props} />
+        <IconCamera style={style} {...props} />
     )
-}
-
-NoImage.defaultProps = {
-    size: 160
 }

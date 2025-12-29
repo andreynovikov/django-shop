@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import { siteKeys, loadCurrentSite } from '@/lib/queries';
 
@@ -10,19 +10,17 @@ export function useSite() {
 }
 
 export function SiteProvider({children}) {
-    const { data: site, isSuccess, isLoading } = useQuery(
-        siteKeys.current(),
-        () => loadCurrentSite(),
-        {
-            placeholderData: {},
-            cacheTime: 1000 * 60 * 60 * 24, // cache for one day
-            staleTime: Infinity,
-            refetchOnWindowFocus: false,
-            onError: (error) => {
-                console.log(error);
-            }
+    const { data: site, isSuccess, isLoading } = useQuery({
+        queryKey: siteKeys.current(),
+        queryFn: () => loadCurrentSite(),
+        placeholderData: {},
+        cacheTime: 1000 * 60 * 60 * 24, // cache for one day
+        staleTime: Infinity,
+        refetchOnWindowFocus: false,
+        onError: (error) => {
+            console.log(error);
         }
-    );
+    });
 
     const value = useMemo(() => ({
         site,

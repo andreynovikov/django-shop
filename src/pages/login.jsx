@@ -1,7 +1,7 @@
 import Layout from '@/components/layout';
 import LoginForm from '@/components/user/login-form';
 
-export default function Login({ctx, phone}) {
+export default function Login({ctx='login', phone=''}) {
     return (
         <section>
             <div className="container mb-5">
@@ -13,11 +13,6 @@ export default function Login({ctx, phone}) {
             </div>
         </section>
     )
-}
-
-Login.defaultProps = {
-    ctx: 'login',
-    phone: ''
 }
 
 Login.getLayout = function getLayout(page) {

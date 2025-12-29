@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
+
+import Lightbox from 'yet-another-react-lightbox';
+
+import { IconChevronCompactLeft, IconChevronCompactRight, IconX } from '@tabler/icons-react';
 
 import Layout from '@/components/layout';
 import FieldHelp from '@/components/product/field-help';
@@ -54,7 +58,7 @@ function rebootstrap(value) {
 }
 
 export default function Product({code, title}) {
-    const [glightboxModule, setGlightboxModule] = useState(null);
+    const [currentImageIndex, setCurrentIndex] = useState(-1);
     const [productFields, setProductFields] = useState([]);
     const [fieldNames, setFieldNames] = useState({});
 
@@ -62,17 +66,16 @@ export default function Product({code, title}) {
 
     const { addItem } = useBasket();
 
-    const { data: fields } = useQuery(productKeys.fields(), () => getProductFields());
-
-    const { data: product, isSuccess, isLoading } = useQuery(productKeys.detail(code), () => loadProductByCode(code), {
-        enabled: code !== undefined
+    const { data: fields } = useQuery({
+        queryKey: productKeys.fields(),
+        queryFn: () => getProductFields()
     });
 
-    useEffect(() => {
-        import('glightbox').then((module) => {
-            setGlightboxModule(module);
-        });
-    }, []);
+    const { data: product, isSuccess, isLoading } = useQuery({
+        queryKey: productKeys.detail(code),
+        queryFn: () => loadProductByCode(code),
+        enabled: code !== undefined
+    });
 
     useEffect(() => {
         if (isSuccess)
@@ -92,21 +95,10 @@ export default function Product({code, title}) {
         }
     }, [fields]);
 
-    useEffect(() => {
-        if (isSuccess && product.image && glightboxModule !== null) {
-            const lightbox = glightboxModule.default({
-                touchNavigation: true
-            });
-            return () => {
-                lightbox.destroy();
-            }
-        }
-    }, [product, isSuccess, glightboxModule]);
-
     const handlePrimaryClick = () => {
         if (product.variations) {
         } else {
-            addItem(product.id);
+            addItem(product);
         }
     };
 
@@ -207,7 +199,7 @@ export default function Product({code, title}) {
             { product.images && (
                 <div className="mt-2">
                     { product.images.map((image, index) => (
-                    <a className="glightbox me-1" href={image.src} data-title={`${product.title} - фото №${index + 2}`} key={index}>
+                    <a onClick={()=>setCurrentIndex(index + 1)} className="me-1" style={{cursor: "pointer"}}>
                         <img
                             src={image.thumbnail.src}
                             width={image.thumbnail.width}
@@ -215,6 +207,23 @@ export default function Product({code, title}) {
                             alt={`${product.title} - фото №${index + 2}`} />
                     </a>
                     ))}
+                    <Lightbox
+                        open={currentImageIndex !== -1}
+                        close={() => setCurrentIndex(-1)}
+                        index={currentImageIndex}
+                        on={{ view: ({ index }) => setCurrentIndex(index) }}
+                        slides={[{
+                            src: product.big_image ? product.big_image : product.image
+                        }, ...product.images]}
+                        carousel={{
+                            finite: true
+                        }}
+                        render={{
+                            iconPrev: () => <IconChevronCompactLeft size={64} />,
+                            iconNext: () => <IconChevronCompactRight size={64} />,
+                            iconClose: () => <IconX size={64} />
+                        }}
+                    />
                 </div>
             )}
 
@@ -285,8 +294,14 @@ Product.getLayout = function getLayout(page) {
 export async function getStaticProps(context) {
     const code = context.params?.code;
     const queryClient = new QueryClient();
-    const fieldsQuery = queryClient.prefetchQuery(productKeys.fields(), () => getProductFields());
-    const dataQuery = queryClient.fetchQuery(productKeys.detail(code), () => loadProductByCode(code));
+    const fieldsQuery = queryClient.prefetchQuery({
+        queryKey: productKeys.fields(),
+        queryFn: () => getProductFields()
+    });
+    const dataQuery = queryClient.fetchQuery({
+        queryKey: productKeys.detail(code),
+        queryFn: () => loadProductByCode(code)
+    });
     // run queries in parallel
     await fieldsQuery;
     const data = await dataQuery;

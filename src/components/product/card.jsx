@@ -10,7 +10,7 @@ export default function ProductCard({product}) {
     const handlePrimaryClick = () => {
         if (product.variations) {
         } else {
-            addItem(product.id);
+            addItem(product);
         }
     };
 

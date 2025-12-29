@@ -6,7 +6,9 @@ import PageTitle from '@/components/layout/page-title';
 
 import { useSite } from '@/lib/site';
 
-export default function Layout({ title, hideTitle, hideTitleBorder, contentWrapper, children, ...props }) {
+const defaultContentWrapper = ({children}) => children;
+
+export default function Layout({ title, hideTitle=false, hideTitleBorder=false, contentWrapper=defaultContentWrapper, children, ...props }) {
     const { site } = useSite();
 
     return (
@@ -28,9 +30,3 @@ export default function Layout({ title, hideTitle, hideTitleBorder, contentWrapp
         </>
     )
 }
-
-Layout.defaultProps = {
-    hideTitle: false,
-    hideTitleBorder: false,
-    contentWrapper: ({children}) => children
-};
