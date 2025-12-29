@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { usePopper } from 'react-popper';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -31,7 +31,9 @@ export default function FieldHelp({field}) {
 
     const uri = ['help', field];
 
-    const { data, isSuccess } = useQuery(pageKeys.detail(uri), () => loadPage(uri), {
+    const { data, isSuccess } = useQuery({
+        queryKey: pageKeys.detail(uri),
+        queryFn: () => loadPage(uri),
         enabled: visible
     });
 

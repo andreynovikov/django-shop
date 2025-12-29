@@ -17,8 +17,8 @@ export default function ProductCard({product}) {
         <div className="product">
             <div className="product-image text-center">
                 { product.ishot && <div className="ribbon ribbon-dark">Акция</div> }
-				{ product.isnew && <div className="ribbon ribbon-primary">Новинка</div> }
-				{ product.recomended && <div className="ribbon ribbon-info">Рекомендуем</div> }
+                { product.isnew && <div className="ribbon ribbon-primary">Новинка</div> }
+                { product.recomended && <div className="ribbon ribbon-info">Рекомендуем</div> }
                 { product.thumbnail ? (
                     <img
                         className="img-fluid"

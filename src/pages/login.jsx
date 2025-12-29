@@ -2,7 +2,7 @@ import Layout from '@/components/layout';
 import LoginForm from '@/components/user/login-form';
 import PageTitle from '@/components/layout/page-title';
 
-export default function Login({ctx, phone}) {
+export default function Login({ctx='login', phone=''}) {
     return (
         <>
             <PageTitle title="Добро пожаловать" />
@@ -17,11 +17,6 @@ export default function Login({ctx, phone}) {
             </section>
         </>
     )
-}
-
-Login.defaultProps = {
-    ctx: 'login',
-    phone: ''
 }
 
 Login.getLayout = function getLayout(page) {

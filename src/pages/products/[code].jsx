@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Script from 'next/script';
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
+
+import Lightbox from 'yet-another-react-lightbox';
+
+import { IconChevronCompactLeft, IconChevronCompactRight, IconX } from '@tabler/icons-react';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faScaleUnbalanced } from '@fortawesome/free-solid-svg-icons';
@@ -65,9 +68,7 @@ function rebootstrap(value) {
 }
 
 export default function Product({code, title}) {
-    const [bootstrapLoaded, setBootstrapLoaded] = useState(false);
-    const [tnsModule, setTnsModule] = useState(null);
-    const [glightboxModule, setGlightboxModule] = useState(null);
+    const [currentImageIndex, setCurrentIndex] = useState(-1);
     const [productFields, setProductFields] = useState([]);
     const [fieldNames, setFieldNames] = useState({});
 
@@ -75,20 +76,16 @@ export default function Product({code, title}) {
 
     const { comparisons, compare } = useComparison();
 
-    const { data: fields } = useQuery(productKeys.fields(), () => getProductFields());
-
-    const { data: product, isSuccess, isLoading } = useQuery(productKeys.detail(code), () => loadProductByCode(code), {
-        enabled: code !== undefined
+    const { data: fields } = useQuery({
+        queryKey: productKeys.fields(),
+        queryFn: () => getProductFields()
     });
 
-    useEffect(() => {
-        import('tiny-slider').then((module) => {
-            setTnsModule(module);
-        });
-        import('glightbox').then((module) => {
-            setGlightboxModule(module);
-        });
-    }, []);
+    const { data: product, isSuccess, isLoading } = useQuery({
+        queryKey: productKeys.detail(code),
+        queryFn: () => loadProductByCode(code),
+        enabled: code !== undefined
+    });
 
     useEffect(() => {
         if (isSuccess)
@@ -223,15 +220,30 @@ export default function Product({code, title}) {
                                                         itemProp="image" />
                                                 </a>
                                                 { product.images && (
-                                                    product.images.map((image, index) => (
-                                                        <a className="glightbox" href={image.url} data-title={`${product.title} - фото №${index + 2}`} key={index}>
-                                                            <img
-                                                                src="data:image/gif;base64,R0lGODlhAQABAPAAAMzMzAAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=="
-                                                                className="tns-lazy-img"
-                                                                data-src={image.url}
-                                                                alt={`${product.title} - фото №${index + 2}`} />
+                                                  <>
+                                                    {product.images.map((image, index) => (
+                                                        <a key={index} onClick={()=>setCurrentIndex(index + 1)} style={{cursor: "pointer"}}>
                                                         </a>
-                                                    ))
+                                                    ))}
+                                                                        <Lightbox
+                        open={currentImageIndex !== -1}
+                        close={() => setCurrentIndex(-1)}
+                        index={currentImageIndex}
+                        on={{ view: ({ index }) => setCurrentIndex(index) }}
+                        slides={[{
+                            src: product.big_image ? product.big_image : product.image
+                        }, ...product.images]}
+                        carousel={{
+                            finite: true
+                        }}
+                        render={{
+                            iconPrev: () => <IconChevronCompactLeft size={64} />,
+                            iconNext: () => <IconChevronCompactRight size={64} />,
+                            iconClose: () => <IconX size={64} />
+                        }}
+                    />
+                    </>
+
                                                 )}
                                             </div>
                                         ) : (
@@ -360,9 +372,9 @@ export default function Product({code, title}) {
                     </div>
                 </section>
 
-            </div>
-        <Script id="bootstrap" src="/js/bootstrap.bundle.js" onLoad={initializeBootstrap} onReady={initializeBootstrap} />
-        </>
+                </div>
+                </>
+
     )
 }
 
@@ -377,8 +389,14 @@ Product.getLayout = function getLayout(page) {
 export async function getStaticProps(context) {
     const code = context.params?.code;
     const queryClient = new QueryClient();
-    const fieldsQuery = queryClient.prefetchQuery(productKeys.fields(), () => getProductFields());
-    const dataQuery = queryClient.fetchQuery(productKeys.detail(code), () => loadProductByCode(code));
+    const fieldsQuery = queryClient.prefetchQuery({
+        queryKey: productKeys.fields(),
+        queryFn: () => getProductFields()
+    });
+    const dataQuery = queryClient.fetchQuery({
+        queryKey: productKeys.detail(code),
+        queryFn: () => loadProductByCode(code)
+    });
     // run queries in parallel
     await fieldsQuery;
     const data = await dataQuery;

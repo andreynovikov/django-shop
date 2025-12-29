@@ -3,7 +3,9 @@ import Head from 'next/head';
 import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
 
-export default function Layout({ title, transparentHeader, contentWrapper, children, ...props }) {
+const defaultContentWrapper = ({children}) => children;
+
+export default function Layout({ title, transparentHeader=false, contentWrapper=defaultContentWrapper, children, ...props }) {
     return (
         <>
             <Head>
@@ -27,8 +29,3 @@ export default function Layout({ title, transparentHeader, contentWrapper, child
         </>
     )
 }
-
-Layout.defaultProps = {
-    transparentHeader: false,
-    contentWrapper: ({children}) => children
-};

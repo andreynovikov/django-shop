@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 
 import Layout from '@/components/layout';
 import PageTitle from '@/components/layout/page-title';
@@ -15,21 +15,17 @@ const defaultOrder = 'title';
 export default function Category({title, path, filters, order}) {
     const router = useRouter();
 
-    const { data: category, isSuccess } = useQuery(
-        categoryKeys.detail(path),
-        () => loadCategory(path),
-        {
-            enabled: !!path // path is not set on first render
-        }
-    );
+    const { data: category, isSuccess } = useQuery({
+        queryKey: categoryKeys.detail(path),
+        queryFn: () => loadCategory(path),
+        enabled: !!path // path is not set on first render
+    });
 
-    const { data: products, isSuccess: isProductsSuccess } = useQuery(
-        productKeys.list(1, 1000, filters, order),
-        () => loadProducts(1, 1000, filters, order),
-        {
-            enabled: !!filters && !!order
-        }
-    );
+    const { data: products, isSuccess: isProductsSuccess } = useQuery({
+        queryKey: productKeys.list(1, 1000, filters, order),
+        queryFn: () => loadProducts(1, 1000, filters, order),
+        enabled: !!filters && !!order
+    });
 
     if (router.isFallback || !isSuccess) {
         return (
@@ -79,14 +75,17 @@ Category.getLayout = function getLayout(page) {
 export async function getStaticProps(context) {
     const path = context.params?.path;
     const queryClient = new QueryClient();
-    const category = await queryClient.fetchQuery(categoryKeys.detail(path), () => loadCategory(path));
+    const category = await queryClient.fetchQuery({
+        queryKey: categoryKeys.detail(path),
+        queryFn: () => loadCategory(path)
+    });
     const productFilters = [{field: 'categories', value: category.id}, ...baseFilters];
     const productOrder = category.product_order || defaultOrder;
 
-    await queryClient.prefetchQuery(
-        productKeys.list(1, 1000, productFilters, productOrder),
-        () => loadProducts(1, 1000, productFilters, productOrder)
-    );
+    await queryClient.prefetchQuery({
+        queryKey: productKeys.list(1, 1000, productFilters, productOrder),
+        queryFn: () => loadProducts(1, 1000, productFilters, productOrder)
+    });
 
     return {
         props: {

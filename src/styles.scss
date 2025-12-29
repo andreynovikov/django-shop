@@ -110,3 +110,11 @@ $font-family-heading: 'Roboto',sans-serif;
 .sw-bg-right {
     background-position-x: right !important;
 }
+
+.yarl__root {
+  --yarl__color_backdrop: rgba(255, 255, 255, 1);
+  --yarl__color_button: rgba(192, 192, 192, 1);
+  --yarl__color_button_disabled: rgba(192, 192, 192, 0);
+  --yarl__color_button_active: $primary;
+  --yarl__button_filter: none;
+}

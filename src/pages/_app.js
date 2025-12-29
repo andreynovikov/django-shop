@@ -1,17 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Script from 'next/script';
-import { QueryClient, QueryClientProvider, Hydrate } from 'react-query';
-import { ReactQueryDevtools } from 'react-query/devtools';
+import { QueryClient, QueryClientProvider, HydrationBoundary } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
-import TagManager from 'react-gtm-module';
 import ym, { YMInitializer } from 'react-yandex-metrika';
 
 import { SessionProvider } from '@/lib/session';
 import { apiClient, categoryKeys, productKeys, pageKeys } from '@/lib/queries';
 
-import 'tiny-slider/dist/tiny-slider.css';
-import 'glightbox/dist/css/glightbox.css';
+import 'yet-another-react-lightbox/styles.css';
 import '../styles.scss';
 
 export default function App({ Component, pageProps: { session, ...pageProps }}) {
@@ -20,8 +17,13 @@ export default function App({ Component, pageProps: { session, ...pageProps }}) 
     const [queryClient] = useState(() => new QueryClient({
         defaultOptions: {
             queries: {
-                refetchOnWindowFocus: process.env.NODE_ENV !== 'development',
-                retry: process.env.NODE_ENV === 'development' ? 1 : 3
+                refetchOnWindowFocus: process.env.NODE_ENV !== "development",
+                retry: (failureCount, error) => {
+                    if (error.request.status === 404)
+                        return false;
+                    else
+                        return failureCount < (process.env.NODE_ENV === "development" ? 1 : 3);
+                }
             }
         }
     }));
@@ -34,15 +36,6 @@ export default function App({ Component, pageProps: { session, ...pageProps }}) 
         (async () => {
             await apiClient.get('csrf/');
         })();
-        if (!!process.env.NEXT_PUBLIC_GTM_ID) {
-            TagManager.initialize({gtmId: process.env.NEXT_PUBLIC_GTM_ID});
-            TagManager.dataLayer({
-                dataLayer: {
-                    event: 'pageview',
-                    page: router.asPath
-                }
-            });
-        }
         if (!!process.env.NEXT_PUBLIC_YM_COUNTER_ID) {
             ym('hit', router.asPath);
         }
@@ -50,14 +43,6 @@ export default function App({ Component, pageProps: { session, ...pageProps }}) 
 
     useEffect(() => {
         const handleRouteChange = (url) => {
-            if (typeof window !== 'undefined' && !!process.env.NEXT_PUBLIC_GTM_ID) {
-                TagManager.dataLayer({
-                    dataLayer: {
-                        event: 'pageview',
-                        page: url
-                    }
-                });
-            }
             if (typeof window !== 'undefined' && !!process.env.NEXT_PUBLIC_YM_COUNTER_ID) {
                 ym('hit', url);
             }
@@ -75,26 +60,25 @@ export default function App({ Component, pageProps: { session, ...pageProps }}) 
 
     return (
         <QueryClientProvider client={queryClient}>
-            <Hydrate state={pageProps.dehydratedState}>
-                <SessionProvider session={session}>
-                    <Script id="bootstrap" src="/js/bootstrap.bundle.js" />
-                    { getLayout(<Component {...pageProps} />) }
-                    { !!process.env.NEXT_PUBLIC_YM_COUNTER_ID && (
-                        <YMInitializer
-                            accounts={[parseInt(process.env.NEXT_PUBLIC_YM_COUNTER_ID)]}
-                            options={{
-                                webvisor: true,
-                                defer: true,
-                                clickmap: true,
-                                trackLinks: true,
-                                accurateTrackBounce: true,
-                                ecommerce:"dataLayer"
-                            }}
-                            version="2" />
-                    )}
-                </SessionProvider>
-                <ReactQueryDevtools initialIsOpen={false} />
-            </Hydrate>
+            <HydrationBoundary state={pageProps.dehydratedState}>
+                    <SessionProvider session={session}>
+                        { getLayout(<Component {...pageProps} />) }
+                        { !!process.env.NEXT_PUBLIC_YM_COUNTER_ID && (
+                            <YMInitializer
+                                accounts={[parseInt(process.env.NEXT_PUBLIC_YM_COUNTER_ID)]}
+                                options={{
+                                    webvisor: true,
+                                    defer: true,
+                                    clickmap: true,
+                                    trackLinks: true,
+                                    accurateTrackBounce: true,
+                                    ecommerce:"dataLayer"
+                                }}
+                                version="2" />
+                        )}
+                    </SessionProvider>
+            </HydrationBoundary>
+            <ReactQueryDevtools />
         </QueryClientProvider>
     );
 }
