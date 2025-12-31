@@ -3,8 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { AsyncTypeahead } from 'react-bootstrap-typeahead';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch } from '@fortawesome/free-solid-svg-icons';
+import { IconSearch } from '@tabler/icons-react';
 
 import { productKeys, loadProductSuggestions } from '@/lib/queries';
 
@@ -51,7 +50,7 @@ export default function ProductSearchInput() {
                                 name="text"
                             />
                             <button className="input-group-text" type="submit">
-                                <FontAwesomeIcon icon={faSearch} />
+                                <IconSearch />
                             </button>
                         </div>
                     )}

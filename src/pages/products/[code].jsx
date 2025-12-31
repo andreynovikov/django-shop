@@ -131,7 +131,7 @@ export default function Product({code, title}) {
                 <div className="flex-grow-1">
                     { product.image ? (
                         <div className="text-center">
-                            <a className="glightbox" href={product.big_image || product.image} data-title={product.title}>
+                            <a onClick={()=>setCurrentIndex(0)} className="me-1" style={{cursor: "pointer"}}>
                                 <img
                                     className="img-fluid xsi-product-image"
                                     src={product.image}
