@@ -170,15 +170,18 @@ class ProductImagesSerializer(serializers.BaseSerializer):  # BaseSerializer is 
         request = self.context.get('request')
         images = []
         for product_image in obj.all():
-            thumbnail = get_thumbnail(product_image.image, '80x80', padding=True)
-            images.append({
-                'src': request.build_absolute_uri(product_image.image.url),
-                'thumbnail': {
-                    'src': request.build_absolute_uri(thumbnail.url),
-                    'width': thumbnail.width,
-                    'height': thumbnail.height
-                }
-            })
+            try:
+                thumbnail = get_thumbnail(product_image.image, '80x80', padding=True)
+                images.append({
+                    'src': request.build_absolute_uri(product_image.image.url),
+                    'thumbnail': {
+                        'src': request.build_absolute_uri(thumbnail.url),
+                        'width': thumbnail.width,
+                        'height': thumbnail.height
+                    }
+                })
+            except Exception as e:
+                logger.exception("Failed to generate thumbnail")
         return images
 
 
@@ -192,7 +195,7 @@ class ProductListSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Product
-        fields = ('id', 'code', 'article', 'partnumber', 'whatis', 'whatisit', 'title', 'variations', 'price',
+        fields = ('id', 'code', 'article', 'partnumber', 'order', 'whatis', 'whatisit', 'title', 'variations', 'price',
                   'cost', 'discount', 'instock', 'image', 'thumbnail', 'enabled', 'isnew', 'recomended',
                   'ws_pack_only', 'pack_factor', 'sales', 'sales_notes', 'shortdescr', 'rank',
                   'wb_link', 'ozon_link')
@@ -227,12 +230,16 @@ class ProductListSerializer(NonNullModelSerializer):
             return None
         request = self.context.get('request')
         thumbnail_size = '{}x{}'.format(self.context.get('product_thumbnail_size'), self.context.get('product_thumbnail_size'))
-        image = get_thumbnail(obj.image, thumbnail_size, padding=True, upscale=False)
-        return {
-            'url': request.build_absolute_uri(image.url),
-            'width': image.width,
-            'height': image.height
-        }
+        try:
+            image = get_thumbnail(obj.image, thumbnail_size, padding=True, upscale=False)
+            return {
+                'url': request.build_absolute_uri(image.url),
+                'width': image.width,
+                'height': image.height
+            }
+        except Exception as e:
+            logger.exception("Failed to generate thumbnail")
+            return None
 
     def get_sales(self, obj):
         request = self.context.get('request')
@@ -297,24 +304,32 @@ class ProductSerializer(NonNullModelSerializer):
             return None
         request = self.context.get('request')
         thumbnail_size = '{}x{}'.format(self.context.get('product_thumbnail_size'), self.context.get('product_thumbnail_size'))
-        image = get_thumbnail(obj.image, thumbnail_size, padding=True)
-        return {
-            'url': request.build_absolute_uri(image.url),
-            'width': image.width,
-            'height': image.height
-        }
+        try:
+            image = get_thumbnail(obj.image, thumbnail_size, padding=True)
+            return {
+                'url': request.build_absolute_uri(image.url),
+                'width': image.width,
+                'height': image.height
+            }
+        except Exception as e:
+            logger.exception("Failed to generate thumbnail")
+            return None
 
     def get_thumbnail_small(self, obj):
         if not obj.image:
             return None
         request = self.context.get('request')
         thumbnail_size = '{}x{}'.format(self.context.get('product_small_thumbnail_size'), self.context.get('product_small_thumbnail_size'))
-        image = get_thumbnail(obj.image, thumbnail_size, padding=True)
-        return {
-            'url': request.build_absolute_uri(image.url),
-            'width': image.width,
-            'height': image.height
-        }
+        try:
+            image = get_thumbnail(obj.image, thumbnail_size, padding=True)
+            return {
+                'url': request.build_absolute_uri(image.url),
+                'width': image.width,
+                'height': image.height
+            }
+        except Exception as e:
+            logger.exception("Failed to generate thumbnail")
+            return None
 
     def get_accessories(self, obj):
         accessories = obj.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_ACCESSORY)
@@ -372,23 +387,31 @@ class BasketItemProductSerializer(NonNullModelSerializer):
         if not obj.image:
             return None
         request = self.context.get('request')
-        image = get_thumbnail(obj.image, '160x160', padding=True)
-        return {
-            'url': request.build_absolute_uri(image.url),
-            'width': image.width,
-            'height': image.height
-        }
+        try:
+            image = get_thumbnail(obj.image, '160x160', padding=True)
+            return {
+                'url': request.build_absolute_uri(image.url),
+                'width': image.width,
+                'height': image.height
+            }
+        except Exception as e:
+            logger.exception("Failed to generate thumbnail")
+            return None
 
     def get_thumbnail_small(self, obj):
         if not obj.image:
             return None
         request = self.context.get('request')
-        image = get_thumbnail(obj.image, '64x64', padding=True)
-        return {
-            'url': request.build_absolute_uri(image.url),
-            'width': image.width,
-            'height': image.height
-        }
+        try:
+            image = get_thumbnail(obj.image, '64x64', padding=True)
+            return {
+                'url': request.build_absolute_uri(image.url),
+                'width': image.width,
+                'height': image.height
+            }
+        except Exception as e:
+            logger.exception("Failed to generate thumbnail")
+            return None
 
 
 class BasketItemSerializer(serializers.ModelSerializer):
