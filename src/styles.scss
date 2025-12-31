@@ -363,3 +363,25 @@ ul.si-category-list {
 :root {
     --toastify-color-progress-light: #{$primary};
 }
+
+.sw-btn-wb {
+    color: #ffffff !important;
+    background-color: #a83afb;
+    border-color: #a83afb;
+
+    &:hover {
+        background-color: #ad3d86;
+        border-color: #ad3d86;
+    }
+}
+
+.sw-btn-ozon {
+    color: #ffffff !important;
+    background-color: #005bff;
+    border-color: #005bff;
+
+    &:hover {
+        background-color: #007bfb;
+        border-color: #007bfb;
+    }
+}

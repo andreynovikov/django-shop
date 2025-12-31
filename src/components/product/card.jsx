@@ -59,6 +59,12 @@ export default function ProductCard({product}) {
                     </button>
                 </div>
             )}
+            { product.wb_link && <div className="text-center mt-2">
+                <a href={product.wb_link} className="btn btn-sm sw-btn-wb fs-xs fw-bold" role="button">Купить на WB</a>
+            </div> }
+            { product.ozon_link && <div className="text-center mt-2">
+                <a href={ product.ozon_link } className="btn btn-sm sw-btn-ozon fs-xs fw-bold" role="button">Купить на Ozon</a>
+            </div> }
 
             { product.sales_notes && <div className="text-center fs-sm mt-2">{ product.sales_notes }</div> }
         </div>

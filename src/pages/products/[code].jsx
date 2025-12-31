@@ -170,6 +170,17 @@ export default function Product({code, title}) {
                                         { product.instock > 0 ? "Купить" : "Сообщить о поступлении" }
                                     </button>
 
+                                    { product.wb_link && <div className="mt-2">
+                                        <a href={product.wb_link} className="btn sw-btn-wb fw-bold" role="button">
+                                            Купить на WB
+                                        </a>
+                                    </div>}
+                                    { product.ozon_link && <div className="mt-2">
+                                        <a href={ product.ozon_link } className="btn sw-btn-ozon fw-bold" role="button">
+                                            Купить на Ozon
+                                        </a>
+                                    </div>}
+
                                     <span itemProp="priceCurrency" className="d-none">RUB</span>
                                 </div>
 
