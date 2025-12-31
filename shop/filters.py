@@ -186,7 +186,7 @@ class BaseProductFilter(django_filters.FilterSet):
     sm_stitchquantity = django_filters.NumberFilter(widget=ShopSliderWidget(attrs={'step': 10, 'min_value': 0, 'max_value': 250}), lookup_expr='gt')
     price = django_filters.RangeFilter(widget=ShopRangeWidget(attrs={'step': 5000, }))
     categories = ShopChoiceFilter(choices=categories, empty_label='- - любая - -')
-    manufacturer = ShopChoiceFilter(choices=manufacturers, empty_label='- - любой - -')
+    manufacturer = ShopMultipleChoiceFilter(choices=manufacturers)  # , empty_label='- - любой - -')
     sm_shuttletype = django_filters.ChoiceFilter(choices=shuttles, empty_label='- - не важно - -', lookup_expr='icontains')
 
     def __init__(self, data=None, *args, **kwargs):

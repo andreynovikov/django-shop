@@ -146,9 +146,10 @@ class ProductKindViewSet(viewsets.ReadOnlyModelViewSet):
 
 class ProductViewSet(ProductListSerializerContextMixin, viewsets.ReadOnlyModelViewSet):
     lookup_value_regex = '[^/]+'
+    queryset = Product.objects.all()
     pagination_class = StandardResultsSetPagination
     filter_backends = [filters.OrderingFilter]
-    ordering_fields = [f.name for f in Product._meta.get_fields()]
+    ordering_fields = '__all__'
     filtering_fields = [f.name for f in Product._meta.get_fields()] + ['text', 'instock']
     product_filter = None
 
@@ -160,10 +161,14 @@ class ProductViewSet(ProductListSerializerContextMixin, viewsets.ReadOnlyModelVi
         return ProductSerializer
 
     def get_queryset(self):
-        queryset = Product.objects.all().order_by('code')
+        queryset = super().get_queryset()
         has_category_filter = False
 
         for field, values in self.request.query_params.lists():
+            if field == 'in_category':
+                category = Category.objects.get(pk=values[0])
+                queryset = queryset.filter(categories__in=category.get_descendants())
+                continue
             base_field = field.split('__', 1)[0]
             if base_field not in self.filtering_fields:
                 continue
@@ -187,7 +192,8 @@ class ProductViewSet(ProductListSerializerContextMixin, viewsets.ReadOnlyModelVi
                 queryset = self.product_filter.qs
             elif field in ('show_on_sw', 'gift', 'recomended', 'firstpage', 'enabled'):
                 key = '{}__exact'.format(field)
-                queryset = queryset.filter(**{key: values[0] == '1'})
+                value = values[0].lower() in ('1', 'on', 't', 'true', 'y', 'yes')
+                queryset = queryset.filter(**{key: value})
             elif field == 'title':
                 key = '{}__icontains'.format(field)
                 queryset = queryset.filter(**{key: values[0]})
@@ -196,6 +202,10 @@ class ProductViewSet(ProductListSerializerContextMixin, viewsets.ReadOnlyModelVi
                     queryset = queryset.filter(num__gt=0)
                 else:
                     queryset = queryset.filter(num__exact=0)
+            elif field == 'price':
+                price = values[0].split('-')  # TODO Combine with filters after upgrade
+                if len(price) == 2:
+                    queryset = queryset.filter(price__gte=price[0], price__lte=price[1])
             elif field == 'categories':
                 key = '{}__pk__exact'.format(field)
                 queryset = queryset.filter(**{key: values[0]})
