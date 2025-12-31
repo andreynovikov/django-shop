@@ -10,7 +10,7 @@
         "docker-deploy": "sudo docker compose up -d"
     },
     "dependencies": {
-        "@popperjs/core": "^2.11.6",
+        "@base-ui/react": "^1.0.0",
         "@tabler/icons-react": "^3.36.0",
         "@tanstack/react-query": "^5.90.15",
         "axios": "^1.13.2",
@@ -22,7 +22,6 @@
         "react-bootstrap": "^2.10.10",
         "react-bootstrap-typeahead": "^6.4.1",
         "react-dom": "^19.2.3",
-        "react-popper": "^2.3.0",
         "react-yandex-metrika": "^2.6.0",
         "yet-another-react-lightbox": "^3.28.0"
     },
