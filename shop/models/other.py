@@ -151,18 +151,20 @@ class Contractor(models.Model):
         (TAX_SYSTEM_STS, 'УСН'),
     )
     VAT_RATE_NONE = 1
-    VAT_RATE_ZERO = 2
-    VAT_RATE_TEN = 3
-    VAT_RATE_RECEIPT_TWENTY = 4
-    VAT_RATE_FIVE = 7
-    VAT_RATE_SEVEN = 8
+    VAT_RATE_0 = 2
+    VAT_RATE_10 = 3
+    VAT_RATE_20 = 4
+    VAT_RATE_5 = 7
+    VAT_RATE_7 = 8
+    VAT_RATE_22 = 11
     VAT_RATE_CHOICES = (
         (VAT_RATE_NONE, 'Без НДС'),
-        (VAT_RATE_ZERO, 'НДС по ставке 0%'),
-        (VAT_RATE_FIVE, 'НДС по ставке 5%'),
-        (VAT_RATE_SEVEN, 'НДС по ставке 7%'),
-        (VAT_RATE_TEN, 'НДС по ставке 10%'),
-        (VAT_RATE_RECEIPT_TWENTY, 'НДС чека по ставке 20%'),
+        (VAT_RATE_0, 'НДС по ставке 0%'),
+        (VAT_RATE_5, 'НДС по ставке 5%'),
+        (VAT_RATE_7, 'НДС по ставке 7%'),
+        (VAT_RATE_10, 'НДС по ставке 10%'),
+        (VAT_RATE_20, 'НДС по ставке 20%'),
+        (VAT_RATE_22, 'НДС по ставке 22%'),
     )
     code = models.CharField('код 1С', max_length=64)
     name = models.CharField('название', max_length=100)
