@@ -117,12 +117,15 @@ def revalidate_nextjs(domain, token, payload):
     return response_data
 
 
-@shared_task(bind=True, autoretry_for=(DatabaseError,), retry_backoff=300, retry_jitter=False)
+@shared_task(bind=True, autoretry_for=(DatabaseError,), max_retries=12, retry_backoff=300, retry_jitter=False)
 def update_order(self, order_id, data):
     order = Order.objects.get(id=order_id)
     if order.owner:
-        log.info('Locked by %s, retrying' % order.owner)
-        raise self.retry(countdown=600, max_retries=24)  # 10 minutes
+        if self.request.retries < self.max_retries - 1:
+            log.info('Locked by %s, retrying' % order.owner)
+            raise self.retry(countdown=600)  # 10 minutes
+        else:
+            log.warning('Locked by %s, force unlocking' % order.owner)
     order.owner = ShopUser.objects.get(phone='000')
     order.save()
     changed = {}
