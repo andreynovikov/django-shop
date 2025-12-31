@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import Layout from '@/components/layout';
@@ -148,13 +149,18 @@ export default function Confirmation() {
                             <h4 className="text-center mb-3">Детали заказа</h4>
                             {order.items.map((item, index) => (
                                 <div className={"d-flex align-items-center border-bottom " + (index === 0 ? "pb-3" : "py-3")} key={item.product.id}>
-                                    <Link className="d-block flex-shrink-0" href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
-                                        { item.product.thumbnail_small ? (
-                                            <img
-                                                src={item.product.thumbnail_small.url}
-                                                width={item.product.thumbnail_small.width}
-                                                height={item.product.thumbnail_small.height}
-                                                alt={`${item.product.title} ${item.product.whatis}`} />
+                                    <Link
+                                        className="d-block flex-shrink-0 position-relative"
+                                        style={{ width: 64, height: 64 }}
+                                        href={{ pathname: '/products/[code]', query: { code: item.product.code }}}>
+                                        { item.product.image ? (
+                                            <Image
+                                                src={item.product.image}
+                                                fill
+                                                style={{ objectFit: 'contain' }}
+                                                sizes="64px"
+                                                loading="lazy"
+                                                alt={`${item.product.whatis ? item.product.whatis + ' ' : ''}${item.product.title}`} />
                                         ) : (
                                             <NoImage className="d-inline-block text-muted" size={64} stroke={1.5} />
                                         )}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 
 import Lightbox from 'yet-another-react-lightbox';
@@ -200,11 +201,15 @@ export default function Product({code, title}) {
                 <div className="mt-2">
                     { product.images.map((image, index) => (
                     <a onClick={()=>setCurrentIndex(index + 1)} className="me-1" style={{cursor: "pointer"}}>
-                        <img
-                            src={image.thumbnail.src}
-                            width={image.thumbnail.width}
-                            height={image.thumbnail.height}
-                            alt={`${product.title} - фото №${index + 2}`} />
+                        <span className="d-inline-block position-relative" style={{ width: 80, height: 80 }}>
+                            <Image
+                                src={image.src}
+                                fill
+                                style={{ objectFit: 'contain' }}
+                                sizes="80px"
+                                loading="lazy"
+                                alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title} - фото №${index + 2}`} />
+                        </span>
                     </a>
                     ))}
                     <Lightbox

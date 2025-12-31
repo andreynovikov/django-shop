@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 import NoImage from '@/components/product/no-image';
 
@@ -18,8 +19,15 @@ export default function ProductCard({product}) {
         <div className="product_display">
             <div className="thumb text-center">
                 <Link href={{ pathname: '/products/[code]', query: { code: product.code }}}>
-                    { product.thumbnail ? (
-                        <img src={product.thumbnail.url} alt={`${product.title} ${product.whatis}`} />
+                    { product.image ? (
+                        <div className="mx-auto position-relative" style={{ width: 160, height: 160 }}>
+                            <Image
+                                src={product.image}
+                                fill
+                                style={{ objectFit: 'contain' }}
+                                sizes="160px"
+                                alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
+                        </div>
                     ) : (
                         <NoImage className="text-muted" />
                     )}
