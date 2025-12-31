@@ -11,9 +11,9 @@ from tagging.fields import TagField
 
 from .preview import HTMLPreview
 
-
+# Taken from https://github.com/Fantomas42/django-blog-zinnia/blob/develop/zinnia/url_shortener/backends/default.py
+# for back compatibility
 BASE36_ALPHABET = string.digits + string.ascii_uppercase
-
 
 def base36(value):
     result = ''
@@ -91,15 +91,15 @@ class Entry(models.Model):
 
     @property
     def short_url(self):
-        return reverse('zinnia:entry_shortlink', args=[base36(self.pk)])
+        return '/blog/{}/'.format(base36(self.pk))
 
     def get_absolute_url(self):
         publication_date = self.publication_date
         if timezone.is_aware(publication_date):
             publication_date = timezone.localtime(publication_date)
-        return reverse('zinnia:entry_detail', kwargs={
-            'year': publication_date.strftime('%Y'),
-            'month': publication_date.strftime('%m'),
-            'day': publication_date.strftime('%d'),
-            'slug': self.slug
-        })
+        return '/blog/{year}/{month}/{day}/{slug}/'.format(
+            year=publication_date.strftime('%Y'),
+            month=publication_date.strftime('%m'),
+            day=publication_date.strftime('%d'),
+            slug=self.slug
+        )

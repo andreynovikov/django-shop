@@ -64,23 +64,29 @@ class EntryViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
 
     def get_object(self):
+        """
+        Retrive object by pk, short link and full link
+        """
         key = self.kwargs.get(self.lookup_field)
         if not key.isdigit():
-            try:
-                year, month, day, slug = key.split('/')
-                date = datetime.datetime.strptime('{}__{}__{}'.format(year,month,day), '%Y__%m__%d').date()
-                since = self._make_date_lookup_arg(date)
-                until = self._make_date_lookup_arg(date + datetime.timedelta(days=1))
-                lookup_kwargs = {
-                    "publication_date__gte": since,
-                    "publication_date__lt": until,
-                    "slug": slug
-                }
-                instance = self.get_queryset().filter(**lookup_kwargs).first()
-                if instance is not None:
-                    self.kwargs[self.lookup_field] = instance.pk
-            except (IndexError, ValueError) as e:
-                pass  # let DRF issue the error
+            if key.isalnum():  # short link
+                self.kwargs[self.lookup_field] = int(key, 36)
+            else:
+                try:
+                    year, month, day, slug = key.split('/')
+                    date = datetime.datetime.strptime('{}__{}__{}'.format(year,month,day), '%Y__%m__%d').date()
+                    since = self._make_date_lookup_arg(date)
+                    until = self._make_date_lookup_arg(date + datetime.timedelta(days=1))
+                    lookup_kwargs = {
+                        "publication_date__gte": since,
+                        "publication_date__lt": until,
+                        "slug": slug
+                    }
+                    instance = self.get_queryset().filter(**lookup_kwargs).first()
+                    if instance is not None:
+                        self.kwargs[self.lookup_field] = instance.pk
+                except (IndexError, ValueError) as e:
+                    pass  # let DRF issue the error
         return super().get_object()
 
     def _make_date_lookup_arg(self, value):
