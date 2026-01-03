@@ -75,7 +75,7 @@ export default function ProductCard({ product, limitedBadges = false, gtmCategor
 
   return (
     <div ref={cardRef} className="card product-card h-100">
-      <OverlayTrigger
+      {status === 'authenticated' && <OverlayTrigger
         placement="left"
         overlay={
           <Tooltip>
@@ -91,7 +91,7 @@ export default function ProductCard({ product, limitedBadges = false, gtmCategor
         <button onClick={handleFavoritesClick} className={"btn-wishlist btn-sm" + (favorites.includes(product.id) ? " bg-accent text-light" : "")}>
           <i className="ci-heart" />
         </button>
-      </OverlayTrigger>
+      </OverlayTrigger>}
       <Link className="d-block mt-3 p-6" href={productLink} onClick={handleClick}>
         <div className="m-3 p-3">
           <div className="position-relative p-3 overflow-hidden" style={{ aspectRatio: 1 }}>

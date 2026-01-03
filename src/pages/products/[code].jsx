@@ -389,7 +389,7 @@ export default function Product({ code }) {
                   )}
                   {(product.enabled || product.kind) && (
                     <div className="d-flex mb-4">
-                      {product.enabled && (
+                      {(status === 'authenticated' && product.enabled) && (
                         <button
                           type="button"
                           onClick={handleFavoritesClick}
@@ -404,7 +404,7 @@ export default function Product({ code }) {
                         <button
                           type="button"
                           onClick={handleComparisonClick}
-                          className={"btn btn-" + (comparisons.includes(product.id) ? "accent" : "secondary") + " d-block w-100 ms-3"}>
+                          className={"btn btn-" + (comparisons.includes(product.id) ? "accent" : "secondary") + " d-block w-100" + (status === 'authenticated' ? " ms-3" : "")}>
                           <i className="ci-compare fs-lg me-2" />
                           <span>
                             {comparisons.includes(product.id) ? "Сравнение" : "Сравнить"}
