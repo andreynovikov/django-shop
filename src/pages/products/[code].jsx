@@ -692,7 +692,8 @@ export async function getStaticProps(context) {
         id: data.id,
         allowReviews: data.allow_reviews,
         breadcrumbs
-      }
+      },
+      revalidate: 60 * 60 // <--- ISR cache: once an hour
     }
   } catch (error) {
     if (error.response?.status === 404)
