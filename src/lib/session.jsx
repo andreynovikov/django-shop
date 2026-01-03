@@ -7,11 +7,13 @@ import { apiClient, userKeys, userReferences, userDependencies, currentUser } fr
 export const SessionContext = createContext({
   user: undefined,
   isRouting: false,
+  registered: false,
   status: 'unauthenticated'
 })
 
 const __SESSION = {
-  _invalidate: () => { }
+  invalidate: () => { },
+  registered: false
 }
 
 export function useSession(options) {
@@ -23,8 +25,7 @@ export function useSession(options) {
   useEffect(() => {
     if (required && !value.isRouting)
       onUnauthenticated()
-    /* eslint-disable react-hooks/exhaustive-deps */
-  }, [required, value.isRouting])
+  }, [onUnauthenticated, required, value.isRouting])
 
   if (required)
     return { user: value.user, status: 'loading' }
@@ -35,6 +36,7 @@ export function useSession(options) {
 export async function signIn(credentials) {
   return apiClient.post('users/login/', credentials)
     .then(function (response) {
+      __SESSION.registered = response.data.registered
       return {
         ...response.data,
         ok: +response.data.id > 0
@@ -58,6 +60,7 @@ export async function signOut(options) {
 
   return apiClient.get('users/logout/')
     .then(function () {
+      __SESSION.registered = false
       __SESSION.invalidate()
       if (callbackUrl)
         Router.push(callbackUrl)
@@ -83,6 +86,11 @@ export async function register(data) {
       __SESSION.invalidate()
       return result
     })
+}
+
+export function invalidate() {
+    __SESSION.registered = false;
+    __SESSION.invalidate();
 }
 
 export function SessionProvider({ children }) {
@@ -129,10 +137,11 @@ export function SessionProvider({ children }) {
   const value = useMemo(() => ({
     user,
     isRouting,
+    registered: __SESSION.registered,
     status: isLoading ? 'loading'
       : isSuccess && user?.id > 0 ? 'authenticated'
         : 'unauthenticated'
-  }), [user, isLoading, isSuccess], isRouting)
+  }), [user, isLoading, isSuccess], isRouting, __SESSION.registered)
 
   return (
     <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

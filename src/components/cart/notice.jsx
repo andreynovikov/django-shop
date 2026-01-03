@@ -1,3 +1,4 @@
+import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Image from 'next/image'
 import SimpleBar from 'simplebar-react'
@@ -5,6 +6,8 @@ import SimpleBar from 'simplebar-react'
 import NoImage from '@/components/product/no-image'
 
 import useBasket from '@/lib/basket'
+import { useCreateOrder } from '@/lib/order'
+import { useSession } from '@/lib/session'
 
 export function MobileCartNotice() {
   const { basket, isEmpty } = useBasket()
@@ -23,10 +26,20 @@ export function MobileCartNotice() {
 }
 
 export default function CartNotice() {
+  const { status } = useSession()
   const { basket, isEmpty, removeItem } = useBasket()
+  const { mutate } = useCreateOrder()
+  const router = useRouter()
 
-  const handleItemRemoveClick = (product) => {
+  const handleRemoveItem = (product) => {
     removeItem(product)
+  }
+
+  const handleCreateOrder = () => {
+    if (status === 'authenticated')
+      mutate()
+    else
+      router.push('/cart')
   }
 
   if (isEmpty)
@@ -50,7 +63,7 @@ export default function CartNotice() {
           <SimpleBar style={{ height: "15rem" }}>
             {basket.items.map((item, index) => (
               <div key={item.product.id} className={"widget-cart-item border-bottom " + (index === 0 ? "pb-2" : "py-2")}>
-                <button className="btn-close text-danger" onClick={() => handleItemRemoveClick(item.product)} aria-label="Удалить">
+                <button className="btn-close text-danger" onClick={() => handleRemoveItem(item.product)} aria-label="Удалить">
                   <span aria-hidden="true">&times;</span>
                 </button>
                 <div className="d-flex align-items-center">
@@ -95,9 +108,9 @@ export default function CartNotice() {
               Открыть корзину<i className="ci-arrow-right ms-1 me-n1" />
             </Link>
           </div>
-          <Link className="btn btn-primary btn-sm d-block w-100" href="/confirmation">
+          <button className="btn btn-primary btn-sm d-block w-100" type="button" onClick={handleCreateOrder}>
             <i className="ci-basket-alt me-2 fs-base align-middle" />Оформить заказ
-          </Link>
+          </button>
         </div>
       </div>
     </div>

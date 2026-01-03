@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import Link from 'next/link'
 
 import PageLayout from '@/components/layout/page'
@@ -6,12 +7,29 @@ import CartItem from '@/components/cart/item'
 import { PageLoading } from '@/components/loading'
 
 import useBasket from '@/lib/basket'
+import { useCreateOrder } from '@/lib/order'
 import { useSession, signOut } from '@/lib/session'
 import { useLastCatalog } from '@/lib/catalog'
 
 export default function Cart() {
-  const { user, status } = useSession()
+  const { user, registered, status, invalidate } = useSession()
   const { basket, isEmpty, isLoading, isSuccess, removeItem, setQuantity } = useBasket()
+
+
+  const { mutate } = useCreateOrder()
+
+  useEffect(() => {
+    console.log("order", registered, status)
+    if (status === 'authenticated' && registered) {
+      mutate()
+      invalidate()
+    }
+  }, [invalidate, mutate, registered, status])
+
+  const handleCreateOrder = () => {
+    mutate()
+  }
+
   const lastPage = useLastCatalog()
 
   const noCartStyle = {
@@ -70,9 +88,9 @@ export default function Cart() {
             {status === 'authenticated' ? (
               <>
                 <div className="mb-2">Добро пожаловать, {user?.name || "уважаемый покупатель"}!</div>
-                <Link className="btn btn-primary btn-shadow d-block w-100 mt-4" href="/confirmation">
+                <button className="btn btn-primary btn-shadow d-block w-100 mt-4" type="button" onClick={handleCreateOrder}>
                   <i className="fs-lg me-2 ci-basket-alt" />Оформить заказ
-                </Link>
+                </button>
               </>
             ) : (
               <LoginForm embedded={true} ctx="order" />
