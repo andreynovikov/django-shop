@@ -175,7 +175,7 @@ export default function Category({ path, currentPage, pageSize, order, filters }
   })
 
   const currentProducts = isProductsSuccess && products.count > 0 ? products : recomendedProducts
-  const isCurrentSuccess = isProductsSuccess || isRecomendedSuccess
+  const isCurrentSuccess = (isProductsSuccess && products.count > 0) || isRecomendedSuccess
   const isCurrentLoading = isProductsLoading || isRecomendedLoading
 
   const handleFilterChanged = (field, value) => {
