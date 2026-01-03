@@ -31,7 +31,7 @@ export default function BottomBar() {
               <a className="btn-social bs-outline bs-light bs-vk" href="https://vk.com/sew.world">
                 <i className="ci-vk"></i>
               </a>
-              <a className="btn-social bs-outline bs-light bs-dzen d-block align-content-center p-2" href="https://dzen.ru/sewingworld">
+              <a className="btn-social bs-outline bs-light bs-dzen d-block align-content-center p-2" href="https://shorturl.at/ZzJbf">
                 <DzenIcon className="align-baseline" />
               </a>
               <a className="btn-social bs-outline bs-light bs-telegram" href="https://t.me/sewingworldrus">
