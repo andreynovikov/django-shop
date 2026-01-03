@@ -63,7 +63,6 @@ export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, 
   const phoneRef = useRef()
 
   useEffect(() => {
-    console.log(phoneRef.current)
     if (ready && phoneRef.current && !!!phoneRef.current.inputmask)
       phoneInputMask.mask(phoneRef.current)
   }, [ready, phoneRef])
