@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -7,14 +7,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import PageLayout from '@/components/layout/page'
 import NoImage from '@/components/product/no-image'
 import { STATUS_NEW } from '@/components/order/status-badge'
-import { Loading } from '@/components/loading'
+import { PageLoading } from '@/components/loading'
 
 import { useSession } from '@/lib/session'
 import { basketKeys, orderKeys, loadOrder, updateOrder } from '@/lib/queries'
 
 export default function Confirmation() {
-  const [orderId, setOrderId] = useState(0)
-  const [orderStatus, setOrderStatus] = useState(STATUS_NEW)
   const [updated, setUpdated] = useState(false)
 
   const router = useRouter()
@@ -39,31 +37,25 @@ export default function Confirmation() {
     queryClient.invalidateQueries(basketKeys.all)
   }, [queryClient])
 
-  useEffect(() => {
+  const orderId = useMemo(() => {
     if (status !== 'authenticated')
-      return // wait for authentication
+      return 0 // wait for authentication
 
-    if (orderId === 0) {
-      const id = sessionStorage.getItem('lastOrder')
-      if (+id > 0) {
-        setOrderId(id)
-      } else { // we know nothing about last order
-        router.push({ pathname: '/user/orders' })
-      }
-    }
-  }, [status, orderId, router])
+    const id = sessionStorage.getItem('lastOrder') // TODO: clean after some extent
+    return +id > 0 ? id : undefined
+  }, [status])
+
+  useEffect(() => {
+    if (orderId === undefined)
+      router.push({ pathname: '/user/orders' }) // we know nothing about last order
+  }, [orderId, router])
 
   const { data: order, isSuccess, isFetching, isError } = useQuery({
     queryKey: orderKeys.detail(orderId),
     queryFn: () => loadOrder(orderId),
     enabled: orderId > 0 && status === 'authenticated',
-    refetchInterval: orderStatus === STATUS_NEW ? 60 * 1000 : false // check for updates every minute
+    refetchInterval: (query) => query.state.data?.status === STATUS_NEW ? 60 * 1000 : false // check for updates every minute
   })
-
-  useEffect(() => {
-    if (order)
-      setOrderStatus(order.status)
-  }, [order])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -84,10 +76,10 @@ export default function Confirmation() {
         return (
           <section className="col-lg-8">
             <div className="d-flex justify-content-between align-items-center pt-3 pb-2 pb-sm-5 mt-1">
-              <h2 className="h6 text-light mb-0"></h2>
+              <h2 className="h6 text-light mb-0">&nbsp;</h2>
             </div>
             {isFetching ? (
-              <Loading />
+              <PageLoading />
             ) : isError ? (
               <div className="lead">Что-то пошло не так...</div>
             ) : (
