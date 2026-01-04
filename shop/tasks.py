@@ -103,7 +103,7 @@ class DecimalEncoder(json.JSONEncoder):
         return super(DecimalEncoder, self).default(o)
 
 
-@shared_task(autoretry_for=(Exception,), rate_limit='2/s', default_retry_delay=300, retry_backoff=True)
+@shared_task(queue="revalidation", autoretry_for=(Exception,), rate_limit='2/s', default_retry_delay=300, retry_backoff=True)
 def revalidate_nextjs(domain, token, payload):
     url = 'https://{}/api/revalidate'.format(domain)
     data = {
@@ -120,7 +120,7 @@ def revalidate_nextjs(domain, token, payload):
     return result
 
 
-@shared_task(bind=True, autoretry_for=(DatabaseError,), retry_backoff=300, retry_jitter=False)
+@shared_task(bind=True, queue="priority", autoretry_for=(DatabaseError,), max_retries=12, retry_backoff=300, retry_jitter=False)
 def update_order(self, order_id, data):
     order = Order.objects.get(id=order_id)
     if order.owner:
@@ -174,8 +174,8 @@ def notify_user_order_new_sms(order_id, password=None):
     password_text = ""
     if password:
         password_text = " Пароль: %s" % password
-    return send_sms(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s%s %s"
-                                 % (order_id, site.domain, reverse('shop:user_orders'), password_text))
+    return send_sms(order.phone, "Состояние заказа №%s можно узнать в личном кабинете: https://%s/user/orders/ %s"
+                                 % (order_id, site.domain, password_text))
 
 
 @shared_task(autoretry_for=(Exception,), default_retry_delay=120, retry_backoff=True)
@@ -208,8 +208,8 @@ def notify_user_order_new_mail(order_id):
 def notify_user_order_collected(order_id):
     order = Order.objects.get(id=order_id)
     site = get_site_for_order(order)
-    send_sms(order.phone, "Заказ №%s собран и ожидает оплаты. Перейдите по ссылке, чтобы оплатить заказ: https://%s%s"
-                          % (order_id, site.domain, reverse('shop:order', args=[order_id])))
+    send_sms(order.phone, "Заказ №%s собран и ожидает оплаты. Перейдите по ссылке, чтобы оплатить заказ: https://%s/user/orders/%s/"
+                          % (order_id, site.domain, order_id))
 
     if order.email:
         if not validate_email(order.email):
@@ -361,7 +361,7 @@ def notify_review_posted(review_id):
     )
 
 
-@shared_task
+@shared_task(queue="revalidation")
 def post_update_product(product_id, origin):
     product = Product.objects.get(pk=product_id)
 
