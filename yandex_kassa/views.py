@@ -10,7 +10,6 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, HttpRe
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
-from django.urls import reverse
 from django.utils.encoding import force_text
 
 from yookassa import Configuration, Payment, Receipt
@@ -82,9 +81,9 @@ def payment(request, order_id, return_url=None):
         })
 
     if return_url is None:
-        return_url = 'https://{}{}'.format(
+        return_url = 'https://{}/user/orders/{}/'.format(
             Site.objects.get_current().domain,
-            reverse('shop:order', args=[order.id])
+            order.id
         )
 
     payment_details = {
