@@ -1,3 +1,4 @@
+import { MouseEvent } from 'react'
 import { useRouter } from 'next/router'
 import { useQuery } from "@tanstack/react-query"
 
@@ -20,7 +21,8 @@ export default function OrderPaymentButton({ orderId, iconOnly = false }: { orde
   if (!isSuccess || process.env.NEXT_PUBLIC_ORIGIN === undefined)
     return null
 
-  const handlePayment = () => {
+  const handlePayment = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
     apiClient.post(`orders/${orderId}/pay/`, {
       'return_url': process.env.NEXT_PUBLIC_ORIGIN!.slice(0, -1) + router.asPath
     }, {
