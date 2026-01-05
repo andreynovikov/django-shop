@@ -58,7 +58,7 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
               if (embedded && hideModal)
                 hideModal()
             } else {
-              setError({ phone: result.error })
+              setError({ phone: result.error.phone?.[0] ?? result.error.non_field_errors?.[0] ?? result.error.toString() })
             }
           })
       } else {

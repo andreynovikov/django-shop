@@ -44,9 +44,10 @@ export async function signIn(credentials) {
     })
     .catch(function (error) {
       // handle error
-      console.log(error)
+      console.log("signIn", error)
       return {
-        error
+        error: error.response?.data ?? error.message,
+        ok: false
       }
     })
     .then(function (result) {
