@@ -13,13 +13,12 @@ export function SiteProvider({ children }) {
   const { data: site, isSuccess, isLoading } = useQuery({
     queryKey: siteKeys.current(),
     queryFn: () => loadCurrentSite(),
-    placeholderData: {},
     staleTime: Infinity,
     refetchOnWindowFocus: false,
   })
 
   const value = useMemo(() => ({
-    site,
+    site: site ?? {},
     status: isLoading ? 'loading' : isSuccess ? 'success' : 'error'
   }), [site, isLoading, isSuccess])
 
