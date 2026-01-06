@@ -79,7 +79,7 @@ export default function Orders({ filter, page, track }) {
     <>
       <UserTopbar>
         <div className="d-flex align-items-center flex-nowrap me-3 me-sm-4">
-          {isSuccess && !isTracking && (orders.results.length > 0 || !!currentFilter) && (
+          {isSuccess && !isTracking && (orders.results.length > 0 || !!currentFilter) ? (
             <>
               <label className="text-light opacity-75 text-nowrap fs-sm me-2 d-none d-sm-block" htmlFor="sw-order-filter">Отображать:</label>
               <select className="form-select" id="sw-order-filter" value={currentFilter} onChange={(e) => onFilterChanged(e.target.value)}>
@@ -89,6 +89,8 @@ export default function Orders({ filter, page, track }) {
                 <option value="canceled">Отмененные</option>
               </select>
             </>
+          ) : (
+            <div className="d-flex w-100 text-light text-center me-3">&nbsp;</div>
           )}
         </div>
       </UserTopbar>

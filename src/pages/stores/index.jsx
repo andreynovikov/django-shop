@@ -5,18 +5,22 @@ import { useQuery } from '@tanstack/react-query'
 
 import PageLayout from '@/components/layout/page'
 
+import { useBreakpoint } from '@/lib/breakpoint'
 import { rows } from '@/lib/partition'
 import { storeKeys, loadStores } from '@/lib/queries'
 
-export default function Stores({marketplace, lottery}) {
+export default function Stores({ marketplace, lottery }) {
   const [ymapsReady, setYMapsReady] = useState(false)
   const [currentCity, setCurrentCity] = useState(null)
+  const breakpoint = useBreakpoint()
+  const cols = ['xs', 'sm'].includes(breakpoint)
+    ? 2 : ['md', 'lg'].includes(breakpoint) ? 3 : 4
 
   const ymap = useRef(null)
 
   const { data: stores } = useQuery({
-    queryKey: storeKeys.lists({marketplace, lottery}),
-    queryFn: () => loadStores({marketplace, lottery})
+    queryKey: storeKeys.lists({ marketplace, lottery }),
+    queryFn: () => loadStores({ marketplace, lottery })
   })
 
   useEffect(() => {
@@ -159,8 +163,8 @@ export default function Stores({marketplace, lottery}) {
               </button>
             </div>
             <div className="d-flex mt-1">
-              {storeGroups.length > 0 && rows(storeGroups, 4).map((column, index) => (
-                <div className="pe-1" key={index}>
+              {storeGroups.length > 0 && rows(storeGroups, cols).map((column, index) => (
+                <div className="flex-grow-1 pe-1" key={index}>
                   {column.map(({ city }) => (
                     <button
                       key={city.id}

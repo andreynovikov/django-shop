@@ -76,7 +76,7 @@ export default function Favorites() {
           </div>
         ))
       ) : (
-        <p className="lead">Здесь появятся отложенные ваши товары</p>
+        <p className="lead">Здесь появятся ваши отложенные товары</p>
       )}
     </>
   )

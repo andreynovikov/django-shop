@@ -5,6 +5,7 @@ const breakpoints = {
   md: 768,
   lg: 992,
   xl: 1200,
+  xxl: 1400,
 }
 
 export const useBreakpoint = () => {
@@ -13,7 +14,9 @@ export const useBreakpoint = () => {
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth
-      if (width >= breakpoints.xl)
+      if (width >= breakpoints.xxl)
+        setBreakpoint('xxl')
+      else if (width >= breakpoints.xl)
         setBreakpoint('xl')
       else if (width >= breakpoints.lg)
         setBreakpoint('lg')
