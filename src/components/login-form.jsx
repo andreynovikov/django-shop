@@ -152,15 +152,17 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
           }
         } else {
           try {
-            if (result.error?.response?.data) {
-              if (result.error.response.data.password)
-                setError({ password: result.error.response.data.password[0] })
-              else if (result.error.response.status === 401)
-                setError({ password: "Вы ввели неправильный " + (shopUser?.permanent_password ? "пароль" : "код") })
-              else if (result.error.response.data.non_field_errors)
-                setError({ password: result.error.response.data.non_field_errors[0] })
+            if ([401,403].includes(result.status))
+              setError({ password: "Вы ввели неправильный " + (shopUser?.permanent_password ? "пароль" : "код") })
+            else if (result.error) {
+              if (result.error.password)
+                setError({ password: result.error.password[0] })
+              else if (result.error.non_field_errors)
+                setError({ password: result.error.non_field_errors[0] })
+              else if (result.error.detail)
+                setError({ password: result.error.detail })
               else
-                setError({ password: "Неизвестная ошибка входа" })
+                setError({ password: result.error.toString()})
             } else {
               setError({ password: "Неизвестная ошибка входа" })
             }

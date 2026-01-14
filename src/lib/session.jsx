@@ -46,6 +46,7 @@ export async function signIn(credentials) {
       // handle error
       console.log("signIn", error)
       return {
+        status: error.response?.status ?? error.status,
         error: error.response?.data ?? error.message,
         ok: false
       }
