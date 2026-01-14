@@ -1,7 +1,7 @@
 import { useState, useEffect, ReactElement, ReactNode } from 'react'
 import type { NextPage } from 'next'
 import type { AppProps } from 'next/app'
-
+import localFont from 'next/font/local'
 
 import { NuqsAdapter } from 'nuqs/adapters/next/pages'
 import { QueryClient, QueryClientProvider, HydrationBoundary } from '@tanstack/react-query'
@@ -59,6 +59,20 @@ moment.updateLocale('ru', {
   },
 });
 
+const rubik = localFont({
+  src: [
+    {
+      path: '../assets/fonts/Rubik/Rubik-VariableFont_wght.ttf',
+      style: 'normal',
+    }, {
+      path: '../assets/fonts/Rubik/Rubik-Italic-VariableFont_wght.ttf',
+      style: 'italic',
+    }
+  ],
+  fallback: ['sans-serif'],
+  variable: '--font-rubik',
+})
+
 const toastManager = Toast.createToastManager()
 
 export type NextPageWithLayout<P = object, IP = P> = NextPage<P, IP> & {
@@ -100,7 +114,9 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
             <SessionProvider>
               <Toast.Provider toastManager={toastManager}>
                 <ToolbarProvider>
-                  {getLayout(<Component {...pageProps} />)}
+                  <div className={rubik.variable}>
+                    {getLayout(<Component {...pageProps} />)}
+                  </div>
                 </ToolbarProvider>
                 <Toast.Portal>
                   <Toast.Viewport className="sw-toast-viewport">

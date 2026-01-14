@@ -3,7 +3,8 @@
 // --------------------------------------------------
 
 // Import Google Fonts (Rubik)
-@import url($path-to-fonts);
+// @import url($path-to-fonts);
+// Font is embedded by Next.js
 
 html * {
   @include font-smoothing;
