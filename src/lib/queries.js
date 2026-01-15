@@ -7,7 +7,6 @@ export const userKeys = {
   form: () => [...userKeys.all, 'form'],
   details: () => [...userKeys.all, 'detail'],
   detail: (id) => [...userKeys.details(), id],
-  check: (phone, reset) => [...userKeys.details(), 'check', { phone, reset }],
   current: () => [...userKeys.details(), 'current'],
   bonus: () => [...userKeys.details(), 'bonus'],
 }
