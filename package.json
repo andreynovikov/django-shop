@@ -1,9 +1,10 @@
 {
   "name": "sworld",
-  "version": "2025.12.02",
+  "version": "2026.01.16",
   "scripts": {
     "dev": "next dev -H 127.0.0.1 -p 3004 --experimental-https",
-    "start": "next start -H 127.0.0.1 -p 4000",
+    "test": "next dev -H 127.0.0.1 -p 4004",
+    "start": "next start -H 127.0.0.1 -p 4004",
     "lint": "eslint src/",
     "build": "next build",
     "docker-build": "sudo docker compose build && sudo docker tag sworld sworld:$npm_package_version",
