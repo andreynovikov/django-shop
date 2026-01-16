@@ -1,8 +1,8 @@
 version: "3"
-name: sworld
+name: stage
 services:
   app:
-    container_name: nextjs-sworld
+    container_name: nextjs-stage
     image: sworld
     build:
       context: ./
