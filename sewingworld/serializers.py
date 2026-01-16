@@ -56,10 +56,19 @@ class CitySerializer(NonNullModelSerializer):
 
 class StoreSerializer(NonNullModelSerializer):
     city = CitySerializer(read_only=True)
+    phones = serializers.SerializerMethodField()
 
     class Meta:
         model = Store
         exclude = ('supplier', 'enabled')
+
+    def get_phones(self, obj):
+        if not obj.phone:
+            return None
+        phones = obj.phone.split(',')
+        if obj.phone2:
+            phones.append(obj.phone2)
+        return [phone.strip() for phone in phones]
 
 
 class ServiceCenterSerializer(NonNullModelSerializer):
@@ -633,8 +642,8 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, data):
         norm_phone = ShopUserManager.normalize_phone(data['phone'])
         exists = ShopUser.objects.filter(phone=norm_phone).exists()
-        if not exists and data.get('ctx', None) == 'order':
-            # Silently create user if they are creating order
+        if not exists and data.get('ctx', None) in ('order', 'warranty'):
+            # Silently create user if they are creating order or registering warranty
             user = ShopUser.objects.create(phone=norm_phone)
             password = str(randint(1000, 9999))
             user.set_password(password)
