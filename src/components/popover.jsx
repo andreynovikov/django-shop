@@ -18,8 +18,6 @@ export default function Popover({page, anchorElement, onClose, children}) {
     });
 
     const uri = page ? page.slice(1, -1).split('/') : null;
-    console.log(anchorElement);
-    console.log(uri)
 
     const { data, isSuccess } = useQuery({
         queryKey: pageKeys.detail(uri),
