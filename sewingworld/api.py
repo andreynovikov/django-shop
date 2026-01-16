@@ -86,14 +86,6 @@ class StandardResultsSetPagination(PageNumberPagination):
         })
 
 
-class ProductListSerializerContextMixin:
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['product_thumbnail_size'] = self.request.site.profile.product_thumbnail_size
-        context['product_small_thumbnail_size'] = self.request.site.profile.product_small_thumbnail_size
-        return context
-
-
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_value_regex = '.*'
 
@@ -144,7 +136,7 @@ class ProductKindViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset.distinct()
 
 
-class ProductViewSet(ProductListSerializerContextMixin, viewsets.ReadOnlyModelViewSet):
+class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_value_regex = '[^/]+'
     queryset = Product.objects.all()
     pagination_class = StandardResultsSetPagination
@@ -847,7 +839,7 @@ class NewsViewSet(viewsets.ReadOnlyModelViewSet):
         return News.objects.filter(sites=self.request.site, active=True)
 
 
-class SalesActionViewSet(ProductListSerializerContextMixin, viewsets.ReadOnlyModelViewSet):
+class SalesActionViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'slug'
     ordering = ('order',)
     serializer_class = SalesActionSerializer
