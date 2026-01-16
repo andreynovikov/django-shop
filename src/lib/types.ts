@@ -21,4 +21,5 @@ export interface UserBonus {
   value: number
   is_fresh: boolean
   is_undefined: boolean
+  is_updating: boolean
 }
