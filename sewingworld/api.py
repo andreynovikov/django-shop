@@ -14,7 +14,7 @@ from django.utils.decorators import method_decorator
 
 from rest_framework import views, viewsets, filters, status
 from rest_framework.decorators import action
-from rest_framework.exceptions import MethodNotAllowed, NotFound
+from rest_framework.exceptions import MethodNotAllowed, NotAuthenticated, NotFound
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
@@ -547,8 +547,6 @@ class OrderViewSet(viewsets.ModelViewSet):
     def last(self, request):
         queryset = self.get_queryset().order_by('-id').values_list('id', flat=True)
         last = queryset.exclude(status__in=[Order.STATUS_DONE, Order.STATUS_FINISHED, Order.STATUS_CANCELED]).first()
-        if last is None:
-            last = queryset.first()
         return Response({
             'id': last
         })
@@ -709,14 +707,15 @@ class UserViewSet(viewsets.ModelViewSet):
             user.save()
             send_password.delay(user.phone, password)
         return Response({
-            'exists': hasattr(user, 'id'),
+            'phone': getattr(user, 'phone', None),
             'permanent_password': permanent_password and not reset
         })
 
     @action(detail=False, methods=['post'])
     def login(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            raise NotAuthenticated()
 
         try:
             basket = Basket.objects.get(site=request.site, session_id=request.session.session_key)
