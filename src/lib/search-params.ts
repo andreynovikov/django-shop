@@ -1,4 +1,4 @@
-import { createSerializer, parseAsArrayOf, parseAsBoolean, parseAsInteger, parseAsNativeArrayOf, parseAsString } from "nuqs"
+import { createSerializer, parseAsArrayOf, parseAsBoolean, parseAsInteger, parseAsNativeArrayOf, parseAsString } from 'nuqs/server'
 
 export const productSearchParams = {
   id: parseAsNativeArrayOf(parseAsInteger),
