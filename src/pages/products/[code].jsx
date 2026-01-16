@@ -10,7 +10,6 @@ import { IconChevronCompactLeft, IconChevronCompactRight, IconX } from '@tabler/
 import Layout from '@/components/layout';
 import FieldHelp from '@/components/product/field-help';
 import NoImage from '@/components/product/no-image';
-import Popover from '@/components/popover';
 
 import useBasket from '@/lib/basket';
 import { productKeys, loadProducts, loadProductByCode, getProductFields } from '@/lib/queries';
@@ -175,21 +174,7 @@ export default function Product({code, title}) {
                                     <>
                                         <p className="oldprice">
                                             <del>{ product.price.toLocaleString('ru') }&nbsp;руб.</del>
-                                            <img onClick={handleDiscountClick} src="/i/icons/more_icon.png" className="opacity-50 align-baseline btn btn-link p-0 ps-1" alt="" />
                                         </p>
-                                        <Popover
-                                            anchorElement={anchorDiscountElement}
-                                            onClose={handleDiscountClose}>
-                                            <h5>Скидка!</h5>
-                                            <div className="my-2">
-                                                Базовая цена в магазинах &laquo;Швейный Мир&raquo; без учета скидок:{' '}
-                                                <b>{ product.price.toLocaleString('ru') }&nbsp;руб.</b>
-                                            </div>
-                                            <div>
-                                                Скидка при покупке в интернет-магазине составляет:{' '}
-                                                <b>{ product.discount.toLocaleString('ru') }&nbsp;руб.</b>
-                                            </div>
-                                        </Popover>
                                     </>
                                 )}
                                 <div className="text-end">
@@ -209,6 +194,7 @@ export default function Product({code, title}) {
                                     <a href={ product.ozon_link } className="btn sw-btn-ozon fw-bold" role="button">Купить на Ozon</a>
                                 </div> }
 
+                                {/*
                                 { product.deshevle && (
                                     <div className="my-1">
                                         <button type="button" className="btn btn-link p-0" onClick={handleDeshevleClick}>Нашли дешевле?</button>
@@ -218,6 +204,8 @@ export default function Product({code, title}) {
                                             onClose={handleDeshevleClose} />
                                     </div>
                                 )}
+                                */
+                                }
 
                                 <div className="mt-3">
                                     <span className="product-nal-caption">Наличие:</span>{" "}

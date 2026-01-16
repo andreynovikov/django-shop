@@ -26,7 +26,7 @@ export default function ProductCard({product}) {
                                     src={product.image}
                                     fill
                                     style={{ objectFit: 'contain' }}
-                                    sizes="160px"
+                                    sizes="120px"
                                     alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
                             </div>
                         ) : (
