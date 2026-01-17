@@ -7,13 +7,7 @@ import Image from 'next/image'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { FreeMode, Navigation } from 'swiper/modules'
 
-import { IconCircleChevronLeftFilled, IconCircleChevronRightFilled } from '@tabler/icons-react'
-
 import { ProductImage } from '@/lib/types'
-
-import 'swiper/css'
-import 'swiper/css/free-mode'
-import 'swiper/css/navigation'
 
 interface ImageCarouselProps {
   images: ProductImage[],
@@ -28,13 +22,14 @@ export default function ImageCarousel({ images, setImage, className }: ImageCaro
       spaceBetween={10}
       freeMode={true}
       navigation={{
-        prevEl: '.swiper-button-prev',
-        nextEl: '.swiper-button-next'
+        prevEl: '.nav-button-prev',
+        nextEl: '.nav-button-next',
+        addIcons: false
       }}
       modules={[FreeMode, Navigation]}
       className={className}
     >
-      <span className="swiper-button-prev text-light"><IconCircleChevronLeftFilled /></span>
+      <span className="nav-button-prev nav-button-sm"><i className="ci-arrow-left"></i></span>
       {images.map(image => (
         <SwiperSlide key={image.src} className="d-inline-block w-auto">
           <div onClick={() => setImage(image.src)} className="position-relative rounded border" style={{ width: 80, height: 80 }} role="button">
@@ -48,7 +43,7 @@ export default function ImageCarousel({ images, setImage, className }: ImageCaro
           </div>
         </SwiperSlide>
       ))}
-      <span className="swiper-button-next text-light"><IconCircleChevronRightFilled /></span>
+      <span className="nav-button-next nav-button-sm"><i className="ci-arrow-right"></i></span>
     </Swiper>
   )
 }

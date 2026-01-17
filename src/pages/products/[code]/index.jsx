@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 import { useInView } from 'react-intersection-observer'
 
+import { Swiper, SwiperSlide } from 'swiper/react'
+import { FreeMode, Navigation } from 'swiper/modules'
+
 import { Collapsible } from '@base-ui/react/collapsible'
 
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
@@ -53,34 +56,24 @@ const fieldList = [
   'prom_button_diainner', 'prom_needle_height', 'prom_stitch_type', 'prom_autothread'
 ]
 
-const sliderSettings = {
-  mouseDrag: true,
-  items: 2,
-  controls: true,
-  nav: false,
-  // autoHeight: true,
-  controlsText: ['<i class="ci-arrow-left"></i>', '<i class="ci-arrow-right"></i>'],
-  // navPosition: 'bottom',
-  speed: 500,
-  autoplayHoverPause: true,
-  autoplayButtonOutput: false,
-  responsive: {
-    0: {
-      items: 1
-    },
-    500: {
-      items: 2,
-      gutter: 18
-    },
-    768: {
-      items: 3,
-      gutter: 20
-    },
-    1100: {
-      items: 4,
-      gutter: 30
-    }
-  }
+const productSwiperProps = {
+  slidesPerView: 1,
+  spaceBetween: 0,
+  breakpoints: {
+    500: { slidesPerView: 2 },
+    770: { slidesPerView: 3 },
+    1100: { slidesPerView: 4 },
+  },
+  freeMode: {
+    enabled: true,
+    sticky: true,
+  },
+  navigation: {
+    prevEl: '.nav-button-prev',
+    nextEl: '.nav-button-next',
+    addIcons: false
+  },
+  modules: [FreeMode, Navigation]
 }
 
 function filterProductFields(product) {
@@ -130,7 +123,6 @@ function renderTemplate(template, product) {
 };
 
 export default function Product({ code }) {
-  const [tnsModule, setTnsModule] = useState(null)
   const [productFields, setProductFields] = useState([])
   const [fieldNames, setFieldNames] = useState({})
   const [currentImage, setCurrentImage] = useState()
@@ -152,12 +144,6 @@ export default function Product({ code }) {
     queryFn: () => loadProductByCode(code),
     enabled: code !== undefined
   })
-
-  useEffect(() => {
-    import('tiny-slider').then((module) => {
-      setTnsModule(module)
-    })
-  }, [])
 
   useEffect(() => {
     if (isSuccess) {
@@ -209,21 +195,6 @@ export default function Product({ code }) {
       setFieldNames(names)
     }
   }, [fields])
-
-  useEffect(() => {
-    if (isSuccess && (product.accessories || product.similar) && tnsModule !== null) {
-      const carousels = []
-      const carouselEls = [].slice.call(document.querySelectorAll('.tns-carousel .tns-carousel-inner'))
-      carouselEls.map((carouselEl) => {
-        const carousel = tnsModule.tns({ container: carouselEl, ...sliderSettings })
-        // carousel.events.on('transitionEnd', carousel.updateSliderHeight);
-        carousels.push(carousel)
-      })
-      return () => {
-        carousels.map((carousel) => carousel.destroy())
-      }
-    }
-  }, [product, isSuccess, tnsModule])
 
   const { ref: reviewsRef, inView: reviewsVisible } = useInView({
     rootMargin: '300px',
@@ -568,25 +539,29 @@ export default function Product({ code }) {
           {product.accessories && (
             <div className="container pt-lg-2 pb-5 mb-md-3">
               <h2 className="h3 text-center pb-4">Популярные аксессуары для {product.title}</h2>
-              <div className="tns-carousel tns-controls-static tns-controls-outside">
-                <div className="tns-carousel-inner">
-                  {product.accessories.map((accessory) => (
-                    <ProductMiniCard product={accessory} key={accessory.id} />
-                  ))}
-                </div>
-              </div>
+              <Swiper {...productSwiperProps}>
+                <span className="nav-button-prev"><i className="ci-arrow-left"></i></span>
+                {product.accessories.map((accessory) => (
+                  <SwiperSlide key={accessory.id} className="px-4">
+                    <ProductMiniCard product={accessory} />
+                  </SwiperSlide>
+                ))}
+                <span className="nav-button-next"><i className="ci-arrow-right"></i></span>
+              </Swiper>
             </div>
           )}
           {product.similar && (
             <div className="container pt-lg-2 pb-5 mb-md-3">
               <h2 className="h3 text-center pb-4">Товары похожие на {product.title}</h2>
-              <div className="tns-carousel tns-controls-static tns-controls-outside">
-                <div className="tns-carousel-inner">
-                  {product.similar.map((similar) => (
-                    <ProductMiniCard product={similar} key={similar.id} />
-                  ))}
-                </div>
-              </div>
+              <Swiper {...productSwiperProps}>
+                <span className="nav-button-prev"><i className="ci-arrow-left"></i></span>
+                {product.similar.map((similar) => (
+                  <SwiperSlide key={similar.id} className="px-4">
+                    <ProductMiniCard product={similar} />
+                  </SwiperSlide>
+                ))}
+                <span className="nav-button-next"><i className="ci-arrow-right"></i></span>
+              </Swiper>
             </div>
           )}
         </div>

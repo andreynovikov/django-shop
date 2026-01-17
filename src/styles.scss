@@ -109,12 +109,6 @@ a:not([href]):not([class]) {
     }
 }
 
-.gallery-item>img {
-    // We have extremely vertical images that heavily zoom with preset settings
-    width: unset !important;
-    margin: auto;
-}
-
 @include media-breakpoint-up(lg) {
     .offcanvas-lg {
         // Collapse off-canvas down from lg breakpoint
@@ -287,6 +281,49 @@ a:not([href]):not([class]) {
     :has(.sw-no-body-scroll) {
         overflow: hidden;
     }
+}
+
+// swiper controls
+
+.swiper {
+  .nav-button-prev, .nav-button-next {
+    position: absolute;
+    top: 50%;
+    width: $carousel-control-size;
+    height: $carousel-control-size;
+    margin-top: -($carousel-control-size * .5);
+    transition: all .3s ease-in-out;
+    border: $carousel-control-border-width solid $carousel-control-border-color;
+    border-radius: 50%;
+    color: $body-color;
+    background-color: $carousel-control-bg;
+    font-size: $carousel-control-size * .294;
+    line-height: $carousel-control-size - .125rem;
+    text-align: center;
+    z-index: 10;
+    cursor: pointer;
+    
+    &.swiper-button-disabled { opacity: 0 !important; }
+
+    &.nav-button-lg {
+        width: $carousel-control-size-lg;
+        height: $carousel-control-size-lg;
+        margin-top: -($carousel-control-size-lg * .5);
+        font-size: $carousel-control-size-lg * .294;
+        line-height: $carousel-control-size-lg - .125rem;
+    }
+
+    &.nav-button-sm {
+        width: $carousel-control-size-sm;
+        height: $carousel-control-size-sm;
+        margin-top: -($carousel-control-size-sm * .5);
+        font-size: $carousel-control-size-sm * .294;
+        line-height: $carousel-control-size-sm - .125rem;
+    }
+  }
+  
+  .nav-button-prev { left: 0; }
+  .nav-button-next { right: 0; }
 }
 
 // toasts

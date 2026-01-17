@@ -17,9 +17,11 @@ import { ToolbarProvider } from '@/lib/toolbar';
 import { apiClient, categoryKeys, productKeys, pageKeys } from '@/lib/queries';
 
 import 'simplebar-react/dist/simplebar.min.css';
-import 'tiny-slider/dist/tiny-slider.css'; // carousel
 import 'react-bootstrap-typeahead/css/Typeahead.css';
 import 'react-bootstrap-typeahead/css/Typeahead.bs5.css';
+import 'swiper/css'
+import 'swiper/css/free-mode'
+import 'swiper/css/navigation'
 import '../styles.scss';
 
 import moment, { type MomentInput, type Moment } from 'moment';
