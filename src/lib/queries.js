@@ -113,6 +113,14 @@ export const blogKeys = {
   category: (slug) => [...blogKeys.categories(), slug],
 }
 
+export const forumKeys = {
+  all: ['forum'],
+  topics: () => [...forumKeys.all, 'topics'],
+  topic: (topic) => [...forumKeys.topics(), topic],
+  threads: () => [...forumKeys.all, 'threads'],
+  thread: (thread) => [...forumKeys.threads(), thread],
+}
+
 export const storeKeys = {
   all: ['stores'],
   lists: () => [...storeKeys.all, 'list'],
@@ -544,6 +552,21 @@ export async function loadBlogEntries(page, filters) {
 
 export async function loadBlogEntry(uri) {
   const response = await apiClient.get(`blog/entries/${uri.join('/')}/`)
+  return response.data
+}
+
+export async function loadTopics() {
+  const response = await apiClient.get('forum/topics/')
+  return response.data
+}
+
+export async function loadTopic(id) {
+  const response = await apiClient.get('forum/topics/' + id + '/')
+  return response.data
+}
+
+export async function loadThread(id) {
+  const response = await apiClient.get('forum/threads/' + id + '/')
   return response.data
 }
 

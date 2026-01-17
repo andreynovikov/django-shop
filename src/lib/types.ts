@@ -23,3 +23,25 @@ export interface UserBonus {
   is_undefined: boolean
   is_updating: boolean
 }
+
+interface ForumOpinion {
+  id: number
+  post: string
+  text: string
+}
+
+interface ForumThreadBase {
+  id: number
+  title: string
+  mtime?: string | null
+}
+
+export interface ForumThread extends ForumThreadBase {
+  opinions: ForumOpinion[]
+}
+
+export interface ForumTopic {
+  id: number
+  title: string
+  threads: ForumThreadBase[]
+}
