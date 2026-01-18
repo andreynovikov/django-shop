@@ -1,22 +1,27 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
+
+import Spinner from 'react-bootstrap/Spinner'
 
 import Countdown from '@/components/countdown'
 
 import { formatPhone } from '@/lib/format'
 import { signIn } from '@/lib/session'
-import { userKeys, checkUser, normalizePhone } from '@/lib/queries'
+import { checkUser, normalizePhone } from '@/lib/queries'
 import phoneInputMask from '@/lib/phone-input-mask'
 
 const CODE_RESEND_DELAY = 240
 
+function Loader() {
+  return <Spinner animation="border" size="sm" style={{ marginLeft: "0.5rem" }} />
+}
+
 export default function LoginForm({ ctx, phone, hideModal = undefined, embedded = '' }) {
-  const [loginPhone, setLoginPhone] = useState(phone)
   const [pdConsent, setPdConsent] = useState(false)
   const [ofConsent, setOfConsent] = useState(false)
-  const [reset, setReset] = useState(false)
+  const [isSignInPending, setSignInIsPending] = useState(false)
   const [error, setError] = useState({})
 
   const [delay, setDelay] = useState(-1) // TODO: keep delay on page reload
@@ -25,47 +30,42 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
 
   const router = useRouter()
 
-  const { data: shopUser, isSuccess, isFetching, error: queryError, refetch } = useQuery({
-    queryKey: userKeys.check(loginPhone, reset),
-    queryFn: () => checkUser(loginPhone, reset),
-    enabled: !!loginPhone
+  const {
+    mutate: performUserCheck,
+    reset: resetUserCheck,
+    data: shopUser,
+    isIdle,
+    isPending: isUserCheckPending
+  } = useMutation({
+    mutationFn: ({ phone, reset }) => checkUser(phone, reset),
+    onSuccess: (data) => {
+      setDelay(data.permanent_password ? 0 : CODE_RESEND_DELAY)
+    },
+    onError: async (error, { phone }) => {
+      console.log(error)
+      if (error.response?.status === 404) {
+        if (['order', 'preorder', 'warranty'].includes(ctx)) {
+          setSignInIsPending(true)
+          // register user in background when making order or registering warranty
+          const result = await signIn({ phone, ctx })
+          if (result.ok) {
+            if (embedded && hideModal)
+              hideModal()
+          } else {
+            setError({ phone: result.error.phone?.[0] ?? result.error.non_field_errors?.[0] ?? result.error.toString() })
+          }
+          setSignInIsPending(false)
+        } else {
+          setError({ phone: "Пользователь с таким телефоном не зарегистрирован" })
+        }
+      }
+    }
   })
 
   useEffect(() => {
-    if (isSuccess && !isFetching) {
-      setReset(false)
-      if (!shopUser.permanent_password) {
-        setDelay(CODE_RESEND_DELAY)
-      } else {
-        setDelay(0)
-      }
-    }
-  }, [shopUser, isSuccess, isFetching])
-
-  useEffect(() => {
-    if (reset) {
-      refetch()
-    }
-  }, [refetch, reset])
-
-  useEffect(() => {
-    if (queryError?.response?.status === 404) {
-      if (['order', 'preorder', 'warranty'].includes(ctx)) {
-        // register user in background when making order or registering warranty
-        signIn({ phone: loginPhone, ctx })
-          .then(result => {
-            if (result.ok) {
-              if (embedded && hideModal)
-                hideModal()
-            } else {
-              setError({ phone: result.error })
-            }
-          })
-      } else {
-        setError({ phone: "Пользователь с таким телефоном не зарегистрирован" })
-      }
-    }
-  }, [queryError, loginPhone, ctx, embedded, hideModal])
+    if (phone && isIdle)
+      performUserCheck({ phone, reset: false })
+  }, [phone, performUserCheck, isIdle])
 
   const phoneRef = useRef(null)
   const passwordRef = useRef(null)
@@ -73,7 +73,7 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
   useEffect(() => {
     if (phoneRef.current && !!!phoneRef.current.inputmask)
       phoneInputMask.mask(phoneRef.current)
-  }, [phoneRef])
+  }, [phoneRef, shopUser])
 
   const validatePhone = () => {
     return phoneRef.current && phoneRef.current.inputmask.isComplete() ?
@@ -115,19 +115,20 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
     e.preventDefault()
     setError({})
     let err = {}
+
     if (['order', 'preorder', 'warranty'].includes(ctx)) {
       if (!pdConsent)
         err = { ...err, 'pd-consent': "Продолжение возможно только после предоставления согласия" }
       if (ctx === 'order' && !ofConsent)
         err = { ...err, 'of-consent': "Оформление заказа возможно только после подтверждения согласия" }
-
     }
+
     if (e.target.elements.phone) {
       err = { ...err, ...validatePhone() }
       if (Object.keys(err).length > 0) {
         setError(err)
       } else {
-        setLoginPhone(normalizePhone(e.target.elements.phone.value))
+        performUserCheck({ phone: normalizePhone(e.target.elements.phone.value), reset: false })
       }
     } else if (e.target.elements.password) {
       err = { ...err, ...validatePassword(e.target.elements.password.value) }
@@ -137,12 +138,14 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
         setError(err)
       } else {
         const credentials = {
-          phone: loginPhone,
+          phone: shopUser.phone,
           password: e.target.elements.password.value,
         }
         if (showPermanentPassword && e.target.elements.permanent_password.value.length > 0)
           credentials['permanent_password'] = e.target.elements.permanent_password.value
+        setSignInIsPending(true)
         const result = await signIn(credentials)
+        setSignInIsPending(false)
         if (result.ok) {
           if (embedded) {
             if (hideModal)
@@ -152,18 +155,21 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
           }
         } else {
           try {
-            if (result.error?.response?.data) {
-              if (result.error.response.data.password)
-                setError({ password: result.error.response.data.password[0] })
-              else if (result.error.response.status === 401)
-                setError({ password: "Вы ввели неправильный " + (shopUser?.permanent_password ? "пароль" : "код") })
-              else if (result.error.response.data.non_field_errors)
-                setError({ password: result.error.response.data.non_field_errors[0] })
+            if ([401, 403].includes(result.status))
+              setError({ password: "Вы ввели неправильный " + (shopUser?.permanent_password ? "пароль" : "код") })
+            else if (result.error) {
+              if (result.error.password)
+                setError({ password: result.error.password[0] })
+              else if (result.error.non_field_errors)
+                setError({ password: result.error.non_field_errors[0] })
+              else if (result.error.detail)
+                setError({ password: result.error.detail })
               else
-                setError({ password: "Неизвестная ошибка входа" })
+                setError({ password: result.error.toString() })
             } else {
               setError({ password: "Неизвестная ошибка входа" })
             }
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (error) {
             setError({ password: result.error.response?.statusText || result.error.message })
           }
@@ -174,21 +180,23 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
 
   const resetPhone = () => {
     setDelay(-1)
-    setLoginPhone('')
     setError({})
+    resetUserCheck()
   }
 
   const resetPassword = () => {
     setDelay(-1)
-    setReset(true)
+    performUserCheck({ phone: shopUser.phone, reset: true })
   }
+
+  const isPending = isSignInPending || isUserCheckPending
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      {!!shopUser ? (
+      {shopUser !== undefined ? (
         <>
           { /* Пользователь с таким телефоном уже есть, требуем подтверждение пароля */}
-          <div className="lead mb-2">{formatPhone(loginPhone)}</div>
+          <div className="lead mb-2">{formatPhone(shopUser.phone)}</div>
           {ctx === 'order' && (
             <div className="form-text mt-n2 mb-3">
               <a className="link-primary" onClick={resetPhone} style={{ cursor: 'pointer' }}>Указать другой телефон</a>
@@ -202,16 +210,16 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
               style={embedded ? {} : { maxWidth: "20rem" }}
               ref={passwordRef}
               id={`${embedded}${ctx}-password-input`}
-              placeholder={shopUser?.permanent_password ? "Пароль" : "Код из смс"}
+              placeholder={shopUser.permanent_password ? "Пароль" : "Код из смс"}
               onChange={handleChange}
               required
               autoFocus />
             {'password' in error && <div className="invalid-feedback">{error.password}</div>}
             <div className="form-text">
-              <Countdown delay={delay} permanentPassword={shopUser?.permanent_password} reset={isSuccess ? resetPassword : undefined} />
+              <Countdown delay={delay} permanentPassword={shopUser.permanent_password} reset={resetPassword} />
             </div>
           </div>
-          {!['order', 'preorder', 'warranty'].includes(ctx) && isSuccess && !shopUser.permanent_password && (
+          {!['order', 'preorder', 'warranty'].includes(ctx) && shopUser.permanent_password && (
             showPermanentPassword ? (
               <div className="row">
                 <div className="mb-3 col-md">
@@ -310,26 +318,30 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
         </>
       )}
       {ctx === 'order' ? (
-        <button className="btn btn-primary btn-shadow d-block w-100 mt-4">
-          <i className={"fs-lg me-2 " + (!!shopUser ? "ci-sign-in" : "ci-basket-alt")} />Оформить заказ
+        <button className="btn btn-primary btn-shadow d-block w-100 mt-4" disabled={isPending}>
+          <i className={"fs-lg me-2 " + (shopUser ? "ci-sign-in" : "ci-basket-alt")} />Оформить заказ
+          {isPending && <Loader />}
         </button>
       ) : ctx === 'preorder' ? (
-        <button className="btn btn-primary btn-shadow d-block w-100 mt-4">
-          <i className={"fs-lg me-2 " + (!!shopUser ? "ci-sign-in" : "ci-basket-alt")} />Оформить запрос о поступлении
+        <button className="btn btn-primary btn-shadow d-block w-100 mt-4" disabled={isPending}>
+          <i className={"fs-lg me-2 " + (shopUser ? "ci-sign-in" : "ci-basket-alt")} />Оформить запрос о поступлении
+          {isPending && <Loader />}
         </button>
       ) : ctx === 'warranty' ? (
-        <button className="btn btn-primary btn-shadow d-block mt-4">
-          <i className={"fs-lg me-2 " + (!!shopUser ? "ci-sign-in" : "ci-unlocked")} />Продолжить
+        <button className="btn btn-primary btn-shadow d-block mt-4" disabled={isPending}>
+          <i className={"fs-lg me-2 " + (shopUser ? "ci-sign-in" : "ci-unlocked")} />Продолжить
+          {isPending && <Loader />}
         </button>
       ) : (
         <div className="text-end">
-          <button className={"btn btn-primary ms-4" + (embedded && " btn-shadow")} type="submit">
-            {!embedded && <i className={"me-2 ms-n1" + (!!shopUser ? "ci-sign-in" : "ci-unlocked")} />}
+          <button className={"btn btn-primary ms-4" + (embedded && " btn-shadow")} type="submit" disabled={isPending}>
+            {!embedded && <i className={"me-2 ms-n1 " + (shopUser ? "ci-sign-in" : "ci-unlocked")} />}
             {!!shopUser ? "Продолжить" : "Войти"}
+            {isPending && <Loader />}
           </button>
         </div>
       )}
-      {!!!shopUser && !embedded && (
+      {!shopUser && !embedded && (
         <div className="mt-4 fs-md">
           Если Вы не совершали покупок в магазине, Вы можете{" "}
           <Link href={{ pathname: '/register', query: router.query }}>
