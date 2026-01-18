@@ -7,7 +7,6 @@ export const userKeys = {
     references: () => [...userKeys.dependencies(), 'references'], // those queries are reset on user logout
     details: () => [...userKeys.all, 'detail'],
     detail: (id) => [...userKeys.details(), id],
-    check: (phone) => [...userKeys.details(), 'check', phone],
     current: () => [...userKeys.details(), 'current'],
 };
 
@@ -93,6 +92,25 @@ export const serviceCenterKeys = {
     all: ['serviceCenters'],
     lists: () => [...serviceCenterKeys.all, 'list'],
 };
+
+export const siteKeys = {
+    all: ['sites'],
+    current: () => [...siteKeys.all, 'current'],
+};
+
+// those queries are reset on user logout
+export const userReferences = [
+    orderKeys.all,
+    favoriteKeys.all,
+    comparisonKeys.all
+]
+
+// those queries are invalidated on user login/logout
+export const userDependencies = [
+    productKeys.lists(),
+    productKeys.details(),
+    basketKeys.all
+]
 
 export function normalizePhone(phone) {
     phone = phone.replaceAll(/[^0-9\+]/g, '');
