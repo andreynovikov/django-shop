@@ -15,6 +15,7 @@ from rest_framework.routers import DefaultRouter
 
 from blog.urls import router as blog_router
 from reviews.api import ReviewViewSet
+from forum.api import TopicViewSet, ThreadViewSet
 
 from shop.models.integration import Integration
 
@@ -53,6 +54,8 @@ router.register(r'stores', api.StoreViewSet, basename='store')
 router.register(r'servicecenters', api.ServiceCenterViewSet, basename='servicecenter')
 router.register(r'reviews', ReviewViewSet, basename='review')
 router.register(r'reviews/(?P<model>[a-z]+.[a-z]+)/(?P<identifier>[^/.]+)', ReviewViewSet, basename='review')
+router.register(r'forum/topics', TopicViewSet, basename='topic')
+router.register(r'forum/threads', ThreadViewSet, basename='thread')
 
 urlpatterns = [
     # ex: /

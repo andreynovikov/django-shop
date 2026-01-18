@@ -84,7 +84,7 @@ class Topic(models.Model):
 
 
 class Thread(models.Model):
-    topic = models.ForeignKey(Topic, db_column='topic', on_delete=models.PROTECT)
+    topic = models.ForeignKey(Topic, related_name='threads', db_column='topic', on_delete=models.PROTECT)
     title = models.CharField(max_length=200)
     isopen = models.BooleanField()
     archived = models.BooleanField()
@@ -107,7 +107,7 @@ class Thread(models.Model):
 
 
 class Opinion(models.Model):
-    tid = models.ForeignKey(Thread, db_column='tid', on_delete=models.CASCADE)
+    tid = models.ForeignKey(Thread, related_name='opinions', db_column='tid', on_delete=models.CASCADE)
     author = models.ForeignKey(BassetUser, db_column='author', on_delete=models.CASCADE)
     text = models.TextField()
     post = models.DateTimeField()
