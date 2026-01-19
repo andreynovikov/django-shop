@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Toast } from '@base-ui/react/toast'
 import Modal from 'react-bootstrap/Modal'
 
+import { ButtonLoading } from '@/components/loading'
 import LoginForm from '@/components/login-form'
 
 import { createPreorder } from '@/lib/queries'
@@ -10,6 +11,7 @@ import { useSession } from '@/lib/session'
 
 export default function ProductPreorder({ product }) {
   const [show, setShow] = useState(false)
+  const [isPending, setIsPending] = useState(false)
   const { user, status } = useSession()
 
   const toastManager = Toast.useToastManager()
@@ -23,8 +25,10 @@ export default function ProductPreorder({ product }) {
   }
 
   const registerPreorder = async () => {
+    setIsPending(true)
     await createPreorder(product.id)
     hideModal()
+    setIsPending(false)
     toastManager.add({
       description: "Запрос зарегистрирован",
     })
@@ -33,7 +37,6 @@ export default function ProductPreorder({ product }) {
   return (
     <>
       <a className="btn btn-success btn-shadow d-block w-100" onClick={showModal} style={{ cursor: 'pointer' }}>
-        <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
         <i className="ci-loudspeaker fs-lg me-2" />Сообщить о поступлении
       </a>
       <Modal show={show} onHide={hideModal} centered>
@@ -45,9 +48,10 @@ export default function ProductPreorder({ product }) {
                 В случае оформления запроса, мы свяжемся с Вами, как только <b>{product.title}</b> появится у нас на складе.
                 Если данный товар ожидается нескоро, мы свяжемся с Вами в ближайшее время и предложим альтернативные варианты.
               </p>
-              <a className="btn btn-primary btn-shadow d-block w-100 mt-4" onClick={registerPreorder}>
+              <button className="btn btn-primary btn-shadow d-block w-100 mt-4" onClick={registerPreorder} disabled={isPending}>
                 <i className="fs-lg me-2 ci-basket-alt" />Оформить запрос о поступлении
-              </a>
+                {isPending && <ButtonLoading />}
+              </button>
             </>
           ) : (
             <LoginForm embedded={true} ctx="preorder" />

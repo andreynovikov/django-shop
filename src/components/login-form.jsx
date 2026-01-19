@@ -3,9 +3,8 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { useMutation } from '@tanstack/react-query'
 
-import Spinner from 'react-bootstrap/Spinner'
-
 import Countdown from '@/components/countdown'
+import { ButtonLoading } from '@/components/loading'
 
 import { formatPhone } from '@/lib/format'
 import { signIn } from '@/lib/session'
@@ -13,10 +12,6 @@ import { checkUser, normalizePhone } from '@/lib/queries'
 import phoneInputMask from '@/lib/phone-input-mask'
 
 const CODE_RESEND_DELAY = 240
-
-function Loader() {
-  return <Spinner animation="border" size="sm" style={{ marginLeft: "0.5rem" }} />
-}
 
 export default function LoginForm({ ctx, phone, hideModal = undefined, embedded = '' }) {
   const [pdConsent, setPdConsent] = useState(false)
@@ -320,24 +315,24 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
       {ctx === 'order' ? (
         <button className="btn btn-primary btn-shadow d-block w-100 mt-4" disabled={isPending}>
           <i className={"fs-lg me-2 " + (shopUser ? "ci-sign-in" : "ci-basket-alt")} />Оформить заказ
-          {isPending && <Loader />}
+          {isPending && <ButtonLoading />}
         </button>
       ) : ctx === 'preorder' ? (
         <button className="btn btn-primary btn-shadow d-block w-100 mt-4" disabled={isPending}>
           <i className={"fs-lg me-2 " + (shopUser ? "ci-sign-in" : "ci-basket-alt")} />Оформить запрос о поступлении
-          {isPending && <Loader />}
+          {isPending && <ButtonLoading />}
         </button>
       ) : ctx === 'warranty' ? (
         <button className="btn btn-primary btn-shadow d-block mt-4" disabled={isPending}>
           <i className={"fs-lg me-2 " + (shopUser ? "ci-sign-in" : "ci-unlocked")} />Продолжить
-          {isPending && <Loader />}
+          {isPending && <ButtonLoading />}
         </button>
       ) : (
         <div className="text-end">
           <button className={"btn btn-primary ms-4" + (embedded && " btn-shadow")} type="submit" disabled={isPending}>
             {!embedded && <i className={"me-2 ms-n1 " + (shopUser ? "ci-sign-in" : "ci-unlocked")} />}
             {!!shopUser ? "Продолжить" : "Войти"}
-            {isPending && <Loader />}
+            {isPending && <ButtonLoading />}
           </button>
         </div>
       )}

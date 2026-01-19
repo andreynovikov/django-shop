@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import SimpleBar from 'simplebar-react'
 
+import { ButtonLoading } from '@/components/loading'
 import NoImage from '@/components/product/no-image'
 
 import useBasket from '@/lib/basket'
@@ -28,7 +29,7 @@ export function MobileCartNotice() {
 export default function CartNotice() {
   const { status } = useSession()
   const { basket, isEmpty, removeItem } = useBasket()
-  const { mutate } = useCreateOrder()
+  const { mutate, isPending } = useCreateOrder()
   const router = useRouter()
 
   const handleRemoveItem = (product) => {
@@ -108,8 +109,9 @@ export default function CartNotice() {
               Открыть корзину<i className="ci-arrow-right ms-1 me-n1" />
             </Link>
           </div>
-          <button className="btn btn-primary btn-sm d-block w-100" type="button" onClick={handleCreateOrder}>
+          <button className="btn btn-primary btn-sm d-block w-100" type="button" onClick={handleCreateOrder} disabled={isPending}>
             <i className="ci-basket-alt me-2 fs-base align-middle" />Оформить заказ
+            {isPending && <ButtonLoading />}
           </button>
         </div>
       </div>

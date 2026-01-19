@@ -4,7 +4,7 @@ import Link from 'next/link'
 import PageLayout from '@/components/layout/page'
 import LoginForm from '@/components/login-form'
 import CartItem from '@/components/cart/item'
-import { PageLoading } from '@/components/loading'
+import { PageLoading, ButtonLoading } from '@/components/loading'
 
 import useBasket from '@/lib/basket'
 import { useCreateOrder } from '@/lib/order'
@@ -15,8 +15,7 @@ export default function Cart() {
   const { user, registered, status, invalidate } = useSession()
   const { basket, isEmpty, isLoading, isSuccess, removeItem, setQuantity } = useBasket()
 
-
-  const { mutate } = useCreateOrder()
+  const { mutate, isPending } = useCreateOrder()
 
   useEffect(() => {
     console.log("order", registered, status)
@@ -88,8 +87,9 @@ export default function Cart() {
             {status === 'authenticated' ? (
               <>
                 <div className="mb-2">Добро пожаловать, {user?.name || "уважаемый покупатель"}!</div>
-                <button className="btn btn-primary btn-shadow d-block w-100 mt-4" type="button" onClick={handleCreateOrder}>
+                <button className="btn btn-primary btn-shadow d-block w-100 mt-4" type="button" onClick={handleCreateOrder} disabled={isPending}>
                   <i className="fs-lg me-2 ci-basket-alt" />Оформить заказ
+                  {isPending && <ButtonLoading />}
                 </button>
               </>
             ) : (

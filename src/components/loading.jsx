@@ -19,3 +19,7 @@ export function PageLoading({ className }) {
       </div>
   )
 }
+
+export function ButtonLoading() {
+  return <Spinner animation="border" size="sm" style={{ marginLeft: "0.5rem" }} />
+}
