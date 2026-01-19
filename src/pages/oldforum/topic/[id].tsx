@@ -31,7 +31,7 @@ const Topic: NextPageWithLayout = () => {
             { thread.mtime && (
               <>
                 {" "}&mdash;{" "}
-                { new Date(thread.mtime).toLocaleDateString() }
+                { new Date(thread.mtime).toLocaleDateString('ru') }
               </>
             )}
           </li>

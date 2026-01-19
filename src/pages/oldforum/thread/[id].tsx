@@ -28,7 +28,7 @@ const Thread: NextPageWithLayout = () => {
                     <div key={opinion.id} className="border-top py-2">
                         <div className="opacity-50 fs-xs text-end pb-1">
                             {opinion.post && (
-                                new Date(opinion.post).toLocaleString()
+                                new Date(opinion.post).toLocaleString('ru')
                             )}
                         </div>
                         <div>
