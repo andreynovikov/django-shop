@@ -7,16 +7,16 @@ import Countdown from '@/components/countdown'
 import { ButtonLoading } from '@/components/loading'
 
 import { formatPhone } from '@/lib/format'
+import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
 import { signIn } from '@/lib/session'
 import { checkUser, normalizePhone } from '@/lib/queries'
-import phoneInputMask from '@/lib/phone-input-mask'
 
 const CODE_RESEND_DELAY = 240
 
 export default function LoginForm({ ctx, phone, hideModal = undefined, embedded = '' }) {
   const [pdConsent, setPdConsent] = useState(false)
   const [ofConsent, setOfConsent] = useState(false)
-  const [isSignInPending, setSignInIsPending] = useState(false)
+  const [isSignInPending, setSignInPending] = useState(false)
   const [error, setError] = useState({})
 
   const [delay, setDelay] = useState(-1) // TODO: keep delay on page reload
@@ -62,16 +62,11 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
       performUserCheck({ phone, reset: false })
   }, [phone, performUserCheck, isIdle])
 
-  const phoneRef = useRef(null)
+  const phoneRef = usePhoneInput()
   const passwordRef = useRef(null)
 
-  useEffect(() => {
-    if (phoneRef.current && !!!phoneRef.current.inputmask)
-      phoneInputMask.mask(phoneRef.current)
-  }, [phoneRef, shopUser])
-
-  const validatePhone = () => {
-    return phoneRef.current && phoneRef.current.inputmask.isComplete() ?
+  const validatePhone = (value) => {
+    return isValidPhone(value) ?
       {} : { phone: "Введите корректный номер" }
   }
 
@@ -119,7 +114,7 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
     }
 
     if (e.target.elements.phone) {
-      err = { ...err, ...validatePhone() }
+      err = { ...err, ...validatePhone(e.target.elements.phone.value) }
       if (Object.keys(err).length > 0) {
         setError(err)
       } else {
@@ -138,9 +133,9 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
         }
         if (showPermanentPassword && e.target.elements.permanent_password.value.length > 0)
           credentials['permanent_password'] = e.target.elements.permanent_password.value
-        setSignInIsPending(true)
+        setSignInPending(true)
         const result = await signIn(credentials)
-        setSignInIsPending(false)
+        setSignInPending(false)
         if (result.ok) {
           if (embedded) {
             if (hideModal)
@@ -164,7 +159,7 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
             } else {
               setError({ password: "Неизвестная ошибка входа" })
             }
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (error) {
             setError({ password: result.error.response?.statusText || result.error.message })
           }
@@ -214,7 +209,7 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
               <Countdown delay={delay} permanentPassword={shopUser.permanent_password} reset={resetPassword} />
             </div>
           </div>
-          {!['order', 'preorder', 'warranty'].includes(ctx) && shopUser.permanent_password && (
+          {!['order', 'preorder', 'warranty'].includes(ctx) && !shopUser.permanent_password && (
             showPermanentPassword ? (
               <div className="row">
                 <div className="mb-3 col-md">
@@ -254,20 +249,17 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
               {ctx === 'order' ? "Для продолжения у" : "У"}
               кажите номер мобильного телефона:
             </label>
-            <div className="input-group">
-              <span className="input-group-text bg-secondary">+7</span>
-              <input
-                type="tel"
-                name="phone"
-                className={"form-control" + ('phone' in error ? " is-invalid" : "")}
-                ref={phoneRef}
-                id={`${embedded}${ctx}-phone-input`}
-                placeholder="(999) 111-22-33"
-                onChange={handleChange}
-                autoComplete="phone"
-                required />
-              {'phone' in error && <div className="invalid-feedback">{error.phone}</div>}
-            </div>
+            <input
+              type="tel"
+              name="phone"
+              className={"form-control" + ('phone' in error ? " is-invalid" : "")}
+              ref={phoneRef}
+              id={`${embedded}${ctx}-phone-input`}
+              placeholder="+7 (999) 111-22-33"
+              onChange={handleChange}
+              autoComplete="phone"
+              required />
+            {'phone' in error && <div className="invalid-feedback">{error.phone}</div>}
           </div>
         </>
       )}

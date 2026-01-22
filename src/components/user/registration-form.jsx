@@ -1,27 +1,21 @@
-import { useEffect, useState, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 
+import { ButtonLoading } from '@/components/loading'
+
+import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
 import { register } from '@/lib/session'
 import { normalizePhone } from '@/lib/queries'
-import phoneInputMask from '@/lib/phone-input-mask'
 
 export default function RegistrationForm({ embedded = '', onComplete }) {
   const [consent, setConsent] = useState(false)
+  const [isRegisterPending, setRegisterPending] = useState(false)
   const [error, setError] = useState({})
 
   const router = useRouter()
 
-  const phoneRef = useRef(null)
-
-  useEffect(() => {
-    if (phoneRef.current && !!!phoneRef.current.inputmask)
-      phoneInputMask.mask(phoneRef.current)
-  }, [phoneRef])
-
-  const validatePhone = () => {
-    return phoneRef.current && phoneRef.current.inputmask.isComplete()
-  }
+  const phoneRef = usePhoneInput()
 
   const handleChange = (e) => {
     const field = e.currentTarget.name
@@ -39,7 +33,8 @@ export default function RegistrationForm({ embedded = '', onComplete }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(false)
-    if (!validatePhone()) {
+    const formData = new FormData(e.currentTarget)
+    if (!isValidPhone(formData.get('phone'))) {
       setError({ 'phone': ["Введите корректный номер"] })
       return
     }
@@ -47,9 +42,10 @@ export default function RegistrationForm({ embedded = '', onComplete }) {
       setError({ 'consent': ["Регистрация возможна только после предоставления согласия"] })
       return
     }
-    const formData = new FormData(e.currentTarget)
     formData.set('phone', normalizePhone(formData.get('phone')))
+    setRegisterPending(true)
     const result = await register(formData)
+    setRegisterPending(false)
     if (result.ok) {
       if (embedded) {
         if (onComplete)
@@ -82,22 +78,19 @@ export default function RegistrationForm({ embedded = '', onComplete }) {
       ))}
       <div className="mb-3">
         <label htmlFor="reg-phone-input">Укажите номер мобильного телефона:</label>
-        <div className="input-group">
-          <span className="input-group-text bg-secondary">+7</span>
-          <input
-            type="tel"
-            name="phone"
-            className={"form-control" + ((error && 'phone' in error) ? " is-invalid" : "")}
-            ref={phoneRef}
-            id={`${embedded}reg-phone-input`}
-            placeholder="(999) 111-22-33"
-            onChange={handleChange}
-            autoComplete="phone"
-            required />
-          {error && 'phone' in error && error['phone'].map((err, index) => (
-            <div className="invalid-feedback" key={index}>{err}</div>
-          ))}
-        </div>
+        <input
+          type="tel"
+          name="phone"
+          className={"form-control" + ((error && 'phone' in error) ? " is-invalid" : "")}
+          ref={phoneRef}
+          id={`${embedded}reg-phone-input`}
+          placeholder="+7 (999) 111-22-33"
+          onChange={handleChange}
+          autoComplete="phone"
+          required />
+        {error && 'phone' in error && error['phone'].map((err, index) => (
+          <div className="invalid-feedback" key={index}>{err}</div>
+        ))}
       </div>
       <div className="mb-3">
         <label htmlFor={`${embedded}reg-email-input`}>Адрес электронной почты:</label>
@@ -160,9 +153,10 @@ export default function RegistrationForm({ embedded = '', onComplete }) {
         ))}
       </div>
       <div className="text-end">
-        <button className={"btn btn-primary ms-4" + (embedded && " btn-shadow")} type="submit">
+        <button className={"btn btn-primary ms-4" + (embedded && " btn-shadow")} type="submit" disabled={isRegisterPending}>
           {!embedded && <i className="ci-user me-2 ms-n1" />}
           Зарегистрироваться
+          {isRegisterPending && <ButtonLoading />}
         </button>
       </div>
     </form>
