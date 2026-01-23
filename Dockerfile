@@ -4,7 +4,7 @@ FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json* ./
 
-RUN npm ci
+RUN npm ci --no-update-notifier
 
 FROM base AS builder
 WORKDIR /app
