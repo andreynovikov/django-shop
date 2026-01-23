@@ -3,9 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { Loading } from '@/components/loading'
 
+import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
 import { useSession } from '@/lib/session'
 import { userKeys, getUserForm, updateUser } from '@/lib/queries'
-import phoneInputMask from '@/lib/phone-input-mask'
 
 export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, ref) {
   const [ready, setReady] = useState(false)
@@ -60,16 +60,7 @@ export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, 
   })
 
   const formRef = useRef()
-  const phoneRef = useRef()
-
-  useEffect(() => {
-    if (ready && phoneRef.current && !!!phoneRef.current.inputmask)
-      phoneInputMask.mask(phoneRef.current)
-  }, [ready, phoneRef])
-
-  const validatePhone = () => {
-    return phoneRef.current && phoneRef.current.inputmask.isComplete()
-  }
+  const phoneRef = usePhoneInput()
 
   const handleChange = (e) => {
     setFormData({ [e.target.name]: e.target.value })
@@ -78,7 +69,7 @@ export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, 
   const handleSubmit = async (e) => {
     if (e)
       e.preventDefault()
-    if (!validatePhone(formRef.current.elements.phone.value)) {
+    if (!isValidPhone(formRef.current.elements.phone.value)) {
       console.error("error")
       setError({ phone: ["Введите корректный номер"] })
     } else {
