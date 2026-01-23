@@ -70,28 +70,33 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
         <div className="topbar topbar-light sw-bg-light">
           <div className="container">
             <div className="d-flex flex-grow-1 justify-content-between d-md-inline-block">
+              <div className={"d-none d-lg-inline-block topbar-text text-nowrap" + (site.phone ? " border-end pe-3 me-3" : "")}>
+                <i className="ci-support mt-n1" />
+                <a className="topbar-link" href={"tel:" + "+74957440087"}>{formatPhone("+74957440087")}</a>
+                <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;розничные магазины</span>
+              </div>
               {site.phone && (
                 <div className="topbar-text text-nowrap">
-                  <i className="ci-support mt-n1" />
-                  <a className="topbar-link" href={"tel:" + "+74957440087"}>{formatPhone("+74957440087")}</a>
-                  <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;розничные магазины</span>
-                </div>
-              )}
-              {site.phone && (
-                <div className="topbar-text text-nowrap border-start ps-md-3 ms-md-3">
                   <i className="ci-support mt-n1" />
                   <a className="topbar-link" href={"tel:" + site.phone}>{formatPhone(site.phone)}</a>
                   <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;интернет-магазин</span>
                 </div>
               )}
+              <div className={"d-none d-md-inline-block d-lg-none" + (site.phone ? " border-start ps-3 ms-3" : "")} style={{width: 0}}>&nbsp;</div>
+              <div className="d-lg-none topbar-text text-nowrap">
+                <i className="ci-location mt-n1" />
+                <Link className="topbar-link" href="/stores/">
+                  Магазины
+                </Link>
+              </div>
             </div>
             <div className="d-none d-md-inline-block">
               {comparisons.length > 0 && (
-                <Link className="topbar-link text-nowrap border-end pe-3 me-3" href="/compare" rel="nofollow">
+                <Link className="topbar-link text-nowrap" href="/compare" rel="nofollow">
                   <CompareLink />
                 </Link>
               )}
-              <OrderTracking />
+              <OrderTracking addDivider={comparisons.length > 0} />
             </div>
           </div>
         </div>

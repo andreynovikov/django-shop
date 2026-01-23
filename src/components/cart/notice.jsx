@@ -10,11 +10,11 @@ import useBasket from '@/lib/basket'
 import { useCreateOrder } from '@/lib/order'
 import { useSession } from '@/lib/session'
 
-export function MobileCartNotice() {
+export function MobileCartNotice({extraItemsCount}) {
   const { basket, isEmpty } = useBasket()
 
   return (
-    <Link className="d-table-cell handheld-toolbar-item" href="/cart">
+    <Link className={((isEmpty && extraItemsCount > 2) ? "d-none d-md-table-cell" : "d-table-cell") + " handheld-toolbar-item"} href="/cart">
       <span className="handheld-toolbar-icon">
         <i className="ci-cart" />
         {!isEmpty && <span className="badge bg-primary rounded-pill ms-1">{basket.quantity}</span>}
