@@ -40,7 +40,7 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
       console.log(error)
       if (error.response?.status === 404) {
         if (['order', 'preorder', 'warranty'].includes(ctx)) {
-          setSignInIsPending(true)
+          setSignInPending(true)
           // register user in background when making order or registering warranty
           const result = await signIn({ phone, ctx })
           if (result.ok) {
@@ -49,7 +49,7 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
           } else {
             setError({ phone: result.error.phone?.[0] ?? result.error.non_field_errors?.[0] ?? result.error.toString() })
           }
-          setSignInIsPending(false)
+          setSignInPending(false)
         } else {
           setError({ phone: "Пользователь с таким телефоном не зарегистрирован" })
         }
