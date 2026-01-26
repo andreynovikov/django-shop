@@ -91,7 +91,7 @@ export default function Confirmation() {
       return (
         <>
           <section className="col-lg-8">
-            <div className="d-flex justify-content-between align-items-center pt-3 pb-2 pb-sm-5 mt-1">
+            <div className="d-flex justify-content-center justify-content-lg-between align-items-center pt-0 pt-lg-3 pb-5 mt-1 mb-3 mb-lg-0">
               <h2 className="h1 text-light mb-0">№{order.id}</h2>
             </div>
 
