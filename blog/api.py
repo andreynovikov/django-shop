@@ -11,8 +11,8 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
-from tagging.models import Tag, TaggedItem
-from tagging.utils import get_tag
+# from tagging.models import Tag, TaggedItem
+# from tagging.utils import get_tag
 
 from .models import Entry, Category
 from .serializers import EntrySerializer, EntryListSerializer, TagListSerializer, CategorySerializer
@@ -54,10 +54,11 @@ class EntryViewSet(viewsets.ReadOnlyModelViewSet):
                 continue
 
             if field == 'tags':
-                tag = get_tag(values[0])
-                if tag is None:
-                    pass  # TODO: deside what to do in this case
-                queryset = TaggedItem.objects.get_by_model(queryset, tag)
+                pass
+                # tag = get_tag(values[0])
+                # if tag is None:
+                #     pass  # TODO: deside what to do in this case
+                # queryset = TaggedItem.objects.get_by_model(queryset, tag)
             elif field == 'categories':
                 queryset = queryset.filter(categories__in=values)
 
@@ -96,6 +97,7 @@ class EntryViewSet(viewsets.ReadOnlyModelViewSet):
         return value
 
 
+"""
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_value_regex = '.*'
 
@@ -105,6 +107,7 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         queryset = Entry.objects.filter(sites=self.request.site, status=Entry.PUBLISHED)
         return Tag.objects.usage_for_queryset(queryset, counts=True)
+"""
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):

@@ -86,7 +86,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.media',
-                # 'sekizai.context_processors.sekizai',
+                'sekizai.context_processors.sekizai',
                 'djconfig.context_processors.config',
                 'shop.context_processors.shop_info'
             ]
@@ -133,9 +133,6 @@ CELERY_BROKER_URL = env('CELERY_BROKER_URL')
 MPTT_ROOT = 'sewing.world'
 
 WIKI_ACCOUNT_HANDLING = False
-
-THUMBNAIL_KVSTORE = 'sorl.thumbnail.kvstores.redis_kvstore.KVStore'
-THUMBNAIL_REDIS_DB = env.int('THUMBNAIL_REDIS_DB')
 
 from .apps import *
 from .middleware import *

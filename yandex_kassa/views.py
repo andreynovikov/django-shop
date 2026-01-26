@@ -10,7 +10,7 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, HttpRe
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from yookassa import Configuration, Payment, Receipt
 from yookassa.domain.notification import WebhookNotification
@@ -154,7 +154,7 @@ def callback(request):
                 user_id=order.user.id,
                 content_type_id=ContentType.objects.get_for_model(order).pk,
                 object_id=order.pk,
-                object_repr=force_text(order),
+                object_repr=force_str(order),
                 action_flag=CHANGE,
                 change_message=change_message
             )

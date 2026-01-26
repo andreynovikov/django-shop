@@ -93,7 +93,7 @@ class BlockedIpMiddleware:
         self.get_response = get_response
         self.BLOCKED_IPS = getattr(settings, 'BLOCKED_IPS', None)
         if self.BLOCKED_IPS is None:
-            return MiddlewareNotUsed()
+            raise MiddlewareNotUsed()
 
     def __call__(self, request):
         if request.META.get('REMOTE_ADDR') in self.BLOCKED_IPS:
@@ -132,7 +132,7 @@ class RequireStaffMiddleware(object):
         self.get_response = get_response
         self.STAFF_REQUIRED_URLS = getattr(settings, 'STAFF_REQUIRED_URLS', None)
         if self.STAFF_REQUIRED_URLS is None:
-            return MiddlewareNotUsed()
+            raise MiddlewareNotUsed()
         self.STAFF_REQUIRED_URLS_EXCEPTIONS = getattr(settings, 'STAFF_REQUIRED_URLS_EXCEPTIONS', ())
         self.required = tuple([re.compile(url) for url in self.STAFF_REQUIRED_URLS])
         self.exceptions = tuple([re.compile(url) for url in self.STAFF_REQUIRED_URLS_EXCEPTIONS])

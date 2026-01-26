@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
 
-from tagging.utils import parse_tag_input
+# from tagging.utils import parse_tag_input
 
 from sewingworld.serializers import UserListSerializer
 
@@ -32,7 +32,7 @@ class BaseEntrySerializer(NonNullModelSerializer):
         }
 
     def get_tags(self, obj):
-        return parse_tag_input(obj.tags)
+        return []  # parse_tag_input(obj.tags)
 
 
 class EntryNavSerializer(BaseEntrySerializer):

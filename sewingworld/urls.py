@@ -1,14 +1,13 @@
 from django.conf import settings
-from django.conf.urls import include, url
 from django.conf.urls.static import static
-from django.urls import path
+from django.urls import include, path
 # from django.contrib import admin
 from django.contrib.sitemaps.views import index, sitemap
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+from django.views.decorators.cache import cache_page
 
 from two_factor.urls import urlpatterns as tf_urls
 
-from zinnia.sitemaps import EntrySitemap
 from forum.sitemaps import ThreadSitemap
 from rest_framework.routers import DefaultRouter
 
@@ -30,7 +29,6 @@ sitemaps = {
     'sales': SalesActionSitemap,
     'stores': StoreSitemap,
     'pages': FlatPageSitemap,
-    'blog': EntrySitemap,
     'forum': ThreadSitemap
 }
 
@@ -59,8 +57,6 @@ router.register(r'forum/topics', TopicViewSet, basename='topic')
 router.register(r'forum/threads', ThreadViewSet, basename='thread')
 
 urlpatterns = [
-    # ex: /
-    url(r'^$', views.index, name='index'),
     # Rest API
     path('api/v0/', include(router.urls)),
     path('api/v0/blog/', include(blog_router.urls)),
@@ -74,63 +70,19 @@ urlpatterns = [
     # ex: /xml/search.xml
     path('xml/search.xml', views.products, {'template': 'search', 'filters': None}, name='search_xml'),
     # ex: /full.xml
-    url(r'^full\.xml$', views.products, {'template': 'products', 'filters': None}, name='full'),
+    path('full.xml', views.products, {'template': 'products', 'filters': None}, name='full'),
     # ex: /products.xml
-    url(r'^products\.xml$', views.products, {'template': 'products', 'filters': None}, name='products'),
+    path('products.xml', views.products, {'template': 'products', 'filters': None}, name='products'),
     # ex: /cc-prym.xml
-    url(r'^cc-prym\.xml$', views.products, {'template': 'prym', 'filters': 'prym'}, name='cc-prym'),
+    path('cc-prym.xml', views.products, {'template': 'prym', 'filters': 'prym'}, name='cc-prym'),
     # ex: /beru.xml
     path('<slug:integration>.xml', views.products),
     # ex: /stock_avito.csv
-    url(r'^stock_avito\.csv$', views.stock, name='stock'),
-    # ex: /search/
-    url(r'^search/$', views.search, name='search'),
-    # ex: /catalog/
-    url(r'^catalog/$', views.catalog, name='catalog'),
-    # ex: /catalog/prinadlezhnosti/
-    url(r'^catalog/(?P<path>.*)', mptt_urls.view(model='shop.models.Category', view='sewingworld.views.category', slug_field='slug', root=settings.MPTT_ROOT), name='category'),
-    # ex: /products/JanomeEQ60.html
-    url(r'^products/(?P<code>[-\.\w]+)\.html$', views.product, name='product'),
-    # ex: /products/JanomeEQ60/stock/
-    url(r'^products/(?P<code>[-\.\w]+)/stock/$', views.product_stock, name='product_stock'),
-    # ex: /products/JanomeEQ60/video/
-    url(r'^products/(?P<code>[-\.\w]+)/video/$', views.product_video_redirect, name='product_video'),
-    # ex: /products/JanomeEQ60/review/
-    url(r'^products/(?P<code>[-\.\w]+)/review/$', views.review_product, name='review_product'),
-    # ex: /products/JanomeEQ60/compare/
-    url(r'^products/(?P<code>[-\.\w]+)/compare/$', views.compare_product, name='compare_product'),
-    # ex: /products/JanomeEQ60/uncompare/
-    url(r'^products/(?P<code>[-\.\w]+)/uncompare/$', views.uncompare_product, name='uncompare_product'),
-    # ex: /compare/notice/
-    url(r'^compare/notice/$', views.compare_notice, name='compare_notice'),
-    # ex: /compare/kind/1/
-    url(r'^compare/kind/(?P<kind>\d+)/$', views.compare_products, name='compare_kind'),
-    # ex: /compare/1,2,3/
-    url(r'^compare/(?P<compare>[\d,]+)/$', views.compare_products, name='compare_products'),
-    # ex: /compare/
-    url(r'^compare/$', views.compare_products, name='compare'),
-    # ex: /actions/
-    url(r'^actions/$', views.sales_actions, name='sales_actions'),
-    # ex: /actions/trade-in/
-    url(r'^actions/(?P<slug>[-\.\w]+)/$', views.sales_action, name='sales_action'),
-    # ex: /stores/
-    url(r'^stores/$', views.stores, name='stores'),
-    # ex: /stores/1/
-    url(r'^stores/(?P<id>\d+)/$', views.store, name='store'),
-    # ex: /service/
-    url(r'^service/$', views.service, name='service'),
-    path('extend_warranty/', views.extend_warranty, name='extend_warranty'),
-    # /pages/*
-    url(r'^pages/', include('django.contrib.flatpages.urls')),
+    path('stock_avito.csv', views.stock, name='stock'),
     # /shop/*
-    url(r'^shop/', include('shop.urls')),
-
-    url(r'^sber/', include('sber.urls')),
-    url(r'^kassa/', include('yandex_kassa.urls')),
-    url(r'^blog/', include('zinnia.urls')),
-    url(r'^comments/', include('django_comments.urls')),
-    url(r'^reviews/', include('reviews.urls')),
-    url(r'^oldforum/', include('forum.urls')),
+    path('shop/', include('shop.urls')),
+    path('sber/', include('sber.urls')),
+    path('kassa/', include('yandex_kassa.urls')),
     path('notifications/', include('django_nyt.urls')),
     path('wiki/', include('wiki.urls')),
 
