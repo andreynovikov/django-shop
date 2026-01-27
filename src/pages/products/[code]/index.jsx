@@ -600,7 +600,7 @@ Product.getLayout = function getLayout(page) {
   )) ?? []
 
   const secondaryTitle = page.props.manufacturerLogo ? (
-    <div>
+    <div className="d-none d-lg-block">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img alt={page.props.manufacturer} src={page.props.manufacturerLogo} style={{ height: "60px" }} />
     </div>
@@ -613,7 +613,8 @@ Product.getLayout = function getLayout(page) {
         <>
           {(page.props.runame || page.props.whatis) && (
             <span className="text-white opacity-70">
-              {page.props.whatis} {page.props.runame}
+              <span>{page.props.whatis}</span>
+              <span className="d-none d-sm-inline"> {page.props.runame}</span>
             </span>
           )}
           {page.props.allowReviews && <ProductRating product={page.props.id} anchor="reviews" />}
