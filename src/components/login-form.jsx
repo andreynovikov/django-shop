@@ -13,6 +13,19 @@ import { checkUser, normalizePhone } from '@/lib/queries'
 
 const CODE_RESEND_DELAY = 240
 
+function getError(field, error) {
+  if (error[field])
+    return{ [field]: error[field][0] }
+  else if (error.non_field_errors)
+    return { [field]: error.non_field_errors[0] }
+  else if (detail)
+    return { [field]: error.detail }
+  else if (error)
+    return { [field]: error.toString() }
+  else
+    return { [field]: "Неизвестная ошибка входа" }
+}
+
 export default function LoginForm({ ctx, phone, hideModal = undefined, embedded = '' }) {
   const [pdConsent, setPdConsent] = useState(false)
   const [ofConsent, setOfConsent] = useState(false)
@@ -47,7 +60,7 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
             if (embedded && hideModal)
               hideModal()
           } else {
-            setError({ phone: result.error.phone?.[0] ?? result.error.non_field_errors?.[0] ?? result.error.toString() })
+            setError(getError('phone', result.error))
           }
           setSignInPending(false)
         } else {
@@ -147,18 +160,8 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
           try {
             if ([401, 403].includes(result.status))
               setError({ password: "Вы ввели неправильный " + (shopUser?.permanent_password ? "пароль" : "код") })
-            else if (result.error) {
-              if (result.error.password)
-                setError({ password: result.error.password[0] })
-              else if (result.error.non_field_errors)
-                setError({ password: result.error.non_field_errors[0] })
-              else if (result.error.detail)
-                setError({ password: result.error.detail })
-              else
-                setError({ password: result.error.toString() })
-            } else {
-              setError({ password: "Неизвестная ошибка входа" })
-            }
+            else
+              setError('password', result.error)
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
           } catch (error) {
             setError({ password: result.error.response?.statusText || result.error.message })
