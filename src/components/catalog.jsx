@@ -37,14 +37,14 @@ export default function Catalog() {
       {ready && (
         <>
           <div className="d-flex flex-wrap flex-md-nowrap justify-content-between mb-4">
-            <Link className="w-100 d-flex align-items-center bg-faded-info rounded-3 py-2 ps-2 mb-4 mx-2" href={`/catalog/${categoryNew.slug}/`}>
+            <Link className="w-100 d-flex align-items-center bg-faded-info rounded-3 py-2 ps-2 mb-4 mx-0 mx-md-2" href={`/catalog/${categoryNew.slug}/`}>
               {categoryNew.image && <img className="sw-category-image" src={categoryNew.image} alt={categoryNew.name} />}
               <div className="py-4 px-3">
                 <div className="h5 mb-2">{categoryNew.name}</div>
                 <div className="text-info fs-sm">Посмотреть все<i className="ci-arrow-right fs-xs ms-1" /></div>
               </div>
             </Link>
-            <Link className="w-100 d-flex align-items-center bg-faded-warning rounded-3 py-2 ps-2 mb-4 mx-2" href={`/catalog/${categoryPromo.slug}/`}>
+            <Link className="w-100 d-flex align-items-center bg-faded-warning rounded-3 py-2 ps-2 mb-4 mx-0 mx-md-2" href={`/catalog/${categoryPromo.slug}/`}>
               {categoryPromo.image && <img className="sw-category-image" src={categoryPromo.image} alt={categoryPromo.name} />}
               <div className="py-4 px-3">
                 <div className="h5 mb-2">{categoryPromo.name}</div>
@@ -56,7 +56,7 @@ export default function Catalog() {
           {columns(categories.filter(category => first.includes(category.id)), 2).map((column, index) => (
             <div className="d-flex flex-wrap flex-md-nowrap" key={index}>
               {column.map((category) => (
-                <div className="w-100 mb-3 mx-4" key={category.id}>
+                <div className="w-100 mb-3 mx-0 mx-md-4" key={category.id}>
                   <div className="h6 mb-3">
                     <Link href={`/catalog/${category.slug}/`}>
                       {category.svg_icon && <span className="sw-catalog-icon me-1" dangerouslySetInnerHTML={{ __html: category.svg_icon }}></span>}
@@ -64,7 +64,7 @@ export default function Catalog() {
                     </Link>
                   </div>
                   {category.children && (
-                    <div className="ms-4">
+                    <div className="ms-2">
                       <div className="widget widget-links">
                         <ul className="widget-list">
                           {category.children.map((subcategory) => (
@@ -84,7 +84,7 @@ export default function Catalog() {
           ))}
 
           {categories.filter(category => !other.includes(category.id)).map((category, index) => (
-            <div className={"mx-4 mb-3" + (index === 0 ? " mt-4" : "")} key={category.id}>
+            <div className={"mx-0 mx-md-4 mb-3" + (index === 0 ? " mt-4" : "")} key={category.id}>
               <div className="h6 mb-3">
                 <Link href={`/catalog/${category.slug}/`}>
                   {category.svg_icon && <span className="sw-catalog-icon me-1" dangerouslySetInnerHTML={{ __html: category.svg_icon }}></span>}
@@ -94,7 +94,7 @@ export default function Catalog() {
               {category.children && (
                 <div className="d-flex flex-wrap flex-md-nowrap">
                   {rows(category.children, 2).map((row, index, arr) => (
-                    <div className={"w-100 mx-4" + (index === arr.length - 1 ? " pb-2" : "")} key={index}>
+                    <div className={"w-100 mx-2" + (index === arr.length - 1 ? " pb-2" : "")} key={index}>
                       <div className={"widget widget-links" + (index === arr.length - 1 ? " ms-md-4" : "")}>
                         <ul className="widget-list">
                           {row.map((subcategory) => (
@@ -114,14 +114,14 @@ export default function Catalog() {
           ))}
 
           <div className="d-flex flex-wrap flex-md-nowrap justify-content-between mt-4">
-            <Link className="w-100 d-flex align-items-center bg-faded-success rounded-3 py-2 ps-2 mx-2" href={`/catalog/${categoryDiscount.slug}/`}>
+            <Link className="w-100 d-flex align-items-center bg-faded-success rounded-3 py-2 ps-2 mx-0 mx-md-2" href={`/catalog/${categoryDiscount.slug}/`}>
               {categoryDiscount.image && <img className="sw-category-image" src={categoryDiscount.image} alt={categoryDiscount.name} />}
               <div className="py-4 px-3">
                 <div className="h5 mb-2">{categoryDiscount.name}</div>
                 <div className="text-success fs-sm">Посмотреть все<i className="ci-arrow-right fs-xs ml-1" /></div>
               </div>
             </Link>
-            <div className="d-none d-lg-flex w-100 py-2 ps-2 mx-2"></div>
+            <div className="d-none d-lg-flex w-100 py-2 ps-2 mx-0 mx-md-2"></div>
           </div>
         </>
       )}

@@ -28,7 +28,7 @@ export default function CatalogDropDown({ visible, setVisible, buttonRef }) {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [setVisible])
+  }, [buttonRef, setVisible])
 
   return (
     <div className={"position-relative" + (visible ? "" : " d-none")} ref={ref}>

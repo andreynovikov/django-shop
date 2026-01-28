@@ -82,7 +82,7 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
                   <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;интернет-магазин</span>
                 </div>
               )}
-              <div className={"d-none d-md-inline-block d-lg-none" + (site.phone ? " border-start ps-3 ms-3" : "")} style={{width: 0}}>&nbsp;</div>
+              <div className={"d-none d-md-inline-block d-lg-none" + (site.phone ? " border-start ps-3 ms-3" : "")} style={{ width: 0 }}>&nbsp;</div>
               <div className="d-lg-none topbar-text text-nowrap">
                 <i className="ci-location mt-n1" />
                 <Link className="topbar-link" href="/stores/">
@@ -106,14 +106,11 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/i/logo.svg" alt={seoLogoAlt} />
             </Link>
-            <div className="d-none d-lg-flex w-100 mx-4">
+            <div className="d-none d-md-flex w-lg-100 flex-grow-1 mx-2 mx-lg-4">
               <ProductSearchInput />
             </div>
-            <div className="d-none d-md-flex d-lg-none flex-grow-1 mx-2">
-              <ProductSearchInput mobile />
-            </div>
             <div className="navbar-toolbar d-flex flex-shrink-0 align-items-center">
-              <button className="navbar-toggler" type="button" onClick={toggleTopMenu}>
+              <button className="navbar-toggler d-md-none" type="button" onClick={toggleTopMenu}>
                 <span className="navbar-toggler-icon"></span>
               </button>
               <button className="btn p-0 navbar-tool navbar-stuck-toggler" onClick={handleStuckToggler}>
@@ -135,26 +132,28 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
           </div>
         </div>
       </div>
-      <div className="navbar navbar-expand-lg navbar-light navbar-stuck-menu bg-light pt-0 pb-2" ref={stuckMenuRef}>
+      <div className="navbar navbar-expand-md navbar-light navbar-stuck-menu bg-light pt-0 pb-2" ref={stuckMenuRef}>
         <div className="container">
-          <div className="flex-grow-1 d-md-none my-3">
-            <ProductSearchInput mobile />
+          <div className="d-flex gap-2">
+            <ul className="navbar-nav pe-lg-2 me-lg-2 my-3 my-lg-0">
+              <li className="nav-item bg-transparent mb-0">
+                <button ref={catalogButtonRef}
+                  className="btn btn-primary w-100 fw-bold text-start text-lg-center dropdown-toggle"
+                  onClick={() => setCatalogVisible(!catalogVisible)}>
+                  <span className="me-2 align-text-bottom d-none d-md-inline">
+                    {catalogVisible ? <IconX strokeWidth={1.5} /> : <IconCategory strokeWidth={1.5} />}
+                  </span>
+                  Каталог
+                </button>
+                <CatalogDropDown visible={catalogVisible} setVisible={setCatalogVisible} buttonRef={catalogButtonRef} />
+              </li>
+            </ul>
+            {!catalogVisible && <div className="flex-shrink-1 d-md-none my-3">
+              <ProductSearchInput mobile />
+            </div>}
           </div>
           <Collapse in={topMenuOpen} className="navbar-collapse">
             <div>
-              <ul className="navbar-nav pe-lg-2 me-lg-2">
-                <li className="nav-item bg-transparent">
-                  <button ref={catalogButtonRef}
-                    className="btn btn-primary w-100 fw-bold text-start text-lg-center dropdown-toggle"
-                    onClick={() => setCatalogVisible(!catalogVisible)}>
-                    <span className="me-2 align-text-bottom">
-                      {catalogVisible ? <IconX strokeWidth={1.5} /> : <IconCategory strokeWidth={1.5} />}
-                    </span>
-                    Каталог
-                  </button>
-                  <CatalogDropDown visible={catalogVisible} setVisible={setCatalogVisible} buttonRef={catalogButtonRef} />
-                </li>
-              </ul>
               <ul className="navbar-nav">
                 <li className="nav-item">
                   <Link className="nav-link" href="/stores/">
