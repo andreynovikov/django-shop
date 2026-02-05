@@ -103,7 +103,7 @@ export default function Index() {
               <h2 className="h3 mb-0 pt-3 me-2">Новинки</h2>
               <div className="pt-3">
                 <Link className="btn btn-accent btn-sm" href="/catalog/New/">
-                  Больше новикок
+                  Больше новинок
                   <i className="ci-arrow-right ms-1 me-n1" />
                 </Link>
               </div>
