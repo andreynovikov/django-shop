@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/router'
+import Head from 'next/head'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { useQueryStates, parseAsString, parseAsBoolean, parseAsInteger, parseAsArrayOf } from 'nuqs'
 
@@ -85,6 +86,9 @@ export default function Search({ text }) {
   if (isSuccess) {
     return (
       <div className="container pb-5 mb-2 mb-md-4">
+        <Head>
+          <meta name="robots" content="noindex" />
+        </Head>
         <div className="row">
           <aside className="col-lg-4">
             <Offcanvas
