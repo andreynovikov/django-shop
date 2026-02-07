@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, lazy } from 'react'
+import { useState, useMemo, useEffect, Suspense, lazy } from 'react'
 import { useRouter } from 'next/router'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -123,9 +123,7 @@ function renderTemplate(template, product) {
 };
 
 export default function Product({ code }) {
-  const [productFields, setProductFields] = useState([])
-  const [fieldNames, setFieldNames] = useState({})
-  const [currentImage, setCurrentImage] = useState()
+  const [selectedImage, setSelectedImage] = useState()
   const [galleryOpen, setGalleryOpen] = useState(false)
 
   const router = useRouter()
@@ -139,17 +137,33 @@ export default function Product({ code }) {
     queryFn: () => getProductFields()
   })
 
+  const fieldNames = useMemo(() => {
+    if (fields === undefined)
+      return {}
+
+    return Object.entries(fields).reduce((names, [key, value]) => {
+      const name = value.split(',')
+      if (name.length === 1)
+        name.push('')
+      names[key] = name
+      return names
+    }, {})
+  }, [fields])
+
   const { data: product, isSuccess, isLoading } = useQuery({
     queryKey: productKeys.detail(code),
     queryFn: () => loadProductByCode(code),
     enabled: code !== undefined
   })
 
+  const productFields = useMemo(() => {
+    return isSuccess ? filterProductFields(product) : []
+  }, [isSuccess, product])
+
+  const currentImage = selectedImage ?? product?.image
+
   useEffect(() => {
     if (isSuccess) {
-      setProductFields(filterProductFields(product))
-      if (product.image)
-        setCurrentImage(product.image)
       const impressions = [
         ...product.accessories?.map((product, index) => ({
           id: product.id,
@@ -182,19 +196,6 @@ export default function Product({ code }) {
       })
     }
   }, [product, isSuccess])
-
-  useEffect(() => {
-    if (fields !== undefined) {
-      const names = {}
-      Object.keys(fields).forEach((key) => {
-        const name = fields[key].split(',')
-        if (name.length === 1)
-          name.push('')
-        names[key] = name
-      })
-      setFieldNames(names)
-    }
-  }, [fields])
 
   const { ref: reviewsRef, inView: reviewsVisible } = useInView({
     rootMargin: '300px',
@@ -245,7 +246,7 @@ export default function Product({ code }) {
                         role="button" />
                     </div>
                     {product.images && (
-                      <ImageCarousel images={product.images} setImage={setCurrentImage} className="my-2" />
+                      <ImageCarousel images={product.images} setImage={setSelectedImage} className="my-2" />
                     )}
                     <ImageGallery
                       currentImage={currentImage}
