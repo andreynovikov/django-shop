@@ -1,7 +1,10 @@
 User-Agent: *
-Disallow: /shop/basket/
-Disallow: /shop/user/
+Disallow: /cart/
+Disallow: /user/
 Disallow: /products/*/stock/
 Disallow: /compare/*/
+Disallow: /search/
+Disallow: /*?erid=
+Disallow: /*?etext=
 Sitemap: https://www.sewing-world.ru/sitemap.xml
 Host: https://www.sewing-world.ru

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import Head from 'next/head'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 
@@ -77,6 +78,9 @@ export default function Orders({ filter, page, track }) {
 
   return (
     <>
+      <Head>
+        <meta name="robots" content="noindex" />
+      </Head>
       <UserTopbar>
         <div className="d-flex align-items-center flex-nowrap me-3 me-sm-4">
           {isSuccess && !isTracking && (orders.results.length > 0 || !!currentFilter) ? (

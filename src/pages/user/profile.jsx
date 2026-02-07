@@ -1,5 +1,7 @@
 import { useState, createRef } from 'react'
 
+import Head from 'next/head'
+
 import UserPageLayout from '@/components/layout/user-page'
 import UserTopbar from '@/components/user/topbar'
 import UpdateForm from '@/components/user/update-form'
@@ -11,6 +13,9 @@ export default function Profile() {
 
   return (
     <>
+      <Head>
+        <meta name="robots" content="noindex" />
+      </Head>
       <UserTopbar>
         <div className="d-flex w-100 text-light text-center me-3">&nbsp;</div>
       </UserTopbar>

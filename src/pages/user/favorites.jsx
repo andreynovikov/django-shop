@@ -1,3 +1,4 @@
+import Head from 'next/head'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery } from '@tanstack/react-query'
@@ -16,8 +17,8 @@ export default function Favorites() {
   const { favorites, unfavoritize } = useFavorites()
 
   const { data: products, isSuccess } = useQuery({
-    queryKey: productKeys.list(1, 999, {id: favorites}, 'title'),
-    queryFn: () => loadProducts(1, 999, {id: favorites}, 'title'),
+    queryKey: productKeys.list(1, 999, { id: favorites }, 'title'),
+    queryFn: () => loadProducts(1, 999, { id: favorites }, 'title'),
     enabled: favorites.length > 0
   })
 
@@ -30,6 +31,9 @@ export default function Favorites() {
 
   return (
     <>
+      <Head>
+        <meta name="robots" content="noindex" />
+      </Head>
       <UserTopbar>
         <div className="d-flex w-100 text-light text-center me-3">&nbsp;</div>
       </UserTopbar>

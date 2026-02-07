@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import Head from 'next/head'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery } from '@tanstack/react-query'
@@ -73,22 +74,30 @@ export default function Order({ id }) {
 
   if (!isSuccess)
     return (
-      <div className="container pb-5 mb-2 mb-md-4">
-        <div className="row">
-          <section className="col-lg-12">
-            <div className="pt-2 pb-4 pb-sm-5">
-              <div className="pb-3">
-                &nbsp;
+      <>
+        <Head>
+          <meta name="robots" content="noindex" />
+        </Head>
+        <div className="container pb-5 mb-2 mb-md-4">
+          <div className="row">
+            <section className="col-lg-12">
+              <div className="pt-2 pb-4 pb-sm-5">
+                <div className="pb-3">
+                  &nbsp;
+                </div>
               </div>
-            </div>
-            <Loading className="my-3 py-3 text-center" mega />
-          </section>
+              <Loading className="my-3 py-3 text-center" mega />
+            </section>
+          </div>
         </div>
-      </div>
+      </>
     )
 
   return (
     <>
+      <Head>
+        <meta name="robots" content="noindex" />
+      </Head>
       <UserTopbar>
         <div className="d-flex w-100 text-light text-center me-3">
           <div className="fs-ms px-3">

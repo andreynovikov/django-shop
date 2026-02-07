@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import Head from 'next/head'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery, useQueries } from '@tanstack/react-query'
@@ -46,7 +47,7 @@ export default function Compare({ kindId, productIds }) {
         pathname: router.pathname,
         query: { product: comparisons }
       })
-  }, [comparisons, isComparisonSuccess, kindId])
+  }, [comparisons, isComparisonSuccess, kindId, router])
 
   // get list of comparable kinds
   const { data: kinds, isSuccess: isKindsSuccess } = useQuery({
@@ -63,7 +64,7 @@ export default function Compare({ kindId, productIds }) {
         query: { kind: kinds[0].id }
       })
     }
-  }, [isKindsSuccess, kinds, kindId, productIds, isComparisonSuccess, comparisons])
+  }, [isKindsSuccess, kinds, kindId, productIds, isComparisonSuccess, comparisons, router])
 
   // if product list is passed compare them
   const products = useQueries({
@@ -80,6 +81,7 @@ export default function Compare({ kindId, productIds }) {
   useEffect(() => {
     if (isProductsSuccess)
       setCurrentKind(products[0].data.kind[0])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isProductsSuccess])
 
   const { data: kind, isSuccess: isKindSuccess } = useQuery({
@@ -126,7 +128,8 @@ export default function Compare({ kindId, productIds }) {
       }, [])
       setProductFields(comparison)
     }
-  }, [isKindSuccess, isProductsSuccess, different])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isKindSuccess, isProductsSuccess, different, kind])
 
   const uncompareProduct = (productId) => {
     uncompare(productId, () => {
@@ -149,16 +152,29 @@ export default function Compare({ kindId, productIds }) {
 
   if (productIds.length === 0 && kindId === null && comparisons.length === 0)
     return (
-      <div className="alert alert-danger" role="alert">Отсутствуют товары для сравнения</div>
+      <>
+        <Head>
+          <meta name="robots" content="noindex" />
+        </Head>
+        <div className="alert alert-danger" role="alert">Отсутствуют товары для сравнения</div>
+      </>
     )
 
   if (kindId !== null || (productIds.length > 0 && !isProductsSuccess) || !isKindsSuccess)
     return (
-      <div>Loading...</div>
+      <>
+        <Head>
+          <meta name="robots" content="noindex" />
+        </Head>
+        <div>Loading...</div>
+      </>
     )
 
   return (
     <>
+      <Head>
+        <meta name="robots" content="noindex" />
+      </Head>
       {isKindsSuccess && kinds.length > 1 ? (
         <div className="btn-group btn-group-lg mb-5" role="group">
           {kinds.map((kind) => (
