@@ -1,4 +1,4 @@
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 
 import Layout from '@/components/layout';
 import PageTitle from '@/components/layout/page-title';
@@ -11,7 +11,10 @@ import 'moment/locale/ru';
 moment.locale('ru');
 
 export default function News() {
-    const { data, isSuccess } = useQuery(newsKeys.lists(), () => loadNews());
+    const { data, isSuccess } = useQuery({
+      queryKey: newsKeys.lists(),
+      queryFn: () => loadNews()
+    });
 
     return (
         <>
@@ -44,7 +47,10 @@ News.getLayout = function getLayout(page) {
 
 export async function getStaticProps() {
     const queryClient = new QueryClient();
-    await queryClient.fetchQuery(newsKeys.lists(), () => loadNews());
+    await queryClient.fetchQuery({
+      queryKey: newsKeys.lists(),
+      queryFn: () => loadNews()
+    });
 
     return {
         props: {

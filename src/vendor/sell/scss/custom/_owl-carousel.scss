@@ -85,7 +85,7 @@ $owl-dot-background-active: $dark !default;
         .owl-dot {
             display: inline-block;
             zoom: 1;
-            *display: inline;
+            display: inline;
             span {
                 display: inline-block;
                 width: $owl-dot-width;

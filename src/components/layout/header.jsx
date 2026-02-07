@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBars } from '@fortawesome/free-solid-svg-icons';
+import { IconMenu2 } from '@tabler/icons-react';
 
 import SvgIcon from '@/components/svg-icon';
 import CompareLink from '@/components/user/compare-link';
@@ -62,7 +61,7 @@ export default function Header({transparent}) {
                     </Link>
                     <button className="navbar-toggler navbar-toggler-right" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
                             aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
-                        <FontAwesomeIcon icon={faBars} />
+                        <IconMenu2 />
                     </button>
                     <div className="collapse navbar-collapse mt-2 mt-sm-0" id="navbarCollapse">
                         <ul className="navbar-nav mx-auto">

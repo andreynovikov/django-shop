@@ -1,15 +1,15 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch } from '@fortawesome/free-solid-svg-icons';
+import { IconSearch } from '@tabler/icons-react';
 
 import SvgIcon from '@/components/svg-icon';
 
 const noImageStyle = {
-    width: '200px',
-    height: '200px',
-    fontSize: '100px',
-    padding: '50px'
+    width: '350px',
+    height: '350px',
+    fontSize: '150px',
+    padding: '100px'
 }
 
 export default function ProductCard({product}) {
@@ -19,13 +19,16 @@ export default function ProductCard({product}) {
                 { product.ishot && <div className="ribbon ribbon-dark">Акция</div> }
                 { product.isnew && <div className="ribbon ribbon-primary">Новинка</div> }
                 { product.recomended && <div className="ribbon ribbon-info">Рекомендуем</div> }
-                { product.thumbnail ? (
-                    <img
-                        className="img-fluid"
-                        src={product.thumbnail.url}
-                        width={product.thumbnail.width}
-                        height={product.thumbnail.height}
-                        alt={`${product.title} ${product.whatis}`} />
+                { product.image ? (
+                  <div className="position-relative" style={{ width: 350, aspectRatio: 1 }}>
+                      <Image
+                          src={product.image}
+                          fill
+                          style={{ objectFit: "contain" }}
+                          sizes="350px"
+                          loading="lazy"
+                          alt={`${product.title} ${product.whatisit ?? product.whatis}`} />
+                    </div>
                 ) : (
                     <SvgIcon id="shipping-box-1" className="svg-icon d-inline-block text-muted" style={ noImageStyle } />
                 )}
@@ -39,7 +42,7 @@ export default function ProductCard({product}) {
                           */
                         }
                         <Link className="btn btn-dark btn-buy" href={{ pathname: '/products/[code]', query: { code: product.code }}}>
-                            <FontAwesomeIcon icon={faSearch} />
+                            <IconSearch />
                             <span className="btn-buy-label ms-2">Подробнее</span>
                         </Link>
                         { /*

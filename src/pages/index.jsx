@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 
 import { ParallaxProvider, ParallaxBanner, ParallaxBannerLayer } from 'react-scroll-parallax';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Pagination } from 'swiper/modules';
 
 import Layout from '@/components/layout';
 import ReviewItem from '@/components/review/item';
@@ -12,21 +13,23 @@ import { reviewKeys, loadPromoReviews, newsKeys, loadNews } from '@/lib/queries'
 import moment from 'moment';
 import 'moment/locale/ru';
 
+import 'swiper/css';
+import 'swiper/css/pagination';
+
 moment.locale('ru');
 
 export default function Index() {
-    const [tnsModule, setTnsModule] = useState(null);
+    const { data: reviews, isSuccess: isReviewSuccess } = useQuery({
+        queryKey: reviewKeys.lists(),
+        queryFn: () => loadPromoReviews()
+    });
 
-    useEffect(() => {
-        import('tiny-slider').then((module) => {
-            setTnsModule(module);
-        });
-    }, []);
+    const { data: news, isSuccess: isNewsSuccess } = useQuery({
+        queryKey: newsKeys.lists(),
+        queryFn: () => loadNews()
+    });
 
-    const { data: reviews, isSuccess: isReviewSuccess } = useQuery(reviewKeys.lists(), () => loadPromoReviews());
-
-    const { data: news, isSuccess: isNewsSuccess } = useQuery(newsKeys.lists(), () => loadNews());
-
+    /*
     useEffect(() => {
         if (isReviewSuccess && reviews.results.length && tnsModule !== null) {
             const carousel = tnsModule.tns({
@@ -64,6 +67,7 @@ export default function Index() {
             }
         }
     }, [isNewsSuccess, tnsModule]);
+    */
 
     return (
         <>
@@ -80,31 +84,33 @@ export default function Index() {
             </ParallaxBanner>
             { isNewsSuccess && (
                 <div className="container py-5 py-sm-6">
-                    <div className="row">
-                        <div className="col-lg-8 mx-auto">
-                            <div id="newsCarousel">
-                                { news.map((article) => (
-                                    <div className="container text-start" key={article.id}>
-                                        <div className="row">
-                                            <div className={article.image ? "col-sm-8" : "col"}>
-                                                <h3 className="display-6">{ article.title }</h3>
-                                                <div className="mb-1 text-muted">{ moment(article.publish_date).format('LL') }</div>
-                                                <div className="text-lg" dangerouslySetInnerHTML={{__html: article.content }}></div>
-                                            </div>
-                                            { article.image && (
-                                                <div className="col-sm-4">
-                                                    <img className="img-fluid" src={article.image} alt={article.title} />
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
+                  <div className="row">
+                    <div className="col-lg-8 mx-auto">
+                      <Swiper autoHeight pagination={{ clickable: true }} modules={[Pagination]}>
+                        {news.map((article) => (
+                          <SwiperSlide key={article.id}>
+                            <div className="container text-start">
+                              <div className="row">
+                                <div className={article.image ? "col-sm-8" : "col"}>
+                                  <h3 className="display-6">{article.title}</h3>
+                                  <div className="mb-1 text-muted">{moment(article.publish_date).format('LL')}</div>
+                                  <div className="text-lg" dangerouslySetInnerHTML={{ __html: article.content }}></div>
+                                </div>
+                                {article.image && (
+                                  <div className="col-sm-4">
+                                    <img className="img-fluid" src={article.image} alt={article.title} />
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div className="mt-4 text-end">
-                                <Link className="btn btn-dark" href="/news">Другие новости</Link>
-                            </div>
-                        </div>
+                          </SwiperSlide>
+                        ))}
+                      </Swiper>
+                      <div className="mt-4 text-end">
+                        <Link className="btn btn-dark" href="/news">Другие новости</Link>
+                      </div>
                     </div>
+                  </div>
                 </div>
             )}
             <ParallaxBanner className="vh-100 d-flex align-items-center">
@@ -132,13 +138,13 @@ export default function Index() {
                 <div className="container py-5 py-sm-6">
                     <div className="row">
                         <div className="col-lg-8 mx-auto">
-                            <div id="reviewCarousel">
+                            <Swiper autoHeight pagination={{ clickable: true }} modules={[Pagination]}>
                                 { reviews.results.map((review) => (
-                                    <div className="container text-start fs-6" key={review.id}>
-                                        <ReviewItem review={review} last />
-                                    </div>
+                                    <SwiperSlide className="container text-start fs-6" key={review.id}>
+                                      <ReviewItem review={review} last />
+                                    </SwiperSlide>
                                 ))}
-                            </div>
+                            </Swiper>
                         </div>
                     </div>
                 </div>
@@ -171,8 +177,14 @@ Index.getLayout = function getLayout(page) {
 
 export async function getStaticProps() {
     const queryClient = new QueryClient();
-    const reviewsQuery = queryClient.prefetchQuery(reviewKeys.lists(), () => loadPromoReviews());
-    const newsQuery = queryClient.prefetchQuery(newsKeys.lists(), () => loadNews());
+    const reviewsQuery = queryClient.prefetchQuery({
+        queryKey: reviewKeys.lists(),
+        queryFn: () => loadPromoReviews()
+    });
+    const newsQuery = queryClient.prefetchQuery({
+        queryKey: newsKeys.lists(),
+        queryFn: () => loadNews()
+    });
 
     await reviewsQuery;
     await newsQuery;

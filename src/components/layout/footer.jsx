@@ -1,6 +1,4 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPhone, faEnvelope, faPaperPlane } from '@fortawesome/free-solid-svg-icons';
-import { faVk, faYoutube } from '@fortawesome/free-brands-svg-icons';
+import { IconBrandYoutube, IconBrandVk, IconBrandWhatsapp, IconMail, IconPhone, IconSend } from '@tabler/icons-react';
 
 import SvgIcon from '@/components/svg-icon';
 
@@ -16,12 +14,12 @@ export default function Footer() {
                             <ul className="list-inline">
 			                    <li className="list-inline-item">
                                     <a className="text-muted text-hover-primary text-xl" href="https://vk.com/sew.world" target="_blank" rel="noreferrer" title="VK">
-                                        <FontAwesomeIcon icon={faVk} />
+                                        <IconBrandVk />
                                     </a>
                                 </li>
                                 <li className="list-inline-item">
                                     <a className="text-muted text-hover-primary text-xl" href="https://www.youtube.com/c/ШвейныйМирРоссия/" target="_blank" rel="noreferrer" title="YouTube">
-                                        <FontAwesomeIcon icon={faYoutube} />
+                                        <IconBrandYoutube />
                                     </a>
                                 </li>
                             </ul>
@@ -30,15 +28,15 @@ export default function Footer() {
                             <SvgIcon id="customer-support-1" className="svg-icon service-icon" />
                             <div className="service-text text-dark mb-3">
                                 <h6 className="text-nowrap">
-                                    <FontAwesomeIcon icon={faPhone} fixedWidth className="me-2" />
+                                    <IconPhone size={20} className="me-2" />
                                     +7 495 744-00-87
                                 </h6>
 				                <h6 className="text-nowrap">
-                                    <i className="fa-brands fa-whatsapp fa-fw me-2" />{ /* we use font icon as SVG icon is too thin and there is no way to make it bolder */ }
+                                    <IconBrandWhatsapp size={20} className="me-2" />
                                     +7 985 766-56-75
                                 </h6>
                                 <h6 className="text-nowrap">
-                                    <FontAwesomeIcon icon={faEnvelope} fixedWidth className="me-2" />
+                                    <IconMail size={20} className="me-2" />
                                     <a className="text-muted fw-normal" href="mailto:info@thsm.ru">info@thsm.ru</a>
                                 </h6>
                             </div>
@@ -51,7 +49,7 @@ export default function Footer() {
                                     <input className="form-control bg-transparent border-secondary border-end-0" type="email" placeholder="Ваш адрес Email" aria-label="Ваш адрес Email" name="email" />
                                     <div className="input-group-append">
                                         <button className="btn btn-outline-secondary border-start-0" type="submit">
-                                            <FontAwesomeIcon icon={faPaperPlane} className="text-lg text-dark" />
+                                            <IconSend className="text-lg text-dark" />
                                         </button>
                                     </div>
                                 </div>

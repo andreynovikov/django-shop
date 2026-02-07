@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBullhorn, faCircleCheck } from '@fortawesome/free-solid-svg-icons';
+import { IconCircleCheck, IconSpeakerphone } from '@tabler/icons-react';
 
 //import UserUpdateModal from '@/components/user/update-modal';
 
@@ -16,26 +15,22 @@ export default function ReviewForm({product, review: reviewId}) {
     const modalRef = useRef();
     const { user } = useSession();
 
-    const { data: form, isSuccess: isFormSuccess } = useQuery(
-        reviewKeys.form(product.id),
-        () => getReviewForm(product.id),
-        {
-            onError: (error) => {
-                console.log(error);
-            }
+    const { data: form, isSuccess: isFormSuccess } = useQuery({
+        queryKey: reviewKeys.form(product.id),
+        queryFn: () => getReviewForm(product.id),
+        onError: (error) => {
+            console.log(error);
         }
-    );
+    });
 
-    const { data: review, isSuccess: isReviewSuccess } = useQuery(
-        reviewKeys.detail(product.id, reviewId),
-        () => loadProductReview(product.id, reviewId),
-        {
-            enabled: reviewId !== undefined,
-            onError: (error) => {
-                console.log(error);
-            }
+    const { data: review, isSuccess: isReviewSuccess } = useQuery({
+        queryKey: reviewKeys.detail(product.id, reviewId),
+        queryFn: () => loadProductReview(product.id, reviewId),
+        enabled: reviewId !== undefined,
+        onError: (error) => {
+            console.log(error);
         }
-    );
+    });
 
     useEffect(() => {
         if (updated) {
@@ -46,13 +41,15 @@ export default function ReviewForm({product, review: reviewId}) {
         }
     }, [updated]);
 
-    const createReviewMutation = useMutation((data) => createProductReview(product.id, data), {
+    const createReviewMutation = useMutation({
+        mutationFn: (data) => createProductReview(product.id, data),
         onSuccess: () => {
             queryClient.invalidateQueries(reviewKeys.list(product.id));
         }
     });
 
-    const updateReviewMutation = useMutation((data) => updateProductReview(product.id, reviewId, data), {
+    const updateReviewMutation = useMutation({
+        mutationFn: (data) => updateProductReview(product.id, reviewId, data),
         onSuccess: () => {
             queryClient.invalidateQueries(reviewKeys.detail(product.id, reviewId));
             queryClient.invalidateQueries(reviewKeys.list(product.id));
@@ -104,7 +101,7 @@ export default function ReviewForm({product, review: reviewId}) {
                 <>
                     { /* <UserUpdateModal ref={modalRef} /> */ }
                     <div className="alert alert-warning d-flex align-items-center" role="alert">
-                        <FontAwesomeIcon icon={faBullhorn} className="flex-shrink-0 me-2" />
+                        <IconSpeakerphone className="flex-shrink-0 me-2" />
                         <div>
                             Вы можете{' '}
                             <a className="alert-link" onClick={() => modalRef.current.showModal()} style={{cursor:'pointer'}}>указать</a>
@@ -117,7 +114,7 @@ export default function ReviewForm({product, review: reviewId}) {
             <form noValidate onSubmit={handleSubmit}>
                 { updated && (
                     <div className="alert alert-success d-flex align-items-center" role="alert">
-                        <FontAwesomeIcon icon={faCircleCheck} className="flex-shrink-0 me-2" />
+                        <IconCircleCheck className="flex-shrink-0 me-2" />
                         <div>Изменения успешно сохранены.</div>
                     </div>
                 )}

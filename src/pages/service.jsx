@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Script from 'next/script';
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 
 import Layout from '@/components/layout';
 import PageTitle from '@/components/layout/page-title';
@@ -11,7 +11,10 @@ export default function Service() {
     const [ymapsReady, setYMapsReady] = useState(false);
     const [serviceGroups, setServiceGroups] = useState([]);
 
-    const { data: centers, isSuccess } = useQuery(serviceCenterKeys.lists(), () => loadServiceCenters());
+    const { data: centers, isSuccess } = useQuery({
+      queryKey: serviceCenterKeys.lists(),
+      queryFn: () => loadServiceCenters()
+    });
 
     useEffect(() => {
         // Combine centers by country and city
@@ -187,7 +190,10 @@ Service.getLayout = function getLayout(page) {
 
 export async function getStaticProps() {
     const queryClient = new QueryClient();
-    await queryClient.fetchQuery(serviceCenterKeys.lists(), () => loadServiceCenters());
+    await queryClient.fetchQuery({
+      queryKey: serviceCenterKeys.lists(),
+      queryFn: () => loadServiceCenters()
+    });
 
     return {
         props: {

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useQuery, useQueries } from 'react-query';
+import Image from 'next/image';
+import { useQuery, useQueries } from '@tanstack/react-query';
 
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleXmark } from '@fortawesome/free-solid-svg-icons';
+import { IconTrashX } from '@tabler/icons-react';
 
+import SvgIcon from '@/components/svg-icon';
 import Layout from '@/components/layout';
 import PageTitle from '@/components/layout/page-title';
 import FieldHelp from '@/components/product/field-help';
@@ -55,7 +56,10 @@ export default function Compare({kindId, productIds}) {
     }, [comparisons, isComparisonSuccess, kindId]);
 
     // get list of comparable kinds
-    const { data: kinds, isSuccess: isKindsSuccess } = useQuery(kindKeys.list(comparisons), () => loadKinds(comparisons));
+    const { data: kinds, isSuccess: isKindsSuccess } = useQuery({
+        queryKey: kindKeys.list(comparisons),
+        queryFn: () => loadKinds(comparisons)
+    });
 
     // if nothing is passed, redirect to first comparable kind
     useEffect(() => {
@@ -69,14 +73,14 @@ export default function Compare({kindId, productIds}) {
     }, [isKindsSuccess, kinds, kindId, productIds, isComparisonSuccess, comparisons]);
 
     // if product list is passed compare them
-    const products = useQueries(
-        productIds.map(productId => {
+    const products = useQueries({
+        queries: productIds.map(productId => {
             return {
                 queryKey: productKeys.detail(productId),
                 queryFn: () => loadProduct(productId),
             }
         })
-    );
+    });
 
     const isProductsSuccess = productIds.length > 0 && products.every(result => result.isSuccess);
 
@@ -85,11 +89,16 @@ export default function Compare({kindId, productIds}) {
             setCurrentKind(products[0].data.kind[0]);
     }, [isProductsSuccess]);
 
-    const { data: kind, isSuccess: isKindSuccess } = useQuery(kindKeys.detail(currentKind), () => loadKind(currentKind), {
+    const { data: kind, isSuccess: isKindSuccess } = useQuery({
+        queryKey: kindKeys.detail(currentKind),
+        queryFn: () => loadKind(currentKind),
         enabled: currentKind !== null
     });
 
-    const { data: fields } = useQuery(productKeys.fields(), () => getProductFields());
+    const { data: fields } = useQuery({
+        queryKey: productKeys.fields(),
+        queryFn: () => getProductFields()
+    });
 
     useEffect(() => {
         if (fields !== undefined) {
@@ -184,18 +193,22 @@ export default function Compare({kindId, productIds}) {
                             {products.map(({data: product}) => (
                                 <td className="text-center px-4 pb-4" key={product.id}>
                                     <button type="button" className="btn btn-sm d-block w-100 text-danger mb-2" onClick={() => uncompareProduct(product.id)}>
-                                        <FontAwesomeIcon icon={faCircleXmark} className="me-1" />
+                                        <IconTrashX className="me-1" />
                                         Удалить
                                     </button>
                                     <Link className="d-inline-block mb-3" href={{ pathname: '/products/[code]', query: { code: product.code }}}>
-                                        { product.thumbnail ? (
-                                            <img
-                                                src={product.thumbnail_small.url}
-                                                width={product.thumbnail_small.width}
-                                                height={product.thumbnail_small.height}
-                                                alt={`${product.title} ${product.whatis}`} />
+                                        { product.image ? (
+                                            <div className="position-relative" style={{ width: 160, aspectRatio: 1 }}>
+                                                <Image
+                                                    src={product.image}
+                                                    fill
+                                                    style={{ objectFit: "contain" }}
+                                                    sizes="160px"
+                                                    loading="lazy"
+                                                    alt={`${product.title} ${product.whatisit ?? product.whatis}`} />
+                                              </div>
                                         ) : (
-                                            <i className="d-inline-block ci-camera text-muted" style={ noImageStyle } />
+                                            <SvgIcon id="shipping-box-1" className="svg-icon d-inline-block text-muted" style={ noImageStyle } />
                                         )}
                                     </Link>
                                     <h3 className="text-lg">

@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import ReviewItem from '@/components/review/item';
 import ReviewForm from '@/components/review/form';
@@ -13,10 +13,10 @@ export default function ProductReviews({product}) {
 
     const { status } = useSession();
 
-    const { data: reviews, isSuccess } = useQuery(
-        reviewKeys.list(product.id),
-        () => loadProductReviews(product.id)
-    );
+    const { data: reviews, isSuccess } = useQuery({
+        queryKey: reviewKeys.list(product.id),
+        queryFn: () => loadProductReviews(product.id)
+    });
 
     if (!isSuccess)
         return (

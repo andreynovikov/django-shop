@@ -3,10 +3,14 @@ import { useRouter } from 'next/router';
 import { QueryClient, QueryClientProvider, HydrationBoundary } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
+import { Roboto } from 'next/font/google';
+
 import ym, { YMInitializer } from 'react-yandex-metrika';
 
 import { SessionProvider } from '@/lib/session';
 import { apiClient, categoryKeys, productKeys, pageKeys } from '@/lib/queries';
+
+const roboto = Roboto({ subsets: ['latin', 'cyrillic'] })
 
 import 'yet-another-react-lightbox/styles.css';
 import '../styles.scss';
@@ -62,7 +66,9 @@ export default function App({ Component, pageProps: { session, ...pageProps }}) 
         <QueryClientProvider client={queryClient}>
             <HydrationBoundary state={pageProps.dehydratedState}>
                     <SessionProvider session={session}>
-                        { getLayout(<Component {...pageProps} />) }
+                        <div className={roboto.className}>
+                            { getLayout(<Component {...pageProps} />) }
+                        </div>
                         { !!process.env.NEXT_PUBLIC_YM_COUNTER_ID && (
                             <YMInitializer
                                 accounts={[parseInt(process.env.NEXT_PUBLIC_YM_COUNTER_ID)]}

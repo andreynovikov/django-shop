@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Script from 'next/script';
-import { dehydrate, QueryClient, useQuery } from 'react-query';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
 
 import Layout from '@/components/layout';
 import PageTitle from '@/components/layout/page-title';
@@ -13,7 +13,10 @@ export default function Stores() {
     const [ymapsReady, setYMapsReady] = useState(false);
     const [storeGroups, setStoreGroups] = useState([]);
 
-    const { data: stores, isSuccess } = useQuery(storeKeys.lists(), () => loadStores());
+    const { data: stores, isSuccess } = useQuery({
+      queryKey: storeKeys.lists(),
+      queryFn: () => loadStores()
+    });
 
     useEffect(() => {
         // Combine stores by country and city
@@ -75,7 +78,7 @@ export default function Stores() {
             data: {
                 content: 'Выберите город'
             },
-			options: {
+			      options: {
             }
         });
 
@@ -201,7 +204,10 @@ Stores.getLayout = function getLayout(page) {
 
 export async function getStaticProps() {
     const queryClient = new QueryClient();
-    await queryClient.fetchQuery(storeKeys.lists(), () => loadStores());
+    await queryClient.fetchQuery({
+      queryKey: storeKeys.lists(),
+      queryFn: () => loadStores()
+    });
 
     return {
         props: {
