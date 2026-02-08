@@ -5,7 +5,7 @@ import { Dispatch, SetStateAction, useEffect } from 'react'
 import Image from 'next/image'
 
 interface ImageGalleryProps {
-  currentImage: string,
+  currentImage: number,
   images: string[],
   open: boolean,
   setOpen: Dispatch<SetStateAction<boolean>>
@@ -15,9 +15,8 @@ export default function ImageGallery({ currentImage, images, open, setOpen }: Im
   useEffect(() => {
     if (!open)
       return
-    const index = images.indexOf(currentImage)
-    if (index >= 0) {
-      const el = document.getElementById(`gallery-image-${index}`)
+    if (currentImage >= 0) {
+      const el = document.getElementById(`gallery-image-${currentImage}`)
       if (el !== null)
         el.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }

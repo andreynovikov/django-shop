@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, Suspense, lazy } from 'react'
+import { useMemo, useEffect, Suspense, lazy } from 'react'
 import { useRouter } from 'next/router'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -21,7 +21,6 @@ import ProductPrice from '@/components/product/price'
 import ProductRating from '@/components/product/rating'
 import ProductShopping from '@/components/product/shopping'
 import ProductPreorder from '@/components/product/preorder'
-import ImageGallery from '@/components/product/image-gallery'
 import ImageCarousel from '@/components/product/image-carousel'
 import { Loading, PageLoading } from '@/components/loading'
 
@@ -123,9 +122,6 @@ function renderTemplate(template, product) {
 };
 
 export default function Product({ code }) {
-  const [selectedImage, setSelectedImage] = useState()
-  const [galleryOpen, setGalleryOpen] = useState(false)
-
   const router = useRouter()
 
   const { status } = useSession()
@@ -159,8 +155,6 @@ export default function Product({ code }) {
   const productFields = useMemo(() => {
     return isSuccess ? filterProductFields(product) : []
   }, [isSuccess, product])
-
-  const currentImage = selectedImage ?? product?.image
 
   useEffect(() => {
     if (isSuccess) {
@@ -231,31 +225,12 @@ export default function Product({ code }) {
           <div className="px-lg-3">
             <div className="row">
               <div className="col-lg-7 pe-lg-0">
-                {currentImage ? (
+                {product.image ? (
                   <div className="d-block text-center">
-                    <div className="position-relative w-100" style={{ aspectRatio: "4/3" }}>
-                      <Image
-                        src={currentImage}
-                        priority
-                        loading="eager"
-                        fill
-                        style={{ objectFit: 'contain' }}
-                        alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`}
-                        onClick={() => setGalleryOpen(true)}
-                        itemProp="image"
-                        role="button" />
-                    </div>
-                    {product.images && (
-                      <ImageCarousel images={product.images} setImage={setSelectedImage} className="my-2" />
-                    )}
-                    <ImageGallery
-                      currentImage={currentImage}
-                      images={[
-                        product.big_image || product.image,
-                        ...(product.images ?? []).map(image => image.src)
-                      ]}
-                      open={galleryOpen}
-                      setOpen={setGalleryOpen} />
+                    <ImageCarousel
+                      image={product.big_image ?? product.image}
+                      images={product.images}
+                      alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
                   </div>
                 ) : (
                   <div className="d-none d-lg-block">

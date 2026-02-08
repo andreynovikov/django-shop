@@ -22,6 +22,7 @@ import 'react-bootstrap-typeahead/css/Typeahead.bs5.css';
 import 'swiper/css'
 import 'swiper/css/free-mode'
 import 'swiper/css/navigation'
+import 'swiper/css/pagination'
 import '../styles.scss';
 
 import moment, { type MomentInput, type Moment } from 'moment';
