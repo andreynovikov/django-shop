@@ -79,7 +79,7 @@ export default function ImageCarousel({ image, images, alt }: ImageCarouselProps
         ))}
         <span className="d-none d-sm-inline nav-button-next nav-button-lg"><i className="ci-arrow-right"></i></span>
       </Swiper>
-      <Swiper
+      {images && <Swiper
         slidesPerView={'auto'}
         spaceBetween={10}
         freeMode={true}
@@ -115,7 +115,7 @@ export default function ImageCarousel({ image, images, alt }: ImageCarouselProps
           </SwiperSlide>
         ))}
         <span className="nav-button-next nav-button-sm"><i className="ci-arrow-right"></i></span>
-      </Swiper>
+      </Swiper>}
       <ImageGallery
         currentImage={currentIndex}
         images={[
