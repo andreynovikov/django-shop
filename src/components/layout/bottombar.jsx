@@ -26,6 +26,12 @@ export default function BottomBar() {
 
           </div>
           <div className="col-md-6 text-center text-md-end mb-4">
+            <div className="widget widget-links widget-light mb-2">
+              <a className="widget-list-link" href="mailto:info@thsm.ru">
+                <i className="ci-mail me-1"></i>
+                info@thsm.ru
+              </a>
+            </div>
             <div className="fs-xs text-light opacity-50 mb-2">Наши страницы в соцсетях:</div>
             <div className="d-flex justify-content-center justify-content-md-end gap-2 mb-2">
               <a className="btn-social bs-outline bs-light bs-vk" href="https://vk.com/sew.world">
