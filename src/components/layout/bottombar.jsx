@@ -2,7 +2,12 @@ import Link from 'next/link'
 
 import DzenIcon from '@/assets/icons/social/dzen'
 
+import { useSite } from '@/lib/site'
+import { formatPhone } from '@/lib/format'
+
 export default function BottomBar() {
+  const { site } = useSite()
+
   return (
     <footer className="footer bg-dark pt-5">
       <div className="container">
@@ -32,6 +37,28 @@ export default function BottomBar() {
                 info@thsm.ru
               </a>
             </div>
+            <div className="d-block d-md-flex justify-content-md-end gap-3">
+            {site.phone && (
+              <div>
+                <div className="fs-xs text-light opacity-50 mb-2">Интернет-магазин:</div>
+                <div className="widget widget-links widget-light mb-2">
+                  <a className="widget-list-link" href={"tel:" + site.phone}>
+                    <i className="ci-phone me-1"></i>
+                    {formatPhone(site.phone)}
+                  </a>
+                </div>
+              </div>
+            )}
+              <div>
+                <div className="fs-xs text-light opacity-50 mb-2">Розничные магазины:</div>
+                <div className="widget widget-links widget-light mb-2">
+                  <a className="widget-list-link" href={"tel:" + "+74957440087"}>
+                    <i className="ci-phone me-1"></i>
+                    {formatPhone("+74957440087")}
+                  </a>
+                </div>
+              </div>
+              </div>
             <div className="fs-xs text-light opacity-50 mb-2">Наши страницы в соцсетях:</div>
             <div className="d-flex justify-content-center justify-content-md-end gap-2 mb-2">
               <a className="btn-social bs-outline bs-light bs-vk" href="https://vk.com/sew.world">
