@@ -3,11 +3,29 @@ import Link from 'next/link'
 import Script from 'next/script'
 import { useQuery } from '@tanstack/react-query'
 
+import Button from 'react-bootstrap/Button'
+import Collapse from 'react-bootstrap/Collapse'
+
 import PageLayout from '@/components/layout/page'
 
 import { useBreakpoint } from '@/lib/breakpoint'
 import { rows } from '@/lib/partition'
 import { storeKeys, loadStores } from '@/lib/queries'
+
+function Collapsable({ id, name, children, selected, onSelect, className }) {
+  return (
+    <>
+      <Button className={`d-block btn ${selected === id ? 'btn-info' : 'btn-light'} btn-link p-1 ${className}`} onClick={onSelect}>
+        {name}
+      </Button>
+      <Collapse in={selected === id}>
+        <div>
+          {children}
+        </div>
+      </Collapse>
+    </>
+  )
+}
 
 export default function Stores({ marketplace, lottery }) {
   const [ymapsReady, setYMapsReady] = useState(false)
@@ -153,25 +171,74 @@ export default function Stores({ marketplace, lottery }) {
           </div>
           <div className="col-lg-6 px-4 px-xl-5 py-4">
             <div>
-              <button className={`btn ${currentCity === 2 ? 'btn-info' : 'btn-light'} btn-link p-1 fw-bold`} onClick={() => handleCitySelect(2)}>
-                Москва
-              </button>
+              <Collapsable
+                id={2}
+                name="Москва"
+                selected={currentCity}
+                onSelect={() => handleCitySelect(2)}
+                className="fw-bold">
+                {stores && stores.filter(({ city }) => city.id === 2).map((store) => (
+                  <div className="fs-xs pt-1" key={store.id}>
+                    <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }}>
+                      {store.address}
+                    </Link>
+                    {store.phones && (
+                      <>
+                        <br />
+                        {store.phones[0]}
+                      </>
+                    )}
+                  </div>
+                ))}
+              </Collapsable>
             </div>
             <div>
-              <button className={`btn ${currentCity === 21 ? 'btn-info' : 'btn-light'} btn-link p-1 fw-bold`} onClick={() => handleCitySelect(21)}>
-                Санкт-Петербург
-              </button>
+              <Collapsable
+                id={21}
+                name="Санкт-Петербург"
+                selected={currentCity}
+                onSelect={() => handleCitySelect(21)}
+                className="fw-bold">
+                {stores && stores.filter(({ city }) => city.id === 21).map((store) => (
+                  <div className="fs-xs pt-1" key={store.id}>
+                    <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }}>
+                      {store.address}
+                    </Link>
+                    {store.phones && (
+                      <>
+                        <br />
+                        {store.phones[0]}
+                      </>
+                    )}
+                  </div>
+                ))}
+              </Collapsable>
             </div>
-            <div className="d-flex mt-1">
+            <div className="d-flex gap-1 mt-1">
               {storeGroups.length > 0 && rows(storeGroups, cols).map((column, index) => (
-                <div className="flex-grow-1 pe-1" key={index}>
-                  {column.map(({ city }) => (
-                    <button
+                <div key={index} style={{ flex: "1 1 0" }}>
+                  {column.map(({ city, stores }) => (
+                    <Collapsable
                       key={city.id}
-                      className={`d-block btn ${currentCity === city.id ? 'btn-info' : 'btn-light'} btn-sm btn-link p-1`}
-                      onClick={() => handleCitySelect(city.id)}>
-                      {city.name}
-                    </button>
+                      id={city.id}
+                      name={city.name}
+                      selected={currentCity}
+                      onSelect={() => handleCitySelect(city.id)}
+                      className="btn-sm">
+                      {stores.map((store) => (
+                        <div className="fs-xs pt-1" key={store.id}>
+                          <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }}>
+                            {store.address}
+                          </Link>
+                          {store.phones && (
+                            <>
+                              <br />
+                              {store.phones[0]}
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </Collapsable>
                   ))}
                 </div>
               ))}

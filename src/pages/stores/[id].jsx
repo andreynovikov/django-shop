@@ -119,7 +119,7 @@ export default function Store({ id }) {
                   <h3 className="h6 mb-3">Сайт магазина</h3>
                   <ul className="list-unstyled fs-sm mb-0">
                     <li className="mb-0">
-                      <a className="nav-link-style" href="{ store.url }">{store.url}</a>
+                      <a className="nav-link-style" href={ store.url }>{store.url}</a>
                     </li>
                   </ul>
                 </div>
