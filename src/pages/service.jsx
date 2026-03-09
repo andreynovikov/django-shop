@@ -97,10 +97,15 @@ export default function Service() {
                 <li>
                   Гарантийный ремонт и обслуживание швейных машин, вышивальных машин, оверлоков,
                   вязальных машин и другого оборудования производства компаний
-                  Pfaff, Husqvarna Viking, Family, Janome, Silver Reed и ряда других фирм.
+                  Pfaff, Husqvarna Viking, Family, Janome, Singer, Silver Reed, Hague.
                 </li>
-                <li>Поставку запасных частей для швейного оборудования.</li>
-                <li>Послегарантийный ремонт машин Pfaff, Husqvarna, Family, Janome, Silver Reed и NewHome.</li>
+                <li>
+                  Поставку запасных частей для швейного оборудования.
+                </li>
+                <li>
+                  Послегарантийный ремонт машин Pfaff, Husqvarna Viking, Family, Janome, Singer,
+                  Silver Reed, Hague и New Home и ряда других фирм.
+                </li>
               </ul>
             </div>
           </div>
