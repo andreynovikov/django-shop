@@ -16,7 +16,9 @@ export default function CartItem({ item, first, last, removeItem, setQuantity })
 
   const handleValueChange = (e) => {
     var v = e.target.value
-    if (!v)
+    if (e.type === 'change' && v === '')
+      return
+    else if (!v)
       v = item.quantity
     else if (v < 1)
       v = 1
@@ -27,7 +29,8 @@ export default function CartItem({ item, first, last, removeItem, setQuantity })
     setQuantity(item.product, v)
   }
 
-  const debouncedValueChange = useCallback(debounce(handleValueChange), [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedValueChange = useCallback(debounce(handleValueChange), [setQuantity])
 
   return (
     <div className={"d-sm-flex justify-content-between align-items-center my-2 " + (first ? "pb-3" : "py-3") + (!last && " border-bottom")}>
