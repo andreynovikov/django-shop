@@ -178,7 +178,7 @@ export default function Stores({ marketplace, lottery }) {
                 onSelect={() => handleCitySelect(2)}
                 className="fw-bold">
                 {stores && stores.filter(({ city }) => city.id === 2).map((store) => (
-                  <div className="fs-xs pt-1" key={store.id}>
+                  <div className="fs-xs pt-1 ps-2" key={store.id}>
                     <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }}>
                       {store.address}
                     </Link>
@@ -200,7 +200,7 @@ export default function Stores({ marketplace, lottery }) {
                 onSelect={() => handleCitySelect(21)}
                 className="fw-bold">
                 {stores && stores.filter(({ city }) => city.id === 21).map((store) => (
-                  <div className="fs-xs pt-1" key={store.id}>
+                  <div className="fs-xs pt-1 ps-2" key={store.id}>
                     <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }}>
                       {store.address}
                     </Link>
@@ -226,7 +226,7 @@ export default function Stores({ marketplace, lottery }) {
                       onSelect={() => handleCitySelect(city.id)}
                       className="btn-sm">
                       {stores.map((store) => (
-                        <div className="fs-xs pt-1" key={store.id}>
+                        <div className="fs-xs pt-1 ps-2" key={store.id}>
                           <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }}>
                             {store.address}
                           </Link>
