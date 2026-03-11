@@ -61,15 +61,17 @@ export default function Index() {
           <div className="py-3"></div>
         </section>
 
-        <section className="container position-relative pt-3 pt-lg-0 mt-n10" style={{ zIndex: 10 }}>
-          <TopCategoriesCard />
-        </section>
-
-        {mainAdvert && (
-          <section className="container pt-5">
-            <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainAdvert.content }} />
+        <div className="d-flex flex-column position-relative pt-3 pt-lg-0 mt-n10" style={{ zIndex: 10 }}>
+          <section className="container order-2 order-sm-1">
+            <TopCategoriesCard />
           </section>
-        )}
+
+          {mainAdvert && (
+            <section className="container pt-0 pt-sm-5 order-1 order-sm-2">
+              <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainAdvert.content }} />
+            </section>
+          )}
+        </div>
 
         <Adverts adverts={topAdverts} />
 
