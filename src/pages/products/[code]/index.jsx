@@ -444,7 +444,13 @@ export default function Product({ code }) {
 
         {Object.keys(fieldNames).length > 0 && productFields.length > 0 && (
           <div className="pt-lg-2 pb-3 mb-md-3">
-            <h2 className="h3 pb-2">Характеристики {product.title}</h2>
+            <div className="h3 d-flex align-items-end pb-2">
+              <h2 className="h3 m-0 p-0 flex-grow-1">Характеристики</h2>
+              {product.manufacturer?.logo && <div className="flex-shrink-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img alt={product.manufacturer.name} src={product.manufacturer.logo} className="sw-product-logo" />
+              </div>}
+            </div>
             <div className="product-spec container fs-sm">
               {productFields.map((field) => (
                 <div className="row mb-2" key={field}>
@@ -575,13 +581,6 @@ Product.getLayout = function getLayout(page) {
     }
   )) ?? []
 
-  const secondaryTitle = page.props.manufacturerLogo ? (
-    <div className="d-none d-lg-block">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img alt={page.props.manufacturer} src={page.props.manufacturerLogo} style={{ height: "60px" }} />
-    </div>
-  ) : null
-
   return (
     <PageLayout
       title={page.props.title}
@@ -596,7 +595,6 @@ Product.getLayout = function getLayout(page) {
           {page.props.allowReviews && <ProductRating product={page.props.id} anchor="reviews" />}
         </>
       }
-      secondaryTitle={secondaryTitle}
       breadcrumbs={breadcrumbs}
       dark overlapped>
       {page}
@@ -639,8 +637,6 @@ export async function getStaticProps(context) {
         title: data.title,
         whatis: data.whatis || null,
         runame: data.runame || null,
-        manufacturer: data.manufacturer?.name || null,
-        manufacturerLogo: data.manufacturer?.logo || null,
         id: data.id,
         allowReviews: data.allow_reviews,
         breadcrumbs
