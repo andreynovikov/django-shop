@@ -3,6 +3,7 @@ import Link from 'next/link'
 
 import { IconCategory, IconX } from '@tabler/icons-react'
 
+import { Menu } from '@base-ui/react/menu'
 import Collapse from 'react-bootstrap/Collapse'
 
 import CartNotice from '@/components/cart/notice'
@@ -70,13 +71,35 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
         <div className="topbar topbar-light sw-bg-light">
           <div className="container">
             <div className="d-flex flex-grow-1 justify-content-between d-md-inline-block">
+              <Menu.Root>
+                <Menu.Trigger className="d-lg-none topbar-text text-nowrap sw-with-caret" nativeButton={false} render={<div />}>
+                  <i className="ci-support mt-n1" />
+                  Телефоны
+                </Menu.Trigger>
+                <Menu.Portal>
+                  <Menu.Positioner sideOffset={8}>
+                    <Menu.Popup className="dropdown-menu position-static topbar flex-column align-items-start gap-2 p-3">
+                        <div className="topbar-text text-nowrap">
+                          <a className="topbar-link" href={"tel:" + "+74957440087"}>{formatPhone("+74957440087")}</a>
+                          <span className="text-muted">&nbsp;&ndash;&nbsp;розничные магазины</span>
+                        </div>
+                      {site.phone && (
+                        <div className="topbar-text text-nowrap">
+                          <a className="topbar-link" href={"tel:" + site.phone}>{formatPhone(site.phone)}</a>
+                          <span className="text-muted">&nbsp;&ndash;&nbsp;интернет-магазин</span>
+                        </div>
+                      )}
+                    </Menu.Popup>
+                  </Menu.Positioner>
+                </Menu.Portal>
+              </Menu.Root>
               <div className={"d-none d-lg-inline-block topbar-text text-nowrap" + (site.phone ? " border-end pe-3 me-3" : "")}>
                 <i className="ci-support mt-n1" />
                 <a className="topbar-link" href={"tel:" + "+74957440087"}>{formatPhone("+74957440087")}</a>
                 <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;розничные магазины</span>
               </div>
               {site.phone && (
-                <div className="topbar-text text-nowrap">
+                <div className="d-none d-lg-inline-block topbar-text text-nowrap">
                   <i className="ci-support mt-n1" />
                   <a className="topbar-link" href={"tel:" + site.phone}>{formatPhone(site.phone)}</a>
                   <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;интернет-магазин</span>
