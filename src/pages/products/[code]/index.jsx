@@ -8,7 +8,7 @@ import { useInView } from 'react-intersection-observer'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { FreeMode, Navigation } from 'swiper/modules'
 
-import { Collapsible } from '@base-ui/react/collapsible'
+import { Menu } from '@base-ui/react/menu'
 
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
@@ -362,18 +362,24 @@ export default function Product({ code }) {
                   )}
 
                   {product.enabled && product.cost > 0 && (
-                    <Collapsible.Root className={"mb-4" + (product.enabled ? "" : " mt-5")}>
-                      <Collapsible.Trigger className="btn btn-outline-secondary btn-sm w-100">
-                        <i className="ci-location text-muted lead align-middle mt-n1 me-2" />Наличие в магазинах
-                      </Collapsible.Trigger>
-                      <Collapsible.Panel className="card mt-1">
-                        <div className="card-body">
-                          <Suspense fallback={<Loading className="text-center" />}>
-                            <ProductStock id={product.id} />
-                          </Suspense>
-                        </div>
-                      </Collapsible.Panel>
-                    </Collapsible.Root>
+                    <div className={"mb-4" + (product.enabled ? "" : " mt-5")}>
+                      <Menu.Root modal={false}>
+                        <Menu.Trigger className="btn btn-outline-secondary btn-sm w-100">
+                          <i className="ci-location text-muted lead align-middle mt-n1 me-2" />Наличие в магазинах
+                        </Menu.Trigger>
+                        <Menu.Portal>
+                          <Menu.Positioner sideOffset={3} align="end" collisionAvoidance={{ side: 'none' }}>
+                            <Menu.Popup className="card" style={{ width: "var(--anchor-width)" }}>
+                              <div className="card-body">
+                                <Suspense fallback={<Loading className="text-center" />}>
+                                  <ProductStock id={product.id} />
+                                </Suspense>
+                              </div>
+                            </Menu.Popup>
+                          </Menu.Positioner>
+                        </Menu.Portal>
+                      </Menu.Root>
+                    </div>
                   )}
 
                   {product.enabled && product.gifts && (
