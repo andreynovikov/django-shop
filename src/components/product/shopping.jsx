@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react'
 
+import Link from 'next/link'
+
 import useBasket from '@/lib/basket'
 
 export default function ProductShopping({ product }) {
@@ -31,20 +33,24 @@ export default function ProductShopping({ product }) {
 
   return basketQuantity > 0 ? (
     <>
-      <button className="btn btn-success btn-shadow d-block px-5" type="button" onClick={() => handleSetQuantity(-1)}>
-        <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-        -
-      </button>
-      <span className="px-2">
-        В корзине: {basketQuantity} шт
-      </span>
-      <button className="btn btn-success btn-shadow d-block px-5" type="button" onClick={() => handleSetQuantity(+1)}>
-        <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-        +
-      </button>
+      <div className="d-flex justify-content-between align-items-center">
+        <button className="btn btn-success btn-shadow d-block px-5" type="button" onClick={() => handleSetQuantity(-1)}>
+          <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          -
+        </button>
+        <span className="px-2">
+          <span className="d-none d-md-inline">В корзине: </span>
+          {basketQuantity} шт
+        </span>
+        <button className="btn btn-success btn-shadow d-block px-5" type="button" onClick={() => handleSetQuantity(+1)}>
+          <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          +
+        </button>
+      </div>
+      <Link href="/cart" className="btn btn-primary d-block w-100 mt-4">Оформить заказ</Link>
     </>
   ) : (
-    <>
+    <div className="d-flex justify-content-between align-items-center">
       {product.instock > 5 && (
         <select className="form-select me-3" style={{ width: "5rem" }} value={quantity} onChange={(e) => setAddQuantity(e.target.value)}>
           <option value="1">1</option>
@@ -58,6 +64,6 @@ export default function ProductShopping({ product }) {
         <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
         <i className="ci-cart fs-lg me-2" />Купить
       </button>
-    </>
+    </div>
   )
 }

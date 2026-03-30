@@ -322,7 +322,7 @@ export default function Product({ code }) {
                         </div>
                       </div>
                       {product.cost > 0 ? (
-                        <div className="d-flex justify-content-between align-items-center pt-2 pb-4" itemProp="offers" itemScope itemType="http://schema.org/Offer">
+                        <div className="pt-2 pb-4" itemProp="offers" itemScope itemType="http://schema.org/Offer">
                           {product.instock > 0 ? (
                             <ProductShopping product={product} />
                           ) : (
@@ -340,7 +340,7 @@ export default function Product({ code }) {
                         <button
                           type="button"
                           onClick={handleFavoritesClick}
-                          className={"btn btn-" + (favorites.includes(product.id) ? "accent" : "secondary") + " d-block w-100"}>
+                          className={"btn btn-sm btn-" + (favorites.includes(product.id) ? "accent" : "secondary") + " d-block w-100"}>
                           <i className="ci-heart fs-lg me-2" />
                           <span>
                             {favorites.includes(product.id) ? "В избранном" : "Отложить"}
@@ -351,7 +351,7 @@ export default function Product({ code }) {
                         <button
                           type="button"
                           onClick={handleComparisonClick}
-                          className={"btn btn-" + (comparisons.includes(product.id) ? "accent" : "secondary") + " d-block w-100" + (status === 'authenticated' ? " ms-3" : "")}>
+                          className={"btn btn-sm btn-" + (comparisons.includes(product.id) ? "accent" : "secondary") + " d-block w-100" + (status === 'authenticated' ? " ms-3" : "")}>
                           <i className="ci-compare fs-lg me-2" />
                           <span>
                             {comparisons.includes(product.id) ? "Сравнение" : "Сравнить"}
