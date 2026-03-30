@@ -14,8 +14,13 @@ const eslintConfig = [
   {
     ignores: [
       "**/vendor/*",
-    ]
-  }
+    ],
+  },
+  {
+    settings: {
+      react: { version: "19" },
+    },
+  },
 ]
 
 export default eslintConfig
