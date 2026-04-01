@@ -7,7 +7,7 @@ import ProductCard from '@/components/product/card'
 import TopCategoriesCard from '@/components/top-categories-card'
 
 import { advertKeys, productKeys, loadAdverts, loadProducts } from '@/lib/queries'
-import useCatalog, { recomendedFilters, firstPageFilters } from '@/lib/catalog'
+import useCatalog, { recomendedProductsFilters, newProductsFilters } from '@/lib/catalog'
 
 const itemsPerSection = 16
 const sort = '-price'
@@ -28,13 +28,13 @@ function Adverts({ adverts }) {
 }
 
 export default function Index() {
-  const { data: recomended, isSuccess: isRecomendedSuccess } = useQuery({
-    queryKey: productKeys.list(null, itemsPerSection, recomendedFilters, sort),
-    queryFn: () => loadProducts(null, itemsPerSection, recomendedFilters, sort)
+  const { data: recomendedProducts, isSuccess: isRecomendedSuccess } = useQuery({
+    queryKey: productKeys.list(null, itemsPerSection, recomendedProductsFilters, sort),
+    queryFn: () => loadProducts(null, itemsPerSection, recomendedProductsFilters, sort)
   })
-  const { data: firstpage, isSuccess: isFirstPageSuccess } = useQuery({
-    queryKey: productKeys.list(null, itemsPerSection, firstPageFilters, sort),
-    queryFn: () => loadProducts(null, itemsPerSection, firstPageFilters, sort)
+  const { data: newProducts, isSuccess: isNewSuccess } = useQuery({
+    queryKey: productKeys.list(null, itemsPerSection, newProductsFilters, sort),
+    queryFn: () => loadProducts(null, itemsPerSection, newProductsFilters, sort)
   })
 
   const { data: adverts } = useQuery({
@@ -75,7 +75,7 @@ export default function Index() {
 
         <Adverts adverts={topAdverts} />
 
-        {isRecomendedSuccess && recomended.results.length > 0 && (
+        {isRecomendedSuccess && recomendedProducts.results.length > 0 && (
           <section className="container pt-5">
             <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
               <h2 className="h3 mb-0 pt-3 me-2">Специальные предложения</h2>
@@ -87,7 +87,7 @@ export default function Index() {
               </div>
             </div>
             <div className="row pt-2 mx-n2">
-              {recomended.results.map((product, index) => (
+              {recomendedProducts.results.map((product, index) => (
                 <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
                   <ProductCard product={product} gtmList="Первая страница акции" gtmPosition={index} />
                   <hr className="d-sm-none" />
@@ -99,7 +99,7 @@ export default function Index() {
 
         <Adverts adverts={middleAdverts} />
 
-        {isFirstPageSuccess && firstpage.results.length > 0 && (
+        {isNewSuccess && newProducts.results.length > 0 && (
           <section className="container pt-5">
             <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
               <h2 className="h3 mb-0 pt-3 me-2">Новинки</h2>
@@ -111,7 +111,7 @@ export default function Index() {
               </div>
             </div>
             <div className="row pt-2 mx-n2">
-              {firstpage.results.map((product, index) => (
+              {newProducts.results.map((product, index) => (
                 <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
                   <ProductCard product={product} gtmList="Первая страница акции" gtmPosition={index} />
                   <hr className="d-sm-none" />
@@ -139,12 +139,12 @@ export async function getStaticProps() {
   const queryClient = new QueryClient()
 
   await queryClient.prefetchQuery({
-    queryKey: productKeys.list(null, itemsPerSection, recomendedFilters, sort),
-    queryFn: () => loadProducts(null, itemsPerSection, recomendedFilters, sort)
+    queryKey: productKeys.list(null, itemsPerSection, recomendedProductsFilters, sort),
+    queryFn: () => loadProducts(null, itemsPerSection, recomendedProductsFilters, sort)
   })
   await queryClient.prefetchQuery({
-    queryKey: productKeys.list(null, itemsPerSection, firstPageFilters, sort),
-    queryFn: () => loadProducts(null, itemsPerSection, firstPageFilters, sort)
+    queryKey: productKeys.list(null, itemsPerSection, newProductsFilters, sort),
+    queryFn: () => loadProducts(null, itemsPerSection, newProductsFilters, sort)
   })
 
   return {

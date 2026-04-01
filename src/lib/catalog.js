@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 
-export const recomendedFilters = {
+export const recomendedProductsFilters = {
   enabled: true,
   categories: 473,
   firstpage: true,
   show_on_sw: true
 }
 
-export const giftsFilters = {
+export const giftProductsFilters = {
   enabled: true,
   gift: true,
+  firstpage: true,
   show_on_sw: true
 }
 
-export const firstPageFilters = {
+export const newProductsFilters = {
   enabled: true,
+  isnew: true,
   firstpage: true,
   show_on_sw: true
 }

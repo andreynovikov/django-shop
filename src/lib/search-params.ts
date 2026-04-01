@@ -9,6 +9,7 @@ export const productSearchParams = {
   in_category: parseAsInteger,
   enabled: parseAsBoolean,
   show_on_sw: parseAsBoolean,
+  isnew: parseAsBoolean,
   gift: parseAsBoolean,
   recomended: parseAsBoolean,
   firstpage: parseAsBoolean,
