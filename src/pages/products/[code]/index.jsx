@@ -28,7 +28,7 @@ import useFavorites from '@/lib/favorites'
 import useComparison from '@/lib/comparison'
 import { useSession } from '@/lib/session'
 import { productKeys, loadProducts, loadProductByCode, getProductFields } from '@/lib/queries'
-import { recomendedFilters, firstPageFilters } from '@/lib/catalog'
+import { recomendedProductsFilters, newProductsFilters } from '@/lib/catalog'
 import { eCommerce } from '@/lib/ymec'
 
 const ProductReviews = lazy(() => import('@/components/product/reviews'))
@@ -659,8 +659,8 @@ export async function getStaticProps(context) {
 
 export async function getStaticPaths() {
   const filters = [
-    recomendedFilters,
-    firstPageFilters
+    recomendedProductsFilters,
+    newProductsFilters
   ]
   const included = new Set()
   const paths = []
