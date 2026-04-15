@@ -1,3 +1,11 @@
+export type JSONValue =
+  | string
+  | number
+  | boolean
+  | null
+  | { [x: string]: JSONValue }
+  | Array<JSONValue>
+
 export interface ProductImage {
   src: string
 }
@@ -44,4 +52,37 @@ export interface ForumTopic {
   id: number
   title: string
   threads: ForumThreadBase[]
+}
+
+export interface Integration {
+  id: number
+  name: string
+  utm_source: string
+  output_template: string
+  output_all: boolean
+  output_paged: boolean
+  output_available: boolean
+  output_with_images: boolean
+  output_stock: boolean
+  output_skip_categories: boolean
+  uses_api: boolean
+  uses_boxes: boolean
+  settings?: JSONValue
+  admin_user_fields?: JSONValue
+  site: number
+  seller?: number
+  buyer?: number
+  wirehouse?: number
+}
+
+export interface IntegrationProduct {
+  id: number
+  code: string
+  article: string
+  partnumber: string
+  whatisit: string
+  title: string
+  price: number
+  enabled: boolean
+  stock?: number
 }

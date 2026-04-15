@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<yml_catalog>
+  <shop>
+    <offers>
+      <% products.forEach(product => { -%>
+        <offer id="<%= product.article %>">
+          <% if(product.integration_price > 0) { -%>
+          <price><%= product.integration_price %></price>
+          <% }else{ -%>
+          <price><%= product.cost %></price>
+          <% } -%>
+          <% if('stock' in product){ -%>
+          <outlets>
+            <outlet instock="<% if(product.stock > 20){ %>20<% }else{ %><%= product.stock %><% } %>"></outlet>
+          </outlets>
+          <% } -%>
+        </offer>
+        <% }) -%>
+    </offers>
+  </shop>
+</yml_catalog>
