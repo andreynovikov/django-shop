@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.core.mail import mail_admins
-from django.db.models import F
+from django.db.models import Sum, F, Q, OuterRef, Subquery
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import redirect
 from django.template.loader import render_to_string
@@ -13,10 +13,11 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 
 from rest_framework import views, viewsets, filters, status
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.decorators import action
 from rest_framework.exceptions import MethodNotAllowed, NotAuthenticated, NotFound
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import BasePermission, IsAuthenticated
+from rest_framework.permissions import BasePermission, IsAuthenticated, DjangoModelPermissions
 from rest_framework.response import Response
 
 from django.contrib.flatpages.models import FlatPage
@@ -31,17 +32,17 @@ from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiat
 from rarus.tasks import get_bonus_value
 from shop.filters import get_product_filter
 from shop.models import Category, ProductKind, Product, ProductSet, Stock, Basket, BasketItem, Order, OrderItem, \
-    Favorites, ShopUser, Bonus, News, SalesAction, Advert, Store, ServiceCenter, Serial
+    Favorites, ShopUser, Bonus, News, SalesAction, Advert, Store, ServiceCenter, Serial, Integration, ProductIntegration
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
 
 from .models import SiteProfile
 from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSerializer, ProductListSerializer, \
-    ProductKindSerializer, ProductImagesSerializer, \
+    ProductKindSerializer, ProductImagesSerializer, StockSerializer, \
     BasketSerializer, BasketItemActionSerializer, OrderListSerializer, OrderSerializer, OrderActionSerializer, \
     FavoritesSerializer, ComparisonSerializer, SerialSerializer, \
     UserListSerializer, UserSerializer, AnonymousUserSerializer, LoginSerializer, UserBonusSerializer, \
     FlatPageListSerializer, FlatPageSerializer, NewsSerializer, SalesActionSerializer, AdvertSerializer, \
-    StoreSerializer, ServiceCenterSerializer, SiteProfileSerializer
+    StoreSerializer, ServiceCenterSerializer, SiteProfileSerializer, IntegrationSerializer, IntegrationProductSerializer
 
 
 logger = logging.getLogger("django")
@@ -152,6 +153,13 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             return ProductImagesSerializer
         return ProductSerializer
 
+    def get_serializer(self, *args, **kwargs):
+        if self.action in ('list', 'info'):
+            fields = self.request.query_params.get('fields')
+            if fields:
+                kwargs['fields'] = fields.split(',')
+        return super().get_serializer(*args, **kwargs)
+
     def get_queryset(self):
         queryset = super().get_queryset()
         has_category_filter = False
@@ -182,7 +190,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                 filter_fields = ['manufacturer', 'price']
                 self.product_filter = get_product_filter(self.request.query_params, queryset=queryset, fields=filter_fields, request=self.request)
                 queryset = self.product_filter.qs
-            elif field in ('show_on_sw', 'gift', 'recomended', 'firstpage', 'enabled'):
+            elif field in ('show_on_sw', 'gift', 'recomended', 'isnew', 'firstpage', 'enabled'):
                 key = '{}__exact'.format(field)
                 value = values[0].lower() in ('1', 'on', 't', 'true', 'y', 'yes')
                 queryset = queryset.filter(**{key: value})
@@ -331,6 +339,23 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         qr.add_data('https://www.sewing-world.ru/products/{}/video/'.format(product.code))
         img = qr.make_image()
         return HttpResponse(img.to_string(encoding='unicode').encode(), content_type='image/svg+xml')
+
+
+class StockViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = StockSerializer
+    pagination_class = StandardResultsSetPagination
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
+    permission_classes = [DjangoModelPermissions]
+
+    def get_queryset(self):
+        queryset = Stock.objects.all()
+        suppliers = self.request.query_params.getlist('supplier')
+        if len(suppliers) > 0:
+            queryset = queryset.filter(supplier__code__in=suppliers)
+        products = self.request.query_params.getlist('product')
+        if len(products) > 0:
+            queryset = queryset.filter(product__code__in=products)
+        return queryset.distinct()
 
 
 """
@@ -911,3 +936,59 @@ class SiteProfileViewSet(viewsets.ReadOnlyModelViewSet):
             return self.request.site.profile
 
         return super().get_object()
+
+
+class IntegrationViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Integration.objects.all()
+    serializer_class = IntegrationSerializer
+    authentication_classes = [SessionAuthentication, TokenAuthentication]
+    permission_classes = [DjangoModelPermissions]
+
+    @action(detail=True)
+    def byutm(self, request, pk=None):
+        integration = self.get_queryset().filter(utm_source=pk).first()
+        if integration == None:
+            raise NotFound()
+        return Response(self.get_serializer(integration, context=self.get_serializer_context()).data)
+
+    @action(detail=True)
+    def products(self, request, pk=None):
+        integration = self.get_object()
+
+        filters = {
+            'enabled': True,
+            'price__gt': 0,
+            'variations__exact': ''
+        }
+
+        if not integration.output_skip_categories:
+            root = Category.objects.get(slug=settings.MPTT_ROOT)
+            filters['categories__in'] = root.get_descendants(include_self=True).filter(active=True, feed=True)
+
+        products = Product.objects.order_by().filter(**filters).distinct()
+
+        if not integration.output_all:
+            products = products.filter(
+                integration=integration
+            ).annotate(
+                integration_price=Subquery(
+                    ProductIntegration.objects.filter(
+                        product=OuterRef('id'),
+                        integration=integration
+                    ).values('price')
+                )
+            )
+
+        if integration.output_with_images:
+            products.exclude(image__isnull=True).exclude(image__exact='')
+
+        if integration.output_available:
+            products = products.annotate(
+                quantity=Sum('stock_item__quantity', filter=Q(stock_item__supplier__integration=integration)),
+                correction=Sum('stock_item__correction', filter=Q(stock_item__supplier__integration=integration)),
+                available=F('quantity') + F('correction')
+            ).filter(available__gt=0)
+
+        context = self.get_serializer_context()
+        context['integration'] = integration
+        return Response(IntegrationProductSerializer(products, many=True, context=context).data)

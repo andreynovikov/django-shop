@@ -16,8 +16,9 @@ from sewingworld.templatetags.gravatar import get_gravatar_url
 
 from shop.filters import get_product_filter
 from shop.models import Basket, BasketItem, Order, OrderItem, Favorites, Serial, \
-    Category, Product, ProductRelation, ProductKind, ShopUser, ShopUserManager, Bonus, \
-    Country, City, Store, ServiceCenter, News, Advert, SalesAction, Manufacturer
+    Category, Product, ProductRelation, ProductKind, Stock, ShopUser, ShopUserManager, Bonus, \
+    Country, City, Store, ServiceCenter, News, Advert, SalesAction, Manufacturer, \
+    Integration
 
 
 logger = logging.getLogger("django")
@@ -30,6 +31,19 @@ class NonNullModelSerializer(serializers.ModelSerializer):
 
         result = super().to_representation(instance)
         return OrderedDict([(key, result[key]) for key in result if keep(result[key])])
+
+
+class DynamicFieldsModelSerializer(NonNullModelSerializer):
+    def __init__(self, *args, **kwargs):
+        fields = kwargs.pop('fields', None)
+        super().__init__(*args, **kwargs)
+
+        if fields is not None:
+            # Drop any fields that are not specified in the `fields` argument.
+            allowed = set(fields)
+            existing = set(self.fields)
+            for field_name in existing - allowed:
+                self.fields.pop(field_name)
 
 
 class RecursiveField(serializers.Serializer):
@@ -183,7 +197,7 @@ class ProductImagesSerializer(serializers.BaseSerializer):  # BaseSerializer is 
         return images
 
 
-class ProductListSerializer(NonNullModelSerializer):
+class ProductListSerializer(DynamicFieldsModelSerializer):
     price = serializers.SerializerMethodField()
     cost = serializers.SerializerMethodField()
     instock = serializers.SerializerMethodField()
@@ -313,6 +327,16 @@ class ProductSerializer(NonNullModelSerializer):
                 return img
         return obj.stitches
 
+
+class StockSerializer(serializers.ModelSerializer):
+    product = serializers.CharField(source='product.code')
+    supplier = serializers.CharField(source='supplier.code')
+
+    class Meta:
+        model = Stock
+        exclude = ('id',)
+
+
 class BasketItemProductSerializer(NonNullModelSerializer):
     price = serializers.SerializerMethodField()
 
@@ -402,8 +426,8 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = ('id', 'created', 'status', 'status_text', 'payment', 'payment_text', 'paid', 'total',
                   'delivery', 'delivery_price', 'delivery_tracking_number', 'delivery_info',
                   'delivery_dispatch_date', 'delivery_handing_date', 'delivery_time_from', 'delivery_time_till',
-                  'store', 'name', 'phone', 'address', 'is_firm', 'firm_name', 'firm_address', 'firm_details',
-                  'items')
+                  'store', 'name', 'phone', 'email', 'address', 'is_firm', 'firm_name', 'firm_address', 'firm_details',
+                  'items', 'comment')
 
     def get_status_text(self, obj):
         return obj.get_status_display()
@@ -548,7 +572,7 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, data):
         norm_phone = ShopUserManager.normalize_phone(data['phone'])
         exists = ShopUser.objects.filter(phone=norm_phone).exists()
-        if not exists and data.get('ctx', None) in ('order', 'warranty'):
+        if not exists and data.get('ctx', None) in ('order', 'preorder', 'warranty'):
             # Silently create user if they are creating order or registering warranty
             user = ShopUser.objects.create(phone=norm_phone)
             password = str(randint(1000, 9999))
@@ -603,11 +627,40 @@ class AdvertSerializer(serializers.ModelSerializer):
 
 class SiteProfileSerializer(NonNullModelSerializer):
     id = serializers.SerializerMethodField()
+    url_prefix = serializers.SerializerMethodField()
     city = CitySerializer(read_only=True)
 
     class Meta:
         model = SiteProfile
-        fields = ('id', 'title', 'description', 'city', 'phone')
+        fields = ('id', 'url_prefix', 'title', 'description', 'city', 'phone')
 
     def get_id(self, obj):
         return obj.site.pk
+
+    def get_url_prefix(self, obj):
+        return 'https://' + obj.site.domain
+
+
+class IntegrationSerializer(NonNullModelSerializer):
+    class Meta:
+        model = Integration
+        exclude = ('suppliers', 'products')
+
+
+class IntegrationProductSerializer(serializers.ModelSerializer):
+    # categories = CategoryBriefSerializer(many=True, read_only=True)
+    stock = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Product
+        fields = ('id', 'code', 'article', 'partnumber', 'whatisit', 'title', 'price', 'cost', 'enabled', 'categories', 'stock')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.context.get('integration').output_skip_categories:
+            self.fields.pop('categories')
+        if not self.context.get('integration').output_stock:
+            self.fields.pop('stock')
+
+    def get_stock(self, obj):
+        return obj.get_stock(integration=self.context.get('integration'))
