@@ -2,17 +2,16 @@
 Server setup
 ************
 
-Historically server is run under latest Devian Stable.
+Historically server is run under latest Debian Stable.
 
 The following packages are required:
 ::
     apt install sudo
-    apt install ntpdate
     apt install exim4
     apt install rsync
     apt install python3
     apt install python3-venv
-    apt install postgresql
+    apt install postgresql-client
     apt install nginx
     apt install uwsgi
     apt install uwsgi-plugin-python3
@@ -28,29 +27,34 @@ The following packages are required for building python packages:
     apt install libmemcached-dev
     apt install libpq-dev
     apt install libjpeg-dev
-    apt install libtidy5deb1
+    # apt install libtidy5deb1 - do we need it?
 
 The following packages are optional:
 ::
     apt install less
     apt install emacs-nox
-    apt install dnsutils
+    apt install bind9-dnsutils
     apt install htop
+
+Install Docker (https://docs.docker.com/engine/install/debian/#install-using-the-repository)
 
 Master/slave cold redundancy server scheme is used for High Availability. It means that two servers are kept identical
 but if one server fails manual actions should be performed to switch to another server (described below).
 
-Create three users in this particular order (to preserve uids):
+Create users in this particular order (to preserve uids):
 ::
     adduser andrey
     adduser nikolays
+    adduser maria
+    adduser egor
 
+Add user ``andrey`` to ``adm`` and ``docker`` groups.
 Add users ``andrey`` and ``nikolays`` to ``sudu`` and ``www-data`` groups.
+Add users ``maria`` and ``egor`` to ``www-data`` group.
 
 Disable ssh root login:
 ::
     PermitRootLogin no
-    PasswordAuthentication yes
 
 Optionaly adjust ssh keep-alives:
 ::
@@ -59,14 +63,16 @@ Optionaly adjust ssh keep-alives:
 
 Setup correct timezone:
 ::
-    echo "Europe/Moscow" > /etc/timezone
-    ln -fs /usr/share/zoneinfo/Europe/Moscow /etc/localtime
-    dpkg-reconfigure -f noninteractive tzdata
+    timedatectl set-timezone Europe/Moscow
 
-Enable time syncronization. Create ``/etc/cron.daily/ntpdate`` file:
+Enable time syncronization. Edit ``/etc/systemd/timesyncd.conf`` file:
 ::
-    #!/bin/sh
-    /usr/sbin/ntpdate -u ru.pool.ntp.org
+    NTP=ru.pool.ntp.org
+
+then restart time service:
+::
+    systemctl restart systemd-timesyncd
+    timedatectl set-ntp true
 
 Reconfigure Exim for internet mode to be able to send mails:
 ::
@@ -91,7 +97,7 @@ Add the following line to the bottom of the ``/etc/pam.d/sshd``:
 
 Enable challenge response:
 ::
-    ChallengeResponseAuthentication	yes
+    ChallengeResponseAuthentication    yes
 
 ***********
 Nginx setup
@@ -105,12 +111,34 @@ Adjust ``/etc/nginx/nginx.conf``:
     tcp_nodelay on;
     keepalive_timeout 65;
     server_names_hash_bucket_size 64;
-    
-    include /etc/nginx/win-utf;
+
+    log_format upstream '$remote_addr - $remote_user [$time_local] '
+                        '"$request" $status $body_bytes_sent '
+                        'rt="$request_time" uct="$upstream_connect_time" uht="$upstream_header_time" urt="$upstream_response_time" '
+                        '"$http_referer" "$http_user_agent"';
+
+    log_format errored  '[$time_local] $status "$request" "$http_referer"';
+
+    map $status $moved {
+      ~^[3]   1;
+      default 0;
+    }
+
+    map $status $notfound {
+      ~^[4]   1;
+      default 0;
+    }
+
+    map $status $errored {
+      ~^[5]   1;
+      default 0;
+    }
 
 ****************
-PostgreSql setup
+PostgreSql setup*
 ****************
+
+* currently we use separate postgresql server, so this step should be skipped
 
 Create necessary roles and databases:
 ::
@@ -302,7 +330,7 @@ file. So, general deployment scheme looks like this:
     sudo chown nikolays:www-data logs
     mkdir st_search
     sudo chown nikolays:www-data st_search
-    
+
 For React sites:
 ::
     pm2 start npm --name "janome" -- start
@@ -439,7 +467,7 @@ First:
     DROP DATABASE sworld_dev;
     CREATE DATABASE sworld_dev OWNER andrey;
     GRANT ALL PRIVILEGES ON DATABASE sworld_dev TO nikolays;
-    
+
 Then:
 ::
     pg_dump sworld | psql sworld_dev
