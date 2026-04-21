@@ -2,9 +2,9 @@
 Дата файла: {{ date }}
 Импортировано: {{ imported }}
 Обновлено: {{ updated }}
-{% if orders %}{% load admin_urls %}
+{% if orders %}
 Замороженные заказы:
-{% for order in orders %}{{ order }} https://www.sewing-world.ru{% url opts|admin_urlname:'change' order.pk %}
+{% for order in orders %}{{ order }} https://admin.sewing-world.ru/admin/shop/order/{{ order.pk }}/change/
 {% endfor %}
 {% endif %}{% if errors %}
 Ошибки:

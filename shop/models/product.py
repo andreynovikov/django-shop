@@ -9,6 +9,7 @@ from django.contrib.postgres.indexes import GinIndex
 from django.contrib.sites.models import Site
 from django.db import connection, models
 from django.db.models.signals import post_save
+from django.db.utils import OperationalError
 from django.utils.functional import cached_property
 from django.urls import reverse
 
@@ -345,7 +346,10 @@ class Product(models.Model):
         if self.num >= 0:
             return self.num
         self.num = self.get_stock()
-        super(Product, self).save()
+        try:
+            super(Product, self).save()
+        except OperationalError:
+            pass  # ignore lock timeout, TODO: refactor 1C import?
         return self.num
 
     def get_stock(self, integration=None, express=False):

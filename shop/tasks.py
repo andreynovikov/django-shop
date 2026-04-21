@@ -23,8 +23,7 @@ from urllib.error import HTTPError
 from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.contenttypes.models import ContentType
 from django.core import signing
-from django.core.cache import cache, InvalidCacheBackendError, caches
-from django.core.cache.utils import make_template_fragment_key
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from django.core.mail import send_mail
 from django.core.validators import EmailValidator
@@ -45,8 +44,6 @@ from celery import shared_task
 
 from djconfig import config, reload_maybe
 from flags.state import enable_flag, disable_flag
-from sorl.thumbnail.default import kvstore
-from sorl.thumbnail.images import ImageFile
 
 import reviews
 
@@ -105,7 +102,7 @@ class DecimalEncoder(json.JSONEncoder):
         return super(DecimalEncoder, self).default(o)
 
 
-@shared_task(queue="revalidation", autoretry_for=(Exception,), rate_limit='2/s', default_retry_delay=300, retry_backoff=True)
+@shared_task(queue="revalidation")  # , rate_limit='2/s')
 def revalidate_nextjs(domain, token, payload):
     url = 'https://{}/api/revalidate'.format(domain)
     request_data = {
@@ -113,8 +110,11 @@ def revalidate_nextjs(domain, token, payload):
         **payload
     }
     response = requests.post(url, json=request_data)
-    response_data = response.json()
-    return response_data
+    try:
+        response_data = response.json()
+        return response_data
+    except:
+        return False
 
 
 @shared_task(bind=True, queue="priority", autoretry_for=(DatabaseError,), max_retries=12, retry_backoff=300, retry_jitter=False)
@@ -367,21 +367,6 @@ def post_update_product(product_id, origin):
 
     if origin == 'admin':
         product.update_fts_vector()
-        image_file = ImageFile(product.image)
-        kvstore.delete(image_file, delete_thumbnails=True)
-        for product_image in product.images.all():
-            image_file = ImageFile(product_image.image)
-            kvstore.delete(image_file, delete_thumbnails=True)
-
-    try:
-        fragment_cache = caches['template_fragments']
-    except InvalidCacheBackendError:
-        fragment_cache = caches['default']
-    vary_on = [product.id]
-    cache_key = make_template_fragment_key('product', vary_on)
-    fragment_cache.delete(cache_key)
-    cache_key = make_template_fragment_key('product_description', vary_on)
-    fragment_cache.delete(cache_key)
 
     payload = {
         'model': 'product',
@@ -395,6 +380,38 @@ def post_update_product(product_id, origin):
         revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
 
     return None
+
+
+@shared_task(queue="priority")
+def post_update_products(product_ids):
+    slug_cache = {}
+    site_cache = {}
+    nextjs_sites = defaultdict(list)
+
+    for product_id in product_ids:
+        product = Product.objects.get(pk=product_id)
+        root_slugs = set()
+        for category in product.categories.all():
+            if category.id not in slug_cache:
+                slug_cache[category.id] = category.get_root().slug
+            root_slugs.add(slug_cache[category.id])
+        for slug in root_slugs:
+            if slug not in site_cache:
+                site_cache[slug] = Site.objects.filter(profile__category_root_slug__exact=slug).exclude(profile__revalidation_token__exact='')
+            for site in site_cache[slug]:
+                nextjs_sites[site].append({'pk': product.pk, 'code': product.code})
+
+    num = 0
+    for site in nextjs_sites:
+        num += len(nextjs_sites[site])
+        for i in range(0, len(nextjs_sites[site]), 1000):
+            payload = {
+                'model': 'product',
+                'items': nextjs_sites[site][i:i + 1000]
+            }
+            revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
+
+    return num
 
 
 @shared_task(bind=True, queue="import", autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
@@ -524,6 +541,7 @@ def import1c(file):
     updated = 0
     errors = []
     products = set()
+    updated_products = []
     orders = set()
     suppliers = []
     date_reg = re.compile(r"\d{1,2}\.\d{2}\.\d{4} \d{1,2}:\d{2}:\d{2}")
@@ -561,7 +579,8 @@ def import1c(file):
                 product = Product.objects.only(
                     'forbid_ws_price_import',
                     'forbid_price_import',
-                    'cur_code'
+                    'cur_code',
+                    'cur_price'
                 ).get(article=line['article'])
                 if line['sp_cur_code'] != '0':
                     try:
@@ -580,9 +599,12 @@ def import1c(file):
                         errors.append("%s: оптовая цена" % line['article'])
                 if line['cur_code'] != '0' and not product.forbid_price_import:
                     try:
-                        price = float(line['cur_price'].replace('\xA0', ''))
-                        if price > 0 and product.cur_code.code == 643:
-                            product.cur_price = int(round(price))
+                        cur_price = float(line['cur_price'].replace('\xA0', ''))
+                        if cur_price > 0 and product.cur_code.code == 643:
+                            cur_price = Decimal(cur_price).quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)
+                            if product.cur_price != cur_price:
+                                updated_products.append(product.id)
+                            product.cur_price = cur_price
                     except ValueError:
                         errors.append("%s: розничная цена" % line['article'])
                 product.save()
@@ -620,6 +642,10 @@ def import1c(file):
             except ObjectDoesNotExist:
                 # errors.append("%s: товар отсутсвует" % line['article'])
                 pass
+
+        if updated_products:
+            post_update_products.s(updated_products).delay()
+
         for product, stocks in corrected_stocks.items():
             for stock, (correction, reason) in stocks.items():
                 table_copy.write('{}\t{}\t{}\t{}\t{}\n'.format(0, product, stock, correction, reason))
@@ -642,7 +668,6 @@ def import1c(file):
         product = Product.objects.only('num').get(pk=product_id)
         product.num = -1
         product.save()
-        post_update_product.s(product.pk, 'import').delay()
         if product_id in frozen_products.keys() and product.instock > 0:
             orders.update(frozen_products[product_id])
         if product_id in frozen_products.keys():
