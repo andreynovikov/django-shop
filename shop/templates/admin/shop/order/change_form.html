@@ -1,5 +1,5 @@
 {% extends "admin/change_form.html" %}
-{% load i18n l10n admin_urls admin_modify %}
+{% load i18n l10n admin_urls admin_modify site %}
 
 {% block extrastyle %}{{ block.super }}
     <style>
@@ -213,6 +213,13 @@
     {% url opts|admin_urlname:'document' original.pk 'label'|admin_urlquote as label_url %}
     <li><a href="{% add_preserved_filters label_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Наклейка" %}</span></a></li>
+{% for item in original.items.all|exclude_qs:"serial_number=" %}
+{% if forloop.first %}
+    {% url opts|admin_urlname:'document' original.pk 'warrantycards'|admin_urlquote as label_url %}
+    <li><a href="{% add_preserved_filters label_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
+        <span>{% trans "Гарантийные талоны" %}</span></a></li>
+{% endif %}
+{% endfor %}
     {% url opts|admin_urlname:'document' original.pk 'check'|admin_urlquote as check_url %}
     <li><a href="{% add_preserved_filters check_url %}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
             <span>{% trans "Чек" %}</span></a></li>

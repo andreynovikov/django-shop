@@ -722,9 +722,10 @@ class OrderAdmin(admin.ModelAdmin):
                         'order': order,
                         'product': item.product,
                         'serial_number': serial_number,
-                        'admin': True
+                        'admin': True,
+                        'batched': False
                     }
-                    return TemplateResponse(request, 'shop/warrantycard/common.html', context)
+                    return TemplateResponse(request, 'shop/warrantycard/index.html', context)
 
                 except Exception:
                     # If save() raised, the form will a have a non

@@ -5,61 +5,32 @@
 {% elif product.manufacturer.code == 'Hague' %}
 {% include "./hague.html" %}
 {% else %}
-<!DOCTYPE html>
-{% load static %}
-{% load site %}
-<html>
-<head>
-  <title></title>
-<style type="text/css">
-body     { font-size:9pt; font-family:Verdana,sans-serif; }
-.wrapper { width:195mm; max-width:195mm; margin-left:10mm; margin-top:40mm;}
-.left    { text-align:left;}
-.right   { text-align:right;}
-.center  { text-align:center;}
-.otmetki td { border:1px solid black}
-@media all
-{
-.nextpage { display:none; }
-}
-@media print
-{
-.nextpage { display:block; page-break-before:always; }
-}
-</style>
-</head>
-<body>
-<div class="wrapper">
 <table style="width:100%">
 <tr>
 <td>
-<table style="width:100%">
+<table style="width:100%" class="innertable">
 <tr>
-<td>Модель</td>
+<td class="print">Модель</td>
 <td><b>{{ product.title }}</b></td>
 </tr>
 <tr>
-<td>Серийный номер</td>
-<td><b>{{ serial_number }}</b></td>
+<td class="print">Серийный номер</td>
+<td><span class="noprint">Серийный номер: </span><b>{{ serial_number }}</b></td>
 </tr>
 {% if order.seller.name %}
 <tr>
-<td>Торговая организация</td>
-<td>{{ order.seller.name }}, ИНН {{ order.seller.inn }}</td>
+<td class="print">Торговая организация</td>
+<td>{{ order.seller.name }}, ИНН&nbsp;{{ order.seller.inn }}</td>
 </tr>
 {% endif %}
 </table>
 </td>
-<td style="width:4cm" class="center">
+<td style="width:27mm" class="center">
 {% if product.video_url %}
-<div>Видеоинструкция:
-  <img src="https://api.sewing-world.ru/api/v0/products/{{ product.id }}/video/qr/" style="width: 25mm; height: 25mm; margin: 1rem" />
-</div>
+<div class="manual">Инструкция:</div>
+<div class="qr"><img src="https://api.sewing-world.ru/api/v0/products/{{ product.id }}/video/qr/" style="width: 20mm; height: 20mm; margin-right:2mm; margin-top:2mm" /></div>
 {% endif %}
 </td>
 </tr>
 </table>
-</div>
-</body>
-</html>
 {% endif %}
