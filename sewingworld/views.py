@@ -85,7 +85,7 @@ def products_stream(request, integration, template, filter_type):
     pre_t = time.monotonic()
 
     t = loader.get_template('xml/_{}_header.xml'.format(template))
-    yield t.render(context, request)
+    header = t.render(context, request)
 
     pre_p = time.monotonic()
 
@@ -125,8 +125,10 @@ def products_stream(request, integration, template, filter_type):
             ).filter(available__gt=0)
 
         if integration.output_paged:
-            paginator = Paginator(products, 500)
+            paginator = Paginator(products.order_by('id'), 300)
             products = paginator.get_page(request.GET.get('page'))
+
+    yield header
 
     pre_loop = time.monotonic()
 
@@ -170,7 +172,8 @@ def products(request, integration=None, template=None, filters=None):
         integration = Integration.objects.filter(utm_source=integration).first()
         if integration is None:
             raise Http404("Does not exist")
-    return StreamingHttpResponse(products_stream(request, integration, template, filters), content_type='text/xml; charset=utf-8')
+    stream = products_stream(request, integration, template, filters)
+    return StreamingHttpResponse(stream, content_type='text/xml; charset=utf-8')
 
 
 def stock(request):
