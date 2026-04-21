@@ -33,8 +33,7 @@ def notify_beru_order_status(self, order_id, status, substatus):
         return '{}: {} {} (already set)'.format(order_id, status, substatus)
 
     campaign_id = order.integration.settings.get('ym_campaign', '')
-    oauth_application = order.integration.settings.get('application', '')
-    oauth_token = order.integration.settings.get('oauth_token', '')
+    api_key = order.integration.settings.get('api_key', '')
 
     beru_order_id = str(beru_order.get('id', 0))
     if status == 'PROCESSING' and substatus == 'READY_TO_SHIP':
@@ -57,7 +56,7 @@ def notify_beru_order_status(self, order_id, status, substatus):
         data_encoded = json.dumps(data).encode('utf-8')
         url = 'https://api.partner.market.yandex.ru/campaigns/{campaignId}/orders/{orderId}/boxes'.format(campaignId=campaign_id, orderId=beru_order_id)
         headers = {
-            'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=oauth_token, oauth_application=oauth_application),
+            'Api-Key': api_key,
             'Content-Type': 'application/json; charset=utf-8'
         }
         request = Request(url, data_encoded, headers, method='PUT')
@@ -95,7 +94,7 @@ def notify_beru_order_status(self, order_id, status, substatus):
 
     url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}/status.json'.format(campaignId=campaign_id, orderId=beru_order_id)
     headers = {
-        'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=oauth_token, oauth_application=oauth_application),
+        'Api-Key': api_key,
         'Content-Type': 'application/json; charset=utf-8'
     }
     request = Request(url, data_encoded, headers, method='PUT')
@@ -133,12 +132,11 @@ def get_beru_order_details(order_id):
         raise TaskFailure('Order {} does not have beru order number'.format(order_id))
 
     campaign_id = order.integration.settings.get('ym_campaign', '')
-    oauth_application = order.integration.settings.get('application', '')
-    oauth_token = order.integration.settings.get('oauth_token', '')
+    api_key = order.integration.settings.get('api_key', '')
 
     url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}.json'.format(campaignId=campaign_id, orderId=beru_order)
     headers = {
-        'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=oauth_token, oauth_application=oauth_application)
+        'Api-Key': api_key,
     }
     request = Request(url, None, headers)
     logger.info('<<< ' + request.full_url)
@@ -162,12 +160,11 @@ def get_beru_labels_data(order_id):
         raise TaskFailure('Order {} does not have beru order number'.format(order_id))
 
     campaign_id = order.integration.settings.get('ym_campaign', '')
-    oauth_application = order.integration.settings.get('application', '')
-    oauth_token = order.integration.settings.get('oauth_token', '')
+    api_key = order.integration.settings.get('api_key', '')
 
     url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}/delivery/labels/data.json'.format(campaignId=campaign_id, orderId=beru_order)
     headers = {
-        'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=oauth_token, oauth_application=oauth_application)
+        'Api-Key': api_key,
     }
     request = Request(url, None, headers)
     logger.info('<<< ' + request.full_url)
@@ -190,12 +187,11 @@ def notify_beru_product_stocks(self, products, account):
     integration = Integration.objects.get(utm_source=account)
 
     campaign_id = integration.settings.get('ym_campaign', '')
-    oauth_application = integration.settings.get('application', '')
-    oauth_token = integration.settings.get('oauth_token', '')
+    api_key = integration.settings.get('api_key', '')
 
     url = 'https://api.partner.market.yandex.ru/campaigns/{campaignId}/offers/stocks'.format(campaignId=campaign_id)
     headers = {
-        'Authorization': 'OAuth oauth_token="{oauth_token}", oauth_client_id="{oauth_application}"'.format(oauth_token=oauth_token, oauth_application=oauth_application),
+        'Api-Key': api_key,
         'Content-Type': 'application/json'
     }
 
