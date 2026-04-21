@@ -14,7 +14,6 @@ from django.urls import reverse
 from django.utils.text import capfirst
 
 from sewingworld.models import SiteProfile
-# from facebook.tasks import FACEBOOK_TRACKING, notify_view_content
 from shop.models import Category, Product, ProductRelation, ProductSet, ProductKind, Manufacturer, \
     Advert, SalesAction, City, Store, ServiceCenter, Stock, Favorites, Integration, ProductIntegration, \
     Serial

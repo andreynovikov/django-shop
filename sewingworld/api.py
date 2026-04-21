@@ -28,7 +28,6 @@ from qrcode.image.svg import SvgPathImage
 
 from yandex_kassa.views import payment as yandex_payment
 
-from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase  # TODO: add all tasks
 from rarus.tasks import get_bonus_value
 from shop.filters import get_product_filter
 from shop.models import Category, ProductKind, Product, ProductSet, Stock, Basket, BasketItem, Order, OrderItem, \
@@ -503,9 +502,6 @@ class OrderViewSet(viewsets.ModelViewSet):
                 mail_admins('Task error', 'Failed to send notification: %s' % e, fail_silently=True)
             basket.delete()
 
-            if FACEBOOK_TRACKING:
-                notify_purchase.delay(order.id, request.build_absolute_uri(),
-                                      request.META.get('REMOTE_ADDR'), request.META['HTTP_USER_AGENT'])
             """ clear promo discount """
             try:
                 del request.session['discount']
