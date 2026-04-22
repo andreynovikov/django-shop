@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
 
-# from tagging.utils import parse_tag_input
+from tagulous.contrib.drf import TagRelatedManagerField
 
 from sewingworld.serializers import UserListSerializer
 
@@ -23,16 +23,13 @@ class NonNullModelSerializer(serializers.ModelSerializer):
 class BaseEntrySerializer(NonNullModelSerializer):
     author = UserListSerializer()
     urls = serializers.SerializerMethodField()
-    tags = serializers.SerializerMethodField()
+    tags = TagRelatedManagerField()
 
     def get_urls(self, obj):
         return {
             'canonical': obj.get_absolute_url(),
             'short': obj.short_url
         }
-
-    def get_tags(self, obj):
-        return []  # parse_tag_input(obj.tags)
 
 
 class EntryNavSerializer(BaseEntrySerializer):
@@ -88,6 +85,12 @@ class EntrySerializer(BaseEntrySerializer):
 class TagListSerializer(serializers.Serializer):
     name = serializers.CharField()
     count = serializers.IntegerField()
+
+
+class TagCloudSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    count = serializers.IntegerField()
+    weight = serializers.IntegerField()
 
 
 class CategorySerializer(NonNullModelSerializer):

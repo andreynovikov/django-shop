@@ -11,11 +11,8 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
-# from tagging.models import Tag, TaggedItem
-# from tagging.utils import get_tag
-
 from .models import Entry, Category
-from .serializers import EntrySerializer, EntryListSerializer, TagListSerializer, CategorySerializer
+from .serializers import EntrySerializer, EntryListSerializer, TagCloudSerializer, CategorySerializer
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -54,11 +51,7 @@ class EntryViewSet(viewsets.ReadOnlyModelViewSet):
                 continue
 
             if field == 'tags':
-                pass
-                # tag = get_tag(values[0])
-                # if tag is None:
-                #     pass  # TODO: deside what to do in this case
-                # queryset = TaggedItem.objects.get_by_model(queryset, tag)
+                queryset = queryset.filter(tags__name__in=values)
             elif field == 'categories':
                 queryset = queryset.filter(categories__in=values)
 
@@ -97,19 +90,6 @@ class EntryViewSet(viewsets.ReadOnlyModelViewSet):
         return value
 
 
-"""
-class TagViewSet(viewsets.ReadOnlyModelViewSet):
-    lookup_value_regex = '.*'
-
-    def get_serializer_class(self):
-        return TagListSerializer
-
-    def get_queryset(self):
-        queryset = Entry.objects.filter(sites=self.request.site, status=Entry.PUBLISHED)
-        return Tag.objects.usage_for_queryset(queryset, counts=True)
-"""
-
-
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_value_regex = '.*'
 
@@ -126,3 +106,13 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
             if instance is not None:
                 self.kwargs[self.lookup_field] = instance.pk
         return super().get_object()
+
+
+class TagView(views.APIView):
+    def get(self, request, *args, **kwargs):
+        entries = Entry.objects.filter(sites=self.request.site, status=Entry.PUBLISHED)
+        tags = Entry.tags.tag_model.objects.filter(
+            entry__in=entries
+        ).distinct().weight()
+        serializer = TagCloudSerializer(tags, many=True)
+        return Response(serializer.data)

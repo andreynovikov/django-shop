@@ -7,9 +7,9 @@ from . import api
 
 router = DefaultRouter()
 router.register(r'entries', api.EntryViewSet, basename='entry')
-# router.register(r'tags', api.TagViewSet, basename='tag')
 router.register(r'categories', api.CategoryViewSet, basename='category')
 
 urlpatterns = [
-    path('api/v0/', include(router.urls))
+    path('', include(router.urls)),
+    path('tags/', api.TagView.as_view())
 ]

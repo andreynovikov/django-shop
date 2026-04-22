@@ -11,7 +11,6 @@ from two_factor.urls import urlpatterns as tf_urls
 from forum.sitemaps import ThreadSitemap
 from rest_framework.routers import DefaultRouter
 
-from blog.urls import router as blog_router
 from reviews.api import ReviewViewSet
 from forum.api import TopicViewSet, ThreadViewSet
 
@@ -59,7 +58,7 @@ router.register(r'forum/threads', ThreadViewSet, basename='thread')
 urlpatterns = [
     # Rest API
     path('api/v0/', include(router.urls)),
-    path('api/v0/blog/', include(blog_router.urls)),
+    path('api/v0/blog/', include('blog.urls')),
     path('api/v0/csrf/', api.CsrfTokenView.as_view()),
     path('api/v0/warrantycard/<str:code>/', api.WarrantyCardView.as_view()),
     # ex: /sitemap.xml
