@@ -10,6 +10,15 @@ export interface ProductImage {
   src: string
 }
 
+export interface Category {
+  id: number
+  name: string
+  slug: string
+  svg_icon?: string
+  image?: string
+  children?: Category[]
+}
+
 export interface Product {
   id: number
   code: string
@@ -58,6 +67,7 @@ export interface Integration {
   id: number
   name: string
   utm_source: string
+  enabled: boolean
   output_template: string
   output_all: boolean
   output_paged: boolean

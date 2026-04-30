@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-import { productSearchParamsSerializer } from '@/lib/search-params'
+import { categorySearchParamsSerializer, productSearchParamsSerializer } from '@/lib/search-params'
 
 export const userKeys = {
   all: ['users'],
@@ -334,8 +334,9 @@ export async function removeFromComparison(product) {
   return response.data
 }
 
-export async function loadCategories() {
-  const response = await apiClient.get('categories/')
+export async function loadCategories(filters) {
+  const url = API + 'categories/' + categorySearchParamsSerializer(filters ?? {})
+  const response = await apiClient.get(url)
   return response.data
 }
 

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE yml_catalog SYSTEM "shops.dtd">
+<yml_catalog date="{% now 'Y-m-d H:i' %}">
+  <shop>
+    <name><%= site.title %></name>
+    <company><%= site.description %></company>
+    <url><%= site.url_prefix %></url>
+
+    <currencies>
+      <currency id="RUR" rate="1" />
+      <currency id="USD" rate="CBRF" />
+    </currencies>
+
+    <categories>
+      <% categories.forEach(category => { -%>
+        <category id="<%= category.id %>"><%= category.name %></category>
+      <% }) -%>
+    </categories>
+
+    <offers>
+      <% products.forEach(product => { -%>
+        <offer id="<%= product.id %>" type="vendor.model" available="<%= product.instock > 0 %>">
+          <url><%= site.url_prefix %>/products/<%= product.code %>?utm_source=<%= utm_source %>&amp;utm_term=<%= product.article %></url>
+          <price><%= product.cost %></price>
+          <currencyId>RUR</currencyId>
+          <% getTopCategories(product.categories).forEach(category => { -%>
+          <categoryId><%= category.id %></categoryId>
+          <% }) -%>
+          <% if(product.image) { -%>
+          <picture><%= product.image %></picture>
+          <% } -%>
+          <% if(product.manufacturer) { -%>
+          <vendor><%= product.manufacturer.name %></vendor>
+          <% } -%>
+          <model><%= product.title %></model>
+          <% if(product.whatis) { -%>
+          <typePrefix><%= product.whatis %></typePrefix>
+          <% } -%>
+          <% if(product.gtin) { -%>
+          <barcode><%= product.gtin %></barcode>
+          <% } -%>
+          <% if(product.partnumber) { -%>
+          <vendorCode><%= product.partnumber %></vendorCode>
+          <% } -%>
+          <description>
+            <%= product.whatis %> <%= product.yandexdescr %> <% stripTags(product.descr) %>
+          </description>
+          <% if(product.sales_notes) { -%>
+          <sales_notes><%= product.sales_notes %></sales_notes>
+          <% }else{ -%>
+          <sales_notes>Оплата при получении или картой на сайте</sales_notes>
+          <% } -%>
+          <% if(product.state) { -%>
+          <condition type="used"><reason><%= stripTags(product.state) %></reason></condition>
+          <% } -%>
+          <% if(product.manufacturer_warranty) { -%>
+          <manufacturer_warranty>true</manufacturer_warranty>
+          <% } -%>
+          <% if(product.isnew) { -%>
+          <param name="Новинка">true</param>
+          <% } -%>
+        </offer>
+      <% }) -%>
+    </offers>
+  </shop>
+</yml_catalog>

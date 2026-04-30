@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE yml_catalog SYSTEM "shops.dtd">
+<yml_catalog date="{% now 'Y-m-d H:i' %}" >
+  <shop>
+    <name><%= site.title %></name>
+    <company><%= site.description %></company>
+    <url><%= site.url_prefix %></url>    
+
+    <currencies>
+      <currency id="RUR" rate="1" />
+      <currency id="USD" rate="CBRF" />
+    </currencies>
+
+    <categories>
+      <% categories.forEach(category => { -%>
+        <category id="<%= category.id %>"><%= category.name %></category>
+      <% }) -%>
+    </categories>
+
+<offers>
+    <offers>
+      <% products.forEach(product => { -%>
+        <offer id="<%= product.id %>" type="vendor.model">
+          <% if(product.integration_price > 0) { -%>
+          <price><%= product.integration_price %></price>
+          <% }else{ -%>
+          <price><%= product.cost %></price>
+          <% } -%>
+          <currencyId>RUR</currencyId>
+          <% if('stock' in product){ -%>
+          <count><% if(product.stock > 20){ %>20<% }else{ %><%= product.stock %><% } %></count>
+          <% } -%>
+          <% getTopCategories(product.categories).forEach(category => { -%>
+          <categoryId><%= category.id %></categoryId>
+          <% }) -%>
+          <name><%= product.title %></name>
+          <% if(product.image) { -%>
+          <picture><%= product.image %></picture>
+          <% } -%>
+          <% if(product.manufacturer) { -%>
+          <vendor><%= product.manufacturer.name %></vendor>
+          <% } -%>
+          <model><%= product.title %></model>
+          <% if(product.gtin) { -%>
+          <barcode><%= product.gtin %></barcode>
+          <% } -%>
+          <% if(product.partnumber) { -%>
+          <vendorCode><%= product.partnumber %></vendorCode>
+          <% } -%>
+          <description>
+            <%= product.whatis %> <%= product.yandexdescr %> <% stripTags(product.descr) %>
+          </description>
+          <% if(product.manufacturer_warranty) { -%>
+          <manufacturer_warranty>true</manufacturer_warranty>
+          <% } -%>
+          <shop-sku><%= product.article %></shop-sku>
+          <% if(product.prom_weight) { -%>
+          <weight><%= product.prom_weight %></weight>
+          <% } -%>
+          <% if(product.length && product.width && product.height) { -%>
+          <dimensions><%= product.length %>/<%= product.width %>/<%= product.height %></dimensions>
+          <% } -%>
+        </offer>
+      <% }) -%>
+    </offers>
+  </shop>
+</yml_catalog>
