@@ -269,7 +269,7 @@ export async function loadOrders(page, filter, site = undefined) {
     url.searchParams.set('filter', filter)
   if (site !== undefined)
     url.searchParams.set('site', site)
-  const response = await apiClient.get(url)
+  const response = await apiClient.get(url.toString())
   return response.data
 };
 
@@ -316,7 +316,7 @@ export async function loadComparisons(kind) {
   const url = new URL(API + 'comparisons/')
   if (kind !== null)
     url.searchParams.set('kind', kind)
-  const response = await apiClient.get(url)
+  const response = await apiClient.get(url.toString())
   return response.data
 }
 
@@ -349,7 +349,7 @@ export async function loadKinds(productIds) {
   const url = new URL(API + 'kinds/')
   for (const value of productIds)
     url.searchParams.append('product', value)
-  const response = await apiClient.get(url)
+  const response = await apiClient.get(url.toString())
   return response.data
 }
 
@@ -516,7 +516,7 @@ export async function loadAdverts(places, categoryId=undefined) {
     } else {
       url.searchParams.append('place', places)
     }
-  const response = await apiClient.get(url)
+  const response = await apiClient.get(url.toString())
   return response.data
 }
 
@@ -547,7 +547,7 @@ export async function loadBlogEntries(page, filters) {
       } else {
         url.searchParams.append(filter.field, filter.value)
       }
-  const response = await apiClient.get(url)
+  const response = await apiClient.get(url.toString())
   return response.data
 };
 
@@ -577,7 +577,7 @@ export async function loadStores(filters) {
     url.searchParams.set('marketplace', filters.marketplace)
   if (filters?.lottery ?? false !== false)
     url.searchParams.set('lottery', filters.lottery)
-  const response = await apiClient.get(url)
+  const response = await apiClient.get(url.toString())
   return response.data
 }
 
