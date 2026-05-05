@@ -96,7 +96,7 @@ class CategoryTreeSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Category
-        fields = ('id', 'name', 'subname', 'slug', 'svg_icon', 'image', 'children')
+        fields = ('id', 'name', 'subname', 'active', 'hidden', 'feed', 'slug', 'svg_icon', 'image', 'children')
 
 
 class CategoryBriefSerializer(NonNullModelSerializer):
@@ -648,19 +648,30 @@ class IntegrationSerializer(NonNullModelSerializer):
 
 
 class IntegrationProductSerializer(serializers.ModelSerializer):
-    # categories = CategoryBriefSerializer(many=True, read_only=True)
+    categories = serializers.SerializerMethodField()
+    manufacturer = ManufacturerSerializer(read_only=True)
+    instock = serializers.SerializerMethodField()
     stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
-        fields = ('id', 'code', 'article', 'partnumber', 'whatisit', 'title', 'price', 'cost', 'enabled', 'categories', 'stock')
+        fields = ('id', 'code', 'article', 'partnumber', 'gtin', 'isnew', 'whatis', 'whatisit', 'title', 'descr', 'yandexdescr',
+                  'image', 'price', 'discount', 'cost', 'enabled', 'categories', 'instock', 'stock', 'manufacturer', 'manufacturer_warranty',
+                  'prom_weight', 'length', 'width', 'height', 'sales_notes', 'state')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.context.get('integration').output_skip_categories:
+        integration = self.context.get('integration')
+        if integration is not None and integration.output_skip_categories:
             self.fields.pop('categories')
-        if not self.context.get('integration').output_stock:
+        if integration is None or not integration.output_stock:
             self.fields.pop('stock')
+
+    def get_categories(self, obj):
+        return list(obj.categories.filter(active=True).values_list('pk', flat=True))
+
+    def get_instock(self, obj):
+        return max(min(obj.instock, 10), 0)
 
     def get_stock(self, obj):
         return obj.get_stock(integration=self.context.get('integration'))

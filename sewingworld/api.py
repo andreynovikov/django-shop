@@ -1,4 +1,5 @@
 import logging
+from itertools import chain
 from random import randint
 
 from django.conf import settings
@@ -21,7 +22,7 @@ from rest_framework.permissions import BasePermission, IsAuthenticated, DjangoMo
 from rest_framework.response import Response
 
 from django.contrib.flatpages.models import FlatPage
-from django_ipgeobase.models import IPGeoBase
+# from django_ipgeobase.models import IPGeoBase
 
 from qrcode import QRCode
 from qrcode.image.svg import SvgPathImage
@@ -97,7 +98,12 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         if self.action == 'list':
             root_slug = self.request.site.profile.category_root_slug
-            return Category.objects.get(slug=root_slug).get_active_children()
+            queryset = Category.objects.get(slug=root_slug).get_active_children()
+            feed = self.request.query_params.get('feed')
+            if feed is not None:
+                value = feed in ('1', 'on', 't', 'true', 'y', 'yes')
+                queryset = queryset.filter(feed=value)
+            return queryset
         return Category.objects.filter(active=True)
 
     def get_object(self):
@@ -147,6 +153,8 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_serializer_class(self):
         if self.action in ('list', 'info'):
+            if self.request.query_params.get('for_xml') == 'true':
+                return IntegrationProductSerializer
             return ProductListSerializer
         if self.action == 'images':
             return ProductImagesSerializer
@@ -165,8 +173,9 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
         for field, values in self.request.query_params.lists():
             if field == 'in_category':
-                category = Category.objects.get(pk=values[0])
-                queryset = queryset.filter(categories__in=category.get_descendants())
+                categories = list(chain(*[Category.objects.get(pk=value).get_descendants().filter(active=True) for value in values]))
+                queryset = queryset.filter(categories__in=categories)
+                has_category_filter = True
                 continue
             base_field = field.split('__', 1)[0]
             if base_field not in self.filtering_fields:
@@ -232,9 +241,9 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             # elif len(values) > 1:  # поиск в массиве
             #     key = '{}__in'.format(field)
             #     queryset = queryset.filter(**{key: values})
-            # else:  # строковый поиск
-            #     key = '{}__exact'.format(field)
-            #     queryset = queryset.filter(**{key: values[0]})
+            else:  # строковый поиск
+                key = '{}__exact'.format(field)
+                queryset = queryset.filter(**{key: values[0]})
 
         # Always limit product list to current category hierarchy
         if not has_category_filter:
@@ -487,6 +496,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         try:
             order = Order.register(basket, site=request.site)
+            """
             ipgeobases = IPGeoBase.objects.by_ip(request.META.get('REMOTE_ADDR'))
             if ipgeobases.exists():
                 for ipgeobase in ipgeobases:
@@ -494,6 +504,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                         order.city = ipgeobase.city
                         break
             order.save()
+            """
             """ wait for 5 minutes to let user supply comments and other stuff """
             try:
                 notify_user_order_new_mail.apply_async((order.id,), countdown=300)
@@ -767,24 +778,40 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def form(self, request, *args, **kwargs):
-        from shop.forms import UserForm
-        form = UserForm()
-        fields = []
-        for field in form.visible_fields():
-            meta = {
-                'name': field.name,
-                'label': field.label,
-                'id': field.id_for_label,
-                'help': field.help_text,
-                'class': field.field.__class__.__name__,
-                'widget': field.field.widget.__class__.__name__,
-                'required': field.field.required
+        fields = [
+            {
+                'name': 'name',
+                'label': 'Имя',
+                'id': 'name_id',
+                'required': False
+            },
+            {
+                'name': 'phone',
+                'label': 'Телефон',
+                'id': 'phone_id',
+                'help': 'Мы принимаем только мобильные телефоны',
+                'required': True
+            },
+            {
+                'name': 'email',
+                'label': 'Эл.почта',
+                'id': 'email_id',
+                'required': False
+            },
+            {
+                'name': 'address',
+                'label': 'Адрес',
+                'id': 'address_id',
+                'required': False
+            },
+            {
+                'name': 'username',
+                'label': 'Псевдоним',
+                'id': 'username_id',
+                'help': 'Отображается в форуме',
+                'required': False
             }
-            if hasattr(field.field, 'choices'):
-                meta['choices'] = field.field.choices
-            if field.field.widget.attrs:
-                meta['attrs'] = field.field.widget.attrs
-            fields.append(meta)
+        ]
         return Response(fields)
 
 
