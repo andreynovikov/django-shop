@@ -26,10 +26,10 @@ BOOTSTRAP_INPUT_TEMPLATE = {
            (function($) {
                $("#%(id)s_link").click(function() {
                    var phone = $( "#%(id)s" ).val();
-                   if (! /^\+\d+$/.test(phone))
+                   if (! /^\\+\\d+$/.test(phone))
                        return false;
                    var href = $(this).attr("href");
-                   $(this).attr("href", href.replace(/\+\d+/, phone));
+                   $(this).attr("href", href.replace(/\\+\\d+/, phone));
                });
            }(django.jQuery));
        </script>
@@ -42,7 +42,7 @@ BOOTSTRAP_INPUT_TEMPLATE = {
        <script>
            $( "#%(id)s_wrapper a" ).click(function() {
               var href = $(this).attr("href");
-              $(this).attr("href", href.replace(/\+\d+/, $( "#%(id)s" ).val()));
+              $(this).attr("href", href.replace(/\\+\\d+/, $( "#%(id)s" ).val()));
            });
        </script>
        """
