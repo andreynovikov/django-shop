@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE yml_catalog SYSTEM "shops.dtd">
+<yml_catalog date="{% now 'Y-m-d H:i' %}" >
+  <shop>
+    <name><%= site.title %></name>
+    <company><%= site.description %></company>
+    <url><%= site.url_prefix %></url>
+
+    <categories>
+      <% categories.forEach(category => { -%>
+        <category id="<%= category.id %>" URL="<%= site.url_prefix %>/catalog/<%= category.slug %>"><%= category.name %></category>
+        <% getCategoryDescendants(category).forEach(category => { -%>
+          <category id="<%= category.id %>" parentid="<%= category.parent %>" URL="<%= site.url_prefix %>/catalog/<%= category.path.join('/') %>"><%= category.name %></category>
+        <% }) -%>
+      <% }) -%>
+    </categories>
+
+    <offers>
+      <% products.forEach(product => { -%>
+        <offer id="<%= product.id %>" available="<%= product.instock > 0 %>">
+          <url><%= site.url_prefix %>/products/<%= product.code %></url>
+          <% if(product.discount>0) { -%>
+          <oldprice><%= product.price %></oldprice>
+          <% } -%>
+          <price><%= product.cost %></price>
+          <categories>
+          <% product.categories.forEach(category => { -%>
+          <categoryId><%= category %></categoryId>
+          <% }) -%>
+          </categories>
+          <% if(product.image) { -%>
+          <picture><%= product.image %></picture>
+          <% } -%>
+          <% if(product.whatis) { -%>
+          <typePrefix><%= product.whatis %></typePrefix>
+          <% } -%>
+          <% if(product.manufacturer) { -%>
+          <vendor><%= product.manufacturer.name %></vendor>
+          <% } -%>
+          <% if(product.partnumber) { -%>
+          <vendorCode><%= product.partnumber %></vendorCode>
+          <% } -%>
+          <name><%= product.title %></name>
+          <param name="идентификатор"><%= product.code %></param>
+          <% if(product.article) { -%>
+          <param name="sku"><%= product.article %></param>
+          <% } -%>
+          <% if(product.gtin) { -%>
+          <param name="gtin"><%= product.gtin %></param>
+          <% } -%>
+          <param name="гарантия производителя"><%= product.manufacturer_warranty %></param>
+        </offer>
+      <% }) -%>
+    </offers>
+  </shop>
+</yml_catalog>

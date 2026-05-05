@@ -12,7 +12,8 @@ export const productSearchParams = {
   title: parseAsString,
   instock: parseAsInteger,
   categories: parseAsInteger,
-  in_category: parseAsInteger,
+  in_category: parseAsNativeArrayOf(parseAsInteger),
+  variations: parseAsString,
   enabled: parseAsBoolean,
   show_on_sw: parseAsBoolean,
   isnew: parseAsBoolean,
@@ -34,6 +35,7 @@ export const productSearchParams = {
   page: parseAsInteger.withDefault(1),
   page_size: parseAsInteger,
   ordering: parseAsString,
+  for_xml: parseAsBoolean,
 }
 
 export const productSearchParamsSerializer = createSerializer(productSearchParams)
