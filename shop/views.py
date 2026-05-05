@@ -1,36 +1,17 @@
-import json
 import re
 
-from math import ceil
-from random import randint
-from decimal import Decimal, ROUND_HALF_EVEN
-from urllib.parse import urlencode
-
 from django.conf import settings
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse, HttpResponseForbidden, HttpResponseServerError, HttpResponseNotFound
+from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import authenticate, login, logout
 from django.contrib.sites.models import Site
-from django_ipgeobase.models import IPGeoBase
-from django.template.loader import render_to_string
-from django.views.decorators.http import require_POST
 from django.core import signing
-from django.core.mail import mail_admins
 from django.urls import reverse
-from django.core.exceptions import MultipleObjectsReturned
-from django.db import IntegrityError
-from django.utils.formats import localize
 
 from djconfig import config
 
-from sewingworld.tasks import PRIORITY_HIGHEST, PRIORITY_IDLE
-
-from facebook.tasks import FACEBOOK_TRACKING, notify_add_to_cart, notify_initiate_checkout, notify_purchase
-from rarus.tasks import get_bonus_value
-from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail
-from shop.models import Product, Basket, BasketItem, Order, OrderItem, ShopUser, ShopUserManager, Contractor, Bonus
-from shop.forms import UserForm, WarrantyCardForm
+from shop.models import Product, Basket, Order, OrderItem
+from shop.forms import WarrantyCardForm
 
 import logging
 
