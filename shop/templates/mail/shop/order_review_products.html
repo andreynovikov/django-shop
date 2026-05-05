@@ -37,7 +37,7 @@
 {% endif %}
 </div>
 <b>{{ item.product.title }}</b><br/>
-<a href="https://www.sewing-world.ru{% url 'review_product' item.product.code %}" class="sewingworld_button">Оставить отзыв</a></p>
+<a href="https://www.sewing-world.ru/products/{{ item.product.code }}/#reviews" class="sewingworld_button">Оставить отзыв</a></p>
 <br clear="all"/>
 {% endfor %}
 <p>С благодарностью,<br>
