@@ -19,7 +19,7 @@ from celery import shared_task
 from sewingworld.tasks import PRIORITY_IDLE
 
 from shop.models import Integration, Basket, Order, Product, ProductIntegration, ShopUser
-from shop.tasks import update_order
+from shop.tasks import send_message, update_order
 
 
 logger = logging.getLogger('wb')
@@ -359,16 +359,28 @@ def notify_wb_product_stocks(self, products, account, zero_out=False):
         content = e.read()
         error = json.loads(content.decode('utf-8'))
         logger.error(error)
-        try:
-            message = error.get('detail', 'Неизвестная ошибка взаимодействия с Wildberries!')
-        except:
-            message = error
-        raise TaskFailure(message) from e
+        if isinstance(error, list):
+            first_error = error[0]
+            if 'data' in first_error:
+                for item in first_error['data']:
+                    if item.get('code') == 'NotFound' and 'sku' in item:
+                        sku = item.get('sku')
+                        ProductIntegration.objects.filter(product__gtin=sku, integration=integration).delete()
+                        # {'data': [{'sku': '374318830018', 'chrtId': 0, 'amount': 4}], 'code': 'NotFound', 'message': 'Not found'}
+                        for phone in SITE_WB.profile.manager_phones.split(','):
+                            send_message.s(phone, 'У товара с штрих-кодом {} отключена интеграция WB'.format(sku)).apply_async(priority=PRIORITY_IDLE)
+            return True
+        else:
+            try:
+                message = error.get('detail', 'Неизвестная ошибка взаимодействия с Wildberries!')
+            except:
+                message = error
+            raise TaskFailure(message) from e
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_wb_marked_stocks(self):
-    for integration in Integration.objects.filter(site=SITE_WB):
+    for integration in Integration.objects.filter(site=SITE_WB, enabled=True):
         if integration.settings.get('warehouse_id', 0) == 0:
             continue
 
@@ -381,7 +393,7 @@ def notify_wb_marked_stocks(self):
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_wb_integration_stocks(self):
-    for integration in Integration.objects.filter(site=SITE_WB):
+    for integration in Integration.objects.filter(site=SITE_WB, enabled=True):
         if integration.settings.get('warehouse_id', 0) == 0:
             continue
 

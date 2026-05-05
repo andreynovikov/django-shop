@@ -12,6 +12,7 @@ class Integration(models.Model):
     name = models.CharField('название', max_length=100)
     utm_source = models.CharField('источник', max_length=20, unique=True, db_index=True)
     site = models.ForeignKey(Site, verbose_name='сайт', related_name='integrations', related_query_name='integration', on_delete=models.PROTECT)
+    enabled = models.BooleanField('включена', default=False)
     output_template = models.CharField('шаблон выгрузки', max_length=20)
     output_all = models.BooleanField('выгражать все', default=False, help_text="Выгружать товары по дереву категорий, а не по флагу интеграции")
     output_paged = models.BooleanField('выгражать постранично', default=False)

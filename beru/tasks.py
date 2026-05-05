@@ -236,7 +236,7 @@ def notify_beru_product_stocks(self, products, account):
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_beru_marked_stocks(self):
-    for integration in Integration.objects.filter(settings__has_key='ym_campaign'):
+    for integration in Integration.objects.filter(settings__has_key='ym_campaign', enabled=True):
         products = ProductIntegration.objects.order_by().filter(integration=integration, notify_stock=True)
         products = list(products.values_list('product_id', flat=True).distinct())
         if products:
@@ -246,7 +246,7 @@ def notify_beru_marked_stocks(self):
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_beru_integration_stocks(self):
-    for integration in Integration.objects.filter(settings__has_key='ym_campaign'):
+    for integration in Integration.objects.filter(settings__has_key='ym_campaign', enabled=True):
         products = Product.objects.order_by().filter(integration=integration)
 
         if integration.output_available:

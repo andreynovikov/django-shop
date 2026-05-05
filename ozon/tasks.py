@@ -205,7 +205,7 @@ def notify_product_stocks(self, products, account):
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_marked_stocks(self):
-    for integration in Integration.objects.filter(site=SITE_OZON):
+    for integration in Integration.objects.filter(site=SITE_OZON, enabled=True):
         products = ProductIntegration.objects.order_by().filter(integration=integration, notify_stock=True)
         products = list(products.values_list('product_id', flat=True).distinct())
         if products:
