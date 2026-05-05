@@ -11,6 +11,8 @@ import os
 import re
 import tempfile
 
+import requests
+
 from collections import defaultdict
 from datetime import datetime, timedelta
 from importlib import import_module
@@ -104,7 +106,7 @@ class DecimalEncoder(json.JSONEncoder):
 @shared_task(queue="revalidation")  # , rate_limit='2/s')
 def revalidate_nextjs(domain, token, payload):
     url = 'https://{}/api/revalidate'.format(domain)
-    data = {
+    request_data = {
         'secret': token,
         **payload
     }
