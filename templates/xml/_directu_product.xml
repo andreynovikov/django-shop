@@ -2,7 +2,7 @@
 {% load site %}
 {% load decimals %}
 <offer id="{{ product.id }}" type="vendor.model" {% if product.instock > 0 %}available="true"{% else %}available="false"{% endif %}>
-    <url>{% site_url_prefix %}{% url 'product' product.code %}?utm_source=yamarket&amp;utm_term={{ product.id }}</url>
+    <url>{% site_url_prefix %}/products/{{ product.code }}/?utm_source=yamarket&amp;utm_term={{ product.id }}</url>
     <price>{{ product.cost|quantize:"1" }}</price>
     <currencyId>RUR</currencyId>
 {% for top_category in product.categories.all|get_unique_mapped_list:category_map %}

@@ -12,7 +12,7 @@
 {% for child in children %}
     <category id="{{ child.id }}">{{ child.name }}</category>
     {% for node in child.get_descendants|filter_qs:"active"|filter_qs:"!hidden" %}
-    <category id="{{ node.id }}" parentid="{{ node.parent.id }}" URL="{% site_url_prefix %}{% url 'category' node.get_path %}">{{ node.name }}</category>
+    <category id="{{ node.id }}" parentid="{{ node.parent.id }}" URL="{% site_url_prefix %}/catalog/{{ node.get_api_path }}">{{ node.name }}</category>
     {% endfor %}
 {% endfor %}
 </categories>

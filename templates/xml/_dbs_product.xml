@@ -1,7 +1,7 @@
 {% load site %}
 {% load decimals %}
 <offer id="{{ product.article }}">
-  <url>{% site_url_prefix %}{% url 'product' product.code %}</url>
+  <url>{% site_url_prefix %}/products/{{ product.code }}/</url>
 {% if stock is not None %}
   <count>{{ stock|quantize:"1" }}</count>
   <available>{% if stock > 0 %}true{% else %}false{% endif %}</available>

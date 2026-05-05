@@ -3,7 +3,7 @@
 {% load shop_filters %}
 {% load decimals %}
 <offer id="{{ product.id }}" available="{% if product.instock > 0 %}true{% else %}false{% endif %}">
-<url>{% site_url_prefix %}{% url 'product' product.code %}</url>
+<url>{% site_url_prefix %}/products/{{ product.code }}/</url>
 {% if product.discount > 0 %}
 <oldprice>{{ product.price|quantize:"1" }}</oldprice>
 {% endif %}
