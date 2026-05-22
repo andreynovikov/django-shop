@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE yml_catalog SYSTEM "shops.dtd">
-<yml_catalog date="{% now 'Y-m-d H:i' %}" >
+<yml_catalog date="<%= new Date().toISOString() %>">
   <shop>
     <name><%= site.title %></name>
     <company><%= site.description %></company>
