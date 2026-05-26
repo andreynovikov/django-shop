@@ -294,6 +294,11 @@ class OrderOwnerFilter(SimpleDropdownFilter):
             return queryset
 
 
+class OrderIntegrationFilter(RelatedDropdownFilter):
+    def field_choices(self, field, request, model_admin):
+        return field.get_choices(include_blank=False, limit_choices_to={'enabled': True})
+
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     @mark_safe
@@ -461,7 +466,7 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'user_bonuses', 'pos_status',
                        'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
                        'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
-    list_filter = [OrderStatusListFilter, ('site', RelatedDropdownFilter), ('integration', RelatedDropdownFilter), ('created', PastDateRangeFilter),
+    list_filter = [OrderStatusListFilter, ('site', RelatedDropdownFilter), ('integration', OrderIntegrationFilter), ('created', PastDateRangeFilter),
                    ('seller', RelatedDropdownFilter), ('payment', ChoiceDropdownFilter), ('paid', ChoiceDropdownFilter), OrderDeliveryListFilter,
                    ('delivery_dispatch_date', FutureDateRangeFilter), ('delivery_handing_date', FutureDateRangeFilter),
                    ('manager', RelatedDropdownFilter), ('courier', RelatedDropdownFilter), OrderOwnerFilter]  # , ('owner', RelatedDropdownFilter)]
