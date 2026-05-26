@@ -361,6 +361,7 @@ class Advert(models.Model):
     categories = TreeManyToManyField(Category, related_name='adverts',
                                      related_query_name='advert', verbose_name='категории', blank=True)
     active = models.BooleanField('активная', db_index=True)
+    image = models.ImageField('изображение', upload_to='adverts', blank=True)
     content = models.TextField('содержимое')
     order = models.PositiveIntegerField()
 
