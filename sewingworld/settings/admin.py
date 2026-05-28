@@ -1,0 +1,15 @@
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 6000
+
+IMPORT_EXPORT_SKIP_ADMIN_LOG = True
+
+FLAGS = {
+    '1C_IMPORT_RUNNING': [],
+    '1C_IMPORT_COPYING': []
+}
+
+MAX_TAG_LENGTH = 255
+
+TWO_FACTOR_PATCH_ADMIN = True
+TWO_FACTOR_SMS_GATEWAY = 'sewingworld.two_factor.Gateway'
+
+SHOP_IMPORT_DIRECTORY = '/www/www.sewing-world.ru/import'

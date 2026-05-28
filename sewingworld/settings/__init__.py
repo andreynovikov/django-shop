@@ -22,22 +22,29 @@ DEBUG = env('DEBUG')
 
 SECRET_KEY = env('SECRET_KEY')
 
+BLOCKED_IPS = []
+
 DATABASES = {
-    'default': env.db()
+    'default': {
+        **env.db(engine='django_prometheus.db.backends.postgresql'),
+        'CONN_MAX_AGE': 600,
+    },
 }
 
 CACHES = {
     'default': {
-        **env.cache(),
-        'KEY_PREFIX': 'SW'
+        **env.cache(backend='django_prometheus.cache.backends.memcached.PyLibMCCache'),
+        'KEY_PREFIX': 'SW',
     },
-    # read os.environ['REDIS_URL']
-    # 'redis': env.cache_url('REDIS_URL')
+    'files': {  # used for sitemap
+        'BACKEND': 'django_prometheus.cache.backends.filebased.FileBasedCache',  # django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': os.path.join(BASE_DIR, '.cache'),
+    },
 }
 
 CONN_MAX_AGE = 600
 X_FRAME_OPTIONS = 'DENY'
-SESSION_COOKIE_AGE = 2419200 # 4 weeks
+SESSION_COOKIE_AGE = 2419200  # 4 weeks
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
@@ -58,7 +65,7 @@ USE_L10N = True
 USE_THOUSAND_SEPARATOR = False
 USE_TZ = True
 
-from django.conf.locale.ru import formats as ru_formats
+from django.conf.locale.ru import formats as ru_formats  # noqa F402
 ru_formats.DATETIME_FORMAT = "d.m.y H:i"
 TIME_INPUT_FORMATS = [
     '%H:%M',        # '14:30'
@@ -74,10 +81,14 @@ STATICFILES_DIRS = (
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+STAFF_REQUIRED_URLS = (
+    r'/wiki/(.*)$',
+)
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR,  'templates'),],
+        'DIRS': [os.path.join(BASE_DIR, 'templates'),],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -104,13 +115,13 @@ LOGIN_REDIRECT_URL = env('LOGIN_REDIRECT_URL')
 LOGIN_URL = env('LOGIN_URL')
 LOGOUT_URL = env('LOGOUT_URL')
 
-DEFAULT_FROM_EMAIL = env('LOGOUT_URL')
-SERVER_EMAIL = env('LOGOUT_URL')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
+SERVER_EMAIL = env('SERVER_EMAIL')
 
 ADMINS = [x.split(':') for x in env.list('ADMINS')]
 MANAGERS = ADMINS
 
-from corsheaders.defaults import default_headers
+from corsheaders.defaults import default_headers  # noqa F402
 
 CORS_ALLOW_HEADERS = [
     *default_headers,
@@ -133,13 +144,24 @@ CELERY_BROKER_URL = env('CELERY_BROKER_URL')
 MPTT_ROOT = 'sewing.world'
 
 WIKI_ACCOUNT_HANDLING = False
+THUMBNAIL_KVSTORE = 'sorl.thumbnail.kvstores.redis_kvstore.KVStore'
+THUMBNAIL_REDIS_DB = 0
 
-from .apps import *
-from .middleware import *
-from .celery import *
-from .admin import *
-from .filters import *
-from .reviews import *
-from .shop import *
-from .unisender import *
-from .logging import *
+SERIALIZATION_MODULES = {
+    'xml':    'tagulous.serializers.xml_serializer',
+    'json':   'tagulous.serializers.json',
+    'python': 'tagulous.serializers.python',
+    'yaml':   'tagulous.serializers.pyyaml',
+}
+
+from .apps import *  # noqa F401
+from .admin import *  # noqa F401
+from .celery import *  # noqa F401
+from .filters import *  # noqa F401
+from .middleware import *  # noqa F401
+from .prometheus import *  # noqa F401
+from .drf import *  # noqa F401
+from .reviews import *  # noqa F401
+from .shop import *  # noqa F401
+from .integrations import *  # noqa F401
+from .logging import *  # noqa F401
