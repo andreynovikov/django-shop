@@ -27,7 +27,7 @@ The following packages are required for building python packages:
     apt install libmemcached-dev
     apt install libpq-dev
     apt install libjpeg-dev
-    # apt install libtidy5deb1 - do we need it?
+    apt install tidy
 
 The following packages are optional:
 ::
