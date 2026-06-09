@@ -96,7 +96,6 @@ export async function GET(
       let currentPage = 1
       while (true) {
         const productsPage = await loadProducts(currentPage, pageSize, filters, order)
-        console.log(productsPage.currentPage)
         products.push(...productsPage.results)
         if (productsPage.totalPages <= currentPage)
           break;
