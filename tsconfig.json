@@ -1,6 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "esnext",
+    "types": [
+      "ejs",
+      "node",
+      "react",
+      "react-dom",
+      "sanitize-html"
+    ],
     "lib": [
       "dom",
       "dom.iterable",
@@ -9,6 +16,7 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
+    "strictNullChecks": true,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
