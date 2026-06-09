@@ -405,3 +405,20 @@ a:not([href]):not([class]) {
         width: 300px;
     }
 }
+
+// file icons in product descriptions
+
+.sw-file-pdf::before {
+    content: "";
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background-image: url("/i/icons/file-pdf.svg");
+    background-size: contain; 
+    background-repeat: no-repeat;
+    background-position: center;
+    vertical-align: text-bottom;
+    margin-right: 4px;
+    // https://codepen.io/sosuke/pen/Pjoqqp
+    filter: invert(19%) sepia(97%) saturate(7254%) hue-rotate(6deg) brightness(97%) contrast(105%);
+}
