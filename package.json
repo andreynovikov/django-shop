@@ -12,7 +12,7 @@
     "vars": "printenv | grep npm"
   },
   "dependencies": {
-    "@base-ui/react": "^1.1.0",
+    "@base-ui/react": "^1.5.0",
     "@maskito/core": "^5.3.0",
     "@maskito/kit": "^5.3.0",
     "@maskito/react": "^5.3.0",
