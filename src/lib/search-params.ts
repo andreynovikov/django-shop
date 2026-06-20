@@ -1,4 +1,4 @@
-import { createSerializer, parseAsArrayOf, parseAsBoolean, parseAsInteger, parseAsNativeArrayOf, parseAsString } from 'nuqs/server'
+import { createLoader, createSerializer, parseAsArrayOf, parseAsBoolean, parseAsInteger, parseAsNativeArrayOf, parseAsString } from 'nuqs/server'
 
 export const categorySearchParams = {
   feed: parseAsBoolean,
@@ -39,3 +39,4 @@ export const productSearchParams = {
 }
 
 export const productSearchParamsSerializer = createSerializer(productSearchParams)
+export const productSearchParamsLoader = createLoader(productSearchParams)
