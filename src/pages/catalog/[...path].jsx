@@ -132,8 +132,7 @@ export default function Category({ path, currentPage, pageSize, order, filters }
   const { data: category, isSuccess } = useQuery({
     queryKey: categoryKeys.detail(path),
     queryFn: () => loadCategory(path),
-    enabled: !!path, // path is not set on first render
-    staleTime: pageStaleTime * 1000
+    enabled: !!path // path is not set on first render
   })
 
   const toolbarItem = useMemo(() => {
@@ -348,8 +347,7 @@ export async function getStaticProps(context) {
   const queryClient = new QueryClient()
   const category = await queryClient.fetchQuery({
     queryKey: categoryKeys.detail(path),
-    queryFn: () => loadCategory(path),
-    staleTime: pageStaleTime * 1000
+    queryFn: () => loadCategory(path)
   })
 
   const pageSize = 1000 // category.categories || category.filters ? 15 : 16;

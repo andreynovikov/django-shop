@@ -1,6 +1,6 @@
 {
   "name": "sworld",
-  "version": "2026.06.09",
+  "version": "2026.06.20",
   "scripts": {
     "dev": "next dev -H 127.0.0.1 -p 3004 --experimental-https",
     "test": "next dev -H 127.0.0.1 -p 4004",
