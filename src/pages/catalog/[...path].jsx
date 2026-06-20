@@ -15,7 +15,9 @@ import { Loading, PageLoading } from '@/components/loading'
 import { categoryKeys, advertKeys, productKeys, loadCategories, loadCategory, loadAdverts, loadProducts } from '@/lib/queries'
 import { useToolbar } from '@/lib/toolbar'
 import useCatalog from '@/lib/catalog'
-import { productSearchParams } from '@/lib/search-params'
+import { productSearchParams, productSearchParamsLoader } from '@/lib/search-params'
+
+const pageStaleTime = 3600
 
 const baseFilters = {
   enabled: true,
@@ -130,7 +132,8 @@ export default function Category({ path, currentPage, pageSize, order, filters }
   const { data: category, isSuccess } = useQuery({
     queryKey: categoryKeys.detail(path),
     queryFn: () => loadCategory(path),
-    enabled: !!path // path is not set on first render
+    enabled: !!path, // path is not set on first render
+    staleTime: pageStaleTime * 1000
   })
 
   const toolbarItem = useMemo(() => {
@@ -163,7 +166,8 @@ export default function Category({ path, currentPage, pageSize, order, filters }
     queryKey: productKeys.list(currentPage, pageSize, productFilters, order),
     queryFn: () => loadProducts(currentPage, pageSize, productFilters, order),
     enabled: isSuccess,
-    placeholderData: keepPreviousData
+    placeholderData: keepPreviousData,
+    staleTime: pageStaleTime * 1000
   })
 
   // TODO: refactor for better approach
@@ -344,15 +348,18 @@ export async function getStaticProps(context) {
   const queryClient = new QueryClient()
   const category = await queryClient.fetchQuery({
     queryKey: categoryKeys.detail(path),
-    queryFn: () => loadCategory(path)
+    queryFn: () => loadCategory(path),
+    staleTime: pageStaleTime * 1000
   })
 
   const pageSize = 1000 // category.categories || category.filters ? 15 : 16;
-  const productFilters = { categories: category.id, ...baseFilters }
+  const defaultFilters = productSearchParamsLoader()
+  const productFilters = { ...baseFilters, categories: category.id }
   const productOrder = category.product_order || defaultOrder
   await queryClient.prefetchQuery({
-    queryKey: productKeys.list(currentPage, pageSize, productFilters, productOrder),
-    queryFn: () => loadProducts(currentPage, pageSize, productFilters, productOrder)
+    queryKey: productKeys.list(currentPage, pageSize, { ...defaultFilters, ...productFilters }, productOrder),
+    queryFn: () => loadProducts(currentPage, pageSize, { ...defaultFilters, ...productFilters }, productOrder),
+    staleTime: pageStaleTime * 1000
   })
 
   const breadcrumbs = category.path.breadcrumbs.reduce((breadcrumbs, breadcrumb, index, original) => {
@@ -382,7 +389,7 @@ export async function getStaticProps(context) {
       currentPage,
       pageSize
     },
-    revalidate: 60 * 60 // <--- ISR cache: once an hour
+    revalidate: pageStaleTime // <--- ISR cache: once an hour
   }
 }
 
