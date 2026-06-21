@@ -45,6 +45,7 @@ class ProductIntegration(models.Model):
     integration = models.ForeignKey(Integration, on_delete=models.CASCADE)
     price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0)
     notify_stock = models.BooleanField('требуется уведомление остатков', default=False)
+    meta = models.JSONField(null=True, blank=True, editable=False)
 
     class Meta:
         unique_together = ('product', 'integration')

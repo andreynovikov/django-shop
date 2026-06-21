@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime
+from itertools import batched
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
@@ -181,7 +182,6 @@ def get_beru_labels_data(order_id):
         raise TaskFailure(message) from e
 
 
-# @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), rate_limit='1/s', retry_backoff=300, retry_jitter=False)
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error), rate_limit='1/s', retry_backoff=300, retry_jitter=False)
 def notify_beru_product_stocks(self, products, account):
     integration = Integration.objects.get(utm_source=account)
@@ -236,16 +236,19 @@ def notify_beru_product_stocks(self, products, account):
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_beru_marked_stocks(self):
+    total = 0
     for integration in Integration.objects.filter(settings__has_key='ym_campaign', enabled=True):
         products = ProductIntegration.objects.order_by().filter(integration=integration, notify_stock=True)
         products = list(products.values_list('product_id', flat=True).distinct())
         if products:
             notify_beru_product_stocks.s(products, integration.utm_source).apply_async(priority=PRIORITY_IDLE)
-        return len(products)
+            total += len(products)
+    return total
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_beru_integration_stocks(self):
+    total = 0
     for integration in Integration.objects.filter(settings__has_key='ym_campaign', enabled=True):
         products = Product.objects.order_by().filter(integration=integration)
 
@@ -258,6 +261,10 @@ def notify_beru_integration_stocks(self):
 
         products = list(products.values_list('id', flat=True).distinct())
 
-        if products:
-            notify_beru_product_stocks.s(products, integration.utm_source).apply_async(priority=PRIORITY_IDLE)
-        return len(products)
+        countdown = 0
+        for chunk in batched(products, 20):
+            notify_beru_product_stocks.s(chunk, integration.utm_source).apply_async(countdown=countdown, priority=PRIORITY_IDLE)
+            countdown += 60
+
+        total += len(products)
+    return total
