@@ -97,22 +97,6 @@ function prettify(field, value) {
   return value
 }
 
-function rebootstrap(value) {
-  if (typeof value !== 'string')
-    return value
-  value = value.replaceAll('col-md-4', 'col-md-2')
-  value = value.replaceAll('col-md-8', 'col-md-4')
-  value = value.replaceAll('col-md-10', 'col-md-5')
-  value = value.replaceAll('col-md-12', 'col-md-6')
-  value = value.replaceAll('<h3>', '<h5>')
-  value = value.replaceAll('</h3>', '</h5>')
-  value = value.replaceAll('<h4>', '<h6>')
-  value = value.replaceAll('</h4>', '</h6>')
-  value = value.replaceAll('embed-responsive embed-responsive-4by3', 'ratio ratio-4x3')
-  value = value.replaceAll('embed-responsive embed-responsive-16by9', 'ratio ratio-16x9')
-  return value
-}
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function renderTemplate(template, product) {
   // const compileFn = gana(template)
@@ -399,7 +383,7 @@ export default function Product({ code }) {
         </div>
 
         {product.descr && (
-          <div className="pb-3 mb-md-3" itemProp="description" dangerouslySetInnerHTML={{ __html: rebootstrap(product.descr) }} />
+          <div className="pb-3 mb-md-3" itemProp="description" dangerouslySetInnerHTML={{ __html: product.descr }} />
         )}
 
         {product.constituents && (
@@ -445,7 +429,7 @@ export default function Product({ code }) {
         )}
 
         {product.spec && (
-          <div className="pb-3 mb-md-3" dangerouslySetInnerHTML={{ __html: rebootstrap(product.spec) }} />
+          <div className="pb-3 mb-md-3" dangerouslySetInnerHTML={{ __html: product.spec }} />
         )}
 
         {Object.keys(fieldNames).length > 0 && productFields.length > 0 && (
