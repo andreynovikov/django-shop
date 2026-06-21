@@ -422,3 +422,34 @@ a:not([href]):not([class]) {
     // https://codepen.io/sosuke/pen/Pjoqqp
     filter: invert(19%) sepia(97%) saturate(7254%) hue-rotate(6deg) brightness(97%) contrast(105%);
 }
+
+.sw-file-video::before {
+    content: "";
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background-image: url("/i/icons/file-video.svg");
+    background-size: contain; 
+    background-repeat: no-repeat;
+    background-position: center;
+    vertical-align: text-bottom;
+    margin-right: 4px;
+    // https://codepen.io/sosuke/pen/Pjoqqp
+    filter: invert(10%) sepia(90%) saturate(7251%) hue-rotate(5deg) brightness(99%) contrast(113%);
+}
+
+
+.sw-file-web::before {
+    content: "";
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background-image: url("/i/icons/file-web.svg");
+    background-size: contain; 
+    background-repeat: no-repeat;
+    background-position: center;
+    vertical-align: text-bottom;
+    margin-right: 4px;
+    // https://codepen.io/sosuke/pen/Pjoqqp
+    filter: invert(7%) sepia(100%) saturate(7139%) hue-rotate(247deg) brightness(109%) contrast(138%);
+}
