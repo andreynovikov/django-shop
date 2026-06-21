@@ -1,3 +1,13 @@
+export interface PaginatedResult<T> {
+  next: string | null
+  previous: string | null
+  count: number
+  totalPages: number
+  currentPage: number
+  pageSize: number
+  results: T[]
+}
+
 export type JSONValue =
   | string
   | number
@@ -26,6 +36,57 @@ export interface Product {
   video_url?: string
 }
 
+export interface Country {
+  id: number
+  name: string
+  enabled: boolean
+}
+
+export interface City {
+  id: number
+  country: Country
+  name: string
+  latitude: number | undefined
+  longitude: number | undefined
+  code: string
+  region: number
+}
+
+export interface Store {
+  id: number
+  city: City
+  phones: string[]
+  address: string
+  phone: string
+  name: string
+  publish: boolean
+  marketplace: boolean
+  lottery: boolean
+  description: string
+  latitude: number
+  longitude: number
+  postcode: string
+  url: string
+  hours: string
+  logo: string
+  payment_cash: boolean
+  payment_visa: boolean
+  payment_master: boolean
+  payment_mir: boolean
+  payment_credit: boolean
+}
+
+export interface SalesAction {
+  id: number
+  name: string
+  slug: string
+  show_products: boolean
+  description: string
+  image: string | undefined
+  image_width: number | undefined
+  image_height: number | undefined
+}
+
 export interface Serial {
   number: string
   approved: boolean
@@ -39,6 +100,11 @@ export interface UserBonus {
   is_fresh: boolean
   is_undefined: boolean
   is_updating: boolean
+}
+
+export interface FlatPageInfo {
+  url: string
+  title: string
 }
 
 interface ForumOpinion {

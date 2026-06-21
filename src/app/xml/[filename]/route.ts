@@ -4,6 +4,7 @@ import sanitizeHtml from 'sanitize-html'
 
 import { AxiosError } from 'axios'
 
+import { flattenCategoryTree, getCategoryDescendants } from '@/lib/categories'
 import { loadCategories, loadCurrentSite, loadProducts } from '@/lib/queries'
 import { listIntegrations, retriveIntegrationByUtm, retriveIntegrationProducts } from "@/lib/token-queries"
 import { Category, Integration, Product } from '@/lib/types'
@@ -16,28 +17,6 @@ const globalXmls = [
   'products',
   'search',
 ]
-
-interface CategoryWithParent extends Category {
-  parent: number | null
-  path: string[]
-}
-
-
-function flattenCategoryTree(parent: Category, parentPath: string[], categories: Category[]) {
-  return categories.reduce((acc, category) => {
-    const { children, ...categoryWithoutChildren } = category
-    const categoryPath = [...parentPath, categoryWithoutChildren.slug]
-    acc.push({
-      ...categoryWithoutChildren,
-      parent: parent.id,
-      path: categoryPath,
-    })
-    if (children) {
-      acc.push(...flattenCategoryTree(categoryWithoutChildren, categoryPath, children))
-    }
-    return acc
-  }, [] as CategoryWithParent[])
-}
 
 function stripTags(html: string) {
   return sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} })
@@ -106,14 +85,6 @@ export async function GET(
     const getTopCategories = (categories: number[]) => {
       const topCategories = categories.map(category => categoryMap.get(category)).filter(category => category !== undefined)
       return [...new Set(topCategories)]
-    }
-
-    const getCategoryDescendants = (category: Category) => {
-      const { children, ...categoryWithoutChildren } = category
-      if (children)
-        return flattenCategoryTree(categoryWithoutChildren, [category.slug], children)
-      else
-        return []
     }
 
     const data = {

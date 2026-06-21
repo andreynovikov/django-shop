@@ -44,7 +44,7 @@ export async function getStaticProps(context) {
 
 export async function getStaticPaths() {
   const pages = await loadPages()
-  const paths = pages.filter(page => !page.url.startsWith('/help/')).map((page) => ({
+  const paths = pages.filter(page => !page.url.match('^\/(help|dialog)\/.*')).map((page) => ({
     params: { uri: page.url.slice(1, -1).split('/') },
   }))
   return { paths, fallback: false }
