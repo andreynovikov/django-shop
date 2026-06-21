@@ -173,7 +173,11 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
         for field, values in self.request.query_params.lists():
             if field == 'in_category':
-                categories = list(chain(*[Category.objects.get(pk=value).get_descendants().filter(active=True) for value in values]))
+                categories = []
+                for value in values:
+                    category = Category.objects.get(pk=value)
+                    categories.append(category)
+                    categories.extend(category.get_descendants().filter(active=True))
                 queryset = queryset.filter(categories__in=categories)
                 has_category_filter = True
                 continue
