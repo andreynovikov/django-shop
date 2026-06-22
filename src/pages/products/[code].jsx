@@ -230,7 +230,7 @@ export default function Product({code, title}) {
             { product.images && (
                 <div className="mt-2">
                     { product.images.map((image, index) => (
-                    <a onClick={()=>setCurrentIndex(index + 1)} className="me-1" style={{cursor: "pointer"}}>
+                    <a onClick={()=>setCurrentIndex(index + 1)} className="me-1" style={{cursor: "pointer"}} key={index}>
                         <span className="d-inline-block position-relative" style={{ width: 80, height: 80 }}>
                             <Image
                                 src={image.src}
