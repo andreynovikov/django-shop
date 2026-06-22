@@ -1,4 +1,3 @@
-version: "3"
 name: janome
 services:
   app:
