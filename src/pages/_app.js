@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { NuqsAdapter } from 'nuqs/adapters/next/pages';
 import { QueryClient, QueryClientProvider, HydrationBoundary } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
@@ -62,24 +63,26 @@ export default function App({ Component, pageProps: { site, session, ...pageProp
     return (
         <QueryClientProvider client={queryClient}>
             <HydrationBoundary state={pageProps.dehydratedState}>
-                <SiteProvider site={site}>
-                    <SessionProvider session={session}>
-                        { getLayout(<Component {...pageProps} />) }
-                        { !!process.env.NEXT_PUBLIC_YM_COUNTER_ID && (
-                            <YMInitializer
-                                accounts={[parseInt(process.env.NEXT_PUBLIC_YM_COUNTER_ID)]}
-                                options={{
-                                    webvisor: true,
-                                    defer: true,
-                                    clickmap: true,
-                                    trackLinks: true,
-                                    accurateTrackBounce: true,
-                                    ecommerce:"dataLayer"
-                                }}
-                                version="2" />
-                        )}
-                    </SessionProvider>
-                </SiteProvider>
+                <NuqsAdapter>
+                    <SiteProvider site={site}>
+                        <SessionProvider session={session}>
+                            { getLayout(<Component {...pageProps} />) }
+                            { !!process.env.NEXT_PUBLIC_YM_COUNTER_ID && (
+                                <YMInitializer
+                                    accounts={[parseInt(process.env.NEXT_PUBLIC_YM_COUNTER_ID)]}
+                                    options={{
+                                        webvisor: true,
+                                        defer: true,
+                                        clickmap: true,
+                                        trackLinks: true,
+                                        accurateTrackBounce: true,
+                                        ecommerce:"dataLayer"
+                                    }}
+                                    version="2" />
+                            )}
+                        </SessionProvider>
+                    </SiteProvider>
+                </NuqsAdapter>
             </HydrationBoundary>
             <ReactQueryDevtools />
         </QueryClientProvider>
