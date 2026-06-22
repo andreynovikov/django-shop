@@ -2,6 +2,7 @@
 .next/
 .docker/
 node_modules/
+next-env.d.ts
 
 logs/
 
