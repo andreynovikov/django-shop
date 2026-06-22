@@ -1,18 +1,22 @@
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query';
+import { useQueryStates } from 'nuqs'
 
 import Layout from '@/components/layout';
 import ProductCard from '@/components/product/card';
 
 import { categoryKeys, productKeys, loadCategories, loadCategory, loadProducts } from '@/lib/queries';
+import { productSearchParams, productSearchParamsLoader } from '@/lib/search-params'
 
-const baseFilters = [
-    { field: 'enabled', value: 1}
-];
+const baseFilters = {
+  enabled: true,
+}
+
 const defaultOrder = 'title';
 
 export default function Category({path, filters, order}) {
+    const [currentFilters, setCurrentFilters] = useQueryStates(productSearchParams)
     const router = useRouter();
 
     const { data: category, isSuccess } = useQuery({
@@ -21,10 +25,11 @@ export default function Category({path, filters, order}) {
         enabled: !!path // path is not set on first render
     });
 
+  const productFilters = { ...currentFilters, ...filters }
     const { data: products, isSuccess: isProductsSuccess } = useQuery({
-        queryKey: productKeys.list(1, 1000, filters, order),
-        queryFn: () => loadProducts(1, 1000, filters, order),
-        enabled: !!filters && !!order
+        queryKey: productKeys.list(1, 1000, productFilters, order),
+        queryFn: () => loadProducts(1, 1000, productFilters, order),
+        enabled: !!productFilters && !!order
     });
 
     if (router.isFallback || !isSuccess) {
@@ -80,12 +85,13 @@ export async function getStaticProps(context) {
         queryKey: categoryKeys.detail(path),
         queryFn: () => loadCategory(path)
     });
-    const productFilters = [{field: 'categories', value: category.id}, ...baseFilters];
+    const defaultFilters = productSearchParamsLoader()
+    const productFilters = { ...baseFilters, categories: category.id }
     const productOrder = category.product_order || defaultOrder;
 
     await queryClient.prefetchQuery({
-        queryKey: productKeys.list(1, 1000, productFilters, productOrder),
-        queryFn: () => loadProducts(1, 1000, productFilters, productOrder)
+        queryKey: productKeys.list(1, 1000, { ...defaultFilters, ...productFilters }, productOrder),
+        queryFn: () => loadProducts(1, 1000, { ...defaultFilters, ...productFilters }, productOrder)
     });
 
     return {
