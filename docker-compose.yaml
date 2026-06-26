@@ -1,8 +1,8 @@
-name: stage
+name: ${NAME}
 services:
   app:
-    container_name: nextjs-stage
-    image: sworld
+    container_name: nextjs-${NAME}
+    image: ${IMAGE}
     build:
       context: ./
       target: runner
@@ -15,7 +15,7 @@ services:
       - ./templates/:/app/templates/
     network_mode: bridge
     ports:
-      - "127.0.0.1:4004:3000/tcp"
+      - "127.0.0.1:${PORT}:3000/tcp"
     environment:
       NODE_ENV: production
     restart: unless-stopped

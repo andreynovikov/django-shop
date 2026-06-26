@@ -11,7 +11,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
 
@@ -20,8 +20,8 @@ WORKDIR /app
 
 ARG entity=sworld
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=node:node /app/.next/standalone ./
@@ -33,7 +33,7 @@ USER node
 
 EXPOSE 3000
 
-ENV PORT 3000
-ENV APP_MAIN_FILE ${entity}.js
+ENV PORT=3000
+ENV APP_MAIN_FILE=${entity}.js
 
 CMD /bin/sh startup.sh ${APP_MAIN_FILE}
