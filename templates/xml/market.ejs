@@ -20,7 +20,7 @@
     <offers>
       <% products.forEach(product => { -%>
         <offer id="<%= product.id %>" type="vendor.model">
-          <url><%= site.url_prefix %>/products/<%= product.code %>?utm_source=<%= utm_source %>&amp;utm_term=<%= product.article %></url>
+          <url><%= site.url_prefix %>/products/<%= product.code %>/?utm_source=<%= utm_source %>&amp;utm_term=<%= product.article %></url>
           <% if(product.integration_price > 0) { -%>
           <price><%= product.integration_price %></price>
           <% }else{ -%>

@@ -18,7 +18,7 @@
     <offers>
       <% products.forEach(product => { -%>
         <offer id="<%= product.id %>" available="<%= product.instock > 0 %>">
-          <url><%= site.url_prefix %>/products/<%= product.code %></url>
+          <url><%= site.url_prefix %>/products/<%= product.code %>/</url>
           <% if(product.discount>0) { -%>
           <oldprice><%= product.price %></oldprice>
           <% } -%>

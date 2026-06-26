@@ -4,7 +4,7 @@
   <shop>
     <name><%= site.title %></name>
     <company><%= site.description %></company>
-    <url><%= site.url_prefix %></url>    
+    <url><%= site.url_prefix %></url>
 
     <currencies>
       <currency id="RUR" rate="1" />
@@ -20,7 +20,7 @@
     <offers>
       <% products.forEach(product => { -%>
          <offer id="<%= product.id %>" type="vendor.model" available="<%= product.instock > 0 %>">
-          <url><%= site.url_prefix %>/products/<%= product.code %>?utm_source=<%= utm_source %>&amp;utm_term=<%= product.article %></url>
+          <url><%= site.url_prefix %>/products/<%= product.code %>/?utm_source=<%= utm_source %>&amp;utm_term=<%= product.article %></url>
           <price><%= product.cost %></price>
           <currencyId>RUR</currencyId>
           <% getTopCategories(product.categories).forEach(category => { -%>
