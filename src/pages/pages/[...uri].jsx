@@ -45,5 +45,5 @@ export async function getStaticPaths() {
     const paths = pages.filter(page => !page.url.startsWith('/help/')).map((page) => ({
         params: { uri: page.url.slice(1, -1).split('/') },
     }));
-    return { paths, fallback: false }
+    return { paths, fallback: true }
 }

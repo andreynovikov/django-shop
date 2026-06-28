@@ -5,11 +5,11 @@ export default function Footer() {
         <>
             <div className="row bottom-content mt-5">
                 <div className="col-md-4">
-                    <Link href="/pages/map/">
+                    {false && <Link href="/pages/map/">
                         <img src="/i/mc15k-nav-icon-features.png" alt="Наш адрес" width="145" height="100" />
                         <h5 className="bottom">Наш адрес</h5>
                         <p className="bottom">Наш магазин находится в Москве, рядом с метро &laquo;Пролетарская&raquo;</p>
-                    </Link>
+                    </Link> }
                 </div>
                 <div className="col-md-4">
                     <Link href="/pages/delivery/">
@@ -29,7 +29,7 @@ export default function Footer() {
             <div className="row footer p-4">
                 <div className="col-md-6">
                     <p>
-                        Copyright (C) 2013-2025{' '}
+                        Copyright (C) 2013-2026{' '}
                         <a href="http://www.janome.co.jp/e1.htm">Janome</a>
                         {' '}&amp;{' '}
                         <a href="http://www.sewing-world.ru">Швейный Мир</a>
