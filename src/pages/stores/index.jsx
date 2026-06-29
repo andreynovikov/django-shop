@@ -1,0 +1,364 @@
+import { Fragment, useState, useEffect, useMemo, useRef } from 'react'
+import Link from 'next/link'
+import Script from 'next/script'
+import { useQuery } from '@tanstack/react-query'
+
+import Button from 'react-bootstrap/Button'
+import Collapse from 'react-bootstrap/Collapse'
+
+import PageLayout from '@/components/layout/page'
+
+import { useBreakpoint } from '@/lib/breakpoint'
+import { rows } from '@/lib/partition'
+import { storeKeys, loadStores } from '@/lib/queries'
+
+function Collapsable({ id, name, children, selected, onSelect, className }) {
+  return (
+    <>
+      <Button className={`d-block btn ${selected === id ? 'btn-info' : 'btn-light'} btn-link p-1 ${className}`} onClick={onSelect}>
+        {name}
+      </Button>
+      <Collapse in={selected === id}>
+        <div>
+          {children}
+        </div>
+      </Collapse>
+    </>
+  )
+}
+
+export default function Stores({ marketplace, lottery }) {
+  const [ymapsReady, setYMapsReady] = useState(false)
+  const [currentCity, setCurrentCity] = useState(null)
+  const breakpoint = useBreakpoint()
+  const cols = ['xs', 'sm'].includes(breakpoint)
+    ? 2 : ['md', 'lg'].includes(breakpoint) ? 3 : 4
+
+  const ymap = useRef(null)
+
+  const { data: stores } = useQuery({
+    queryKey: storeKeys.lists({ marketplace, lottery }),
+    queryFn: () => loadStores({ marketplace, lottery })
+  })
+
+  useEffect(() => {
+    if (!ymapsReady || !stores)
+      return
+
+    const coords = [55.76, 37.64]
+    const map = new ymaps.Map('map', {
+      center: coords,
+      zoom: 10,
+      controls: ['zoomControl', 'fullscreenControl', 'geolocationControl', 'rulerControl']
+    })
+    map.margin.setDefaultMargin(100)
+
+    stores.filter((store) => store.latitude && store.longitude).map((store) => {
+      map.geoObjects.add(new ymaps.Placemark([store.latitude, store.longitude], {
+        balloonContentHeader:
+          `<a href="/stores/${store.id}/">${store.name}</a>`,
+        balloonContent:
+          '<div><i class="ci-location text-primary d-inline-block me-2"></i>' +
+          `<span class="d-inline-block align-top">${store.address}${store.address2 ? '<br/>' + store.address2 : ''}</span></div>` +
+          (store.hours ?
+            '<div class="mt-1"><i class="ci-time text-primary d-inline-block me-2"></i>' +
+            `<span class="d-inline-block align-top">${store.hours}</span></div>`
+            : '') +
+          (store.phone ?
+            '<div class="mt-1"><i class="ci-phone text-primary d-inline-block me-2"></i>' +
+            `<span class="d-inline-block align-top">${store.phone}${store.phone2 ? '<br/>' + store.phone2 : ''}</span></div>`
+            : '') +
+          (store.url ?
+            '<div class="mt-1"><i class="ci-dribbble text-primary d-inline-block me-2"></i>' +
+            `<span class="d-inline-block align-top"><a href="${store.url}">${store.url}</a></span></div>`
+            : ''),
+        balloonContentFooter:
+          store.logo !== 'sewingworld' ? '<small>*магазин-партнер. Рекламные акции Швейного Мира могут не действовать в этом магазине</small>' : ''
+      },
+        {
+          iconLayout: 'default#image',
+          iconImageHref: store.logo ? `/i/shoplogos/marks/${store.logo}.png` : '/i/shoplogos/marks/other.png',
+          iconImageSize: [27, 26], iconImageOffset: [-10, -23]
+        }))
+    })
+
+    const location = ymaps.geolocation
+    location.get({
+      provider: 'yandex'
+    }).then(function (result) {
+      console.log(result)
+      // TODO: select city based on location
+      //var userCoodinates = result.geoObjects.get(0).geometry.getCoordinates();
+      //myMap.setCenter(userCoodinates);
+    }, function (err) {
+      console.log(err)
+    })
+
+    ymap.current = map
+
+    return () => {
+      map.destroy()
+      ymap.current = null
+    }
+  }, [ymapsReady, stores])
+
+  const storeGroups = useMemo(() => {
+    if (!stores)
+      return []
+
+    const { groups } = stores.reduce(({ groups, city }, store) => {
+      if (store.city.id !== city) {
+        groups.push({ city: store.city, stores: [] })
+        city = store.city.id
+      }
+      groups[groups.length - 1].stores.push(store)
+      return { groups, city }
+    }, { groups: [], city: null })
+
+    return groups.sort((a, b) => a.city.name.localeCompare(b.city.name))
+  }, [stores])
+
+  const handleCitySelect = (id) => {
+    setCurrentCity(id)
+    if (ymap.current === null)
+      return
+
+    const { city, stores } = storeGroups.find(({ city }) => city.id === id)
+    if (stores.length === 1 && stores[0].latitude && stores[0].longitude) {
+      ymap.current.setCenter([stores[0].latitude, stores[0].longitude])
+      ymap.current.setZoom(14)
+      return
+    }
+
+    const points = stores.reduce((points, store) => {
+      if (store.latitude && store.longitude)
+        points.push([store.latitude, store.longitude])
+      return points
+    }, [])
+    if (points.length > 0) {
+      // Set map bounds to make all city stores visible
+      ymap.current.setBounds(ymaps.util.bounds.fromPoints(points), {
+        checkZoomRange: true,
+        preciseZoom: !ymap.current.options.get('avoidFractionalZoom'),
+        useMapMargin: true
+      }).then(() => {
+        ymap.current.setZoom(Math.min(14, ymap.current.getZoom()))
+      })
+    } else if (city.latitude !== undefined && city.longitude !== undefined) {
+      ymap.current.setCenter([city.latitude, city.longitude])
+      ymap.current.setZoom(12)
+    } else {
+      const str = 'город ' + city.name + ' ' + city.country.name
+      ymaps.geocode(str, { results: 1 }).then((res) => {
+        ymap.current.setCenter(res.geoObjects.get(0).geometry.getCoordinates())
+        ymap.current.setZoom(12)
+      })
+    }
+  }
+
+  const setupYMaps = () => {
+    ymaps.ready(function () {
+      setYMapsReady(true)
+    })
+  }
+
+  return (
+    <>
+      <div className="container-fluid px-0">
+        <div className="row g-0">
+          <div className="col-lg-6 iframe-full-height-wrap" style={{ minHeight: '26rem' }}>
+            <div className="iframe-full-height" id="map"></div>
+          </div>
+          <div className="col-lg-6 px-4 px-xl-5 py-4">
+            <div>
+              <Collapsable
+                id={2}
+                name="Москва"
+                selected={currentCity}
+                onSelect={() => handleCitySelect(2)}
+                className="fw-bold">
+                {stores && stores.filter(({ city }) => city.id === 2).map((store) => (
+                  <div className="fs-xs pt-1 ps-2" key={store.id}>
+                    <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }}>
+                      {store.address}
+                    </Link>
+                    {store.phones && (
+                      <>
+                        <br />
+                        {store.phones[0]}
+                      </>
+                    )}
+                  </div>
+                ))}
+              </Collapsable>
+            </div>
+            <div>
+              <Collapsable
+                id={21}
+                name="Санкт-Петербург"
+                selected={currentCity}
+                onSelect={() => handleCitySelect(21)}
+                className="fw-bold">
+                {stores && stores.filter(({ city }) => city.id === 21).map((store) => (
+                  <div className="fs-xs pt-1 ps-2" key={store.id}>
+                    <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }}>
+                      {store.address}
+                    </Link>
+                    {store.phones && (
+                      <>
+                        <br />
+                        {store.phones[0]}
+                      </>
+                    )}
+                  </div>
+                ))}
+              </Collapsable>
+            </div>
+            <div className="d-flex gap-1 mt-1">
+              {storeGroups.length > 0 && rows(storeGroups, cols).map((column, index) => (
+                <div key={index} style={{ flex: "1 1 0" }}>
+                  {column.map(({ city, stores }) => (
+                    <Collapsable
+                      key={city.id}
+                      id={city.id}
+                      name={city.name}
+                      selected={currentCity}
+                      onSelect={() => handleCitySelect(city.id)}
+                      className="btn-sm">
+                      {stores.map((store) => (
+                        <div className="fs-xs pt-1 ps-2" key={store.id}>
+                          <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }}>
+                            {store.address}
+                          </Link>
+                          {store.phones && (
+                            <>
+                              <br />
+                              {store.phones[0]}
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </Collapsable>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <section className="container-fluid pt-grid-gutter mt-md-4 mb-5">
+        <div className="row">
+          {storeGroups.length > 0 && storeGroups.filter(({ city }) => currentCity === null || city.id === currentCity).map(({ city, stores }) => (
+            <Fragment key={city.id}>
+              {stores.map((store) => (
+                <div className="col-xl-3 col-lg-4 col-sm-6 mb-grid-gutter" key={store.id}>
+                  <div className="card border-0 shadow-sm">
+                    <div className="card-body" itemScope itemType="http://schema.org/Organization">
+                      <h6 className="card-title">
+                        {store.logo === 'sewingworld' ?
+                          <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }} itemProp="name">
+                            &quot;{store.name}&quot; - {city.name}
+                          </Link>
+                          :
+                          <span itemProp="name">&quot;{store.name}&quot; ({city.name})</span>
+                        }
+                      </h6>
+                      <ul className="list-unstyled mb-0">
+                        <li className="d-flex">
+                          <i className="ci-location fs-lg my-1 text-primary" />
+                          <div className="ps-3 fs-sm" itemProp="address" itemScope itemType="http://schema.org/PostalAddress">
+                            <span itemProp="streetAddress">
+                              {store.address}
+                              {store.address2 && <><br />{store.address2}</>}
+                            </span>
+                            <span className="d-none" itemProp="addressLocality">{city.name}</span>
+                            <span className="d-none" itemProp="addressCountry">{city.country.name}</span>
+                          </div>
+                        </li>
+                        {store.phones && (
+                          <li className="d-flex pt-2 mt-2 mb-0 border-top">
+                            <i className="ci-phone fs-lg my-1 text-primary" />
+                            <div className="ps-3 fs-sm">
+                              {store.phones.map((phone, index) => (
+                                <a
+                                  className={'d-block nav-link-style' + (index > 0 ? ' mt-2' : '')}
+                                  href={'tel:' + phone.replace(' ', '')}
+                                  itemProp="telephone"
+                                  key={index}>
+                                  {phone}
+                                </a>
+                              ))}
+                            </div>
+                          </li>
+                        )}
+                        {store.hours && (
+                          <li className="d-flex pt-2 mt-2 mb-0 border-top">
+                            <i className="ci-time fs-lg my-1 text-primary" />
+                            <div className="ps-3 fs-sm">
+                              {store.hours.split(',').map((hours, index) => (
+                                <div className={index > 0 ? 'mt-2' : ''} key={index}>
+                                  {hours.trim()}
+                                </div>
+                              ))}
+                            </div>
+                          </li>
+                        )}
+                        {store.url && (
+                          <li className="d-flex pt-2 mt-2 mb-0 border-top">
+                            <i className="ci-dribbble fs-lg my-1 text-primary" />
+                            <div className="ps-3 fs-sm">
+                              <a className="nav-link-style" href={store.url}>{store.url}</a>
+                            </div>
+                          </li>
+                        )}
+                        {store.logo !== 'sewingworld' && (
+                          <li className="pt-2 mt-2 mb-0">
+                            <small className="text-muted">
+                              Магазин-партнер: рекламные акции Швейного Мира могут не действовать в этом магазине
+                            </small>
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </Fragment>
+          ))}
+        </div>
+      </section>
+      <Script
+        id="ymaps"
+        src={"https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=" + process.env.NEXT_PUBLIC_YMAPS_API_KEY}
+        onReady={setupYMaps}
+        onLoad={setupYMaps} />
+    </>
+  )
+}
+
+Stores.getLayout = function getLayout(page) {
+  console.log(page.props)
+  const title =
+    page.props.marketplace !== false ? "В этих магазинах можно пройти бесплатное обучение работе на швейной машине при предъявлении гарантийного талона" :
+      page.props.lottery !== false ? "Покупатели этих магазинов принимают участие в юбилейной лотерее" :
+        "Наши магазины рядом с Вами"
+
+  return (
+    <PageLayout htmlTitle="Адреса магазинов" title={title}>
+      {page}
+    </PageLayout>
+  )
+}
+
+export async function getServerSideProps(context) {
+  const marketplace = context.query?.marketplace ?? false
+  const lottery = context.query?.lottery ?? false
+
+  return {
+    props: {
+      marketplace,
+      lottery
+    }
+  }
+}

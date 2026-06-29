@@ -2,8 +2,6 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Popover } from '@base-ui/react/popover'
 
-import { IconHelp } from '@tabler/icons-react'
-
 import styles from './field-help.module.scss'
 
 import { pageKeys, loadPages, loadPage } from '@/lib/queries'
@@ -37,7 +35,7 @@ export default function FieldHelp({ field }) {
   return (
     <Popover.Root open={open} onOpenChange={open => setOpen(open)} modal>
       <Popover.Trigger className="btn btn-link p-0 ps-1">
-        <IconHelp size="16" stroke={1.8} className="align-baseline" />
+        <i className="ci-message fs-ms text-muted" aria-label="Notifications" />
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="right" sideOffset={8}>

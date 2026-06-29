@@ -1,23 +1,44 @@
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/router'
+
+export const recomendedProductsFilters = {
+  enabled: true,
+  categories: 473,
+  firstpage: true,
+  show_on_sw: true
+}
+
+export const giftProductsFilters = {
+  enabled: true,
+  gift: true,
+  firstpage: true,
+  show_on_sw: true
+}
+
+export const newProductsFilters = {
+  enabled: true,
+  isnew: true,
+  firstpage: true,
+  show_on_sw: true
+}
 
 export default function useCatalog() {
-    const router = useRouter();
+  const router = useRouter()
 
-    useEffect(() => {
-        sessionStorage.setItem('lastCatalogPath', router.asPath);
-        /* eslint-disable react-hooks/exhaustive-deps */
-    }, []);
+  useEffect(() => {
+    sessionStorage.setItem('lastCatalogPath', router.asPath)
+    /* eslint-disable react-hooks/exhaustive-deps */
+  }, [])
 }
 
 export function useLastCatalog() {
-    const [path, setPath] = useState('/');
+  const [path, setPath] = useState('/')
 
-    useEffect(() => {
-        const p = sessionStorage.getItem('lastCatalogPath');
-        if (p)
-            setPath(p);
-    }, []);
+  useEffect(() => {
+    const p = sessionStorage.getItem('lastCatalogPath')
+    if (p)
+      setPath(p)
+  }, [])
 
-    return path;
+  return path
 }

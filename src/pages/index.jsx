@@ -1,36 +1,155 @@
-import Link from 'next/link';
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
+import Link from 'next/link'
+import Head from 'next/head'
 
-import Layout from '@/components/layout';
+import BaseLayout from '@/components/layout/base'
+import ProductCard from '@/components/product/card'
+import TopCategoriesCard from '@/components/top-categories-card'
+
+import { advertKeys, productKeys, loadAdverts, loadProducts } from '@/lib/queries'
+import useCatalog, { recomendedProductsFilters, newProductsFilters } from '@/lib/catalog'
+
+const itemsPerSection = 16
+const sort = '-price'
+
+function Adverts({ adverts }) {
+  return adverts.length > 0 && (
+    <section className="container pt-5">
+      <div className="row mx-n2">
+        {adverts.map((advert) => (
+          <div className="col-lg-3 col-sm-6 px-2 mb-4" key={advert.id}>
+            <div className="card overflow-hidden h-100" dangerouslySetInnerHTML={{ __html: advert.content }} />
+            <hr className="d-sm-none" />
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
 
 export default function Index() {
-    return (
-        <div className="mt-4 text-center">
-            <div className="d-inline-block">
-                <Link href="/catalog/sewing_machines/">
-                    <img src="/i/1.png" alt="Электромеханические швейные машины" width="290" height="290" />
-                </Link>
-                <Link href="/catalog/comp_sewing_machines/">
-                    <img src="/i/2.png" alt="Компьютерные швейные машины" width="290" height="290" />
-                </Link>
-                <Link href="/catalog/sewing_embroidery_machines/">
-                    <img src="/i/3.png" alt="Швейно-вышивальные машины" width="290" height="290" />
-                </Link>
-                <br/>
-                <Link href="/catalog/overlock/">
-                    <img src="/i/4.png" alt="Оверлоки, коверлоки и плоскошовные машины" width="290" height="290" />
-                </Link>
-                <Link href="/catalog/accessories/">
-                    <img src="/i/5.png" alt="Аксессуары для машин Janome" width="290" height="290" />
-                </Link>
-            </div>
+  const { data: recomendedProducts, isSuccess: isRecomendedSuccess } = useQuery({
+    queryKey: productKeys.list(null, itemsPerSection, recomendedProductsFilters, sort),
+    queryFn: () => loadProducts(null, itemsPerSection, recomendedProductsFilters, sort)
+  })
+  const { data: newProducts, isSuccess: isNewSuccess } = useQuery({
+    queryKey: productKeys.list(null, itemsPerSection, newProductsFilters, sort),
+    queryFn: () => loadProducts(null, itemsPerSection, newProductsFilters, sort)
+  })
+
+  const { data: adverts } = useQuery({
+    queryKey: advertKeys.list(['main', 'index_top_new', 'index_middle_new', 'index_bottom_new']),
+    queryFn: () => loadAdverts(['main', 'index_top_new', 'index_middle_new', 'index_bottom_new'])
+  })
+
+  const mainAdvert = adverts?.find(advert => advert.place === 'main')
+  const topAdverts = adverts?.filter(advert => advert.place === 'index_top_new') ?? []
+  const middleAdverts = adverts?.filter(advert => advert.place === 'index_middle_new') ?? []
+  const bottomAdverts = adverts?.filter(advert => advert.place === 'index_bottom_new') ?? []
+
+  useCatalog()
+
+  return (
+    <>
+      <Head>
+        {process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION && <meta name="google-site-verification" content={process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION} />}
+        {process.env.NEXT_PUBLIC_YANDEX_VERIFICATION && <meta name="yandex-verification" content={process.env.NEXT_PUBLIC_YANDEX_VERIFICATION} />}
+      </Head>
+      <div className="mb-3">
+        <section className="pb-5">
+          <div className="bg-dark py-5"></div>
+          <div className="py-3"></div>
+        </section>
+
+        <div className="d-flex flex-column position-relative pt-3 pt-lg-0 mt-n10" style={{ zIndex: 10 }}>
+          <section className="container order-2 order-sm-1">
+            <TopCategoriesCard />
+          </section>
+
+          {mainAdvert && (
+            <section className="container pt-0 pt-sm-5 order-1 order-sm-2">
+              <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainAdvert.content }} />
+            </section>
+          )}
         </div>
-    )
+
+        <Adverts adverts={topAdverts} />
+
+        {isRecomendedSuccess && recomendedProducts.results.length > 0 && (
+          <section className="container pt-5">
+            <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
+              <h2 className="h3 mb-0 pt-3 me-2">Специальные предложения</h2>
+              <div className="pt-3">
+                <Link className="btn btn-accent btn-sm" href="/catalog/promo/">
+                  Больше специальных предложений
+                  <i className="ci-arrow-right ms-1 me-n1" />
+                </Link>
+              </div>
+            </div>
+            <div className="row pt-2 mx-n2">
+              {recomendedProducts.results.map((product, index) => (
+                <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
+                  <ProductCard product={product} gtmList="Первая страница акции" gtmPosition={index} />
+                  <hr className="d-sm-none" />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <Adverts adverts={middleAdverts} />
+
+        {isNewSuccess && newProducts.results.length > 0 && (
+          <section className="container pt-5">
+            <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
+              <h2 className="h3 mb-0 pt-3 me-2">Новинки</h2>
+              <div className="pt-3">
+                <Link className="btn btn-accent btn-sm" href="/catalog/New/">
+                  Больше новинок
+                  <i className="ci-arrow-right ms-1 me-n1" />
+                </Link>
+              </div>
+            </div>
+            <div className="row pt-2 mx-n2">
+              {newProducts.results.map((product, index) => (
+                <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
+                  <ProductCard product={product} gtmList="Первая страница акции" gtmPosition={index} />
+                  <hr className="d-sm-none" />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <Adverts adverts={bottomAdverts} />
+      </div>
+    </>
+  )
 }
 
 Index.getLayout = function getLayout(page) {
-    return (
-        <Layout hideTitle>
-            {page}
-        </Layout>
-    )
+  return (
+    <BaseLayout>
+      {page}
+    </BaseLayout>
+  )
+}
+
+export async function getStaticProps() {
+  const queryClient = new QueryClient()
+
+  await queryClient.prefetchQuery({
+    queryKey: productKeys.list(null, itemsPerSection, recomendedProductsFilters, sort),
+    queryFn: () => loadProducts(null, itemsPerSection, recomendedProductsFilters, sort)
+  })
+  await queryClient.prefetchQuery({
+    queryKey: productKeys.list(null, itemsPerSection, newProductsFilters, sort),
+    queryFn: () => loadProducts(null, itemsPerSection, newProductsFilters, sort)
+  })
+
+  return {
+    props: {
+      dehydratedState: dehydrate(queryClient)
+    }
+  }
 }

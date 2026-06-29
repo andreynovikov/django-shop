@@ -1,9 +1,12 @@
 .env*
+logs/
+*~
+.touch_reload
 .next/
-.docker/
 node_modules/
+.docker/
+*.tsbuildinfo
 next-env.d.ts
 
-logs/
-
-*~
+# temp:
+certificates

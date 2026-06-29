@@ -1,87 +1,190 @@
-import Link from 'next/link';
-import Image from 'next/image';
+import { useEffect, useMemo, useRef } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
 
-import NoImage from '@/components/product/no-image';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
+import Tooltip from 'react-bootstrap/Tooltip'
 
-import useBasket from '@/lib/basket';
+import NoImage from '@/components/product/no-image'
+import ProductPrice from '@/components/product/price'
 
-export default function ProductCard({product}) {
-    const { addItem } = useBasket();
+import useBasket from '@/lib/basket'
+import useFavorites from '@/lib/favorites'
+import { useSession } from '@/lib/session'
+import { eCommerce } from '@/lib/ymec'
 
-    const handlePrimaryClick = () => {
-        if (product.variations) {
-        } else {
-            addItem(product);
+export default function ProductCard({ product, limitedBadges = false, gtmCategory = undefined, gtmList = '', gtmPosition = 0 }) {
+  const { status } = useSession()
+
+  const cardRef = useRef()
+
+  const { basket, addItem, isSuccess, isEmpty } = useBasket()
+  const { favorites, favoritize, unfavoritize } = useFavorites()
+
+  const basketQuantity = useMemo(() => {
+    if (!isSuccess || isEmpty)
+      return 0
+    const items = basket.items.filter(item => item.product.id == product.id)
+    if (items.length > 0)
+      return items[0].quantity
+    else
+      return 0
+  }, [basket, product, isSuccess, isEmpty])
+
+  useEffect(() => {
+    eCommerce({
+      impressions: [{
+        id: product.id,
+        name: product.title,
+        price: product.price,
+        list: gtmList,
+        position: gtmPosition + 1
+      }]
+    })
+  }, [product, gtmList, gtmPosition])
+
+  const handleClick = () => {
+    eCommerce({
+      click: {
+        products: [{
+          id: `${product.id}`,
+          name: `${product.partnumber ? product.partnumber + ' ' : ''}${product.title}`,
+          price: `${product.cost}`,
+          category: gtmCategory?.name ?? null,
+          list: gtmList,
+          position: gtmPosition + 1
+        }]
+      }
+    })
+  }
+
+  const handleCartClick = () => {
+    addItem(product)
+  }
+
+  const handleFavoritesClick = () => {
+    if (status === 'authenticated') {
+      if (favorites.includes(product.id))
+        unfavoritize(product.id)
+      else
+        favoritize(product.id)
+    }
+  }
+
+  const productLink = product.variations ? product.variations : { pathname: '/products/[code]', query: { code: product.code } }
+
+  return (
+    <div ref={cardRef} className="card product-card h-100">
+      {status === 'authenticated' && <OverlayTrigger
+        placement="left"
+        overlay={
+          <Tooltip>
+            {status === 'authenticated' ?
+              favorites.includes(product.id) ?
+                "В избранном" :
+                "Отложить" :
+              "Войдите или зарегистрируйтесь, чтобы добавлять товары в избранное"
+            }
+          </Tooltip>
         }
-    };
-
-    return (
-        <div className="sw-p-l card">
-            <div className="card-body">
-                <div className="text-center">
-                    <Link href={{ pathname: '/products/[code]', query: { code: product.code }}}>
-                        { product.image ? (
-                            <div className="mx-auto position-relative" style={{ width: 120, height: 120 }}>
-                                <Image
-                                    src={product.image}
-                                    fill
-                                    style={{ objectFit: 'contain' }}
-                                    sizes="120px"
-                                    alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
-                            </div>
-                        ) : (
-                            <NoImage size={120} stroke={1.5} className="text-muted" />
-                        )}
-                    </Link>
-                </div>
-                <div className="sw-p-l-name">
-                    <div className="sw-p-l-action">
-                        { product.ishot && <span className="label sw-action">Акция</span> }
-                        { product.isnew && <span className="label sw-new">Новинка</span> }
-                        { product.recomended && <span className="label sw-recomended">Рекомендуем</span> }
-                        { product.utilisation && <span className="label sw-action">Скидка по &laquo;Утилизации&raquo;</span> }
-                    </div>
-                    <h3 className="sw-p-l-name-h">
-                        <Link href={{ pathname: '/products/[code]', query: { code: product.code }}}>
-                            { product.title }
-                        </Link>
-                    </h3>
-                    <p>{ product.whatis } { product.partnumber }</p>
-
-                    <div className="sw-p-l-brif" dangerouslySetInnerHTML={{__html: product.shortdescr }} />
-                </div>
-
-                { product.price > 0 && (
-                    <div className="text-center">
-                        <div className="mb-2">
-                            { product.discount > 0 && (
-                                <><s className="sw-p-l-oldprice">{ product.price.toLocaleString('ru') }</s>&nbsp;руб.</>
-                            )}
-                            <span className="sw-p-l-price">{ product.cost.toLocaleString('ru') }</span>&nbsp;руб.
-                        </div>
-                        { product.instock > 1 ? (
-                            <div className="product-nal-true">Есть в наличии</div>
-                        ) : product.instock == 1 ? (
-                            <div className="product-nal-true">Мало</div>
-                        ) : (
-                            <div className="product-nal-false">Закончились</div>
-                        )}
-                        <button className="btn btn-sm btn-success fs-xs fw-bold mt-2" type="button" onClick={handlePrimaryClick}>
-                            { product.instock > 0 ? "Купить" : "Сообщить о поступлении" }
-                        </button>
-                    </div>
-                )}
-
-                { product.wb_link && <div className="text-center mt-2">
-                    <a href={product.wb_link} className="btn btn-sm sw-btn-wb fs-xs fw-bold" role="button">Купить на WB</a>
-                </div> }
-                { product.ozon_link && <div className="text-center mt-2">
-                    <a href={ product.ozon_link } className="btn btn-sm sw-btn-ozon fs-xs fw-bold" role="button">Купить на Ozon</a>
-                </div> }
-
-                { product.sales_notes && <div className="sw-p-salesnotes text-center">{ product.sales_notes }</div> }
-                { product.nal && <p className="text-center">Наличие: <span className="sw-nal">{ product.nal }</span></p> }
-            </div>
+      >
+        <button onClick={handleFavoritesClick} className={"btn-wishlist btn-sm" + (favorites.includes(product.id) ? " bg-accent text-light" : "")}>
+          <i className="ci-heart" />
+        </button>
+      </OverlayTrigger>}
+      <Link className="d-block mt-3 p-6" href={productLink} onClick={handleClick}>
+        <div className="m-3 p-3">
+          <div className="position-relative p-3 overflow-hidden" style={{ aspectRatio: 1 }}>
+            {product.image ? (
+              <Image
+                src={product.image}
+                fill
+                style={{ objectFit: "contain" }}
+                sizes="(min-width: 500px) 50vw, (min-width: 768px) 33vw, 100vw"
+                loading="lazy"
+                alt={`${product.title} ${product.whatisit ?? product.whatis}`} />
+            ) : (
+              <NoImage />
+            )}
+          </div>
         </div>
-    )
+      </Link>
+      <div className="d-flex flex-column card-body py-2">
+        <Link className="product-meta d-block fs-xs pb-1" href={productLink} onClick={handleClick}>
+          {product.whatisit ?? product.whatis} {product.partnumber}
+        </Link>
+        <h3 className="product-title fs-6">
+          <Link href={productLink} onClick={handleClick}>
+            {product.title}
+          </Link>
+        </h3>
+        <div className="mt-auto">
+          {product.enabled && (
+            <div>
+              {(product.isnew && !limitedBadges) && <span className="small fw-bold me-2 text-info">Новинка</span>}
+              {(product.recomended && !limitedBadges) && <span className="small fw-bold me-2 text-success">Рекомендуем</span>}
+              {product.sales && product.sales.map((notice, index) => (
+                notice && <span className="small fw-bold me-2 text-danger" key={index}>{notice}</span>
+              ))}
+            </div>
+          )}
+          <div className="d-flex justify-content-between align-items-center">
+            <div className="product-price text-accent">
+              {product.variations && "от "}
+              <ProductPrice product={product} />
+            </div>
+            <div>
+              {product.variations ? (
+                <Link className="btn btn-secondary btn-sm d-block w-100" href={product.variations}>
+                  <i className="ci-eye fs-sm" />
+                </Link>
+              ) : product.enabled && product.instock ? (
+                <button className="btn btn-success btn-sm d-block w-100 sw-button" type="button" onClick={handleCartClick}>
+                  <i className="ci-cart fs-sm" />
+                  {basketQuantity > 0 && <span className="sw-button-label">{basketQuantity}</span>}
+                </button>
+              ) : (
+                <Link className="btn btn-secondary btn-sm d-block w-100" href={productLink} onClick={handleClick}>
+                  <i className="ci-eye fs-sm" />
+                </Link>
+              )}
+            </div>
+            { /* TODO
+                        <div className="star-rating">
+                            <i className="star-rating-icon ci-star-filled active"></i>
+                            <i className="star-rating-icon ci-star-filled active"></i>
+                            <i className="star-rating-icon ci-star-filled active"></i>
+                            <i className="star-rating-icon ci-star"></i>
+                            <i className="star-rating-icon ci-star"></i>
+                        </div>
+                        */
+            }
+          </div>
+        </div>
+      </div>
+      <div className="card-body card-body-hidden">
+        {product.shortdescr && <div className="fs-ms pb-2" dangerouslySetInnerHTML={{ __html: product.shortdescr }}></div>}
+        {product.sales_notes && <div className="fs-ms text-info pb-2">{product.sales_notes}</div>}
+        {/*
+                <div className="d-flex mb-2">
+                    { product.variations ? (
+                        <Link className="btn btn-success btn-sm d-block w-100" href={product.variations}>
+                            Выбрать
+                        </Link>
+                    ) : product.enabled && product.instock ? (
+                        <button className="btn btn-success btn-sm d-block w-100" type="button" onClick={handleCartClick}>
+                            <i className="ci-cart fs-sm me-1" />
+                            Купить
+                        </button>
+                    ) : (
+                        <Link className="btn btn-secondary btn-sm d-block w-100" href={{ pathname: '/products/[code]', query: { code: product.code }}}>
+                            Подробное описание
+                        </Link>
+                    )}
+                </div>
+                */
+        }
+      </div>
+    </div>
+  )
 }

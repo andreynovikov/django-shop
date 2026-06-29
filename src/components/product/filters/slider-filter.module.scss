@@ -1,0 +1,35 @@
+@import '@/vendor/cartzilla/scss/user-variables';
+@import '@/vendor/cartzilla/scss/variables';
+
+.Control {
+  box-sizing: border-box;
+  align-items: center;
+  padding-block: 1.25rem;
+  touch-action: none;
+  user-select: none;
+}
+
+.Track {
+  width: 100%;
+  height: $range-slider-height;
+  background-color: $range-slider-bg;
+  user-select: none;
+}
+
+.Indicator {
+  background-color: $range-slider-connect-bg;
+  user-select: none;
+}
+
+.Thumb {
+  width: $range-slider-handle-size;
+  height: $range-slider-handle-size;
+  border-radius: 100%;
+  background-color: $range-slider-connect-bg;
+  box-shadow: $range-slider-handle-box-shadow;
+  user-select: none;
+
+  &:has(:focus-visible) {
+    outline: 2px solid $accent;
+  }
+}

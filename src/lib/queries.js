@@ -29,8 +29,7 @@ export const productKeys = {
   list: (page, size, filters, ordering) => [...productKeys.lists(), { page, size, filters, ordering }],
   details: () => [...productKeys.all, 'detail'],
   detail: (id) => [...productKeys.details(), id],
-  info: (id) => [...productKeys.details(), id],
-  price: (id) => [...productKeys.detail(id), 'price'],  // TODO: think how to invalidate it on user change
+  info: (id) => [...productKeys.details(), id]
 }
 
 export const reviewKeys = {
@@ -381,11 +380,6 @@ export async function loadProductSuggestions(text) {
 
 export async function getProductImages(id) {
   const response = await apiClient.get(`products/${id}/images/`)
-  return response.data
-}
-
-export async function getProductPrice(id) {
-  const response = await apiClient.get(`products/${id}/price/`)
   return response.data
 }
 
