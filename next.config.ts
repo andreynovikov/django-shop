@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   trailingSlash: true,
   output: 'standalone',
-  allowedDevOrigins: ['janome.club'],
+  allowedDevOrigins: ['singer.ru'],
   images: {
     remotePatterns: [
       new URL('https://api.sewing-world.ru/media/**'),
