@@ -1,14 +1,14 @@
 {
   "name": "sworld",
-  "version": "2026.06.26",
+  "version": "2026.07.07",
   "scripts": {
     "dev": "next dev -H 127.0.0.1 -p 3004 --experimental-https",
     "test": "next dev -H 127.0.0.1 -p 4004",
     "start": "next start -H 127.0.0.1 -p 4004",
     "lint": "eslint src/",
     "build": "next build",
-    "docker-build": "sudo docker compose build && sudo docker tag sworld sworld:$npm_package_version",
-    "docker-deploy": "NAME=stage IMAGE=sworld:$npm_package_version PORT=4004 sudo docker compose up -d",
+    "docker-build": "NAME=stage IMAGE=sworld:$npm_package_version PORT=4004 docker compose build && docker tag sworld sworld:$npm_package_version",
+    "docker-deploy": "NAME=stage IMAGE=sworld:$npm_package_version PORT=4004 docker compose up -d",
     "vars": "printenv | grep npm"
   },
   "dependencies": {
