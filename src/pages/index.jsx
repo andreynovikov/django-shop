@@ -7,7 +7,7 @@ import ProductCard from '@/components/product/card'
 import TopCategoriesCard from '@/components/top-categories-card'
 
 import { advertKeys, productKeys, loadAdverts, loadProducts } from '@/lib/queries'
-import useCatalog, { recomendedProductsFilters, newProductsFilters } from '@/lib/catalog'
+import { useCatalog, recomendedProductsFilters, newProductsFilters } from '@/lib/catalog'
 
 const itemsPerSection = 16
 const sort = '-price'
