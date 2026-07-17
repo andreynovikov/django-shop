@@ -18,7 +18,7 @@ import { PageLoading } from '@/components/loading'
 import { productKeys } from '@/lib/queries'
 import { loadProducts } from '@/lib/diginetica'
 import { useToolbar } from '@/lib/toolbar'
-import useCatalog from '@/lib/catalog'
+import { useCatalog } from '@/lib/catalog'
 import rupluralize from '@/lib/rupluralize'
 
 const searchParams = {

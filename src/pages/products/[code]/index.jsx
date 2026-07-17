@@ -28,7 +28,7 @@ import useFavorites from '@/lib/favorites'
 import useComparison from '@/lib/comparison'
 import { useSession } from '@/lib/session'
 import { productKeys, loadProducts, loadProductByCode, getProductFields } from '@/lib/queries'
-import { recomendedProductsFilters, newProductsFilters } from '@/lib/catalog'
+import { baseFilters } from '@/lib/catalog'
 import { eCommerce } from '@/lib/ymec'
 
 const ProductReviews = lazy(() => import('@/components/product/reviews'))
@@ -642,29 +642,23 @@ export async function getStaticProps(context) {
 }
 
 export async function getStaticPaths() {
-  const filters = [
-    recomendedProductsFilters,
-    newProductsFilters
-  ]
   const included = new Set()
   const paths = []
-  for (let filter of filters) {
-    let page = 1
-    while (page !== undefined) {
-      const products = await loadProducts(page, 100, filter, null)
-      paths.push(...products.results.filter((product) => !included.has(product.id)).map((product) => {
-        included.add(product.id)
-        return {
-          params: {
-            code: product.code
-          }
+  let page = 1
+  while (page !== undefined) {
+    const products = await loadProducts(page, 100, baseFilters, null)
+    paths.push(...products.results.filter((product) => !included.has(product.id)).map((product) => {
+      included.add(product.id)
+      return {
+        params: {
+          code: product.code
         }
-      }))
-      if (products.totalPages > products.currentPage)
-        page += 1
-      else
-        page = undefined
-    }
+      }
+    }))
+    if (products.totalPages > products.currentPage)
+      page += 1
+    else
+      page = undefined
   }
-  return { paths, fallback: true }
+  return { paths, fallback: 'blocking' }
 }

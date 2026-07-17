@@ -1,28 +1,30 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 
-export const recomendedProductsFilters = {
+export const baseFilters = {
   enabled: true,
+  show_on_sw: true,
+}
+
+export const recomendedProductsFilters = {
+  ...baseFilters,
   categories: 473,
   firstpage: true,
-  show_on_sw: true
 }
 
 export const giftProductsFilters = {
-  enabled: true,
+  ...baseFilters,
   gift: true,
   firstpage: true,
-  show_on_sw: true
 }
 
 export const newProductsFilters = {
-  enabled: true,
+  ...baseFilters,
   isnew: true,
   firstpage: true,
-  show_on_sw: true
 }
 
-export default function useCatalog() {
+export function useCatalog() {
   const router = useRouter()
 
   useEffect(() => {

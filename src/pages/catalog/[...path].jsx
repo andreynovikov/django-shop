@@ -14,15 +14,10 @@ import { Loading, PageLoading } from '@/components/loading'
 
 import { categoryKeys, advertKeys, productKeys, loadCategories, loadCategory, loadAdverts, loadProducts } from '@/lib/queries'
 import { useToolbar } from '@/lib/toolbar'
-import useCatalog from '@/lib/catalog'
+import { useCatalog, baseFilters } from '@/lib/catalog'
 import { productSearchParams, productSearchParamsLoader } from '@/lib/search-params'
 
 const pageStaleTime = 3600
-
-const baseFilters = {
-  enabled: true,
-  show_on_sw: true,
-}
 
 const defaultOrder = 'title'
 
