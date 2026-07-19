@@ -421,6 +421,19 @@ class ProductImage(models.Model):
         ordering = ['order']
 
 
+class ProductPrice(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    site = models.ForeignKey(Site, verbose_name='сайт', related_name='prices', related_query_name='price', on_delete=models.CASCADE)
+    price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0)
+    pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
+    val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
+
+    class Meta:
+        verbose_name = 'цена товара'
+        verbose_name_plural = 'цены товаров'
+        unique_together = ('product', 'site')
+
+
 class ProductRelation(models.Model):
     KIND_SIMILAR = 1
     KIND_ACCESSORY = 2
