@@ -254,7 +254,6 @@ class Product(models.Model):
         if 'num' not in deferred:
             self.update_sets()
 
-
     def update_sets(self):
         product_sets = ProductSet.objects.filter(constituent=self)
         for product_set in product_sets:
@@ -342,6 +341,34 @@ class Product(models.Model):
         else:
             return Decimal(0)
 
+    def site_price(self, site):
+        site_price = self.site_prices.filter(site=site).first()
+        if site_price is None:
+            if site.profile.wholesale:
+                return self.ws_price
+            else:
+                return self.price
+
+    def site_cost(self, site):
+        site_price = self.site_prices.filter(site=site).first()
+        if site_price is None:
+            if site.profile.wholesale:
+                return self.ws_cost
+            else:
+                return self.cost
+        if site_price.price > 0:
+            price = site_price.price
+        else:
+            price = self.price
+
+        discount = Decimal(0)
+        if site_price.pct_discount > 0:
+            discount = (price.quantize(Decimal('1'), rounding=ROUND_UP) * Decimal(self.pct_discount / 100)).quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)
+        if site_price.val_discount > discount:
+            discount = site_price.val_discount
+
+        return price - discount
+
     @property
     def instock(self):
         if self.num >= 0:
@@ -422,9 +449,10 @@ class ProductImage(models.Model):
 
 
 class ProductPrice(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, related_name='site_prices', related_query_name='site_price', on_delete=models.CASCADE)
     site = models.ForeignKey(Site, verbose_name='сайт', related_name='prices', related_query_name='price', on_delete=models.CASCADE)
     price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0)
+    cur_price = models.DecimalField('цена, вал', max_digits=10, decimal_places=2, default=0)
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
 
@@ -432,6 +460,10 @@ class ProductPrice(models.Model):
         verbose_name = 'цена товара'
         verbose_name_plural = 'цены товаров'
         unique_together = ('product', 'site')
+
+    def save(self, *args, **kwargs):
+        self.price = self.cur_price * self.product.cur_code.rate
+        super(ProductPrice, self).save(*args, **kwargs)
 
 
 class ProductRelation(models.Model):
