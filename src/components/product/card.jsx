@@ -121,7 +121,7 @@ export default function ProductCard({ product, limitedBadges = false, gtmCategor
         <div className="mt-auto">
           {product.enabled && (
             <div>
-              {(product.isnew && !limitedBadges) && <span className="small fw-bold me-2 text-info">Новинка</span>}
+              {(product.isnew && !limitedBadges) && <span className="small fw-bold me-2 text-warning">Новинка</span>}
               {(product.recomended && !limitedBadges) && <span className="small fw-bold me-2 text-success">Рекомендуем</span>}
               {product.sales && product.sales.map((notice, index) => (
                 notice && <span className="small fw-bold me-2 text-danger" key={index}>{notice}</span>

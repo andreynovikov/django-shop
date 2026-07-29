@@ -85,7 +85,14 @@ $spacers: (
   3: $spacer,
   4: $spacer * 1.5,
   5: $spacer * 3,
+  8: ($spacer * 8),
   10: ($spacer * 10),
+  12: ($spacer * 12),
+  15: ($spacer * 15),
+  20: ($spacer * 20),
+  25: ($spacer * 25),
+  30: ($spacer * 30),
+  35: ($spacer * 35),
   'grid-gutter': $grid-gutter-width
 ) !default;
 
@@ -145,6 +152,7 @@ $border-light-color:          rgba($white, .12) !default;
 // Border colors map
 $border-colors: (
   'primary':    rgba($primary, .35),
+  'header':     $primary,
   'accent':     rgba($accent, .35),
   "success":    rgba($success, .35),
   "info":       rgba($info, .35),

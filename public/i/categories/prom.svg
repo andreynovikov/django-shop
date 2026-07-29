@@ -1,45 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="25mm" height="20mm" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
-viewBox="0 0 2000 1600"
- xmlns:xlink="http://www.w3.org/1999/xlink">
+<!-- Creator: CorelDRAW -->
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="125" height="75" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+viewBox="0 0 5000 3000"
+ xmlns:xlink="http://www.w3.org/1999/xlink"
+ xmlns:xodm="http://www.corel.com/coreldraw/odm/2003">
  <defs>
   <style type="text/css">
    <![CDATA[
-    .str3 {stroke:#EF7F1A;stroke-width:20}
-    .str2 {stroke:#EF7F1A;stroke-width:25}
-    .str4 {stroke:#EF7F1A;stroke-width:25;stroke-linecap:round}
-    .str1 {stroke:#EF7F1A;stroke-width:60}
-    .str0 {stroke:#EF7F1A;stroke-width:60;stroke-linecap:round}
+    .str0 {stroke:#E20012;stroke-width:47.63;stroke-linejoin:round;stroke-miterlimit:22.9256}
+    .str1 {stroke:#E20012;stroke-width:47.63;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:22.9256}
     .fil0 {fill:none}
-    .fil2 {fill:none;fill-rule:nonzero}
-    .fil1 {fill:white}
    ]]>
   </style>
  </defs>
  <g id="Слой_x0020_1">
   <metadata id="CorelCorpID_0Corel-Layer"/>
-  <line class="fil0 str0" x1="1866" y1="517" x2="1866" y2= "802" />
-  <path class="fil1 str1" d="M1701 442c-361,-1 -899,-2 -1260,0 -24,0 -36,23 -41,49 -14,85 -26,92 -27,170 -1,44 7,306 26,338 5,9 18,27 32,27 64,-1 129,-2 193,-2 18,0 43,-20 53,-37 15,-24 29,-122 42,-146 13,-24 46,-36 72,-36 85,0 336,-1 421,0 34,1 90,38 90,62l-2 366 471 0 0 -718c0,-32 -41,-73 -70,-73z"/>
-  <circle class="fil2 str2" cx="657" cy="604" r="42"/>
-  <line class="fil0 str3" x1="522" y1="450" x2="522" y2= "735" />
-  <line class="fil0 str4" x1="518" y1="1133" x2="518" y2= "1044" />
-  <line class="fil0 str4" x1="534" y1="1069" x2="534" y2= "1012" />
-  <line class="fil0 str4" x1="503" y1="1069" x2="503" y2= "1012" />
-  <line class="fil0 str4" x1="551" y1="1133" x2="551" y2= "1044" />
-  <line class="fil0 str4" x1="569" y1="1069" x2="569" y2= "1012" />
-  <circle class="fil2 str2" cx="805" cy="604" r="42"/>
-  <rect class="fil0 str1" x="150" y="1233" width="1711" height="139" rx="31" ry="31"/>
-  <circle class="fil2 str2" cx="1533" cy="818" r="118"/>
-  <rect class="fil1 str3" x="992" y="290" width="644" height="302" rx="29" ry="29"/>
-  <rect class="fil1 str3" x="1421" y="336" width="160" height="209" rx="7" ry="20"/>
-  <circle class="fil2 str2" cx="1059" cy="386" r="24"/>
-  <circle class="fil2 str2" cx="1151" cy="386" r="24"/>
-  <circle class="fil2 str2" cx="1243" cy="386" r="24"/>
-  <circle class="fil2 str2" cx="1335" cy="386" r="24"/>
-  <circle class="fil2 str2" cx="1059" cy="498" r="24"/>
-  <circle class="fil2 str2" cx="1151" cy="498" r="24"/>
-  <circle class="fil2 str2" cx="1243" cy="498" r="24"/>
-  <circle class="fil2 str2" cx="1335" cy="498" r="24"/>
+  <g id="_1604708703184">
+   <path class="fil0 str0" d="M1644.55 1867.25l10.58 0c13.23,0 21.17,-10.58 21.17,-21.17l0 -145.52 291.04 0.01c21.17,0 42.33,-13.23 47.63,-31.75l66.15 -195.79c15.88,-47.63 63.5,-79.38 113.77,-79.38l370.41 0c89.96,0 158.75,68.79 158.75,158.75l0 526.52c0,60.85 -47.63,111.13 -108.48,111.13l-926.04 0 0 -74.08c0,-5.29 -5.29,-10.58 -10.58,-10.58l-37.04 -0.01 0 -238.13 2.64 0z"/>
+   <polygon class="fil0 str0" points="1644.55,1433.33 1753.03,1433.33 1753.03,1054.98 1644.55,1054.98 "/>
+   <polygon class="fil0 str0" points="1927.65,1028.52 2017.61,1028.52 2017.61,869.77 1927.65,869.77 "/>
+   <polygon class="fil0 str0" points="2168.43,1028.52 2258.39,1028.52 2258.39,869.77 2168.43,869.77 "/>
+   <polygon class="fil0 str0" points="2409.2,1028.52 2499.16,1028.52 2499.16,869.77 2409.2,869.77 "/>
+   <polygon class="fil0 str0" points="2649.97,1028.52 2739.93,1028.52 2739.93,869.77 2649.97,869.77 "/>
+   <polygon class="fil0 str0" points="3030.97,1028.52 3120.93,1028.52 3120.93,869.77 3030.97,869.77 "/>
+   <polyline class="fil0 str0" points="1927.66,1028.52 1927.66,1229.61 1753.03,1229.61 "/>
+   <polyline class="fil0 str0" points="2168.43,1028.52 2168.43,1229.61 1927.66,1229.61 "/>
+   <polyline class="fil0 str0" points="2409.2,1028.52 2409.2,1229.61 2168.43,1229.61 "/>
+   <line class="fil0 str1" x1="2649.97" y1="1028.52" x2="2649.97" y2= "1229.61" />
+   <line class="fil0 str1" x1="3030.97" y1="1028.52" x2="3030.97" y2= "2126.55" />
+   <polygon class="fil0 str1" points="3454.3,2126.55 3332.59,2126.55 3332.59,1994.25 3332.59,1822.27 3454.3,1822.27 "/>
+   <line class="fil0 str1" x1="3454.3" y1="2018.07" x2="3332.59" y2= "2018.07" />
+   <path class="fil0 str0" d="M4993.87 2901.77l-1431.09 0c5.29,-10.58 5.29,-18.52 5.29,-29.1l0 -762 153.46 0c10.58,0 15.88,-5.29 15.88,-15.88l0 -240.77c0,-13.23 -5.29,-18.52 -18.52,-18.52l-148.17 0 0 -47.63 153.46 0.01c10.58,0 15.88,-5.29 15.88,-15.88l0 -240.77c0,-10.58 -5.29,-18.52 -18.52,-18.52l-148.18 0 0 -68.79 566.21 -68.79 0 -63.5c0,-13.23 -13.23,-21.17 -26.46,-21.17l-31.75 0 -60.85 -333.38 -63.5 0.01 0 -267.23c0,-10.58 -5.29,-15.88 -18.52,-15.88l-21.17 0c-10.58,0 -15.88,5.29 -15.88,15.88l0 267.23 -63.49 0 -60.85 333.38 -31.76 -0.01 0 -346.6c0,-18.52 -15.88,-34.4 -37.04,-34.4l-132.29 0 0 -58.21c0,-31.75 -26.46,-58.21 -58.21,-58.21l-113.77 0.01 0 -105.83c0,-10.58 -5.29,-15.88 -18.52,-15.88l-21.17 0c-10.58,0 -15.88,5.29 -15.88,15.88l0 105.83 -222.24 0 0 -285.75 854.6 0c47.63,0 84.67,-37.04 84.67,-84.67l0 -79.38c0,-2.65 -2.65,-5.29 -10.58,-5.29l-2465.92 0c-2.65,0 -5.29,2.65 -5.29,5.29l0 79.38c0,47.63 37.04,84.67 82.02,84.67l1383.77 0 0 283.1 -201.08 0 0 -100.54c0,-10.58 -5.29,-15.88 -18.52,-15.88l-21.17 0c-10.58,0 -15.88,5.29 -15.88,15.88l0 100.54 -497.41 0 0 -100.54c0,-10.58 -10.58,-15.88 -18.52,-15.88l-21.17 0c-10.58,0 -15.88,5.29 -15.88,15.88l0 97.9 -497.41 -0.01 0 -97.9c0,-10.58 -10.58,-15.88 -18.52,-15.88l-21.17 0.01c-10.58,0 -15.88,5.29 -15.88,15.88l0 26.46 -100.54 0 0 68.79 -174.62 0c-124.35,0 -224.9,97.9 -224.9,222.25l0 635c0,34.4 29.1,60.85 60.85,60.85l34.4 0 -47.63 92.6c-2.65,2.65 0,13.23 2.65,15.88 13.23,13.23 47.63,29.1 105.83,13.23 44.98,-13.23 66.15,-37.04 74.08,-50.27 2.65,-2.65 5.29,-2.65 13.23,-2.65l13.24 0 0 129.65 -113.77 0c-2.65,0 -5.29,2.65 -5.29,5.29l0 111.13c0,2.65 2.65,5.29 5.29,5.29l156.1 0c5.29,0 10.58,-2.65 10.58,-10.58l0 -243.42 18.53 0c5.29,0 13.23,-5.29 13.23,-15.88l0 -50.27 21.16 0 0 145.52c0,13.23 10.58,21.17 21.17,21.17l10.58 0 0 74.08 -34.39 0 0 63.5 34.39 0 0 100.54 -34.39 0c-5.29,0 -10.58,2.65 -10.58,10.58l0 74.08 -624.42 0.01c-31.75,0 -60.85,26.46 -60.85,58.21l0 508c0,13.23 2.65,26.46 10.58,37.04l52.92 111.13 -920.44 0"/>
+   <line class="fil0 str0" x1="3568.07" y1="904.17" x2="3570.72" y2= "2110.67" />
+   <line class="fil0 str0" x1="3740.05" y1="1285.17" x2="3568.07" y2= "1285.17" />
+  </g>
  </g>
 </svg>

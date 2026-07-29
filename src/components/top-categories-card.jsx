@@ -5,49 +5,52 @@ export default function TopCategoriesCard() {
   return (
     <div className="card mx-1 mx-md-5 mx-xl-0 border-0 shadow-lg">
       <div className="card-body px-3 pb-0">
-        <div className="row g-0 g-lg-3 justify-content-around">
-          <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center">
+        <div className="row g-0 g-lg-3 justify-content-center">
+          <div className="d-none d-lg-flex col-6 col-md-4 col-lg-auto mb-grid-gutter text-center flex-grow-1" style={{ backgroundImage: "url('/i/categories/gifts.svg')", backgroundRepeat: 'no-repeat', }}>
+            <div className="bg-white"></div>
+            <div className="nav-link px-0"></div>
+          </div>
+          <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center" style={{ backgroundImage: "url('/i/categories/gifts.svg')", backgroundRepeat: 'no-repeat', }}>
             <Link href="/catalog/sewing_machines/">
-              <img src="/i/categories/compsewing.svg" alt="Швейные машины" height="75" width="75" />
-              <div>Швейные<br />машины</div>
+              <div style={{ background: 'white' }}><img src="/i/categories/sewing.svg" alt="Механические швейные машины" /></div>
+              <div className="nav-link px-0">Механические<br />швейные машины</div>
             </Link>
           </div>
-          <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center">
-            <Link href="/catalog/embroidery_machines/">
-              <img src="/i/categories/embroidery.svg" alt="Швейно-вышивальные машины" height="75" width="94" />
-              <div>Вышивальные<br />машины</div>
+          <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center" style={{ backgroundImage: "url('/i/categories/gifts.svg')", backgroundRepeat: 'no-repeat', }}>
+            <Link href="/catalog/comp_sewing_machines/">
+              <div className="bg-white"><img src="/i/categories/compsewing.svg" alt="Электронные швейные машины" /></div>
+              <div className="nav-link px-0">Электронные<br />швейные машины</div>
             </Link>
           </div>
-          <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center">
-            <Link href="/catalog/sergers/">
-              <img src="/i/categories/overlock.svg" alt="Оверлоки, коверлоки и распошивальные машины" height="75" width="75" />
-              <div>Оверлоки и<br />коверлоки</div>
+          <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center" style={{ backgroundImage: "url('/i/categories/gifts.svg')", backgroundRepeat: 'no-repeat', }}>
+            <Link href="/catalog/sewing_embroidery_machines/">
+              <div className="bg-white"><img src="/i/categories/embroidery.svg" alt="Швейно-вышивальные машины" /></div>
+              <div className="nav-link px-0">Машины<br />с&nbsp;вышивкой</div>
             </Link>
           </div>
-          <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center">
-            <Link href="/catalog/knitting_machines/">
-              <img src="/i/categories/knitting.svg" alt="Вязальные машины" height="75" width="94" />
-              <div>Вязальные<br />машины</div>
+          <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center" style={{ backgroundImage: "url('/i/categories/gifts.svg')", backgroundRepeat: 'no-repeat', }}>
+            <Link href="/catalog/overlock/">
+              <div className="bg-white"><img src="/i/categories/overlock.svg" alt="Оверлоки и коверлоки" /></div>
+              <div className="nav-link px-0">Оверлоки</div>
             </Link>
           </div>
-          <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center">
-            <Link href="/catalog/accessories/threads/">
-              <img src="/i/categories/threads.svg" alt="Нитки" height="75" width="75" />
-              <div>Нитки</div>
+          <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center" style={{ backgroundImage: "url('/i/categories/gifts.svg')", backgroundRepeat: 'no-repeat', }}>
+            <Link href="/catalog/coverpro/">
+              <div className="bg-white"><img src="/i/categories/prom.svg" alt="Плоскошовные машины" /></div>
+              <div className="nav-link px-0">Плоскошовные<br />машины</div>
             </Link>
           </div>
-          <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center">
+          <div className="col-6 col-md-4 col-lg-auto mb-grid-gutter text-center" style={{ backgroundImage: "url('/i/categories/gifts.svg')", backgroundRepeat: 'no-repeat', }}>
             <Link href="/catalog/accessories/">
-              <img src="/i/categories/accessories.svg" alt="Аксессуары" height="75" width="75" />
-              <div>Аксессуары</div>
+              <div className="bg-white"><img src="/i/categories/accessories.svg" alt="Аксессуары" /></div>
+              <div className="nav-link px-0">Аксессуары</div>
             </Link>
           </div>
-          <div className="d-none d-lg-block col-lg-auto mb-grid-gutter text-center">
-            <Link href="/catalog/parts/">
-              <img src="/i/categories/parts.svg" alt="Запасные части" height="75" width="75" />
-              <div>Запасные<br />части</div>
-            </Link>
+          <div className="d-none d-lg-flex col-6 col-md-4 col-lg-auto mb-grid-gutter text-center flex-grow-1" style={{ backgroundImage: "url('/i/categories/gifts.svg')", backgroundRepeat: 'no-repeat', }}>
+            <div className="bg-white"></div>
+            <div className="nav-link px-0"></div>
           </div>
+
         </div>
       </div>
     </div>

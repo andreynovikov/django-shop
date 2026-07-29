@@ -37,9 +37,9 @@ export default function BaseLayout({
   return (
     <>
       <Head>
-        <title>{`${(htmlTitle || title) ? (htmlTitle || title) + " - " : ""}Швейный Мир`}</title>
-        <meta name="description" content="Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары" />
-        <meta name="keywords" content="швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов Швейный Мир, швейная, швейные, вышивальная, вышивальные, вязальная, вязальные, машинка, машина, машинки, машины, оверлок, оверлоки,  шитье, вышивка, вязание, купить, интернет, магазин, pfaff, brother, janome, bernina, husqvarna, huskystar, viking, оверлок, строчка, петля, челнок, стежок, ткань, рукав" />
+        <title>{`${(htmlTitle || title) ? (htmlTitle || title) + " - " : ""}Janome.Club`}</title>
+        <meta name="description" content="Janome - швейные машины, вышивальные машины, оверлоки и аксессуары" />
+        <meta name="keywords" content="швейные машины, вышивальные машины, оверлоки и аксессуары Janome" />
         <Favicons />
       </Head>
       <div className="root">

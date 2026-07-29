@@ -38,11 +38,13 @@ export default function Index() {
   })
 
   const { data: adverts } = useQuery({
-    queryKey: advertKeys.list(['main', 'index_top_new', 'index_middle_new', 'index_bottom_new']),
-    queryFn: () => loadAdverts(['main', 'index_top_new', 'index_middle_new', 'index_bottom_new'])
+    queryKey: advertKeys.list(['mainTop', 'mainMiddle', 'mainBottom', 'index_top_new', 'index_middle_new', 'index_bottom_new']),
+    queryFn: () => loadAdverts(['mainTop', 'mainMiddle', 'mainBottom', 'index_top_new', 'index_middle_new', 'index_bottom_new'])
   })
 
-  const mainAdvert = adverts?.find(advert => advert.place === 'main')
+  const mainTopAdvert = adverts?.find(advert => advert.place === 'mainTop')
+  const mainMiddleAdvert = adverts?.find(advert => advert.place === 'mainMiddle')
+  const mainBottomAdvert = adverts?.find(advert => advert.place === 'mainBottom')
   const topAdverts = adverts?.filter(advert => advert.place === 'index_top_new') ?? []
   const middleAdverts = adverts?.filter(advert => advert.place === 'index_middle_new') ?? []
   const bottomAdverts = adverts?.filter(advert => advert.place === 'index_bottom_new') ?? []
@@ -57,18 +59,22 @@ export default function Index() {
       </Head>
       <div className="mb-3">
         <section className="pb-5">
-          <div className="bg-dark py-5"></div>
-          <div className="py-3"></div>
+          <div className="bg-info">
+            <div className="d-none d-md-flex justify-content-between">
+              <div><img src="/i/tree_left.svg" /></div>
+              <div><img src="/i/tree_right.svg" /></div>
+            </div>
+          </div>
         </section>
 
-        <div className="d-flex flex-column position-relative pt-3 pt-lg-0 mt-n10" style={{ zIndex: 10 }}>
+        <div className="d-flex flex-column position-relative pt-3 pt-lg-0 mt-md-n25" style={{ zIndex: 10 }}>
           <section className="container order-2 order-sm-1">
             <TopCategoriesCard />
           </section>
 
-          {mainAdvert && (
+          {mainTopAdvert && (
             <section className="container pt-0 pt-sm-5 order-1 order-sm-2">
-              <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainAdvert.content }} />
+              <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainTopAdvert.content }} />
             </section>
           )}
         </div>
@@ -77,14 +83,11 @@ export default function Index() {
 
         {isRecomendedSuccess && recomendedProducts.results.length > 0 && (
           <section className="container pt-5">
-            <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
-              <h2 className="h3 mb-0 pt-3 me-2">Специальные предложения</h2>
-              <div className="pt-3">
-                <Link className="btn btn-accent btn-sm" href="/catalog/promo/">
-                  Больше специальных предложений
-                  <i className="ci-arrow-right ms-1 me-n1" />
-                </Link>
-              </div>
+            <div className="d-flex flex-wrap align-items-end border-bottom border-header border-2 pt-1 pb-0 mb-4">
+              <div className="d-none d-sm-block"><img src="/i/categories/heart.svg" alt="*" /></div>
+              <Link href="/catalog/promo/">
+                <h2 className="h3 mb-0 pt-3 pb-2 me-2 flex-grow-1">Специальные предложения</h2>
+              </Link>
             </div>
             <div className="row pt-2 mx-n2">
               {recomendedProducts.results.map((product, index) => (
@@ -96,19 +99,21 @@ export default function Index() {
             </div>
           </section>
         )}
+        {mainMiddleAdvert && (
+          <section className="container pt-0 pt-sm-5 order-1 order-sm-2">
+            <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainMiddleAdvert.content }} />
+          </section>
+        )}
 
         <Adverts adverts={middleAdverts} />
 
         {isNewSuccess && newProducts.results.length > 0 && (
           <section className="container pt-5">
-            <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
-              <h2 className="h3 mb-0 pt-3 me-2">Новинки</h2>
-              <div className="pt-3">
-                <Link className="btn btn-accent btn-sm" href="/catalog/New/">
-                  Больше новинок
-                  <i className="ci-arrow-right ms-1 me-n1" />
-                </Link>
-              </div>
+            <div className="d-flex flex-wrap align-items-end border-bottom border-header border-2 pt-1 pb-0 mb-4">
+              <div className="d-none d-sm-block"><img src="/i/categories/stars.svg" alt="*" /></div>
+              <Link href="/catalog/New/">
+                <h2 className="h3 mb-0 pt-3 pb-2 me-2 flex-grow-1">Новинки</h2>
+              </Link>
             </div>
             <div className="row pt-2 mx-n2">
               {newProducts.results.map((product, index) => (
@@ -120,8 +125,34 @@ export default function Index() {
             </div>
           </section>
         )}
+        {mainBottomAdvert && (
+          <section className="container pt-0 pt-sm-5 order-1 order-sm-2">
+            <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainBottomAdvert.content }} />
+          </section>
+        )}
 
         <Adverts adverts={bottomAdverts} />
+
+        <div className="container text-center">
+          <div className="row">
+            <div className="col-md-3 p-4">
+              <h2 className="text-primary">Бренд №1</h2>
+              <p>по&nbsp;объёму продаж швейного оборудования в&nbsp;мире</p>
+            </div>
+            <div className="col-md-3 p-4">
+              <h2 className="text-primary">3 собственных завода</h2>
+              <p>в Японии, Таиланде и на Тайване</p>
+            </div>
+            <div className="col-md-3 p-4">
+              <h2 className="text-primary">Официальные</h2>
+              <p>поставки в&nbsp;Россию</p>
+            </div>
+            <div className="col-md-3 p-4">
+              <h2 className="text-primary">В 1921 году</h2>
+              <p>основана первая фабрика в&nbsp;Японии</p>
+            </div>
+          </div>
+        </div>
       </div>
     </>
   )

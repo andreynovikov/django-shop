@@ -45,15 +45,15 @@ export default function Stores({ marketplace, lottery }) {
     if (!ymapsReady || !stores)
       return
 
-    const coords = [55.76, 37.64]
+    const coords = [55.706959, 37.658536]
     const map = new ymaps.Map('map', {
       center: coords,
-      zoom: 10,
+      zoom: 16,
       controls: ['zoomControl', 'fullscreenControl', 'geolocationControl', 'rulerControl']
     })
     map.margin.setDefaultMargin(100)
-
-    stores.filter((store) => store.latitude && store.longitude).map((store) => {
+    // только один магазин с id=295 показываем
+    stores.filter((store) => store.latitude && store.longitude && store.id == 295).map((store) => {
       map.geoObjects.add(new ymaps.Placemark([store.latitude, store.longitude], {
         balloonContentHeader:
           `<a href="/stores/${store.id}/">${store.name}</a>`,
@@ -73,12 +73,10 @@ export default function Stores({ marketplace, lottery }) {
             `<span class="d-inline-block align-top"><a href="${store.url}">${store.url}</a></span></div>`
             : ''),
         balloonContentFooter:
-          store.logo !== 'sewingworld' ? '<small>*магазин-партнер. Рекламные акции Швейного Мира могут не действовать в этом магазине</small>' : ''
+          store.logo !== 'sewingworld' ? '' : ''
       },
         {
-          iconLayout: 'default#image',
-          iconImageHref: store.logo ? `/i/shoplogos/marks/${store.logo}.png` : '/i/shoplogos/marks/other.png',
-          iconImageSize: [27, 26], iconImageOffset: [-10, -23]
+          preset: 'islands#redHeartIcon'
         }))
     })
 
@@ -170,6 +168,43 @@ export default function Stores({ marketplace, lottery }) {
             <div className="iframe-full-height" id="map"></div>
           </div>
           <div className="col-lg-6 px-4 px-xl-5 py-4">
+            <div className="card border-0 shadow-sm">
+              <div className="card-body" itemScope itemType="http://schema.org/Organization">
+                <ul className="list-unstyled mb-0">
+                  <li className="d-flex">
+                    <i className="ci-location fs-lg my-1 text-primary" />
+                    <div className="ps-3 fs-sm" itemProp="address" itemScope itemType="http://schema.org/PostalAddress">
+                      <span itemProp="streetAddress">
+                        Автозаводская ул., д.9/1
+                      </span>
+                      <span className="d-none" itemProp="addressLocality">Москва</span>
+                    </div>
+                  </li>
+                  <li className="d-flex pt-2 mt-2 mb-0 border-top">
+                    <i className="ci-phone fs-lg my-1 text-primary" />
+                    <div className="ps-3 fs-sm">
+                      <a
+                        className={'d-block nav-link-style'}
+                        href={'tel:+74957440087'}
+                        itemProp="telephone">
+                        +7 (495) 744-00-87
+                      </a>
+                    </div>
+                  </li>
+
+                  <li className="d-flex pt-2 mt-2 mb-0 border-top">
+                    <i className="ci-time fs-lg my-1 text-primary" />
+                    <div className="ps-3 fs-sm">
+                      <div>
+                        пн-сб: 10:00 - 20:00<br />вс: 10:00 - 19:00
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/*
             <div>
               <Collapsable
                 id={2}
@@ -243,10 +278,12 @@ export default function Stores({ marketplace, lottery }) {
                 </div>
               ))}
             </div>
+              */
+            }
           </div>
         </div>
       </div>
-
+      {/*
       <section className="container-fluid pt-grid-gutter mt-md-4 mb-5">
         <div className="row">
           {storeGroups.length > 0 && storeGroups.filter(({ city }) => currentCity === null || city.id === currentCity).map(({ city, stores }) => (
@@ -328,6 +365,8 @@ export default function Stores({ marketplace, lottery }) {
           ))}
         </div>
       </section>
+        */
+      }
       <Script
         id="ymaps"
         src={"https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=" + process.env.NEXT_PUBLIC_YMAPS_API_KEY}
@@ -341,8 +380,7 @@ Stores.getLayout = function getLayout(page) {
   console.log(page.props)
   const title =
     page.props.marketplace !== false ? "В этих магазинах можно пройти бесплатное обучение работе на швейной машине при предъявлении гарантийного талона" :
-      page.props.lottery !== false ? "Покупатели этих магазинов принимают участие в юбилейной лотерее" :
-        "Наши магазины рядом с Вами"
+      "Фирменный магазин Janome рядом с м.Автозаводская"
 
   return (
     <PageLayout htmlTitle="Адреса магазинов" title={title}>

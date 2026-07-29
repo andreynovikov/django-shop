@@ -1,3 +1,9 @@
 User-Agent: *
-Allow: /
+Disallow: /cart/
+Disallow: /user/
+Disallow: /products/*/stock/
+Disallow: /compare/*/
+Disallow: /search/
+Disallow: /*?erid=
+Disallow: /*?etext=
 Host: https://janome.club

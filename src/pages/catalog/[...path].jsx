@@ -21,7 +21,6 @@ const pageStaleTime = 3600
 
 const baseFilters = {
   enabled: true,
-  show_on_sw: true,
 }
 
 const defaultOrder = 'title'

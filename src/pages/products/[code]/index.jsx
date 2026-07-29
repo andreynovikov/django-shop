@@ -345,6 +345,7 @@ export default function Product({ code }) {
                     </div>
                   )}
 
+                  {/*
                   {product.enabled && product.cost > 0 && (
                     <div className={"mb-4" + (product.enabled ? "" : " mt-5")}>
                       <Menu.Root modal={false}>
@@ -365,6 +366,8 @@ export default function Product({ code }) {
                       </Menu.Root>
                     </div>
                   )}
+                    */
+                  }
 
                   {product.enabled && product.gifts && (
                     <>

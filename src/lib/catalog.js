@@ -3,23 +3,20 @@ import { useRouter } from 'next/router'
 
 export const recomendedProductsFilters = {
   enabled: true,
-  categories: 473,
+  categories: 743,
   firstpage: true,
-  show_on_sw: true
 }
 
 export const giftProductsFilters = {
   enabled: true,
   gift: true,
   firstpage: true,
-  show_on_sw: true
 }
 
 export const newProductsFilters = {
   enabled: true,
   isnew: true,
   firstpage: true,
-  show_on_sw: true
 }
 
 export default function useCatalog() {

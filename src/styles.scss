@@ -66,15 +66,15 @@ body {
 
 // Cartzilla tweaks
 
-.navbar-brand>img {
+.navbar-brand>img, .navbar-brand>svg  {
     // make logo highly responsive
     width: auto;
-    height: 26px;
+    height: 35px;
     object-position: left;
     object-fit: cover;
 
     @include media-breakpoint-up(xl) {
-        height: 53px;
+        height: 44px;
     }
 }
 
@@ -160,7 +160,7 @@ a:not([href]):not([class]) {
 }
 
 .sw-bg-light {
-    background-color: #fffaee
+    background-color: #f3f5f9
 }
 
 .sw-button {
