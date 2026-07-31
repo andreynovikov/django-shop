@@ -9,16 +9,15 @@ import { useQueryStates, parseAsString, parseAsBoolean, parseAsInteger, parseAsA
 import Offcanvas from 'react-bootstrap/Offcanvas'
 
 import PageLayout from '@/components/layout/page'
-import ProductSearchCard from '@/components/product/search-card'
+import ProductCard from '@/components/product/card'
 import MultipleChoiceFilter from '@/components/product/filters/multiple-choice-filter'
 import PriceFilter from '@/components/product/filters/price-filter'
 import PageSelector, { SmallPageSelector } from '@/components/page-selector'
 import { PageLoading } from '@/components/loading'
 
-import { productKeys } from '@/lib/queries'
-import { loadProducts } from '@/lib/diginetica'
+import { productKeys, loadProducts } from '@/lib/queries'
 import { useToolbar } from '@/lib/toolbar'
-import { useCatalog } from '@/lib/catalog'
+import { useCatalog, baseFilters } from '@/lib/catalog'
 import rupluralize from '@/lib/rupluralize'
 
 const searchParams = {
@@ -48,13 +47,13 @@ export default function Search({ text }) {
 
   useToolbar(toolbarItem)
 
+  const productFilters = { ...filters, ...baseFilters }
+
   const { data: result, isSuccess, isLoading, isError } = useQuery({
-    queryKey: productKeys.search(text, filters, null),
-    queryFn: () => loadProducts(text, filters.page, 15, filters),
+    queryKey: productKeys.list(filters.page || 1, 15, productFilters, null),
+    queryFn: () => loadProducts(filters.page || 1, 15, productFilters, null),
     placeholderData: keepPreviousData // required for filters not to loose choices and attributes
   })
-
-  const pages = Math.ceil((result?.totalHits ?? 0) / 15)
 
   const priceFilter = useMemo(() => {
     const priceFacet = result?.facets?.reduce((selected, facet) => facet.name === 'price' ? facet : selected, undefined)
@@ -133,28 +132,28 @@ export default function Search({ text }) {
           <section className="col-lg-8">
             <div className="d-flex justify-content-center justify-content-sm-between align-items-center pt-2 pb-4 pb-sm-5">
               <div className="d-flex pb-3">
-                {result?.totalHits > 0 && (
+                {result?.count > 0 && (
                   <span className="text-light opacity-75 text-nowrap">
-                    {rupluralize(result.totalHits, ['Найден', 'Найдены', 'Найдены'])}
-                    {' '}{result.totalHits}{' '}
-                    {rupluralize(result.totalHits, ['товар', 'товара', 'товаров'])}
+                    {rupluralize(result.count, ['Найден', 'Найдены', 'Найдены'])}
+                    {' '}{result.count}{' '}
+                    {rupluralize(result.count, ['товар', 'товара', 'товаров'])}
                   </span>
                 )}
               </div>
-              {pages > 1 && (
+              {result?.totalPages > 1 && (
                 <SmallPageSelector
                   pathname={router.pathname}
                   query={router.query}
-                  totalPages={pages}
-                  currentPage={filters.page} />
+                  totalPages={result?.totalPages ?? 0}
+                  currentPage={result?.currentPage ?? 1} />
               )}
             </div>
 
             <div className="row mx-n2">
-              {result?.totalHits > 0 ? (
-                result.products.map((product, index) => (
+              {result?.count > 0 ? (
+                result.results.map((product, index) => (
                   <div className="col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
-                    <ProductSearchCard result={product} position={index} />
+                    <ProductCard product={product} position={index} />
                     <hr className="d-sm-none" />
                   </div>
                 ))
@@ -167,14 +166,14 @@ export default function Search({ text }) {
               )}
             </div>
 
-            {pages > 1 && (
+            {result?.totalPages > 1 && (
               <>
                 <hr className="my-3" />
                 <PageSelector
                   pathname={router.pathname}
                   query={router.query}
-                  totalPages={pages}
-                  currentPage={filters.page} />
+                  totalPages={result?.totalPages ?? 0}
+                  currentPage={result?.currentPage ?? 1} />
               </>
             )}
           </section>
