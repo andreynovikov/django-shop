@@ -1,5 +1,4 @@
 import logging
-from itertools import chain
 from random import randint
 
 from django.conf import settings
@@ -29,11 +28,11 @@ from qrcode.image.svg import SvgPathImage
 
 from yandex_kassa.views import payment as yandex_payment
 
-from rarus.tasks import get_bonus_value
+# from rarus.tasks import get_bonus_value
 from shop.filters import get_product_filter
 from shop.models import Category, ProductKind, Product, ProductSet, Stock, Basket, BasketItem, Order, OrderItem, \
     Favorites, ShopUser, Bonus, News, SalesAction, Advert, Store, ServiceCenter, Serial, Integration, ProductIntegration
-from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail, notify_manager
+from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail
 
 from .models import SiteProfile
 from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSerializer, ProductListSerializer, \
@@ -97,8 +96,8 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         if self.action == 'list':
-            root_slug = self.request.site.profile.category_root_slug
-            queryset = Category.objects.get(slug=root_slug).get_active_children()
+            root_category = self.request.site.profile.root_category
+            queryset = root_category.get_active_children()
             feed = self.request.query_params.get('feed')
             if feed is not None:
                 value = feed in ('1', 'on', 't', 'true', 'y', 'yes')
@@ -110,7 +109,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
         key = self.kwargs.get(self.lookup_field)
 
         if not key.isdigit():
-            root_slug = self.request.site.profile.category_root_slug
+            root_category = self.request.site.profile.root_category
             # instance select taken from mptt_urls
             instance = None
             path = key  # path = '{}/'.format(key)  # we add trailing slash to conform .get_path() from mptt_urls
@@ -120,7 +119,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
                 for candidate in candidates:
                     # here we compare each candidate's path to the path passed to this view
                     if candidate.get_api_path() == path:
-                        if root_slug != candidate.get_root().slug:
+                        if root_category != candidate.get_root():
                             continue
                         instance = candidate
                         break
@@ -168,8 +167,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         return super().get_serializer(*args, **kwargs)
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        has_category_filter = False
+        queryset = super().get_queryset().filter(sites=self.request.site)
 
         for field, values in self.request.query_params.lists():
             if field == 'in_category':
@@ -179,7 +177,6 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                     categories.append(category)
                     categories.extend(category.get_descendants().filter(active=True))
                 queryset = queryset.filter(categories__in=categories)
-                has_category_filter = True
                 continue
             base_field = field.split('__', 1)[0]
             if base_field not in self.filtering_fields:
@@ -221,7 +218,6 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             elif field == 'categories':
                 key = '{}__pk__exact'.format(field)
                 queryset = queryset.filter(**{key: values[0]})
-                has_category_filter = True
 
                 category = Category.objects.get(pk=values[0])
                 if category.filters:
@@ -248,13 +244,6 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             else:  # строковый поиск
                 key = '{}__exact'.format(field)
                 queryset = queryset.filter(**{key: values[0]})
-
-        # Always limit product list to current category hierarchy
-        if not has_category_filter:
-            root_slug = self.request.site.profile.category_root_slug
-            if root_slug:
-                root = Category.objects.get(slug=root_slug)
-                queryset = queryset.filter(categories__in=root.get_descendants(include_self=True))
 
         return queryset.distinct()
 
@@ -283,7 +272,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True)
     def bycode(self, request, pk=None):
         product = self.get_queryset().filter(code=pk).first()
-        if product == None:
+        if product is None:
             raise NotFound()
         return Response(self.get_serializer(product, context=self.get_serializer_context()).data)
 
@@ -300,12 +289,13 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True, permission_classes=[IsAuthenticated])
     def price(self, request, pk=None):
         product = self.get_object()
+        product_price = product.site_price(request.site)
         user = request.user
         return Response({
             'user': user.pk,
             'user_discount': user.discount,
-            'price': product.price,
-            'cost': Basket.product_cost_for_user(request.site.profile.wholesale, product, user)
+            'price': product_price,
+            'cost': Basket.product_cost_for_user(request.site, product, product_price, user)
         })
 
     @action(detail=True)
@@ -340,7 +330,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True)
     def video(self, request, pk=None):
         product = self.get_queryset().filter(code=pk).first()
-        if product == None or not product.video_url:
+        if product is None or not product.video_url:
             raise NotFound()
         return redirect(product.video_url)
 
@@ -551,12 +541,14 @@ class OrderViewSet(viewsets.ModelViewSet):
             'comment': 'Запрос о поступлении'
         }
         order = Order.register(basket, **kwargs)
+        """
         ipgeobases = IPGeoBase.objects.by_ip(request.META.get('REMOTE_ADDR'))
         if ipgeobases.exists():
             for ipgeobase in ipgeobases:
                 if ipgeobase.city is not None:
                     order.city = ipgeobase.city
                     break
+        """
         order.save()
         basket.delete()
         return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
@@ -566,7 +558,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         order = self.get_object()  # this looks redundant but we keep it for framework internal checks
         return_url = request.data.get('return_url', None)
         response = yandex_payment(request, order.id, return_url)
-        if type(response) == HttpResponseRedirect:
+        if isinstance(response, HttpResponseRedirect):
             return Response({'location': response.url})
         else:
             return response
@@ -717,10 +709,10 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not hasattr(user, 'bonus'):
             user.bonus = Bonus()
-        if not user.bonus.is_fresh and not user.bonus.is_updating:
-            user.bonus.status = Bonus.STATUS_PENDING
-            user.bonus.save()
-            get_bonus_value.delay(user.phone)
+        # if not user.bonus.is_fresh and not user.bonus.is_updating:
+        #     user.bonus.status = Bonus.STATUS_PENDING
+        #     user.bonus.save()
+        #     get_bonus_value.delay(user.phone)
         return Response(self.get_serializer(user.bonus, context=self.get_serializer_context()).data)
 
     @action(detail=True, methods=['post'])
@@ -974,7 +966,7 @@ class IntegrationViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True)
     def byutm(self, request, pk=None):
         integration = self.get_queryset().filter(utm_source=pk).first()
-        if integration == None:
+        if integration is None:
             raise NotFound()
         return Response(self.get_serializer(integration, context=self.get_serializer_context()).data)
 
@@ -989,8 +981,10 @@ class IntegrationViewSet(viewsets.ReadOnlyModelViewSet):
         }
 
         if not integration.output_skip_categories:
-            root = Category.objects.get(slug=settings.MPTT_ROOT)
-            filters['categories__in'] = root.get_descendants(include_self=True).filter(active=True, feed=True)
+            root_category = integration.site.profile.root_category
+            if root_category is None:
+                root_category = self.request.site.profile.root_category
+            filters['categories__in'] = root_category.get_descendants(include_self=True).filter(active=True, feed=True)
 
         products = Product.objects.order_by().filter(**filters).distinct()
 

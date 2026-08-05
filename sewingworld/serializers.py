@@ -206,8 +206,8 @@ class ProductListSerializer(DynamicFieldsModelSerializer):
 
     class Meta:
         model = Product
-        fields = ('id', 'code', 'article', 'partnumber', 'order', 'whatis', 'whatisit', 'title', 'variations', 'price',
-                  'cost', 'discount', 'instock', 'image', 'enabled', 'isnew', 'recomended',
+        fields = ('id', 'code', 'article', 'partnumber', 'order', 'whatis', 'whatisit', 'type_prefix', 'title', 'variations',
+                  'price', 'cost', 'discount', 'instock', 'image', 'enabled', 'isnew', 'recomended',
                   'ws_pack_only', 'pack_factor', 'sales', 'sales_notes', 'shortdescr', 'rank',
                   'wb_link', 'ozon_link')
 
@@ -221,17 +221,11 @@ class ProductListSerializer(DynamicFieldsModelSerializer):
 
     def get_price(self, obj):
         request = self.context.get('request')
-        if request.site.profile.wholesale:
-            return obj.ws_price
-        else:
-            return obj.price
+        return obj.site_price(request.site)
 
     def get_cost(self, obj):
         request = self.context.get('request')
-        if request.site.profile.wholesale:
-            return obj.ws_cost
-        else:
-            return obj.cost
+        return obj.site_cost(request.site)
 
     def get_instock(self, obj):
         return max(min(obj.instock, 10), 0)
@@ -277,31 +271,40 @@ class ProductSerializer(NonNullModelSerializer):
 
     def get_price(self, obj):
         request = self.context.get('request')
-        if request.site.profile.wholesale:
-            return obj.ws_price
-        else:
-            return obj.price
+        return obj.site_price(request.site)
 
     def get_cost(self, obj):
         request = self.context.get('request')
-        if request.site.profile.wholesale:
-            return obj.ws_cost
-        else:
-            return obj.cost
+        return obj.site_cost(request.site)
 
     def get_instock(self, obj):
         return obj.instock  # TODO: limit output
 
     def get_accessories(self, obj):
-        accessories = obj.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_ACCESSORY)
+        request = self.context.get('request')
+        accessories = obj.related.filter(
+            child_products__child_product__enabled=True,
+            child_products__child_product__sites=request.site,
+            child_products__kind=ProductRelation.KIND_ACCESSORY
+        )
         return ProductListSerializer(accessories, many=True, context=self.context).data
 
     def get_similar(self, obj):
-        similar = obj.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_SIMILAR)
+        request = self.context.get('request')
+        similar = obj.related.filter(
+            child_products__child_product__enabled=True,
+            child_products__child_product__sites=request.site,
+            child_products__kind=ProductRelation.KIND_SIMILAR
+        )
         return ProductListSerializer(similar, many=True, context=self.context).data
 
     def get_gifts(self, obj):
-        gifts = obj.related.filter(child_products__child_product__enabled=True, child_products__kind=ProductRelation.KIND_GIFT)
+        request = self.context.get('request')
+        gifts = obj.related.filter(
+            child_products__child_product__enabled=True,
+            child_products__child_product__sites=request.site,
+            child_products__kind=ProductRelation.KIND_GIFT
+        )
         return ProductListSerializer(gifts, many=True, context=self.context).data
 
     def get_sales(self, obj):
@@ -347,10 +350,7 @@ class BasketItemProductSerializer(NonNullModelSerializer):
 
     def get_price(self, obj):
         request = self.context.get('request')
-        if request.site.profile.wholesale:
-            return obj.ws_price
-        else:
-            return obj.price
+        return obj.site_price(request.site)
 
 
 class BasketItemSerializer(serializers.ModelSerializer):
@@ -649,26 +649,39 @@ class IntegrationSerializer(NonNullModelSerializer):
 
 class IntegrationProductSerializer(serializers.ModelSerializer):
     categories = serializers.SerializerMethodField()
+    price = serializers.SerializerMethodField()
+    cost = serializers.SerializerMethodField()
     manufacturer = ManufacturerSerializer(read_only=True)
     instock = serializers.SerializerMethodField()
     stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
-        fields = ('id', 'code', 'article', 'partnumber', 'gtin', 'isnew', 'whatis', 'whatisit', 'title', 'descr', 'yandexdescr',
-                  'image', 'price', 'discount', 'cost', 'enabled', 'categories', 'instock', 'stock', 'manufacturer', 'manufacturer_warranty',
+        fields = ('id', 'code', 'article', 'partnumber', 'gtin', 'isnew', 'whatis', 'whatisit', 'type_prefix', 'title', 'descr', 'yandexdescr',
+                  'image', 'price', 'cost', 'enabled', 'categories', 'instock', 'stock', 'manufacturer', 'manufacturer_warranty',
                   'prom_weight', 'length', 'width', 'height', 'sales_notes', 'state')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         integration = self.context.get('integration')
-        if integration is not None and integration.output_skip_categories:
-            self.fields.pop('categories')
+        request = self.context.get('request')
+        if integration is not None:
+            self.site = integration.site
+            if integration.output_skip_categories:
+                self.fields.pop('categories')
+        else:
+            self.site = request.site
         if integration is None or not integration.output_stock:
             self.fields.pop('stock')
 
     def get_categories(self, obj):
         return list(obj.categories.filter(active=True).values_list('pk', flat=True))
+
+    def get_price(self, obj):
+        return obj.site_price(self.site)
+
+    def get_cost(self, obj):
+        return obj.site_cost(self.site)
 
     def get_instock(self, obj):
         return max(min(obj.instock, 10), 0)

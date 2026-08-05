@@ -9,8 +9,6 @@ from django.db.models import PositiveSmallIntegerField, PositiveIntegerField, \
 from django.conf import settings
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
-from django.core.files import File
-from django.core.files.storage import default_storage
 from django.http import JsonResponse, HttpResponse
 from django.template.response import TemplateResponse
 from django.urls import re_path
@@ -455,9 +453,11 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
         # обновляем кеш наличия при сохранении
         obj.num = -1
         super().save_model(request, obj, form, change)
+        roots = [
+            c.get_root() for c in obj.categories
+        ]
         # чистим кеши и обновляем мета-данные фоновой задачей
         post_update_product.delay(obj.pk, 'admin')
-
 
     def save_related(self, request, form, formsets, change):
         # this is a hack to avoid stock saving for duplicated products (gives error if stock correction is not zero)

@@ -13,7 +13,7 @@ from django.utils.formats import date_format
 from djconfig import config
 from model_utils import FieldTracker
 from colorfield.fields import ColorField
-from tagging.utils import parse_tag_input
+# from tagging.utils import parse_tag_input
 
 from . import Product, ProductSet, Store, ShopUser, Integration, Contractor, PosTerminal, Supplier
 
@@ -300,7 +300,7 @@ class Order(models.Model):
             order.seller = config.sw_default_seller
         order.save()
 
-        wholesale = basket.site.profile.wholesale
+        wholesale = order.site.profile.wholesale
         user_discount = basket.user_discount
 
         if wholesale:
@@ -310,21 +310,19 @@ class Order(models.Model):
 
         # добавляем в заказ все элементы корзины
         for item in basket.items.all():
+            price = item.product.site_price(order.site)
             # если это интеграция, то указываем только предоставленную рублёвую скидку
             if integration is not None and integration.uses_api:
                 pct_discount = 0
                 val_discount = item.ext_discount
-                price = item.product.price
             # если это опт, то указываем только рублёвую скидку, высчитанную корзиной
             elif wholesale:
                 pct_discount = 0
                 val_discount = item.discount
-                price = item.product.ws_price
             # иначе считаем отдельно скидку в процентах и копируем текущую рублёвую скидку товара
             else:
-                pct_discount = basket.product_pct_discount(wholesale, item.product, user_discount)
-                val_discount = item.product.val_discount
-                price = item.product.price
+                pct_discount = basket.product_pct_discount(order.site, item.product, user_discount)
+                val_discount = item.product.site_val_discount(order.site)
             # если это обычный товар, добавляем его в заказ
             if item.product.constituents.count() == 0:
                 order.items.create(product=item.product,
@@ -338,11 +336,7 @@ class Order(models.Model):
                 full_discount = val_discount
                 discount_remainder = full_discount
                 if not item.product.recalculate_price:
-                    if wholesale:
-                        full_price = item.product.ws_price
-                    else:
-                        full_price = item.product.price
-                    full_price = full_price.quantize(qnt, rounding=ROUND_UP)
+                    full_price = price.quantize(qnt, rounding=ROUND_UP)
                     price_remainder = full_price
                 constituents = ProductSet.objects.filter(declaration=item.product)
                 last = len(constituents) - 1
@@ -394,6 +388,7 @@ class Order(models.Model):
         return order
 
     def append_user_tags(self, tags):
+        """
         user_tags = parse_tag_input(self.user.tags)
         print(user_tags)
         print(tags)
@@ -401,6 +396,8 @@ class Order(models.Model):
         print(merged)
         self.user.tags = ','.join(merged)
         self.user.save()
+        """
+        pass
 
     def __str__(self):
         return "%s от %s" % (self.id, date_format(timezone.localtime(self.created), "DATETIME_FORMAT"))

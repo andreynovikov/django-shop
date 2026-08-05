@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import base64
 import csv
-import functools
 import hashlib
 import io
 import json
@@ -24,7 +23,6 @@ from urllib.error import HTTPError
 from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.contenttypes.models import ContentType
 from django.core import signing
-from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from django.core.mail import send_mail
 from django.core.validators import EmailValidator
@@ -52,7 +50,7 @@ from unisender import Unisender
 
 from sewingworld.models import SiteProfile
 from sewingworld.sms import send_sms
-from sewingworld.tasks import PRIORITY_HIGH, PRIORITY_NORMAL, PRIORITY_LOW, PRIORITY_IDLE
+from sewingworld.tasks import single_instance_task, PRIORITY_HIGH, PRIORITY_NORMAL, PRIORITY_LOW, PRIORITY_IDLE
 from sewingworld.templatetags.rupluralize import rupluralize
 
 from shop.models import ShopUser, ShopUserManager, Supplier, Currency, Product, Stock, Basket, Order
@@ -64,20 +62,6 @@ SINGLE_DATE_FORMAT_WITH_YEAR = 'j E Y'
 log = logging.getLogger('shop')
 
 sw_default_site = Site.objects.get(domain='www.sewing-world.ru')
-
-
-def single_instance_task(timeout):
-    def task_exc(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            lock_id = "celery-single-instance-" + func.__name__
-            if cache.add(lock_id, "true", timeout):
-                try:
-                    return func(*args, **kwargs)
-                finally:
-                    cache.delete(lock_id)
-        return wrapper
-    return task_exc
 
 
 def validate_email(email):
@@ -143,7 +127,11 @@ def update_order(self, order_id, data):
             setattr(order, attr, new_val)
             changed[attr] = new_val
     if changed:
-        order.save(update_fields=changed.keys())
+        try:
+            order.save(update_fields=changed.keys())
+        except Exception as e:
+            e.add_note("Failed to save info {}".format(str(data)))
+            raise
         change_message = ', '.join(map(lambda item: '{}: {}'.format(item[0], item[1]), changed.items()))
         LogEntry.objects.log_action(
             user_id=order.user.id,
@@ -374,10 +362,7 @@ def post_update_product(product_id, origin):
         'pk': product.pk,
         'code': product.code
     }
-    root_slugs = set()
-    for category in product.categories.all():
-        root_slugs.add(category.get_root().slug)
-    for site in Site.objects.filter(profile__category_root_slug__in=root_slugs).exclude(profile__revalidation_token__exact=''):
+    for site in product.sites.exclude(profile__revalidation_token__exact=''):
         revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
 
     return None
@@ -385,22 +370,12 @@ def post_update_product(product_id, origin):
 
 @shared_task(queue="priority")
 def post_update_products(product_ids):
-    slug_cache = {}
-    site_cache = {}
     nextjs_sites = defaultdict(list)
 
     for product_id in product_ids:
         product = Product.objects.get(pk=product_id)
-        root_slugs = set()
-        for category in product.categories.all():
-            if category.id not in slug_cache:
-                slug_cache[category.id] = category.get_root().slug
-            root_slugs.add(slug_cache[category.id])
-        for slug in root_slugs:
-            if slug not in site_cache:
-                site_cache[slug] = Site.objects.filter(profile__category_root_slug__exact=slug).exclude(profile__revalidation_token__exact='')
-            for site in site_cache[slug]:
-                nextjs_sites[site].append({'pk': product.pk, 'code': product.code})
+        for site in product.sites.exclude(profile__revalidation_token__exact=''):
+            nextjs_sites[site].append({'pk': product.pk, 'code': product.code})
 
     num = 0
     for site in nextjs_sites:
@@ -490,7 +465,7 @@ class fragile(object):
 
 
 @shared_task(time_limit=7200, retry_backoff=True)
-@single_instance_task(60 * 20)
+@single_instance_task(1200)
 def import1c(file):
     log.error('Import1C')
     enable_flag('1C_IMPORT_RUNNING')
@@ -641,7 +616,7 @@ def import1c(file):
             except MultipleObjectsReturned:
                 errors.append("%s: артикль не уникален" % line['article'])
             except ObjectDoesNotExist:
-                # errors.append("%s: товар отсутсвует" % line['article'])
+                # errors.append("%s: товар отсутствует" % line['article'])
                 pass
 
         if updated_products:

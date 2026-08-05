@@ -69,10 +69,9 @@ class Product(models.Model):
     ws_max_discount = models.PositiveSmallIntegerField('опт. макс. скидка, %', default=10)
     image = models.ImageField('изображение', upload_to=product_image_path, max_length=255, null=True, blank=True)
     big_image = models.ImageField('большое изображение', upload_to=product_big_image_path, max_length=255, null=True, blank=True)
-    kind = models.ManyToManyField('shop.ProductKind', verbose_name='тип', related_name='products',
-                                  related_query_name='product', blank=True)
-    categories = TreeManyToManyField('shop.Category', related_name='products',
-                                     related_query_name='product', verbose_name='категории', blank=True)
+    kind = models.ManyToManyField('shop.ProductKind', verbose_name='тип', related_name='products', related_query_name='product', blank=True)
+    categories = TreeManyToManyField('shop.Category', related_name='products', related_query_name='product', verbose_name='категории', blank=True)
+    sites = models.ManyToManyField(Site, verbose_name='сайты', related_name='products', related_query_name='product', blank=True)
     tags = models.CharField('теги', max_length=255, blank=True)  # TagField('теги')
     forbid_price_import = models.BooleanField('не импортировать цену', default=False)
     forbid_ws_price_import = models.BooleanField('не импортировать опт. цену', default=False)
@@ -343,14 +342,18 @@ class Product(models.Model):
 
     def site_price(self, site):
         site_price = self.site_prices.filter(site=site).first()
-        if site_price is None:
+        if site_price is None or site_price.price == 0:
             if site.profile.wholesale:
                 return self.ws_price
             else:
                 return self.price
+        return site_price.price
 
     def site_cost(self, site):
         site_price = self.site_prices.filter(site=site).first()
+        if self.pk == 2382:
+            logger.error(self.code)
+            logger.error(site_price)
         if site_price is None:
             if site.profile.wholesale:
                 return self.ws_cost
@@ -363,11 +366,18 @@ class Product(models.Model):
 
         discount = Decimal(0)
         if site_price.pct_discount > 0:
-            discount = (price.quantize(Decimal('1'), rounding=ROUND_UP) * Decimal(self.pct_discount / 100)).quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)
+            discount = (price.quantize(Decimal('1'), rounding=ROUND_UP) * Decimal(site_price.pct_discount / 100)).quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)
         if site_price.val_discount > discount:
             discount = site_price.val_discount
 
         return price - discount
+
+    def site_val_discount(self, site):
+        site_price = self.site_prices.filter(site=site).first()
+        if site_price is not None:
+            return site_price.val_discount
+        else:
+            return self.val_discount
 
     @property
     def instock(self):

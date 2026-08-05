@@ -2,7 +2,7 @@ from django.contrib.postgres.fields import ArrayField
 from django.contrib.sites.models import Site
 from django.db import models
 
-from shop.models import City
+from shop.models import Category, City
 
 
 class SiteProfile(models.Model):
@@ -10,7 +10,7 @@ class SiteProfile(models.Model):
     title = models.CharField('название', max_length=255, blank=True)
     description = models.CharField('описание', max_length=255, blank=True)
     wholesale = models.BooleanField('оптовый', default=False)
-    category_root_slug = models.CharField('slug корневой категории', max_length=30, blank=True)
+    root_category = models.ForeignKey(Category, verbose_name='корневая категория', related_name='profile', null=True, blank=True, on_delete=models.PROTECT)
     revalidation_token = models.CharField('Токен перегенерации', max_length=30, blank=True)
     city = models.ForeignKey(City, verbose_name='город', blank=True, null=True, on_delete=models.PROTECT)
     phone = models.CharField('телефон', max_length=255, blank=True, help_text='Указывается на сайте для связи')

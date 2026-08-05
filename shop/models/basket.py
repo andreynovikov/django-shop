@@ -24,24 +24,23 @@ class Basket(models.Model):
     utm_source = models.CharField(max_length=20, blank=True)
     secondary = models.BooleanField(default=False)
 
-    def product_cost(self, product):
-        if self.site.profile.wholesale:
-            return product.ws_price - self.product_discount(product)
-        else:
-            return product.price - self.product_discount(product)
+    @classmethod
+    def product_cost_for_user(cls, site, product, product_price, user):
+        return product_price - cls.product_discount_with_user_discount(wholesale, product, user.discount)
 
     @classmethod
-    def product_cost_for_user(cls, wholesale, product, user):
-        if wholesale:
-            return product.ws_price - cls.product_discount_with_user_discount(wholesale, product, user.discount)
-        else:
-            return product.price - cls.product_discount_with_user_discount(wholesale, product, user.discount)
-
-    @classmethod
-    def product_pct_discount(cls, wholesale, product, user_discount):
+    def product_pct_discount(cls, site, product, user_discount):
         """ Calculates maximum percent discount based on product, user discount and maximum allowed discount """
-        if wholesale:
-            pd = max(product.ws_pct_discount, user_discount)
+        site_price = product.site_prices.filter(site=site).first()
+        if site_price is not None:
+            pd = site_price.pct_discount
+        elif site.profile.wholesale:
+            pd = product.ws_pct_discount
+        else:
+            pd = product.pct_discount
+        pd = max(pd, user_discount)
+
+        if site.profile.wholesale:
             if pd > product.ws_max_discount:
                 pd = product.ws_max_discount
             pdp = round(product.ws_price * Decimal((100 - pd) / 100))
@@ -49,38 +48,42 @@ class Basket(models.Model):
                 d = product.ws_price - product.sp_price
                 pd = int(d / product.ws_price * 100)
         else:
-            pd = max(product.pct_discount, user_discount)
             if pd > product.max_discount:
                 pd = product.max_discount
         return pd
 
     @classmethod
-    def product_discount_with_user_discount(cls, wholesale, product, user_discount):
+    def product_discount_with_user_discount(cls, site, product, user_discount):
         """ Calculates final product discount considering user discount """
         pd = Decimal(0)
-        pct = cls.product_pct_discount(wholesale, product, user_discount)
+        pct = cls.product_pct_discount(site, product, user_discount)
         if pct > 0:
-            if wholesale:
-                price = product.ws_price
+            price = product.site_price(site)
+            if site.profile.wholesale:
                 qnt = Decimal('0.01')
             else:
-                price = product.price.quantize(Decimal('1'), rounding=ROUND_UP)
                 qnt = Decimal('1')
-            pd = (price * Decimal(pct / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
-        if not wholesale and product.val_discount > pd:
-            pd = product.val_discount
+            pd = (price.quantize(qnt, rounding=ROUND_UP) * Decimal(pct / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
+        if not site.profile.wholesale:
+            site_price = product.site_prices.filter(site=site).first()
+            if site_price is not None:
+                pvd = site_price.val_discount
+            else:
+                pvd = product.val_discount
+            if pvd > pd:
+                pd = pvd
         return pd
 
     def product_discount(self, product):
         """ Provides discount for basket items using basket owner """
-        return self.product_discount_with_user_discount(self.site.profile.wholesale, product, self.user_discount)
+        return self.product_discount_with_user_discount(self.site, product, self.user_discount)
 
     def product_discount_text(self, product):
         """ Provides human readable discount string. """
         pd = Decimal(0)
         pdv = Decimal(0)
         pdt = False
-        pct = self.product_pct_discount(self.site.profile.wholesale, product, self.user_discount)
+        pct = self.product_pct_discount(self.site, product, self.user_discount)
         if pct > 0:
             if self.site.profile.wholesale:
                 price = product.ws_price
@@ -165,17 +168,19 @@ class BasketItem(models.Model):
 
     @property
     def price(self):
+        price = self.cost * Decimal(self.quantity)
         if self.basket.site.profile.wholesale:
-            return (self.cost * Decimal(self.quantity)).quantize(Decimal('0.01'), rounding=ROUND_UP)
+            return price.quantize(Decimal('0.01'), rounding=ROUND_UP)
         else:
-            return (self.cost * Decimal(self.quantity))  # .quantize(Decimal('1'), rounding=ROUND_UP)
+            return price  # .quantize(Decimal('1'), rounding=ROUND_UP)
 
     @property
     def cost(self):
+        cost = self.product.site_price(self.basket.site) - self.discount
         if self.basket.site.profile.wholesale:
-            return self.product.ws_price - self.discount
+            return cost
         else:
-            return (self.product.price - self.discount).quantize(Decimal('1'), rounding=ROUND_UP)
+            return cost.quantize(Decimal('1'), rounding=ROUND_UP)
 
     @property
     def discount(self):
