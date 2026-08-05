@@ -91,7 +91,7 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
     defaultOptions: {
       queries: {
         refetchOnWindowFocus: process.env.NODE_ENV !== "development",
-        retry: process.env.NODE_ENV === "development" ? 1 : 3
+        retry: process.env.NODE_ENV === "development" ? 1 : 5
       }
     }
   }));
