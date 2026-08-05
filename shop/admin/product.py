@@ -9,8 +9,6 @@ from django.db.models import PositiveSmallIntegerField, PositiveIntegerField, \
 from django.conf import settings
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
-from django.core.files import File
-from django.core.files.storage import default_storage
 from django.http import JsonResponse, HttpResponse
 from django.template.response import TemplateResponse
 from django.urls import re_path
@@ -28,7 +26,7 @@ from import_export.admin import ImportExportMixin
 
 from flags.state import flag_enabled
 
-from shop.models import Product, ProductImage, ProductRelation, ProductSet, ProductKind, \
+from shop.models import Product, ProductImage, ProductPrice, ProductRelation, ProductSet, ProductKind, \
     ProductReview, Stock, Integration, Order
 from shop.tasks import post_update_product
 from .forms import ProductImportForm, ProductConfirmImportForm, ProductExportForm, \
@@ -75,6 +73,20 @@ class ProductImageInline(SortableInlineAdminMixin, admin.TabularInline):
     }
     verbose_name = "дополнительное изображение"
     verbose_name_plural = "дополнительные изображения"
+
+
+class ProductPriceInline(admin.TabularInline):
+    model = ProductPrice
+    fields = ['site', 'cur_price', 'price', 'pct_discount', 'val_discount']
+    readonly_fields = ['price']
+    ordering = ['site__name']
+    extra = 0
+    formfield_overrides = {
+        PositiveSmallIntegerField: {'widget': TextInput(attrs={'style': 'width: 4em'})},
+        DecimalField: {'widget': TextInput(attrs={'style': 'width: 8em'})},
+    }
+    verbose_name = "цена на сайте"
+    verbose_name_plural = "цены на сайтах"
 
 
 class StockInline(admin.TabularInline):
@@ -152,7 +164,6 @@ class IntegrationsFilter(SimpleDropdownFilter):
             return queryset.filter(integration__exact=self.value())
         else:
             return queryset
-
 
 
 class OzonLinkFilter(admin.SimpleListFilter):
@@ -265,19 +276,19 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
     readonly_fields = ['price', 'ws_price', 'sp_price']
     ordering = ('-id',)
     save_on_top = True
-    inlines = (ProductImageInline, ProductSetInline, ProductRelationInline, IntegrationInline, StockInline)
+    inlines = (ProductImageInline, ProductPriceInline, ProductSetInline, ProductRelationInline, IntegrationInline, StockInline)
     filter_vertical = ('categories',)
     autocomplete_fields = ('manufacturer',)
     formfield_overrides = {
         PositiveSmallIntegerField: {'widget': TextInput(attrs={'style': 'width: 4em'})},
         PositiveIntegerField: {'widget': TextInput(attrs={'style': 'width: 8em'})},
-        DecimalField: {'widget': TextInput(attrs={'style': 'width: 4em'})},
+        DecimalField: {'widget': TextInput(attrs={'style': 'width: 8em'})},
         FloatField: {'widget': TextInput(attrs={'style': 'width: 4em'})},
     }
     fieldsets = (
         ('Основное', {
             'classes': ('collapse',),
-            'fields': (('code', 'article'), ('partnumber', 'tnved'), 'title', 'runame', 'whatis', 'whatisit', 'kind', 'categories',
+            'fields': (('code', 'article'), ('partnumber', 'tnved'), 'title', 'runame', 'whatis', 'whatisit', 'type_prefix', 'kind', 'categories',
                        'manufacturer', ('gtin', 'gtins'), ('country', 'developer_country'), 'variations', 'spec', 'shortdescr',
                        'yandexdescr', 'descr', 'manuals', 'state', 'complect', 'dealertxt')
         }),
@@ -416,7 +427,7 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
         return queryset, use_distinct
 
     def view_on_site(self, obj):
-        prefix = SHOP_INFO.get('url_prefix','')
+        prefix = SHOP_INFO.get('url_prefix', '')
         return f'{prefix}/products/{quote(obj.code)}.html'
 
     def get_changelist_form(self, request, **kwargs):
@@ -458,7 +469,6 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
         # чистим кеши и обновляем мета-данные фоновой задачей
         post_update_product.delay(obj.pk, 'admin')
 
-
     def save_related(self, request, form, formsets, change):
         # this is a hack to avoid stock saving for duplicated products (gives error if stock correction is not zero)
         if '_saveasnew' in request.POST:
@@ -467,6 +477,13 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
                 # start at the end to avoid recomputing offsets
                 del formsets[index]
         super().save_related(request, form, formsets, change)
+        obj = form.instance
+        sites = [
+            profile.site for profile in set(
+                c.get_root().profile.get() for c in obj.categories.all()
+            ) if profile is not None
+        ]
+        obj.sites.set(sites)
 
     def get_urls(self):
         urls = super().get_urls()
@@ -617,6 +634,7 @@ class ProductReviewAdminForm(ReviewAdminForm):
     class Meta(ReviewAdminForm.Meta):
         model = ProductReview
 
+
 class ProductReviewAdmin(ReviewAdmin):
     form = ProductReviewAdminForm
     fieldsets = (
@@ -643,10 +661,11 @@ class ProductReviewAdmin(ReviewAdmin):
     def link(self, obj):
         if obj.is_public:
             product = Product.objects.get(pk=obj.object_pk)
-            prefix = SHOP_INFO.get('url_prefix','')
+            prefix = SHOP_INFO.get('url_prefix', '')
             return f'<a href="{prefix}/products/{quote(product.code)}.html#r{obj.id}">{REVIEW_ADMIN_LINK_SYMBOL}</a>'
         else:
             return ''
     link.short_description = _('link')
+
 
 admin.site.register(ProductReview, ProductReviewAdmin)
