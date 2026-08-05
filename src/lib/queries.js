@@ -178,7 +178,7 @@ export const API = process.env.NEXT_PUBLIC_API
 const AXIOS_CONFIG = {
   baseURL: API,
   withCredentials: true,
-  timeout: 3000,
+  timeout: 5000,
 }
 
 export const apiClient = axios.create(AXIOS_CONFIG)
