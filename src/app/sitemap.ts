@@ -60,7 +60,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     in_category: categories.map(category => category.id),
     variations: '',
   }
-  const pageSize = 100
+  const pageSize = 500
   const order = 'id'
   let currentPage = 1
 
