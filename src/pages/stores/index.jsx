@@ -185,9 +185,9 @@ export default function Stores({ marketplace, lottery }) {
                     <div className="ps-3 fs-sm">
                       <a
                         className={'d-block nav-link-style'}
-                        href={'tel:+74957440087'}
+                        href={'tel:+74957844855'}
                         itemProp="telephone">
-                        +7 (495) 744-00-87
+                        +7 (495) 784-48-55
                       </a>
                     </div>
                   </li>

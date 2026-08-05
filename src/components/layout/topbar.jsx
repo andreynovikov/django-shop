@@ -80,7 +80,7 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
                   <Menu.Positioner sideOffset={8}>
                     <Menu.Popup className="dropdown-menu position-static topbar flex-column align-items-start gap-2 p-3">
                       <div className="topbar-text text-nowrap">
-                        <a className="topbar-link" href={"tel:" + "+74957440087"}>{formatPhone("+74957440087")}</a>
+                        <a className="topbar-link" href={"tel:" + "+74957844855"}>{formatPhone("+74957844855")}</a>
                         <span className="text-muted">&nbsp;&ndash;&nbsp;Магазин на Автозаводской</span>
                       </div>
                       {site.phone && (
@@ -95,7 +95,7 @@ export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggle
               </Menu.Root>
               <div className={"d-none d-lg-inline-block topbar-text text-nowrap" + (site.phone ? " border-end pe-3 me-3" : "")}>
                 <i className="ci-support mt-n1" />
-                <a className="topbar-link" href={"tel:" + "+74957440087"}>{formatPhone("+74957440087")}</a>
+                <a className="topbar-link" href={"tel:" + "+74957844855"}>{formatPhone("+74957844855")}</a>
                 <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;Магазин на Автозаводской</span>
               </div>
               {site.phone && (

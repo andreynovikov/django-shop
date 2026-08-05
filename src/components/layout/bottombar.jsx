@@ -25,9 +25,9 @@ export default function BottomBar() {
               <div>
                 <div className="fs-s text-light mb-2">Магазин на Автозаводской:</div>
                 <div className="widget widget-links widget-light mb-2">
-                  <a className="widget-list-link" href={"tel:" + "+74957440087"}>
+                  <a className="widget-list-link" href={"tel:" + "+74957844855"}>
                     <i className="ci-phone me-1"></i>
-                    {formatPhone("+74957440087")}
+                    {formatPhone("+74957844855")}
                   </a>
                 </div>
                 <div className="fs-s text-light mb-2">Москва, Автозаводская ул., д.9/1</div>
