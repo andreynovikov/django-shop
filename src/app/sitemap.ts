@@ -1,8 +1,8 @@
 import type { MetadataRoute } from 'next'
 
 import { getCategoryDescendants } from '@/lib/categories'
-import { loadCategories, loadCurrentSite, loadPages, loadProducts, loadSalesActions, loadStores, loadTopics } from '@/lib/queries'
-import { Category, FlatPageInfo, ForumTopic, PaginatedResult, Product, SalesAction, Store } from '@/lib/types'
+import { loadCategories, loadCurrentSite, loadPages, loadProducts, loadSalesActions } from '@/lib/queries'
+import { Category, FlatPageInfo, PaginatedResult, Product, SalesAction } from '@/lib/types'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const site = await loadCurrentSite()
@@ -21,12 +21,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${site.url_prefix}/catalog/`,
       lastModified: now,
       changeFrequency: 'weekly',
-      priority: 0.5,
-    },
-    {
-      url: `${site.url_prefix}/service/`,
-      lastModified: now,
-      changeFrequency: 'monthly',
       priority: 0.5,
     },
   ]
@@ -79,18 +73,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     currentPage++
   }
 
-  // Stores
-
-  const stores = await loadStores() as Store[]
-  stores.filter(store => store.logo === 'sewingworld').forEach(store => {
-    routes.push({
-      url: `${site.url_prefix}/stores/${store.id}/`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.3,
-    })
-  })
-
   // Sales actions
 
   const actions = await loadSalesActions() as SalesAction[]
@@ -112,20 +94,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: 'monthly',
       priority: 0.3,
-    })
-  })
-
-  // Forum
-
-  const forums = await loadTopics() as ForumTopic[]
-  forums.forEach(forum => {
-    forum.threads.forEach(thread => {
-      routes.push({
-        url: `${site.url_prefix}/oldforum/thread/${thread.id}/`,
-        lastModified: thread.mtime ? new Date(thread.mtime) : now,
-        changeFrequency: 'never',
-        priority: 0.2,
-      })
     })
   })
 
