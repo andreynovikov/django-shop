@@ -41,7 +41,7 @@ def get_receipt(self, order_id, payment_id):
         'date': receipt.registered_at,
         'checkType': receipt.type,
         'fnDocMark': receipt.fiscal_attribute,
-        'sum': total.quantize(Decimal('1'), rounding=ROUND_HALF_EVEN),
+        'sum': int(total.quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)),
         'fnDocNumber': receipt.fiscal_document_number,
         'registration': receipt.receipt_registration
     }
