@@ -17,6 +17,8 @@ class SiteProfile(models.Model):
     manager_emails = models.CharField('адреса менеджеров', max_length=255, blank=True, help_text='Можно несколько через запятую')
     manager_phones = models.CharField('телефоны менеджеров', max_length=255, blank=True, help_text='Можно несколько через запятую')
     order_prefix = models.CharField('префикс заказов', max_length=10, blank=True)
+    yookassa_id = models.CharField('ID аккаунта ЮKassa', max_length=20, blank=True)
+    yookassa_key = models.CharField('секретный ключ ЮKassa', max_length=255, blank=True)
     aliases = ArrayField(models.CharField(max_length=100), verbose_name='домены-ссылки', blank=True, null=True)
 
     class Meta:
