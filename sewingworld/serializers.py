@@ -246,7 +246,7 @@ class ProductSerializer(NonNullModelSerializer):
     country = CountrySerializer(read_only=True)
     developer_country = CountrySerializer(read_only=True)
     manufacturer = ManufacturerSerializer(read_only=True)
-    categories = CategoryBriefSerializer(many=True, read_only=True)
+    categories = serializers.SerializerMethodField()
     constituents = ProductListSerializer(many=True, read_only=True)
     price = serializers.SerializerMethodField()
     cost = serializers.SerializerMethodField()
@@ -268,6 +268,14 @@ class ProductSerializer(NonNullModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['constituents'].context.update(self.context)
+
+    def get_categories(self, obj):
+        request = self.context.get('request')
+        root_category = request.site.profile.root_category
+        categories = [
+            c for c in obj.categories.all() if c.get_root() == root_category
+        ]
+        return CategoryBriefSerializer(categories, many=True).data
 
     def get_price(self, obj):
         request = self.context.get('request')
