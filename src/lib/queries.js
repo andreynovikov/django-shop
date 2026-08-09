@@ -367,7 +367,7 @@ export async function loadProducts(page, page_size, filters, ordering) {
     page_size,
     ordering,
   })
-  const response = await apiClient.get(url)
+  const response = await apiClient.get(url, { timeout: 30000 })
   return response.data
 }
 

@@ -70,7 +70,7 @@ export async function GET(
         in_category: categories.map(category => category.id),
         variations: '',
       }
-      const pageSize = 1000
+      const pageSize = 100
       const order = 'id'
       let currentPage = 1
       while (true) {
