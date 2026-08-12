@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
       new URL('https://www.sewing-world.ru/media/**'),
     ],
   },
-  staticPageGenerationTimeout: 120,
+  staticPageGenerationTimeout: 240, // sitemap is generated very slow
   async redirects() {
     return [
       // restructure
