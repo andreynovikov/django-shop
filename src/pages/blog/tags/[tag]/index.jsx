@@ -8,7 +8,7 @@ export default BlogEntries
 
 export async function getStaticProps(context) {
   const tag = context.params.tag
-  const filters = [{ field: 'tags', value: tag }]
+  const filters = { 'tags': tag }
   const queryClient = new QueryClient()
   await queryClient.prefetchQuery({
     queryKey: blogKeys.list('1', filters),

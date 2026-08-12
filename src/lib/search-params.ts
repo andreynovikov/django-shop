@@ -1,10 +1,49 @@
-import { createLoader, createSerializer, parseAsArrayOf, parseAsBoolean, parseAsInteger, parseAsNativeArrayOf, parseAsString } from 'nuqs/server'
+import { createParser, createLoader, createSerializer, parseAsArrayOf, parseAsBoolean, parseAsInteger, parseAsNativeArrayOf, parseAsString } from 'nuqs/server'
+
+const parseAsBooleanExtended = createParser({
+  parse(value) {
+    // Treat an empty string (?flag) or "true" (?flag=true) as true
+    if (value === '' || value === 'true') return true
+    if (value === 'false') return false
+    return null
+  },
+  serialize(value) {
+    return value ? 'true' : 'false'
+  }
+})
+
+export const advertSearchParams = {
+  category: parseAsInteger,
+  places: parseAsNativeArrayOf(parseAsString),
+}
+
+export const advertSearchParamsSerializer = createSerializer(advertSearchParams)
+
+export const blogEntrySearchParams = {
+  page: parseAsInteger.withDefault(1),
+  categories: parseAsInteger,
+  tags: parseAsString,
+}
+
+export const blogEntrySearchParamsSerializer = createSerializer(blogEntrySearchParams)
 
 export const categorySearchParams = {
   feed: parseAsBoolean,
 }
 
 export const categorySearchParamsSerializer = createSerializer(categorySearchParams)
+
+export const comparisonSearchParams = {
+  kind: parseAsInteger,
+}
+
+export const comparisonSearchParamsSerializer = createSerializer(comparisonSearchParams)
+
+export const kindSearchParams = {
+  product: parseAsNativeArrayOf(parseAsInteger),
+}
+
+export const kindSearchParamsSerializer = createSerializer(kindSearchParams)
 
 export const productSearchParams = {
   id: parseAsNativeArrayOf(parseAsInteger),
@@ -36,7 +75,25 @@ export const productSearchParams = {
   page_size: parseAsInteger,
   ordering: parseAsString,
   for_xml: parseAsBoolean,
+
+  ta: parseAsInteger,
 }
 
 export const productSearchParamsSerializer = createSerializer(productSearchParams)
 export const productSearchParamsLoader = createLoader(productSearchParams)
+
+export const orderSearchParams = {
+  page: parseAsInteger.withDefault(1),
+  filter: parseAsString,
+  site: parseAsInteger,
+}
+
+export const orderSearchParamsSerializer = createSerializer(orderSearchParams)
+
+export const storeSearchParams = {
+  marketplace: parseAsBooleanExtended,
+  lottery: parseAsBooleanExtended,
+}
+
+export const storeSearchParamsSerializer = createSerializer(storeSearchParams)
+export const storeSearchParamsLoader = createLoader(storeSearchParams)

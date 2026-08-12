@@ -11,6 +11,7 @@ import PageLayout from '@/components/layout/page'
 import { useBreakpoint } from '@/lib/breakpoint'
 import { rows } from '@/lib/partition'
 import { storeKeys, loadStores } from '@/lib/queries'
+import { storeSearchParamsLoader } from '@/lib/search-params'
 
 function Collapsable({ id, name, children, selected, onSelect, className }) {
   return (
@@ -340,8 +341,8 @@ export default function Stores({ marketplace, lottery }) {
 Stores.getLayout = function getLayout(page) {
   console.log(page.props)
   const title =
-    page.props.marketplace !== false ? "В этих магазинах можно пройти бесплатное обучение работе на швейной машине при предъявлении гарантийного талона" :
-      page.props.lottery !== false ? "Покупатели этих магазинов принимают участие в юбилейной лотерее" :
+    page.props.marketplace ? "В этих магазинах можно пройти бесплатное обучение работе на швейной машине при предъявлении гарантийного талона" :
+      page.props.lottery ? "Покупатели этих магазинов принимают участие в юбилейной лотерее" :
         "Наши магазины рядом с Вами"
 
   return (
@@ -352,13 +353,6 @@ Stores.getLayout = function getLayout(page) {
 }
 
 export async function getServerSideProps(context) {
-  const marketplace = context.query?.marketplace ?? false
-  const lottery = context.query?.lottery ?? false
-
-  return {
-    props: {
-      marketplace,
-      lottery
-    }
-  }
+  const props = await storeSearchParamsLoader(context.query)
+  return { props }
 }

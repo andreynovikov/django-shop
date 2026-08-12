@@ -3,7 +3,7 @@ import axios from 'axios'
 import { Integration, IntegrationProduct } from './types'
 
 const AXIOS_CONFIG = {
-  baseURL: process.env.NEXT_PUBLIC_API,
+  baseURL: process.env.API_SERVER + '/api/v0/',
   headers: {
     'Authorization': `Token ${process.env.API_TOKEN}`
   }

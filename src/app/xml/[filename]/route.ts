@@ -36,10 +36,7 @@ function topCategoryMap(categories: Category[]) {
   return map
 }
 
-export async function GET(
-  request: Request,
-  { params }: RouteContext<'/xml/[filename]'>
-) {
+export async function GET(request: Request, { params }: RouteContext<'/xml/[filename]'>) {
   const { filename } = await params
   const utm = path.parse(filename).name
 

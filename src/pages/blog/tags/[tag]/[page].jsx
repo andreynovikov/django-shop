@@ -7,7 +7,7 @@ import PageSelector from '@/components/page-selector'
 import { blogKeys, loadBlogEntries, loadBlogTags } from '@/lib/queries'
 
 export default function BlogEntries({ tag, currentPage }) {
-  const filters = [{ field: 'tags', value: tag }]
+  const filters = { 'tags': tag }
 
   const { data: entries, isSuccess } = useQuery({
     queryKey: blogKeys.list(currentPage, filters),
@@ -62,7 +62,7 @@ export async function getStaticProps(context) {
     }
   }
 
-  const filters = [{ field: 'tags', value: tag }]
+  const filters = { 'tags': tag }
   const queryClient = new QueryClient()
   await queryClient.prefetchQuery({
     queryKey: blogKeys.list(currentPage, filters),

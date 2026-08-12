@@ -644,21 +644,24 @@ export async function getStaticProps(context) {
 export async function getStaticPaths() {
   const included = new Set()
   const paths = []
-  let page = 1
-  while (page !== undefined) {
-    const products = await loadProducts(page, 100, baseFilters, null)
-    paths.push(...products.results.filter((product) => !included.has(product.id)).map((product) => {
-      included.add(product.id)
-      return {
-        params: {
-          code: product.code
+
+  if (process.env.NODE_ENV === 'production') {
+    let page = 1
+    while (page !== undefined) {
+      const products = await loadProducts(page, 100, baseFilters, null)
+      paths.push(...products.results.filter((product) => !included.has(product.id)).map((product) => {
+        included.add(product.id)
+        return {
+          params: {
+            code: product.code
+          }
         }
-      }
-    }))
-    if (products.totalPages > products.currentPage)
-      page += 1
-    else
-      page = undefined
+      }))
+      if (products.totalPages > products.currentPage)
+        page += 1
+      else
+        page = undefined
+    }
   }
   return { paths, fallback: 'blocking' }
 }

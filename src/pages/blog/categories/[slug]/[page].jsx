@@ -7,7 +7,7 @@ import PageSelector from '@/components/page-selector'
 import { blogKeys, loadBlogEntries, loadBlogCategories, loadBlogCategory } from '@/lib/queries'
 
 export default function BlogEntries({ category, currentPage }) {
-  const filters = [{ field: 'categories', value: category.id }]
+  const filters = { categories: category.id }
 
   const { data: entries, isSuccess } = useQuery({
     queryKey: blogKeys.list(currentPage, filters),
@@ -67,7 +67,7 @@ export async function getStaticProps(context) {
     queryKey: blogKeys.category(slug),
     queryFn: () => loadBlogCategory(slug)
   })
-  const filters = [{ field: 'categories', value: category.id }]
+  const filters = { categories: category.id }
   await queryClient.prefetchQuery({
     queryKey: blogKeys.list(currentPage, filters),
     queryFn: () => loadBlogEntries(currentPage, filters)

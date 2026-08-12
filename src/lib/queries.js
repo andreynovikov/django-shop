@@ -1,7 +1,16 @@
 import axios from 'axios'
 import { PHASE_PRODUCTION_BUILD } from 'next/constants'
 
-import { categorySearchParamsSerializer, productSearchParamsSerializer } from '@/lib/search-params'
+import {
+  advertSearchParamsSerializer,
+  blogEntrySearchParamsSerializer,
+  categorySearchParamsSerializer,
+  comparisonSearchParamsSerializer,
+  kindSearchParamsSerializer,
+  productSearchParamsSerializer,
+  orderSearchParamsSerializer,
+  storeSearchParamsSerializer,
+ } from '@/lib/search-params'
 
 export const userKeys = {
   all: ['users'],
@@ -174,10 +183,8 @@ export function normalizePhone(phone) {
   return phone
 };
 
-export const API = process.env.NEXT_PUBLIC_API
-
 const AXIOS_CONFIG = {
-  baseURL: API,
+  baseURL: (process.env.API_SERVER ?? '') + '/api/v0',
   withCredentials: true,
   timeout: process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD ? 0 : 3000,
 }
@@ -264,14 +271,12 @@ export async function createPreorder(product) {
 }
 
 export async function loadOrders(page, filter, site = undefined) {
-  const url = new URL(API + 'orders/')
-  if (+page !== 1)
-    url.searchParams.set('page', page)
-  if (filter !== undefined && filter !== '')
-    url.searchParams.set('filter', filter)
-  if (site !== undefined)
-    url.searchParams.set('site', site)
-  const response = await apiClient.get(url.toString())
+  const url = 'orders/' + orderSearchParamsSerializer({
+    page,
+    filter: filter === '' ? null : filter,
+    site
+  })
+  const response = await apiClient.get(url)
   return response.data
 };
 
@@ -315,10 +320,8 @@ export async function removeFromFavorites(product) {
 }
 
 export async function loadComparisons(kind) {
-  const url = new URL(API + 'comparisons/')
-  if (kind !== null)
-    url.searchParams.set('kind', kind)
-  const response = await apiClient.get(url.toString())
+  const url = 'comparisons/' + comparisonSearchParamsSerializer({ kind })
+  const response = await apiClient.get(url)
   return response.data
 }
 
@@ -337,7 +340,7 @@ export async function removeFromComparison(product) {
 }
 
 export async function loadCategories(filters) {
-  const url = API + 'categories/' + categorySearchParamsSerializer(filters ?? {})
+  const url = 'categories/' + categorySearchParamsSerializer(filters ?? {})
   const response = await apiClient.get(url)
   return response.data
 }
@@ -348,10 +351,10 @@ export async function loadCategory(path) {
 }
 
 export async function loadKinds(productIds) {
-  const url = new URL(API + 'kinds/')
-  for (const value of productIds)
-    url.searchParams.append('product', value)
-  const response = await apiClient.get(url.toString())
+  const url = 'kinds/' + kindSearchParamsSerializer({
+    product: productIds,
+  })
+  const response = await apiClient.get(url)
   return response.data
 }
 
@@ -361,22 +364,23 @@ export async function loadKind(id) {
 }
 
 export async function loadProducts(page, page_size, filters, ordering) {
-  const url = API + 'products/' + productSearchParamsSerializer({
+  const url = 'products/' + productSearchParamsSerializer({
     ...filters,
     page,
     page_size,
     ordering,
   })
-  const response = await apiClient.get(url, { timeout: 30000 })
+  const response = await apiClient.get(url)
   return response.data
 }
 
 export async function loadProductSuggestions(text) {
-  const url = new URL(API + 'products/')
-  url.searchParams.set('title', text)
-  url.searchParams.set('ta', 1)
-  url.searchParams.set('page_size', 10)
-  const response = await apiClient.get(url.toString())
+  const url = 'products/' + productSearchParamsSerializer({
+    title: text,
+    ta: 1,
+    page_size: 10,
+  })
+  const response = await apiClient.get(url)
   return response.data
 }
 
@@ -508,17 +512,12 @@ export async function loadSalesActionProducts(slug) {
 }
 
 export async function loadAdverts(places, categoryId=undefined) {
-  const url = new URL(API + 'adverts/')
-  if (categoryId !== undefined)
-    url.searchParams.append('category', categoryId)
-  else if (places !== undefined)
-    if (Array.isArray(places)) {
-      for (const place of places)
-        url.searchParams.append('place', place)
-    } else {
-      url.searchParams.append('place', places)
-    }
-  const response = await apiClient.get(url.toString())
+  const url = 'adverts/' + advertSearchParamsSerializer({
+    category: categoryId,
+    places,
+
+  })
+  const response = await apiClient.get(url)
   return response.data
 }
 
@@ -538,18 +537,11 @@ export async function loadBlogCategory(slug) {
 }
 
 export async function loadBlogEntries(page, filters) {
-  const url = new URL(API + 'blog/entries/')
-  if (page !== null && +page !== 1)
-    url.searchParams.set('page', page)
-  if (filters !== null)
-    for (var filter of filters)
-      if (Array.isArray(filter.value)) {
-        for (const value of filter.value)
-          url.searchParams.append(filter.field, value)
-      } else {
-        url.searchParams.append(filter.field, filter.value)
-      }
-  const response = await apiClient.get(url.toString())
+  const url = 'blog/entries/' + blogEntrySearchParamsSerializer({
+    ...(filters ?? {}),
+    page,
+  })
+  const response = await apiClient.get(url)
   return response.data
 };
 
@@ -574,12 +566,8 @@ export async function loadThread(id) {
 }
 
 export async function loadStores(filters) {
-  const url = new URL(API + 'stores/')
-  if (filters?.marketplace ?? false !== false)
-    url.searchParams.set('marketplace', filters.marketplace)
-  if (filters?.lottery ?? false !== false)
-    url.searchParams.set('lottery', filters.lottery)
-  const response = await apiClient.get(url.toString())
+  const url = 'stores/' + storeSearchParamsSerializer(filters)
+  const response = await apiClient.get(url)
   return response.data
 }
 
