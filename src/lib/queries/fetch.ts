@@ -1,3 +1,5 @@
+import { JSONValue } from "@/lib/types";
+
 export class HttpError extends Error {
   status: number;
   statusText: string;
@@ -12,7 +14,11 @@ export class HttpError extends Error {
   }
 }
 
-export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+type ApiRequestInit = Omit<RequestInit, 'body'> & {
+  body?: JSONValue
+}
+
+export async function apiFetch<T>(endpoint: string, options: ApiRequestInit = {}): Promise<T> {
   const { body, ...customOptions } = options
 
   const headers = {

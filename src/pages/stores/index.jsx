@@ -87,7 +87,7 @@ export default function Stores({ marketplace, lottery }) {
     location.get({
       provider: 'yandex'
     }).then(function (result) {
-      console.log(result)
+      console.log(JSON.stringify(result))
       // TODO: select city based on location
       //var userCoodinates = result.geoObjects.get(0).geometry.getCoordinates();
       //myMap.setCenter(userCoodinates);

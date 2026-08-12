@@ -30,7 +30,6 @@ async function proxyRequest(request: NextRequest, { params }: RouteContext<'/api
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      path: '/',
     })
 
     return new NextResponse(response.body, {

@@ -29,6 +29,35 @@ export interface Category {
   children?: Category[]
 }
 
+export interface ProductInfo {
+  id: number
+  code: string
+  article: string
+  partnumber: string
+  order: number
+  whatis: string
+  whatisit: string
+  type_prefix: string
+  title: string
+  variations: string
+  price: number
+  cost: number
+  discount: number
+  instock: number
+  image?: string
+  enabled: boolean
+  isnew: boolean
+  recomended: boolean
+  ws_pack_only: boolean
+  pack_factor: number
+  sales?: string[]
+  sales_notes: string
+  shortdescr: string
+  rank?: number
+  wb_link: string
+  ozon_link: string
+}
+
 export interface Product {
   id: number
   code: string

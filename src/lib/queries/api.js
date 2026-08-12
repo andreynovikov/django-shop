@@ -4,12 +4,10 @@ import { PHASE_PRODUCTION_BUILD } from 'next/constants'
 import {
   advertSearchParamsSerializer,
   blogEntrySearchParamsSerializer,
-  categorySearchParamsSerializer,
   comparisonSearchParamsSerializer,
   kindSearchParamsSerializer,
   productSearchParamsSerializer,
   orderSearchParamsSerializer,
-  storeSearchParamsSerializer,
  } from '@/lib/search-params'
 
 export const userKeys = {
@@ -19,13 +17,6 @@ export const userKeys = {
   detail: (id) => [...userKeys.details(), id],
   current: () => [...userKeys.details(), 'current'],
   bonus: () => [...userKeys.details(), 'bonus'],
-}
-
-export const categoryKeys = {
-  all: ['categories'],
-  lists: () => [...categoryKeys.all, 'list'],
-  details: () => [...categoryKeys.all, 'detail'],
-  detail: (path) => [...categoryKeys.details(), path],
 }
 
 export const productKeys = {
@@ -98,14 +89,6 @@ export const newsKeys = {
   lists: () => [...newsKeys.all, 'list'],
 }
 
-export const salesActionKeys = {
-  all: ['salesactions'],
-  lists: () => [...salesActionKeys.all, 'list'],
-  details: () => [...salesActionKeys.all, 'detail'],
-  detail: (slug) => [...salesActionKeys.details(), slug],
-  products: (slug) => [...salesActionKeys.detail(slug), 'products'],
-}
-
 export const advertKeys = {
   all: ['adverts'],
   lists: () => [...advertKeys.all, 'list'],
@@ -131,26 +114,11 @@ export const forumKeys = {
   thread: (thread) => [...forumKeys.threads(), thread],
 }
 
-export const storeKeys = {
-  all: ['stores'],
-  lists: () => [...storeKeys.all, 'list'],
-  list: (filters) => [...storeKeys.lists(), filters],
-  details: () => [...storeKeys.all, 'detail'],
-  detail: (id) => [...storeKeys.details(), id],
-}
-
 export const serviceCenterKeys = {
   all: ['serviceCenters'],
   lists: () => [...serviceCenterKeys.all, 'list'],
   details: () => [...serviceCenterKeys.all, 'detail'],
   detail: (id) => [...serviceCenterKeys.details(), id],
-}
-
-export const serialKeys = {
-  all: ['serial'],
-  lists: () => [...serialKeys.all, 'list'],
-  details: () => [...serialKeys.all, 'detail'],
-  detail: (id) => [...serialKeys.details(), id],
 }
 
 export const siteKeys = {
@@ -339,17 +307,6 @@ export async function removeFromComparison(product) {
   return response.data
 }
 
-export async function loadCategories(filters = {}) {
-  const url = 'categories/' + categorySearchParamsSerializer(filters)
-  const response = await apiClient.get(url)
-  return response.data
-}
-
-export async function loadCategory(path) {
-  const response = await apiClient.get(`categories/${path.join('/')}/`)
-  return response.data
-}
-
 export async function loadKinds(productIds) {
   const url = 'kinds/' + kindSearchParamsSerializer({
     product: productIds,
@@ -496,21 +453,6 @@ export async function loadNews() {
   return response.data
 }
 
-export async function loadSalesActions() {
-  const response = await apiClient.get('salesactions/')
-  return response.data
-};
-
-export async function loadSalesAction(slug) {
-  const response = await apiClient.get(`salesactions/${slug}/`)
-  return response.data
-}
-
-export async function loadSalesActionProducts(slug) {
-  const response = await apiClient.get(`salesactions/${slug}/products/`)
-  return response.data
-}
-
 export async function loadAdverts(places, categoryId=undefined) {
   const url = 'adverts/' + advertSearchParamsSerializer({
     category: categoryId,
@@ -565,17 +507,6 @@ export async function loadThread(id) {
   return response.data
 }
 
-export async function loadStores(filters = {}) {
-  const url = 'stores/' + storeSearchParamsSerializer(filters)
-  const response = await apiClient.get(url)
-  return response.data
-}
-
-export async function loadStore(id) {
-  const response = await apiClient.get('stores/' + id + '/')
-  return response.data
-}
-
 export async function loadServiceCenters() {
   const response = await apiClient.get('servicecenters/')
   return response.data
@@ -588,11 +519,6 @@ export async function loadServiceCenter(id) {
 
 export async function loadCurrentSite() {
   const response = await apiClient.get('sites/current/')
-  return response.data
-}
-
-export async function createSerial(data) {
-  const response = await apiClient.post(`serials/`, data)
   return response.data
 }
 

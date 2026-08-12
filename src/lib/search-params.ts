@@ -1,4 +1,14 @@
-import { createParser, createLoader, createSerializer, parseAsArrayOf, parseAsBoolean, parseAsInteger, parseAsNativeArrayOf, parseAsString } from 'nuqs/server'
+import {
+  createParser,
+  createLoader,
+  createSerializer,
+  parseAsArrayOf,
+  parseAsBoolean,
+  parseAsInteger,
+  parseAsNativeArrayOf,
+  parseAsString,
+  inferParserType,
+} from 'nuqs/server'
 
 const parseAsBooleanExtended = createParser({
   parse(value) {
@@ -31,6 +41,7 @@ export const categorySearchParams = {
   feed: parseAsBoolean,
 }
 
+export type CategorySearchParamsType = Partial<inferParserType<typeof categorySearchParams>>
 export const categorySearchParamsSerializer = createSerializer(categorySearchParams)
 
 export const comparisonSearchParams = {
@@ -95,5 +106,6 @@ export const storeSearchParams = {
   lottery: parseAsBooleanExtended,
 }
 
+export type StoreSearchParamsType = Partial<inferParserType<typeof storeSearchParams>>
 export const storeSearchParamsSerializer = createSerializer(storeSearchParams)
 export const storeSearchParamsLoader = createLoader(storeSearchParams)
