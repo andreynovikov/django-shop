@@ -14,7 +14,7 @@ export class HttpError extends Error {
   }
 }
 
-type ApiRequestInit = Omit<RequestInit, 'body'> & {
+export type ApiRequestInit = Omit<RequestInit, 'body'> & {
   body?: JSONValue
 }
 

@@ -1,7 +1,7 @@
 import { Integration, IntegrationProduct } from '@/lib/types'
-import { apiFetch } from './fetch'
+import { apiFetch, ApiRequestInit } from './fetch'
 
-async function tokenizedFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function tokenizedFetch<T>(endpoint: string, options: ApiRequestInit = {}): Promise<T> {
   return await apiFetch<T>(endpoint, {
     ...options,
     headers: {
