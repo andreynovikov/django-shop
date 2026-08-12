@@ -339,8 +339,8 @@ export async function removeFromComparison(product) {
   return response.data
 }
 
-export async function loadCategories(filters) {
-  const url = 'categories/' + categorySearchParamsSerializer(filters ?? {})
+export async function loadCategories(filters = {}) {
+  const url = 'categories/' + categorySearchParamsSerializer(filters)
   const response = await apiClient.get(url)
   return response.data
 }
@@ -536,9 +536,9 @@ export async function loadBlogCategory(slug) {
   return response.data
 }
 
-export async function loadBlogEntries(page, filters) {
+export async function loadBlogEntries(page, filters = {}) {
   const url = 'blog/entries/' + blogEntrySearchParamsSerializer({
-    ...(filters ?? {}),
+    ...filters,
     page,
   })
   const response = await apiClient.get(url)
@@ -565,7 +565,7 @@ export async function loadThread(id) {
   return response.data
 }
 
-export async function loadStores(filters) {
+export async function loadStores(filters = {}) {
   const url = 'stores/' + storeSearchParamsSerializer(filters)
   const response = await apiClient.get(url)
   return response.data

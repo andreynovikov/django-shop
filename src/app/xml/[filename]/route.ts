@@ -6,7 +6,7 @@ import { AxiosError } from 'axios'
 
 import { flattenCategoryTree, getCategoryDescendants } from '@/lib/categories'
 import { loadCategories, loadCurrentSite, loadProducts } from '@/lib/queries'
-import { listIntegrations, retriveIntegrationByUtm, retriveIntegrationProducts } from "@/lib/token-queries"
+import { listIntegrations, retriveIntegrationByUtm, retriveIntegrationProducts } from '@/lib/queries'
 import { Category, Integration, Product } from '@/lib/types'
 
 export const revalidate = 3600
