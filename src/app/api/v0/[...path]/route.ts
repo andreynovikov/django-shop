@@ -5,9 +5,8 @@ async function proxyRequest(request: NextRequest, { params }: RouteContext<'/api
   const { path } = await params
   const url = new URL(`${process.env.API_SERVER}/api/v0/${path.join('/')}/`)
   url.search = request.nextUrl.searchParams.toString()
-
   let headers = Array.from(request.headers.entries()).filter(
-    ([key]) => key.startsWith('x-') || ['origin', 'referer', 'user-agent'].includes(key)
+    ([key]) => (key.startsWith('x-') && !key.startsWith('x-forwarded')) || ['origin', 'referer', 'user-agent'].includes(key)
   )
   headers.push(['content-type', request.headers.get('content-type') ?? 'application/json'])
 
