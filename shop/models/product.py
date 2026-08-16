@@ -343,7 +343,7 @@ class Product(models.Model):
     def site_price(self, site):
         site_price = self.site_prices.filter(site=site).first()
         if site_price is None or site_price.price == 0:
-            if site.profile.wholesale:
+            if hasattr(site, 'profile') and site.profile.wholesale:
                 return self.ws_price
             else:
                 return self.price
@@ -355,7 +355,7 @@ class Product(models.Model):
             logger.error(self.code)
             logger.error(site_price)
         if site_price is None:
-            if site.profile.wholesale:
+            if hasattr(site, 'profile') and site.profile.wholesale:
                 return self.ws_cost
             else:
                 return self.cost
