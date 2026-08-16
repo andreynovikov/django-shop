@@ -2,8 +2,6 @@ import os
 
 import environ
 
-from django.conf import global_settings
-
 env = environ.Env(
     # set casting, default value
     ADMIN=(bool, False),
@@ -15,11 +13,13 @@ env = environ.Env(
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 # Take environment variables from .env file
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+env.read_env(os.path.join(BASE_DIR, '.env'))
+IS_ADMIN_SITE = env('ADMIN')
+if IS_ADMIN_SITE:
+    env.read_env(os.path.join(BASE_DIR, '.env.admin'), overwrite=True)
 
 SITE_ID = env('SITE_ID')
 
-IS_ADMIN_SITE = env('ADMIN')
 DEBUG = env('DEBUG')
 
 SECRET_KEY = env('SECRET_KEY')
