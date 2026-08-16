@@ -1,0 +1,8 @@
+{% extends "admin/import_export/export.html" %}
+{% block extrastyle %}{{ block.super }}
+<style>
+  #content > form > p {
+    display: none
+  }
+</style>
+{% endblock %}

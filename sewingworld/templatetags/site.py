@@ -66,6 +66,24 @@ def filter_qs_by_pk(queryset, ids):
 
 
 @register.filter
+def exclude_qs(queryset, field):
+    if isinstance(queryset, QuerySet):
+        check = field.split('=', maxsplit=1)
+        if len(check) > 1:
+            field = check[0]
+            criteria = check[1]
+        else:
+            criteria = True
+            if field[0] == '!':
+                criteria = False
+                field = field[1:]
+        kwargs = {field: criteria}
+       return queryset.exclude(**kwargs)
+    else:
+        return None
+
+
+@register.filter
 def get_unique_mapped_list(queryset, dictionary):
     return set(filter(lambda pk: pk is not None, [dictionary.get(o.pk, None) for o in queryset]))
 
