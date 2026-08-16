@@ -453,7 +453,7 @@ class OrderActionSerializer(serializers.ModelSerializer):
 class FavoritesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorites
-        exclude = ('id', 'user')
+        exclude = ('id', 'user', 'site')
 
     def to_representation(self, instance):
         return instance.product.id

@@ -585,7 +585,7 @@ class FavoritesViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Favorites.objects.filter(user=self.request.user)
+        queryset = Favorites.objects.filter(site=self.request.site, user=self.request.user)
         return queryset
 
     def create(self, request):
@@ -601,7 +601,7 @@ class FavoritesViewSet(viewsets.ModelViewSet):
     def add_item(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        favorite, created = Favorites.objects.get_or_create(user=request.user, product=serializer.validated_data['product'])
+        favorite, created = Favorites.objects.get_or_create(site=request.site, user=request.user, product=serializer.validated_data['product'])
         if created:
             favorite.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -610,7 +610,7 @@ class FavoritesViewSet(viewsets.ModelViewSet):
     def remove_item(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        favorite = Favorites.objects.filter(user=request.user, product=serializer.validated_data['product']).first()
+        favorite = Favorites.objects.filter(site=request.site, user=request.user, product=serializer.validated_data['product']).first()
         if favorite is not None:
             favorite.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -981,7 +981,9 @@ class IntegrationViewSet(viewsets.ReadOnlyModelViewSet):
         }
 
         if not integration.output_skip_categories:
-            root_category = integration.site.profile.root_category
+            root_category = None
+            if hasattr(integration.site, 'profile'):
+                root_category = integration.site.profile.root_category
             if root_category is None:
                 root_category = self.request.site.profile.root_category
             filters['categories__in'] = root_category.get_descendants(include_self=True).filter(active=True, feed=True)

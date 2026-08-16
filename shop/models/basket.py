@@ -195,9 +195,10 @@ class BasketItem(models.Model):
 class Favorites(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     user = models.ForeignKey(ShopUser, on_delete=models.CASCADE, related_name='favorites')
+    site = models.ForeignKey(Site, on_delete=models.PROTECT)
 
     class Meta:
         verbose_name = 'избранное'
         verbose_name_plural = 'избранные'
-        unique_together = ('product', 'user')
+        unique_together = ('product', 'user', 'site')
         ordering = ['id']
