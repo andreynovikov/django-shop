@@ -36,6 +36,7 @@ async function proxyRequest(request: NextRequest, { params }: RouteContext<'/api
       headers,
     })
   } catch (error) {
+    console.log(url.toString())
     console.log(error)
     return NextResponse.json({ error: 'Proxy fetch failed' }, { status: 500 });
   }

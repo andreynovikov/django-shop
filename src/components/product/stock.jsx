@@ -12,6 +12,7 @@ export default function ProductStock({ id }) {
   const { data: stores, isSuccess, isLoading } = useQuery({
     queryKey: productKeys.stock(id),
     queryFn: () => loadProductStock(id),
+    select: (data) => data.filter(store => store.id !== 295),
     enabled: id > 0
   })
 

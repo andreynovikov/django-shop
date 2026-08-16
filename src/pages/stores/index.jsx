@@ -39,7 +39,8 @@ export default function Stores({ marketplace, lottery }) {
 
   const { data: stores } = useQuery({
     queryKey: storeKeys.lists({ marketplace, lottery }),
-    queryFn: () => loadStores({ marketplace, lottery })
+    queryFn: () => loadStores({ marketplace, lottery }),
+    select: (data) => data.filter(store => store.id !== 295)
   })
 
   useEffect(() => {
@@ -339,7 +340,6 @@ export default function Stores({ marketplace, lottery }) {
 }
 
 Stores.getLayout = function getLayout(page) {
-  console.log(page.props)
   const title =
     page.props.marketplace ? "В этих магазинах можно пройти бесплатное обучение работе на швейной машине при предъявлении гарантийного талона" :
       page.props.lottery ? "Покупатели этих магазинов принимают участие в юбилейной лотерее" :
