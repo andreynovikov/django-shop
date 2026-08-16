@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { PHASE_PRODUCTION_BUILD } from 'next/constants'
 
 import { categorySearchParamsSerializer, productSearchParamsSerializer } from '@/lib/search-params'
 
@@ -178,7 +179,7 @@ export const API = process.env.NEXT_PUBLIC_API
 const AXIOS_CONFIG = {
   baseURL: API,
   withCredentials: true,
-  timeout: 3000,
+  timeout: process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD ? 0 : 3000,
 }
 
 export const apiClient = axios.create(AXIOS_CONFIG)
