@@ -23,11 +23,11 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from django.template import defaultfilters
 from django.utils.translation import gettext as _
-from django.utils.timezone import is_aware, utc
+from django.utils.timezone import is_aware
 from django import template
 
 
@@ -38,7 +38,7 @@ def shortnaturaltime(value):
     """
     now, 1s, 1m, 1h, 1 Ene, 1 Ene 2012
     """
-    tz = utc if is_aware(value) else None
+    tz = timezone.utc if is_aware(value) else None
     now = datetime.now(tz)
 
     if value > now:  # Future
