@@ -1,18 +1,21 @@
 import logging
 import json
+
+import requests
+
 from decimal import Decimal, ROUND_HALF_EVEN
 
 from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.sites.models import Site
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from django.utils.encoding import force_str
 
-from yookassa import Configuration, Payment, Receipt
+from yookassa import Payment, Receipt
+from yookassa.domain.exceptions.api_error import ApiError
 from yookassa.domain.notification import WebhookNotification
 
 import uuid
@@ -20,6 +23,7 @@ import uuid
 from shop.models import Order, ShopUser
 from shop.tasks import update_order
 
+from . import configure_yookassa
 from .tasks import get_receipt
 
 
@@ -55,8 +59,7 @@ def payment(request, order_id, return_url=None):
         """ This is not the user's order, someone tries to hack us """
         return HttpResponseForbidden()
 
-    Configuration.account_id = order.seller.yookassa_id
-    Configuration.secret_key = order.seller.yookassa_key
+    configure_yookassa(order)
 
     items = []
     for item in order.items.all():
@@ -82,7 +85,7 @@ def payment(request, order_id, return_url=None):
 
     if return_url is None:
         return_url = 'https://{}/user/orders/{}/'.format(
-            Site.objects.get_current().domain,
+            order.site.domain,
             order.id
         )
 
@@ -115,7 +118,12 @@ def payment(request, order_id, return_url=None):
     if order.payment == order.PAYMENT_CREDIT:
         payment_details['payment_method_data'] = {'type': 'installments'}
 
-    payment = Payment.create(payment_details, str(uuid.uuid4()))
+    try:
+        payment = Payment.create(payment_details, str(uuid.uuid4()))
+    except ApiError as e:
+        return HttpResponse(content=e.error.description, status=e.HTTP_CODE)
+    except requests.exceptions.HTTPError as e:
+        return HttpResponse(content=e.response.text, status=e.response.status_code)
     return HttpResponseRedirect(payment.confirmation.confirmation_url)
 
 
@@ -180,8 +188,7 @@ def receipt(request, order_id):
     if not payment_id:
         return JsonResponse({})
 
-    Configuration.account_id = order.seller.yookassa_id
-    Configuration.secret_key = order.seller.yookassa_key
+    configure_yookassa(order)
 
     receipts = Receipt.list({'payment_id': payment_id})
 

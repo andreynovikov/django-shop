@@ -5,11 +5,12 @@ from django.db import Error as DatabaseError
 
 from celery import shared_task
 
-from yookassa import Configuration, Receipt
+from yookassa import Receipt
 
 from shop.models import Order
 from shop.tasks import update_order
 
+from . import configure_yookassa
 
 logger = logging.getLogger('yandex_kassa')
 
@@ -18,8 +19,7 @@ logger = logging.getLogger('yandex_kassa')
 def get_receipt(self, order_id, payment_id):
     order = Order.objects.get(id=order_id)
 
-    Configuration.account_id = order.seller.yookassa_id
-    Configuration.secret_key = order.seller.yookassa_key
+    configure_yookassa(order)
 
     receipts = Receipt.list({'payment_id': payment_id})
 
