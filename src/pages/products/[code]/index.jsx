@@ -345,29 +345,9 @@ export default function Product({ code }) {
                     </div>
                   )}
 
-                  {/*
                   {product.enabled && product.cost > 0 && (
-                    <div className={"mb-4" + (product.enabled ? "" : " mt-5")}>
-                      <Menu.Root modal={false}>
-                        <Menu.Trigger className="btn btn-outline-secondary btn-sm w-100">
-                          <i className="ci-location text-muted lead align-middle mt-n1 me-2" />Наличие в магазинах
-                        </Menu.Trigger>
-                        <Menu.Portal>
-                          <Menu.Positioner sideOffset={3} align="end" collisionAvoidance={{ side: 'none' }}>
-                            <Menu.Popup className="card" style={{ width: "var(--anchor-width)" }}>
-                              <div className="card-body">
-                                <Suspense fallback={<Loading className="text-center" />}>
-                                  <ProductStock id={product.id} />
-                                </Suspense>
-                              </div>
-                            </Menu.Popup>
-                          </Menu.Positioner>
-                        </Menu.Portal>
-                      </Menu.Root>
-                    </div>
+                    <ProductStock id={product.id} />
                   )}
-                    */
-                  }
 
                   {product.enabled && product.gifts && (
                     <>
