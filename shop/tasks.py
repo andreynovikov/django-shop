@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import base64
 import csv
-import functools
 import hashlib
 import io
 import json
@@ -10,6 +9,8 @@ import logging
 import os
 import re
 import tempfile
+
+import requests
 
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -22,8 +23,6 @@ from urllib.error import HTTPError
 from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.contenttypes.models import ContentType
 from django.core import signing
-from django.core.cache import cache, InvalidCacheBackendError, caches
-from django.core.cache.utils import make_template_fragment_key
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from django.core.mail import send_mail
 from django.core.validators import EmailValidator
@@ -44,8 +43,6 @@ from celery import shared_task
 
 from djconfig import config, reload_maybe
 from flags.state import enable_flag, disable_flag
-from sorl.thumbnail.default import kvstore
-from sorl.thumbnail.images import ImageFile
 
 import reviews
 
@@ -53,6 +50,7 @@ from unisender import Unisender
 
 from sewingworld.models import SiteProfile
 from sewingworld.sms import send_sms
+from sewingworld.tasks import single_instance_task, PRIORITY_HIGH, PRIORITY_NORMAL, PRIORITY_LOW, PRIORITY_IDLE
 from sewingworld.templatetags.rupluralize import rupluralize
 
 from shop.models import ShopUser, ShopUserManager, Supplier, Currency, Product, Stock, Basket, Order
@@ -64,20 +62,6 @@ SINGLE_DATE_FORMAT_WITH_YEAR = 'j E Y'
 log = logging.getLogger('shop')
 
 sw_default_site = Site.objects.get(domain='www.sewing-world.ru')
-
-
-def single_instance_task(timeout):
-    def task_exc(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            lock_id = "celery-single-instance-" + func.__name__
-            if cache.add(lock_id, "true", timeout):
-                try:
-                    return func(*args, **kwargs)
-                finally:
-                    cache.delete(lock_id)
-        return wrapper
-    return task_exc
 
 
 def validate_email(email):
@@ -103,29 +87,30 @@ class DecimalEncoder(json.JSONEncoder):
         return super(DecimalEncoder, self).default(o)
 
 
-@shared_task(queue="revalidation", autoretry_for=(Exception,), rate_limit='2/s', default_retry_delay=300, retry_backoff=True)
+@shared_task(queue="revalidation")  # , rate_limit='2/s')
 def revalidate_nextjs(domain, token, payload):
     url = 'https://{}/api/revalidate'.format(domain)
-    data = {
+    request_data = {
         'secret': token,
         **payload
     }
-    data_encoded = json.dumps(data).encode('utf-8')
-    headers = {
-        'Content-Type': 'application/json; charset=utf-8'
-    }
-    request = Request(url, data_encoded, headers, method='POST')
-    response = urlopen(request)
-    result = json.loads(response.read().decode('utf-8'))
-    return result
+    response = requests.post(url, json=request_data)
+    try:
+        response_data = response.json()
+        return response_data
+    except:
+        return False
 
 
 @shared_task(bind=True, queue="priority", autoretry_for=(DatabaseError,), max_retries=12, retry_backoff=300, retry_jitter=False)
 def update_order(self, order_id, data):
     order = Order.objects.get(id=order_id)
     if order.owner:
-        log.info('Locked by %s, retrying' % order.owner)
-        raise self.retry(countdown=600, max_retries=24)  # 10 minutes
+        if self.request.retries < self.max_retries - 1:
+            log.info('Locked by %s, retrying' % order.owner)
+            raise self.retry(countdown=600)  # 10 minutes
+        else:
+            log.warning('Locked by %s, force unlocking' % order.owner)
     order.owner = ShopUser.objects.get(phone='000')
     order.save()
     changed = {}
@@ -142,7 +127,11 @@ def update_order(self, order_id, data):
             setattr(order, attr, new_val)
             changed[attr] = new_val
     if changed:
-        order.save(update_fields=changed.keys())
+        try:
+            order.save(update_fields=changed.keys())
+        except Exception as e:
+            e.add_note("Failed to save info {}".format(str(data)))
+            raise
         change_message = ', '.join(map(lambda item: '{}: {}'.format(item[0], item[1]), changed.items()))
         LogEntry.objects.log_action(
             user_id=order.user.id,
@@ -367,37 +356,41 @@ def post_update_product(product_id, origin):
 
     if origin == 'admin':
         product.update_fts_vector()
-        image_file = ImageFile(product.image)
-        kvstore.delete(image_file, delete_thumbnails=True)
-        for product_image in product.images.all():
-            image_file = ImageFile(product_image.image)
-            kvstore.delete(image_file, delete_thumbnails=True)
-
-    try:
-        fragment_cache = caches['template_fragments']
-    except InvalidCacheBackendError:
-        fragment_cache = caches['default']
-    vary_on = [product.id]
-    cache_key = make_template_fragment_key('product', vary_on)
-    fragment_cache.delete(cache_key)
-    cache_key = make_template_fragment_key('product_description', vary_on)
-    fragment_cache.delete(cache_key)
 
     payload = {
         'model': 'product',
         'pk': product.pk,
         'code': product.code
     }
-    root_slugs = set()
-    for category in product.categories.all():
-        root_slugs.add(category.get_root().slug)
-    for site in Site.objects.filter(profile__category_root_slug__in=root_slugs).exclude(profile__revalidation_token__exact=''):
+    for site in product.sites.exclude(profile__revalidation_token__exact=''):
         revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
 
     return None
 
 
-@shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
+@shared_task(queue="priority")
+def post_update_products(product_ids):
+    nextjs_sites = defaultdict(list)
+
+    for product_id in product_ids:
+        product = Product.objects.get(pk=product_id)
+        for site in product.sites.exclude(profile__revalidation_token__exact=''):
+            nextjs_sites[site].append({'pk': product.pk, 'code': product.code})
+
+    num = 0
+    for site in nextjs_sites:
+        num += len(nextjs_sites[site])
+        for i in range(0, len(nextjs_sites[site]), 1000):
+            payload = {
+                'model': 'product',
+                'items': nextjs_sites[site][i:i + 1000]
+            }
+            revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
+
+    return num
+
+
+@shared_task(bind=True, queue="import", autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def update_1c_stocks(self):
     reload_maybe()
     filename = 'ВыгрузкаНаСайтПоВсемСкладам.csv'
@@ -471,8 +464,8 @@ class fragile(object):
         return error
 
 
-@shared_task(time_limit=7200, autoretry_for=(Exception,), retry_backoff=True)
-@single_instance_task(60 * 20)
+@shared_task(time_limit=7200, retry_backoff=True)
+@single_instance_task(1200)
 def import1c(file):
     log.error('Import1C')
     enable_flag('1C_IMPORT_RUNNING')
@@ -524,6 +517,7 @@ def import1c(file):
     updated = 0
     errors = []
     products = set()
+    updated_products = []
     orders = set()
     suppliers = []
     date_reg = re.compile(r"\d{1,2}\.\d{2}\.\d{4} \d{1,2}:\d{2}:\d{2}")
@@ -561,7 +555,8 @@ def import1c(file):
                 product = Product.objects.only(
                     'forbid_ws_price_import',
                     'forbid_price_import',
-                    'cur_code'
+                    'cur_code',
+                    'cur_price'
                 ).get(article=line['article'])
                 if line['sp_cur_code'] != '0':
                     try:
@@ -580,9 +575,12 @@ def import1c(file):
                         errors.append("%s: оптовая цена" % line['article'])
                 if line['cur_code'] != '0' and not product.forbid_price_import:
                     try:
-                        price = float(line['cur_price'].replace('\xA0', ''))
-                        if price > 0 and product.cur_code.code == 643:
-                            product.cur_price = int(round(price))
+                        cur_price = float(line['cur_price'].replace('\xA0', ''))
+                        if cur_price > 0 and product.cur_code.code == 643:
+                            cur_price = Decimal(cur_price).quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)
+                            if product.cur_price != cur_price:
+                                updated_products.append(product.id)
+                            product.cur_price = cur_price
                     except ValueError:
                         errors.append("%s: розничная цена" % line['article'])
                 product.save()
@@ -618,8 +616,12 @@ def import1c(file):
             except MultipleObjectsReturned:
                 errors.append("%s: артикль не уникален" % line['article'])
             except ObjectDoesNotExist:
-                # errors.append("%s: товар отсутсвует" % line['article'])
+                # errors.append("%s: товар отсутствует" % line['article'])
                 pass
+
+        if updated_products:
+            post_update_products.s(updated_products).delay()
+
         for product, stocks in corrected_stocks.items():
             for stock, (correction, reason) in stocks.items():
                 table_copy.write('{}\t{}\t{}\t{}\t{}\n'.format(0, product, stock, correction, reason))
@@ -639,14 +641,13 @@ def import1c(file):
     tmp_file.close()
 
     for product_id in products:
-        product = Product.objects.only('num').get(id=product_id)
+        product = Product.objects.only('num').get(pk=product_id)
         product.num = -1
         product.save()
-        post_update_product.s(product.pk, 'import').delay()
         if product_id in frozen_products.keys() and product.instock > 0:
             orders.update(frozen_products[product_id])
         if product_id in frozen_products.keys():
-            log.error('F %d %d' % (product.id, product.instock))
+            log.error('F %d %d' % (product.pk, product.instock))
 
     log.info('Frozen orders %s' % str(orders))
 
@@ -1004,8 +1005,8 @@ def update_user_bonuses(self):
     return 0
 
 
-@shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
-def notify_expiring_bonus(self, phone):
+@shared_task(autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
+def notify_expiring_bonus(phone):
     user = ShopUser.objects.get(phone=phone)
     today = datetime.today()
     base_format = SINGLE_DATE_FORMAT if today.year == user.expiration_date.year else SINGLE_DATE_FORMAT_WITH_YEAR

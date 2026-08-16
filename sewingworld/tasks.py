@@ -1,8 +1,25 @@
 from __future__ import absolute_import
 
+import functools
+
 from django.core import management
+from django.core.cache import cache
 
 from celery import shared_task
+
+
+def single_instance_task(timeout):
+    def task_exc(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            lock_id = "celery-single-instance-" + func.__name__
+            if cache.add(lock_id, "true", timeout):
+                try:
+                    return func(*args, **kwargs)
+                finally:
+                    cache.delete(lock_id)
+        return wrapper
+    return task_exc
 
 
 @shared_task
@@ -20,10 +37,6 @@ def zinnia_count_discussions():
 def zinnia_spam_cleanup():
     management.call_command("spam_cleanup", verbosity=1)
 
-
-@shared_task
-def haystack_update_index():
-    management.call_command("update_index", verbosity=1)
 
 # PRIORITY_HIGHEST = 0
 # PRIORITY_HIGH = 2

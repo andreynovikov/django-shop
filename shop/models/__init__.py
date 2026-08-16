@@ -15,4 +15,13 @@ from .act import __all__ as act_all
 from .serial import *  # NOQA
 from .serial import __all__ as serial_all
 
-__all__ = product_all + user_all + other_all + basket_all + order_all + act_all + integration_all + serial_all
+__all__ = [
+    *user_all,
+    *other_all,
+    *product_all,
+    *integration_all,
+    *basket_all,
+    *order_all,
+    *act_all,
+    *serial_all
+]

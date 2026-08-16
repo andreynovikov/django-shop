@@ -3,17 +3,12 @@ from datetime import timedelta
 from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.core.cache import InvalidCacheBackendError, caches
-from django.core.cache.utils import make_template_fragment_key
 from django.contrib.sites.models import Site
 from django.utils import timezone
 
-from tagging.utils import parse_tag_input
+# from tagging.utils import parse_tag_input
 
 from django.contrib.flatpages.models import FlatPage
-
-from django_cleanup.signals import cleanup_pre_delete
-from sorl.thumbnail import delete as delete_thumbnail
 
 from sewingworld.tasks import PRIORITY_HIGH, PRIORITY_NORMAL, PRIORITY_LOW, PRIORITY_IDLE
 
@@ -68,8 +63,11 @@ def order_saved(sender, **kwargs):
         if order.status == Order.STATUS_ACCEPTED:
             for item in order.items.all():
                 if item.product.tags:
+                    """
                     tags = parse_tag_input(item.product.tags)
                     order.append_user_tags(tags)
+                    """
+                    pass
 
         if order.status == Order.STATUS_SENT:
             if order.courier and order.courier.pos_terminal:
@@ -135,9 +133,3 @@ def news_saved(sender, **kwargs):
     }
     for site in news.sites.exclude(profile__revalidation_token__exact=''):
         revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
-
-
-@receiver(cleanup_pre_delete)
-def sorl_delete(**kwargs):
-    delete_thumbnail(kwargs['file'])
-
