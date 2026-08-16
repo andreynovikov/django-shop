@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { PHASE_PRODUCTION_BUILD } from 'next/constants'
 
 import {
   advertSearchParamsSerializer,
@@ -154,7 +153,6 @@ export function normalizePhone(phone) {
 const AXIOS_CONFIG = {
   baseURL: (process.env.API_SERVER ?? '') + '/api/v0',
   withCredentials: true,
-  timeout: process.env.NEXT_PHASE === PHASE_PRODUCTION_BUILD ? 0 : 3000,
 }
 
 export const apiClient = axios.create(AXIOS_CONFIG)
