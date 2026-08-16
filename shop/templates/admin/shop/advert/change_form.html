@@ -1,0 +1,10 @@
+{% extends "admin/change_form.html" %}
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    div.form-row.field-categories .stacked,
+    div.form-row.field-categories .stacked .selector-available,
+    div.form-row.field-categories .stacked .selector-chosen,
+    div.form-row.field-categories .stacked select { width: 1000px }
+</style>
+{% endblock %}

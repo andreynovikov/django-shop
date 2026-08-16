@@ -6,7 +6,7 @@ from django.dispatch import receiver
 from django.contrib.sites.models import Site
 from django.utils import timezone
 
-from tagging.utils import parse_tag_input
+# from tagging.utils import parse_tag_input
 
 from django.contrib.flatpages.models import FlatPage
 
@@ -63,8 +63,11 @@ def order_saved(sender, **kwargs):
         if order.status == Order.STATUS_ACCEPTED:
             for item in order.items.all():
                 if item.product.tags:
+                    """
                     tags = parse_tag_input(item.product.tags)
                     order.append_user_tags(tags)
+                    """
+                    pass
 
         if order.status == Order.STATUS_SENT:
             if order.courier and order.courier.pos_terminal:

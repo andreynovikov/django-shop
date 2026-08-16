@@ -193,6 +193,7 @@ class ProductAdminForm(forms.ModelForm):
         widgets = {
             'title': forms.TextInput(attrs={'size': 120}),
             'runame': forms.TextInput(attrs={'size': 120}),
+            'type_prefix': forms.TextInput(attrs={'size': 80}),
             'gtin': forms.TextInput(attrs={'size': 10}),
             'whatis': AutosizedTextarea(attrs={'rows': 1}),
             'spec': AutosizedTextarea(attrs={'rows': 3}),
@@ -237,7 +238,7 @@ class ProductAdminForm(forms.ModelForm):
 
 
 class ProductListAdminForm(forms.ModelForm):
-    integrations = forms.ModelMultipleChoiceField(queryset=Integration.objects.filter(output_all=False), widget=forms.CheckboxSelectMultiple, required=False)
+    integrations = forms.ModelMultipleChoiceField(queryset=Integration.objects.filter(enabled=True, output_all=False), widget=forms.CheckboxSelectMultiple, required=False)
 
     def __init__(self, *args, **kwargs):
         instance = kwargs.get('instance')

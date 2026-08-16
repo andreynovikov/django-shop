@@ -25,7 +25,7 @@ from model_field_list import ModelFieldListField
 from . import Category, Country, Currency, Manufacturer, SalesAction, Supplier
 
 __all__ = [
-    'Product', 'ProductImage', 'ProductRelation', 'ProductSet', 'ProductKind', 'ProductReview', 'Stock'
+    'Product', 'ProductImage', 'ProductPrice', 'ProductRelation', 'ProductSet', 'ProductKind', 'ProductReview', 'Stock'
 ]
 
 logger = logging.getLogger(__name__)

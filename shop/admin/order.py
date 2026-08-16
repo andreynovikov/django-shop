@@ -29,8 +29,6 @@ from django_admin_listfilter_dropdown.filters import SimpleDropdownFilter, Choic
 
 from djconfig import config
 
-from djconfig import config
-
 from yandex_delivery.tasks import create_delivery_draft_order, get_delivery_options
 
 from shop.models import ShopUserManager, ShopUser, Supplier, Order, OrderItem, Box, \
@@ -729,9 +727,10 @@ class OrderAdmin(admin.ModelAdmin):
                         'order': order,
                         'product': item.product,
                         'serial_number': serial_number,
-                        'admin': True
+                        'admin': True,
+                        'batched': False
                     }
-                    return TemplateResponse(request, 'shop/warrantycard/common.html', context)
+                    return TemplateResponse(request, 'shop/warrantycard/index.html', context)
 
                 except Exception:
                     # If save() raised, the form will a have a non
@@ -1179,11 +1178,11 @@ class OrderAdmin(admin.ModelAdmin):
                 if inner_cursor.rowcount:
                     for row in inner_cursor.fetchall():
                         if row[0] == supplier_ur.id:
-                            available = min(0, row[1] + row[2])  # prevent negative remainders
+                            available = row[1] + row[2]
                         if row[0] == supplier.id:
-                            stock = min(0, row[1] + row[2])
+                            stock = row[1] + row[2]
                         if aux_supplier and row[0] == aux_supplier.id:
-                            aux_stock = min(0, row[1] + row[2])
+                            aux_stock = row[1] + row[2]
                 if available < quantity:
                     product['own'] = Decimal(available).quantize(Decimal('1'), rounding=ROUND_UP)
                     if stock > 0:

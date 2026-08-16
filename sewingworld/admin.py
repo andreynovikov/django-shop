@@ -1,10 +1,13 @@
+from django import forms
 from django.contrib import admin
 from django.urls import path
 from django.utils.translation import gettext_lazy as _
 
 import djconfig
 from two_factor.admin import AdminSiteOTPRequired
+from mptt.forms import TreeNodeChoiceField
 
+from shop.models import Category
 from .models import SiteProfile
 from .forms import SWConfigForm
 
@@ -94,8 +97,21 @@ class SWFlatPageForm(ModelForm):
 """
 
 
+class ProductAdminForm(forms.ModelForm):
+    root_category = TreeNodeChoiceField(
+        label='Корневая категория',
+        queryset=Category.objects.root_nodes(),
+        required=False
+    )
+
+    class Meta:
+        model = SiteProfile
+        fields = '__all__'
+
+
 class SiteProfileInline(admin.StackedInline):
     model = SiteProfile
+    form = ProductAdminForm
     can_delete = False
 
 
@@ -161,3 +177,6 @@ def configure_admin():
     })
     admin.site.unregister(FlatPage)
     admin.site.register(FlatPage, SWFlatPageAdmin)
+
+    from rest_framework.authtoken.admin import TokenAdmin
+    TokenAdmin.raw_id_fields = ['user']

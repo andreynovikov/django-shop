@@ -6,6 +6,7 @@ from django.conf import global_settings
 
 env = environ.Env(
     # set casting, default value
+    ADMIN=(bool, False),
     DEBUG=(bool, False),
     SITE_ID=(int, 1)
 )
@@ -18,6 +19,7 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SITE_ID = env('SITE_ID')
 
+IS_ADMIN_SITE = env('ADMIN')
 DEBUG = env('DEBUG')
 
 SECRET_KEY = env('SECRET_KEY')

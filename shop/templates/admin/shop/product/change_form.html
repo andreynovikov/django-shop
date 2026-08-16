@@ -17,6 +17,7 @@
     (function($) {
         $(document).ready(function() {
             $("#set_constituents-group").detach().appendTo($("#id_recalculate_price").closest("fieldset"));
+            $("#site_prices-group").detach().appendTo($("#id_cur_price").closest("fieldset"));
             $("#images-group").detach().appendTo($("#id_image").closest("fieldset"));
             $("#productintegration_set-group").detach().appendTo($("#id_ozon_link").closest("fieldset"));
             $(".add-array-item").each(function(index, element) {

@@ -1,0 +1,25 @@
+<style type="text/css">
+body        { font-size:9pt; font-family:Verdana,sans-serif; margin:0; padding:0 }
+{% if batched %}
+.print      { display:none; }
+.manual     { writing-mode: sideways-lr; float:left;}
+.qr         { float:right; }
+.wrapper    { width:100mm; max-width:100mm; margin:0; padding:0 }
+.innertable { margin:0px; padding;1px }
+{% else %}
+.noprint    { display:none; }
+.wrapper    { width:195mm; max-width:195mm; margin-left:10mm; margin-top:40mm;}
+{% endif %}
+.left       { text-align:left;}
+.right      { text-align:right;}
+.center     { text-align:center;}
+.otmetki td { border:1px solid black}
+@media all
+{
+.nextpage   { display:none; }
+}
+@media print
+{
+.nextpage   { display:block; page-break-before:always; }
+}
+</style>

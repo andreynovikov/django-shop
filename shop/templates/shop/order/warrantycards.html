@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+{% load site %}
+<html>
+<head>
+{% include "../warrantycard/_styles.html" with batched=True %}
+</head>
+<body>
+{% for item in order.items.all|exclude_qs:"serial_number=" %}
+{% include "../warrantycard/common.html" with product=item.product serial_number=item.serial_number admin=True batched=True %}
+<div class="nextpage"></div>
+{% endfor %}
+</body>
+</html>

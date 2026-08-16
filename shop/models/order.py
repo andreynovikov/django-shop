@@ -451,6 +451,7 @@ class OrderItem(models.Model):
     tracker = FieldTracker(fields=['quantity'])
 
     class Meta:
+        ordering = ['id']
         indexes = [
             Index(Upper('serial_number'), name='shop_order_item_serial_number_idx')
         ]
