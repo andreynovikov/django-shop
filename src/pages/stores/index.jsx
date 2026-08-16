@@ -1,157 +1,44 @@
-import { Fragment, useState, useEffect, useMemo, useRef } from 'react'
-import Link from 'next/link'
+import { useState, useEffect } from 'react'
 import Script from 'next/script'
-import { useQuery } from '@tanstack/react-query'
-
-import Button from 'react-bootstrap/Button'
-import Collapse from 'react-bootstrap/Collapse'
+import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 
 import PageLayout from '@/components/layout/page'
 
-import { useBreakpoint } from '@/lib/breakpoint'
-import { rows } from '@/lib/partition'
-import { storeKeys, loadStores } from '@/lib/queries'
+import { storeKeys, loadStores, loadStore } from '@/lib/queries'
 
-function Collapsable({ id, name, children, selected, onSelect, className }) {
-  return (
-    <>
-      <Button className={`d-block btn ${selected === id ? 'btn-info' : 'btn-light'} btn-link p-1 ${className}`} onClick={onSelect}>
-        {name}
-      </Button>
-      <Collapse in={selected === id}>
-        <div>
-          {children}
-        </div>
-      </Collapse>
-    </>
-  )
-}
-
-export default function Stores({ marketplace, lottery }) {
+export default function Store({ id }) {
   const [ymapsReady, setYMapsReady] = useState(false)
-  const [currentCity, setCurrentCity] = useState(null)
-  const breakpoint = useBreakpoint()
-  const cols = ['xs', 'sm'].includes(breakpoint)
-    ? 2 : ['md', 'lg'].includes(breakpoint) ? 3 : 4
 
-  const ymap = useRef(null)
-
-  const { data: stores } = useQuery({
-    queryKey: storeKeys.lists({ marketplace, lottery }),
-    queryFn: () => loadStores({ marketplace, lottery })
+  const { data: store, isSuccess } = useQuery({
+    queryKey: storeKeys.detail(id),
+    queryFn: () => loadStore(id)
   })
 
   useEffect(() => {
-    if (!ymapsReady || !stores)
+    if (!ymapsReady || !isSuccess)
       return
 
-    const coords = [55.706959, 37.658536]
-    const map = new ymaps.Map('map', {
+    const coords = [store.latitude, store.longitude]
+    const myMap = new ymaps.Map('map-container', {
       center: coords,
-      zoom: 16,
+      zoom: 14,
       controls: ['zoomControl', 'fullscreenControl', 'geolocationControl', 'rulerControl']
     })
-    map.margin.setDefaultMargin(100)
-    // только один магазин с id=295 показываем
-    stores.filter((store) => store.latitude && store.longitude && store.id == 295).map((store) => {
-      map.geoObjects.add(new ymaps.Placemark([store.latitude, store.longitude], {
-        balloonContentHeader:
-          `<a href="/stores/${store.id}/">${store.name}</a>`,
-        balloonContent:
-          '<div><i class="ci-location text-primary d-inline-block me-2"></i>' +
-          `<span class="d-inline-block align-top">${store.address}${store.address2 ? '<br/>' + store.address2 : ''}</span></div>` +
-          (store.hours ?
-            '<div class="mt-1"><i class="ci-time text-primary d-inline-block me-2"></i>' +
-            `<span class="d-inline-block align-top">${store.hours}</span></div>`
-            : '') +
-          (store.phone ?
-            '<div class="mt-1"><i class="ci-phone text-primary d-inline-block me-2"></i>' +
-            `<span class="d-inline-block align-top">${store.phone}${store.phone2 ? '<br/>' + store.phone2 : ''}</span></div>`
-            : '') +
-          (store.url ?
-            '<div class="mt-1"><i class="ci-dribbble text-primary d-inline-block me-2"></i>' +
-            `<span class="d-inline-block align-top"><a href="${store.url}">${store.url}</a></span></div>`
-            : ''),
-        balloonContentFooter:
-          store.logo !== 'sewingworld' ? '' : ''
-      },
-        {
-          preset: 'islands#redHeartIcon'
-        }))
-    })
+    const myPlacemark = new ymaps.Placemark(coords, {}, { preset: 'islands#blueStarCircleIcon' })
+    myMap.geoObjects.add(myPlacemark)
 
-    const location = ymaps.geolocation
-    location.get({
-      provider: 'yandex'
-    }).then(function (result) {
-      console.log(result)
-      // TODO: select city based on location
-      //var userCoodinates = result.geoObjects.get(0).geometry.getCoordinates();
-      //myMap.setCenter(userCoodinates);
-    }, function (err) {
-      console.log(err)
-    })
+    return () => myMap.destroy()
+  }, [ymapsReady, isSuccess]) //eslint-disable-line react-hooks/exhaustive-deps
 
-    ymap.current = map
-
-    return () => {
-      map.destroy()
-      ymap.current = null
-    }
-  }, [ymapsReady, stores])
-
-  const storeGroups = useMemo(() => {
-    if (!stores)
-      return []
-
-    const { groups } = stores.reduce(({ groups, city }, store) => {
-      if (store.city.id !== city) {
-        groups.push({ city: store.city, stores: [] })
-        city = store.city.id
-      }
-      groups[groups.length - 1].stores.push(store)
-      return { groups, city }
-    }, { groups: [], city: null })
-
-    return groups.sort((a, b) => a.city.name.localeCompare(b.city.name))
-  }, [stores])
-
-  const handleCitySelect = (id) => {
-    setCurrentCity(id)
-    if (ymap.current === null)
-      return
-
-    const { city, stores } = storeGroups.find(({ city }) => city.id === id)
-    if (stores.length === 1 && stores[0].latitude && stores[0].longitude) {
-      ymap.current.setCenter([stores[0].latitude, stores[0].longitude])
-      ymap.current.setZoom(14)
-      return
-    }
-
-    const points = stores.reduce((points, store) => {
-      if (store.latitude && store.longitude)
-        points.push([store.latitude, store.longitude])
-      return points
-    }, [])
-    if (points.length > 0) {
-      // Set map bounds to make all city stores visible
-      ymap.current.setBounds(ymaps.util.bounds.fromPoints(points), {
-        checkZoomRange: true,
-        preciseZoom: !ymap.current.options.get('avoidFractionalZoom'),
-        useMapMargin: true
-      }).then(() => {
-        ymap.current.setZoom(Math.min(14, ymap.current.getZoom()))
+  const handleScroll = (event) => {
+    event.preventDefault()
+    const hash = event.currentTarget.hash
+    const el = document.getElementById(hash.substring(1))
+    if (el !== undefined)
+      el.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
       })
-    } else if (city.latitude !== undefined && city.longitude !== undefined) {
-      ymap.current.setCenter([city.latitude, city.longitude])
-      ymap.current.setZoom(12)
-    } else {
-      const str = 'город ' + city.name + ' ' + city.country.name
-      ymaps.geocode(str, { results: 1 }).then((res) => {
-        ymap.current.setCenter(res.geoObjects.get(0).geometry.getCoordinates())
-        ymap.current.setZoom(12)
-      })
-    }
   }
 
   const setupYMaps = () => {
@@ -160,213 +47,101 @@ export default function Stores({ marketplace, lottery }) {
     })
   }
 
+  const cols = store.url ? 3 : 4
+
+  if (!isSuccess)
+    return null
+
   return (
     <>
-      <div className="container-fluid px-0">
-        <div className="row g-0">
-          <div className="col-lg-6 iframe-full-height-wrap" style={{ minHeight: '26rem' }}>
-            <div className="iframe-full-height" id="map"></div>
-          </div>
-          <div className="col-lg-6 px-4 px-xl-5 py-4">
-            <div className="card border-0 shadow-sm">
-              <div className="card-body" itemScope itemType="http://schema.org/Organization">
-                <ul className="list-unstyled mb-0">
-                  <li className="d-flex">
-                    <i className="ci-location fs-lg my-1 text-primary" />
-                    <div className="ps-3 fs-sm" itemProp="address" itemScope itemType="http://schema.org/PostalAddress">
-                      <span itemProp="streetAddress">
-                        Автозаводская ул., д.9/1
-                      </span>
-                      <span className="d-none" itemProp="addressLocality">Москва</span>
-                    </div>
-                  </li>
-                  <li className="d-flex pt-2 mt-2 mb-0 border-top">
-                    <i className="ci-phone fs-lg my-1 text-primary" />
-                    <div className="ps-3 fs-sm">
-                      <a
-                        className={'d-block nav-link-style'}
-                        href={'tel:+74957844855'}
-                        itemProp="telephone">
-                        +7 (495) 784-48-55
-                      </a>
-                    </div>
-                  </li>
-
-                  <li className="d-flex pt-2 mt-2 mb-0 border-top">
-                    <i className="ci-time fs-lg my-1 text-primary" />
-                    <div className="ps-3 fs-sm">
-                      <div>
-                        пн-сб: 10:00 - 20:00<br />вс: 10:00 - 19:00
-                      </div>
-                    </div>
-                  </li>
+      <section className="container py-3 py-lg-5">
+        <p className="lead">Продажа швейных машин, оверлоков, вязальных машин и аксессуаров для рукоделия в г. {store.city.name}</p>
+      </section>
+      <section className="container-fluid">
+        <div className="row">
+          <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
+            <a className="card" href="#map" onClick={handleScroll}>
+              <div className="card-body text-center">
+                <i className="ci-location h3 mt-2 mb-4 text-primary" />
+                <h3 className="h6 mb-3">Адрес</h3>
+                <ul className="list-unstyled fs-sm text-muted mb-0">
+                  <li>{store.address}</li>
+                  {store.address2 && <li>{store.address2}</li>}
                 </ul>
+                {store.latitude && store.longitude && (
+                  <div className="fs-sm text-primary">
+                    Посмотреть на карте
+                    <i className="ci-arrow-right fs-xs ms-1" />
+                  </div>
+                )}
+              </div>
+            </a>
+          </div>
+          {store.hours && (
+            <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
+              <div className="card">
+                <div className="card-body text-center">
+                  <i className="ci-time h3 mt-2 mb-4 text-primary" />
+                  <h3 className="h6 mb-3">Часы работы</h3>
+                  <ul className="list-unstyled fs-sm text-muted mb-0">
+                    {store.hours.split(',').map((hours, index) => (
+                      <li className={index === store.hours.length - 1 ? 'mb-0' : ''} key={index}>
+                        {hours.trim()}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
-
-            {/*
-            <div>
-              <Collapsable
-                id={2}
-                name="Москва"
-                selected={currentCity}
-                onSelect={() => handleCitySelect(2)}
-                className="fw-bold">
-                {stores && stores.filter(({ city }) => city.id === 2).map((store) => (
-                  <div className="fs-xs pt-1 ps-2" key={store.id}>
-                    <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }}>
-                      {store.address}
-                    </Link>
-                    {store.phones && (
-                      <>
-                        <br />
-                        {store.phones[0]}
-                      </>
-                    )}
-                  </div>
-                ))}
-              </Collapsable>
-            </div>
-            <div>
-              <Collapsable
-                id={21}
-                name="Санкт-Петербург"
-                selected={currentCity}
-                onSelect={() => handleCitySelect(21)}
-                className="fw-bold">
-                {stores && stores.filter(({ city }) => city.id === 21).map((store) => (
-                  <div className="fs-xs pt-1 ps-2" key={store.id}>
-                    <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }}>
-                      {store.address}
-                    </Link>
-                    {store.phones && (
-                      <>
-                        <br />
-                        {store.phones[0]}
-                      </>
-                    )}
-                  </div>
-                ))}
-              </Collapsable>
-            </div>
-            <div className="d-flex gap-1 mt-1">
-              {storeGroups.length > 0 && rows(storeGroups, cols).map((column, index) => (
-                <div key={index} style={{ flex: "1 1 0" }}>
-                  {column.map(({ city, stores }) => (
-                    <Collapsable
-                      key={city.id}
-                      id={city.id}
-                      name={city.name}
-                      selected={currentCity}
-                      onSelect={() => handleCitySelect(city.id)}
-                      className="btn-sm">
-                      {stores.map((store) => (
-                        <div className="fs-xs pt-1 ps-2" key={store.id}>
-                          <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }}>
-                            {store.address}
-                          </Link>
-                          {store.phones && (
-                            <>
-                              <br />
-                              {store.phones[0]}
-                            </>
-                          )}
-                        </div>
-                      ))}
-                    </Collapsable>
-                  ))}
+          )}
+          {store.phones && (
+            <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
+              <div className="card">
+                <div className="card-body text-center">
+                  <i className="ci-phone h3 mt-2 mb-4 text-primary" />
+                  <h3 className="h6 mb-3">Телефон{store.phones.length > 1 && 'ы'}</h3>
+                  <ul className="list-unstyled fs-sm mb-0">
+                    {store.phones.map((phone, index) => (
+                      <li className={index === store.phones.length - 1 ? 'mb-0' : ''} key={index}>
+                        <a className="nav-link-style" href={'tel:' + phone.replace(/[ -]/g, '')}>{phone}</a>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              ))}
+              </div>
             </div>
-              */
-            }
-          </div>
-        </div>
-      </div>
-      {/*
-      <section className="container-fluid pt-grid-gutter mt-md-4 mb-5">
-        <div className="row">
-          {storeGroups.length > 0 && storeGroups.filter(({ city }) => currentCity === null || city.id === currentCity).map(({ city, stores }) => (
-            <Fragment key={city.id}>
-              {stores.map((store) => (
-                <div className="col-xl-3 col-lg-4 col-sm-6 mb-grid-gutter" key={store.id}>
-                  <div className="card border-0 shadow-sm">
-                    <div className="card-body" itemScope itemType="http://schema.org/Organization">
-                      <h6 className="card-title">
-                        {store.logo === 'sewingworld' ?
-                          <Link href={{ pathname: '/stores/[id]', query: { id: store.id } }} itemProp="name">
-                            &quot;{store.name}&quot; - {city.name}
-                          </Link>
-                          :
-                          <span itemProp="name">&quot;{store.name}&quot; ({city.name})</span>
-                        }
-                      </h6>
-                      <ul className="list-unstyled mb-0">
-                        <li className="d-flex">
-                          <i className="ci-location fs-lg my-1 text-primary" />
-                          <div className="ps-3 fs-sm" itemProp="address" itemScope itemType="http://schema.org/PostalAddress">
-                            <span itemProp="streetAddress">
-                              {store.address}
-                              {store.address2 && <><br />{store.address2}</>}
-                            </span>
-                            <span className="d-none" itemProp="addressLocality">{city.name}</span>
-                            <span className="d-none" itemProp="addressCountry">{city.country.name}</span>
-                          </div>
-                        </li>
-                        {store.phones && (
-                          <li className="d-flex pt-2 mt-2 mb-0 border-top">
-                            <i className="ci-phone fs-lg my-1 text-primary" />
-                            <div className="ps-3 fs-sm">
-                              {store.phones.map((phone, index) => (
-                                <a
-                                  className={'d-block nav-link-style' + (index > 0 ? ' mt-2' : '')}
-                                  href={'tel:' + phone.replace(' ', '')}
-                                  itemProp="telephone"
-                                  key={index}>
-                                  {phone}
-                                </a>
-                              ))}
-                            </div>
-                          </li>
-                        )}
-                        {store.hours && (
-                          <li className="d-flex pt-2 mt-2 mb-0 border-top">
-                            <i className="ci-time fs-lg my-1 text-primary" />
-                            <div className="ps-3 fs-sm">
-                              {store.hours.split(',').map((hours, index) => (
-                                <div className={index > 0 ? 'mt-2' : ''} key={index}>
-                                  {hours.trim()}
-                                </div>
-                              ))}
-                            </div>
-                          </li>
-                        )}
-                        {store.url && (
-                          <li className="d-flex pt-2 mt-2 mb-0 border-top">
-                            <i className="ci-dribbble fs-lg my-1 text-primary" />
-                            <div className="ps-3 fs-sm">
-                              <a className="nav-link-style" href={store.url}>{store.url}</a>
-                            </div>
-                          </li>
-                        )}
-                        {store.logo !== 'sewingworld' && (
-                          <li className="pt-2 mt-2 mb-0">
-                            <small className="text-muted">
-                              Магазин-партнер: рекламные акции Швейного Мира могут не действовать в этом магазине
-                            </small>
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  </div>
+          )}
+          {store.url && (
+            <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
+              <div className="card">
+                <div className="card-body text-center">
+                  <i className="ci-dribbble h3 mt-2 mb-4 text-primary" />
+                  <h3 className="h6 mb-3">Сайт магазина</h3>
+                  <ul className="list-unstyled fs-sm mb-0">
+                    <li className="mb-0">
+                      <a className="nav-link-style" href={ store.url }>{store.url}</a>
+                    </li>
+                  </ul>
                 </div>
-              ))}
-            </Fragment>
-          ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>
-        */
-      }
+      {store.description && (
+        <section className="container py-3 py-lg-5 mt-4 mb-3">
+          <div dangerouslySetInnerHTML={{ __html: store.description }}></div>
+        </section>
+      )}
+      {store.latitude && store.longitude && (
+        <div className="container-fluid px-0 pt-3 pt-lg-5" id="map">
+          <div className="row g-0">
+            <div className="col-lg-12 iframe-full-height-wrap" style={{ minHeight: '28rem' }}>
+              <div className="iframe-full-height" id="map-container"></div>
+            </div>
+          </div>
+        </div>
+      )}
       <Script
         id="ymaps"
         src={"https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=" + process.env.NEXT_PUBLIC_YMAPS_API_KEY}
@@ -376,27 +151,33 @@ export default function Stores({ marketplace, lottery }) {
   )
 }
 
-Stores.getLayout = function getLayout(page) {
-  console.log(page.props)
-  const title =
-    page.props.marketplace !== false ? "В этих магазинах можно пройти бесплатное обучение работе на швейной машине при предъявлении гарантийного талона" :
-      "Фирменный магазин Janome рядом с м.Автозаводская"
-
+Store.getLayout = function getLayout(page) {
+  const breadcrumbs = [
+    {
+      label: 'Магазины',
+      href: '/stores'
+    }
+  ]
   return (
-    <PageLayout htmlTitle="Адреса магазинов" title={title}>
+    <PageLayout title={page.props.title} breadcrumbs={breadcrumbs}>
       {page}
     </PageLayout>
   )
 }
 
-export async function getServerSideProps(context) {
-  const marketplace = context.query?.marketplace ?? false
-  const lottery = context.query?.lottery ?? false
+export async function getStaticProps(context) {
+  const id = 295
+  const queryClient = new QueryClient()
+  const store = await queryClient.fetchQuery({
+    queryKey: storeKeys.detail(id),
+    queryFn: () => loadStore(id)
+  })
 
   return {
     props: {
-      marketplace,
-      lottery
+      dehydratedState: dehydrate(queryClient),
+      title: store.name + ' - ' + store.city.name,
+      id
     }
   }
 }
