@@ -2,6 +2,8 @@ import { MouseEvent } from 'react'
 import { useRouter } from 'next/router'
 import { useQuery } from "@tanstack/react-query"
 
+import { Toast } from '@base-ui/react/toast'
+
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 
@@ -12,6 +14,7 @@ import { PAYMENT_CREDIT } from '@/components/order/status-badge'
 export default function OrderPaymentButton({ orderId, iconOnly = false }: { orderId: number, iconOnly?: boolean }) {
 
   const router = useRouter()
+  const toastManager = Toast.useToastManager()
 
   const { data: order, isSuccess } = useQuery({
     queryKey: orderKeys.detail(orderId),
@@ -30,8 +33,10 @@ export default function OrderPaymentButton({ orderId, iconOnly = false }: { orde
     }).then(function (response) {
       window.location = response.data.location
     }).catch(function (error) {
-      // handle error
       console.log(error)
+      toastManager.add({
+        description: error.response ? error.response.data : 'Ошибка взаимодействия с YooMoney',
+      })
     })
   };
 
