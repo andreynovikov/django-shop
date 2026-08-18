@@ -11,8 +11,8 @@ export async function getStaticProps(context) {
   const filters = { 'tags': tag }
   const queryClient = new QueryClient()
   await queryClient.prefetchQuery({
-    queryKey: blogKeys.list('1', filters),
-    queryFn: () => loadBlogEntries('1', filters)
+    queryKey: blogKeys.list(1, filters),
+    queryFn: () => loadBlogEntries(1, filters)
   })
 
   return {

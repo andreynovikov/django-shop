@@ -53,8 +53,8 @@ BlogEntries.getLayout = function getLayout(page) {
 }
 
 export async function getStaticProps(context) {
-  const currentPage = context.params?.page || '1'
-  if (currentPage === '1' && context.params?.page) {
+  const currentPage = +(context.params?.page || '1')
+  if (currentPage === 1 && context.params?.page) {
     return {
       redirect: {
         destination: '/blog/entries/',

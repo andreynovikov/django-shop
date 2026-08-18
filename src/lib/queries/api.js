@@ -2,7 +2,6 @@ import axios from 'axios'
 
 import {
   advertSearchParamsSerializer,
-  blogEntrySearchParamsSerializer,
   comparisonSearchParamsSerializer,
   kindSearchParamsSerializer,
   productSearchParamsSerializer,
@@ -92,17 +91,6 @@ export const advertKeys = {
   all: ['adverts'],
   lists: () => [...advertKeys.all, 'list'],
   list: (places) => [...advertKeys.lists(), places]
-}
-
-export const blogKeys = {
-  all: ['blog'],
-  lists: () => [...blogKeys.all, 'list'],
-  list: (page, filters) => [...blogKeys.lists(), { page, filters }],
-  details: () => [...blogKeys.all, 'detail'],
-  detail: (uri) => [...blogKeys.details(), uri],
-  tags: () => [...blogKeys.lists(), 'tags'],
-  categories: () => [...blogKeys.lists(), 'categories'],
-  category: (slug) => [...blogKeys.categories(), slug],
 }
 
 export const forumKeys = {
@@ -458,35 +446,6 @@ export async function loadAdverts(places, categoryId=undefined) {
 
   })
   const response = await apiClient.get(url)
-  return response.data
-}
-
-export async function loadBlogTags() {
-  const response = await apiClient.get('blog/tags/')
-  return response.data
-}
-
-export async function loadBlogCategories() {
-  const response = await apiClient.get('blog/categories/')
-  return response.data
-}
-
-export async function loadBlogCategory(slug) {
-  const response = await apiClient.get(`blog/categories/${slug}/`)
-  return response.data
-}
-
-export async function loadBlogEntries(page, filters = {}) {
-  const url = 'blog/entries/' + blogEntrySearchParamsSerializer({
-    ...filters,
-    page,
-  })
-  const response = await apiClient.get(url)
-  return response.data
-};
-
-export async function loadBlogEntry(uri) {
-  const response = await apiClient.get(`blog/entries/${uri.join('/')}/`)
   return response.data
 }
 

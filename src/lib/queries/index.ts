@@ -1,4 +1,5 @@
 export * from './api'
+export * from './blog'
 export * from './categories'
 export * from './fetch'
 export * from './sales-actions'
