@@ -12,9 +12,9 @@ import {
 
 const parseAsBooleanExtended = createParser({
   parse(value) {
-    // Treat an empty string (?flag) or "true" (?flag=true) as true
-    if (value === '' || value === 'true') return true
-    if (value === 'false') return false
+    // Treat an empty string (?flag) or "true" (?flag=true) or "1" (?flag=1) as true
+    if (value === '' || value === 'true' || value === '1') return true
+    if (value === 'false' || value === '0') return false
     return null
   },
   serialize(value) {
@@ -35,6 +35,7 @@ export const blogEntrySearchParams = {
   tags: parseAsString,
 }
 
+export type BlogSearchParamsType = Partial<inferParserType<typeof blogEntrySearchParams>>
 export const blogEntrySearchParamsSerializer = createSerializer(blogEntrySearchParams)
 
 export const categorySearchParams = {
