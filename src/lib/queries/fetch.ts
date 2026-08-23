@@ -1,16 +1,16 @@
-import { JSONValue } from "@/lib/types";
+import { JSONValue } from '@/lib/types'
 
 export class HttpError extends Error {
-  status: number;
-  statusText: string;
-  response: Response;
+  status: number
+  statusText: string
+  response: Response
 
   constructor(response: Response, message?: string) {
-    super(message || `HTTP Error: ${response.status} ${response.statusText}`);
-    this.name = 'HttpError';
-    this.status = response.status;
-    this.statusText = response.statusText;
-    this.response = response;
+    super(message || `HTTP Error: ${response.status} ${response.statusText}`)
+    this.name = 'HttpError'
+    this.status = response.status
+    this.statusText = response.statusText
+    this.response = response
   }
 }
 
