@@ -34,7 +34,8 @@ export async function apiFetch<T>(endpoint: string, options: ApiRequestInit = {}
     credentials: 'include',
   }
 
-  const baseURL = (process.env.API_SERVER ?? '') + '/api/v0/'
+  // Route POST requests through API proxy to correctly set CSRF header
+  const baseURL = (body ? '' : (process.env.API_SERVER ?? '')) + '/api/v0/'
   const response = await fetch(baseURL + endpoint, config)
 
   if (!response.ok) {
