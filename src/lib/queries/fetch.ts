@@ -41,5 +41,8 @@ export async function apiFetch<T>(endpoint: string, options: ApiRequestInit = {}
     throw new HttpError(response)
   }
 
+  if (response.status === 204)
+    return undefined as T
+
   return response.json() as Promise<T>
 }

@@ -2,11 +2,12 @@ import axios from 'axios'
 
 import {
   advertSearchParamsSerializer,
-  comparisonSearchParamsSerializer,
-  kindSearchParamsSerializer,
   productSearchParamsSerializer,
   orderSearchParamsSerializer,
- } from '@/lib/search-params'
+} from '@/lib/search-params'
+
+import { comparisonKeys } from './comparisons'
+import { favoriteKeys } from './favorites'
 
 export const userKeys = {
   all: ['users'],
@@ -54,25 +55,6 @@ export const orderKeys = {
   unpaid: () => [...orderKeys.lists(), 'unpaid'],
   details: () => [...orderKeys.all, 'detail'],
   detail: (id) => [...orderKeys.details(), id],
-}
-
-export const favoriteKeys = {
-  all: ['favorites'],
-  details: () => [...favoriteKeys.all, 'detail'],
-}
-
-export const comparisonKeys = {
-  all: ['comparisons'],
-  lists: () => [...comparisonKeys.all, 'list'],
-  list: (kind) => [...comparisonKeys.lists(), kind]
-}
-
-export const kindKeys = {
-  all: ['kinds'],
-  lists: () => [...kindKeys.all, 'list'],
-  list: (filter) => [...kindKeys.lists(), filter],
-  details: () => [...kindKeys.all, 'detail'],
-  detail: (id) => [...kindKeys.details(), id],
 }
 
 export const pageKeys = {
@@ -251,58 +233,6 @@ export async function loadOrder(id) {
 
 export async function updateOrder(id, data) {
   const response = await apiClient.put('orders/' + id + '/', data)
-  return response.data
-}
-
-export async function loadFavorites() {
-  const response = await apiClient.get('favorites/')
-  return response.data
-}
-
-export async function addToFavorites(product) {
-  const response = await apiClient.post('favorites/add/', {
-    product
-  })
-  return response.data
-}
-
-export async function removeFromFavorites(product) {
-  const response = await apiClient.post('favorites/remove/', {
-    product
-  })
-  return response.data
-}
-
-export async function loadComparisons(kind) {
-  const url = 'comparisons/' + comparisonSearchParamsSerializer({ kind })
-  const response = await apiClient.get(url)
-  return response.data
-}
-
-export async function addToComparison(product) {
-  const response = await apiClient.post('comparisons/add/', {
-    product
-  })
-  return response.data
-}
-
-export async function removeFromComparison(product) {
-  const response = await apiClient.post('comparisons/remove/', {
-    product
-  })
-  return response.data
-}
-
-export async function loadKinds(productIds) {
-  const url = 'kinds/' + kindSearchParamsSerializer({
-    product: productIds,
-  })
-  const response = await apiClient.get(url)
-  return response.data
-}
-
-export async function loadKind(id) {
-  const response = await apiClient.get('kinds/' + id + '/')
   return response.data
 }
 

@@ -55,6 +55,7 @@ export const kindSearchParams = {
   product: parseAsNativeArrayOf(parseAsInteger),
 }
 
+export type KindSearchParamsType = Partial<inferParserType<typeof kindSearchParams>>
 export const kindSearchParamsSerializer = createSerializer(kindSearchParams)
 
 export const productSearchParams = {

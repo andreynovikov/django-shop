@@ -65,6 +65,12 @@ export interface Product {
   video_url?: string
 }
 
+export interface ProductKind {
+  id: number
+  name: string
+  comparison: string[] // keyof Product
+}
+
 export interface Country {
   id: number
   name: string
