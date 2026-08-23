@@ -57,13 +57,6 @@ export const orderKeys = {
   detail: (id) => [...orderKeys.details(), id],
 }
 
-export const pageKeys = {
-  all: ['pages'],
-  lists: () => [...pageKeys.all, 'list'],
-  details: () => [...pageKeys.all, 'detail'],
-  detail: (uri) => [...pageKeys.details(), uri],
-}
-
 export const newsKeys = {
   all: ['news'],
   lists: () => [...newsKeys.all, 'list'],
@@ -336,16 +329,6 @@ export async function loadUser(id) {
 
 export async function updateUser(id, data) {
   const response = await apiClient.put('users/' + id + '/', data)
-  return response.data
-}
-
-export async function loadPages() {
-  const response = await apiClient.get('pages/')
-  return response.data
-}
-
-export async function loadPage(uri) {
-  const response = await apiClient.get(`pages/${uri.join('/')}/`)
   return response.data
 }
 

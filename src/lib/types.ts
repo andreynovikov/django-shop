@@ -151,6 +151,16 @@ export interface FlatPageInfo {
   title: string
 }
 
+export interface FlatPage {
+  id: number
+  url: string
+  title: string
+  content: string
+  template_name: string
+  enable_comments: boolean
+  registration_required: boolean
+}
+
 interface ForumOpinion {
   id: number
   post: string
