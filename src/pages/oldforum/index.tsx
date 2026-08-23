@@ -6,11 +6,9 @@ import PageLayout from '@/components/layout/page'
 import type { NextPageWithLayout } from '@/pages/_app'
 
 import { forumKeys, loadTopics } from '@/lib/queries'
-import { ForumTopic } from '@/lib/types'
-
 
 const Topics: NextPageWithLayout = () => {
-  const { data, isSuccess } = useQuery<ForumTopic[]>({
+  const { data, isSuccess } = useQuery({
     queryKey: forumKeys.topics(),
     queryFn: () => loadTopics()
   })

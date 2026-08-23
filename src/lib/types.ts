@@ -98,8 +98,8 @@ export interface Store {
   marketplace: boolean
   lottery: boolean
   description: string
-  latitude: number
-  longitude: number
+  latitude?: number
+  longitude?: number
   postcode: string
   url: string
   hours: string
@@ -109,6 +109,15 @@ export interface Store {
   payment_master: boolean
   payment_mir: boolean
   payment_credit: boolean
+}
+
+export interface ServiceCenter {
+  id: number
+  city: City
+  address: string
+  phone: string
+  latitude?: number
+  longitude?: number
 }
 
 export interface SalesAction {

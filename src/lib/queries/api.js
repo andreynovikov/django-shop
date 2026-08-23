@@ -75,21 +75,6 @@ export const advertKeys = {
   list: (places) => [...advertKeys.lists(), places]
 }
 
-export const forumKeys = {
-  all: ['forum'],
-  topics: () => [...forumKeys.all, 'topics'],
-  topic: (topic) => [...forumKeys.topics(), topic],
-  threads: () => [...forumKeys.all, 'threads'],
-  thread: (thread) => [...forumKeys.threads(), thread],
-}
-
-export const serviceCenterKeys = {
-  all: ['serviceCenters'],
-  lists: () => [...serviceCenterKeys.all, 'list'],
-  details: () => [...serviceCenterKeys.all, 'detail'],
-  detail: (id) => [...serviceCenterKeys.details(), id],
-}
-
 export const siteKeys = {
   all: ['sites'],
   current: () => [...siteKeys.all, 'current'],
@@ -376,31 +361,6 @@ export async function loadAdverts(places, categoryId=undefined) {
 
   })
   const response = await apiClient.get(url)
-  return response.data
-}
-
-export async function loadTopics() {
-  const response = await apiClient.get('forum/topics/')
-  return response.data
-}
-
-export async function loadTopic(id) {
-  const response = await apiClient.get('forum/topics/' + id + '/')
-  return response.data
-}
-
-export async function loadThread(id) {
-  const response = await apiClient.get('forum/threads/' + id + '/')
-  return response.data
-}
-
-export async function loadServiceCenters() {
-  const response = await apiClient.get('servicecenters/')
-  return response.data
-}
-
-export async function loadServiceCenter(id) {
-  const response = await apiClient.get('servicecenters/' + id + '/')
   return response.data
 }
 

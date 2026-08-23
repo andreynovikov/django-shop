@@ -7,14 +7,13 @@ import PageLayout from '@/components/layout/page'
 import type { NextPageWithLayout } from '@/pages/_app'
 
 import { forumKeys, loadThread } from '@/lib/queries'
-import { ForumThread } from '@/lib/types'
-
 
 const Thread: NextPageWithLayout = () => {
     const router = useRouter()
-    const { data, isSuccess } = useQuery<ForumThread>({
-        queryKey: forumKeys.thread(router.query.id),
-        queryFn: () => loadThread(router.query.id)
+    const id = router.query.id as unknown as string
+    const { data, isSuccess } = useQuery({
+        queryKey: forumKeys.thread(id),
+        queryFn: () => loadThread(id)
     })
 
     if (!isSuccess)
