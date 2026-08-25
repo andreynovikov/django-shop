@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 
@@ -20,11 +21,16 @@ export default function SalesActions() {
         <>
           <h3>{action.name}</h3>
           <Link className="d-block mb-5" href={{ pathname: '/actions/[slug]', query: { slug: action.slug } }}>
-            <img
-              class="d-block img-fluid"
-              src={action.image}
-              width={action.image_width}
-              height={action.image_height} />
+            {action.image !== undefined ? (
+              <Image
+                className="d-block img-fluid"
+                src={action.image}
+                width={action.image_width}
+                height={action.image_height}
+                alt={action.name} />
+            ) : (
+              <span>{action.name}</span>
+            )}
           </Link>
         </>
       ))}

@@ -103,6 +103,13 @@ export const orderSearchParams = {
 
 export const orderSearchParamsSerializer = createSerializer(orderSearchParams)
 
+export const salesActionProductsSearchParams = {
+  page: parseAsInteger.withDefault(1),
+  page_size: parseAsInteger,
+}
+
+export const salesActionProductsSearchParamsSerializer = createSerializer(salesActionProductsSearchParams)
+
 export const storeSearchParams = {
   marketplace: parseAsBooleanExtended,
   lottery: parseAsBooleanExtended,

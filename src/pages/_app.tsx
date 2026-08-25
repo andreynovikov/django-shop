@@ -79,7 +79,7 @@ const rubik = localFont({
 const toastManager = Toast.createToastManager()
 
 export type NextPageWithLayout<P = object, IP = P> = NextPage<P, IP> & {
-  getLayout?: (page: ReactElement) => ReactNode
+  getLayout?: (page: ReactElement, pageProps: P) => ReactNode
 }
 
 type AppPropsWithLayout = AppProps & {
@@ -107,7 +107,7 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
   }, []);
 
   // Use the layout defined at the page level, if available
-  const getLayout = Component.getLayout || ((page) => page);
+  const getLayout = Component.getLayout ?? ((page) => page);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -118,7 +118,7 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
               <Toast.Provider toastManager={toastManager}>
                 <ToolbarProvider>
                   <div className={rubik.variable}>
-                    {getLayout(<Component {...pageProps} />)}
+                    {getLayout(<Component {...pageProps} />, pageProps)}
                   </div>
                 </ToolbarProvider>
                 <Toast.Portal>

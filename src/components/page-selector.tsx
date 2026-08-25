@@ -1,23 +1,29 @@
 import { Fragment, useMemo } from 'react'
 import Link from 'next/link'
+import { ParsedUrlQuery } from 'querystring'
 
-/*
-  pathname  - dynamic route path with parameters, e.g.:
-                "/blog/tags/[tag]/[page]"
-              usually {router.pathname}
-  path      - current base path if [...path] is uses as dynamic route or {[]} if custom path is used, otherwise page number will be put in query string
-  pathExtra - {{...}} dictionary of extra path parameters if not only page number is dynamic
-  query     - {router.query} if query string params are used
-*/
+interface PageSelectorProps {
+  pathname: string,                     /* dynamic route path with parameters, e.g.:
+                                           "/blog/tags/[tag]/[page]"
+                                           usually {router.pathname} */
+  query: ParsedUrlQuery,                /* {router.query} if query string params are used */
+  totalPages: number,
+  currentPage: number,
+  path?: string[],                      /* current base path if [...path] is used as
+                                           dynamic route or {[]} if custom path is used,
+                                           otherwise page number will be put in query string */
+  pathExtra?: Record<string, unknown>,  /* dictionary of extra path parameters
+                                          if not only page number is dynamic */
+}
 
-const getQuery = (page, query, path, pathExtra) => {
+const getQuery = (page: number, query: ParsedUrlQuery, path: string[] | undefined, pathExtra: Record<string, unknown> = {}) => {
   if (path !== undefined)
     return path.length > 0 ? { path: [...path, page] } : { ...pathExtra, page } // put page number in path
   else
     return { ...query, page } // put page number in query string
 }
 
-export function SmallPageSelector({ pathname, query, path, pathExtra, totalPages, currentPage }) {
+export function SmallPageSelector({ pathname, query, totalPages, currentPage, path, pathExtra }: PageSelectorProps) {
   return (
     <div className="d-flex pb-3">
       {currentPage > 1 && (
@@ -35,7 +41,7 @@ export function SmallPageSelector({ pathname, query, path, pathExtra, totalPages
   )
 }
 
-export default function PageSelector({ pathname, query, path, pathExtra, totalPages, currentPage }) {
+export default function PageSelector({ pathname, query, totalPages, currentPage, path, pathExtra }: PageSelectorProps) {
   const { minPage, maxPage } = useMemo(() => {
     // количество переключателей страниц лимитировано дизайном
     const pageRange = currentPage > 1 && currentPage < totalPages ? 7 : 10
@@ -64,7 +70,7 @@ export default function PageSelector({ pathname, query, path, pathExtra, totalPa
         <li className="page-item d-sm-none">
           <span className="page-link page-link-static">{currentPage} / {totalPages}</span>
         </li>
-        {Array(totalPages).fill().map((_, i) => i + 1).map((page) => (
+        {Array(totalPages).fill(undefined).map((_, i) => i + 1).map((page) => (
           page === currentPage ? (
             <li className="page-item active d-none d-sm-block" aria-current="page" key={page}>
               <span className="page-link">{page}<span className="visually-hidden">(текущая)</span></span>
