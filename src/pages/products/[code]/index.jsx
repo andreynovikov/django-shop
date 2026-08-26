@@ -10,9 +10,6 @@ import { FreeMode, Navigation } from 'swiper/modules'
 
 import { Menu } from '@base-ui/react/menu'
 
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import Tooltip from 'react-bootstrap/Tooltip'
-
 import PageLayout from '@/components/layout/page'
 import FieldHelp from '@/components/product/field-help'
 import NoImage from '@/components/product/no-image'
