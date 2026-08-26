@@ -232,19 +232,7 @@ export default function Product({ code }) {
                       </div>
                       <div className="ms-3 text-end w-100">
                         {product.discount > 0 && (
-                          <OverlayTrigger
-                            placement="bottom"
-                            overlay={
-                              <Tooltip>
-                                Базовая цена в магазинах &laquo;Швейный Мир&raquo;
-                                без учета скидок <b>{product.price.toLocaleString('ru')}</b>&nbsp;руб.
-                                Скидка при покупке в интернет-магазине составляет{' '}
-                                <b>{product.discount.toLocaleString('ru')}</b>&nbsp;руб.
-                              </Tooltip>
-                            }
-                          >
-                            <span className="badge bg-primary badge-shadow ms-2 mb-2">Скидка</span>
-                          </OverlayTrigger>
+                          <span className="badge bg-primary badge-shadow ms-2 mb-2">Скидка</span>
                         )}
                         {product.ishot && (
                           <span className="badge bg-accent badge-shadow ms-2 mb-2">Акция</span>
