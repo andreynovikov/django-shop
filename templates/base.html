@@ -60,33 +60,6 @@
 
 </div>
 
-<div class="col-md-5" style="margin-top:20px; margin-bottom:5px;">
-<div id="profile-block" class="dropdown text-right">
-    <img src="{% static 'i/user.svg' %}" alt="Профиль" height="24">
-    <span>{% block user_profile_links %}{% endblock %}</span><a href="#" class="dropdown-toggle" data-toggle="dropdown">Мой профиль <span class="caret"></span></a>
-    <ul class="dropdown-menu dropdown-menu-right" role="menu" style="z-index: 1001">
-        {% if user.is_authenticated %}
-        <li><a href="{% url 'shop:user_orders' %}">Кабинет покупателя</a></li>
-        <li role="separator" class="divider"></li>
-        <li><a href="{% url 'shop:logout' %}?next={% firstof request.get_full_path|urlencode '/' %}">Выйти</a></li>
-        {% else %}
-        <li><a href="{% url 'shop:login' %}?next={% firstof request.get_full_path|urlencode '/' %}">Войти</a></li>
-        {% endif %}
-    </ul>
-</div>
-{% block cart_notice %}
-{% load render_view %}
-<div class="text-right" id="cartholder"><span id="cart_notice">{% view "shop.views.view_basket_notice" %}</span></div>
-{% endblock %}
-{% block compare_notice %}
-{% load render_view %}
-<div id="compare-block" class="text-right"><span id="compare_notice">{% view "sewingworld.views.compare_notice" %}</span></div>
-{% endblock %}
-{% get_unpaid_order as order %}
-{% if order %}
-<div class="text-right"><a class="btn btn-success btn-xs" style="visibility: visible;" href="{% url 'shop:order' order.id %}" role="button" id="orderpaymentbutton">Оплатить заказ</a></div>
-{% endif %}
-</div>
 </div>
 </div>
 
@@ -106,18 +79,10 @@
         <div class="navbar-collapse collapse text-center">
           <ul class="nav navbar-nav navbar-center">
             <li class="hidden-xs"><a href="/stores/">Адреса магазинов</a></li>
-            <li class="dropdown hidden-xs">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Каталог <span class="caret"></span></a>
-              <ul class="dropdown-menu" role="menu">
-                {% include "_catalog.html" %}
-              </ul>
-            </li>
-            <li class="visible-xs"><a href="/catalog/">Каталог товаров</a></li>
             <li><a href="/pages/articles/">Статьи</a></li>
             <li><a href="/blog/">Блог</a></li>
             <li><a href="/service/">Сервисные центры</a></li>
             <li><a href="/pages/delivery/">Доставка и оплата</a></li>
-            <li><a href="{% url 'shop:user_orders' %}">Состояние заказа</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -140,11 +105,6 @@
 {% block content_wrapper %}
 <div class="container-fluid content_wrapper">
 <!-- ------------------------------------------------------------------------------------------------------------ -->
-{% load django_bootstrap_breadcrumbs %}
-{% block breadcrumbs %}
-    {% clear_breadcrumbs %}
-{% endblock %}
-{% render_breadcrumbs "_breadcrumbs.html" %}
 {% block content %}
 {% endblock %}
 </div> <!-- /container-fluid -->
