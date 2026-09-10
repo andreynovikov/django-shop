@@ -78,7 +78,7 @@ def exclude_qs(queryset, field):
                 criteria = False
                 field = field[1:]
         kwargs = {field: criteria}
-       return queryset.exclude(**kwargs)
+        return queryset.exclude(**kwargs)
     else:
         return None
 
