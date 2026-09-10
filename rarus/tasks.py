@@ -72,15 +72,15 @@ def get_bonus_value(phone):
         user.bonus = Bonus()
     user.bonus.updated = timezone.now()
 
-    url = '{}/organization/card/by_phone?filter={}'.format(HOST, phone[1:])  # remove '+' from phone number
-    headers = {
-        'Token': get_token(),
-        'Content-Type': 'application/json;charset=UTF-8'
-    }
-
-    request = Request(url, None, headers)
-    logger.info('<<< ' + request.full_url)
     try:
+        url = '{}/organization/card/by_phone?filter={}'.format(HOST, phone[1:])  # remove '+' from phone number
+        headers = {
+            'Token': get_token(),
+            'Content-Type': 'application/json;charset=UTF-8'
+        }
+
+        request = Request(url, None, headers)
+        logger.info('<<< ' + request.full_url)
         response = urlopen(request)
         result = json.loads(response.read().decode('utf-8'))
         logger.debug(result)
