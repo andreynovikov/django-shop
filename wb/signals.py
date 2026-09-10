@@ -8,6 +8,7 @@ from sewingworld.tasks import PRIORITY_IDLE
 
 from shop.models import Product, ProductIntegration, Integration
 
+from .tasks import notify_product_stocks
 
 logger = logging.getLogger('wb')
 SITE_WB = Site.objects.get(domain='wildberries.ru')
@@ -37,4 +38,4 @@ def product_integration_changed(sender, **kwargs):  # used to clean remote wareh
     if kwargs.get('action', None) == 'post_remove':
         for integration in Integration.objects.filter(pk__in=kwargs.get('pk_set', []), site__exact=SITE_WB):
             if integration.settings.get('warehouse_id', '') != '':
-                notify_wb_product_stocks.s([product.id], integration.utm_source, True).apply_async(priority=PRIORITY_IDLE)
+                notify_product_stocks.s([product.id], integration.utm_source, True).apply_async(priority=PRIORITY_IDLE)
