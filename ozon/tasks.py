@@ -22,6 +22,7 @@ from shop.models import Integration, Basket, Order, Product, ProductIntegration,
 logger = logging.getLogger('ozon')
 SITE_OZON = Site.objects.get(domain='ozon.ru')
 
+
 class TaskFailure(Exception):
     pass
 
@@ -32,7 +33,7 @@ def get_integration_unfulfilled_orders(self, account):
     client_id = integration.settings.get('client_id', '')
     api_key = integration.settings.get('api_key', '')
 
-    url = 'https://api-seller.ozon.ru/v3/posting/fbs/list'
+    url = 'https://api-seller.ozon.ru/v4/posting/fbs/list'
     headers = {
         'Client-Id': client_id,
         'Api-Key': api_key,
@@ -42,13 +43,18 @@ def get_integration_unfulfilled_orders(self, account):
     week_ago = now - timedelta(days=7)
 
     data = {
-        "dir": "ASC",
+        "sort_dir": "ASC",
         "filter": {
             "since": week_ago.isoformat(),
             "to": now.isoformat(),
-            "status": "awaiting_packaging"
+            "statuses": [
+                "awaiting_packaging",
+                "awaiting_deliver",
+                "delivering",
+                "delivered"
+            ]
         },
-        "limit": 1000,
+        "limit": 100,
         "offset": 0,
         "with": {
             "analytics_data": True,
@@ -71,7 +77,7 @@ def get_integration_unfulfilled_orders(self, account):
         session[auth.BACKEND_SESSION_KEY] = settings.AUTHENTICATION_BACKENDS[0]
         session[auth.HASH_SESSION_KEY] = user.get_session_auth_hash()
         session.save()
-        for posting in result.get('result', {}).get('postings', []):
+        for posting in result.get('postings', []):
             logger.debug(posting)
             posting_number = posting.get('posting_number', '')
             if not posting_number:
@@ -83,9 +89,9 @@ def get_integration_unfulfilled_orders(self, account):
 
                 for ozon_item in posting.get('products', []):
                     try:
-                        sku = ozon_item.get('offer_id', '#NO_SKU#')
-                        product = Product.objects.get(article=sku)
-                        price = Decimal(ozon_item.get('price', '0'))
+                        article = ozon_item.get('offer_id', '#NO_OFFER_ID#')
+                        product = Product.objects.get(article=article)
+                        price = Decimal(ozon_item.get('price', {}).get('amount', '0'))
                         quantity = ozon_item.get('quantity', 0)
                         item, _ = basket.items.get_or_create(product=product)
                         item.quantity = quantity
