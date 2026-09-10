@@ -4,6 +4,7 @@ from random import randint
 from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.postgres.search import SearchQuery, SearchRank
+from django.core.exceptions import FieldDoesNotExist
 from django.core.mail import mail_admins
 from django.db.models import Sum, F, Q, OuterRef, Subquery
 from django.http import HttpResponse, HttpResponseRedirect
@@ -167,7 +168,9 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         return super().get_serializer(*args, **kwargs)
 
     def get_queryset(self):
-        queryset = super().get_queryset().filter(sites=self.request.site)
+        queryset = super().get_queryset()
+        if self.action == 'list':
+            queryset = queryset.filter(sites=self.request.site)
 
         for field, values in self.request.query_params.lists():
             if field == 'in_category':
@@ -181,6 +184,10 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             base_field = field.split('__', 1)[0]
             if base_field not in self.filtering_fields:
                 continue
+            try:
+                field_type = Product._meta.get_field(field).get_internal_type()
+            except FieldDoesNotExist:
+                field_type = None
             if field == 'id':
                 queryset = queryset.filter(pk__in=values)
             elif field == 'text':  # full text search
@@ -199,7 +206,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                 filter_fields = ['manufacturer', 'price']
                 self.product_filter = get_product_filter(self.request.query_params, queryset=queryset, fields=filter_fields, request=self.request)
                 queryset = self.product_filter.qs
-            elif field in ('show_on_sw', 'gift', 'recomended', 'isnew', 'firstpage', 'enabled'):
+            elif field_type == 'BooleanField':
                 key = '{}__exact'.format(field)
                 value = values[0].lower() in ('1', 'on', 't', 'true', 'y', 'yes')
                 queryset = queryset.filter(**{key: value})
@@ -897,7 +904,16 @@ class SalesActionViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True)
     def products(self, request, slug=None):
         action = self.get_object()
-        return Response(ProductListSerializer(action.products.filter(enabled=True).order_by('-price'), many=True, context=self.get_serializer_context()).data)
+        queryset = action.products.filter(enabled=True).order_by('-price')
+        paginator = StandardResultsSetPagination()
+        page = paginator.paginate_queryset(queryset, request, view=self)
+
+        if page is not None:
+            serializer = ProductListSerializer(page, many=True, context=self.get_serializer_context())
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = ProductListSerializer(queryset, many=True, context=self.get_serializer_context())
+        return Response(serializer.data)
 
 
 class AdvertViewSet(viewsets.ReadOnlyModelViewSet):
