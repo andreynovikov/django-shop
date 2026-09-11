@@ -331,7 +331,7 @@ export default function Product({ code }) {
                   )}
 
                   {product.enabled && product.cost > 0 && (
-                    <div className={"mb-4" + (product.enabled ? "" : " mt-5")}>
+                    <div className="mb-4">
                       <Menu.Root modal={false}>
                         <Menu.Trigger className="btn btn-outline-secondary btn-sm w-100">
                           <i className="ci-location text-muted lead align-middle mt-n1 me-2" />Наличие в магазинах
@@ -480,6 +480,16 @@ export default function Product({ code }) {
           <div className="pt-lg-2 pb-3 mb-md-3">
             <h2 className="h3 pb-2">Комплектация</h2>
             <div dangerouslySetInnerHTML={{ __html: product.complect }} />
+          </div>
+        )}
+
+        {product.certificate && (
+          <div className="pb-3 mb-md-3">
+            {product.certificate.startsWith('http') ? (
+              <a href={product.certificate} target="_blank">Сертификат на {product.title}</a>
+            ) : (
+              <>{product.certificate}</>
+            )}
           </div>
         )}
 
