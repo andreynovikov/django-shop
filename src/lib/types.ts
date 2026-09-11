@@ -139,6 +139,48 @@ export interface Serial {
   order?: unknown
 }
 
+export interface User {
+  id: number | null
+  is_anonymous: boolean
+  phone: string
+  name: string
+  full_name: string
+  gravatar: string
+  username: string
+  email: string
+  postcode: string
+  city: string
+  address: string
+  discount: number
+  bonuses: number
+  expiring_bonuses: number
+  expiration_date: string | null
+  permanent_password: boolean
+  last_login: string
+  date_joined: string
+}
+
+export interface UserEdit {
+  name: string
+  phone: string
+  email: string
+  address: string
+  username: string
+}
+
+export interface UserForm {
+  name: string
+  label: string
+  id: string
+  required: boolean
+
+}[]
+
+export interface UserCheck {
+  phone: string
+  permanent_password: boolean
+}
+
 export interface UserBonus {
   value: number
   is_fresh: boolean

@@ -9,15 +9,6 @@ import {
 import { comparisonKeys } from './comparisons'
 import { favoriteKeys } from './favorites'
 
-export const userKeys = {
-  all: ['users'],
-  form: () => [...userKeys.all, 'form'],
-  details: () => [...userKeys.all, 'detail'],
-  detail: (id) => [...userKeys.details(), id],
-  current: () => [...userKeys.details(), 'current'],
-  bonus: () => [...userKeys.details(), 'bonus'],
-}
-
 export const productKeys = {
   all: ['products'],
   fields: () => [...productKeys.all, 'fields'],
@@ -86,17 +77,6 @@ export const userDependencies = [
   productKeys.details(),
   basketKeys.all
 ]
-
-export function normalizePhone(phone) {
-  phone = phone.replaceAll(/[^0-9\+]/g, '')
-  if (!phone.startsWith('+')) {
-    if (phone.startsWith('7') && phone.length === 11)
-      phone = '+' + phone
-    else
-      phone = '+7' + phone
-  }
-  return phone
-};
 
 const AXIOS_CONFIG = {
   baseURL: (process.env.API_SERVER ?? '') + '/api/v0',
@@ -297,38 +277,6 @@ export async function loadProductInfo(id) {
 
 export async function getProductFields() {
   const response = await apiClient.get('products/fields/')
-  return response.data
-}
-
-export async function checkUser(phone, reset) {
-  const response = await apiClient.post('users/' + normalizePhone(phone) + '/check/', {
-    reset
-  })
-  return response.data
-}
-
-export async function currentUser() {
-  const response = await apiClient.get('users/current/')
-  return response.data
-}
-
-export async function getUserForm() {
-  const response = await apiClient.get('users/form/')
-  return response.data
-}
-
-export async function getUserBonus() {
-  const response = await apiClient.get('users/bonus/')
-  return response.data
-}
-
-export async function loadUser(id) {
-  const response = await apiClient.get('users/' + id + '/')
-  return response.data
-}
-
-export async function updateUser(id, data) {
-  const response = await apiClient.put('users/' + id + '/', data)
   return response.data
 }
 

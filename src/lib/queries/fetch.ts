@@ -14,11 +14,11 @@ export class HttpError extends Error {
   }
 }
 
-export type ApiRequestInit = Omit<RequestInit, 'body'> & {
-  body?: JSONValue
+export type ApiRequestInit<TData = JSONValue> = Omit<RequestInit, 'body'> & {
+  body?: TData
 }
 
-export async function apiFetch<T>(endpoint: string, options: ApiRequestInit = {}): Promise<T> {
+export async function apiFetch<TReturn, TData = JSONValue>(endpoint: string, options: ApiRequestInit<TData> = {}): Promise<TReturn> {
   const { body, ...customOptions } = options
 
   const headers = {
@@ -43,7 +43,7 @@ export async function apiFetch<T>(endpoint: string, options: ApiRequestInit = {}
   }
 
   if (response.status === 204)
-    return undefined as T
+    return undefined as TReturn
 
-  return response.json() as Promise<T>
+  return response.json() as Promise<TReturn>
 }
