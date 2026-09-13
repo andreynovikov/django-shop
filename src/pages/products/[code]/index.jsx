@@ -486,7 +486,11 @@ export default function Product({ code }) {
         {product.certificate && (
           <div className="pb-3 mb-md-3">
             {product.certificate.startsWith('http') ? (
-              <a href={product.certificate} target="_blank">Сертификат на {product.title}</a>
+              <a href={product.certificate} target="_blank">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/i/fgis-icon.svg" alt="" width="20" className="mx-1 ratio-1x1 align-text-bottom" />
+                Сертификат соответствия требованиям технического регламента
+              </a>
             ) : (
               <>{product.certificate}</>
             )}
