@@ -15,14 +15,14 @@ export class HttpError extends Error {
 }
 
 export type ApiRequestInit<TData = JSONValue> = Omit<RequestInit, 'body'> & {
-  body?: TData
+  body?: TData | FormData
 }
 
 export async function apiFetch<TReturn, TData = JSONValue>(endpoint: string, options: ApiRequestInit<TData> = {}): Promise<TReturn> {
   const { body, ...customOptions } = options
 
   const headers = {
-    ...(body ? { 'content-type': 'application/json' } : {}),
+    ...(body === undefined || body instanceof FormData ? {} : { 'content-type': 'application/json' }),
     ...customOptions.headers,
   }
 
@@ -30,7 +30,7 @@ export async function apiFetch<TReturn, TData = JSONValue>(endpoint: string, opt
     method: body ? 'POST' : 'GET',
     ...customOptions,
     headers,
-    body: body ? JSON.stringify(body) : null,
+    body: body !== undefined ? body instanceof FormData ? body : JSON.stringify(body) : null,
     credentials: 'include',
   }
 
