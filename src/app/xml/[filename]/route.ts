@@ -7,7 +7,7 @@ import { AxiosError } from 'axios'
 import { flattenCategoryTree, getCategoryDescendants } from '@/lib/categories'
 import { loadCategories, loadCurrentSite, loadProducts } from '@/lib/queries'
 import { listIntegrations, retriveIntegrationByUtm, retriveIntegrationProducts } from '@/lib/queries'
-import { Category, Integration, Product } from '@/lib/types'
+import { Category, Integration, IntegrationProduct, Product } from '@/lib/types'
 
 export const revalidate = 3600
 export const dynamic = 'error'
@@ -41,7 +41,7 @@ export async function GET(request: Request, { params }: RouteContext<'/xml/[file
   const utm = path.parse(filename).name
 
   let integration: Integration | undefined
-  let products: Product[]
+  let products: IntegrationProduct[] | Product[]
   let templateName = utm
 
   try {
