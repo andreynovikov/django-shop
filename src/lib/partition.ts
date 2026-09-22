@@ -1,4 +1,4 @@
-export function rows(arr, n) {
+export function rows(arr: Array<unknown>, n: number) {
   /*
   Break a list into ``n`` rows, filling up each row to the maximum equal
   length possible. For example::
@@ -35,7 +35,7 @@ export function rows(arr, n) {
   return res
 }
 
-export function columns(arr, n) {
+export function columns(arr: Array<unknown>, n: number) {
   /*
   Break a list into ``n`` columns, filling up each column to the maximum equal
   length possible. For example::

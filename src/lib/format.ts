@@ -1,4 +1,4 @@
-export function formatPhone(phone) {
+export function formatPhone(phone: string) {
   const match = phone.match(/(\+7)(\d{3})(\d{2,3})(\d{2})(\d{2})/)
   if (match === null)
     return phone
@@ -6,4 +6,3 @@ export function formatPhone(phone) {
     return typeof match[i] == 'undefined' ? m : match[i]
   })
 }
-

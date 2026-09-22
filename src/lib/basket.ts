@@ -1,9 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { basketKeys, loadBasket, createBasket, addBasketItem, removeBasketItem, updateBasketItem } from '@/lib/queries'
+import { basketKeys, loadBaskets, createBasket, addBasketItem, removeBasketItem, updateBasketItem } from '@/lib/queries'
+import { Basket, BasketItemProduct, Product, ProductInfo } from '@/lib/types'
 import { eCommerce } from '@/lib/ymec'
 
-function report(action, product, price, quantity) {
+type BasketProduct = BasketItemProduct | ProductInfo | Product
+
+type ItemMutationType = {
+  basketId: number
+  product: BasketProduct
+  quantity: number
+}
+
+function report(action: string, product: BasketProduct, price: number | undefined, quantity: number | undefined) {
   eCommerce({
     [action]: {
       products: [{
@@ -21,42 +30,42 @@ export default function useBasket() {
 
   const { data: baskets, isSuccess, isLoading, isError } = useQuery({
     queryKey: basketKeys.details(),
-    queryFn: () => loadBasket()
+    queryFn: () => loadBaskets()
   })
 
   const isEmpty = baskets === undefined || baskets.length === 0 || baskets[0].items.length === 0
-  const basket = isEmpty ? {} : baskets[0]
+  const basket = isEmpty ? {} as Basket : baskets[0]
 
   const createBasketMutation = useMutation({
     mutationFn: () => createBasket()
   })
   const addBasketItemMutation = useMutation({
-    mutationFn: ({ basketId, product, quantity }) => addBasketItem(basketId, product.id, quantity),
+    mutationFn: ({ basketId, product, quantity }: ItemMutationType) => addBasketItem(basketId, product.id, quantity),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: basketKeys.all })
     }
   })
   const removeBasketItemMutation = useMutation({
-    mutationFn: ({ basketId, product }) => removeBasketItem(basketId, product.id),
+    mutationFn: ({ basketId, product }: Omit<ItemMutationType, 'quantity'>) => removeBasketItem(basketId, product.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: basketKeys.all })
     }
   })
   const updateBasketItemMutation = useMutation({
-    mutationFn: ({ basketId, product, quantity }) => updateBasketItem(basketId, product.id, quantity),
+    mutationFn: ({ basketId, product, quantity }: ItemMutationType) => updateBasketItem(basketId, product.id, quantity),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: basketKeys.all })
     }
   })
 
-  const addItem = (product, quantity = 1) => {
-    if (baskets.length === 0) {
+  const addItem = (product: ProductInfo | Product, quantity = 1) => {
+    if (baskets === undefined || baskets.length === 0) {
       createBasketMutation.mutate(undefined, {
         onSuccess: (data) => {
           addBasketItemMutation.mutate(
             { basketId: data.id, product, quantity },
             {
-              onSuccess: async () => report('addToCart', 'add', product, product.cost, product.quantity)
+              onSuccess: async () => report('add', product, product.cost, quantity)
             }
           )
         }
@@ -71,22 +80,22 @@ export default function useBasket() {
     }
   }
 
-  const removeItem = (product) => {
+  const removeItem = (product: ProductInfo | Product) => {
     const item = basket.items?.find(item => item.product.id === product.id)
     const cost = item?.price
     const quantity = item?.quantity
     removeBasketItemMutation.mutate(
-      { basketId: baskets[0].id, product },
+      { basketId: baskets![0].id, product },
       {
         onSuccess: async () => report('remove', product, cost, quantity)
       }
     )
   }
 
-  const setQuantity = (product, quantity) => {
-    const previousQuantity = basket.items?.find(item => item.product.id === product.id)?.quantity
+  const setQuantity = (product: BasketProduct, quantity: number) => {
+    const previousQuantity = basket.items?.find(item => item.product.id === product.id)?.quantity ?? 0
     updateBasketItemMutation.mutate(
-      { basketId: baskets[0].id, product, quantity },
+      { basketId: baskets![0].id, product, quantity },
       {
         onSuccess: async () => {
           if (previousQuantity < quantity)
