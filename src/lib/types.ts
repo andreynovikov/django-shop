@@ -61,14 +61,97 @@ export interface ProductInfo {
 export interface Product {
   id: number
   code: string
+  article: string
+  partnumber: string
+  title: string
+  price: number
+  cost: number
   enabled: boolean
   video_url?: string
+  // TODO - add remaining fields
 }
 
 export interface ProductKind {
   id: number
   name: string
   comparison: string[] // keyof Product
+}
+
+export interface ProductStock {
+  product: string
+  supplier: string
+  quantity: number
+  correction: number
+  reason: string
+}
+
+export interface ProductReview {
+  id: number
+  advantage: string
+  disadvantage: string
+  comment: string
+  weight: number
+  user: {
+    id: string
+    full_name: string
+    gravatar: string
+  }
+  reviewer_name: string
+  reviewer_avatar: string
+  site: number
+  submit_date: string
+  is_public: boolean
+  rating: {
+    value: number
+    text: string
+  }
+}
+
+export interface ProductReviewFormField {
+  name: string
+  label: string
+  help: string
+  class: string
+  widget: string
+  required: boolean
+  choices?: unknown
+  attrs?: unknown
+  value?: unknown
+}
+
+export type ProductReviewForm = Array<ProductReviewFormField>
+
+export interface BasketItemProduct {
+  id: number
+  code: string
+  title: string
+  whatis: string
+  partnumber: string
+  article: string
+  image: string
+  ws_pack_only: boolean
+  pack_factor: number
+  price: number
+  cost: number
+}
+
+export interface BasketItem {
+  id: number
+  product: BasketItemProduct
+  price: number
+  quantity: number
+  cost: number
+  discount: number
+  discount_text: string
+}
+
+export interface Basket {
+  id: number
+  items: BasketItem[]
+  total: number
+  quantity: number
+  phone: string
+  utm_source: string
 }
 
 export interface Country {
@@ -168,13 +251,14 @@ export interface UserEdit {
   username: string
 }
 
-export interface UserForm {
+export interface UserFormField {
   name: string
   label: string
   id: string
   required: boolean
+}
 
-}[]
+export type UserForm = Array<UserFormField>
 
 export interface UserCheck {
   phone: string

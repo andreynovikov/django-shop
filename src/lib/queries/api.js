@@ -2,41 +2,8 @@ import axios from 'axios'
 
 import {
   advertSearchParamsSerializer,
-  productSearchParamsSerializer,
   orderSearchParamsSerializer,
 } from '@/lib/search-params'
-
-import { comparisonKeys } from './comparisons'
-import { favoriteKeys } from './favorites'
-
-export const productKeys = {
-  all: ['products'],
-  fields: () => [...productKeys.all, 'fields'],
-  suggestions: (text) => [...productKeys.all, 'suggestions', text],
-  search: (text, filters, ordering) => [...productKeys.all, { text, filters, ordering }],
-  images: (id) => [...productKeys.all, id, 'images'],
-  stock: (id) => [...productKeys.all, id, 'stock'],
-  lists: () => [...productKeys.all, 'list'],
-  list: (page, size, filters, ordering) => [...productKeys.lists(), { page, size, filters, ordering }],
-  details: () => [...productKeys.all, 'detail'],
-  detail: (id) => [...productKeys.details(), id],
-  info: (id) => [...productKeys.details(), id]
-}
-
-export const reviewKeys = {
-  all: ['reviews'],
-  lists: () => [...reviewKeys.all, 'list'],
-  list: (productId) => [...reviewKeys.lists(), { productId }],
-  rating: (productId) => [...reviewKeys.list(productId), 'rating'],
-  form: (productId) => [...reviewKeys.list(productId), 'form'],
-  details: () => [...reviewKeys.all, 'detail'],
-  detail: (productId, id) => [...reviewKeys.details(), { productId, id }],
-}
-
-export const basketKeys = {
-  all: ['baskets'],
-  details: () => [...basketKeys.all, 'detail'],
-}
 
 export const orderKeys = {
   all: ['orders'],
@@ -63,20 +30,6 @@ export const siteKeys = {
   all: ['sites'],
   current: () => [...siteKeys.all, 'current'],
 }
-
-// those queries are reset on user logout
-export const userReferences = [
-  orderKeys.all,
-  favoriteKeys.all,
-  comparisonKeys.all
-]
-
-// those queries are invalidated on user login/logout
-export const userDependencies = [
-  productKeys.lists(),
-  productKeys.details(),
-  basketKeys.all
-]
 
 const AXIOS_CONFIG = {
   baseURL: (process.env.API_SERVER ?? '') + '/api/v0',
@@ -119,39 +72,6 @@ apiClient.interceptors.response.use(function (response) {
   return Promise.reject(error)
 })
 
-export async function loadBasket() {
-  const response = await apiClient.get('baskets/')
-  return response.data
-}
-
-export async function createBasket() {
-  const response = await apiClient.post('baskets/')
-  return response.data
-}
-
-export async function addBasketItem(basketId, product, quantity) {
-  const response = await apiClient.post(`baskets/${basketId}/add/`, {
-    product,
-    quantity
-  })
-  return response.data
-}
-
-export async function removeBasketItem(basketId, product) {
-  const response = await apiClient.post(`baskets/${basketId}/remove/`, {
-    product
-  })
-  return response.data
-}
-
-export async function updateBasketItem(basketId, product, quantity) {
-  const response = await apiClient.post(`baskets/${basketId}/update/`, {
-    product,
-    quantity
-  })
-  return response.data
-}
-
 export async function createOrder() {
   const response = await apiClient.post('orders/')
   return response.data
@@ -191,92 +111,6 @@ export async function loadOrder(id) {
 
 export async function updateOrder(id, data) {
   const response = await apiClient.put('orders/' + id + '/', data)
-  return response.data
-}
-
-export async function loadProducts(page, page_size, filters, ordering) {
-  const url = 'products/' + productSearchParamsSerializer({
-    ...filters,
-    page,
-    page_size,
-    ordering,
-  })
-  const response = await apiClient.get(url)
-  return response.data
-}
-
-export async function loadProductSuggestions(text) {
-  const url = 'products/' + productSearchParamsSerializer({
-    title: text,
-    ta: 1,
-    page_size: 10,
-  })
-  const response = await apiClient.get(url)
-  return response.data
-}
-
-export async function getProductImages(id) {
-  const response = await apiClient.get(`products/${id}/images/`)
-  return response.data
-}
-
-export async function loadProductStock(id) {
-  const response = await apiClient.get(`products/${id}/stock/`)
-  return response.data
-}
-
-export async function getProductRating(id) {
-  const response = await apiClient.get(`reviews/shop.product/${id}/average/`)
-  return response.data
-}
-
-export async function getReviewForm(id) {
-  const response = await apiClient.get(`reviews/shop.product/${id}/form/`)
-  return response.data
-}
-
-export async function createProductReview(id, data) {
-  const response = await apiClient.post(`reviews/shop.product/${id}/`, data)
-  return response.data
-}
-
-export async function loadProductReviews(id) {
-  const response = await apiClient.get(`reviews/shop.product/${id}/`)
-  return response.data
-}
-
-export async function loadProductReview(id, reviewId) {
-  const response = await apiClient.get(`reviews/shop.product/${id}/${reviewId}/`)
-  return response.data
-}
-
-export async function updateProductReview(id, reviewId, data) {
-  const response = await apiClient.put(`reviews/shop.product/${id}/${reviewId}/`, data)
-  return response.data
-}
-
-export async function loadPromoReviews() {
-  const response = await apiClient.get("reviews/?model=shop.product&user=1&site=10&page_size=10")
-  return response.data
-}
-
-export async function loadProduct(id) {
-  const response = await apiClient.get(`products/${id}/`)
-  return response.data
-}
-
-export async function loadProductByCode(code) {
-  const response = await apiClient.get(`products/${code}/bycode/`)
-  return response.data
-}
-
-export async function loadProductInfo(id) {
-  const response = await apiClient.get(`products/${id}/info/`)
-  return response.data
-}
-
-export async function getProductFields() {
-  const response = await apiClient.get('products/fields/')
   return response.data
 }
 

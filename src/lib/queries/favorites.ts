@@ -10,13 +10,13 @@ export async function loadFavorites() {
 }
 
 export async function addToFavorites(product: number) {
-  return await apiFetch<undefined>('favorites/add/', {
+  return await apiFetch<void>('favorites/add/', {
     body: { product }
   })
 }
 
 export async function removeFromFavorites(product: number) {
-  return await apiFetch<undefined>('favorites/remove/', {
+  return await apiFetch<void>('favorites/remove/', {
     body: { product }
   })
 }

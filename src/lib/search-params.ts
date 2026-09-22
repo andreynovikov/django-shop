@@ -92,6 +92,7 @@ export const productSearchParams = {
   ta: parseAsInteger,
 }
 
+export type ProductSearchParamsType = Partial<inferParserType<typeof productSearchParams>>
 export const productSearchParamsSerializer = createSerializer(productSearchParams)
 export const productSearchParamsLoader = createLoader(productSearchParams)
 
