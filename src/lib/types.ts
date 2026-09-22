@@ -154,6 +154,57 @@ export interface Basket {
   utm_source: string
 }
 
+export interface OrderInfo {
+  id: number
+  total: number
+  created: string
+  status: number
+  status_text: string
+  payment: number
+  paid: boolean
+}
+
+export interface OrderItem {
+  product: BasketItemProduct
+  cost: number
+  discount: number
+  discount_text: string
+  price: number
+  product_price: number
+  quantity: number
+  total: number
+}
+
+export interface Order {
+  id: number
+  created: string
+  status: number
+  status_text: string
+  payment: number
+  payment_text: string
+  paid: boolean
+  total: number
+  delivery: number
+  delivery_price: number
+  delivery_tracking_number: string
+  delivery_info: string
+  delivery_dispatch_date: string | null
+  delivery_handing_date: string | null
+  delivery_time_from: string | null
+  delivery_time_till: string | null
+  store: number | null
+  name: string
+  phone: string
+  email: string
+  address: string
+  is_firm: boolean
+  firm_name: string
+  firm_address: string
+  firm_details: string
+  comment: string
+  items: OrderItem[]
+}
+
 export interface Country {
   id: number
   name: string
@@ -285,6 +336,36 @@ export interface FlatPage {
   template_name: string
   enable_comments: boolean
   registration_required: boolean
+}
+
+export interface Site {
+  id: number
+  url_prefix: string
+  title: string
+  description: string
+  phone: string
+  city?: City
+}
+
+export interface Advert {
+  id: number
+  name: string
+  place: string
+  categories: number[]
+  image: string | null
+  big_image: string | null
+  content: string
+  order: number
+}
+
+export interface News {
+  id: number
+  title: string
+  image: string | null
+  image_width: number | null
+  image_height: number | null
+  content: string
+  publish_date: string
 }
 
 interface ForumOpinion {
