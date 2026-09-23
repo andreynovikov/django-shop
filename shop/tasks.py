@@ -393,7 +393,7 @@ def post_update_products(product_ids):
 @shared_task(bind=True, queue="import", autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def update_1c_stocks(self):
     reload_maybe()
-    filename = 'ВыгрузкаНаСайтПоВсемСкладам.csv'
+    filename = 'ВыгрузкаНаСайтПоВсемСкладамПромимпекс.csv'
     url = 'https://cloud-api.yandex.net/v1/disk/resources?path={}'.format(quote('disk:/' + filename))
     headers = {
         'Authorization': 'OAuth {token}'.format(token=config.sw_bonuses_ydisk_token),
@@ -471,10 +471,17 @@ def import1c(file):
     enable_flag('1C_IMPORT_RUNNING')
 
     currencies = {}
+
     def get_currency(code):
         if code not in currencies:
             currencies[code] = Currency.objects.get(pk=code)
         return currencies[code]
+
+    def preprocess_quantities(quantities, pi_pos, n1_pos):
+        quantities = [float(q.replace('\xA0', '').replace(',', '.')) for q in quantities]
+        if pi_pos >= 0 and n1_pos >= 0:
+            quantities[n1_pos] = min(quantities[n1_pos], quantities[pi_pos])
+        return quantities
 
     frozen_orders = Order.objects.filter(status=Order.STATUS_FROZEN)
     frozen_products = defaultdict(list)
@@ -522,6 +529,10 @@ def import1c(file):
     suppliers = []
     date_reg = re.compile(r"\d{1,2}\.\d{2}\.\d{4} \d{1,2}:\d{2}:\d{2}")
     date = None
+
+    pi_pos = -1
+    n1_pos = -1
+
     with fragile(tmp_file) as csvfile:  # https://stackoverflow.com/a/23665658
         line = csvfile.readline().strip()
         if line[0] == '\ufeff':
@@ -540,6 +551,10 @@ def import1c(file):
             name, code = line.split(';')
             try:
                 supplier = Supplier.objects.get(code1c=code)
+                if supplier.code == 'Промимпэкс':
+                    pi_pos = len(suppliers)
+                if supplier.code == 'H':
+                    n1_pos = len(suppliers)
                 suppliers.append(supplier)
             except ObjectDoesNotExist:
                 errors.append("Неизвестный поставщик с кодом %s: %s" % (code, name))
@@ -585,11 +600,11 @@ def import1c(file):
                         errors.append("%s: розничная цена" % line['article'])
                 product.save()
                 products.add(product.id)
-                for idx, quantity in enumerate(line['suppliers']):
+                quantities = preprocess_quantities(line['suppliers'], pi_pos, n1_pos)
+                for idx, quantity in enumerate(quantities):
                     if suppliers[idx] is None:
                         continue
                     try:
-                        quantity = float(quantity.replace('\xA0', '').replace(',', '.'))
                         correction, reason = corrected_stocks.get(product.id, {}).get(suppliers[idx].id, (0, ''))
                         if (quantity or correction) and product.article != 'г66356':
                             table_copy.write('{}\t{}\t{}\t{}\t{}\n'.format(quantity, product.id, suppliers[idx].id, correction, reason))
