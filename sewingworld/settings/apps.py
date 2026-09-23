@@ -13,10 +13,7 @@ INSTALLED_APPS = (
     'django_admin_listfilter_dropdown',
     'massadmin',
     'import_export',
-    'django_nyt',
-    # 'django_clear_memcache',
-    # 'cache_cleaner',
-
+    'django_nyt',  # required for wiki
     'django_otp',
     'django_otp.plugins.otp_static',
     'django_otp.plugins.otp_totp',
