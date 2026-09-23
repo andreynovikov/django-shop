@@ -289,7 +289,7 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
         ('Основное', {
             'classes': ('collapse',),
             'fields': (('code', 'article'), ('partnumber', 'tnved'), 'title', 'runame', 'whatis', 'whatisit', 'type_prefix', 'kind', 'categories',
-                       'manufacturer', ('gtin', 'gtins'), ('country', 'developer_country'), 'variations', 'spec', 'shortdescr',
+                       'manufacturer', ('gtin', 'gtins'), ('country', 'developer_country'), 'variations', 'certificate', 'spec', 'shortdescr',
                        'yandexdescr', 'descr', 'manuals', 'state', 'complect', 'dealertxt')
         }),
         ('Деньги', {
