@@ -350,15 +350,20 @@ class StockSerializer(serializers.ModelSerializer):
 
 class BasketItemProductSerializer(NonNullModelSerializer):
     price = serializers.SerializerMethodField()
+    cost = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = ('id', 'code', 'title', 'whatis', 'partnumber', 'article',
-                  'ws_pack_only', 'pack_factor', 'price', 'image')
+                  'ws_pack_only', 'pack_factor', 'price', 'cost', 'image')
 
     def get_price(self, obj):
         request = self.context.get('request')
         return obj.site_price(request.site)
+
+    def get_cost(self, obj):
+        request = self.context.get('request')
+        return obj.site_cost(request.site)
 
 
 class BasketItemSerializer(serializers.ModelSerializer):
