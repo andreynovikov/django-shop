@@ -95,6 +95,7 @@ class Product(models.Model):
     manufacturer = models.ForeignKey(Manufacturer, verbose_name="Производитель", on_delete=models.PROTECT, default=49)
     country = models.ForeignKey(Country, verbose_name="Страна производства", on_delete=models.PROTECT, default=1)
     developer_country = models.ForeignKey(Country, verbose_name="Страна разработки", on_delete=models.PROTECT, related_name="developed_product", default=1)
+    certificate = models.CharField('сертификат', max_length=512, blank=True)
     isnew = models.BooleanField('Новинка', default=False)
     deshevle = models.BooleanField('Нашли дешевле', default=False)
     recomended = models.BooleanField('Рекомендуем', default=False)

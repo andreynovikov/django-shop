@@ -194,6 +194,8 @@ class ProductAdminForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'size': 120}),
             'runame': forms.TextInput(attrs={'size': 120}),
             'type_prefix': forms.TextInput(attrs={'size': 80}),
+            'variations': forms.TextInput(attrs={'size': 80}),
+            'certificate': forms.TextInput(attrs={'size': 80}),
             'gtin': forms.TextInput(attrs={'size': 10}),
             'whatis': AutosizedTextarea(attrs={'rows': 1}),
             'spec': AutosizedTextarea(attrs={'rows': 3}),
@@ -347,6 +349,7 @@ class OrderAdminForm(forms.ModelForm):
             else:
                 utm_source = ''
                 ym_campaign = ''
+
             self.fields['delivery_tracking_number'].widget = DeliveryTrackingNumberWidget(instance.id, utm_source, ym_campaign)
             self.fields['delivery_yd_order'].widget = YandexDeliveryWidget(instance.id, config.sw_yd_campaign)
         except (KeyError, AttributeError):
