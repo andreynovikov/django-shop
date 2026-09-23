@@ -10,15 +10,15 @@ import UserAvatar from '@/components/user/avatar'
 
 import { formatPhone } from '@/lib/format'
 import useFavorites from '@/lib/favorites'
-import { useSession, signOut } from '@/lib/session'
+import { useSession } from '@/lib/session'
 import { orderKeys, loadOrders } from '@/lib/queries'
 
 export default function UserSidebar() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const router = useRouter()
-  const { user, status } = useSession({
-    onUnauthenticated() {
+  const { user, status, signOut } = useSession({
+    onUnauthenticated: () => {
       router.push({
         pathname: '/login',
         query: { callbackUrl: router.asPath }

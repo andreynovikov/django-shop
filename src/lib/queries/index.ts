@@ -4,7 +4,6 @@ import { favoriteKeys } from './favorites'
 import { orderKeys } from './orders'
 import { productKeys } from './products'
 
-export * from './api'
 export * from './baskets'
 export * from './blog'
 export * from './categories'

@@ -14,6 +14,10 @@ export class HttpError extends Error {
   }
 }
 
+export interface FormDataJson {
+    [k: string]: FormDataEntryValue
+}
+
 export type ApiRequestInit<TData = JSONValue> = Omit<RequestInit, 'body'> & {
   body?: TData | FormData
 }

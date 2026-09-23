@@ -8,7 +8,7 @@ import { ButtonLoading } from '@/components/loading'
 
 import { formatPhone } from '@/lib/format'
 import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
-import { signIn } from '@/lib/session'
+import { useSession } from '@/lib/session'
 import { checkUser, normalizePhone } from '@/lib/queries'
 
 const CODE_RESEND_DELAY = 240
@@ -37,6 +37,8 @@ export default function LoginForm({ ctx, phone, hideModal = undefined, embedded 
   const [showPermanentPassword, setShowPermanentPassword] = useState(ctx === 'reg')
 
   const router = useRouter()
+
+  const { signIn } = useSession()
 
   const {
     mutate: performUserCheck,

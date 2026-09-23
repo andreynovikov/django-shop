@@ -1,6 +1,6 @@
 import { orderSearchParamsSerializer } from '@/lib/search-params'
 import { Order, OrderInfo, PaginatedResult } from '@/lib/types'
-import { apiFetch } from './fetch'
+import { apiFetch, FormDataJson } from './fetch'
 
 export const orderKeys = {
   all: ['orders'],
@@ -10,10 +10,6 @@ export const orderKeys = {
   unpaid: () => [...orderKeys.lists(), 'unpaid'],
   details: () => [...orderKeys.all, 'detail'],
   detail: (id: number) => [...orderKeys.details(), id],
-}
-
-interface FormDataJson {
-    [k: string]: FormDataEntryValue
 }
 
 export async function createOrder() {

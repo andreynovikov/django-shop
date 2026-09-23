@@ -1,5 +1,5 @@
-import { User, UserBonus, UserCheck, UserEdit, UserForm } from '../types'
-import { apiFetch } from './fetch'
+import { AnonymousUser, User, UserBonus, UserCheck, UserEdit, UserForm } from '../types'
+import { apiFetch, FormDataJson } from './fetch'
 
 export const userKeys = {
   all: ['users'],
@@ -8,6 +8,18 @@ export const userKeys = {
   detail: (id: number) => [...userKeys.details(), id],
   current: () => [...userKeys.details(), 'current'],
   bonus: () => [...userKeys.details(), 'bonus'],
+}
+
+export interface LoginResult {
+  id: number
+  registered: boolean
+}
+
+export interface LoginCredentials {
+  phone: string
+  password?: string
+  permanent_password?: string
+  ctx?: string
 }
 
 export function normalizePhone(phone: string) {
@@ -28,7 +40,7 @@ export async function checkUser(phone: string, reset: boolean) {
 }
 
 export async function currentUser() {
-  return await apiFetch<User>('users/current/')
+  return await apiFetch<AnonymousUser | User>('users/current/')
 }
 
 export async function getUserForm() {
@@ -48,4 +60,19 @@ export async function updateUser(id: number, body: UserEdit) {
     body,
     method: 'PUT',
   })
+}
+
+export async function registerUser(formData: FormData) {
+  const body = Object.fromEntries(formData)
+  return await apiFetch<User, FormDataJson>('users/', { body })
+}
+
+export async function loginUser(credentials: LoginCredentials) {
+  return await apiFetch<LoginResult, LoginCredentials>('users/login/', {
+    body: credentials
+  })
+}
+
+export async function logoutUser() {
+  return await apiFetch<void>('users/logout/')
 }

@@ -273,9 +273,14 @@ export interface Serial {
   order?: unknown
 }
 
+export interface AnonymousUser {
+  id: null
+  is_anonymous: true
+}
+
 export interface User {
-  id: number | null
-  is_anonymous: boolean
+  id: number
+  is_anonymous: false
   phone: string
   name: string
   full_name: string

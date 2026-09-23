@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ButtonLoading } from '@/components/loading'
 
 import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
-import { register } from '@/lib/session'
+import { useSession } from '@/lib/session'
 import { normalizePhone } from '@/lib/queries'
 
 export default function RegistrationForm({ embedded = '', onComplete }) {
@@ -14,6 +14,8 @@ export default function RegistrationForm({ embedded = '', onComplete }) {
   const [error, setError] = useState({})
 
   const router = useRouter()
+
+  const { register } = useSession()
 
   const phoneRef = usePhoneInput()
 

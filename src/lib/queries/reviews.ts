@@ -1,5 +1,5 @@
 import { PaginatedResult, ProductReview, ProductReviewForm } from '@/lib/types'
-import { apiFetch } from './fetch'
+import { apiFetch, FormDataJson } from './fetch'
 
 export const reviewKeys = {
   all: ['reviews'],
@@ -26,10 +26,6 @@ interface ProductReviewList extends PaginatedResult<ProductReview> {
       count: number
     }[]
   }
-}
-
-interface FormDataJson {
-    [k: string]: FormDataEntryValue
 }
 
 export async function getProductRating(id: number) {

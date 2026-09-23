@@ -2,13 +2,13 @@ import { useRef } from 'react'
 import Link from 'next/link'
 
 import { formatPhone } from '@/lib/format'
-import { useSession, signOut } from '@/lib/session'
+import { useSession } from '@/lib/session'
 
 import SignInModal from '@/components/user/sign-in-modal'
 
 export default function UserProfileLink() {
   const modalRef = useRef()
-  const { user, status } = useSession()
+  const { user, status, signOut } = useSession()
 
   if (status === 'authenticated') {
     return (

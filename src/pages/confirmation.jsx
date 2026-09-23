@@ -19,7 +19,7 @@ export default function Confirmation() {
   const router = useRouter()
 
   const { user, status } = useSession({
-    onUnauthenticated() {
+    onUnauthenticated: () => {
       router.push('/cart')
     }
   })
