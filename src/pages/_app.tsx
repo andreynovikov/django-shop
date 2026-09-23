@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactElement, ReactNode } from 'react'
+import { useState, ReactElement, ReactNode } from 'react'
 import type { NextPage } from 'next'
 import type { AppProps } from 'next/app'
 import localFont from 'next/font/local'
@@ -14,7 +14,7 @@ import ToastList from '@/components/toast-list'
 import { SiteProvider } from '@/lib/site';
 import { SessionProvider } from '@/lib/session';
 import { ToolbarProvider } from '@/lib/toolbar';
-import { apiClient, categoryKeys, productKeys, pageKeys } from '@/lib/queries';
+import { categoryKeys, productKeys, pageKeys } from '@/lib/queries';
 
 import 'simplebar-react/dist/simplebar.min.css';
 import 'react-bootstrap-typeahead/css/Typeahead.css';
@@ -99,12 +99,6 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
   queryClient.setQueryDefaults(categoryKeys.all, { staleTime: Infinity }); // mark fresh forever
   queryClient.setQueryDefaults(productKeys.all, { staleTime: 1000 * 60 * 10 }); // mark fresh for ten minutes
   queryClient.setQueryDefaults(pageKeys.all, { staleTime: Infinity }); // mark fresh forever
-
-  useEffect(() => {
-    (async () => {
-      await apiClient.get('csrf/');
-    })();
-  }, []);
 
   // Use the layout defined at the page level, if available
   const getLayout = Component.getLayout ?? ((page) => page);
