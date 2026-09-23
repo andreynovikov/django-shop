@@ -454,6 +454,14 @@ class OrderAdmin(admin.ModelAdmin):
     credit_notice.short_description = 'кредит'
 
     @mark_safe
+    def delivery_barcode(self, obj):
+        if obj.meta is not None and obj.meta.get('barcode'):
+            return '<span>%s<b>%s</b></span>' % (obj.meta.get('barcode')[:-4], obj.meta.get('barcode')[-4:])
+        else:
+            return ''
+    delivery_barcode.short_description = 'штрих-код доставки'
+
+    @mark_safe
     def pos_status(self, obj):
         if obj.hidden_tracking_number:
             return '<span style="color: blue; font-weight: bold" title="{}">&#10003;</span>'.format(obj.hidden_tracking_number)
@@ -463,7 +471,7 @@ class OrderAdmin(admin.ModelAdmin):
 
     list_display = ['order_name', 'name_and_phone', 'city', 'total_cost', 'combined_payment', 'combined_delivery',
                     'colored_status', 'status1c', 'combined_comments']
-    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'user_bonuses', 'pos_status',
+    readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'delivery_barcode', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'user_bonuses', 'pos_status',
                        'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
                        'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
     list_filter = [OrderStatusListFilter, ('site', RelatedDropdownFilter), ('integration', OrderIntegrationFilter), ('created', PastDateRangeFilter),
@@ -502,6 +510,8 @@ class OrderAdmin(admin.ModelAdmin):
         if obj and obj.integration and obj.integration.uses_api:
             fieldsets[0][1]['fields'][0][2] = 'integration'
             fieldsets[2][1]['fields'].extend(obj.integration.admin_user_fields)
+            if obj.meta is not None and obj.meta.get('barcode'):
+                fieldsets[0][1]['fields'][3].append('delivery_barcode')
         else:
             fieldsets[0][1]['fields'].append('store')
             fieldsets[0][1]['fields'][0].append('credit_notice')
