@@ -3,13 +3,11 @@ from django.contrib import admin
 from django.urls import path
 from django.utils.translation import gettext_lazy as _
 
-import djconfig
 from two_factor.admin import AdminSiteOTPRequired
 from mptt.forms import TreeNodeChoiceField
 
 from shop.models import Category
 from .models import SiteProfile
-from .forms import SWConfigForm
 
 
 class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
@@ -32,13 +30,17 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
             apps.insert(0, apps.pop(shop))
             shop = 0
 
-        sewingworld = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'sewingworld'), None)
-        if sewingworld is not None:
-            index = 0 if shop is None else 1
-            apps.insert(index, apps.pop(sewingworld))
-            sewingworld = index
+        sewingworld = {
+            'name': 'Швейный Мир',
+            'app_label': 'sewingworld',
+            'models': []
+        }
+        index = 0 if shop is None else 1
+        apps.insert(index, sewingworld)
+        sewingworld = index
 
         auth = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'auth'), None)
+        constance = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'constance'), None)
         flatpages = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'flatpages'), None)
         sites = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'sites'), None)
         phonenumber = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'phonenumber'), None)
@@ -63,6 +65,9 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
                 apps[auth]['models'].append(apps[shop]['models'][user])
 
         if sewingworld is not None:
+            if constance is not None:
+                apps[sewingworld]['models'].extend(apps[constance]['models'])
+                indexes.append(constance)
             if flatpages is not None:
                 apps[sewingworld]['models'].extend(apps[flatpages]['models'])
                 indexes.append(flatpages)
@@ -71,21 +76,8 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
                 indexes.append(sites)
 
         for i in sorted(indexes, reverse=True):
-            del(apps[i])
+            del apps[i]
         return apps
-
-
-class SWConfigAdmin(djconfig.admin.ConfigAdmin):
-    change_list_form = SWConfigForm
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-
-class SWConfig(djconfig.admin.Config):
-    app_label = 'sewingworld'
-    verbose_name_plural = 'Настройки'
-    name = 'swconfig'
 
 
 """
@@ -117,29 +109,35 @@ class SiteProfileInline(admin.StackedInline):
 
 def get_site_prefix(obj):
     return obj.profile.order_prefix
+
+
 get_site_prefix.short_description = 'префикс'
 
 
 def get_manager_phones(obj):
     return obj.profile.manager_phones
+
+
 get_manager_phones.short_description = 'телефоны менеджеров'
 
 
 def get_manager_emails(obj):
     return obj.profile.manager_emails
+
+
 get_manager_emails.short_description = 'адреса менеджеров'
 
 
 def get_sites(obj):
     'returns a list of site names for a FlatPage object'
     return ", ".join((site.name for site in obj.sites.all()))
+
+
 get_sites.short_description = 'Sites'
 
 
 def configure_admin():
     admin.site.enable_nav_sidebar = False
-
-    djconfig.admin.register(SWConfig, SWConfigAdmin)
 
     from django.contrib.sites.admin import SiteAdmin
     from django.contrib.sites.models import Site

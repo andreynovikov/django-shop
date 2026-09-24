@@ -1,13 +1,12 @@
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
-from djconfig import config, reload_maybe
+from constance import config
 
 from . import sms_uslugi, smsru
 
 
 def send_sms(phone, message, bonuses=False):
-    reload_maybe()
     sms_client = None
     if config.sw_sms_provider == 'sms_uslugi':
         sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)

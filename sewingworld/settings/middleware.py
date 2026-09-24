@@ -2,7 +2,6 @@ MIDDLEWARE = (
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'sewingworld.middleware.BlockedIpMiddleware',
-    'sewingworld.middleware.RequireStaffMiddleware',
     'sewingworld.middleware.SiteDetectionMiddleware',
     #'sewingworld.middleware.ProcessExceptionMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -15,7 +14,6 @@ MIDDLEWARE = (
     'django_otp.middleware.OTPMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'djconfig.middleware.DjConfigMiddleware',
     # 'drf_api_logger.middleware.api_logger_middleware.APILoggerMiddleware',
     'django_prometheus.middleware.PrometheusAfterMiddleware',
 )

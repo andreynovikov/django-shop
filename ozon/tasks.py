@@ -10,7 +10,6 @@ from decimal import Decimal
 import django.db
 from django.conf import settings
 from django.contrib import auth
-from django.contrib.sites.models import Site
 from django.utils import timezone
 
 from celery import shared_task
@@ -20,7 +19,7 @@ from sewingworld.tasks import PRIORITY_IDLE
 from shop.models import Integration, Basket, Order, Product, ProductIntegration, ShopUser
 
 logger = logging.getLogger('ozon')
-SITE_OZON = Site.objects.get(domain='ozon.ru')
+
 
 
 class TaskFailure(Exception):
@@ -163,7 +162,7 @@ def get_integration_unfulfilled_orders(self, account):
 @shared_task
 def get_unfulfilled_orders():
     total = 0
-    for integration in Integration.objects.filter(site=SITE_OZON, enabled=True):
+    for integration in Integration.objects.filter(site__domain='ozon.ru', enabled=True):
         get_integration_unfulfilled_orders.s(integration.utm_source).apply_async(priority=PRIORITY_IDLE)
         total += 1
     return total
@@ -237,7 +236,7 @@ def notify_product_stocks(self, products, account):
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_marked_stocks(self):
     total = 0
-    for integration in Integration.objects.filter(site=SITE_OZON, enabled=True):
+    for integration in Integration.objects.filter(site__domain='ozon.ru', enabled=True):
         products = ProductIntegration.objects.order_by().filter(integration=integration, notify_stock=True)
         products = list(products.values_list('product_id', flat=True).distinct())
         if products:

@@ -15,7 +15,7 @@ from mptt.forms import TreeNodeMultipleChoiceField
 from import_export.forms import ImportForm, ConfirmImportForm, ExportForm
 from model_field_list import ModelFieldListFormField
 
-from djconfig import config
+from constance import config
 
 from sewingworld.widgets import AutosizedTextarea, JsonAutosizedTextarea
 
@@ -24,9 +24,6 @@ from shop.tasks import import1c
 
 from .widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
     OrderItemProductLink, ListTextWidget, YandexDeliveryWidget, DeliveryTrackingNumberWidget
-
-
-sw_default_site = Site.objects.get_current()
 
 
 class CategoryAdminForm(forms.ModelForm):
@@ -75,7 +72,8 @@ class OneSImportForm(forms.Form):
 
     def save(self):
         import1c.delay(self.cleaned_data['file'])
-        return 'Импорт запущен в фоновом режиме, результат придёт на адрес %s' % sw_default_site.profile.manager_emails
+        site = Site.objects.get_current()
+        return 'Импорт запущен в фоновом режиме, результат придёт на адрес %s' % site.profile.manager_emails
 
     def with_date(self, file):
         filepath = self.import_dir + '/' + file

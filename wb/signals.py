@@ -11,7 +11,6 @@ from shop.models import Product, ProductIntegration, Integration
 from .tasks import notify_product_stocks
 
 logger = logging.getLogger('wb')
-SITE_WB = Site.objects.get(domain='wildberries.ru')
 
 
 @receiver(post_save, sender=Product, dispatch_uid='product_saved_wb_receiver')
@@ -20,7 +19,7 @@ def product_saved(sender, **kwargs):
     if product.num >= 0:  # report new stock only if stock is reset (this disables double renew on stocks import)
         return
 
-    for integration in product.integrations.filter(pk__in=SITE_WB.integrations.all()):
+    for integration in product.integrations.filter(pk__in=Site.objects.get(domain='wildberries.ru').integrations.all()):
         if integration.settings.get('warehouse_id', 0) != 0:
             try:
                 product_integration = ProductIntegration.objects.get(product=product, integration=integration)
@@ -36,6 +35,6 @@ def product_integration_changed(sender, **kwargs):  # used to clean remote wareh
     if product is None:
         return
     if kwargs.get('action', None) == 'post_remove':
-        for integration in Integration.objects.filter(pk__in=kwargs.get('pk_set', []), site__exact=SITE_WB):
+        for integration in Integration.objects.filter(pk__in=kwargs.get('pk_set', []), site__domain='wildberries.ru'):
             if integration.settings.get('warehouse_id', '') != '':
                 notify_product_stocks.s([product.id], integration.utm_source, True).apply_async(priority=PRIORITY_IDLE)

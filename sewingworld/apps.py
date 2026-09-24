@@ -9,10 +9,6 @@ class SWAppConfig(AppConfig):
     def ready(self):
         import sewingworld.signals  # noqa: F401
 
-        import djconfig
-        from .forms import SWConfigForm
-        djconfig.register(SWConfigForm)
-
         from .admin import configure_admin
         configure_admin()
 

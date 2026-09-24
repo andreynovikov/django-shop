@@ -1,4 +1,3 @@
-from django.contrib.sites.models import Site
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -9,14 +8,11 @@ from .tasks import confirm_sber_order, reject_sber_order, \
     get_sber_order_details
 
 
-SITE_SBER = Site.objects.get(domain='sbermegamarket.ru')
-
-
 @receiver(post_save, sender=Order, dispatch_uid='order_saved_sber_receiver')
 def order_saved(sender, **kwargs):
     order = kwargs['instance']
 
-    if order.site != SITE_SBER:
+    if order.site.domain != 'sbermegamarket.ru':
         return
 
     if order.tracker.has_changed('status'):

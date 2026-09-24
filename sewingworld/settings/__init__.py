@@ -80,10 +80,6 @@ STATICFILES_DIRS = (
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-STAFF_REQUIRED_URLS = (
-    r'/wiki/(.*)$',
-)
-
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -96,8 +92,6 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.media',
-                'sekizai.context_processors.sekizai',
-                'djconfig.context_processors.config',
                 'shop.context_processors.shop_info'
             ]
         }
@@ -143,10 +137,6 @@ CELERY_BROKER_URL = env('CELERY_BROKER_URL')
 
 MPTT_ROOT = 'sewing.world'
 
-WIKI_ACCOUNT_HANDLING = False
-THUMBNAIL_KVSTORE = 'sorl.thumbnail.kvstores.redis_kvstore.KVStore'
-THUMBNAIL_REDIS_DB = 0
-
 SERIALIZATION_MODULES = {
     'xml':    'tagulous.serializers.xml_serializer',
     'json':   'tagulous.serializers.json',
@@ -157,6 +147,7 @@ SERIALIZATION_MODULES = {
 from .apps import *  # noqa F401
 from .admin import *  # noqa F401
 from .celery import *  # noqa F401
+from .constance import *  # noqa F401
 from .filters import *  # noqa F401
 from .middleware import *  # noqa F401
 from .prometheus import *  # noqa F401

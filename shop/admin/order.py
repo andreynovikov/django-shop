@@ -17,7 +17,7 @@ from django.template.defaultfilters import floatformat
 from django.template.response import TemplateResponse
 from django.conf import settings
 from django.shortcuts import render
-from django.urls import path, re_path, reverse
+from django.urls import re_path, reverse
 from django.utils import timezone
 from django.utils.formats import date_format, number_format
 from django.utils.safestring import mark_safe
@@ -27,7 +27,7 @@ from daterangefilter.filters import FutureDateRangeFilter, PastDateRangeFilter
 from django_admin_listfilter_dropdown.filters import SimpleDropdownFilter, ChoiceDropdownFilter, RelatedDropdownFilter
 # from tagging.utils import parse_tag_input
 
-from djconfig import config
+from constance import config
 
 from yandex_delivery.tasks import create_delivery_draft_order, get_delivery_options
 
@@ -482,6 +482,7 @@ class OrderAdmin(admin.ModelAdmin):
                      'delivery_info', 'delivery_yd_order', 'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
                      'item__serial_number']
     inlines = [OrderItemInline, BoxInline]
+    show_facets = admin.ShowFacets.NEVER
     form = OrderAdminForm
     autocomplete_fields = ('store', 'user')
     formfield_overrides = {
@@ -650,7 +651,7 @@ class OrderAdmin(admin.ModelAdmin):
         order = Order.objects.get(pk=id)
         return render(request, 'shop/order/' + template + '.html', {
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
-            'default_seller': config.sw_default_seller,
+            'default_seller': Contractor.objects.filter(pk=config.sw_default_seller).first(),
             'order': order,
             'opts': self.model._meta,
         })
@@ -733,7 +734,7 @@ class OrderAdmin(admin.ModelAdmin):
                     item.save()
                     context = {
                         'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
-                        'default_seller': config.sw_default_seller,
+                        'default_seller': Contractor.objects.filter(pk=config.sw_default_seller).first(),
                         'order': order,
                         'product': item.product,
                         'serial_number': serial_number,

@@ -11,7 +11,6 @@ import django.db
 from django.db.models import Sum, F, Q
 from django.conf import settings
 from django.contrib import auth
-from django.contrib.sites.models import Site
 
 from celery import shared_task
 
@@ -22,7 +21,6 @@ from shop.tasks import send_message, update_order
 
 
 logger = logging.getLogger('wb')
-SITE_WB = Site.objects.get(domain='wildberries.ru')
 
 WB_ORDER_STATUS = {
     # supplierStatus
@@ -170,7 +168,7 @@ def get_integration_new_orders(self, account):
 @shared_task
 def get_new_orders():
     total = 0
-    for integration in Integration.objects.filter(site=SITE_WB, enabled=True):
+    for integration in Integration.objects.filter(site__domain='wildberries.ru', enabled=True):
         get_integration_new_orders.s(integration.utm_source).apply_async(priority=PRIORITY_IDLE)
         total += 1
     return total
@@ -268,7 +266,7 @@ def get_integration_detached_orders(self, account):
 @shared_task
 def get_detached_orders():
     total = 0
-    for integration in Integration.objects.filter(site=SITE_WB, enabled=True):
+    for integration in Integration.objects.filter(site__domain='wildberries.ru', enabled=True):
         get_integration_detached_orders.s(integration.utm_source).apply_async(priority=PRIORITY_IDLE)
         total += 1
     return total
@@ -334,7 +332,7 @@ def get_integration_order_statuses(self, account):
 @shared_task
 def get_order_statuses():
     total = 0
-    for integration in Integration.objects.filter(site=SITE_WB, enabled=True):
+    for integration in Integration.objects.filter(site__domain='wildberries.ru', enabled=True):
         get_integration_order_statuses.s(integration.utm_source).apply_async(priority=PRIORITY_IDLE)
         total += 1
     return total
@@ -362,7 +360,7 @@ def notify_product_stocks(self, products, account, zero_out=False):
         if product_integration.meta is None or product_integration.meta.get('chrtID', None) is None:
             if not product.gtin:
                 product_integration.delete()
-                for phone in SITE_WB.profile.manager_phones.split(','):
+                for phone in integration.site.profile.manager_phones.split(','):
                     send_message.s(phone, 'У товара {} отключена интеграция "{}" (отсутствует штрих-код)'.format(product.code, integration.utm_source)).apply_async(priority=PRIORITY_IDLE)
                 continue
             data = {'settings': {'filter': {'textSearch': product.gtin, 'withPhoto': -1}}}
@@ -381,7 +379,7 @@ def notify_product_stocks(self, products, account, zero_out=False):
                             product_integration.save()
                 if product_integration.meta is None or product_integration.meta.get('chrtID', None) is None:
                     product_integration.delete()
-                    for phone in SITE_WB.profile.manager_phones.split(','):
+                    for phone in integration.site.profile.manager_phones.split(','):
                         send_message.s(phone, 'У товара {} отключена интеграция "{}" (не найден штрих-код)'.format(product.code, integration.utm_source)).apply_async(priority=PRIORITY_IDLE)
                     continue
             except HTTPError as e:
@@ -440,7 +438,7 @@ def notify_product_stocks(self, products, account, zero_out=False):
                         sku = item.get('sku')
                         ProductIntegration.objects.filter(product__gtin=sku, integration=integration).delete()
                         # {'data': [{'sku': '374318830018', 'chrtId': 0, 'amount': 4}], 'code': 'NotFound', 'message': 'Not found'}
-                        for phone in SITE_WB.profile.manager_phones.split(','):
+                        for phone in integration.site.profile.manager_phones.split(','):
                             send_message.s(phone, 'У товара с штрих-кодом {} отключена интеграция WB'.format(sku)).apply_async(priority=PRIORITY_IDLE)
             return True
         else:
@@ -454,7 +452,7 @@ def notify_product_stocks(self, products, account, zero_out=False):
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_marked_stocks(self):
     total = 0
-    for integration in Integration.objects.filter(site=SITE_WB, enabled=True):
+    for integration in Integration.objects.filter(site__domain='wildberries.ru', enabled=True):
         if integration.settings.get('warehouse_id', 0) == 0:
             continue
 
@@ -472,7 +470,7 @@ def notify_marked_stocks(self):
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_integration_stocks(self):
     total = 0
-    for integration in Integration.objects.filter(site=SITE_WB, enabled=True):
+    for integration in Integration.objects.filter(site__domain='wildberries.ru', enabled=True):
         if integration.settings.get('warehouse_id', 0) == 0:
             continue
 

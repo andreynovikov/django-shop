@@ -1,0 +1,5 @@
+[flake8]
+exclude = .git,.venv,__pycache__
+extend-ignore =
+    # E501 line too long
+    E501

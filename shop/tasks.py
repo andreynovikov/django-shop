@@ -41,7 +41,7 @@ from django.contrib.sites.models import Site
 
 from celery import shared_task
 
-from djconfig import config, reload_maybe
+from constance import config
 from flags.state import enable_flag, disable_flag
 
 import reviews
@@ -50,7 +50,7 @@ from unisender import Unisender
 
 from sewingworld.models import SiteProfile
 from sewingworld.sms import send_sms
-from sewingworld.tasks import single_instance_task, PRIORITY_HIGH, PRIORITY_NORMAL, PRIORITY_LOW, PRIORITY_IDLE
+from sewingworld.tasks import single_instance_task, PRIORITY_IDLE
 from sewingworld.templatetags.rupluralize import rupluralize
 
 from shop.models import ShopUser, ShopUserManager, Supplier, Currency, Product, Stock, Basket, Order
@@ -61,7 +61,14 @@ SINGLE_DATE_FORMAT_WITH_YEAR = 'j E Y'
 
 log = logging.getLogger('shop')
 
-sw_default_site = Site.objects.get(domain='www.sewing-world.ru')
+_default_site = None
+
+
+def get_default_site():
+    global _default_site
+    if _default_site is None:
+        _default_site = Site.objects.get(domain='www.sewing-world.ru')
+    return _default_site
 
 
 def validate_email(email):
@@ -75,7 +82,7 @@ def validate_email(email):
 
 def get_site_for_order(order):
     if order.integration:
-        return sw_default_site
+        return get_default_site()
     else:
         return order.site
 
@@ -98,7 +105,7 @@ def revalidate_nextjs(domain, token, payload):
     try:
         response_data = response.json()
         return response_data
-    except:
+    except:  # noqa E722
         return False
 
 
@@ -174,7 +181,6 @@ def notify_user_order_new_mail(order_id):
         if not validate_email(order.email):
             return
         site = get_site_for_order(order)
-        reload_maybe()
         context = {
             'site': site,
             'site_profile': SiteProfile.objects.get(site=site),
@@ -203,7 +209,6 @@ def notify_user_order_collected(order_id):
     if order.email:
         if not validate_email(order.email):
             return
-        reload_maybe()
         context = {
             'site': site,
             'site_profile': SiteProfile.objects.get(site=site),
@@ -246,7 +251,6 @@ def notify_user_order_delivered(order_id):
         if not validate_email(order.email):
             return
         site = get_site_for_order(order)
-        reload_maybe()
         context = {
             'site': site,
             'site_profile': SiteProfile.objects.get(site=site),
@@ -272,7 +276,6 @@ def notify_user_review_products(self, order_id):
     if order.email:
         if not validate_email(order.email):
             return
-        reload_maybe()
         owner_info = getattr(settings, 'SHOP_OWNER_INFO', {})
         context = {
             'owner_info': owner_info,
@@ -309,18 +312,18 @@ def notify_user_review_products(self, order_id):
 def notify_manager(order_id):
     order = Order.objects.get(id=order_id)
 
-    reload_maybe()
     msg_plain = render_to_string('mail/shop/order_manager.txt', {'order': order})
     msg_html = render_to_string('mail/shop/order_manager.html', {'order': order})
 
+    default_site = get_default_site()
     site_text = ''
-    if order.site != sw_default_site:
+    if order.site != default_site:
         site_text = ' (%s)' % order.site.domain
 
     if hasattr(order.site, 'profile') and order.site.profile.manager_emails:
         managers = order.site.profile.manager_emails
     else:
-        managers = sw_default_site.profile.manager_emails
+        managers = default_site.profile.manager_emails
     send_mail(
         'Новый заказ №%s%s' % (order_id, site_text),
         msg_plain,
@@ -339,7 +342,6 @@ def notify_manager_sms(order_id, phone):
 def notify_review_posted(review_id):
     review = reviews.get_review_model().objects.get(id=review_id)
 
-    reload_maybe()
     msg_plain = render_to_string('mail/reviews/review_posted.txt', {'review': review})
 
     return send_mail(
@@ -392,7 +394,6 @@ def post_update_products(product_ids):
 
 @shared_task(bind=True, queue="import", autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def update_1c_stocks(self):
-    reload_maybe()
     filename = 'ВыгрузкаНаСайтПоВсемСкладамПромимпекс.csv'
     url = 'https://cloud-api.yandex.net/v1/disk/resources?path={}'.format(quote('disk:/' + filename))
     headers = {
@@ -667,7 +668,6 @@ def import1c(file):
     log.info('Frozen orders %s' % str(orders))
 
     disable_flag('1C_IMPORT_RUNNING')
-    reload_maybe()
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
                                  {'file': file, 'date': date, 'imported': imported, 'updated': updated, 'errors': errors,
                                   'orders': orders, 'opts': Order._meta})
@@ -675,7 +675,7 @@ def import1c(file):
         'Импорт 1С из %s' % file,
         msg_plain,
         config.sw_email_from,
-        sw_default_site.profile.manager_emails.split(','),
+        get_default_site().profile.manager_emails.split(','),
     )
 
     return date
@@ -698,17 +698,17 @@ def remove_outdated_baskets():
 def notify_abandoned_basket(self, basket_id, email, phone):
     basket = Basket.objects.get(id=basket_id)
 
-    reload_maybe()
     owner_info = getattr(settings, 'SHOP_OWNER_INFO', {})
 
     signer = signing.Signer()
+    default_site = get_default_site()
 
     restore_url = 'https://{}{}'.format(
-        sw_default_site.domain,
+        default_site.domain,
         reverse('shop:restore', args=[','.join(map(lambda i: '%s*%s' % (i.product.id, i.quantity), basket.items.all()))])
     )
     clear_url = 'https://{}{}'.format(
-        sw_default_site.domain,
+        default_site.domain,
         reverse('shop:clear', args=[signer.sign(basket.id)])
     )
 
@@ -952,7 +952,6 @@ def update_cbrf_currencies(self):
 
 @shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=600, retry_jitter=False)
 def update_user_bonuses(self):
-    reload_maybe()
     bonused_users = set(ShopUser.objects.filter(bonuses__gt=0).values_list('id', flat=True))
     filename = 'БонусныеБаллыИнфо.txt'  # БонусныеБаллыНаДР.txt
     url = 'https://cloud-api.yandex.net/v1/disk/resources?path={}'.format(quote('disk:/' + filename))
@@ -1058,7 +1057,6 @@ def notify_expiring_bonuses():
 
 @shared_task(bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=600, retry_jitter=False)
 def update_user_birthday_bonuses(self):
-    reload_maybe()
     # bonused_users = set(ShopUser.objects.filter(bonuses__gt=0).values_list('id', flat=True))
     filename = 'БонусныеБаллыНаДР.txt'
     url = 'https://cloud-api.yandex.net/v1/disk/resources?path={}'.format(quote('disk:/' + filename))

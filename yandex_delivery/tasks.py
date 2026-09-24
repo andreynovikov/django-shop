@@ -4,7 +4,7 @@ import json
 
 import django.db
 from celery import shared_task
-from djconfig import config, reload_maybe
+from constance import config
 
 from shop.models import Order
 
@@ -104,7 +104,6 @@ def create_delivery_draft_order(order_id, warehouse, first_name, middle_name, la
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=3, retry_jitter=False)
 def create_delivery_draft_order_task(self, order_id, warehouse, first_name, middle_name, last_name):
     try:
-        reload_maybe()
         return create_delivery_draft_order(order_id, warehouse, first_name, middle_name, last_name)
     except HTTPError as e:
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes

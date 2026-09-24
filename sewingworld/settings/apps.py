@@ -6,20 +6,17 @@ INSTALLED_APPS = (
     'loginas',
     'daterangefilter',
     'mptt',
-    'sekizai',  # required for wiki
     'adminsortable2',
     'widget_tweaks',
     'django_better_admin_arrayfield',
     'django_admin_listfilter_dropdown',
     'massadmin',
     'import_export',
-    'django_nyt',  # required for wiki
     'django_otp',
     'django_otp.plugins.otp_static',
     'django_otp.plugins.otp_totp',
     'two_factor',
     'two_factor.plugins.phonenumber',
-
     'django.contrib.sites',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -39,14 +36,8 @@ INSTALLED_APPS = (
     'django_celery_results',
     # 'django_ipgeobase',
     'django_comments',
-    'sorl.thumbnail',  # required for wiki
     'django_filters',
     'tagulous',
-    'wiki.apps.WikiConfig',
-    'wiki.plugins.attachments.apps.AttachmentsConfig',
-    'wiki.plugins.notifications.apps.NotificationsConfig',
-    'wiki.plugins.images.apps.ImagesConfig',
-    'wiki.plugins.macros.apps.MacrosConfig',
     'shop',
     'beru',
     'sber',
@@ -56,6 +47,6 @@ INSTALLED_APPS = (
     'reviews',
     'blog',
     'forum',
-    'djconfig',
+    'constance',
     'django_cleanup',
 )

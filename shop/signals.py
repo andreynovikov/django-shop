@@ -25,9 +25,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-SITE_SW = Site.objects.get(domain='www.sewing-world.ru')
-SITE_YANDEX = Site.objects.get(domain='market.yandex.ru')
-
 
 @receiver(post_save, sender=OrderItem, dispatch_uid='order_item_saved_receiver')
 def order_item_saved(sender, **kwargs):
@@ -102,7 +99,7 @@ def order_saved(sender, **kwargs):
                 order.user.save()
             """
             if order.status == Order.STATUS_DONE:
-                if order.site == SITE_SW or order.site == SITE_YANDEX:
+                if order.site.domain in ['www.sewing-world.ru', 'market.yandex.ru']:
                     next_week = timezone.now() + timedelta(days=7)
                     notify_user_review_products.apply_async((order.id,), eta=next_week)
 

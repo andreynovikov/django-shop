@@ -277,6 +277,7 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
     ordering = ('-id',)
     save_on_top = True
     inlines = (ProductImageInline, ProductPriceInline, ProductSetInline, ProductRelationInline, IntegrationInline, StockInline)
+    show_facets = admin.ShowFacets.NEVER
     filter_vertical = ('categories',)
     autocomplete_fields = ('manufacturer',)
     formfield_overrides = {

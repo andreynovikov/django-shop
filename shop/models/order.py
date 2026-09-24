@@ -10,7 +10,7 @@ from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.formats import date_format
 
-from djconfig import config
+from constance import config
 from model_utils import FieldTracker
 from colorfield.fields import ColorField
 # from tagging.utils import parse_tag_input
@@ -297,7 +297,7 @@ class Order(models.Model):
             order.buyer = integration.buyer
             order.wirehouse = integration.wirehouse
         if order.seller is None:
-            order.seller = config.sw_default_seller
+            order.seller = Contractor.objects.filter(pk=config.sw_default_seller).first()
         order.save()
 
         wholesale = order.site.profile.wholesale

@@ -57,8 +57,6 @@ else:
         path('shop/', include('shop.urls')),
         path('sber/', include('sber.urls')),
         path('kassa/', include('yandex_kassa.urls')),
-        path('notifications/', include('django_nyt.urls')),
-        path('wiki/', include('wiki.urls')),
 
         path('', include('django_prometheus.urls')),
     ]

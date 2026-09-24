@@ -8,9 +8,9 @@ from django.contrib.sites.models import Site
 from django.core import signing
 from django.urls import reverse
 
-from djconfig import config
+from constance import config
 
-from shop.models import Product, Basket, Order, OrderItem
+from shop.models import Product, Basket, Order, OrderItem, Contractor
 from shop.forms import WarrantyCardForm
 
 import logging
@@ -89,7 +89,7 @@ def print_warranty_card(request):
             else:
                 context = {
                     'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
-                    'default_seller': config.sw_default_seller,
+                    'default_seller': Contractor.objects.filter(pk=config.sw_default_seller).first(),
                     'order': item.order,
                     'product': item.product,
                     'serial_number': item.serial_number,
