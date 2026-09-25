@@ -17,6 +17,7 @@ INSTALLED_APPS = (
     'django_otp.plugins.otp_totp',
     'two_factor',
     'two_factor.plugins.phonenumber',
+    'django.contrib.postgres',
     'django.contrib.sites',
     'django.contrib.auth',
     'django.contrib.contenttypes',

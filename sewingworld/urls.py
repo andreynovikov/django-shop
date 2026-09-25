@@ -41,7 +41,7 @@ else:
     router.register(r'servicecenters', api.ServiceCenterViewSet, basename='servicecenter')
     router.register(r'integrations', api.IntegrationViewSet, basename='integration')
     router.register(r'reviews', ReviewViewSet, basename='review')
-    router.register(r'reviews/(?P<model>[a-z]+.[a-z]+)/(?P<identifier>[^/.]+)', ReviewViewSet, basename='review')
+    router.register(r'reviews/(?P<model>[a-z]+.[a-z]+)/(?P<identifier>[^/.]+)', ReviewViewSet, basename='model-review')
     router.register(r'forum/topics', TopicViewSet, basename='topic')
     router.register(r'forum/threads', ThreadViewSet, basename='thread')
 
