@@ -328,7 +328,7 @@ class OrderItemProductLink(Widget):
         return format_html(
             '<p><a href="{}/products/{}.html" target="_blank" style="margin-right: 8px"><i class="fas fa-external-link-alt"></i></a>'
             '<input{} /><a href="{}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">{}</a>'
-            ' <a href="{}?_popup=1" class="related-widget-wrapper-link" data-popup="yes" title="Гарантийный талон"><i class="fas fa-envelope-open-text"></i></a>'
+            ' <a href="{}?_popup=1" class="related-widget-wrapper-link" data-popup="yes" title="Гарантийный талон"><i class="fa-solid fa-ticket"></i></a>'
             '&nbsp;<span class="tiny">{}</span>{}</p>', SHOP_INFO.get('url_prefix',''), self.object.product.code, flatatt(final_attrs),
             reverse('admin:shop_product_stock', args=[self.object.product.id]), str(self.object.product),
             reverse('admin:print-warranty-card', args=[self.object.order.id, self.object.pk]), self.object.serial_number, dimensions)

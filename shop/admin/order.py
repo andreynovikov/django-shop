@@ -24,7 +24,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 from daterangefilter.filters import FutureDateRangeFilter, PastDateRangeFilter
-from django_admin_listfilter_dropdown.filters import SimpleDropdownFilter, ChoiceDropdownFilter, RelatedDropdownFilter
+from more_admin_filters import ChoicesDropdownFilter, RelatedDropdownFilter, SimpleDropdownFilter
 # from tagging.utils import parse_tag_input
 
 from constance import config
@@ -113,9 +113,8 @@ class BoxInline(admin.TabularInline):
     ordering = ['id']
 
 
-class OrderStatusListFilter(admin.SimpleListFilter):
+class OrderStatusListFilter(SimpleDropdownFilter):
     title = _('статус')
-    template = 'django_admin_listfilter_dropdown/dropdown_filter.html'
 
     parameter_name = 'status'
 
@@ -158,9 +157,8 @@ class OrderStatusListFilter(admin.SimpleListFilter):
             return queryset.filter(status__in=[Order.STATUS_NEW, Order.STATUS_ACCEPTED, Order.STATUS_COLLECTING, Order.STATUS_COLLECTED, Order.STATUS_SENT, Order.STATUS_DELIVERED_SHOP, Order.STATUS_CONSULTATION, Order.STATUS_PROBLEM, Order.STATUS_SERVICE])
 
 
-class OrderDeliveryListFilter(admin.SimpleListFilter):
+class OrderDeliveryListFilter(SimpleDropdownFilter):
     title = _('доставка')
-    template = 'django_admin_listfilter_dropdown/dropdown_filter.html'
 
     parameter_name = 'delivery'
 
@@ -205,9 +203,41 @@ class OrderDeliveryListFilter(admin.SimpleListFilter):
                 return queryset.filter(delivery__exact=value)
 
 
-class FutureDateFieldListFilter(admin.FieldListFilter):
-    template = 'django_admin_listfilter_dropdown/dropdown_filter.html'
+class BooleanDropdownFilter(admin.FieldListFilter):
+    template = 'more_admin_filters/dropdownfilter.html'
 
+    def __init__(self, field, request, params, model, model_admin, field_path):
+        self.lookup_kwarg = f"{field_path}__exact"
+        self.lookup_val = request.GET.get(self.lookup_kwarg)
+        super().__init__(field, request, params, model, model_admin, field_path)
+
+    def expected_parameters(self):
+        return [self.lookup_kwarg]
+
+    def choices(self, changelist):
+        return [
+            {
+                "selected": self.lookup_val is None,
+                "query_string": changelist.get_query_string({}, [self.lookup_kwarg]),
+                "display": _("All"),
+                "value": "",
+            },
+            {
+                "selected": self.lookup_val == "1",
+                "query_string": changelist.get_query_string({self.lookup_kwarg: "1"}),
+                "display": _("Yes"),
+                "value": "1",
+            },
+            {
+                "selected": self.lookup_val == "0",
+                "query_string": changelist.get_query_string({self.lookup_kwarg: "0"}),
+                "display": _("No"),
+                "value": "0",
+            },
+        ]
+
+
+class FutureDateFieldListFilter(SimpleDropdownFilter):
     def __init__(self, field, request, params, model, model_admin, field_path):
         self.field_generic = '%s__' % field_path
         self.date_params = {k: v for k, v in params.items()
@@ -475,7 +505,7 @@ class OrderAdmin(admin.ModelAdmin):
                        'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
                        'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
     list_filter = [OrderStatusListFilter, ('site', RelatedDropdownFilter), ('integration', OrderIntegrationFilter), ('created', PastDateRangeFilter),
-                   ('seller', RelatedDropdownFilter), ('payment', ChoiceDropdownFilter), ('paid', ChoiceDropdownFilter), OrderDeliveryListFilter,
+                   ('seller', RelatedDropdownFilter), ('payment', ChoicesDropdownFilter), ('paid', BooleanDropdownFilter), OrderDeliveryListFilter,
                    ('delivery_dispatch_date', FutureDateRangeFilter), ('delivery_handing_date', FutureDateRangeFilter),
                    ('manager', RelatedDropdownFilter), ('courier', RelatedDropdownFilter), OrderOwnerFilter]  # , ('owner', RelatedDropdownFilter)]
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment', 'delivery_tracking_number',
@@ -545,10 +575,10 @@ class OrderAdmin(admin.ModelAdmin):
             kwargs['queryset'] = ShopUser.objects.filter(is_staff=True)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
-    def lookup_allowed(self, lookup, value):
+    def lookup_allowed(self, lookup, value, request):
         if lookup == 'item__product__pk':
             return True
-        return super().lookup_allowed(lookup, value)
+        return super().lookup_allowed(lookup, value, request)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

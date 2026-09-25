@@ -3,11 +3,11 @@ from django.conf import settings
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
 from django.template.response import TemplateResponse
-from django.urls import path, reverse
+from django.urls import path
 from django.utils.safestring import mark_safe
 
 from adminsortable2.admin import SortableAdminBase, SortableAdminMixin, SortableInlineAdminMixin
-from django_admin_listfilter_dropdown.filters import RelatedDropdownFilter
+from more_admin_filters import RelatedDropdownFilter
 from mptt.admin import DraggableMPTTAdmin
 
 from sewingworld.admin import get_sites

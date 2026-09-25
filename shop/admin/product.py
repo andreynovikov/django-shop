@@ -17,8 +17,7 @@ from django.utils.translation import gettext_lazy as _
 
 from adminsortable2.admin import SortableInlineAdminMixin, SortableAdminBase
 from django_better_admin_arrayfield.admin.mixins import DynamicArrayMixin
-from django_admin_listfilter_dropdown.filters import SimpleDropdownFilter
-from django_admin_listfilter_dropdown.filters import DropdownFilter, RelatedDropdownFilter
+from more_admin_filters import DropdownFilter, RelatedDropdownFilter, SimpleDropdownFilter
 from reviews.admin import ReviewAdmin, ReviewAdminForm, REVIEW_ADMIN_LINK_SYMBOL
 
 from import_export import resources

@@ -9,7 +9,7 @@ INSTALLED_APPS = (
     'adminsortable2',
     'widget_tweaks',
     'django_better_admin_arrayfield',
-    'django_admin_listfilter_dropdown',
+    'more_admin_filters',
     'massadmin',
     'import_export',
     'django_otp',

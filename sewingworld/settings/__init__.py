@@ -55,8 +55,6 @@ ROOT_URLCONF = env('ROOT_URLCONF')
 
 WSGI_APPLICATION = 'sewingworld.wsgi.application'
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
 LANGUAGE_CODE = 'ru'
 TIME_ZONE = 'Europe/Moscow'
 USE_I18N = True

@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 # from tagging.models import Tag, TaggedItem
 from import_export import resources
 from import_export.admin import ExportMixin
-from django_admin_listfilter_dropdown.filters import SimpleDropdownFilter, DropdownFilter
+from more_admin_filters import DropdownFilter, SimpleDropdownFilter
 
 from shop.models import ShopUser
 
