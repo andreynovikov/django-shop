@@ -1,7 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 
-import axios from 'axios'
-
 function generateAvatar(fullName, size) {
     // 1. Extract initials (up to 2 characters)
     const names = fullName.trim().split(/\s+/);
@@ -47,15 +45,17 @@ function generateAvatar(fullName, size) {
 
 async function loadAvatar(gravatar, name, size) {
   const d = name.startsWith('+7') ? 'mp' : '404'
-  return axios.get(gravatar + '&d=' + d, {
-    responseType: 'arraybuffer'
-  }).then((response) => {
+  try {
+    const response = await fetch(gravatar + '&d=' + d)
+    if (!response.ok)
+      throw new Error('Failed fetch')
     // const buffer = URL.createObjectURL(response.data); - with responseType: 'blob'
-    const buffer = Buffer.from(response.data, 'binary').toString('base64')
-    return `data:${response.headers['content-type'].toLowerCase()};base64,${buffer}`
-  }).catch(async () => {
+    const buffer = Buffer.from(await response.arrayBuffer(), 'binary').toString('base64')
+    const contentType = (response.headers.get('content-type') ?? '').toLowerCase()
+    return `data:${contentType};base64,${buffer}`
+  } catch(error) {
     return generateAvatar(name, size)
-  })
+  }
 }
 
 export default function UserAvatar({ gravatar, name, size = 50, border = false }) {

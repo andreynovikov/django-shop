@@ -2,10 +2,8 @@ import path from 'path'
 import ejs from 'ejs'
 import sanitizeHtml from 'sanitize-html'
 
-import { AxiosError } from 'axios'
-
 import { flattenCategoryTree, getCategoryDescendants } from '@/lib/categories'
-import { loadCategories, loadCurrentSite, loadProducts } from '@/lib/queries'
+import { HttpError, loadCategories, loadCurrentSite, loadProducts } from '@/lib/queries'
 import { listIntegrations, retriveIntegrationByUtm, retriveIntegrationProducts } from '@/lib/queries'
 import { Category, Integration, IntegrationProduct, Product } from '@/lib/types'
 
@@ -106,7 +104,7 @@ export async function GET(request: Request, { params }: RouteContext<'/xml/[file
       })
   } catch (error) {
     console.error(error)
-    if (error instanceof AxiosError || (error instanceof Error && 'code' in error && error.code === 'ENOENT'))
+    if (error instanceof HttpError || (error instanceof Error && 'code' in error && error.code === 'ENOENT'))
       return Response.json({ error: 'Not found' }, { status: 404 })
     else
       return Response.json({ error: 'Internal Server Error' }, { status: 500 })
