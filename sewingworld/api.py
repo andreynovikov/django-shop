@@ -24,6 +24,8 @@ from rest_framework.response import Response
 from django.contrib.flatpages.models import FlatPage
 # from django_ipgeobase.models import IPGeoBase
 
+from django_filters.fields import ChoiceIterator
+
 from qrcode import QRCode
 from qrcode.image.svg import SvgPathImage
 
@@ -265,7 +267,12 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                     'id': field.id_for_label
                 }
                 if hasattr(field.field, 'choices'):
-                    filters[field.name]['choices'] = field.field.choices
+                    choices = field.field.choices
+                    if isinstance(choices, dict):
+                        choices = list(choices.items())
+                    elif isinstance(choices, ChoiceIterator):
+                        choices = list(choices)
+                    filters[field.name]['choices'] = choices
                 if field.field.widget.attrs:
                     filters[field.name]['attrs'] = field.field.widget.attrs
             response.data['filters'] = filters
