@@ -62,7 +62,7 @@ export default function ExtendWarranty() {
         </p>
       ) : sn !== undefined && session?.status !== 'authenticated' ? (
         /* сюда мы попадаем только, если пользователь не авторизован */
-        <LoginForm ctx="warranty" phone="" embedded="warranty" />
+        <LoginForm ctx="warranty" embedded="warranty" />
       ) : (
         /* первичный экран */
         <>
