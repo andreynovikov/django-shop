@@ -133,6 +133,7 @@ export interface BasketItemProduct {
   pack_factor: number
   price: number
   cost: number
+  instock: number
 }
 
 export interface BasketItem {
@@ -276,6 +277,7 @@ export interface Serial {
 export interface AnonymousUser {
   id: null
   is_anonymous: true
+  name: undefined
 }
 
 export interface User {

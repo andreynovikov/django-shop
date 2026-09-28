@@ -11,9 +11,9 @@ export function useCreateOrder() {
   return useMutation({
     mutationFn: () => createOrder(),
     onSuccess: (data) => {
-      queryClient.invalidateQueries(orderKeys.lists())
+      queryClient.invalidateQueries({ queryKey: orderKeys.lists() })
       queryClient.setQueryData(orderKeys.detail(data.id), data)
-      sessionStorage.setItem('lastOrder', data.id)
+      sessionStorage.setItem('lastOrder', String(data.id))
       eCommerce({
         purchase: {
           actionField: {

@@ -1,31 +1,36 @@
-import { useCallback } from 'react'
+import { ChangeEventHandler, KeyboardEventHandler, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 
 import NoImage from '@/components/product/no-image'
 
 import debounce from '@/lib/debounce'
+import { BasketItem, BasketItemProduct } from '@/lib/types'
 
-export default function CartItem({ item, first, last, removeItem, setQuantity }) {
-  const handleKeyDown = (e) => {
+interface CartItemProps {
+  item: BasketItem
+  first: unknown
+  last: unknown
+  removeItem: (product: BasketItemProduct) => void
+  setQuantity: (product: BasketItemProduct, quantity: number) => void
+}
+
+export default function CartItem({ item, first, last, removeItem, setQuantity }: CartItemProps) {
+  const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault()
-      e.target.blur()
+      e.currentTarget.blur()
     }
   }
 
-  const handleValueChange = (e) => {
-    var v = e.target.value
-    if (e.type === 'change' && v === '')
+  const handleValueChange: ChangeEventHandler<HTMLInputElement> = (e) => {
+    if (e.type === 'change' && e.currentTarget.value === '')
       return
-    else if (!v)
-      v = item.quantity
-    else if (v < 1)
-      v = 1
-    else if (v > 10000)
-      v = 10000
-    if (v != e.target.value)
-      e.target.value = v
+    let v = item.quantity
+    if (e.currentTarget.value)
+      v = Math.min(10000, Math.max(1, +e.currentTarget.value))
+    if (String(v) != e.currentTarget.value)
+      e.currentTarget.value = String(v)
     setQuantity(item.product, v)
   }
 

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { ReactElement, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 
@@ -102,12 +102,12 @@ export default function Cart() {
                 </button>
               </>
             ) : (
-              <LoginForm embedded={true} ctx="order" />
+              <LoginForm embedded="cart" ctx="order" />
             )}
 
             {status === 'authenticated' && (
               <div className="mt-3">
-                <a className="fs-sm link-primary" onClick={signOut} style={{ cursor: 'pointer' }}>Оформить заказ от другого имени</a>
+                <a className="fs-sm link-primary" onClick={() => signOut()} style={{ cursor: 'pointer' }}>Оформить заказ от другого имени</a>
               </div>
             )}
           </div>
@@ -117,7 +117,7 @@ export default function Cart() {
   )
 }
 
-Cart.getLayout = function getLayout(page) {
+Cart.getLayout = function getLayout(page: ReactElement) {
   return (
     <PageLayout title="Ваша корзина" htmlTitle="Корзина" dark overlapped hideCartNotice>
       <div className="container pb-5 mb-2 mb-md-4">

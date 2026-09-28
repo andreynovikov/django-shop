@@ -80,7 +80,7 @@ export default function useBasket() {
     }
   }
 
-  const removeItem = (product: ProductInfo | Product) => {
+  const removeItem = (product: BasketProduct) => {
     const item = basket.items?.find(item => item.product.id === product.id)
     const cost = item?.price
     const quantity = item?.quantity

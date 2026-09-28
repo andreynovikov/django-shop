@@ -9,8 +9,9 @@ import NoImage from '@/components/product/no-image'
 import useBasket from '@/lib/basket'
 import { useCreateOrder } from '@/lib/order'
 import { useSession } from '@/lib/session'
+import { BasketItemProduct } from '@/lib/types'
 
-export function MobileCartNotice({extraItemsCount}) {
+export function MobileCartNotice({ extraItemsCount }: { extraItemsCount: number }) {
   const { basket, isEmpty } = useBasket()
 
   return (
@@ -32,7 +33,7 @@ export default function CartNotice() {
   const { mutate, isPending } = useCreateOrder()
   const router = useRouter()
 
-  const handleRemoveItem = (product) => {
+  const handleRemoveItem = (product: BasketItemProduct) => {
     removeItem(product)
   }
 

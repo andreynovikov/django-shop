@@ -1,6 +1,6 @@
 import Spinner from 'react-bootstrap/Spinner'
 
-export function Loading({ className, mega = false }) {
+export function Loading({ className, mega = false }: { className?: string, mega?: boolean }) {
   return (
     <div className={className}>
       <Spinner animation="border" role="status" style={mega ? { width: "5rem", height: "5rem" } : {}}>
@@ -10,7 +10,7 @@ export function Loading({ className, mega = false }) {
   )
 }
 
-export function PageLoading({ className }) {
+export function PageLoading({ className }: { className?: string }) {
   return (
       <div className="container">
         <div className={className}>
