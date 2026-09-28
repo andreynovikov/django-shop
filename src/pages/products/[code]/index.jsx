@@ -607,8 +607,10 @@ export async function getStaticProps(context) {
     const data = await dataQuery
 
     const breadcrumbs = data.categories
-      .filter(category => !['New', 'promo', 'Discount'].includes(category.slug))[0]?.path.breadcrumbs
+      .filter(category => !['New', 'promo', 'Discount'].includes(category.slug)) // skip special categories
+      .sort((a, b) => b.path.breadcrumbs.length - a.path.breadcrumbs.length)[0]?.path.breadcrumbs // get the longest path
       .reduce((breadcrumbs, breadcrumb) => {
+        console.log(breadcrumb)
         const parentPath = breadcrumbs.length > 0 ? breadcrumbs.at(-1).path : []
         breadcrumbs.push({
           label: breadcrumb.name,
