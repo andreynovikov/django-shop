@@ -157,17 +157,15 @@ def callback(request):
                     change_message = "Оплата отклонена: {}".format(CANCELLATION_REASONS.get(payment.cancellation_details.reason, "неизвестная причина"))
                 else:
                     change_message = "Оплата отклонена: неизвестная причина"
+        update_order.delay(order.pk, update)
+        get_receipt.delay(order.pk, payment.id)
         if change_message:
-            LogEntry.objects.log_action(
+            LogEntry.objects.log_actions(
                 user_id=order.user.id,
-                content_type_id=ContentType.objects.get_for_model(order).pk,
-                object_id=order.pk,
-                object_repr=force_str(order),
+                queryset=Order.objects.filter(id=order.id),
                 action_flag=CHANGE,
                 change_message=change_message
             )
-        update_order.delay(order.pk, update)
-        get_receipt.delay(order.pk, payment.id)
     except Exception:
         logger.exception("Failed to process payment status")
         return HttpResponseForbidden()
