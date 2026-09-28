@@ -111,7 +111,7 @@ class SendSmsForm(forms.Form):
     def __init__(self, *args, **kwargs):
         _message_list = getattr(settings, 'SHOP_SMS_MESSAGES', ())
         super(SendSmsForm, self).__init__(*args, **kwargs)
-        self.fields['message'].widget = ListTextWidget(data_list=_message_list, attrs={'size': 90})
+        self.fields['message'].widget = ListTextWidget(data_list=_message_list, attrs={'style': 'width: 100%'})
 
 
 class YandexDeliveryForm(forms.Form):

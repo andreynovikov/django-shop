@@ -52,7 +52,7 @@
               {{ radio }}
             {% endfor %}
           {% else %}
-            {{ field }}
+            {{ field|safe }}
           {% endif %}
           {% if field.field.help_text %}
           <p class="help">

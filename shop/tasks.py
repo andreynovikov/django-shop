@@ -140,14 +140,15 @@ def update_order(self, order_id, data):
             e.add_note("Failed to save info {}".format(str(data)))
             raise
         change_message = ', '.join(map(lambda item: '{}: {}'.format(item[0], item[1]), changed.items()))
+    order.owner = None
+    order.save()
+    if change_message:
         LogEntry.objects.log_actions(
             user_id=order.user.id,
-            queryset=Order.objects.filter(id=order_id),
+            queryset=Order.objects.filter(id=order.id),
             action_flag=CHANGE,
             change_message=change_message
         )
-    order.owner = None
-    order.save()
     return change_message
 
 
