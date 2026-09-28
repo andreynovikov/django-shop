@@ -41,7 +41,7 @@ export default function OrderPaymentButton({ orderId, iconOnly = false }: { orde
       overlay={iconOnly ?
         <Tooltip>
           {order.payment === PAYMENT_CREDIT ? 'Оформить кредит' : 'Оплатить заказ'}
-        </Tooltip> : <></>
+        </Tooltip> : <span />
       }
     >
       <button type="button" className={`btn btn-sm btn${iconOnly ? '-outline' : ''}-success ${iconOnly ? 'py-0 px-1' : ''}`} onClick={handlePayment}>
