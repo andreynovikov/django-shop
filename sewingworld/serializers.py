@@ -351,11 +351,12 @@ class StockSerializer(serializers.ModelSerializer):
 class BasketItemProductSerializer(NonNullModelSerializer):
     price = serializers.SerializerMethodField()
     cost = serializers.SerializerMethodField()
+    instock = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = ('id', 'code', 'title', 'whatis', 'partnumber', 'article',
-                  'ws_pack_only', 'pack_factor', 'price', 'cost', 'image')
+                  'ws_pack_only', 'pack_factor', 'price', 'cost', 'instock', 'image')
 
     def get_price(self, obj):
         request = self.context.get('request')
@@ -364,6 +365,9 @@ class BasketItemProductSerializer(NonNullModelSerializer):
     def get_cost(self, obj):
         request = self.context.get('request')
         return obj.site_cost(request.site)
+
+    def get_instock(self, obj):
+        return max(min(obj.instock, 10), 0)
 
 
 class BasketItemSerializer(serializers.ModelSerializer):
