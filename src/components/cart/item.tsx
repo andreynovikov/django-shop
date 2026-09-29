@@ -1,4 +1,4 @@
-import { KeyboardEventHandler, useState, useEffect, useCallback, FocusEventHandler } from 'react'
+import { KeyboardEventHandler, useState, useEffect, FocusEventHandler } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -42,7 +42,7 @@ export default function CartItem({ item, first, last, removeItem, setQuantity }:
       return
     const quantity = getUpdatedQuantity(debouncedInput, item.quantity)
     setQuantity(item.product, quantity)
-  }, [debouncedInput])
+  }, [debouncedInput, item.product, item.quantity, setQuantity])
 
   return (
     <div className={"d-sm-flex justify-content-between align-items-center my-2 " + (first ? "pb-3" : "py-3") + (!last && " border-bottom")}>
