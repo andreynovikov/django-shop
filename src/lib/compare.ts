@@ -1,9 +1,11 @@
-// https://stackoverflow.com/a/1144249/488489
-export function deepCompare() {
-  var i, l, leftChain, rightChain
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-  function compare2Objects(x, y) {
-    var p
+// https://stackoverflow.com/a/1144249/488489
+export function deepCompare(...args: any[]) {
+  let leftChain: any[], rightChain: any[]
+
+  function compare2Objects(x: any, y: any) {
+    let p: string
     // remember that NaN === NaN returns false
     // and isNaN(undefined) returns true
     if (isNaN(x) && isNaN(y) && typeof x === 'number' && typeof y === 'number') {
@@ -88,16 +90,16 @@ export function deepCompare() {
     return true
   }
 
-  if (arguments.length < 1) {
+  if (args.length < 1) {
     return true //Die silently? Don't know how to handle such case, please help...
     // throw "Need two or more arguments to compare";
   }
 
-  for (i = 1, l = arguments.length; i < l; i++) {
+  for (let i = 1, l = args.length; i < l; i++) {
     leftChain = [] //Todo: this can be cached
     rightChain = []
 
-    if (!compare2Objects(arguments[0], arguments[i])) {
+    if (!compare2Objects(args[0], args[i])) {
       return false
     }
   }
