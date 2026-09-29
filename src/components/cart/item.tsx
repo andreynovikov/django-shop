@@ -1,21 +1,24 @@
-import { ChangeEventHandler, KeyboardEventHandler, useCallback } from 'react'
+import { KeyboardEventHandler, useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 
 import NoImage from '@/components/product/no-image'
 
-import debounce from '@/lib/debounce'
+import { useDebounce } from '@/lib/debounce'
 import { BasketItem, BasketItemProduct } from '@/lib/types'
 
 interface CartItemProps {
   item: BasketItem
-  first: unknown
-  last: unknown
+  first: boolean
+  last: boolean
   removeItem: (product: BasketItemProduct) => void
   setQuantity: (product: BasketItemProduct, quantity: number) => void
 }
 
 export default function CartItem({ item, first, last, removeItem, setQuantity }: CartItemProps) {
+  const [inputValue, setInputValue] = useState(String(item.quantity))
+  const debouncedInput = useDebounce(inputValue, 500)
+
   const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -23,19 +26,22 @@ export default function CartItem({ item, first, last, removeItem, setQuantity }:
     }
   }
 
-  const handleValueChange: ChangeEventHandler<HTMLInputElement> = (e) => {
-    if (e.type === 'change' && e.currentTarget.value === '')
+  const handleValueChange = (value: string, type: string) => {
+    if (type === 'change' && value === '')
       return
     let v = item.quantity
-    if (e.currentTarget.value)
-      v = Math.min(10000, Math.max(1, +e.currentTarget.value))
-    if (String(v) != e.currentTarget.value)
-      e.currentTarget.value = String(v)
+    if (value)
+      v = Math.min(10000, Math.max(1, +value))
+    if (String(v) != value)
+      setInputValue(String(v))
     setQuantity(item.product, v)
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debouncedValueChange = useCallback(debounce(handleValueChange), [setQuantity])
+  useEffect(() => {
+    if (debouncedInput) {
+      handleValueChange(debouncedInput, 'change')
+    }
+  }, [debouncedInput])
 
   return (
     <div className={"d-sm-flex justify-content-between align-items-center my-2 " + (first ? "pb-3" : "py-3") + (!last && " border-bottom")}>
@@ -72,9 +78,9 @@ export default function CartItem({ item, first, last, removeItem, setQuantity }:
           type="number"
           min="1"
           max="10000"
-          defaultValue={item.quantity}
-          onChange={debouncedValueChange}
-          onBlur={handleValueChange}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.currentTarget.value)}
+          onBlur={(e) => handleValueChange(e.currentTarget.value, e.type)}
           onKeyDown={handleKeyDown} />
         <button className="btn btn-link px-0 text-danger" type="button" onClick={() => removeItem(item.product)}>
           <i className="ci-close-circle me-2" />Удалить
