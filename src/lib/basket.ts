@@ -94,6 +94,8 @@ export default function useBasket() {
 
   const setQuantity = (product: BasketProduct, quantity: number) => {
     const previousQuantity = basket.items?.find(item => item.product.id === product.id)?.quantity ?? 0
+    if (previousQuantity === quantity)
+      return
     updateBasketItemMutation.mutate(
       { basketId: baskets![0].id, product, quantity },
       {

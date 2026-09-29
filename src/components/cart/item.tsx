@@ -1,4 +1,4 @@
-import { KeyboardEventHandler, useState, useEffect } from 'react'
+import { KeyboardEventHandler, useState, useEffect, useCallback, FocusEventHandler } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -6,6 +6,10 @@ import NoImage from '@/components/product/no-image'
 
 import { useDebounce } from '@/lib/debounce'
 import { BasketItem, BasketItemProduct } from '@/lib/types'
+
+function getUpdatedQuantity(value: string, quantity: number) {
+    return value ? Math.min(10000, Math.max(1, +value)) : quantity
+}
 
 interface CartItemProps {
   item: BasketItem
@@ -26,21 +30,18 @@ export default function CartItem({ item, first, last, removeItem, setQuantity }:
     }
   }
 
-  const handleValueChange = (value: string, type: string) => {
-    if (type === 'change' && value === '')
-      return
-    let v = item.quantity
-    if (value)
-      v = Math.min(10000, Math.max(1, +value))
-    if (String(v) != value)
-      setInputValue(String(v))
-    setQuantity(item.product, v)
+  const handleBlur: FocusEventHandler<HTMLInputElement> = () => {
+    const quantity = getUpdatedQuantity(inputValue, item.quantity)
+    setQuantity(item.product, quantity)
+    if (String(quantity) !== inputValue)
+      setInputValue(String(quantity))
   }
 
   useEffect(() => {
-    if (debouncedInput) {
-      handleValueChange(debouncedInput, 'change')
-    }
+    if (debouncedInput === '')
+      return
+    const quantity = getUpdatedQuantity(debouncedInput, item.quantity)
+    setQuantity(item.product, quantity)
   }, [debouncedInput])
 
   return (
@@ -80,7 +81,7 @@ export default function CartItem({ item, first, last, removeItem, setQuantity }:
           max="10000"
           value={inputValue}
           onChange={(e) => setInputValue(e.currentTarget.value)}
-          onBlur={(e) => handleValueChange(e.currentTarget.value, e.type)}
+          onBlur={handleBlur}
           onKeyDown={handleKeyDown} />
         <button className="btn btn-link px-0 text-danger" type="button" onClick={() => removeItem(item.product)}>
           <i className="ci-close-circle me-2" />Удалить
@@ -88,5 +89,4 @@ export default function CartItem({ item, first, last, removeItem, setQuantity }:
       </div>
     </div>
   )
-};
-
+}
