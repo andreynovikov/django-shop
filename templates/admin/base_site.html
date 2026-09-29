@@ -19,6 +19,11 @@
     #quick-links { text-transform: uppercase }
     #user-tools { order: 3 }
 
+    :not(.inline-related) .collapse :not([open=""]) summary {
+      border: 1px solid var(--hairline-color) !important;
+      background: var(--darkened-bg) !important;
+      color: var(--body-quiet-color) !important;
+    }
     .related-widget-wrapper-link { display: inline-flex; align-items: center }
     .related-widget-wrapper-link > img { width: 13px; height: 13px }
 </style>

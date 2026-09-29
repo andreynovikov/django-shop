@@ -20,6 +20,9 @@
             $("#site_prices-group").detach().appendTo($("#id_cur_price").closest("details"));
             $("#images-group").detach().appendTo($("#id_image").closest("details"));
             $("#productintegration_set-group").detach().appendTo($("#id_ozon_link").closest("details"));
+            $(".add-array-item").each(function(index, element) {
+                $(element).attr("value", "Добавить ещё");
+            });
             $(".add-row .addlink").each(function(index, element) {
                 $(element).text("Добавить ещё");
             });
