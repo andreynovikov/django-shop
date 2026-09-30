@@ -34,6 +34,7 @@ export async function loadProductSuggestions(text: string) {
     title: text,
     ta: 1,
     page_size: 10,
+    enabled: true,
   })
   return await apiFetch<PaginatedResult<ProductInfo>>(url)
 }
