@@ -38,7 +38,7 @@ INSTALLED_APPS = (
     # 'django_ipgeobase',
     'django_comments',
     'django_filters',
-    'tagulous',
+    'django_tagulous',
     'shop',
     'beru',
     'sber',

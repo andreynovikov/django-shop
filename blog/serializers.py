@@ -1,10 +1,8 @@
 from collections import OrderedDict
 
-from django.contrib.auth import get_user_model
-
 from rest_framework import serializers
 
-from tagulous.contrib.drf import TagRelatedManagerField
+from django_tagulous.contrib.drf import TagRelatedManagerField
 
 from sewingworld.serializers import UserListSerializer
 
