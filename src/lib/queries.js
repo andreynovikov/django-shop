@@ -376,6 +376,7 @@ export async function loadProductSuggestions(text) {
   url.searchParams.set('title', text)
   url.searchParams.set('ta', 1)
   url.searchParams.set('page_size', 10)
+  url.searchParams.set('enabled', 1)
   const response = await apiClient.get(url.toString())
   return response.data
 }
