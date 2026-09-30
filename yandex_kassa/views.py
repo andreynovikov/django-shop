@@ -7,12 +7,10 @@ from decimal import Decimal, ROUND_HALF_EVEN
 
 from django.contrib.admin.models import LogEntry, CHANGE
 from django.contrib.auth.decorators import login_required
-from django.contrib.contenttypes.models import ContentType
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
-from django.utils.encoding import force_str
 
 from yookassa import Payment, Receipt
 from yookassa.domain.exceptions.api_error import ApiError
@@ -35,6 +33,7 @@ CANCELLATION_REASONS = {
     'canceled_by_merchant': 'платеж отменен по API при оплате в две стадии',
     'card_expired': 'истек срок действия банковской карты',
     'country_forbidden': 'нельзя заплатить банковской картой, выпущенной в этой стране',
+    'deal_expired': 'закончился срок жизни безопасной сделки',
     'expired_on_capture': 'истек срок списания оплаты у двухстадийного платежа',
     'expired_on_confirmation': 'пользователь не подтвердил платеж за время, отведенное на оплату выбранным способом',
     'fraud_suspected': 'платеж заблокирован из-за подозрения в мошенничестве',
@@ -45,6 +44,9 @@ CANCELLATION_REASONS = {
     'invalid_card_number': 'неправильно указан номер карты',
     'invalid_csc': 'неправильно указан код CVV2 (CVC2, CID)',
     'issuer_unavailable': 'организация, выпустившая платежное средство, недоступна',
+    'loan_application_expired': 'истек срок заполнения заявки на кредит или рассрочку',
+    'loan_declined': 'заявка на кредит или рассрочку отклонена банком',
+    'loan_declined_by_payer': 'пользователь отказался от кредита или рассрочки',
     'payment_method_limit_exceeded': 'исчерпан лимит платежей для данного платежного средства или вашего магазина',
     'payment_method_restricted': 'запрещены операции данным платежным средством',
     'permission_revoked': 'нельзя провести безакцептное списание, пользователь отозвал разрешение на автоплатежи',

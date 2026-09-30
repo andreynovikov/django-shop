@@ -136,10 +136,10 @@ CELERY_BROKER_URL = env('CELERY_BROKER_URL')
 MPTT_ROOT = 'sewing.world'
 
 SERIALIZATION_MODULES = {
-    'xml':    'tagulous.serializers.xml_serializer',
-    'json':   'tagulous.serializers.json',
-    'python': 'tagulous.serializers.python',
-    'yaml':   'tagulous.serializers.pyyaml',
+    'xml':    'django_tagulous.serializers.xml_serializer',
+    'json':   'django_tagulous.serializers.json',
+    'python': 'django_tagulous.serializers.python',
+    'yaml':   'django_tagulous.serializers.pyyaml',
 }
 
 from .apps import *  # noqa F401

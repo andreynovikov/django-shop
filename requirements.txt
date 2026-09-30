@@ -15,7 +15,7 @@ defusedxml==0.7.1
 Deprecated==3.0.0
 diff-match-patch==20241021
 distro==1.9.0
-Django==6.0.8
+Django==6.1.1
 django-admin-sortable2==2.3.1
 django-better-admin-arrayfield==1.4.2
 django-celery-beat==2.9.0

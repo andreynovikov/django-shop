@@ -3,6 +3,12 @@
 
 {% block extrastyle %}{{ block.super }}
     <style>
+        /* Reposition form controls */
+        .form-row > .flex-container {
+            flex-direction: row;
+            align-items: baseline;
+        }
+
         /* Remove label gaps */
         @media (min-width: 1025px) {
             .form-row > .fieldBox:not(:first-child) > label {
@@ -47,6 +53,7 @@
         }
 
         /* Remove unnecessary blocks */
+        h2,
         div.field-products_price,
         div.field-total,
         div.field-id {
@@ -100,14 +107,20 @@
         }
 
         var Delivery_Price = $("input[name='delivery_price']").val();
-        var Products_Price = $("div.field-products_price > div > div > div.readonly").html();
-        var Total = $("div.field-total > div > div > div.readonly").html();
-        var Number = $("div.field-id > div > div > div.readonly").html();
+        var Products_Price = $("div.field-products_price > div > div.readonly").html();
+        var Total = $("div.field-total > div > div.readonly").html();
+        var Number = $("#content h2").html();
+        var DateTime = "";
+        var firstSpaceIndex = Number.indexOf(" ");
+        if (firstSpaceIndex !== -1) {
+            DateTime = Number.slice(firstSpaceIndex + 1);
+            Number = Number.slice(0, firstSpaceIndex);
+        }
         $("#items-group").after("<div style=\"text-align:right;\" class=\"lead\">Итого: " + Total + "</div>");
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Доставка: " + Delivery_Price + "</div>");
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Всего: " + Products_Price + "</div>");
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0"+ WeightStyle + "\" class=\"lead\"" + WeightTitle + ">Общий вес: " + Weight.toFixed(3) + "</div>");
-        $("#content h1").append(' <b>' + Number + '</b>');
+        $("#content h1").append(' <b>' + Number + '</b> ' + DateTime);
 
 {% if original.status > original.STATUS_COLLECTED %}
 {% if not original.wiring_date or not original.wirehouse or not original.buyer or not original.seller %}
