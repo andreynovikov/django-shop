@@ -8,8 +8,6 @@ import { useInView } from 'react-intersection-observer'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { FreeMode, Navigation } from 'swiper/modules'
 
-import { Menu } from '@base-ui/react/menu'
-
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 
@@ -27,12 +25,11 @@ import { Loading, PageLoading } from '@/components/loading'
 import useFavorites from '@/lib/favorites'
 import useComparison from '@/lib/comparison'
 import { useSession } from '@/lib/session'
-import { productKeys, loadProducts, loadProductByCode, getProductFields } from '@/lib/queries'
+import { productKeys, loadProducts, loadProductByCode, getProductFields, loadProductStock } from '@/lib/queries'
 import { baseFilters } from '@/lib/catalog'
 import { eCommerce } from '@/lib/ymec'
 
 const ProductReviews = lazy(() => import('@/components/product/reviews'))
-const ProductStock = lazy(() => import('@/components/product/stock'))
 
 // const gana = require('gana')
 
@@ -135,6 +132,14 @@ export default function Product({ code }) {
     queryFn: () => loadProductByCode(code),
     enabled: code !== undefined
   })
+
+  const { data: stores, isSuccess: isStockSuccess } = useQuery({
+    queryKey: productKeys.stock(product.id),
+    queryFn: () => loadProductStock(product.id),
+    select: (data) => data.filter(store => store.id === 295),
+    enabled: product?.id > 0
+  })
+  const availableInStore = isStockSuccess && stores.length !== 0
 
   const productFields = useMemo(() => {
     return isSuccess ? filterProductFields(product) : []
@@ -261,16 +266,28 @@ export default function Product({ code }) {
                       </div>
                     </div>
                   )}
-                  <div className="position-relative me-n4">
-                    <div className={`product-badge product-${product.instock < 1 ? "not-" : ""}available mt-${product.enabled ? "1" : "3"}`}>
-                      <i className={`ci-security-${product.instock > 1 ? "check" : product.instock === 1 ? "announcement" : "close"}`} />
-                      {product.enabled ? (
-                        product.instock > 1 ? "В наличии" : product.instock === 1 ? "Осталось мало" : "Закончились"
-                      ) : (
-                        "Товар снят с продажи"
-                      )}
+                  {product.instock < 1 && availableInStore ? (
+                    <div className="pt-2 pb-3">
+                      <i className="ci-location text-muted lead align-middle mt-n1 me-2" />
+                      <span>
+                        Товар есть в наличии в розничном магазинe по адресу{" "}
+                        <Link className="text-nowrap" href="/stores/">
+                          {stores[0].address}
+                        </Link>
+                      </span>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="position-relative me-n4 mb-4">
+                      <div className={`product-badge product-${product.instock < 1 ? "not-" : ""}available mt-${product.enabled ? "1" : "3"}`}>
+                        <i className={`ci-security-${product.instock > 1 ? "check" : product.instock === 1 ? "announcement" : "close"}`} />
+                        {product.enabled ? (
+                          product.instock > 1 ? "В наличии" : product.instock === 1 ? "Осталось мало" : "Закончились"
+                        ) : (
+                          "Товар снят с продажи"
+                        )}
+                      </div>
+                    </div>
+                  )}
                   {product.enabled && (
                     <>
                       <div className="me-2">
@@ -345,9 +362,21 @@ export default function Product({ code }) {
                     </div>
                   )}
 
-                  {product.enabled && product.cost > 0 && (
-                    <ProductStock id={product.id} />
-                  )}
+                  <div className="pt-2 pb-3">
+                    <i className="ci-location text-muted lead align-middle mt-n1 me-2" />
+                    {availableInStore && product.instock > 0 ? (
+                      <span>
+                        Товар есть в наличии в розничном магазинe по адресу{" "}
+                        <Link className="text-nowrap" href="/stores/">
+                          {stores[0].address}
+                        </Link>
+                      </span>
+                    ) : !availableInStore && isStockSuccess ? (
+                      <span>Данного товара нет в наличии в розничном магазине</span>
+                    ) : (
+                      null
+                    )}
+                  </div>
 
                   {product.enabled && product.gifts && (
                     <>
@@ -610,7 +639,6 @@ export async function getStaticProps(context) {
       .filter(category => !['New', 'promo', 'Discount'].includes(category.slug)) // skip special categories
       .sort((a, b) => b.path.breadcrumbs.length - a.path.breadcrumbs.length)[0]?.path.breadcrumbs // get the longest path
       .reduce((breadcrumbs, breadcrumb) => {
-        console.log(breadcrumb)
         const parentPath = breadcrumbs.length > 0 ? breadcrumbs.at(-1).path : []
         breadcrumbs.push({
           label: breadcrumb.name,
