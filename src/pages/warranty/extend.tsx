@@ -2,13 +2,11 @@ import { FormEvent, useEffect, useRef, useState, type ReactElement } from 'react
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { AxiosError } from 'axios'
-
 import PageLayout from '@/components/layout/page'
 import LoginForm from '@/components/login-form'
 
 import { useSession } from '@/lib/session'
-import { createSerial, serialKeys } from '@/lib/queries'
+import { createSerial, HttpError, serialKeys } from '@/lib/queries'
 
 import { Serial } from '@/lib/types'
 
@@ -22,13 +20,14 @@ export default function ExtendWarranty() {
 
   const queryClient = useQueryClient()
 
-  const { mutate } = useMutation<Serial, AxiosError<string[]>, string>({
+  const { mutate } = useMutation<Serial, HttpError, string>({
     mutationFn: (number) => createSerial({ number }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: serialKeys.lists() })
       setSerial(data)
     },
-    onError: (error) => setErrors(error.response?.data)
+    // TODO: process errors
+    // onError: (error) => setErrors(error.response?.json())
   })
 
   useEffect(() => {
@@ -63,7 +62,7 @@ export default function ExtendWarranty() {
         </p>
       ) : sn !== undefined && session?.status !== 'authenticated' ? (
         /* сюда мы попадаем только, если пользователь не авторизован */
-        <LoginForm ctx="warranty" phone="" embedded="warranty" />
+        <LoginForm ctx="warranty" embedded="warranty" />
       ) : (
         /* первичный экран */
         <>

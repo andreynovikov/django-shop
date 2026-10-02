@@ -41,7 +41,7 @@ export const DELIVERY_BOXBERRY = 11
 export const DELIVERY_EXPRESS = 98
 export const DELIVERY_UNKNOWN = 99
 
-const getColor = (status) => {
+const getColor = (status: number) => {
   // badge colors from https://demo.createx.studio/cartzilla/components/badge.html
   // 'danger' is currently unused
   switch (status) {
@@ -75,6 +75,6 @@ const getColor = (status) => {
   }
 }
 
-export default function OrderStatusBadge({ status, text }) {
+export default function OrderStatusBadge({ status, text }: { status: number, text: string }) {
   return <span className={"badge bg-" + getColor(status) + " fs-sm"}>{text}</span>
 }

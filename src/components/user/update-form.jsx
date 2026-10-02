@@ -110,8 +110,7 @@ export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, 
           <div className={`col-${embedded ? "12" : "md-6"}`} key={field.id}>
             <label className="form-label" htmlFor={field.id}>{field.label}:</label>
             {field.name === "phone" ? (
-              <div className="input-group">
-                <span className="input-group-text bg-secondary">+7</span>
+              <>
                 <input
                   ref={phoneRef}
                   className={"form-control" + ((error && field.name in error) ? " is-invalid" : "")}
@@ -126,7 +125,7 @@ export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, 
                 {error && field.name in error && error[field.name].map((err, index) => (
                   <div className="invalid-feedback" key={index}>{err}</div>
                 ))}
-              </div>
+              </>
             ) : (
               <>
                 <input

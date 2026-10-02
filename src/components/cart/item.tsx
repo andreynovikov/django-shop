@@ -1,36 +1,48 @@
-import { useCallback } from 'react'
+import { KeyboardEventHandler, useState, useEffect, FocusEventHandler } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 
 import NoImage from '@/components/product/no-image'
 
-import debounce from '@/lib/debounce'
+import { useDebounce } from '@/lib/debounce'
+import { BasketItem, BasketItemProduct } from '@/lib/types'
 
-export default function CartItem({ item, first, last, removeItem, setQuantity }) {
-  const handleKeyDown = (e) => {
+function getUpdatedQuantity(value: string, quantity: number) {
+    return value ? Math.min(10000, Math.max(1, +value)) : quantity
+}
+
+interface CartItemProps {
+  item: BasketItem
+  first: boolean
+  last: boolean
+  removeItem: (product: BasketItemProduct) => void
+  setQuantity: (product: BasketItemProduct, quantity: number) => void
+}
+
+export default function CartItem({ item, first, last, removeItem, setQuantity }: CartItemProps) {
+  const [inputValue, setInputValue] = useState(String(item.quantity))
+  const debouncedInput = useDebounce(inputValue, 500)
+
+  const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault()
-      e.target.blur()
+      e.currentTarget.blur()
     }
   }
 
-  const handleValueChange = (e) => {
-    var v = e.target.value
-    if (e.type === 'change' && v === '')
-      return
-    else if (!v)
-      v = item.quantity
-    else if (v < 1)
-      v = 1
-    else if (v > 10000)
-      v = 10000
-    if (v != e.target.value)
-      e.target.value = v
-    setQuantity(item.product, v)
+  const handleBlur: FocusEventHandler<HTMLInputElement> = () => {
+    const quantity = getUpdatedQuantity(inputValue, item.quantity)
+    setQuantity(item.product, quantity)
+    if (String(quantity) !== inputValue)
+      setInputValue(String(quantity))
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debouncedValueChange = useCallback(debounce(handleValueChange), [setQuantity])
+  useEffect(() => {
+    if (debouncedInput === '')
+      return
+    const quantity = getUpdatedQuantity(debouncedInput, item.quantity)
+    setQuantity(item.product, quantity)
+  }, [debouncedInput, item.product, item.quantity, setQuantity])
 
   return (
     <div className={"d-sm-flex justify-content-between align-items-center my-2 " + (first ? "pb-3" : "py-3") + (!last && " border-bottom")}>
@@ -67,9 +79,9 @@ export default function CartItem({ item, first, last, removeItem, setQuantity })
           type="number"
           min="1"
           max="10000"
-          defaultValue={item.quantity}
-          onChange={debouncedValueChange}
-          onBlur={handleValueChange}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.currentTarget.value)}
+          onBlur={handleBlur}
           onKeyDown={handleKeyDown} />
         <button className="btn btn-link px-0 text-danger" type="button" onClick={() => removeItem(item.product)}>
           <i className="ci-close-circle me-2" />Удалить
@@ -77,5 +89,4 @@ export default function CartItem({ item, first, last, removeItem, setQuantity })
       </div>
     </div>
   )
-};
-
+}

@@ -2,12 +2,10 @@ import path from 'path'
 import ejs from 'ejs'
 import sanitizeHtml from 'sanitize-html'
 
-import { AxiosError } from 'axios'
-
 import { flattenCategoryTree, getCategoryDescendants } from '@/lib/categories'
-import { loadCategories, loadCurrentSite, loadProducts } from '@/lib/queries'
-import { listIntegrations, retriveIntegrationByUtm, retriveIntegrationProducts } from "@/lib/token-queries"
-import { Category, Integration, Product } from '@/lib/types'
+import { HttpError, loadCategories, loadCurrentSite, loadProducts } from '@/lib/queries'
+import { listIntegrations, retriveIntegrationByUtm, retriveIntegrationProducts } from '@/lib/queries'
+import { Category, Integration, IntegrationProduct, Product } from '@/lib/types'
 
 export const revalidate = 3600
 export const dynamic = 'error'
@@ -36,15 +34,12 @@ function topCategoryMap(categories: Category[]) {
   return map
 }
 
-export async function GET(
-  request: Request,
-  { params }: RouteContext<'/xml/[filename]'>
-) {
+export async function GET(request: Request, { params }: RouteContext<'/xml/[filename]'>) {
   const { filename } = await params
   const utm = path.parse(filename).name
 
   let integration: Integration | undefined
-  let products: Product[]
+  let products: IntegrationProduct[] | Product[]
   let templateName = utm
 
   try {
@@ -70,7 +65,7 @@ export async function GET(
         in_category: categories.map(category => category.id),
         variations: '',
       }
-      const pageSize = 1000
+      const pageSize = 100
       const order = 'id'
       let currentPage = 1
       while (true) {
@@ -109,7 +104,7 @@ export async function GET(
       })
   } catch (error) {
     console.error(error)
-    if (error instanceof AxiosError || (error instanceof Error && 'code' in error && error.code === 'ENOENT'))
+    if (error instanceof HttpError || (error instanceof Error && 'code' in error && error.code === 'ENOENT'))
       return Response.json({ error: 'Not found' }, { status: 404 })
     else
       return Response.json({ error: 'Internal Server Error' }, { status: 500 })

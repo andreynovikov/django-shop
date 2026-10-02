@@ -58,7 +58,6 @@ export default function Compare({ kindId, productIds }) {
   // if nothing is passed, redirect to first comparable kind
   useEffect(() => {
     if (isComparisonSuccess && comparisons.length > 0 && isKindsSuccess && kinds.length > 0 && kindId === null && productIds.length === 0) {
-      console.log(kinds)
       router.replace({
         pathname: router.pathname,
         query: { kind: kinds[0].id }

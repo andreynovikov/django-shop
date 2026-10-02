@@ -7,13 +7,15 @@ import { Toast } from '@base-ui/react/toast'
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
 import Tooltip from 'react-bootstrap/Tooltip'
 
-import { apiClient, loadOrder, orderKeys } from "@/lib/queries"
+import { apiFetch, loadOrder, orderKeys } from "@/lib/queries"
+import { useSite } from '@/lib/site'
 
 import { PAYMENT_CREDIT } from '@/components/order/status-badge'
 
 export default function OrderPaymentButton({ orderId, iconOnly = false }: { orderId: number, iconOnly?: boolean }) {
 
   const router = useRouter()
+  const { site } = useSite()
   const toastManager = Toast.useToastManager()
 
   const { data: order, isSuccess } = useQuery({
@@ -21,24 +23,25 @@ export default function OrderPaymentButton({ orderId, iconOnly = false }: { orde
     queryFn: () => loadOrder(orderId),
   })
 
-  if (!isSuccess || process.env.NEXT_PUBLIC_ORIGIN === undefined)
+  if (!isSuccess || site?.url_prefix === undefined)
     return null
 
-  const handlePayment = (event: MouseEvent<HTMLButtonElement>) => {
+  const handlePayment = async (event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation()
-    apiClient.post(`orders/${orderId}/pay/`, {
-      'return_url': process.env.NEXT_PUBLIC_ORIGIN!.slice(0, -1) + router.asPath
-    }, {
-      maxRedirects: 0 // maxRedirects does not work so API returns JSON with location
-    }).then(function (response) {
-      window.location = response.data.location
-    }).catch(function (error) {
+    try {
+      const result = await apiFetch<{ location: string}>(`orders/${orderId}/pay/`, {
+        body: {
+          'return_url': site.url_prefix + router.asPath
+        }
+      })
+      window.location.assign(result.location) // axios didn't support redirects so API returns JSON with location
+    } catch (error) {
       console.log(error)
       toastManager.add({
-        description: error.response ? error.response.data : 'Ошибка взаимодействия с YooMoney',
+        description: /*error.response ? error.response.data : */'Ошибка взаимодействия с YooMoney',
       })
-    })
-  };
+    }
+  }
 
   return (
     <OverlayTrigger
@@ -46,7 +49,7 @@ export default function OrderPaymentButton({ orderId, iconOnly = false }: { orde
       overlay={iconOnly ?
         <Tooltip>
           {order.payment === PAYMENT_CREDIT ? 'Оформить кредит' : 'Оплатить заказ'}
-        </Tooltip> : <></>
+        </Tooltip> : <span />
       }
     >
       <button type="button" className={`btn btn-sm btn${iconOnly ? '-outline' : ''}-success ${iconOnly ? 'py-0 px-1' : ''}`} onClick={handlePayment}>

@@ -1,4 +1,4 @@
-const rupluralize = (value, endings) => {
+const rupluralize = (value: number, endings: string[]) => {
   if ([11, 12, 13, 14].includes(value % 100))
     return endings[2]
   if (value % 10 === 1)

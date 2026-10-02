@@ -19,7 +19,7 @@ export default function Confirmation() {
   const router = useRouter()
 
   const { user, status } = useSession({
-    onUnauthenticated() {
+    onUnauthenticated: () => {
       router.push('/cart')
     }
   })
@@ -35,7 +35,7 @@ export default function Confirmation() {
 
   useEffect(() => {
     // we do it here otherwise cart page flickers on order registration
-    queryClient.invalidateQueries(basketKeys.all)
+    queryClient.invalidateQueries({ queryKey: basketKeys.all })
   }, [queryClient])
 
   const orderId = useMemo(() => {
@@ -43,7 +43,7 @@ export default function Confirmation() {
       return 0 // wait for authentication
 
     const id = sessionStorage.getItem('lastOrder') // TODO: clean after some extent
-    return +id > 0 ? id : undefined
+    return +id > 0 ? +id : undefined
   }, [status])
 
   useEffect(() => {

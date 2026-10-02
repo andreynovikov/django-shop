@@ -6,12 +6,12 @@ import { useQuery } from '@tanstack/react-query'
 import Collapse from 'react-bootstrap/Collapse'
 
 import UserAvatar from '@/components/user/avatar'
-import UserBonus from '@/components/user/bonus'
+// import UserBonus from '@/components/user/bonus'
 
 import { formatPhone } from '@/lib/format'
 import useFavorites from '@/lib/favorites'
 import { useSite } from '@/lib/site'
-import { useSession, signOut } from '@/lib/session'
+import { useSession } from '@/lib/session'
 import { orderKeys, loadOrders } from '@/lib/queries'
 
 export default function UserSidebar() {
@@ -19,8 +19,8 @@ export default function UserSidebar() {
 
   const router = useRouter()
   const { site } = useSite()
-  const { user, status } = useSession({
-    onUnauthenticated() {
+  const { user, status, signOut } = useSession({
+    onUnauthenticated: () => {
       router.push({
         pathname: '/login',
         query: { callbackUrl: router.asPath }
@@ -51,7 +51,7 @@ export default function UserSidebar() {
         <div className="d-md-flex justify-content-between align-items-center text-center text-md-start p-4">
           <div className="d-md-flex align-items-center">
             <div className="img-thumbnail rounded-circle position-relative flex-shrink-0 mx-auto mb-2 mx-md-0 mb-md-0" style={{ width: "6.375rem" }}>
-              <UserBonus />
+              {/* <UserBonus /> */}
               <picture>
                 <UserAvatar gravatar={user.gravatar} name={user.name || user.full_name} size="90" />
               </picture>

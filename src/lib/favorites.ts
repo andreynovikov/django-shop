@@ -16,23 +16,23 @@ export default function useFavorites() {
   })
 
   const addToFavoritesMutation = useMutation({
-    mutationFn: (productId) => addToFavorites(productId),
+    mutationFn: (productId: number) => addToFavorites(productId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: favoriteKeys.all })
     }
   })
   const removeFromFavoritesMutation = useMutation({
-    mutationFn: (productId) => removeFromFavorites(productId),
+    mutationFn: (productId: number) => removeFromFavorites(productId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: favoriteKeys.all })
     }
   })
 
-  const favoritize = (productId) => {
+  const favoritize = (productId: number) => {
     addToFavoritesMutation.mutate(productId)
   }
 
-  const unfavoritize = (productId) => {
+  const unfavoritize = (productId: number) => {
     removeFromFavoritesMutation.mutate(productId)
   }
 

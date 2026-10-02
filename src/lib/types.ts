@@ -29,11 +29,181 @@ export interface Category {
   children?: Category[]
 }
 
+export interface ProductInfo {
+  id: number
+  code: string
+  article: string
+  partnumber: string
+  order: number
+  whatis: string
+  whatisit: string
+  type_prefix: string
+  title: string
+  variations: string
+  price: number
+  cost: number
+  discount: number
+  instock: number
+  image?: string
+  enabled: boolean
+  isnew: boolean
+  recomended: boolean
+  ws_pack_only: boolean
+  pack_factor: number
+  sales?: string[]
+  sales_notes: string
+  shortdescr: string
+  rank?: number
+  wb_link: string
+  ozon_link: string
+}
+
 export interface Product {
   id: number
   code: string
+  article: string
+  partnumber: string
+  title: string
+  price: number
+  cost: number
   enabled: boolean
   video_url?: string
+  // TODO - add remaining fields
+}
+
+export interface ProductKind {
+  id: number
+  name: string
+  comparison: string[] // keyof Product
+}
+
+export interface ProductStock {
+  product: string
+  supplier: string
+  quantity: number
+  correction: number
+  reason: string
+}
+
+export interface ProductReview {
+  id: number
+  advantage: string
+  disadvantage: string
+  comment: string
+  weight: number
+  user: {
+    id: string
+    full_name: string
+    gravatar: string
+  }
+  reviewer_name: string
+  reviewer_avatar: string
+  site: number
+  submit_date: string
+  is_public: boolean
+  rating: {
+    value: number
+    text: string
+  }
+}
+
+export interface ProductReviewFormField {
+  name: string
+  label: string
+  help: string
+  class: string
+  widget: string
+  required: boolean
+  choices?: unknown
+  attrs?: unknown
+  value?: unknown
+}
+
+export type ProductReviewForm = Array<ProductReviewFormField>
+
+export interface BasketItemProduct {
+  id: number
+  code: string
+  title: string
+  whatis: string
+  partnumber: string
+  article: string
+  image: string
+  ws_pack_only: boolean
+  pack_factor: number
+  price: number
+  cost: number
+  instock: number
+}
+
+export interface BasketItem {
+  id: number
+  product: BasketItemProduct
+  price: number
+  quantity: number
+  cost: number
+  discount: number
+  discount_text: string
+}
+
+export interface Basket {
+  id: number
+  items: BasketItem[]
+  total: number
+  quantity: number
+  phone: string
+  utm_source: string
+}
+
+export interface OrderInfo {
+  id: number
+  total: number
+  created: string
+  status: number
+  status_text: string
+  payment: number
+  paid: boolean
+}
+
+export interface OrderItem {
+  product: BasketItemProduct
+  cost: number
+  discount: number
+  discount_text: string
+  price: number
+  product_price: number
+  quantity: number
+  total: number
+}
+
+export interface Order {
+  id: number
+  created: string
+  status: number
+  status_text: string
+  payment: number
+  payment_text: string
+  paid: boolean
+  total: number
+  delivery: number
+  delivery_price: number
+  delivery_tracking_number: string
+  delivery_info: string
+  delivery_dispatch_date: string | null
+  delivery_handing_date: string | null
+  delivery_time_from: string | null
+  delivery_time_till: string | null
+  store: number | null
+  name: string
+  phone: string
+  email: string
+  address: string
+  is_firm: boolean
+  firm_name: string
+  firm_address: string
+  firm_details: string
+  comment: string
+  items: OrderItem[]
 }
 
 export interface Country {
@@ -63,8 +233,8 @@ export interface Store {
   marketplace: boolean
   lottery: boolean
   description: string
-  latitude: number
-  longitude: number
+  latitude?: number
+  longitude?: number
   postcode: string
   url: string
   hours: string
@@ -74,6 +244,15 @@ export interface Store {
   payment_master: boolean
   payment_mir: boolean
   payment_credit: boolean
+}
+
+export interface ServiceCenter {
+  id: number
+  city: City
+  address: string
+  phone: string
+  latitude?: number
+  longitude?: number
 }
 
 export interface SalesAction {
@@ -95,6 +274,55 @@ export interface Serial {
   order?: unknown
 }
 
+export interface AnonymousUser {
+  id: null
+  is_anonymous: true
+  name: undefined
+}
+
+export interface User {
+  id: number
+  is_anonymous: false
+  phone: string
+  name: string
+  full_name: string
+  gravatar: string
+  username: string
+  email: string
+  postcode: string
+  city: string
+  address: string
+  discount: number
+  bonuses: number
+  expiring_bonuses: number
+  expiration_date: string | null
+  permanent_password: boolean
+  last_login: string
+  date_joined: string
+}
+
+export interface UserEdit {
+  name: string
+  phone: string
+  email: string
+  address: string
+  username: string
+}
+
+export interface UserFormField {
+  name: string
+  label: string
+  id: string
+  required: boolean
+}
+
+export type UserForm = Array<UserFormField>
+
+export interface UserCheck {
+  phone: string
+  permanent_password: boolean
+}
+
 export interface UserBonus {
   value: number
   is_fresh: boolean
@@ -105,6 +333,46 @@ export interface UserBonus {
 export interface FlatPageInfo {
   url: string
   title: string
+}
+
+export interface FlatPage {
+  id: number
+  url: string
+  title: string
+  content: string
+  template_name: string
+  enable_comments: boolean
+  registration_required: boolean
+}
+
+export interface Site {
+  id: number
+  url_prefix: string
+  title: string
+  description: string
+  phone: string
+  city?: City
+}
+
+export interface Advert {
+  id: number
+  name: string
+  place: string
+  categories: number[]
+  image: string | null
+  big_image: string | null
+  content: string
+  order: number
+}
+
+export interface News {
+  id: number
+  title: string
+  image: string | null
+  image_width: number | null
+  image_height: number | null
+  content: string
+  publish_date: string
 }
 
 interface ForumOpinion {
