@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
         destination: '/blog/entries',
         permanent: true
       },
+      {
+        source: '/extend_warranty',
+        destination: '/warranty/extend',
+        permanent: true
+      },
       // ancient links
       {
         source: '/index.html',
