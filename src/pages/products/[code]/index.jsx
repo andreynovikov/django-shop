@@ -1,5 +1,6 @@
 import { useMemo, useEffect, Suspense, lazy } from 'react'
 import { useRouter } from 'next/router'
+import Head from 'next/head'
 import Image from 'next/image'
 import Link from 'next/link'
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
@@ -24,7 +25,7 @@ import { Loading, PageLoading } from '@/components/loading'
 import useFavorites from '@/lib/favorites'
 import useComparison from '@/lib/comparison'
 import { useSession } from '@/lib/session'
-import { productKeys, loadProducts, loadProductByCode, getProductFields } from '@/lib/queries'
+import { productKeys, siteKeys, loadProducts, loadProductByCode, getProductFields, loadCurrentSite } from '@/lib/queries'
 import { baseFilters } from '@/lib/catalog'
 import { eCommerce } from '@/lib/ymec'
 
@@ -102,12 +103,15 @@ function renderTemplate(template, product) {
   return template
 };
 
-export default function Product({ code }) {
+export default function Product({ code, site }) {
   const router = useRouter()
 
   const { status } = useSession()
   const { favorites, favoritize, unfavoritize } = useFavorites()
   const { comparisons, compare } = useComparison()
+
+  const cleanedPath = router.asPath.split('?')[0]
+  const canonicalUrl = `${site.url_prefix}${cleanedPath}`
 
   const { data: fields } = useQuery({
     queryKey: productKeys.fields(),
@@ -197,10 +201,20 @@ export default function Product({ code }) {
   }
 
   if (isLoading || !isSuccess)
-    return <PageLoading className="bg-light shadow-lg rounded-3 px-4 py-3 mb-5" />
+    return (
+      <>
+        <Head>
+          <link rel="canonical" href={canonicalUrl} />
+        </Head>
+        <PageLoading className="bg-light shadow-lg rounded-3 px-4 py-3 mb-5" />
+      </>
+    )
 
   return (
     <>
+      <Head>
+        <link rel="canonical" href={canonicalUrl} />
+      </Head>
       <div className="container">
         <div className="bg-light shadow-lg rounded-3 px-4 py-3 mb-5">
           <div className="px-lg-3">
@@ -595,18 +609,23 @@ export async function getStaticProps(context) {
   const code = context.params.code
 
   const queryClient = new QueryClient()
-  const fieldsQuery = queryClient.fetchQuery({
+  const fieldsQuery = queryClient.query({
     queryKey: productKeys.fields(),
     queryFn: () => getProductFields()
   })
-  const dataQuery = queryClient.fetchQuery({
+  const dataQuery = queryClient.query({
     queryKey: productKeys.detail(code),
     queryFn: () => loadProductByCode(code)
+  })
+  const siteQuery = queryClient.query({
+    queryKey: siteKeys.current(),
+    queryFn: () => loadCurrentSite()
   })
   try {
     // run queries in parallel
     await fieldsQuery
     const data = await dataQuery
+    const site = await siteQuery
 
     const breadcrumbs = data.categories
       .filter(category => !['New', 'promo', 'Discount'].includes(category.slug)) // skip special categories
@@ -630,7 +649,8 @@ export async function getStaticProps(context) {
         runame: data.runame || null,
         id: data.id,
         allowReviews: data.allow_reviews,
-        breadcrumbs
+        breadcrumbs,
+        site
       },
       revalidate: 60 * 60 // <--- ISR cache: once an hour
     }

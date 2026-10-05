@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
+import Head from 'next/head'
 import Link from 'next/link'
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 import { useQueryStates } from 'nuqs'
@@ -12,7 +13,7 @@ import ProductFilter from '@/components/product/filter'
 import PageSelector from '@/components/page-selector'
 import { Loading, PageLoading } from '@/components/loading'
 
-import { categoryKeys, advertKeys, productKeys, loadCategories, loadCategory, loadAdverts, loadProducts } from '@/lib/queries'
+import { categoryKeys, advertKeys, productKeys, siteKeys, loadCategories, loadCategory, loadAdverts, loadProducts, loadCurrentSite } from '@/lib/queries'
 import { useToolbar } from '@/lib/toolbar'
 import { useCatalog, baseFilters } from '@/lib/catalog'
 import { productSearchParams, productSearchParamsLoader } from '@/lib/search-params'
@@ -87,7 +88,7 @@ function updateSidebarStyle(container, sidebar, scrollOffset) {
   TODO:
   - более строгие фильтры не на первой странице приводят к пустой странице
 */
-export default function Category({ path, currentPage, pageSize, order, filters }) {
+export default function Category({ path, currentPage, pageSize, order, filters, site  }) {
   const [currentFilters, setCurrentFilters] = useQueryStates(productSearchParams)
   const [showFilters, setShowFilters] = useState(false)
 
@@ -123,6 +124,9 @@ export default function Category({ path, currentPage, pageSize, order, filters }
 
   const router = useRouter()
   useCatalog()
+
+  const cleanedPath = router.asPath.split('?')[0]
+  const canonicalUrl = `${site.url_prefix}${cleanedPath}`
 
   const { data: category, isSuccess } = useQuery({
     queryKey: categoryKeys.detail(path),
@@ -181,130 +185,147 @@ export default function Category({ path, currentPage, pageSize, order, filters }
   }
 
   if (router.isFallback)
-    return <PageLoading />
+    return (
+      <>
+        <Head>
+          <link rel="canonical" href={canonicalUrl} />
+        </Head>
+        <PageLoading />
+      </>
+    )
 
   if (isSuccess)
     return (
-      <div className="container py-5 mb-2 mb-md-4">
-        <div className="row">
-          {(category.children || category.filters) && (
-            <aside className="col-lg-4 position-relative" ref={containerRef}>
-              <div style={{ maxWidth: "22rem" }}><div ref={sidebarRef}>
-                {category.children && (
-                  <div className={"d-none d-lg-block bg-white w-100 rounded-3 shadow-lg py-1" + (category.filters ? " mb-4" : "")} style={{ maxWidth: "22rem" }}>
-                    <div className="py-grid-gutter px-lg-grid-gutter">
-                      <div className="widget widget-links">
-                        <h3 className="widget-title">Категории</h3>
-                        <ul className="widget-list">
-                          {category.children.map((subcategory, index) => (
-                            <li className={"widget-list-item" + (index > 0 ? " pt-2" : "")} key={subcategory.id}>
-                              <Link className="widget-list-link" href={{ pathname: router.pathname, query: { path: [...path, subcategory.slug] } }}>
-                                <span className="fw-medium">{subcategory.name}</span>
-                                {subcategory.subname && <><br />{subcategory.subname}</>}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
+      <>
+        <Head>
+          <link rel="canonical" href={canonicalUrl} />
+        </Head>
+        <div className="container py-5 mb-2 mb-md-4">
+          <div className="row">
+            {(category.children || category.filters) && (
+              <aside className="col-lg-4 position-relative" ref={containerRef}>
+                <div style={{ maxWidth: "22rem" }}><div ref={sidebarRef}>
+                  {category.children && (
+                    <div className={"d-none d-lg-block bg-white w-100 rounded-3 shadow-lg py-1" + (category.filters ? " mb-4" : "")} style={{ maxWidth: "22rem" }}>
+                      <div className="py-grid-gutter px-lg-grid-gutter">
+                        <div className="widget widget-links">
+                          <h3 className="widget-title">Категории</h3>
+                          <ul className="widget-list">
+                            {category.children.map((subcategory, index) => (
+                              <li className={"widget-list-item" + (index > 0 ? " pt-2" : "")} key={subcategory.id}>
+                                <Link className="widget-list-link" href={{ pathname: router.pathname, query: { path: [...path, subcategory.slug] } }}>
+                                  <span className="fw-medium">{subcategory.name}</span>
+                                  {subcategory.subname && <><br />{subcategory.subname}</>}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-                {category.filters && (
-                  <Offcanvas
-                    show={showFilters}
-                    onHide={() => setShowFilters(false)}
-                    responsive="lg"
-                    className="offcanvas bg-white w-100 rounded-3 shadow-lg py-1"
-                    style={{ maxWidth: "22rem" }}>
-                    <Offcanvas.Header className="align-items-center shadow-sm" closeButton>
-                      <h2 className="h5 mb-0">Фильтры</h2>
-                    </Offcanvas.Header>
-                    <Offcanvas.Body className="py-grid-gutter px-lg-grid-gutter">
-                      {category.filters && category.filters.map((filter, index) => (
-                        <div className={"widget" + (index === category.filters.length - 1 ? "" : " pb-4 mb-4 border-bottom")} key={filter.id}>
-                          <h3 className="widget-title">{filter.label}</h3>
-                          <ProductFilter
-                            filter={{ ...filter, ...products?.filters?.[filter.name] }}
-                            filterValue={currentFilters[filter.name]}
-                            onFilterChanged={handleFilterChanged} />
-                        </div>
-                      ))}
-                    </Offcanvas.Body>
-                  </Offcanvas>
-                )}
-              </div></div>
-            </aside>
-          )}
-          <section className={`col-lg-${(category.children || category.filters) ? 8 : 12}`}>
-
-            {(category.description && currentPage == 1) && (
-              <div className="card mb-grid-gutter">
-                <div className="card-body px-4" dangerouslySetInnerHTML={{ __html: category.description }}></div>
-              </div>
+                  )}
+                  {category.filters && (
+                    <Offcanvas
+                      show={showFilters}
+                      onHide={() => setShowFilters(false)}
+                      responsive="lg"
+                      className="offcanvas bg-white w-100 rounded-3 shadow-lg py-1"
+                      style={{ maxWidth: "22rem" }}>
+                      <Offcanvas.Header className="align-items-center shadow-sm" closeButton>
+                        <h2 className="h5 mb-0">Фильтры</h2>
+                      </Offcanvas.Header>
+                      <Offcanvas.Body className="py-grid-gutter px-lg-grid-gutter">
+                        {category.filters && category.filters.map((filter, index) => (
+                          <div className={"widget" + (index === category.filters.length - 1 ? "" : " pb-4 mb-4 border-bottom")} key={filter.id}>
+                            <h3 className="widget-title">{filter.label}</h3>
+                            <ProductFilter
+                              filter={{ ...filter, ...products?.filters?.[filter.name] }}
+                              filterValue={currentFilters[filter.name]}
+                              onFilterChanged={handleFilterChanged} />
+                          </div>
+                        ))}
+                      </Offcanvas.Body>
+                    </Offcanvas>
+                  )}
+                </div></div>
+              </aside>
             )}
+            <section className={`col-lg-${(category.children || category.filters) ? 8 : 12}`}>
 
-            {category.children && (
-              <div className="d-lg-none card mb-grid-gutter">
-                <div className="card-body px-4">
-                  <h5 className="card-title">Категории</h5>
-                  <ul className="widget-list">
-                    {category.children.map((subcategory) => (
-                      <li className="widget-list-item" key={subcategory.id}>
-                        <Link className="widget-list-link" href={{ pathname: router.pathname, query: { path: [...path, subcategory.slug] } }}>
-                          <span className="fw-medium">{subcategory.name}</span>
-                          {subcategory.subname && <><br />{subcategory.subname}</>}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
+              {(category.description && currentPage == 1) && (
+                <div className="card mb-grid-gutter">
+                  <div className="card-body px-4" dangerouslySetInnerHTML={{ __html: category.description }}></div>
                 </div>
-              </div>
-            )}
-
-            <div className="row mx-n2">
-              {isAdvertsSuccess && adverts.map(advert => (
-                <div className={((category.children || category.filters) ? "" : "col-lg-3 ") + "col-md-4 col-sm-6 px-2 mb-4"} key={advert.id}>
-                  <div className="card overflow-hidden h-100" dangerouslySetInnerHTML={{ __html: advert.content }} />
-                  <hr className="d-sm-none" />
-                </div>
-              ))}
-              {isCurrentLoading && (
-                <Loading className={
-                  (isAdvertsSuccess ? (
-                    ((category.children || category.filters) ? "" : "col-lg-3 ") + "col-md-4 col-sm-6 px-2 mb-4"
-                  ) : "")
-                  + " d-flex align-items-center justify-content-center"
-                } mega />
               )}
-              {isCurrentSuccess && currentProducts.results.map((product, index) => (
-                <div className={((category.children || category.filters) ? "" : "col-lg-3 ") + "col-md-4 col-sm-6 px-2 mb-4"} key={product.id}>
-                  <ProductCard
-                    product={product}
-                    gtmCategory={category}
-                    gtmList={products.count > 0 ? "Каталог" : "Рекомендуем в каталоге"}
-                    gtmPosition={index} />
-                  <hr className="d-sm-none" />
-                </div>
-              ))}
-            </div>
 
-            {currentProducts?.totalPages > 1 && (
-              <>
-                <hr className="my-3" />
-                <PageSelector
-                  pathname={router.pathname}
-                  query={router.query}
-                  path={path}
-                  totalPages={currentProducts.totalPages}
-                  currentPage={currentProducts.currentPage} />
-              </>
-            )}
-          </section>
+              {category.children && (
+                <div className="d-lg-none card mb-grid-gutter">
+                  <div className="card-body px-4">
+                    <h5 className="card-title">Категории</h5>
+                    <ul className="widget-list">
+                      {category.children.map((subcategory) => (
+                        <li className="widget-list-item" key={subcategory.id}>
+                          <Link className="widget-list-link" href={{ pathname: router.pathname, query: { path: [...path, subcategory.slug] } }}>
+                            <span className="fw-medium">{subcategory.name}</span>
+                            {subcategory.subname && <><br />{subcategory.subname}</>}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              <div className="row mx-n2">
+                {isAdvertsSuccess && adverts.map(advert => (
+                  <div className={((category.children || category.filters) ? "" : "col-lg-3 ") + "col-md-4 col-sm-6 px-2 mb-4"} key={advert.id}>
+                    <div className="card overflow-hidden h-100" dangerouslySetInnerHTML={{ __html: advert.content }} />
+                    <hr className="d-sm-none" />
+                  </div>
+                ))}
+                {isCurrentLoading && (
+                  <Loading className={
+                    (isAdvertsSuccess ? (
+                      ((category.children || category.filters) ? "" : "col-lg-3 ") + "col-md-4 col-sm-6 px-2 mb-4"
+                    ) : "")
+                    + " d-flex align-items-center justify-content-center"
+                  } mega />
+                )}
+                {isCurrentSuccess && currentProducts.results.map((product, index) => (
+                  <div className={((category.children || category.filters) ? "" : "col-lg-3 ") + "col-md-4 col-sm-6 px-2 mb-4"} key={product.id}>
+                    <ProductCard
+                      product={product}
+                      gtmCategory={category}
+                      gtmList={products.count > 0 ? "Каталог" : "Рекомендуем в каталоге"}
+                      gtmPosition={index} />
+                    <hr className="d-sm-none" />
+                  </div>
+                ))}
+              </div>
+
+              {currentProducts?.totalPages > 1 && (
+                <>
+                  <hr className="my-3" />
+                  <PageSelector
+                    pathname={router.pathname}
+                    query={router.query}
+                    path={path}
+                    totalPages={currentProducts.totalPages}
+                    currentPage={currentProducts.currentPage} />
+                </>
+              )}
+            </section>
+          </div>
         </div>
-      </div>
+      </>
+
     )
 
-  return null
+  return (
+    <Head>
+      <link rel="canonical" href={canonicalUrl} />
+    </Head>
+  )
 }
 
 Category.getLayout = function getLayout(page) {
@@ -340,16 +361,20 @@ export async function getStaticProps(context) {
     }
   }
   const queryClient = new QueryClient()
-  const category = await queryClient.fetchQuery({
+  const category = await queryClient.query({
     queryKey: categoryKeys.detail(path),
     queryFn: () => loadCategory(path)
+  })
+  const site = await queryClient.query({
+    queryKey: siteKeys.current(),
+    queryFn: () => loadCurrentSite()
   })
 
   const pageSize = 1000 // category.categories || category.filters ? 15 : 16;
   const defaultFilters = productSearchParamsLoader()
   const productFilters = { ...baseFilters, categories: category.id }
   const productOrder = category.product_order || defaultOrder
-  await queryClient.prefetchQuery({
+  await queryClient.query({
     queryKey: productKeys.list(currentPage, pageSize, { ...defaultFilters, ...productFilters }, productOrder),
     queryFn: () => loadProducts(currentPage, pageSize, { ...defaultFilters, ...productFilters }, productOrder),
     staleTime: pageStaleTime * 1000
@@ -380,7 +405,8 @@ export async function getStaticProps(context) {
       breadcrumbs,
       path,
       currentPage,
-      pageSize
+      pageSize,
+      site
     },
     revalidate: pageStaleTime // <--- ISR cache: once an hour
   }
