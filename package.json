@@ -6,6 +6,8 @@
     "test": "next dev -H 127.0.0.1 -p 4004",
     "start": "next start -H 127.0.0.1 -p 4004",
     "lint": "eslint src/",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "build": "next build",
     "docker-build": "NAME=stage IMAGE=sworld:$npm_package_version PORT=4004 docker compose build && docker tag sworld sworld:$npm_package_version",
     "docker-deploy": "NAME=stage IMAGE=sworld:$npm_package_version PORT=4004 docker compose up -d",
@@ -36,6 +38,7 @@
     "swiper": "^14.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tanstack/eslint-plugin-query": "^5.104.0",
     "@tanstack/react-query-devtools": "^5.104.0",
     "@types/ejs": "^3.1.5",

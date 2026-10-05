@@ -76,7 +76,7 @@ export default function Index() {
         <Adverts adverts={topAdverts} />
 
         {isRecomendedSuccess && recomendedProducts.results.length > 0 && (
-          <section className="container pt-5">
+          <section id="sw-recomended" className="container pt-5">
             <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
               <h2 className="h3 mb-0 pt-3 me-2">Специальные предложения</h2>
               <div className="pt-3">
@@ -100,7 +100,7 @@ export default function Index() {
         <Adverts adverts={middleAdverts} />
 
         {isNewSuccess && newProducts.results.length > 0 && (
-          <section className="container pt-5">
+          <section id="sw-new" className="container pt-5">
             <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
               <h2 className="h3 mb-0 pt-3 me-2">Новинки</h2>
               <div className="pt-3">
