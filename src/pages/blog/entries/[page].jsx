@@ -64,10 +64,11 @@ export async function getStaticProps(context) {
   }
 
   const queryClient = new QueryClient()
-  await queryClient.prefetchQuery({
+  await queryClient.query({
     queryKey: blogKeys.list(currentPage, null),
-    queryFn: () => loadBlogEntries(currentPage, null)
-  })
+    queryFn: () => loadBlogEntries(currentPage, null),
+    staleTime: 60000,
+  }).catch(() => {})
 
   return {
     props: {
@@ -80,7 +81,7 @@ export async function getStaticProps(context) {
 export async function getStaticPaths() {
   const entries = await loadBlogEntries(null, null)
   const pages = Math.ceil(entries.count / entries.pageSize)
-  const paths = range(2, pages).map((page) => ({
+  const paths = range(2, pages + 1).map((page) => ({
     params: { page: String(page) }
   }))
   return { paths, fallback: false }

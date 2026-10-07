@@ -363,11 +363,13 @@ export async function getStaticProps(context) {
   const queryClient = new QueryClient()
   const category = await queryClient.query({
     queryKey: categoryKeys.detail(path),
-    queryFn: () => loadCategory(path)
+    queryFn: () => loadCategory(path),
+    staleTime: 60000,
   })
   const site = await queryClient.query({
     queryKey: siteKeys.current(),
-    queryFn: () => loadCurrentSite()
+    queryFn: () => loadCurrentSite(),
+    staleTime: 60000,
   })
 
   const pageSize = 1000 // category.categories || category.filters ? 15 : 16;

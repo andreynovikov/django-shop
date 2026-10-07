@@ -611,15 +611,18 @@ export async function getStaticProps(context) {
   const queryClient = new QueryClient()
   const fieldsQuery = queryClient.query({
     queryKey: productKeys.fields(),
-    queryFn: () => getProductFields()
-  })
+    queryFn: () => getProductFields(),
+    staleTime: 60000,
+  }).catch(() => {})
   const dataQuery = queryClient.query({
     queryKey: productKeys.detail(code),
-    queryFn: () => loadProductByCode(code)
+    queryFn: () => loadProductByCode(code),
+    staleTime: 60000,
   })
   const siteQuery = queryClient.query({
     queryKey: siteKeys.current(),
-    queryFn: () => loadCurrentSite()
+    queryFn: () => loadCurrentSite(),
+    staleTime: 60000,
   })
   try {
     // run queries in parallel

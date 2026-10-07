@@ -7,7 +7,7 @@ import Popover from 'react-bootstrap/Popover'
 import PageLayout from '@/components/layout/page'
 import BlogEntryAuthor from '@/components/blog/entry-author'
 
-import { blogKeys, loadBlogEntries, loadBlogEntry } from '@/lib/queries'
+import { HttpError, blogKeys, loadBlogEntries, loadBlogEntry } from '@/lib/queries'
 
 import moment from 'moment'
 
@@ -96,21 +96,31 @@ export async function getStaticProps(context) {
   const uri = context.params.entry
 
   const queryClient = new QueryClient()
-  const entry = await queryClient.fetchQuery({
-    queryKey: blogKeys.detail(uri),
-    queryFn: () => loadBlogEntry(uri)
-  })
-  if (uri.length === 1 && entry?.id)
-    return {
-      redirect: {
-        destination: entry.urls.canonical,
-        permanent: false,
-      },
-    }
+  try {
+    const entry = await queryClient.query({
+      queryKey: blogKeys.detail(uri),
+      queryFn: () => loadBlogEntry(uri)
+    })
+    if (uri.length === 1 && entry?.id)
+      return {
+        redirect: {
+          destination: entry.urls.canonical,
+          permanent: false,
+        },
+      }
 
-  return {
-    props: {
-      entry
+    return {
+      props: {
+        entry
+      }
+    }
+  } catch (error) {
+    if (error instanceof HttpError && error.response.status === 404) {
+      return {
+        notFound: true,
+      }
+    } else {
+      throw error
     }
   }
 }

@@ -8,10 +8,11 @@ export default BlogEntries
 
 export async function getStaticProps() {
   const queryClient = new QueryClient()
-  await queryClient.prefetchQuery({
+  await queryClient.query({
     queryKey: blogKeys.list(1, null),
-    queryFn: () => loadBlogEntries(1, null)
-  })
+    queryFn: () => loadBlogEntries(1, null),
+    staleTime: 60000,
+  }).catch(() => {})
 
   return {
     props: {
