@@ -7,6 +7,9 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    env:
+      PLAYWRIGHT_TEST: true
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -27,8 +30,6 @@ jobs:
 
       - name: Build Next.js application
         run: npm run build
-        env:
-          PLAYWRIGHT_TEST: true
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
