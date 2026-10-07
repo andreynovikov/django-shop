@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   trailingSlash: true,
-  output: 'standalone',
+  output: process.env.PLAYWRIGHT_TEST !== 'true' ? 'standalone' : undefined,
   images: {
     remotePatterns: [
       new URL('https://api.sewing-world.ru/media/**'),
