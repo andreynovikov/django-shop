@@ -183,9 +183,13 @@ export async function getStaticProps(context) {
 }
 
 export async function getStaticPaths() {
-  const stores = await loadStores()
-  const paths = stores.filter(store => store.logo === 'sewingworld').map((store) => ({
-    params: { id: store.id.toString() },
-  }))
+  const paths = []
+
+  if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST !== 'true') {
+    const stores = await loadStores()
+    paths.push(...stores.filter(store => store.logo === 'sewingworld').map((store) => ({
+      params: { id: store.id.toString() },
+    })))
+  }
   return { paths, fallback: 'blocking' }
 }

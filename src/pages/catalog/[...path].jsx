@@ -427,7 +427,11 @@ export async function getStaticPaths() {
     return { paths, root }
   }
 
-  const categories = await loadCategories()
-  const { paths } = categories.reduce(getPaths, { paths: [], root: [] })
+  const paths = []
+
+  if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST !== 'true') {
+    const categories = await loadCategories()
+    paths.push(...categories.reduce(getPaths, { paths: [], root: [] }).paths)
+  }
   return { paths, fallback: 'blocking' }
 }

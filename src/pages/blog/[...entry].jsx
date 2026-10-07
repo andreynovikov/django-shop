@@ -127,26 +127,29 @@ export async function getStaticProps(context) {
 
 export async function getStaticPaths() {
   const paths = []
-  let page = 1
-  while (page !== undefined) {
-    const entries = await loadBlogEntries(page, null)
-    paths.push(...entries.results.map((entry) => {
-      const date = moment(entry.publication_date)
-      return {
-        params: {
-          entry: [
-            String(date.year()),
-            String(date.month() + 1).padStart(2, '0'),
-            String(date.date()).padStart(2, '0'),
-            entry.slug
-          ]
+
+  if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST !== 'true') {
+    let page = 1
+    while (page !== undefined) {
+      const entries = await loadBlogEntries(page, null)
+      paths.push(...entries.results.map((entry) => {
+        const date = moment(entry.publication_date)
+        return {
+          params: {
+            entry: [
+              String(date.year()),
+              String(date.month() + 1).padStart(2, '0'),
+              String(date.date()).padStart(2, '0'),
+              entry.slug
+            ]
+          }
         }
-      }
-    }))
-    if (entries.totalPages > entries.currentPage)
-      page += 1
-    else
-      page = undefined
+      }))
+      if (entries.totalPages > entries.currentPage)
+        page += 1
+      else
+        page = undefined
+    }
   }
   return { paths, fallback: 'blocking' } // we use blocking to generate new entries without rebuilding
 }

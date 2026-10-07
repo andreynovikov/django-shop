@@ -79,10 +79,14 @@ export async function getStaticProps(context) {
 }
 
 export async function getStaticPaths() {
-  const entries = await loadBlogEntries(null, null)
-  const pages = Math.ceil(entries.count / entries.pageSize)
-  const paths = range(2, pages + 1).map((page) => ({
-    params: { page: String(page) }
-  }))
+  const paths = []
+
+  if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST !== 'true') {
+    const entries = await loadBlogEntries(null, null)
+    const pages = Math.ceil(entries.count / entries.pageSize)
+    paths.push(...range(2, pages + 1).map((page) => ({
+      params: { page: String(page) }
+    })))
+  }
   return { paths, fallback: false }
 }

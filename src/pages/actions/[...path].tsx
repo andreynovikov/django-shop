@@ -129,9 +129,13 @@ export async function getStaticProps(context: GetStaticPropsContext<IParams>) {
 }
 
 export async function getStaticPaths() {
-  const actions = await loadSalesActions()
-  const paths = actions.map((action) => ({
-    params: { path: [action.slug] },
-  }))
+  const paths = []
+
+  if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST !== 'true') {
+    const actions = await loadSalesActions()
+    paths.push(...actions.map((action) => ({
+      params: { path: [action.slug] },
+    })))
+  }
   return { paths, fallback: 'blocking' }
 }

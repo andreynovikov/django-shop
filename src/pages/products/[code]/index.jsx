@@ -668,7 +668,7 @@ export async function getStaticPaths() {
   const included = new Set()
   const paths = []
 
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST !== 'true') {
     let page = 1
     while (page !== undefined) {
       const products = await loadProducts(page, 100, baseFilters, null)

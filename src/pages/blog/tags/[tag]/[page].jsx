@@ -79,19 +79,23 @@ export async function getStaticProps(context) {
 }
 
 export async function getStaticPaths() {
-  const tags = await loadBlogTags()
-  const entries = await loadBlogEntries(null, null) // just to get current page size
-  const pageSize = entries.pageSize
-  const paths = tags.reduce((paths, tag) => {
-    const pages = Math.ceil(tag.count / pageSize)
-    for (let page = 2; page <= pages; page++)
-      paths.push({
-        params: {
-          tag: tag.name,
-          page: String(page)
-        },
-      })
-    return paths
-  }, [])
+  const paths = []
+
+  if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST !== 'true') {
+    const tags = await loadBlogTags()
+    const entries = await loadBlogEntries(null, null) // just to get current page size
+    const pageSize = entries.pageSize
+    paths.push(...tags.reduce((paths, tag) => {
+      const pages = Math.ceil(tag.count / pageSize)
+      for (let page = 2; page <= pages; page++)
+        paths.push({
+          params: {
+            tag: tag.name,
+            page: String(page)
+          },
+        })
+      return paths
+    }, []))
+  }
   return { paths, fallback: 'blocking' }
 }

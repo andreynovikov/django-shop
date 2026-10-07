@@ -25,9 +25,13 @@ export async function getStaticProps(context) {
 }
 
 export async function getStaticPaths() {
-  const tags = await loadBlogTags()
-  const paths = tags.map((tag) => ({
-    params: { tag: tag.name }
-  }))
+  const paths = []
+
+  if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST !== 'true') {
+    const tags = await loadBlogTags()
+    paths.push(...tags.map((tag) => ({
+      params: { tag: tag.name }
+    })))
+  }
   return { paths, fallback: 'blocking' }
 }
