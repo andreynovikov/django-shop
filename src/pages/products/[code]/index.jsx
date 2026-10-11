@@ -166,7 +166,7 @@ export default function Product({ code, site }) {
             {
               id: `${product.id}`,
               name: `${product.partnumber ? product.partnumber + ' ' : ''}${product.title}`,
-              category: `${product.categories[0]?.name}`,
+              category: `${product.categories[0].name}`,
               brand: `${product.manufacturer.code}`,
               price: `${product.cost}`
             }
@@ -660,7 +660,7 @@ export async function getStaticProps(context) {
     if (error.response?.status === 404)
       return { notFound: true }
     else
-      throw (error)
+      throw error
   }
 }
 

@@ -13,7 +13,7 @@ import ProductFilter from '@/components/product/filter'
 import PageSelector from '@/components/page-selector'
 import { Loading, PageLoading } from '@/components/loading'
 
-import { categoryKeys, advertKeys, productKeys, siteKeys, loadCategories, loadCategory, loadAdverts, loadProducts, loadCurrentSite } from '@/lib/queries'
+import { categoryKeys, advertKeys, productKeys, siteKeys, loadCategories, loadCategory, loadAdverts, loadProducts, loadCurrentSite, HttpError } from '@/lib/queries'
 import { useToolbar } from '@/lib/toolbar'
 import { useCatalog, baseFilters } from '@/lib/catalog'
 import { productSearchParams, productSearchParamsLoader } from '@/lib/search-params'
@@ -361,56 +361,63 @@ export async function getStaticProps(context) {
     }
   }
   const queryClient = new QueryClient()
-  const category = await queryClient.query({
-    queryKey: categoryKeys.detail(path),
-    queryFn: () => loadCategory(path),
-    staleTime: 60000,
-  })
-  const site = await queryClient.query({
-    queryKey: siteKeys.current(),
-    queryFn: () => loadCurrentSite(),
-    staleTime: 60000,
-  })
-
-  const pageSize = 1000 // category.categories || category.filters ? 15 : 16;
-  const defaultFilters = productSearchParamsLoader()
-  const productFilters = { ...baseFilters, categories: category.id }
-  const productOrder = category.product_order || defaultOrder
-  await queryClient.query({
-    queryKey: productKeys.list(currentPage, pageSize, { ...defaultFilters, ...productFilters }, productOrder),
-    queryFn: () => loadProducts(currentPage, pageSize, { ...defaultFilters, ...productFilters }, productOrder),
-    staleTime: pageStaleTime * 1000
-  })
-
-  const breadcrumbs = category.path.breadcrumbs.reduce((breadcrumbs, breadcrumb, index, original) => {
-    if (index === original.length - 1) // skip last item
-      return breadcrumbs
-
-    const parentPath = breadcrumbs.at(-1).path
-    breadcrumbs.push({
-      name: breadcrumb.name,
-      path: [...parentPath, breadcrumb.slug]
+  try {
+    const category = await queryClient.query({
+      queryKey: categoryKeys.detail(path),
+      queryFn: () => loadCategory(path),
+      staleTime: 60000,
     })
-    return breadcrumbs
-  }, [{
-    name: 'Каталог',
-    path: ['catalog']
-  }])
+    const site = await queryClient.query({
+      queryKey: siteKeys.current(),
+      queryFn: () => loadCurrentSite(),
+      staleTime: 60000,
+    })
 
-  return {
-    props: {
-      dehydratedState: dehydrate(queryClient),
-      title: category.name,
-      subTitle: category.subname ?? null,
-      filters: productFilters,
-      order: productOrder,
-      breadcrumbs,
-      path,
-      currentPage,
-      pageSize,
-      site
-    },
-    revalidate: pageStaleTime // <--- ISR cache: once an hour
+    const pageSize = 1000 // category.categories || category.filters ? 15 : 16;
+    const defaultFilters = productSearchParamsLoader()
+    const productFilters = { ...baseFilters, categories: category.id }
+    const productOrder = category.product_order || defaultOrder
+    await queryClient.query({
+      queryKey: productKeys.list(currentPage, pageSize, { ...defaultFilters, ...productFilters }, productOrder),
+      queryFn: () => loadProducts(currentPage, pageSize, { ...defaultFilters, ...productFilters }, productOrder),
+      staleTime: pageStaleTime * 1000
+    })
+
+    const breadcrumbs = category.path.breadcrumbs.reduce((breadcrumbs, breadcrumb, index, original) => {
+      if (index === original.length - 1) // skip last item
+        return breadcrumbs
+
+      const parentPath = breadcrumbs.at(-1).path
+      breadcrumbs.push({
+        name: breadcrumb.name,
+        path: [...parentPath, breadcrumb.slug]
+      })
+      return breadcrumbs
+    }, [{
+      name: 'Каталог',
+      path: ['catalog']
+    }])
+
+    return {
+      props: {
+        dehydratedState: dehydrate(queryClient),
+        title: category.name,
+        subTitle: category.subname ?? null,
+        filters: productFilters,
+        order: productOrder,
+        breadcrumbs,
+        path,
+        currentPage,
+        pageSize,
+        site
+      },
+      revalidate: pageStaleTime // <--- ISR cache: once an hour
+    }
+  } catch (error) {
+    if (error instanceof HttpError && error.status === 404)
+      return { notFound: true }
+    else
+      throw error // TODO gracefully process error
   }
 }
 

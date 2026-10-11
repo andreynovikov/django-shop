@@ -4,7 +4,7 @@ import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 
 import PageLayout from '@/components/layout/page'
 
-import { storeKeys, loadStores, loadStore } from '@/lib/queries'
+import { storeKeys, loadStores, loadStore, HttpError } from '@/lib/queries'
 
 export default function Store({ id }) {
   const [ymapsReady, setYMapsReady] = useState(false)
@@ -119,7 +119,7 @@ export default function Store({ id }) {
                   <h3 className="h6 mb-3">Сайт магазина</h3>
                   <ul className="list-unstyled fs-sm mb-0">
                     <li className="mb-0">
-                      <a className="nav-link-style" href={ store.url }>{store.url}</a>
+                      <a className="nav-link-style" href={store.url}>{store.url}</a>
                     </li>
                   </ul>
                 </div>
@@ -168,17 +168,25 @@ Store.getLayout = function getLayout(page) {
 export async function getStaticProps(context) {
   const id = context.params?.id
   const queryClient = new QueryClient()
-  const store = await queryClient.fetchQuery({
-    queryKey: storeKeys.detail(id),
-    queryFn: () => loadStore(id)
-  })
+  try {
+    const store = await queryClient.query({
+      queryKey: storeKeys.detail(id),
+      queryFn: () => loadStore(id),
+      staleTime: 60000,
+    })
 
-  return {
-    props: {
-      dehydratedState: dehydrate(queryClient),
-      title: store.name + ' - ' + store.city.name,
-      id
+    return {
+      props: {
+        dehydratedState: dehydrate(queryClient),
+        title: store.name + ' - ' + store.city.name,
+        id
+      }
     }
+  } catch (error) {
+    if (error instanceof HttpError && error.status === 404)
+      return { notFound: true }
+    else
+      throw error
   }
 }
 

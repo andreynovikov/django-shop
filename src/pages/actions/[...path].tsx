@@ -9,7 +9,7 @@ import PageLayout from '@/components/layout/page'
 import PageSelector from '@/components/page-selector'
 import ProductCard from '@/components/product/card'
 
-import { salesActionKeys, loadSalesActions, loadSalesAction, loadSalesActionProducts } from '@/lib/queries'
+import { salesActionKeys, loadSalesActions, loadSalesAction, loadSalesActionProducts, HttpError } from '@/lib/queries'
 
 const pageStaleTime = 3600
 
@@ -105,26 +105,34 @@ export async function getStaticProps(context: GetStaticPropsContext<IParams>) {
   }
   const slug = path[0]
   const queryClient = new QueryClient()
-  const action = await queryClient.fetchQuery({
-    queryKey: salesActionKeys.detail(slug),
-    queryFn: () => loadSalesAction(slug)
-  })
-
-  if (action.show_products)
-    await queryClient.prefetchQuery({
-      queryKey: salesActionKeys.products(slug, currentPage),
-      queryFn: () => loadSalesActionProducts(slug, currentPage),
-      staleTime: pageStaleTime * 1000
+  try {
+    const action = await queryClient.query({
+      queryKey: salesActionKeys.detail(slug),
+      queryFn: () => loadSalesAction(slug),
+      staleTime: 60000,
     })
 
-  return {
-    props: {
-      dehydratedState: dehydrate(queryClient),
-      title: action.name,
-      slug,
-      currentPage
-    },
-    revalidate: pageStaleTime // <--- ISR cache: once an hour
+    if (action.show_products)
+      await queryClient.query({
+        queryKey: salesActionKeys.products(slug, currentPage),
+        queryFn: () => loadSalesActionProducts(slug, currentPage),
+        staleTime: pageStaleTime * 1000
+      }).catch(() => {})
+
+    return {
+      props: {
+        dehydratedState: dehydrate(queryClient),
+        title: action.name,
+        slug,
+        currentPage
+      },
+      revalidate: pageStaleTime // <--- ISR cache: once an hour
+    }
+  } catch (error) {
+    if (error instanceof HttpError && (error as HttpError).status === 404)
+      return { notFound: true }
+    else
+      throw error // TODO gracefully process error
   }
 }
 
