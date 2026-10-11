@@ -21,7 +21,7 @@ SHOP_INFO = getattr(settings, 'SHOP_INFO', {})
 BOOTSTRAP_INPUT_TEMPLATE = {
     2: """
        %(rendered_widget)s
-       <a id="%(id)s_link" class="button related-widget-wrapper-link" data-popup="yes" style="display: inline-block" href="%(popup)s?_popup=1"><i class="fas fa-%(glyphicon)s"></i></a>
+       <a id="%(id)s_link" class="button related-widget-wrapper-link" data-popup="yes" style="display: inline-block" href="%(popup)s?_popup=1"><i class="ti ti-%(glyphicon)s"></i></a>
        <script>
            (function($) {
                $("#%(id)s_link").click(function() {
@@ -57,7 +57,7 @@ class PhoneWidget(TextInput):
             # default 2 to mantain support to old implemetation of django-datetime-widget
             self.bootstrap_version = 2
 
-        self.glyphicon = 'envelope'
+        self.glyphicon = 'message'
 
         super(PhoneWidget, self).__init__(attrs)
 
@@ -89,7 +89,7 @@ class YandexDeliveryWidget(TextInput):
         # Use provided id or generate hex to avoid collisions in document
         id = final_attrs.get('id', uuid.uuid4().hex)
         if value:
-            glyphicon = 'pencil-alt'
+            glyphicon = 'pencil-dollar'
             if value.find("YD") >= 0:  # старая Яндекс.Доставка
                 yd_id = value[value.find("YD") + 2:]
                 popup = 'https://delivery.yandex.ru/order/create?id=' + yd_id
@@ -99,14 +99,14 @@ class YandexDeliveryWidget(TextInput):
             link_class = ''
             data = ''
         else:
-            glyphicon = 'plus-circle'
+            glyphicon = 'circle-plus'
             popup = reverse('admin:shop_order_yandex_delivery', args=[self.order_id]) + '?_popup=1'
             link_class = ' related-widget-wrapper-link'
             data = ' data-popup="yes"'
 
         output = [super(YandexDeliveryWidget, self).render(name, value, attrs, renderer)]
         output.append('''<a class="button%(link_class)s"%(data) style="display: inline-block; margin-left: 7px"
-                          id="%(id)s_create_link" href="%(popup)s"><i class="fas fa-%(glyphicon)s"></i></a>''' % dict(
+                          id="%(id)s_create_link" href="%(popup)s"><i class="ti ti-%(glyphicon)s"></i></a>''' % dict(
                               id=id,
                               glyphicon=glyphicon,
                               popup=popup,
@@ -115,7 +115,7 @@ class YandexDeliveryWidget(TextInput):
                           ))
         if not value:
             output.append('''<a class="button related-widget-wrapper-link" data-popup="yes" style="display: inline-block"
-                              id="%(id)s_estimate_link" href="%(popup)s?_popup=1"><i class="fas fa-hand-holding-usd"></i></a>''' % dict(
+                              id="%(id)s_estimate_link" href="%(popup)s?_popup=1"><i class="ti ti-report-money"></i></a>''' % dict(
                                   id=id,
                                   popup=reverse('admin:shop_order_yandex_delivery_estimate', args=[self.order_id])
                               ))
@@ -155,16 +155,14 @@ class DeliveryTrackingNumberWidget(TextInput):
                 popup = 'https://partner.market.yandex.ru/supplier/{campaignId}/orders/{orderId}?id={campaignId}'.format(campaignId=self.ym_campaign, orderId=value)
 
             if popup:
-                glyphicon = 'pencil-alt'
                 link_class = ''
                 final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
                 # final_attrs['value'] = force_str(self.format_value(value))
                 # final_attrs['type'] = 'hidden'
                 output = ['<input{0} />№{1}'.format(flatatt(final_attrs), value)]
                 output.append('''<a class="button%(link_class)s" style="display: inline-block; margin-left: 7px"
-                              id="%(id)s_create_link" href="%(popup)s"><i class="fas fa-%(glyphicon)s"></i></a>''' % dict(
+                              id="%(id)s_create_link" href="%(popup)s"><i class="ti ti-pencil"></i></a>''' % dict(
                     id=id,
-                    glyphicon=glyphicon,
                     popup=popup,
                     link_class=link_class
                 ))
@@ -326,9 +324,9 @@ class OrderItemProductLink(Widget):
         else:
             dimensions = ""
         return format_html(
-            '<p><a href="{}/products/{}.html" target="_blank" style="margin-right: 8px"><i class="fas fa-external-link-alt"></i></a>'
+            '<p><a href="{}/products/{}.html" target="_blank" style="margin-right: 8px"><i class="ti ti-external-link"></i></a>'
             '<input{} /><a href="{}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">{}</a>'
-            ' <a href="{}?_popup=1" class="related-widget-wrapper-link" data-popup="yes" title="Гарантийный талон"><i class="fa-solid fa-ticket"></i></a>'
+            ' <a href="{}?_popup=1" class="related-widget-wrapper-link" data-popup="yes" title="Гарантийный талон"><i class="ti ti-ticket"></i></a>'
             '&nbsp;<span class="tiny">{}</span>{}</p>', SHOP_INFO.get('url_prefix',''), self.object.product.code, flatatt(final_attrs),
             reverse('admin:shop_product_stock', args=[self.object.product.id]), str(self.object.product),
             reverse('admin:print-warranty-card', args=[self.object.order.id, self.object.pk]), self.object.serial_number, dimensions)

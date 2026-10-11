@@ -8,4 +8,4 @@ REVIEW_RATING_CHOICES = (
     ('5', 'Отличный товар'),
 )
 
-REVIEW_ADMIN_LINK_SYMBOL = '<i class="fas fa-external-link-alt"></i>'
+REVIEW_ADMIN_LINK_SYMBOL = '<i class="ti ti-external-link"></i>'

@@ -1,10 +1,10 @@
 {% extends "admin/base_site.html" %}
+{% load static %}
 {% load i18n %}
 {% load shop_tags %}
 {% load feature_flags %}
 {% block extrastyle %}
-<script src="https://kit.fontawesome.com/35f59f1eb5.js" crossorigin="anonymous"></script>
-{# https://fontawesome.com/search?ic=free-collection&f=classic&s=solid #}
+<link rel="stylesheet" href="{% static 'css/tabler-icons.min.css' %}"/>
 <style>
     @media (max-width: 1200px) {
       #branding h1 { display: none }
@@ -26,6 +26,8 @@
     }
     .related-widget-wrapper-link { display: inline-flex; align-items: center }
     .related-widget-wrapper-link > img { width: 13px; height: 13px }
+
+    a:has(i.ti) { text-decoration: none !important }
 </style>
 {% endblock %}
 {% block extrahead %}

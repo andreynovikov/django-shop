@@ -339,7 +339,7 @@ class OrderAdmin(admin.ModelAdmin):
             manager = ' style="color: %s"' % obj.manager.color
         lock = ''
         if obj.owner:
-            lock = '&nbsp;<span class="fas fa-lock fa-xs" title="%s" style="position: relative; top: -2px"></span>' % str(obj.owner)
+            lock = '&nbsp;<i class="ti ti-lock" title="%s" style="font-weight: bold"></i>' % str(obj.owner)
         if obj.delivery == Order.DELIVERY_EXPRESS:
             express = ' class="is-express"'
         elif obj.integration and obj.integration.uses_api and obj.integration.settings:
@@ -379,7 +379,7 @@ class OrderAdmin(admin.ModelAdmin):
         courier = ''
         if obj.courier:
             if obj.hidden_tracking_number:
-                courier = ': %s <span style="color: blue" title="%s" class="fas fa-check fa-xs"></span>' % (obj.courier.name, obj.hidden_tracking_number)
+                courier = ': %s <i class="ti ti-check" style="color: blue" title="%s"></i>' % (obj.courier.name, obj.hidden_tracking_number)
             else:
                 courier = ': %s' % obj.courier.name
         return '%s<span style="white-space:nowrap">%s</span><br/>%s' % (obj.get_delivery_display(), courier, datetime)
@@ -407,12 +407,12 @@ class OrderAdmin(admin.ModelAdmin):
         if obj.paid and obj.has_fiscal:
             style = '; color: green'
             if obj.id > 152982:  # TODO: move to order.seller
-                checkmark = '<a href="https://consumer.1-ofd.ru/ticket?s=%s&fn=%s&i=%s&fp=%s&n=1" target="_blank" style="color: green"><i class="fas fa-receipt fa-xs"></i></a>' % (obj.meta['fiscalInfo']['sum'], obj.meta['fiscalInfo']['fnNumber'], obj.meta['fiscalInfo']['fnDocNumber'], obj.meta['fiscalInfo']['fnDocMark'])
+                checkmark = '<a href="https://consumer.1-ofd.ru/ticket?s=%s&fn=%s&i=%s&fp=%s&n=1" target="_blank" style="color: green"><i class="ti ti-receipt"></i></a>' % (obj.meta['fiscalInfo']['sum'], obj.meta['fiscalInfo']['fnNumber'], obj.meta['fiscalInfo']['fnDocNumber'], obj.meta['fiscalInfo']['fnDocMark'])
             else:
-                checkmark = '<a href="https://receipt.taxcom.ru/v01/show?fp=%s&s=%s" target="_blank" style="color: green"><i class="fas fa-receipt fa-xs"></i></a>' % (obj.meta['fiscalInfo']['fnDocMark'], obj.meta['fiscalInfo']['sum'])
+                checkmark = '<a href="https://receipt.taxcom.ru/v01/show?fp=%s&s=%s" target="_blank" style="color: green"><i class="ti ti-receipt"></i></a>' % (obj.meta['fiscalInfo']['fnDocMark'], obj.meta['fiscalInfo']['sum'])
         elif obj.paid:
             style = 'color: green'
-            checkmark = '<span style="color: green"><i class="fas fa-check fa-xs"></i></span>'
+            checkmark = '<span style="color: green"><i class="ti ti-check"></i></span>'
         elif obj.payment in [Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_CREDIT]:
             style = 'color: red'
         return '<span style="display: grid; grid-template-columns: min-content auto; column-gap: 5px"><span style="%s">%s</span>%s</span>' % (style, obj.get_payment_display(), checkmark)
@@ -424,10 +424,10 @@ class OrderAdmin(admin.ModelAdmin):
         if obj.status <= Order.STATUS_COLLECTED:
             return ''
         if not obj.seller or not obj.buyer or not obj.wirehouse or not obj.wiring_date:
-            return '<span style="color: orange" title="Нет данных для проводки"><i class="far fa-calendar-times fa-sm"></i></span>'
+            return '<span style="color: orange" title="Нет данных для проводки"><i class="ti ti-calendar-question"></i></span>'
         if obj.wiring_date == timezone.now().date():
-            return '<span style="color: #2121ba" title="Проводка сегодня"><i class="far fa-calendar-plus fa-sm"></i></span>'
-        return '<span style="color: green"><i class="far fa-calendar-check fa-sm"></i></span>'
+            return '<span style="color: #2121ba" title="Проводка сегодня"><i class="ti ti-calendar-bolt"></i></span>'
+        return '<span style="color: green"><i class="ti ti-calendar-check"></i></span>'
     status1c.short_description = '1С'
 
     @mark_safe

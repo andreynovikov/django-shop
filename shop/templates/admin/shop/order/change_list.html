@@ -28,7 +28,7 @@
         {% endfor %}
         {% endif %}
         {% if orders|length > 1 %}
-            <li><a style="background: #ba2121" href="{% url 'admin:shop_order_changelist' %}?alert__gt=&status=all"><span class="fas fa-filter fa-xs"></span></a></li>
+            <li><a style="background: #ba2121" href="{% url 'admin:shop_order_changelist' %}?alert__gt=&status=all"><i class="ti ti-filter"></i></a></li>
         {% endif %}
     {% endif %}
     {{ block.super }}

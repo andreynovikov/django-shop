@@ -245,12 +245,12 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
 
     @admin_changelist_link(None, 'з', model=Order, query_string=lambda p: 'item__product__pk={}'.format(p.pk))
     def orders_link(self, orders):
-        return '<i class="fas fa-dolly"></i>'
+        return '<i class="ti ti-basket"></i>'
 
     @mark_safe
     def product_link(self, obj):
         url = self.view_on_site(obj)
-        return '<a href="%s" target="_blank"><i class="fas fa-external-link-alt"></i></a>' % url
+        return '<a href="%s" target="_blank"><i class="ti ti-external-link"></i></a>' % url
     product_link.short_description = 'о'
 
     def integrations(self, obj):
