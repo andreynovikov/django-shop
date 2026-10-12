@@ -13,6 +13,7 @@ import ScrollTopButton from './scroll-top-button'
 
 export default function BaseLayout({
   title,
+  description = "Janome - швейные машины, вышивальные машины, оверлоки и аксессуары",
   htmlTitle = undefined,
   hideSignIn = false,
   hideCartNotice = false,
@@ -38,7 +39,7 @@ export default function BaseLayout({
     <>
       <Head>
         <title>{`${(htmlTitle || title) ? (htmlTitle || title) + " - " : ""}Janome.Club`}</title>
-        <meta name="description" content="Janome - швейные машины, вышивальные машины, оверлоки и аксессуары" />
+        <meta name="description" content={description} />
         <meta name="keywords" content="швейные машины, вышивальные машины, оверлоки и аксессуары Janome" />
         <Favicons />
       </Head>

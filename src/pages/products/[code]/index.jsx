@@ -600,6 +600,7 @@ Product.getLayout = function getLayout(page) {
   return (
     <PageLayout
       title={page.props.title}
+      description={page.props.description}
       titleAddon={
         <>
           {(page.props.runame || page.props.whatis) && (
@@ -624,17 +625,21 @@ export async function getStaticProps(context) {
   const queryClient = new QueryClient()
   const fieldsQuery = queryClient.fetchQuery({
     queryKey: productKeys.fields(),
-    queryFn: () => getProductFields()
-  })
+    queryFn: () => getProductFields(),
+    staleTime: 60000,
+  }).catch(() => { })
   const dataQuery = queryClient.fetchQuery({
     queryKey: productKeys.detail(code),
-    queryFn: () => loadProductByCode(code)
+    queryFn: () => loadProductByCode(code),
+    staleTime: 60000,
   })
   try {
     // run queries in parallel
-    await fieldsQuery
-    const data = await dataQuery
+    const [data] = await Promise.all([dataQuery, fieldsQuery])
 
+    const description = data.seodescr ?
+      data.seodescr :
+      `${data.title} ${data.partnumber ? data.partnumber + ' ' : ''}${data.manufacturer ? data.manufacturer.name + ' ' : ''}купите в Janome`
     const breadcrumbs = data.categories
       .filter(category => !['New', 'promo', 'Discount'].includes(category.slug)) // skip special categories
       .sort((a, b) => b.path.breadcrumbs.length - a.path.breadcrumbs.length)[0]?.path.breadcrumbs // get the longest path
@@ -657,6 +662,7 @@ export async function getStaticProps(context) {
         id: data.id,
         allowReviews: data.allow_reviews,
         breadcrumbs
+        description,
       },
       revalidate: 60 * 60 // <--- ISR cache: once an hour
     }
