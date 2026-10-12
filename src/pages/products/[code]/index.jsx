@@ -587,6 +587,7 @@ Product.getLayout = function getLayout(page) {
   return (
     <PageLayout
       title={page.props.title}
+      description={page.props.description}
       titleAddon={
         <>
           {(page.props.runame || page.props.whatis) && (
@@ -613,7 +614,7 @@ export async function getStaticProps(context) {
     queryKey: productKeys.fields(),
     queryFn: () => getProductFields(),
     staleTime: 60000,
-  }).catch(() => {})
+  }).catch(() => { })
   const dataQuery = queryClient.query({
     queryKey: productKeys.detail(code),
     queryFn: () => loadProductByCode(code),
@@ -626,10 +627,11 @@ export async function getStaticProps(context) {
   })
   try {
     // run queries in parallel
-    await fieldsQuery
-    const data = await dataQuery
-    const site = await siteQuery
+    const [data, site] = await Promise.all([dataQuery, siteQuery, fieldsQuery])
 
+    const description = data.seodescr ?
+      data.seodescr :
+      `${data.title} ${data.partnumber ? data.partnumber + ' ' : ''}${data.manufacturer ? data.manufacturer.name + ' ' : ''}купите в Швейном Мире`
     const breadcrumbs = data.categories
       .filter(category => !['New', 'promo', 'Discount'].includes(category.slug)) // skip special categories
       .sort((a, b) => b.path.breadcrumbs.length - a.path.breadcrumbs.length)[0]?.path.breadcrumbs // get the longest path
@@ -651,6 +653,7 @@ export async function getStaticProps(context) {
         runame: data.runame || null,
         id: data.id,
         allowReviews: data.allow_reviews,
+        description,
         breadcrumbs,
         site
       },

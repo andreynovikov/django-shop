@@ -13,6 +13,7 @@ import ScrollTopButton from './scroll-top-button'
 
 export default function BaseLayout({
   title,
+  description = "Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары",
   htmlTitle = undefined,
   hideSignIn = false,
   hideCartNotice = false,
@@ -38,7 +39,7 @@ export default function BaseLayout({
     <>
       <Head>
         <title>{`${(htmlTitle || title) ? (htmlTitle || title) + " - " : ""}Швейный Мир`}</title>
-        <meta name="description" content="Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары" />
+        <meta name="description" content={description} />
         <meta name="keywords" content="швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов Швейный Мир, швейная, швейные, вышивальная, вышивальные, вязальная, вязальные, машинка, машина, машинки, машины, оверлок, оверлоки,  шитье, вышивка, вязание, купить, интернет, магазин, pfaff, brother, janome, bernina, husqvarna, huskystar, viking, оверлок, строчка, петля, челнок, стежок, ткань, рукав" />
         <Favicons />
       </Head>
