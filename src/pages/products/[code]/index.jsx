@@ -1,5 +1,6 @@
 import { useMemo, useEffect, Suspense, lazy } from 'react'
 import { useRouter } from 'next/router'
+import Error from 'next/error'
 import Head from 'next/head'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -131,7 +132,7 @@ export default function Product({ code, site }) {
     }, {})
   }, [fields])
 
-  const { data: product, isSuccess, isLoading } = useQuery({
+  const { data: product, isSuccess, isLoading, isError, error } = useQuery({
     queryKey: productKeys.detail(code),
     queryFn: () => loadProductByCode(code),
     enabled: code !== undefined
@@ -199,6 +200,12 @@ export default function Product({ code, site }) {
     else
       compare(product.id)
   }
+
+  if (isError)
+    if (error.response?.status === 404)
+      return <Error statusCode={404} />
+    else
+      return <Error statusCode={500} />
 
   if (isLoading || !isSuccess)
     return (
