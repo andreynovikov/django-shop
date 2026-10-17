@@ -222,7 +222,10 @@ export default function Product({ code, site }) {
       <Head>
         <link rel="canonical" href={canonicalUrl} />
       </Head>
-      <div className="container">
+      <div className="container" itemScope itemType="https://schema.org/Product">
+        <meta itemProp="name" content={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
+        {product.article && <meta itemProp="sku" content={product.article} />}
+        {product.image && <meta itemProp="image" content={product.image} />}
         <div className="bg-light shadow-lg rounded-3 px-4 py-3 mb-5">
           <div className="px-lg-3">
             <div className="row">
@@ -241,12 +244,13 @@ export default function Product({ code, site }) {
                 )}
               </div>
               <div className="col-lg-5 pt-4 pt-lg-0">
-                <div className="product-details ms-auto pb-3">
+                <div className="product-details ms-auto pb-3" itemProp="offers" itemScope itemType="https://schema.org/Offer">
+                  <link itemProp="url" href={canonicalUrl} />
                   {product.enabled && product.cost > 0 && (
                     <div className="d-flex flex-row xalign-items-baseline mb-3">
                       <div className="h3 fw-normal text-accent flex-shrink-1">
-                        <ProductPrice product={product} delFs="lg" itemProp="price" />
-                        <span itemProp="priceCurrency" className="d-none">RUB</span>
+                        <ProductPrice product={product} delFs="lg" itemProp="price" content={product.cost} />
+                        <meta itemProp="priceCurrency" content="RUB" />
                       </div>
                       <div className="ms-3 text-end w-100">
                         {product.discount > 0 && (
@@ -268,6 +272,7 @@ export default function Product({ code, site }) {
                     </div>
                   )}
                   <div className="position-relative me-n4">
+                    <link itemProp="availability" href={`https://schema.org/${product.enabled ? product.instock > 1 ? 'InStock' : 'OutOfStock' : 'Discontinued'}`} />
                     <div className={`product-badge product-${product.instock < 1 ? "not-" : ""}available mt-${product.enabled ? "1" : "3"}`}>
                       <i className={`ci-security-${product.instock > 1 ? "check" : product.instock === 1 ? "announcement" : "close"}`} />
                       {product.enabled ? (
@@ -442,10 +447,13 @@ export default function Product({ code, site }) {
           <div className="pt-lg-2 pb-3 mb-md-3">
             <div className="h3 d-flex align-items-end pb-2">
               <h2 className="h3 m-0 p-0 flex-grow-1">Характеристики</h2>
-              {product.manufacturer?.logo && <div className="flex-shrink-1">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img alt={product.manufacturer.name} src={product.manufacturer.logo} className="sw-product-logo" />
-              </div>}
+              {product.manufacturer?.logo && (
+                <div className="flex-shrink-1" itemProp="brand" itemScope itemType="https://schema.org/Brand">
+                  <meta itemProp="name" content={product.manufacturer.name} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img alt={product.manufacturer.name} src={product.manufacturer.logo} className="sw-product-logo" />
+                </div>
+              )}
             </div>
             <div className="product-spec container fs-sm">
               {productFields.map((field) => (
