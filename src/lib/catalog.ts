@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/router'
+import { useNavigation } from './navigation'
 
 export const baseFilters = {
   enabled: true,
@@ -25,12 +25,12 @@ export const newProductsFilters = {
 }
 
 export function useCatalog() {
-  const router = useRouter()
+  const { path } = useNavigation()
 
   useEffect(() => {
-    sessionStorage.setItem('lastCatalogPath', router.asPath)
-    /* eslint-disable react-hooks/exhaustive-deps */
-  }, [])
+    if (path)
+      sessionStorage.setItem('lastCatalogPath', path)
+  }, [path])
 }
 
 export function useLastCatalog() {
@@ -39,6 +39,8 @@ export function useLastCatalog() {
   useEffect(() => {
     const p = sessionStorage.getItem('lastCatalogPath')
     if (p)
+      // TODO: fix set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPath(p)
   }, [])
 

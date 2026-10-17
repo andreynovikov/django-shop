@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 
 import { MobileCartNotice } from '@/components/cart/notice'
@@ -6,12 +8,14 @@ import useComparison from '@/lib/comparison'
 import useFavorites from '@/lib/favorites'
 import { useSession } from '@/lib/session'
 import { useToolbar } from '@/lib/toolbar'
+import { useTopbar } from '@/lib/topbar'
 
-export default function HandheldBottomBar({ topMenuOpen, toggleTopMenu }) {
+export default function HandheldBottomBar() {
   const { status } = useSession()
   const { comparisons } = useComparison()
   const { favorites } = useFavorites()
   const { item } = useToolbar()
+  const { topMenuOpen, toggleTopMenu } = useTopbar()
 
   const handleMenuOpen = () => {
     if (!topMenuOpen)

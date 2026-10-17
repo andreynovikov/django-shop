@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
-import { useRouter } from 'next/router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { useNavigation } from './navigation';
 import { userKeys, userReferences, userDependencies, currentUser, registerUser, loginUser, logoutUser, LoginCredentials, LoginResult, HttpError } from '@/lib/queries'
 import { AnonymousUser, User } from '@/lib/types';
 
@@ -63,8 +63,8 @@ interface SessionProviderProps {
 export function SessionProvider({ children }: SessionProviderProps) {
   const [registered, setRegistered] = useState(false) // true if user is newly registered
   const [isRouting, setIsRouting] = useState(false)
-  const router = useRouter()
   const queryClient = useQueryClient()
+  const { navigate, events } = useNavigation()
 
   const signIn = useCallback(async (credentials: LoginCredentials) => {
     try {
@@ -93,8 +93,8 @@ export function SessionProvider({ children }: SessionProviderProps) {
     setRegistered(false)
     queryClient.invalidateQueries({ queryKey: userKeys.current() })
     if (callbackUrl)
-      router.push(callbackUrl)
-  }, [queryClient, router])
+      navigate(callbackUrl)
+  }, [queryClient, navigate])
 
   const register = useCallback(async (data: FormData) => {
     try {
@@ -122,14 +122,17 @@ export function SessionProvider({ children }: SessionProviderProps) {
   const handleRouteChangeComplete = () => setIsRouting(false)
 
   useEffect(() => {
-    router.events.on('routeChangeStart', handleRouteChangeStart)
-    router.events.on('routeChangeComplete', handleRouteChangeComplete)
+    if (events === undefined)
+      return
+
+    events.on('routeChangeStart', handleRouteChangeStart)
+    events.on('routeChangeComplete', handleRouteChangeComplete)
 
     return () => {
-      router.events.off('routeChangeStart', handleRouteChangeStart)
-      router.events.off('routeChangeComplete', handleRouteChangeComplete)
+      events.off('routeChangeStart', handleRouteChangeStart)
+      events.off('routeChangeComplete', handleRouteChangeComplete)
     }
-  }, [router.events])
+  }, [events])
 
   const { data: user, isSuccess, isLoading } = useQuery({
     queryKey: userKeys.current(),

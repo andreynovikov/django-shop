@@ -1,22 +1,19 @@
+'use client'
+
 import { useRef, useEffect } from 'react'
-import { useRouter } from 'next/router'
 
 import Catalog from '@/components/catalog'
+
+import { useNavigation } from '@/lib/navigation'
 
 export default function CatalogDropDown({ visible, setVisible, buttonRef }) {
   const ref = useRef()
 
-  const router = useRouter()
+  const { path } = useNavigation()
 
   useEffect(() => {
-    const handleRouteChange = () => {
       setVisible(false)
-    }
-    router.events.on('routeChangeStart', handleRouteChange)
-    return () => {
-      router.events.off('routeChangeStart', handleRouteChange)
-    }
-  }, [router.events, setVisible])
+  }, [path, setVisible])
 
   useEffect(() => {
     function handleClickOutside(event) {

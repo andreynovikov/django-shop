@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Script from 'next/script'
@@ -10,6 +10,7 @@ import TopBar from './topbar'
 import BottomBar from './bottombar'
 import HandheldBottomBar from './handheld-bottombar'
 import ScrollTopButton from './scroll-top-button'
+import { useTopbar, useCustomizeTopbar } from '@/lib/topbar'
 
 export default function BaseLayout({
   title,
@@ -21,9 +22,9 @@ export default function BaseLayout({
   children,
   ...props
 }) {
-  const [topMenuOpen, setTopMenuOpen] = useState(false)
-
   const router = useRouter()
+  const { setTopMenuOpen } = useTopbar()
+  useCustomizeTopbar({ hideSignIn, hideCartNotice })
 
   useEffect(() => {
     const handleRouteChange = () => {
@@ -46,13 +47,13 @@ export default function BaseLayout({
       <div className="root">
         <div className="d-flex flex-column min-vh-100">
           <main className="page-wrapper">
-            <TopBar hideSignIn={hideSignIn} hideCartNotice={hideCartNotice} topMenuOpen={topMenuOpen} toggleTopMenu={() => setTopMenuOpen((open) => !open)} />
+            <TopBar />
             {contentWrapper({ title, children, ...props })}
           </main>
 
           <BottomBar />
         </div>
-        <HandheldBottomBar topMenuOpen={topMenuOpen} toggleTopMenu={() => setTopMenuOpen((open) => !open)} />
+        <HandheldBottomBar />
         <ScrollTopButton />
       </div>
       {process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID && <YandexMetrika

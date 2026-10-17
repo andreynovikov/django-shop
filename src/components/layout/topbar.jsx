@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 
@@ -18,12 +20,14 @@ import useComparison from '@/lib/comparison'
 import useFavorites from '@/lib/favorites'
 import { useSite } from '@/lib/site'
 import { useSession } from '@/lib/session'
+import { useTopbar } from '@/lib/topbar'
 import { formatPhone } from '@/lib/format'
 
-export default function TopBar({ hideSignIn, hideCartNotice, topMenuOpen, toggleTopMenu }) {
+export default function TopBar() {
   const [catalogVisible, setCatalogVisible] = useState(false)
   const { site } = useSite()
   const { status } = useSession()
+  const { hideSignIn, hideCartNotice, topMenuOpen, toggleTopMenu } = useTopbar()
 
   const navbarRef = useRef()
   const stickyRef = useRef()

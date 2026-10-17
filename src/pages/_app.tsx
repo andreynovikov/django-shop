@@ -12,23 +12,25 @@ import { Toast } from '@base-ui/react/toast'
 import ToastList from '@/components/toast-list'
 
 import { SiteProvider } from '@/lib/site';
-import { SessionProvider } from '@/lib/session';
-import { ToolbarProvider } from '@/lib/toolbar';
-import { categoryKeys, productKeys, pageKeys } from '@/lib/queries';
+import { SessionProvider } from '@/lib/session'
+import { TopbarProvider } from '@/lib/topbar'
+import { ToolbarProvider } from '@/lib/toolbar'
+import { PagesNavigationProvider } from '@/lib/navigation/pages-provider'
+import { categoryKeys, productKeys, pageKeys } from '@/lib/queries'
 
-import 'simplebar-react/dist/simplebar.min.css';
-import 'react-bootstrap-typeahead/css/Typeahead.css';
-import 'react-bootstrap-typeahead/css/Typeahead.bs5.css';
+import 'simplebar-react/dist/simplebar.min.css'
+import 'react-bootstrap-typeahead/css/Typeahead.css'
+import 'react-bootstrap-typeahead/css/Typeahead.bs5.css'
 import 'swiper/css'
 import 'swiper/css/free-mode'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 import '../styles.scss';
 
-import moment, { type MomentInput, type Moment } from 'moment';
-import 'moment/locale/ru';
+import moment, { type MomentInput, type Moment } from 'moment'
+import 'moment/locale/ru'
 
-moment.locale('ru');
+moment.locale('ru')
 moment.updateLocale('ru', {
   monthsShort: {
     format: 'янв_фев_мар_апр_мая_июн_июл_авг_сен_окт_ноя_дек'.split('_'),
@@ -60,7 +62,7 @@ moment.updateLocale('ru', {
       }
     }
   },
-});
+})
 
 const rubik = localFont({
   src: [
@@ -94,34 +96,38 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
         retry: process.env.NODE_ENV === "development" ? 1 : 5
       }
     }
-  }));
+  }))
 
-  queryClient.setQueryDefaults(categoryKeys.all, { staleTime: Infinity }); // mark fresh forever
-  queryClient.setQueryDefaults(productKeys.all, { staleTime: 1000 * 60 * 10 }); // mark fresh for ten minutes
-  queryClient.setQueryDefaults(pageKeys.all, { staleTime: Infinity }); // mark fresh forever
+  queryClient.setQueryDefaults(categoryKeys.all, { staleTime: Infinity }) // mark fresh forever
+  queryClient.setQueryDefaults(productKeys.all, { staleTime: 1000 * 60 * 10 }) // mark fresh for ten minutes
+  queryClient.setQueryDefaults(pageKeys.all, { staleTime: Infinity }) // mark fresh forever
 
   // Use the layout defined at the page level, if available
-  const getLayout = Component.getLayout ?? ((page) => page);
+  const getLayout = Component.getLayout ?? ((page) => page)
 
   return (
     <QueryClientProvider client={queryClient}>
       <HydrationBoundary state={pageProps.dehydratedState}>
         <NuqsAdapter>
           <SiteProvider>
-            <SessionProvider>
-              <Toast.Provider toastManager={toastManager}>
-                <ToolbarProvider>
-                  <div className={rubik.variable}>
-                    {getLayout(<Component {...pageProps} />, pageProps)}
-                  </div>
-                </ToolbarProvider>
-                <Toast.Portal>
-                  <Toast.Viewport className="sw-toast-viewport">
-                    <ToastList />
-                  </Toast.Viewport>
-                </Toast.Portal>
-              </Toast.Provider>
-            </SessionProvider>
+            <PagesNavigationProvider>
+              <SessionProvider>
+                <Toast.Provider toastManager={toastManager}>
+                  <TopbarProvider>
+                    <ToolbarProvider>
+                      <div className={rubik.variable}>
+                        {getLayout(<Component {...pageProps} />, pageProps)}
+                      </div>
+                    </ToolbarProvider>
+                  </TopbarProvider>
+                  <Toast.Portal>
+                    <Toast.Viewport className="sw-toast-viewport">
+                      <ToastList />
+                    </Toast.Viewport>
+                  </Toast.Portal>
+                </Toast.Provider>
+              </SessionProvider>
+            </PagesNavigationProvider>
           </SiteProvider>
         </NuqsAdapter>
         <ReactQueryDevtools initialIsOpen={false} />

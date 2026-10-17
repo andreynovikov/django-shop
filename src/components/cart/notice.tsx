@@ -1,4 +1,5 @@
-import { useRouter } from 'next/router'
+'use client'
+
 import Link from 'next/link'
 import Image from 'next/image'
 import SimpleBar from 'simplebar-react'
@@ -6,6 +7,7 @@ import SimpleBar from 'simplebar-react'
 import { ButtonLoading } from '@/components/loading'
 import NoImage from '@/components/product/no-image'
 
+import { useNavigation } from '@/lib/navigation'
 import useBasket from '@/lib/basket'
 import { useCreateOrder } from '@/lib/order'
 import { useSession } from '@/lib/session'
@@ -31,7 +33,7 @@ export default function CartNotice() {
   const { status } = useSession()
   const { basket, isEmpty, removeItem } = useBasket()
   const { mutate, isPending } = useCreateOrder()
-  const router = useRouter()
+  const { navigate } = useNavigation()
 
   const handleRemoveItem = (product: BasketItemProduct) => {
     removeItem(product)
@@ -41,7 +43,7 @@ export default function CartNotice() {
     if (status === 'authenticated')
       mutate()
     else
-      router.push('/cart')
+      navigate('/cart')
   }
 
   if (isEmpty)
@@ -72,7 +74,7 @@ export default function CartNotice() {
                   <Link
                     className="d-block flex-shrink-0 position-relative"
                     style={{ width: 64, height: 64 }}
-                    href={{ pathname: '/products/[code]', query: { code: item.product.code } }}>
+                    href={`/products/${item.product.code}`}>
                     {item.product.image ? (
                       <Image
                         src={item.product.image}
@@ -87,7 +89,7 @@ export default function CartNotice() {
                   </Link>
                   <div className="ps-2">
                     <h6 className="widget-product-title">
-                      <Link href={{ pathname: '/products/[code]', query: { code: item.product.code } }}>
+                      <Link href={`/products/${item.product.code}`}>
                         {item.product.title}
                       </Link>
                     </h6>

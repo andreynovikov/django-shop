@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useMemo, useDeferredValue } from 'react'
-import { useRouter } from 'next/router'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 
 import { AsyncTypeahead, Menu, MenuItem, Highlighter } from 'react-bootstrap-typeahead'
 
+import { useNavigation } from '@/lib/navigation'
 import { productKeys } from '@/lib/queries'
 import { loadProductSuggestions } from '@/lib/diginetica'
 
@@ -120,13 +120,13 @@ export default function ProductSearchInput({ mobile = false }) {
     return options
   }, [suggestions])
 
-  const router = useRouter()
+  const { navigate } = useNavigation()
 
   const handleSelectionChange = (selected) => {
     if (selected.length === 0)
       return
     if (selected[0].section === 'products')
-      router.push(selected[0].product.link_url.replace('.html', '/'))
+      navigate(selected[0].product.link_url.replace('.html', '/'))
   }
 
   return (

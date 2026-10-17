@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 
@@ -11,19 +10,16 @@ import UserAvatar from '@/components/user/avatar'
 import { formatPhone } from '@/lib/format'
 import useFavorites from '@/lib/favorites'
 import { useSession } from '@/lib/session'
+import { useNavigation } from '@/lib/navigation'
 import { orderKeys, loadOrders } from '@/lib/queries'
 
 export default function UserSidebar() {
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const router = useRouter()
+  const { navigate, path } = useNavigation()
+
   const { user, status, signOut } = useSession({
-    onUnauthenticated: () => {
-      router.push({
-        pathname: '/login',
-        query: { callbackUrl: router.asPath }
-      })
-    }
+    onUnauthenticated: () => navigate(`/login?callbackUrl=${encodeURIComponent(path)}`)
   })
 
   const { favorites } = useFavorites()
@@ -66,19 +62,19 @@ export default function UserSidebar() {
         <Collapse in={menuOpen} className="d-lg-block">
           <ul className="list-unstyled mb-0">
             <li className="border-bottom mb-0">
-              <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (router.pathname === '/user/orders' ? " active" : "")} href="/user/orders">
+              <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (path === '/user/orders/' ? " active" : "")} href="/user/orders/">
                 <i className="ci-bag opacity-60 me-2" />Заказы
                 {orders?.count > 0 && <span className="fs-sm text-muted ms-auto">{orders.count}</span>}
               </Link>
             </li>
             <li className="border-bottom mb-0">
-              <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (router.pathname === '/user/favorites' ? " active" : "")} href="/user/favorites">
+              <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (path === '/user/favorites/' ? " active" : "")} href="/user/favorites/">
                 <i className="ci-heart opacity-60 me-2" />Избранное
                 {favorites.length > 0 && <span className="fs-sm text-muted ms-auto">{favorites.length}</span>}
               </Link>
             </li>
             <li className="mb-0">
-              <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (router.pathname === '/user/profile' ? " active" : "")} href="/user/profile">
+              <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (path === '/user/profile/' ? " active" : "")} href="/user/profile/">
                 <i className="ci-user opacity-60 me-2" />Профиль
               </Link>
             </li>

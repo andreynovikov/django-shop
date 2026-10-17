@@ -1,7 +1,9 @@
+'use client'
+
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { useMutation } from '@tanstack/react-query'
+import { stringify as stringifyQuery } from 'querystring'
 
 import Countdown from '@/components/countdown'
 import { ButtonLoading } from '@/components/loading'
@@ -9,13 +11,15 @@ import { ButtonLoading } from '@/components/loading'
 import { formatPhone } from '@/lib/format'
 import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
 import { useSession } from '@/lib/session'
+import { useNavigation } from '@/lib/navigation'
+import { useCustomizeTopbar } from '@/lib/topbar'
 import { checkUser, normalizePhone } from '@/lib/queries'
 
 const CODE_RESEND_DELAY = 240
 
 function getError(field, error) {
   if (error[field])
-    return{ [field]: error[field][0] }
+    return { [field]: error[field][0] }
   else if (error.non_field_errors)
     return { [field]: error.non_field_errors[0] }
   else if (detail)
@@ -36,9 +40,9 @@ export default function LoginForm({ ctx, phone = undefined, hideModal = undefine
 
   const [showPermanentPassword, setShowPermanentPassword] = useState(ctx === 'reg')
 
-  const router = useRouter()
-
+  const { query, navigate } = useNavigation()
   const { signIn } = useSession()
+  useCustomizeTopbar({ hideSignIn: ['login', 'reg'].includes(ctx) && embedded === ''})
 
   const {
     mutate: performUserCheck,
@@ -156,7 +160,7 @@ export default function LoginForm({ ctx, phone = undefined, hideModal = undefine
             if (hideModal)
               hideModal()
           } else {
-            router.push(router.query.callbackUrl || '/')
+            navigate(query.callbackUrl || '/')
           }
         } else {
           try {
@@ -336,7 +340,7 @@ export default function LoginForm({ ctx, phone = undefined, hideModal = undefine
       {!shopUser && !embedded && (
         <div className="mt-4 fs-md">
           Если Вы не совершали покупок в магазине, Вы можете{" "}
-          <Link href={{ pathname: '/register', query: router.query }}>
+          <Link href={`/register?${stringifyQuery(query)}`}>
             зарегистрироваться
           </Link>
         </div>

@@ -1,19 +1,23 @@
+'use client'
+
 import { useState } from 'react'
-import { useRouter } from 'next/router'
 import Link from 'next/link'
+
+import { stringify as stringifyQuery } from 'querystring'
 
 import { ButtonLoading } from '@/components/loading'
 
 import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
 import { useSession } from '@/lib/session'
+import { useNavigation } from '@/lib/navigation'
 import { normalizePhone } from '@/lib/queries'
 
-export default function RegistrationForm({ embedded = '', onComplete }) {
+export default function RegistrationForm({ embedded = '', onComplete = undefined }) {
   const [consent, setConsent] = useState(false)
   const [isRegisterPending, setRegisterPending] = useState(false)
   const [error, setError] = useState({})
 
-  const router = useRouter()
+  const { query, navigate } = useNavigation()
 
   const { register } = useSession()
 
@@ -53,14 +57,12 @@ export default function RegistrationForm({ embedded = '', onComplete }) {
         if (onComplete)
           onComplete(formData.get('phone'))
       } else {
-        router.push({
-          pathname: '/login',
-          query: {
-            ...router.query,
-            phone: formData.get('phone'),
-            ctx: 'reg'
-          }
+        const params = stringifyQuery({
+          ...query,
+          phone: formData.get('phone'),
+          ctx: 'reg'
         })
+        navigate(`/login?${params}`)
       }
     } else {
       if (result.error?.response?.data && result.error.response.headers['content-type'].toLowerCase() === 'application/json')

@@ -1,7 +1,12 @@
-import BaseLayout from '@/components/layout/base'
+import { Metadata } from 'next'
+
 import RegistrationForm from '@/components/user/registration-form'
 
-export default function Register() {
+export const metadata: Metadata = {
+  title: 'Добро пожаловать',
+}
+
+export default async function RegisterPage() {
   return (
     <div className="container py-3 py-lg-4 my-4">
       <div className="row justify-content-md-center">
@@ -11,13 +16,5 @@ export default function Register() {
         </div>
       </div>
     </div>
-  )
-}
-
-Register.getLayout = function getLayout(page) {
-  return (
-    <BaseLayout title="Добро пожаловать" hideSignIn>
-      {page}
-    </BaseLayout>
   )
 }
