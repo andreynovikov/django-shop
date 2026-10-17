@@ -317,7 +317,7 @@ export default function Product({ code, site }) {
                         </div>
                       </div>
                       {product.cost > 0 ? (
-                        <div className="pt-2 pb-4" itemProp="offers" itemScope itemType="http://schema.org/Offer">
+                        <div className="pt-2 pb-4">
                           {product.instock > 0 ? (
                             <ProductShopping product={product} />
                           ) : (
