@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { ReactNode, Suspense } from 'react'
 import Script from 'next/script'
 import localFont from 'next/font/local'
 
@@ -83,20 +83,22 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru">
       <body className={rubik.variable}>
-        <Providers>
-          <div className="root">
-            <div className="d-flex flex-column min-vh-100">
-              <main className="page-wrapper">
-                <TopBar />
-                {children}
-              </main>
-
-              <BottomBar />
+        {/* TODO: remove suspense after full switch to app router */}
+        <Suspense>
+          <Providers>
+            <div className="root">
+              <div className="d-flex flex-column min-vh-100">
+                <main className="page-wrapper">
+                  <TopBar />
+                  {children}
+                </main>
+                <BottomBar />
+              </div>
+              <HandheldBottomBar />
+              <ScrollTopButton />
             </div>
-            <HandheldBottomBar />
-            <ScrollTopButton />
-          </div>
-        </Providers>
+          </Providers>
+        </Suspense>
       </body>
       {process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID && <YandexMetrika
         ymId={process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID}
