@@ -42,7 +42,8 @@ export default function LoginForm({ ctx, phone = undefined, hideModal = undefine
 
   const { query, navigate } = useNavigation()
   const { signIn } = useSession()
-  useCustomizeTopbar({ hideSignIn: ['login', 'reg'].includes(ctx) && embedded === ''})
+  // TODO: replace this complex logic with per-caller customization status
+  useCustomizeTopbar({ hideSignIn: ctx === 'warranty' || (['login', 'reg'].includes(ctx) && embedded === '')})
 
   const {
     mutate: performUserCheck,

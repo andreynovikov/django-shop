@@ -42,7 +42,6 @@ export function useCustomizeTopbar({
   }, [hideSignIn, hideCartNotice, context])
 }
 
-
 interface TopbarProviderProps {
   children: ReactNode;
 }

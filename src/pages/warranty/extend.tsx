@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState, type ReactElement } from 'react'
+import { SubmitEvent, useEffect, useRef, useState, type ReactElement } from 'react'
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -37,7 +37,7 @@ export default function ExtendWarranty() {
     }
   }, [mutate, sn, session?.status])
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     const form = event.currentTarget
     const input = form.elements.namedItem('sn') as HTMLInputElement
