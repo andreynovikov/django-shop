@@ -9,6 +9,5 @@ Dockerfile
 logs
 .next
 node_modules
-templates
 .touch_reload
 .well-known
