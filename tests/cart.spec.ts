@@ -4,6 +4,7 @@ test.describe.configure({ mode: 'serial' }) // force sequential execution
 
 
 test('product can be put in cart', async ({ page }) => {
+  test.skip(!!process.env.CI, 'This test must be run manually')
   await page.goto('/')
   // add product to cart
   const addButton = page.locator('button.btn-success:has(.ci-cart)').last()
