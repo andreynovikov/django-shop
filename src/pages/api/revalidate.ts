@@ -10,7 +10,7 @@ type Item = Payload & {
   pk: number | string
 }
 
-type RevalidationRequest = Payload & {
+type RevalidationRequest = Item & {
   secret: string,
   model: string,
   items?: Item[],
@@ -22,12 +22,14 @@ type RevalidationResponse = {
   message?: string
 }
 
-function getPathForModelItem(model: string, item: Payload) {
+function getPathForModelItem(model: string, item: Item) {
   switch (model) {
     case 'category':
       return `/catalog/${item.path}/`
     case 'product':
       return `/products/${item.code}/`
+    case 'store':
+      return `/stores/${item.pk}/`
     case 'page':
       return `/pages${item.uri}`
     case 'news':
