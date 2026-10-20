@@ -129,6 +129,7 @@ class Product(models.Model):
     stock = models.ManyToManyField(Supplier, through='Stock')
     pack_factor = models.SmallIntegerField('Количество в упаковке', default=1)
     shortdescr = models.TextField('Характеристика', blank=True)
+    seodescr = models.TextField('Описание (SEO)', blank=True)
     yandexdescr = models.TextField('Описание для Яндекс.Маркет', blank=True)
     type_prefix = models.TextField('Описание типа (feed)', blank=True)
     whatis = models.TextField('Что это такое', blank=True)

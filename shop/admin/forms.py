@@ -198,6 +198,7 @@ class ProductAdminForm(forms.ModelForm):
             'whatis': AutosizedTextarea(attrs={'rows': 1}),
             'spec': AutosizedTextarea(attrs={'rows': 3}),
             'shortdescr': AutosizedTextarea(attrs={'rows': 3}),
+            'seodescr': AutosizedTextarea(attrs={'rows': 3}),
             'yandexdescr': AutosizedTextarea(attrs={'rows': 3}),
             'descr': AutosizedTextarea(attrs={'rows': 3}),
             'manuals': AutosizedTextarea(attrs={'rows': 2}),
