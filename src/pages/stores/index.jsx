@@ -39,8 +39,7 @@ export default function Stores({ marketplace, lottery }) {
 
   const { data: stores } = useQuery({
     queryKey: storeKeys.lists({ marketplace, lottery }),
-    queryFn: () => loadStores({ marketplace, lottery }),
-    select: (data) => data.filter(store => store.id !== 295)
+    queryFn: () => loadStores({ marketplace, lottery })
   })
 
   useEffect(() => {
