@@ -136,10 +136,11 @@ export default function Product({ code }) {
   const { data: stores, isSuccess: isStockSuccess } = useQuery({
     queryKey: productKeys.stock(product.id),
     queryFn: () => loadProductStock(product.id),
-    select: (data) => data.filter(store => store.id === 295),
+    select: (data) => data.filter(store => [295, 296].includes(store.id)),
     enabled: product?.id > 0
   })
-  const availableInStore = isStockSuccess && stores.length !== 0
+  const availableInStore = stores?.find(store => store.id === 295)
+  const availableInPickpoint = stores?.find(store => store.id === 296)
 
   const productFields = useMemo(() => {
     return isSuccess ? filterProductFields(product) : []
@@ -362,19 +363,34 @@ export default function Product({ code }) {
                     </div>
                   )}
 
-                  <div className="pt-2 pb-3">
-                    <i className="ci-location text-muted lead align-middle mt-n1 me-2" />
+                  <div className="d-flex flex-column gap-3 pt-2 pb-3">
                     {availableInStore && product.instock > 0 ? (
-                      <span>
-                        Товар есть в наличии в розничном магазинe по адресу{" "}
-                        <Link className="text-nowrap" href="/stores/">
-                          {stores[0].address}
-                        </Link>
-                      </span>
+                      <div>
+                        <i className="ci-location text-muted lead align-middle mt-n1 me-2" />
+                        <span>
+                          Товар есть в наличии в розничном магазинe по адресу{" "}
+                          <Link className="text-nowrap" href="/stores/">
+                            {availableInStore.city.name}, {availableInStore.address}
+                          </Link>
+                        </span>
+                      </div>
                     ) : !availableInStore && isStockSuccess ? (
-                      <span>Данного товара нет в наличии в розничном магазине</span>
+                      <div>
+                        <i className="ci-location text-muted lead align-middle mt-n1 me-2" />
+                        <span>Данного товара нет в наличии в розничном магазине</span>
+                      </div>
                     ) : (
                       null
+                    )}
+                    {availableInPickpoint && (
+                      <div>
+                        <i className="ci-location text-muted lead align-middle mt-n1 me-2" />
+                        <span>
+                          Товар есть в наличии в пункте выдачи по адресу{" "}
+                          {availableInPickpoint.city.name}, {availableInPickpoint.address}
+                          . Обязательно оформите заказ перед посещением.
+                        </span>
+                      </div>
                     )}
                   </div>
 
