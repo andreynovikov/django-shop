@@ -8,6 +8,7 @@ from django.contrib.auth import authenticate
 from django.core.files.storage import default_storage
 
 from rest_framework import serializers
+from rest_framework.exceptions import NotFound
 
 from django.contrib.flatpages.models import FlatPage
 
@@ -338,6 +339,11 @@ class ProductSerializer(NonNullModelSerializer):
                 return img
         return obj.stitches
 
+    def to_representation(self, obj):
+        data = super().to_representation(obj)
+        if not data.get('categories'):
+            raise NotFound()
+        return data
 
 class StockSerializer(serializers.ModelSerializer):
     product = serializers.CharField(source='product.code')
