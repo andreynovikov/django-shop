@@ -11,8 +11,7 @@ import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 import '../styles.scss'
 
-import moment, { type MomentInput, type Moment } from 'moment'
-import 'moment/locale/ru'
+import '@/lib/moment'
 
 import TopBar from '@/components/layout/topbar'
 import BottomBar from '@/components/layout/bottombar'
@@ -21,40 +20,6 @@ import ScrollTopButton from '@/components/layout/scroll-top-button'
 import { YandexMetrika } from '@/lib/ymec'
 
 import Providers from './providers'
-
-moment.locale('ru');
-moment.updateLocale('ru', {
-  monthsShort: {
-    format: 'янв_фев_мар_апр_мая_июн_июл_авг_сен_окт_ноя_дек'.split('_'),
-    standalone: 'янв_фев_март_апр_май_июнь_июль_авг_сен_окт_ноя_дек'.split('_')
-  },
-  calendar: {
-    lastWeek: function (m?: MomentInput, now?: Moment) {
-      if (now?.week() !== (this as unknown as Moment).week()) {
-        switch ((this as unknown as Moment).day()) {
-          case 0:
-            return '[В прошлое] dddd';
-          case 1:
-          case 2:
-          case 4:
-            return '[В прошлый] dddd';
-          case 3:
-          case 5:
-          case 6:
-            return '[В прошлую] dddd';
-          default:
-            return '[В прошлое] dddd';
-        }
-      } else {
-        if ((this as unknown as Moment).day() === 2) {
-          return '[Во] dddd';
-        } else {
-          return '[В] dddd';
-        }
-      }
-    }
-  },
-});
 
 const rubik = localFont({
   src: [
