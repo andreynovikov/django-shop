@@ -661,7 +661,7 @@ export async function getStaticProps(context) {
         runame: data.runame || null,
         id: data.id,
         allowReviews: data.allow_reviews,
-        breadcrumbs
+        breadcrumbs,
         description,
       },
       revalidate: 60 * 60 // <--- ISR cache: once an hour
