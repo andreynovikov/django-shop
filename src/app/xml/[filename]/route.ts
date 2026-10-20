@@ -116,8 +116,8 @@ export async function generateStaticParams() {
   return integrations.filter(
     integration => integration.enabled
   ).map(
-    integration => ({ utm: integration.utm_source })
+    integration => integration.utm_source
   ).concat(
-    globalXmls.map(xml => ({ utm: xml }))
-  )
+    globalXmls
+  ).map(utm => ({filename: utm + '.xml'}))
 }
