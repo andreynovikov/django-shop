@@ -55,7 +55,8 @@ export default function Store({ id }) {
   return (
     <>
       <section className="container py-3 py-lg-5">
-        <p className="lead">Продажа швейных машин, оверлоков, вязальных машин и аксессуаров для рукоделия в г. {store.city.name}</p>
+        {store.description ? <div dangerouslySetInnerHTML={{ __html: store.description }} /> :
+          <p className="lead">Продажа швейных машин, оверлоков, вязальных машин и аксессуаров для рукоделия в г. {store.city.name}</p>}
       </section>
       <section className="container-fluid">
         <div className="row">
@@ -119,7 +120,7 @@ export default function Store({ id }) {
                   <h3 className="h6 mb-3">Сайт магазина</h3>
                   <ul className="list-unstyled fs-sm mb-0">
                     <li className="mb-0">
-                      <a className="nav-link-style" href={ store.url }>{store.url}</a>
+                      <a className="nav-link-style" href={store.url}>{store.url}</a>
                     </li>
                   </ul>
                 </div>
