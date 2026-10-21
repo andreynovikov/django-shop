@@ -10,13 +10,16 @@ import TopBar from './topbar'
 import BottomBar from './bottombar'
 import HandheldBottomBar from './handheld-bottombar'
 import ScrollTopButton from './scroll-top-button'
-import { useTopbar, useCustomizeTopbar } from '@/lib/topbar'
+import { useTopbar } from '@/lib/topbar'
 
 export default function BaseLayout({
   title,
   description = "Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары",
   htmlTitle = undefined,
+  // TODO: restore functionality after full switch to app router
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hideSignIn = false,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hideCartNotice = false,
   contentWrapper = ({ children }) => children,
   children,
@@ -24,7 +27,6 @@ export default function BaseLayout({
 }) {
   const router = useRouter()
   const { setTopMenuOpen } = useTopbar()
-  useCustomizeTopbar({ hideSignIn, hideCartNotice })
 
   useEffect(() => {
     const handleRouteChange = () => {

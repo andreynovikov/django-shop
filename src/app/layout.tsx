@@ -48,7 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ru">
       <body className={rubik.variable}>
-        {/* TODO: remove suspense after full switch to app router */}
+        {/* TODO: remove suspense after full switch to app router (required by useSearchParams() in AppNavigationProvider) */}
         <Suspense>
           <Providers>
             <div className="root">

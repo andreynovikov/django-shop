@@ -12,7 +12,6 @@ import { formatPhone } from '@/lib/format'
 import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
 import { useSession } from '@/lib/session'
 import { useNavigation } from '@/lib/navigation'
-import { useCustomizeTopbar } from '@/lib/topbar'
 import { checkUser, normalizePhone } from '@/lib/queries'
 
 const CODE_RESEND_DELAY = 240
@@ -42,8 +41,6 @@ export default function LoginForm({ ctx, phone = undefined, hideModal = undefine
 
   const { query, navigate } = useNavigation()
   const { signIn } = useSession()
-  // TODO: replace this complex logic with per-caller customization status
-  useCustomizeTopbar({ hideSignIn: ctx === 'warranty' || (['login', 'reg'].includes(ctx) && embedded === '')})
 
   const {
     mutate: performUserCheck,
