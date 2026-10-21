@@ -92,7 +92,7 @@ export default function ProductCard({ product, limitedBadges = false, gtmCategor
           <i className="ci-heart" />
         </button>
       </OverlayTrigger>}
-      <Link className="d-block mt-3 p-6" href={productLink} onClick={handleClick} itemProp="url">
+      <Link className="d-block mt-3 p-6" href={productLink} onClick={handleClick}>
         <div className="m-3 p-3">
           <div className="position-relative p-3 overflow-hidden" style={{ aspectRatio: 1 }}>
             {product.image ? (
@@ -115,8 +115,8 @@ export default function ProductCard({ product, limitedBadges = false, gtmCategor
           {product.whatisit ?? product.whatis} {product.partnumber}
         </Link>
         <h3 className="product-title fs-6">
-          <Link href={productLink} onClick={handleClick} itemProp="name">
-            {product.title}
+          <Link href={productLink} onClick={handleClick} itemProp="url">
+            <span  itemProp="name">{product.title}</span>
           </Link>
         </h3>
         <div className="mt-auto">
