@@ -250,11 +250,12 @@ export default function Category({ path, currentPage, pageSize, order, filters, 
                 </div></div>
               </aside>
             )}
-            <section className={`col-lg-${(category.children || category.filters) ? 8 : 12}`}>
+            <section className={`col-lg-${(category.children || category.filters) ? 8 : 12}`} itemScope itemType="http://schema.org/OfferCatalog">
+              <meta itemProp="name" content={category.name} />
 
               {(category.description && currentPage == 1) && (
                 <div className="card mb-grid-gutter">
-                  <div className="card-body px-4" dangerouslySetInnerHTML={{ __html: category.description }}></div>
+                  <div className="card-body px-4" dangerouslySetInnerHTML={{ __html: category.description }} itemProp="description"></div>
                 </div>
               )}
 

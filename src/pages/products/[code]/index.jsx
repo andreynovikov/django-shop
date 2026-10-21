@@ -249,8 +249,7 @@ export default function Product({ code, site }) {
                   {product.enabled && product.cost > 0 && (
                     <div className="d-flex flex-row xalign-items-baseline mb-3">
                       <div className="h3 fw-normal text-accent flex-shrink-1">
-                        <ProductPrice product={product} delFs="lg" itemProp="price" content={product.cost} />
-                        <meta itemProp="priceCurrency" content="RUB" />
+                        <ProductPrice product={product} delFs="lg" />
                       </div>
                       <div className="ms-3 text-end w-100">
                         {product.discount > 0 && (

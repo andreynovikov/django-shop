@@ -74,7 +74,7 @@ export default function ProductCard({ product, limitedBadges = false, gtmCategor
   const productLink = product.variations ? product.variations : { pathname: '/products/[code]', query: { code: product.code } }
 
   return (
-    <div ref={cardRef} className="card product-card h-100">
+    <div ref={cardRef} className="card product-card h-100" itemProp="itemListElement" itemScope itemType="http://schema.org/Offer">
       {status === 'authenticated' && <OverlayTrigger
         placement="left"
         overlay={
@@ -92,7 +92,7 @@ export default function ProductCard({ product, limitedBadges = false, gtmCategor
           <i className="ci-heart" />
         </button>
       </OverlayTrigger>}
-      <Link className="d-block mt-3 p-6" href={productLink} onClick={handleClick}>
+      <Link className="d-block mt-3 p-6" href={productLink} onClick={handleClick} itemProp="url">
         <div className="m-3 p-3">
           <div className="position-relative p-3 overflow-hidden" style={{ aspectRatio: 1 }}>
             {product.image ? (
@@ -102,7 +102,8 @@ export default function ProductCard({ product, limitedBadges = false, gtmCategor
                 style={{ objectFit: "contain" }}
                 sizes="(min-width: 500px) 50vw, (min-width: 768px) 33vw, 100vw"
                 loading="lazy"
-                alt={`${product.title} ${product.whatisit ?? product.whatis}`} />
+                alt={`${product.title} ${product.whatisit ?? product.whatis}`}
+                itemProp="image" />
             ) : (
               <NoImage />
             )}
@@ -114,7 +115,7 @@ export default function ProductCard({ product, limitedBadges = false, gtmCategor
           {product.whatisit ?? product.whatis} {product.partnumber}
         </Link>
         <h3 className="product-title fs-6">
-          <Link href={productLink} onClick={handleClick}>
+          <Link href={productLink} onClick={handleClick} itemProp="name">
             {product.title}
           </Link>
         </h3>
@@ -139,14 +140,20 @@ export default function ProductCard({ product, limitedBadges = false, gtmCategor
                   <i className="ci-eye fs-sm" />
                 </Link>
               ) : product.enabled && product.instock ? (
-                <button className="btn btn-success btn-sm d-block w-100 sw-button" type="button" onClick={handleCartClick}>
-                  <i className="ci-cart fs-sm" />
-                  {basketQuantity > 0 && <span className="sw-button-label">{basketQuantity}</span>}
-                </button>
+                <>
+                  <link itemProp="availability" href="http://schema.org/InStock" />
+                  <button className="btn btn-success btn-sm d-block w-100 sw-button" type="button" onClick={handleCartClick}>
+                    <i className="ci-cart fs-sm" />
+                    {basketQuantity > 0 && <span className="sw-button-label">{basketQuantity}</span>}
+                  </button>
+                </>
               ) : (
-                <Link className="btn btn-secondary btn-sm d-block w-100" href={productLink} onClick={handleClick}>
-                  <i className="ci-eye fs-sm" />
-                </Link>
+                <>
+                  <link itemProp="availability" href="http://schema.org/OutOfStock" />
+                  <Link className="btn btn-secondary btn-sm d-block w-100" href={productLink} onClick={handleClick}>
+                    <i className="ci-eye fs-sm" />
+                  </Link>
+                </>
               )}
             </div>
             { /* TODO
@@ -163,7 +170,7 @@ export default function ProductCard({ product, limitedBadges = false, gtmCategor
         </div>
       </div>
       <div className="card-body card-body-hidden">
-        {product.shortdescr && <div className="fs-ms pb-2" dangerouslySetInnerHTML={{ __html: product.shortdescr }}></div>}
+        {product.shortdescr && <div className="fs-ms pb-2" dangerouslySetInnerHTML={{ __html: product.shortdescr }} itemProp="description"></div>}
         {product.sales_notes && <div className="fs-ms text-info pb-2">{product.sales_notes}</div>}
         {/*
                 <div className="d-flex mb-2">

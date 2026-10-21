@@ -2,7 +2,8 @@ export default function ProductPrice({ product, delFs, ...props }) {
   if (product.enabled && product.cost > 0)
     return (
       <>
-        <span {...props}>{product.cost.toLocaleString('ru')}<small>&nbsp;руб</small></span>
+        <span itemProp="price" content={product.cost} {...props}>{product.cost.toLocaleString('ru')}<small>&nbsp;руб</small></span>
+        <meta itemProp="priceCurrency" content="RUB" />
         {product.cost != product.price && (
           <>
             {" "}
