@@ -112,6 +112,9 @@ export async function GET(request: Request, { params }: RouteContext<'/xml/[file
 }
 
 export async function generateStaticParams() {
+  if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
+    return []
+  
   const integrations = await listIntegrations()
   return integrations.filter(
     integration => integration.enabled
