@@ -22,12 +22,14 @@ type RevalidationResponse = {
   message?: string
 }
 
-function getPathForModelItem(model: string, item: Payload) {
+function getPathForModelItem(model: string, item: Item) {
   switch (model) {
     case 'category':
       return `/catalog/${item.path}/`
     case 'product':
       return `/products/${item.code}/`
+    case 'store':
+      return `/stores/${item.pk}/`
     case 'page':
       return `/pages${item.uri}`
     case 'news':
@@ -53,9 +55,9 @@ export default async function handler(
     return res.status(400).json({ revalidated: false, message: 'Parameters missing' })
   }
 
-  const items: (Payload & { pk?: number | string })[] = []
+  const items: Item[] = []
   if (data.pk !== undefined)
-    items.push(data)
+    items.push(data as Item)
   if (data.items !== undefined)
     items.push(...data.items)
 
