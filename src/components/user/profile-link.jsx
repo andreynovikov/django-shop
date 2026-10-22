@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 
 import { formatPhone } from '@/lib/format'
@@ -7,7 +7,7 @@ import { useSession } from '@/lib/session'
 import SignInModal from '@/components/user/sign-in-modal'
 
 export default function UserProfileLink() {
-  const modalRef = useRef()
+  const [showSignIn, setShowSignIn] = useState(false)
   const { user, status, signOut } = useSession()
 
   if (status === 'authenticated') {
@@ -34,11 +34,11 @@ export default function UserProfileLink() {
   } else {
     return (
       <div className="navbar-tool ms-1 ms-lg-0 me-n1 me-lg-2">
-        <SignInModal ref={modalRef} ctx="profile" />
-        <a className="navbar-tool-icon-box d-block" onClick={() => modalRef.current.showModal()} style={{ cursor: 'pointer' }}>
+        <SignInModal ctx="profile" show={showSignIn} onHide={() => setShowSignIn(false)} />
+        <a className="navbar-tool-icon-box d-block" onClick={() => setShowSignIn(true)} style={{ cursor: 'pointer' }}>
           <i className="navbar-tool-icon ci-user" />
         </a>
-        <a className="navbar-tool-text ms-n3" onClick={() => modalRef.current.showModal()} style={{ cursor: 'pointer' }}>
+        <a className="navbar-tool-text ms-n3" onClick={() => setShowSignIn(true)} style={{ cursor: 'pointer' }}>
           <small>Вход в</small>личный кабинет
         </a>
       </div>

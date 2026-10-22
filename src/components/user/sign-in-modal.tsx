@@ -1,4 +1,4 @@
-import { useState, forwardRef, useImperativeHandle, useRef } from 'react'
+import { useState } from 'react'
 
 import Modal from 'react-bootstrap/Modal'
 import Nav from 'react-bootstrap/Nav'
@@ -7,36 +7,26 @@ import Tab from 'react-bootstrap/Tab'
 import LoginForm from '@/components/login-form'
 import RegistrationForm from '@/components/user/registration-form'
 
-export default forwardRef(function SignInModal({ ctx: modalCtx }, ref) {
-  const [show, setShow] = useState(false)
+interface SignInModalProps {
+  ctx: string
+  show: boolean
+  onHide: () => void
+}
+
+export default function SignInModal({ ctx: modalCtx, show, onHide }: SignInModalProps) {
   const [key, setKey] = useState('signin')
   const [ctx, setCtx] = useState('login')
   const [phone, setPhone] = useState('')
 
-  const modalRef = useRef()
-
-  const showModal = () => {
-    setShow(true)
-  }
-
-  const hideModal = () => {
-    setShow(false)
-  }
-
-  const onRegistrationComplete = (phone) => {
+  const onRegistrationComplete = (phone: string) => {
     setCtx('reg')
     setPhone(phone)
     setKey('signin')
   }
 
-  useImperativeHandle(ref, () => ({ // TODO: refactor?
-    showModal,
-    hideModal
-  }))
-
   return (
-    <Modal ref={modalRef} show={show} onHide={hideModal} centered>
-      <Tab.Container id={`${modalCtx}-tabs`} activeKey={key} onSelect={(k) => setKey(k)}>
+    <Modal show={show} onHide={onHide} centered>
+      <Tab.Container id={`${modalCtx}-tabs`} activeKey={key} onSelect={(k) => setKey(k ?? 'signin')}>
         <Modal.Header closeButton>
           <Nav variant="tabs" className="card-header-tabs">
             <Nav.Item>
@@ -56,7 +46,7 @@ export default forwardRef(function SignInModal({ ctx: modalCtx }, ref) {
         <Modal.Body>
           <Tab.Content>
             <Tab.Pane eventKey="signin">
-              <LoginForm key={phone} embedded={modalCtx} ctx={ctx} phone={phone} hideModal={hideModal} />
+              <LoginForm key={phone} embedded={modalCtx} ctx={ctx} phone={phone} hideModal={onHide} />
             </Tab.Pane>
             <Tab.Pane eventKey="signup">
               <RegistrationForm embedded={modalCtx} onComplete={onRegistrationComplete} />
@@ -66,4 +56,4 @@ export default forwardRef(function SignInModal({ ctx: modalCtx }, ref) {
       </Tab.Container>
     </Modal>
   )
-})
+}

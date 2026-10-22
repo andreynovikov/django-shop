@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { Loading } from '@/components/loading'
@@ -11,7 +11,7 @@ export default function ReviewForm({ product, review: reviewId }) {
   const [updated, setUpdated] = useState(false)
   const [error, setError] = useState({})
   const queryClient = useQueryClient()
-  const modalRef = useRef()
+  const [showUpdateModal, setShowUpdateModal] = useState(false)
   const { user } = useSession()
 
   const { data: form, isSuccess: isFormSuccess } = useQuery({
@@ -92,14 +92,14 @@ export default function ReviewForm({ product, review: reviewId }) {
 
       {user?.username === '' && (
         <>
-          <UserUpdateModal ref={modalRef} />
+          <UserUpdateModal show={showUpdateModal} onHide={() => setShowUpdateModal(false)} />
           <div className="alert alert-warning d-flex" role="alert">
             <div className="alert-icon">
               <i className="ci-announcement" />
             </div>
             <div>
               Вы можете{' '}
-              <a className="alert-link" onClick={() => modalRef.current.showModal()} style={{ cursor: 'pointer' }}>указать</a>
+              <a className="alert-link" onClick={() => setShowUpdateModal(true)} style={{ cursor: 'pointer' }}>указать</a>
               {' '}псевдоним, если не хотите, чтобы отображалось Ваше реальное имя.
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer, forwardRef, useImperativeHandle, useRef } from 'react'
+import { useState, useEffect, useReducer, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { Loading } from '@/components/loading'
@@ -7,8 +7,7 @@ import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
 import { useSession } from '@/lib/session'
 import { userKeys, getUserForm, updateUser } from '@/lib/queries'
 
-export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, ref) {
-  const [ready, setReady] = useState(false)
+export default function UpdateForm({ id, embedded, onReady, onUpdated }) {
   const [updated, setUpdated] = useState(false)
   const [error, setError] = useState(false)
   const queryClient = useQueryClient()
@@ -35,13 +34,13 @@ export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, 
     /* eslint-disable react-hooks/exhaustive-deps */
   }, [user, status, form, isSuccess])
 
+  const ready = isSuccess && status === 'authenticated' && Object.keys(formData).length > 0
+
   useEffect(() => {
-    if (isSuccess && status === 'authenticated' && Object.keys(formData).length > 0) {
-      setReady(true)
+    if (ready)
       onReady()
-    }
     /* eslint-disable react-hooks/exhaustive-deps */
-  }, [isSuccess, status, formData])
+  }, [ready])
 
   useEffect(() => {
     if (updated) {
@@ -67,8 +66,7 @@ export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, 
   }
 
   const handleSubmit = async (e) => {
-    if (e)
-      e.preventDefault()
+    e.preventDefault()
     if (!isValidPhone(formRef.current.elements.phone.value)) {
       console.error("error")
       setError({ phone: ["Введите корректный номер"] })
@@ -89,15 +87,11 @@ export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, 
     }
   }
 
-  useImperativeHandle(ref, () => ({
-    submit: handleSubmit
-  }))
-
   if (!ready)
     return <Loading className="text-center" />
 
   return (
-    <form ref={formRef} noValidate>
+    <form id={id} ref={formRef} noValidate onSubmit={handleSubmit}>
       {updated && (
         <div className="alert alert-success d-flex" role="alert">
           <div className="alert-icon"><i className="ci-check-circle" /></div>
@@ -146,4 +140,4 @@ export default forwardRef(function UpdateForm({ embedded, onReady, onUpdated }, 
       </div>
     </form>
   )
-})
+}
