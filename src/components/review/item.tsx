@@ -1,15 +1,17 @@
 import ReviewRating from '@/components/review/rating'
 import UserAvatar from '@/components/user/avatar'
 
+import { ProductReview } from '@/lib/types'
+
 import moment from 'moment'
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function ReviewItem({ review, first, last }) {
+export default function ReviewItem({ review, first, last }: { review: ProductReview, first?: boolean, last?: boolean }) {
   return (
     <div className={"product-review mb-4 pb-4" + (!last && " border-bottom")} id={"r" + review.id}>
       <div className="d-flex mb-3">
         <div className="d-flex align-items-center me-4 pe-2">
-          <UserAvatar gravatar={review.user.gravatar} name={review.user.full_name} size="50" border />
+          <UserAvatar gravatar={review.user.gravatar} name={review.user.full_name} size={50} border />
           <div className="ps-3">
             <h6 className="fs-sm mb-0">{review.user.full_name}</h6>
             <span className="d-none fs-ms text-muted">{moment(review.submit_date).fromNow()}</span>

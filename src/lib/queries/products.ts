@@ -1,4 +1,4 @@
-import { PaginatedResult, Product, ProductInfo, ProductStock } from '@/lib/types'
+import { PaginatedResult, Product, ProductInfo, Store } from '@/lib/types'
 import { productSearchParamsSerializer, ProductSearchParamsType } from '@/lib/search-params'
 import { apiFetch } from './fetch'
 
@@ -44,7 +44,7 @@ export async function getProductImages(id: number) {
 }
 
 export async function loadProductStock(id: number) {
-  return await apiFetch<ProductStock[]>(`products/${id}/stock/`)
+  return await apiFetch<Store[]>(`products/${id}/stock/`)
 }
 
 export async function loadProduct(id: number) {

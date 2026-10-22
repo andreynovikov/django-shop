@@ -5,7 +5,7 @@ import ReviewRating from '@/components/review/rating'
 import rupluralize from '@/lib/rupluralize'
 import { reviewKeys, getProductRating } from '@/lib/queries'
 
-export default function ProductRating({ product, anchor }) {
+export default function ProductRating({ product, anchor }: { product: number, anchor: string }) {
   const { data: average, isSuccess } = useQuery({
     queryKey: reviewKeys.rating(product),
     queryFn: () => getProductRating(product)
@@ -16,7 +16,7 @@ export default function ProductRating({ product, anchor }) {
 
   const handleScroll = () => {
     const el = document.getElementById(anchor)
-    if (el !== undefined)
+    if (el)
       el.scrollIntoView({
         behavior: 'smooth',
         block: 'start'

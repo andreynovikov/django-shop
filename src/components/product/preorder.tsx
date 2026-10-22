@@ -8,8 +8,9 @@ import LoginForm from '@/components/login-form'
 
 import { createPreorder } from '@/lib/queries'
 import { useSession } from '@/lib/session'
+import { Product } from '@/lib/types'
 
-export default function ProductPreorder({ product }) {
+export default function ProductPreorder({ product }: { product: Product }) {
   const [show, setShow] = useState(false)
   const [isPending, setIsPending] = useState(false)
   const { user, status } = useSession()
@@ -54,7 +55,7 @@ export default function ProductPreorder({ product }) {
               </button>
             </>
           ) : (
-            <LoginForm embedded={true} ctx="preorder" />
+            <LoginForm embedded="preorder" ctx="preorder" />
           )}
         </Modal.Body>
       </Modal>

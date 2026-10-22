@@ -1,5 +1,5 @@
-function getStarClassName(star, value, classAddon) {
-  var modifier = ''
+function getStarClassName(star: number, value: number, classAddon?: string) {
+  let modifier = ''
   if (star <= value)
     modifier = '-filled'
   else if (star <= (value + 0.7))
@@ -7,7 +7,7 @@ function getStarClassName(star, value, classAddon) {
   return `ci-star${modifier} active ${classAddon ? classAddon : "star-rating-icon"}`
 }
 
-export default function ReviewRating({ value, classAddon }) {
+export default function ReviewRating({ value, classAddon }: { value: number, classAddon?: string }) {
   return (
     <div className="star-rating">
       <i className={getStarClassName(1, value, classAddon)} />

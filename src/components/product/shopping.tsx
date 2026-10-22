@@ -3,8 +3,9 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 
 import useBasket from '@/lib/basket'
+import { Product } from '@/lib/types'
 
-export default function ProductShopping({ product }) {
+export default function ProductShopping({ product }: { product: Product }) {
   const [quantity, setAddQuantity] = useState(1)
   const { basket, addItem, removeItem, setQuantity, isEmpty, isSuccess } = useBasket()
 
@@ -18,7 +19,7 @@ export default function ProductShopping({ product }) {
       return 0
   }, [basket, product, isSuccess, isEmpty])
 
-  const handleSetQuantity = (delta) => {
+  const handleSetQuantity = (delta: number) => {
     const quantity = Math.max(0, Math.min(10000, basketQuantity + delta))
     if (quantity === 0)
       removeItem(product)
@@ -52,7 +53,7 @@ export default function ProductShopping({ product }) {
   ) : (
     <div className="d-flex justify-content-between align-items-center">
       {product.instock > 5 && (
-        <select className="form-select me-3" style={{ width: "5rem" }} value={quantity} onChange={(e) => setAddQuantity(e.target.value)}>
+        <select className="form-select me-3" style={{ width: "5rem" }} value={quantity} onChange={(e) => setAddQuantity(+e.target.value)}>
           <option value="1">1</option>
           <option value="2">2</option>
           <option value="3">3</option>

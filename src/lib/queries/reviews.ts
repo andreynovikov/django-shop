@@ -26,6 +26,7 @@ interface ProductReviewList extends PaginatedResult<ProductReview> {
       count: number
     }[]
   }
+  user_reviews?: number[]
 }
 
 export async function getProductRating(id: number) {

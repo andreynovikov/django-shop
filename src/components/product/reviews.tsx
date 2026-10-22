@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { Loading } from '@/components/loading'
@@ -10,12 +10,19 @@ import SignInModal from '@/components/user/sign-in-modal'
 import rupluralize from '@/lib/rupluralize'
 import { useSession } from '@/lib/session'
 import { reviewKeys, loadProductReviews } from '@/lib/queries'
+import { Product } from '@/lib/types'
 
 const colors = ['#f34770', '#fea569', '#ffda75', '#a7e453', '#42d697']
 
-export default function ProductReviews({ product }) {
-  const modalRef = useRef()
-  const [ratingChoices, setRatingChoices] = useState([])
+type RatingChoice = {
+  'rating': number
+  'count': number
+  'percent': number
+}
+
+export default function ProductReviews({ product }: { product: Product }) {
+  const [showSignIn, setShowSignIn] = useState(false)
+  const [ratingChoices, setRatingChoices] = useState<RatingChoice[]>([])
 
   const { status } = useSession()
 
@@ -26,9 +33,9 @@ export default function ProductReviews({ product }) {
 
   useEffect(() => {
     if (isSuccess && reviews.count > 0) {
-      const choices = []
-      var rating = 0
-      for (var r = 1; r < 6; r++) {
+      const choices: RatingChoice[] = []
+      let rating = 0
+      for (let r = 1; r < 6; r++) {
         if (rating === reviews.statistics.ratings.length || reviews.statistics.ratings[rating].rating > r) {
           choices.push({
             'rating': r,
@@ -43,6 +50,7 @@ export default function ProductReviews({ product }) {
         })
         rating++
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRatingChoices(choices)
     }
   }, [isSuccess, reviews])
@@ -74,8 +82,8 @@ export default function ProductReviews({ product }) {
                         role="progressbar"
                         style={{ width: choice.percent + "%", backgroundColor: colors[index] }}
                         aria-valuenow={choice.percent}
-                        aria-valuemin="0"
-                        aria-valuemax="100">
+                        aria-valuemin={0}
+                        aria-valuemax={100}>
                       </div>
                     </div>
                   </div>
@@ -101,9 +109,9 @@ export default function ProductReviews({ product }) {
               <ReviewForm product={product} review={reviews.user_reviews?.[0]} />
             ) : (
               <div>
-                <SignInModal ref={modalRef} ctx="reviews" />
+                <SignInModal ctx="reviews" show={showSignIn} onHide={() => setShowSignIn(false)} />
                 Отзывы о товаре могут оставлять только{" "}
-                <a onClick={() => modalRef.current.showModal()}>зарегистрированные</a>
+                <a onClick={() => setShowSignIn(true)}>зарегистрированные</a>
                 {" "}покупатели.
               </div>
             )}

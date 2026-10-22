@@ -66,6 +66,7 @@ export interface Product {
   title: string
   price: number
   cost: number
+  instock: number
   enabled: boolean
   video_url?: string
   // TODO - add remaining fields
