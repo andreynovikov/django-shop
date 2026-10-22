@@ -4,7 +4,12 @@ import Modal from 'react-bootstrap/Modal'
 
 import UpdateForm from '@/components/user/update-form'
 
-export default function UserUpdateModal({ show, onHide }) {
+interface UserUpdateModalProps {
+  show: boolean
+  onHide: () => void
+}
+
+export default function UserUpdateModal({ show, onHide }: UserUpdateModalProps) {
   const [formReady, setFormReady] = useState(false)
 
   return (

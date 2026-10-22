@@ -20,7 +20,6 @@ export default async function LoginPage({ searchParams }: PageProps) {
       <div className="row justify-content-md-center">
         <div className="col-md-6">
           <h2 className="h4 mb-3">Добро пожаловать</h2>
-          {/* @ts-expect-error TODO: fix typing after LoginForm converted to TypeScript */}
           <LoginForm key={phone} ctx={ctx} phone={phone} />
         </div>
       </div>

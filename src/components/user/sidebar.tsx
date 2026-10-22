@@ -12,15 +12,17 @@ import useFavorites from '@/lib/favorites'
 import { useSession } from '@/lib/session'
 import { useNavigation } from '@/lib/navigation'
 import { orderKeys, loadOrders } from '@/lib/queries'
+import { User } from '@/lib/types'
 
 export default function UserSidebar() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const { navigate, path } = useNavigation()
 
-  const { user, status, signOut } = useSession({
+  const { user: sessionUser, status, signOut } = useSession({
     onUnauthenticated: () => navigate(`/login?callbackUrl=${encodeURIComponent(path)}`)
   })
+  const user = status === 'authenticated' ? sessionUser as User : undefined
 
   const { favorites } = useFavorites()
 
@@ -47,7 +49,7 @@ export default function UserSidebar() {
             <div className="img-thumbnail rounded-circle position-relative flex-shrink-0 mx-auto mb-2 mx-md-0 mb-md-0" style={{ width: "6.375rem" }}>
               {/* <UserBonus /> */}
               <picture>
-                <UserAvatar gravatar={user.gravatar} name={user.name || user.full_name} size="90" />
+                <UserAvatar gravatar={user.gravatar} name={user.name || user.full_name} size={90} />
               </picture>
             </div>
             <div className="ps-md-3">
@@ -64,7 +66,7 @@ export default function UserSidebar() {
             <li className="border-bottom mb-0">
               <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (path === '/user/orders/' ? " active" : "")} href="/user/orders/">
                 <i className="ci-bag opacity-60 me-2" />Заказы
-                {orders?.count > 0 && <span className="fs-sm text-muted ms-auto">{orders.count}</span>}
+                {orders !== undefined && orders.count > 0 && <span className="fs-sm text-muted ms-auto">{orders.count}</span>}
               </Link>
             </li>
             <li className="border-bottom mb-0">

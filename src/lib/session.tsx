@@ -12,7 +12,7 @@ type SignInResult = Promise<LoginResultWithOk | {
   ok: boolean
 }>
 
-type RegisterResult = Promise<User | {
+type RegisterResult = Promise<(User & { ok: boolean }) | {
   error: unknown
 }>
 

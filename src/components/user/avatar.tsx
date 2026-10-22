@@ -62,8 +62,8 @@ async function loadAvatar(gravatar: string, name: string, size: number) {
 interface UserAvatarProps {
   gravatar: string
   name: string
-  size: number
-  border: boolean
+  size?: number
+  border?: boolean
 }
 
 export default function UserAvatar({ gravatar, name, size = 50, border = false }: UserAvatarProps) {

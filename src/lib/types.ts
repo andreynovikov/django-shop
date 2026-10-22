@@ -311,10 +311,11 @@ export interface UserEdit {
 }
 
 export interface UserFormField {
-  name: string
+  name: keyof UserEdit
   label: string
   id: string
   required: boolean
+  help?: string
 }
 
 export type UserForm = Array<UserFormField>

@@ -5,10 +5,12 @@ import { formatPhone } from '@/lib/format'
 import { useSession } from '@/lib/session'
 
 import SignInModal from '@/components/user/sign-in-modal'
+import { User } from '@/lib/types'
 
 export default function UserProfileLink() {
   const [showSignIn, setShowSignIn] = useState(false)
-  const { user, status, signOut } = useSession()
+  const { user: sessionUser, status, signOut } = useSession()
+  const user = status === 'authenticated' ? sessionUser as User : undefined
 
   if (status === 'authenticated') {
     return (
@@ -17,7 +19,7 @@ export default function UserProfileLink() {
           <i className="navbar-tool-icon ci-user" />
         </Link>
         <a className="navbar-tool-text ms-n3" style={{ cursor: 'pointer' }}>
-          <small>{user?.name || formatPhone(user?.phone)}</small>личный кабинет
+          <small>{user?.name || formatPhone(user!.phone)}</small>личный кабинет
         </a>
         <div className="dropdown-menu dropdown-menu-end">
           <Link className="dropdown-item" href="/user/orders">
@@ -27,7 +29,7 @@ export default function UserProfileLink() {
             Профиль
           </Link>
           <div className="dropdown-divider"></div>
-          <a className="dropdown-item" onClick={signOut} style={{ cursor: 'pointer' }}>Выйти</a>
+          <a className="dropdown-item" onClick={() => signOut()} style={{ cursor: 'pointer' }}>Выйти</a>
         </div>
       </div>
     )

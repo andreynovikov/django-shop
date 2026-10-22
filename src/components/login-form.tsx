@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, ChangeEvent, SubmitEvent } from 'react'
 import Link from 'next/link'
 import { useMutation } from '@tanstack/react-query'
 import { stringify as stringifyQuery } from 'querystring'
@@ -12,28 +12,48 @@ import { formatPhone } from '@/lib/format'
 import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
 import { useSession } from '@/lib/session'
 import { useNavigation } from '@/lib/navigation'
-import { checkUser, normalizePhone } from '@/lib/queries'
+import { checkUser, normalizePhone, HttpError, LoginCredentials } from '@/lib/queries'
 
 const CODE_RESEND_DELAY = 240
 
-function getError(field, error) {
-  if (error[field])
-    return { [field]: error[field][0] }
-  else if (error.non_field_errors)
-    return { [field]: error.non_field_errors[0] }
-  else if (detail)
-    return { [field]: error.detail }
-  else if (error)
-    return { [field]: error.toString() }
-  else
-    return { [field]: "Неизвестная ошибка входа" }
+type FieldErrors = Record<string, string>
+
+interface LoginFormProps {
+  ctx: string
+  phone?: string
+  hideModal?: () => void
+  embedded?: string
 }
 
-export default function LoginForm({ ctx, phone = undefined, hideModal = undefined, embedded = '' }) {
+// signIn returns error response body as text
+function getError(field: string, error: unknown): FieldErrors {
+  let data = error
+  if (typeof error === 'string') {
+    try {
+      data = JSON.parse(error)
+    } catch {
+      // not a JSON response
+    }
+  }
+  if (data !== null && typeof data === 'object' && !(data instanceof Error)) {
+    const errors = data as Record<string, unknown>
+    if (Array.isArray(errors[field]))
+      return { [field]: errors[field][0] }
+    else if (Array.isArray(errors.non_field_errors))
+      return { [field]: errors.non_field_errors[0] }
+    else if (typeof errors.detail === 'string')
+      return { [field]: errors.detail }
+  }
+  if (data)
+    return { [field]: String(data) }
+  return { [field]: "Неизвестная ошибка входа" }
+}
+
+export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: LoginFormProps) {
   const [pdConsent, setPdConsent] = useState(false)
   const [ofConsent, setOfConsent] = useState(false)
   const [isSignInPending, setSignInPending] = useState(false)
-  const [error, setError] = useState({})
+  const [error, setError] = useState<FieldErrors>({})
 
   const [delay, setDelay] = useState(-1) // TODO: keep delay on page reload
 
@@ -49,13 +69,13 @@ export default function LoginForm({ ctx, phone = undefined, hideModal = undefine
     isIdle,
     isPending: isUserCheckPending
   } = useMutation({
-    mutationFn: ({ phone, reset }) => checkUser(phone, reset),
+    mutationFn: ({ phone, reset }: { phone: string, reset: boolean }) => checkUser(phone, reset),
     onSuccess: (data) => {
       setDelay(data.permanent_password ? 0 : CODE_RESEND_DELAY)
     },
     onError: async (error, { phone }) => {
       console.log(error)
-      if (error.response?.status === 404) {
+      if (error instanceof HttpError && error.status === 404) {
         if (['order', 'preorder', 'warranty'].includes(ctx)) {
           setSignInPending(true)
           // register user in background when making order or registering warranty
@@ -64,7 +84,7 @@ export default function LoginForm({ ctx, phone = undefined, hideModal = undefine
             if (embedded && hideModal)
               hideModal()
           } else {
-            setError(getError('phone', result.error))
+            setError(getError('phone', 'error' in result ? result.error : undefined))
           }
           setSignInPending(false)
         } else {
@@ -80,22 +100,21 @@ export default function LoginForm({ ctx, phone = undefined, hideModal = undefine
   }, [phone, performUserCheck, isIdle])
 
   const phoneRef = usePhoneInput()
-  const passwordRef = useRef(null)
 
-  const validatePhone = (value) => {
+  const validatePhone = (value: string): FieldErrors => {
     return isValidPhone(value) ?
       {} : { phone: "Введите корректный номер" }
   }
 
-  const validatePassword = (value) => {
-    if (!!!(value.match(/^(:?\d{4}|.{5,30})$/)))
+  const validatePassword = (value: string): FieldErrors => {
+    if (!/^(:?\d{4}|.{5,30})$/.test(value))
       return { password: "Указан неверный " + (shopUser?.permanent_password ? "пароль" : "код") }
     else
       return {}
   }
 
-  const validatePermanentPasswords = (value1, value2) => {
-    const err = {}
+  const validatePermanentPasswords = (value1: string, value2: string) => {
+    const err: FieldErrors = {}
     if (value1 != value2)
       err['permanent_password2'] = "Пароли не совпадают"
     if (value1.length > 0 && value1.length < 5)
@@ -103,25 +122,25 @@ export default function LoginForm({ ctx, phone = undefined, hideModal = undefine
     return err
   }
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const field = e.currentTarget.name
-    if (error && field in error) {
-      setError(Object.keys(error).reduce(function (filtered, key) {
-        if (key !== field)
-          filtered[key] = error[key]
-        return filtered
-      }, {}))
-    }
+    if (field in error)
+      setError(Object.fromEntries(Object.entries(error).filter(([key]) => key !== field)))
     if (field === 'pd-consent')
-      setPdConsent(e.target.checked)
+      setPdConsent(e.currentTarget.checked)
     if (field === 'of-consent')
-      setOfConsent(e.target.checked)
+      setOfConsent(e.currentTarget.checked)
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError({})
-    let err = {}
+    let err: FieldErrors = {}
+    const formData = new FormData(e.currentTarget)
+    const phone = formData.get('phone') as string | null
+    const password = formData.get('password') as string | null
+    const permanentPassword = formData.get('permanent_password') as string ?? ''
+    const permanentPassword2 = formData.get('permanent_password2') as string ?? ''
 
     if (['order', 'preorder', 'warranty'].includes(ctx)) {
       if (!pdConsent)
@@ -130,26 +149,26 @@ export default function LoginForm({ ctx, phone = undefined, hideModal = undefine
         err = { ...err, 'of-consent': "Оформление заказа возможно только после подтверждения согласия" }
     }
 
-    if (e.target.elements.phone) {
-      err = { ...err, ...validatePhone(e.target.elements.phone.value) }
+    if (phone !== null) {
+      err = { ...err, ...validatePhone(phone) }
       if (Object.keys(err).length > 0) {
         setError(err)
       } else {
-        performUserCheck({ phone: normalizePhone(e.target.elements.phone.value), reset: false })
+        performUserCheck({ phone: normalizePhone(phone), reset: false })
       }
-    } else if (e.target.elements.password) {
-      err = { ...err, ...validatePassword(e.target.elements.password.value) }
+    } else if (password !== null && shopUser !== undefined) {
+      err = { ...err, ...validatePassword(password) }
       if (showPermanentPassword)
-        err = { ...err, ...validatePermanentPasswords(e.target.elements.permanent_password.value, e.target.elements.permanent_password2.value) }
+        err = { ...err, ...validatePermanentPasswords(permanentPassword, permanentPassword2) }
       if (Object.keys(err).length > 0) {
         setError(err)
       } else {
-        const credentials = {
+        const credentials: LoginCredentials = {
           phone: shopUser.phone,
-          password: e.target.elements.password.value,
+          password,
         }
-        if (showPermanentPassword && e.target.elements.permanent_password.value.length > 0)
-          credentials['permanent_password'] = e.target.elements.permanent_password.value
+        if (showPermanentPassword && permanentPassword.length > 0)
+          credentials.permanent_password = permanentPassword
         setSignInPending(true)
         const result = await signIn(credentials)
         setSignInPending(false)
@@ -158,18 +177,12 @@ export default function LoginForm({ ctx, phone = undefined, hideModal = undefine
             if (hideModal)
               hideModal()
           } else {
-            navigate(query.callbackUrl || '/')
+            navigate(typeof query.callbackUrl === 'string' ? query.callbackUrl : '/')
           }
+        } else if ('status' in result && [401, 403].includes(result.status)) {
+          setError({ password: "Вы ввели неправильный " + (shopUser.permanent_password ? "пароль" : "код") })
         } else {
-          try {
-            if ([401, 403].includes(result.status))
-              setError({ password: "Вы ввели неправильный " + (shopUser?.permanent_password ? "пароль" : "код") })
-            else
-              setError('password', result.error)
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          } catch (error) {
-            setError({ password: result.error.response?.statusText || result.error.message })
-          }
+          setError(getError('password', 'error' in result ? result.error : undefined))
         }
       }
     }
@@ -182,6 +195,8 @@ export default function LoginForm({ ctx, phone = undefined, hideModal = undefine
   }
 
   const resetPassword = () => {
+    if (shopUser === undefined)
+      return
     setDelay(-1)
     performUserCheck({ phone: shopUser.phone, reset: true })
   }
@@ -205,7 +220,6 @@ export default function LoginForm({ ctx, phone = undefined, hideModal = undefine
               name="password"
               className={"form-control" + ('password' in error ? " is-invalid" : "")}
               style={embedded ? {} : { maxWidth: "20rem" }}
-              ref={passwordRef}
               id={`${embedded}${ctx}-password-input`}
               placeholder={shopUser.permanent_password ? "Пароль" : "Код из смс"}
               onChange={handleChange}
@@ -328,7 +342,7 @@ export default function LoginForm({ ctx, phone = undefined, hideModal = undefine
         </button>
       ) : (
         <div className="text-end">
-          <button className={"btn btn-primary ms-4" + (embedded && " btn-shadow")} type="submit" disabled={isPending}>
+          <button className={"btn btn-primary ms-4" + (embedded ? " btn-shadow" : "")} type="submit" disabled={isPending}>
             {!embedded && <i className={"me-2 ms-n1 " + (shopUser ? "ci-sign-in" : "ci-unlocked")} />}
             {!!shopUser ? "Продолжить" : "Войти"}
             {isPending && <ButtonLoading />}

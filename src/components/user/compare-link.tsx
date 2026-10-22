@@ -1,6 +1,6 @@
 import useComparison from '@/lib/comparison'
 
-export default function CompareLink({ mobile = false }) {
+export default function CompareLink({ mobile = false }: { mobile?: boolean }) {
   const { comparisons } = useComparison()
 
   return (
@@ -8,7 +8,7 @@ export default function CompareLink({ mobile = false }) {
       <i className={"ci-compare mt-n1" + (mobile ? " text-muted me-2" : "")} />
       Сравнение
       {comparisons.length > 0 && (
-        <span class="badge rounded-pill bg-primary ms-1 align-text-bottom">{comparisons.length}</span>
+        <span className="badge rounded-pill bg-primary ms-1 align-text-bottom">{comparisons.length}</span>
       )}
     </>
   )
