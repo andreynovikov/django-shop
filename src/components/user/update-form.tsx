@@ -60,7 +60,9 @@ export default function UpdateForm({ id, embedded = false, onReady, onUpdated }:
   const phoneRef = usePhoneInput()
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
+    const { name, value } = e.currentTarget
+    if (name in error)
+      setError(Object.fromEntries(Object.entries(error).filter(([key]) => key !== name)))
     setEdits((edits) => ({ ...edits, [name]: value }))
   }
 
