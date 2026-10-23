@@ -141,8 +141,13 @@ def callback(request):
         notification_object = WebhookNotification(data)
         if notification_object.event == 'refund.succeeded':
             return HttpResponse('')
-        payment = notification_object.object
-        order = Order.objects.get(pk=int(payment.metadata.get('order_id', payment.metadata.get('orderNumber', '-1'))))
+        notification_payment = notification_object.object
+        order = Order.objects.get(pk=int(notification_payment.metadata.get('order_id', notification_payment.metadata.get('orderNumber', '-1'))))
+        # Notification is not signed, so fetch actual payment status from YooKassa
+        configure_yookassa(order)
+        payment = Payment.find_one(notification_payment.id)
+        if str(payment.metadata.get('order_id', payment.metadata.get('orderNumber', '-1'))) != str(order.id):
+            raise Exception("Payment {} does not belong to order {}".format(payment.id, order.id))
         user = ShopUser.objects.get(pk=int(payment.metadata.get('user_id', payment.metadata.get('CustomerNumber', '-1'))))
         if order.user.id != user.id:
             raise Exception()

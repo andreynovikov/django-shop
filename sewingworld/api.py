@@ -20,6 +20,7 @@ from rest_framework.exceptions import MethodNotAllowed, NotAuthenticated, NotFou
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission, IsAuthenticated, DjangoModelPermissions
 from rest_framework.response import Response
+from rest_framework.throttling import SimpleRateThrottle
 
 from django.contrib.flatpages.models import FlatPage
 # from django_ipgeobase.models import IPGeoBase
@@ -34,7 +35,7 @@ from yandex_kassa.views import payment as yandex_payment
 # from rarus.tasks import get_bonus_value
 from shop.filters import get_product_filter
 from shop.models import Category, ProductKind, Product, ProductSet, Stock, Basket, BasketItem, Order, OrderItem, \
-    Favorites, ShopUser, Bonus, News, SalesAction, Advert, Store, ServiceCenter, Serial, Integration, ProductIntegration
+    Favorites, ShopUser, ShopUserManager, Bonus, News, SalesAction, Advert, Store, ServiceCenter, Serial, Integration, ProductIntegration
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail
 
 from .models import SiteProfile
@@ -70,6 +71,45 @@ class IsSelf(BasePermission):
                 return obj.pk == request.user.pk
         else:
             return False
+
+
+class PhoneRateThrottle(SimpleRateThrottle):
+    """ Limits attempts per target phone regardless of client IP, so that one-time codes cannot be brute forced """
+    def get_cache_key(self, request, view):
+        if view.detail:
+            ident = str(view.kwargs.get(view.lookup_field, ''))
+            if not ident.isdigit():  # see UserViewSet.get_object: digits are user id, otherwise phone
+                ident = ShopUserManager.normalize_phone(ident)
+        else:
+            data = request.data if isinstance(request.data, dict) else {}
+            ident = ShopUserManager.normalize_phone(str(data.get('phone', '')))
+        return self.cache_format % {'scope': self.scope, 'ident': ident}
+
+
+class IpRateThrottle(SimpleRateThrottle):
+    """ Limits attempts per client IP, for authenticated and anonymous users alike """
+    def get_cache_key(self, request, view):
+        return self.cache_format % {'scope': self.scope, 'ident': self.get_ident(request)}
+
+
+class LoginIpThrottle(IpRateThrottle):
+    scope = 'login'
+
+
+class LoginPhoneThrottle(PhoneRateThrottle):
+    scope = 'login_phone'
+
+
+class LoginPhoneDailyThrottle(PhoneRateThrottle):
+    scope = 'login_phone_day'
+
+
+class CheckIpThrottle(IpRateThrottle):
+    scope = 'check'
+
+
+class CheckPhoneThrottle(PhoneRateThrottle):
+    scope = 'check_phone'
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -729,7 +769,7 @@ class UserViewSet(viewsets.ModelViewSet):
         #     get_bonus_value.delay(user.phone)
         return Response(self.get_serializer(user.bonus, context=self.get_serializer_context()).data)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], throttle_classes=[CheckIpThrottle, CheckPhoneThrottle])
     def check(self, request, pk=None):
         user = self.get_object()
         permanent_password = getattr(user, 'permanent_password', False)
@@ -745,7 +785,7 @@ class UserViewSet(viewsets.ModelViewSet):
             'permanent_password': permanent_password and not reset
         })
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], throttle_classes=[LoginIpThrottle, LoginPhoneThrottle, LoginPhoneDailyThrottle])
     def login(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid():
