@@ -45,7 +45,7 @@ django-timezone-field==7.2.2
 django-two-factor-auth==1.18.1
 django-widget-tweaks==1.5.1
 django_celery_results==2.6.0
-djangorestframework==3.18.1
+djangorestframework==3.18.2
 et_xmlfile==2.0.0
 flake8==7.4.1
 h11==0.16.0
