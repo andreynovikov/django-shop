@@ -1,7 +1,7 @@
 from hashlib import md5
 from tidylib import tidy_fragment
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from shop.models import Product
 
 
