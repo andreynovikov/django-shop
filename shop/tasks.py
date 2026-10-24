@@ -21,7 +21,6 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
 from django.contrib.admin.models import LogEntry, CHANGE
-from django.contrib.contenttypes.models import ContentType
 from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
 from django.core.mail import send_mail
@@ -35,7 +34,6 @@ from django.db.models.fields.reverse_related import ForeignObjectRel
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import dateparse, timezone
-from django.utils.encoding import force_str
 from django.utils.formats import date_format
 from django.contrib.sites.models import Site
 
