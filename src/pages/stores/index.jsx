@@ -4,7 +4,8 @@ import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 
 import PageLayout from '@/components/layout/page'
 
-import { storeKeys, loadStores, loadStore } from '@/lib/queries'
+import { storeKeys, loadStore } from '@/lib/queries'
+import { formatPhone } from '@/lib/format'
 
 export default function Store({ id }) {
   const [ymapsReady, setYMapsReady] = useState(false)
@@ -54,14 +55,10 @@ export default function Store({ id }) {
 
   return (
     <>
-      <section className="container py-3 py-lg-5">
-        {store.description ? <div dangerouslySetInnerHTML={{ __html: store.description }} /> :
-          <p className="lead">Продажа швейных машин, оверлоков, вязальных машин и аксессуаров для рукоделия в г. {store.city.name}</p>}
-      </section>
-      <section className="container-fluid">
+      <section className="container-fluid mt-3 mt-lg-5">
         <div className="row">
           <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-            <a className="card" href="#map" onClick={handleScroll}>
+            <a className="card h-100" href="#map" onClick={handleScroll}>
               <div className="card-body text-center">
                 <i className="ci-location h3 mt-2 mb-4 text-primary" />
                 <h3 className="h6 mb-3">Адрес</h3>
@@ -80,7 +77,7 @@ export default function Store({ id }) {
           </div>
           {store.hours && (
             <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-              <div className="card">
+              <div className="card h-100">
                 <div className="card-body text-center">
                   <i className="ci-time h3 mt-2 mb-4 text-primary" />
                   <h3 className="h6 mb-3">Часы работы</h3>
@@ -97,14 +94,14 @@ export default function Store({ id }) {
           )}
           {store.phones && (
             <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-              <div className="card">
+              <div className="card h-100">
                 <div className="card-body text-center">
                   <i className="ci-phone h3 mt-2 mb-4 text-primary" />
                   <h3 className="h6 mb-3">Телефон{store.phones.length > 1 && 'ы'}</h3>
                   <ul className="list-unstyled fs-sm mb-0">
                     {store.phones.map((phone, index) => (
                       <li className={index === store.phones.length - 1 ? 'mb-0' : ''} key={index}>
-                        <a className="nav-link-style" href={'tel:' + phone.replace(/[ -]/g, '')}>{phone}</a>
+                        <a className="nav-link-style" href={'tel:' + phone.replace(/[ -]/g, '')}>{formatPhone(phone)}</a>
                       </li>
                     ))}
                   </ul>
@@ -114,7 +111,7 @@ export default function Store({ id }) {
           )}
           {store.url && (
             <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-              <div className="card">
+              <div className="card h-100">
                 <div className="card-body text-center">
                   <i className="ci-dribbble h3 mt-2 mb-4 text-primary" />
                   <h3 className="h6 mb-3">Сайт магазина</h3>
@@ -129,11 +126,10 @@ export default function Store({ id }) {
           )}
         </div>
       </section>
-      {store.description && (
-        <section className="container py-3 py-lg-5 mt-4 mb-3">
-          <div dangerouslySetInnerHTML={{ __html: store.description }}></div>
-        </section>
-      )}
+      <section className="container py-3 py-lg-5">
+        {store.description ? <div dangerouslySetInnerHTML={{ __html: store.description }} /> :
+          <p className="lead">Продажа швейных машин, оверлоков, вязальных машин и аксессуаров для рукоделия в г. {store.city.name}</p>}
+      </section>
       {store.latitude && store.longitude && (
         <div className="container-fluid px-0 pt-3 pt-lg-5" id="map">
           <div className="row g-0">
