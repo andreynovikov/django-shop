@@ -451,6 +451,8 @@ class OrderItem(models.Model):
     tracker = FieldTracker(fields=['quantity'])
 
     class Meta:
+        verbose_name = 'товарная позиция'
+        verbose_name_plural = 'товарные позиции'
         ordering = ['id']
         indexes = [
             Index(Upper('serial_number'), name='shop_order_item_serial_number_idx')
@@ -519,10 +521,6 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return "%s, %d шт." % (self.product.title, self.quantity)
-
-    class Meta:
-        verbose_name = 'товарная позиция'
-        verbose_name_plural = 'товарные позиции'
 
 
 def set_order_item_price(sender, instance, **kwargs):
