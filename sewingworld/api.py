@@ -884,7 +884,6 @@ class CsrfTokenView(views.APIView):
     @method_decorator(ensure_csrf_cookie)
     def get(self, request, *args, **kwargs):
         return Response({
-            "session": request.session,
             "csrf": request.META["CSRF_COOKIE"]
         })
 
