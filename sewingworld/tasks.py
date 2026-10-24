@@ -28,16 +28,6 @@ def django_clearsessions():
     management.call_command("clearsessions", verbosity=1)
 
 
-@shared_task
-def zinnia_count_discussions():
-    management.call_command("count_discussions", verbosity=1)
-
-
-@shared_task
-def zinnia_spam_cleanup():
-    management.call_command("spam_cleanup", verbosity=1)
-
-
 # PRIORITY_HIGHEST = 0
 # PRIORITY_HIGH = 2
 # PRIORITY_NORMAL = 4
