@@ -1066,7 +1066,7 @@ class IntegrationViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
         if integration.output_with_images:
-            products.exclude(image__isnull=True).exclude(image__exact='')
+            products = products.exclude(image__isnull=True).exclude(image__exact='')
 
         if integration.output_available:
             products = products.annotate(
