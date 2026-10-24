@@ -44,6 +44,16 @@ from .views import product_stock_view
 logger = logging.getLogger(__name__)
 
 
+def parse_ids(values):
+    """ Convert a list of strings into a list of integer IDs, skipping anything that is not one """
+    ids = []
+    for value in values:
+        value = value.strip()
+        if value.isascii() and value.isdigit():
+            ids.append(int(value))
+    return ids
+
+
 class OrderItemInline(admin.TabularInline):
     @mark_safe
     def product_codes(self, obj):
@@ -701,9 +711,23 @@ class OrderAdmin(admin.ModelAdmin):
         format_strings = ','.join(['%s'] * len(list_of_ids))
         ids = request.GET.get('orders', '0')
         where = ''
+        params = []
         if ids != '0':
-            where = ' WHERE shop_order.id IN (' + ids + ')'
-        sort = request.GET.get('o', 'shop_product.title')
+            order_ids = parse_ids(ids.split(','))
+            ids = ','.join(map(str, order_ids))
+            where = ' WHERE shop_order.id = ANY(%s)'
+            params.append(order_ids)
+        sort_columns = {
+            '1': 'shop_product.id',
+            '2': 'shop_product.article',
+            '3': 'shop_product.partnumber',
+            '4': 'shop_product.title',
+            '5': 'shop_order.id',
+            '6': 'shop_order.status',
+            '7': 'SUM(shop_orderitem.quantity)',
+        }
+        sort = request.GET.get('o')
+        order_by = sort_columns.get(sort, 'shop_product.title')
         cursor = connection.cursor()
         inner_cursor = connection.cursor()
         cursor.execute("""SELECT shop_product.id AS product_id, shop_product.article, shop_product.partnumber, shop_product.title,
@@ -712,7 +736,7 @@ class OrderAdmin(admin.ModelAdmin):
                           FROM shop_product
                           INNER JOIN shop_orderitem ON (shop_product.id = shop_orderitem.product_id)
                           INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id)""" + where +
-                       """ GROUP BY shop_order.id, shop_product.id ORDER BY """ + sort)
+                       """ GROUP BY shop_order.id, shop_product.id ORDER BY """ + order_by, params)
         products = []
         for row in cursor.fetchall():
             columns = (x[0] for x in cursor.description)
@@ -977,15 +1001,15 @@ class OrderAdmin(admin.ModelAdmin):
                 if delivery_type is None:
                     delivery_type = []
                     deliveries[delivery['type']] = delivery_type
-                #shop_cost = delivery['costWithRules']
+                # shop_cost = delivery['costWithRules']
                 required_services = []
                 optional_services = []
                 for service in result['services']:
-                    #if service['optional']:
-                    #    optional_services.append(service)
-                    #else:
+                    # if service['optional']:
+                    #     optional_services.append(service)
+                    # else:
                     required_services.append(service)
-                    #shop_cost = shop_cost + service['cost']
+                    # shop_cost = shop_cost + service['cost']
                 delivery['required_services'] = required_services
                 delivery['optional_services'] = optional_services
                 delivery['cost'] = result['cost']
@@ -1188,7 +1212,7 @@ class OrderAdmin(admin.ModelAdmin):
                 aux_supplier = Supplier.objects.get(pk=request.POST.get('aux_supplier'))
             else:
                 aux_supplier = None
-            selected = request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME)
+            selected = parse_ids(request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME))
             cursor = connection.cursor()
             inner_cursor = connection.cursor()
             cursor.execute("""SELECT shop_product.id AS product_id, shop_product.article,
@@ -1196,8 +1220,8 @@ class OrderAdmin(admin.ModelAdmin):
                               FROM shop_product
                               INNER JOIN shop_orderitem ON (shop_product.id = shop_orderitem.product_id)
                               INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id)
-                              WHERE shop_order.id IN (""" + ','.join(selected) + """)
-                              GROUP BY shop_product.id ORDER BY shop_product.article""")
+                              WHERE shop_order.id = ANY(%s)
+                              GROUP BY shop_product.id ORDER BY shop_product.article""", (selected,))
             products = []
             suppliers = [supplier_ur.id, supplier.id]
             if aux_supplier:
@@ -1312,13 +1336,13 @@ class OrderAdmin(admin.ModelAdmin):
     def order_products_action(self, request, queryset):
         if not request.user.is_staff:
             raise PermissionDenied
-        selected = request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME)
+        selected = parse_ids(request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME))
         cursor = connection.cursor()
         cursor.execute("""SELECT shop_orderitem.product_id, shop_product.article, SUM(shop_orderitem.quantity) AS quantity
                           FROM shop_orderitem INNER JOIN shop_product ON (shop_product.id = shop_orderitem.product_id)
                           INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id)
-                          WHERE shop_orderitem.order_id IN (""" + ','.join(selected) + """)
-                          GROUP BY shop_orderitem.product_id, shop_product.article""")
+                          WHERE shop_orderitem.order_id = ANY(%s)
+                          GROUP BY shop_orderitem.product_id, shop_product.article""", (selected,))
         products = []
         for row in cursor.fetchall():
             columns = (x[0] for x in cursor.description)
