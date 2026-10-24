@@ -1,5 +1,4 @@
 import logging
-import re
 import sys
 import traceback
 
@@ -7,7 +6,6 @@ from importlib import import_module
 from urllib.parse import urlparse
 
 from django.conf import settings
-from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.sites.models import Site
 from django.core.exceptions import MiddlewareNotUsed
 from django.db.models import Q
@@ -56,7 +54,7 @@ class SessionCookieMiddleware:
         self.SessionStore = engine.SessionStore
 
     def __call__(self, request):
-        if 'X-Session' in request.headers and not settings.SESSION_COOKIE_NAME in request.COOKIES:  # skip if cookie is available
+        if 'X-Session' in request.headers and settings.SESSION_COOKIE_NAME not in request.COOKIES:  # skip if cookie is available
             session_key = request.headers.get('X-Session')
             request.session = self.SessionStore(session_key)
 
@@ -81,7 +79,7 @@ class CsrfCookieMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if settings.CSRF_HEADER_NAME in request.META and not settings.CSRF_COOKIE_NAME in request.COOKIES:
+        if settings.CSRF_HEADER_NAME in request.META and settings.CSRF_COOKIE_NAME not in request.COOKIES:
             request.COOKIES[settings.CSRF_COOKIE_NAME] = request.META.get(settings.CSRF_HEADER_NAME)
 
         response = self.get_response(request)
