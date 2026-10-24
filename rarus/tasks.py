@@ -56,7 +56,6 @@ def get_cards():
     try:
         response = urlopen(request)
         result = json.loads(response.read().decode('utf-8'))
-        print(result)
         logger.debug(result)
     except HTTPError as e:
         content = e.read()

@@ -49,14 +49,10 @@ class Category(MPTTModel):
         return self.get_descendants().filter(active=True, hidden=False)
 
     def __str__(self):
-        # return self.name
         show_path = False
         import traceback
         tb = traceback.extract_stack(limit=6)
         for line in tb:
-            # if self.id == 15:
-            #     import sys
-            #     print('{}: {}'.format(line.filename, line.name), file=sys.stderr)
             if line.name == 'field_choices' and line.filename.endswith('contrib/admin/filters.py'):
                 show_path = True
             if line.name == 'get' and line.filename.endswith('contrib/admin/views/autocomplete.py'):

@@ -79,8 +79,6 @@ def create_delivery_draft_order(order_id, warehouse, first_name, middle_name, la
     if order.paid:
         data['cost']['paymentMethod'] = 'PREPAID'
 
-    import sys
-    print(json.dumps(data), file=sys.stderr)
     data_encoded = json.dumps(data).encode('utf-8')
     url = 'https://api.delivery.yandex.ru/orders'
     headers = {
@@ -91,13 +89,11 @@ def create_delivery_draft_order(order_id, warehouse, first_name, middle_name, la
     try:
         response = urlopen(request)
         result = json.loads(response.read().decode('utf-8'))
-        print(result, file=sys.stderr)
         return result
     except HTTPError as e:
         content = e.read()
         error = json.loads(content.decode('utf-8'))
         message = '{}: {}'.format(error.get('type', 'UNKNOWN'), error.get('message', 'Неизвестная ошибка взаимодействия с Яндекс.Доставка'))
-        print(message, file=sys.stderr)
         raise RuntimeError(message) from e
 
 
@@ -133,8 +129,6 @@ def get_delivery_options(total, paid, warehouse, city, weight, width, height, le
         }
     }
 
-    import sys
-    print(json.dumps(data), file=sys.stderr)
     data_encoded = json.dumps(data).encode('utf-8')
     url = 'https://api.delivery.yandex.ru/delivery-options'
     headers = {
@@ -145,12 +139,9 @@ def get_delivery_options(total, paid, warehouse, city, weight, width, height, le
     try:
         response = urlopen(request)
         result = json.loads(response.read().decode('utf-8'))
-        print(result, file=sys.stderr)
         return result
     except HTTPError as e:
         content = e.read()
         error = json.loads(content.decode('utf-8'))
-        print(error, file=sys.stderr)
         message = '{}: {}'.format(error.get('type', 'UNKNOWN'), error.get('message', 'Неизвестная ошибка взаимодействия с Яндекс.Доставка'))
-        print(message, file=sys.stderr)
         raise RuntimeError(message) from e
