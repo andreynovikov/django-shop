@@ -7,7 +7,7 @@ from django.conf import settings
 from django.contrib.postgres.search import SearchVector, SearchVectorField
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.sites.models import Site
-from django.db import connection, models
+from django.db import models
 from django.db.models.signals import post_save
 from django.db.utils import OperationalError
 from django.utils.functional import cached_property
@@ -413,16 +413,14 @@ class Product(models.Model):
                 sites.extend(Site.objects.filter(integration__suppliers__in=suppliers).distinct().values_list('id', flat=True))
                 if Supplier.objects.filter(count_in_stock=Supplier.COUNT_STOCK, pk__in=suppliers).count():
                     sites.extend(Site.objects.filter(integration__isnull=True).values_list('id', flat=True))
-                site_addon = 'IN ({})'.format(','.join(map(str, sites)))
-                cursor = connection.cursor()
-                cursor.execute("""SELECT SUM(shop_orderitem.quantity) AS quantity FROM shop_orderitem
-                              INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
-                              AND shop_order.site_id """ + site_addon + """ AND shop_orderitem.product_id = %s GROUP BY
-                              shop_orderitem.product_id""", (self.id,))
-                if cursor.rowcount:
-                    row = cursor.fetchone()
-                    num = num - float(row[0])
-                cursor.close()
+                from .order import Order, OrderItem
+                ordered = OrderItem.objects.filter(
+                    product=self,
+                    order__site__in=sites,
+                    order__status__in=[Order.STATUS_NEW, Order.STATUS_ACCEPTED, Order.STATUS_COLLECTING, Order.STATUS_COLLECTED, Order.STATUS_DELIVERED_SHOP, Order.STATUS_SENT]
+                ).aggregate(quantity=models.Sum('quantity'))['quantity']
+                if ordered:
+                    num = num - float(ordered)
                 if num < 0:
                     num = 0
         else:

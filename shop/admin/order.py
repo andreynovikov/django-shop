@@ -6,8 +6,7 @@ from decimal import Decimal, ROUND_UP
 from urllib.parse import quote
 
 from django import forms
-from django.db import connection
-from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, \
+from django.db.models import F, Sum, TextField, PositiveSmallIntegerField, PositiveIntegerField, \
     DateTimeField, DecimalField
 from django.core.exceptions import PermissionDenied
 from django.contrib import admin, messages
@@ -32,7 +31,7 @@ from constance import config
 from yandex_delivery.tasks import create_delivery_draft_order, get_delivery_options
 
 from shop.models import ShopUserManager, ShopUser, Supplier, Order, OrderItem, Box, \
-    Act, ActOrder, Contractor
+    Act, ActOrder, Contractor, Stock
 from shop.tasks import send_message
 
 from .forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
@@ -707,60 +706,52 @@ class OrderAdmin(admin.ModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied
         suppliers = Supplier.objects.filter(show_in_order=True)
-        list_of_ids = suppliers.values_list('id', flat=True)
-        format_strings = ','.join(['%s'] * len(list_of_ids))
         ids = request.GET.get('orders', '0')
-        where = ''
-        params = []
+        items = OrderItem.objects.all()
         if ids != '0':
             order_ids = parse_ids(ids.split(','))
             ids = ','.join(map(str, order_ids))
-            where = ' WHERE shop_order.id = ANY(%s)'
-            params.append(order_ids)
+            items = items.filter(order__in=order_ids)
         sort_columns = {
-            '1': 'shop_product.id',
-            '2': 'shop_product.article',
-            '3': 'shop_product.partnumber',
-            '4': 'shop_product.title',
-            '5': 'shop_order.id',
-            '6': 'shop_order.status',
-            '7': 'SUM(shop_orderitem.quantity)',
+            '1': 'product_id',
+            '2': 'article',
+            '3': 'partnumber',
+            '4': 'title',
+            '5': 'order_id',
+            '6': 'order_status',
+            '7': 'total_quantity',
         }
         sort = request.GET.get('o')
-        order_by = sort_columns.get(sort, 'shop_product.title')
-        cursor = connection.cursor()
-        inner_cursor = connection.cursor()
-        cursor.execute("""SELECT shop_product.id AS product_id, shop_product.article, shop_product.partnumber, shop_product.title,
-                          shop_product.comment_packer, shop_order.id AS order_id, shop_order.status AS order_status,
-                          SUM(shop_orderitem.quantity) AS quantity
-                          FROM shop_product
-                          INNER JOIN shop_orderitem ON (shop_product.id = shop_orderitem.product_id)
-                          INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id)""" + where +
-                       """ GROUP BY shop_order.id, shop_product.id ORDER BY """ + order_by, params)
+        items = items.values(
+            'product_id',
+            'order_id',
+            article=F('product__article'),
+            partnumber=F('product__partnumber'),
+            title=F('product__title'),
+            comment_packer=F('product__comment_packer'),
+            order_status=F('order__status'),
+        ).annotate(total_quantity=Sum('quantity')).order_by(sort_columns.get(sort, 'title'))
         products = []
-        for row in cursor.fetchall():
-            columns = (x[0] for x in cursor.description)
-            product = dict(zip(columns, row))
+        for product in items:
+            product['quantity'] = product.pop('total_quantity')
             product['order_status_value'] = dict(Order.STATUS_CHOICES)[product['order_status']]
             product['order_status_color'] = dict(Order.STATUS_COLORS)[product['order_status']]
             stock = ''
-            inner_cursor.execute("""SELECT supplier_id, quantity FROM shop_stock LEFT JOIN shop_supplier ON (shop_supplier.id = supplier_id)
-                                    WHERE product_id = %s AND supplier_id IN (%s) ORDER BY shop_supplier.order""" % (product['product_id'], format_strings), list_of_ids)
-            if inner_cursor.rowcount:
-                for row in inner_cursor.fetchall():
-                    stock = stock + ('%s:&nbsp;' % suppliers.get(pk=row[0]).code)
-                    if row[1] == 0:
+            stock_items = Stock.objects.filter(product_id=product['product_id'], supplier__in=suppliers) \
+                .select_related('supplier').order_by('supplier__order')
+            if stock_items:
+                for stock_item in stock_items:
+                    stock = stock + ('%s:&nbsp;' % stock_item.supplier.code)
+                    if stock_item.quantity == 0:
                         stock = stock + '<span style="color: #c00">'
-                    stock = stock + ('%s' % floatformat(row[1]))
-                    if row[1] == 0:
+                    stock = stock + ('%s' % floatformat(stock_item.quantity))
+                    if stock_item.quantity == 0:
                         stock = stock + '</span>'
                     stock = stock + '<br/>'
             else:
                 stock = '<span style="color: #ff0000">отсутствует</span>'
             product['stock'] = stock
             products.append(product)
-        cursor.close()
-        inner_cursor.close()
         return render(request, 'admin/shop/order/products.html', {
             'title': 'Товары для заказов',
             'products': products,
@@ -1213,41 +1204,32 @@ class OrderAdmin(admin.ModelAdmin):
             else:
                 aux_supplier = None
             selected = parse_ids(request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME))
-            cursor = connection.cursor()
-            inner_cursor = connection.cursor()
-            cursor.execute("""SELECT shop_product.id AS product_id, shop_product.article,
-                              SUM(shop_orderitem.quantity) AS quantity
-                              FROM shop_product
-                              INNER JOIN shop_orderitem ON (shop_product.id = shop_orderitem.product_id)
-                              INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id)
-                              WHERE shop_order.id = ANY(%s)
-                              GROUP BY shop_product.id ORDER BY shop_product.article""", (selected,))
+            items = OrderItem.objects.filter(order__in=selected).values(
+                'product_id',
+                article=F('product__article'),
+            ).annotate(total_quantity=Sum('quantity')).order_by('article')
             products = []
             suppliers = [supplier_ur.id, supplier.id]
             if aux_supplier:
                 suppliers.append(aux_supplier.id)
-            supplier_ids = ','.join(map(str, suppliers))
             has_missing = False
-            for row in cursor.fetchall():
-                columns = (x[0] for x in cursor.description)
-                product = dict(zip(columns, row))
-                stock = ''
-                inner_cursor.execute("""SELECT supplier_id, quantity, correction FROM shop_stock
-                                        LEFT JOIN shop_supplier ON (shop_supplier.id = supplier_id)
-                                        WHERE product_id = %s AND supplier_id IN (""" + supplier_ids + """)
-                                        ORDER BY shop_supplier.order""", (product['product_id'],))
+            for product in items:
+                product['quantity'] = product.pop('total_quantity')
+                stock_items = Stock.objects.filter(
+                    product_id=product['product_id'],
+                    supplier__in=suppliers
+                ).values_list('supplier_id', 'quantity', 'correction')
                 quantity = float(product['quantity'])
                 available = 0
                 stock = 0
                 aux_stock = 0
-                if inner_cursor.rowcount:
-                    for row in inner_cursor.fetchall():
-                        if row[0] == supplier_ur.id:
-                            available = row[1] + row[2]
-                        if row[0] == supplier.id:
-                            stock = row[1] + row[2]
-                        if aux_supplier and row[0] == aux_supplier.id:
-                            aux_stock = row[1] + row[2]
+                for supplier_id, stock_quantity, correction in stock_items:
+                    if supplier_id == supplier_ur.id:
+                        available = stock_quantity + correction
+                    if supplier_id == supplier.id:
+                        stock = stock_quantity + correction
+                    if aux_supplier and supplier_id == aux_supplier.id:
+                        aux_stock = stock_quantity + correction
                 if available < quantity:
                     product['own'] = Decimal(available).quantize(Decimal('1'), rounding=ROUND_UP)
                     if stock > 0:
@@ -1264,8 +1246,6 @@ class OrderAdmin(admin.ModelAdmin):
                 else:
                     product['own'] = product['quantity']
                 products.append(product)
-            cursor.close()
-            inner_cursor.close()
             if not products:
                 self.message_user(request, "Нет товаров для отгрузки у этого поставщика", level=messages.WARNING)
                 return
@@ -1337,18 +1317,10 @@ class OrderAdmin(admin.ModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied
         selected = parse_ids(request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME))
-        cursor = connection.cursor()
-        cursor.execute("""SELECT shop_orderitem.product_id, shop_product.article, SUM(shop_orderitem.quantity) AS quantity
-                          FROM shop_orderitem INNER JOIN shop_product ON (shop_product.id = shop_orderitem.product_id)
-                          INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id)
-                          WHERE shop_orderitem.order_id = ANY(%s)
-                          GROUP BY shop_orderitem.product_id, shop_product.article""", (selected,))
-        products = []
-        for row in cursor.fetchall():
-            columns = (x[0] for x in cursor.description)
-            product = dict(zip(columns, row))
-            products.append(product)
-        cursor.close()
+        products = OrderItem.objects.filter(order__in=selected).values(
+            'product_id',
+            article=F('product__article'),
+        ).annotate(total_quantity=Sum('quantity')).order_by()
         import io
         import xlsxwriter
 
@@ -1357,7 +1329,7 @@ class OrderAdmin(admin.ModelAdmin):
         sheet = workbook.add_worksheet('Products')
         for idx, product in enumerate(products):
             sheet.write(idx, 0, product['article'])
-            sheet.write(idx, 1, product['quantity'])
+            sheet.write(idx, 1, product['total_quantity'])
         workbook.close()
 
         response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')

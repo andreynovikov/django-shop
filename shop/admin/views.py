@@ -1,13 +1,12 @@
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
-from django.db import connection
 from django.http import HttpResponseRedirect
 from django.template.defaultfilters import floatformat
 from django.urls import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
-from shop.models import Stock, Order
+from shop.models import Stock, Order, OrderItem
 
 
 @staff_member_required
@@ -53,19 +52,18 @@ def product_stock_view(product, order=None):
         else:
             result = '<span style="color: var(--error-fg)">отсутствует</span><br/>'
         if order:
-            cursor = connection.cursor()
-            cursor.execute("""SELECT shop_orderitem.order_id, shop_orderitem.quantity AS quantity FROM shop_orderitem
-                              INNER JOIN shop_order ON (shop_orderitem.order_id = shop_order.id) WHERE shop_order.status IN (0,1,4,64,256,1024)
-                              AND shop_orderitem.product_id = %s AND shop_order.id != %s""", (product.id, order.id))
-            if cursor.rowcount:
+            items = OrderItem.objects.filter(
+                product=product,
+                order__status__in=[Order.STATUS_NEW, Order.STATUS_ACCEPTED, Order.STATUS_COLLECTING, Order.STATUS_COLLECTED, Order.STATUS_DELIVERED_SHOP, Order.STATUS_SENT]
+            ).exclude(order=order).values_list('order_id', 'quantity')
+            if items:
                 ordered = 0
                 ids = [str(order.id)]
-                for row in cursor:
-                    ids.append(str(row[0]))
-                    ordered = ordered + int(row[1])
+                for order_id, quantity in items:
+                    ids.append(str(order_id))
+                    ordered = ordered + quantity
                 url = '%s?id__in=%s&status=all' % (reverse("admin:shop_order_changelist"), ','.join(ids))
                 result = result + '<a href="%s" style="color: var(--link-hover-color)">Зак:&nbsp;%s<br/></a>' % (url, floatformat(ordered))
-            cursor.close()
     else:
         result = floatformat(product.instock)
     return mark_safe(result)
