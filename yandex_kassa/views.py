@@ -197,10 +197,10 @@ def receipt(request, order_id):
 
     receipts = Receipt.list({'payment_id': payment_id})
 
-    logger.error(receipts.items[0])
     if not receipts.items:
         return JsonResponse({})
 
+    logger.error(receipts.items[0])
     receipt = receipts.items[0]
     total = Decimal('0')
     for item in receipt.items:
