@@ -94,15 +94,15 @@ class StoreImageInline(SortableInlineAdminMixin, admin.TabularInline):
 
 @admin.register(Store)
 class StoreAdmin(SortableAdminBase, admin.ModelAdmin):
-    list_display = ['city', 'address', 'name', 'supplier', 'enabled', 'latitude', 'longitude']
+    list_display = ['city', 'address', 'name', 'site', 'supplier', 'enabled', 'latitude', 'longitude']
     list_display_links = ['address', 'name']
-    list_filter = [('city', RelatedDropdownFilter), 'enabled', 'publish', 'marketplace', 'lottery']
-    search_fields = ['name', 'address', 'address2', 'city__name']
+    list_filter = [('city', RelatedDropdownFilter), ('site', RelatedDropdownFilter), 'enabled', 'publish', 'marketplace', 'lottery']
+    search_fields = ['name', 'address', 'address2', 'city__name', 'site__domain']
     ordering = ['city', 'address']
     inlines = [StoreImageInline]
 
     def view_on_site(self, obj):
-        prefix = SHOP_INFO.get('url_prefix','')
+        prefix = SHOP_INFO.get('url_prefix', '')
         return f'{prefix}/stores/{obj.id}/'
 
     def get_urls(self):
@@ -175,7 +175,7 @@ class SalesActionAdmin(SortableAdminMixin, admin.ModelAdmin):
     form = SalesActionAdminForm
 
     def view_on_site(self, obj):
-        prefix = SHOP_INFO.get('url_prefix','')
+        prefix = SHOP_INFO.get('url_prefix', '')
         return f'{prefix}/actions/{obj.slug}/'
 
 

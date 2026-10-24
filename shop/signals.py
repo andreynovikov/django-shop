@@ -1,9 +1,7 @@
 from datetime import timedelta
 
-from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.contrib.sites.models import Site
 from django.utils import timezone
 
 # from tagging.utils import parse_tag_input
@@ -15,7 +13,7 @@ from sewingworld.tasks import PRIORITY_HIGH, PRIORITY_NORMAL, PRIORITY_LOW, PRIO
 from reviews import get_review_model
 from reviews.signals import review_was_posted
 
-from shop.models import Product, Order, OrderItem, News
+from shop.models import Order, OrderItem, Store, News
 from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, \
     notify_user_order_delivered, notify_user_review_products, notify_review_posted, \
     create_modulpos_order, delete_modulpos_order, notify_manager, notify_manager_sms, \
@@ -119,6 +117,16 @@ def page_saved(sender, **kwargs):
     }
     for site in page.sites.exclude(profile__revalidation_token__exact=''):
         revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
+
+
+@receiver(post_save, sender=Store, dispatch_uid='store_saved_receiver')
+def store_saved(sender, **kwargs):
+    store = kwargs['instance']
+    payload = {
+        'model': 'store',
+        'pk': store.pk,
+    }
+    revalidate_nextjs.s(store.site.domain, store.site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
 
 
 @receiver(post_save, sender=News, dispatch_uid='news_saved_receiver')

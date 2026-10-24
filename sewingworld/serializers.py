@@ -73,7 +73,7 @@ class StoreSerializer(NonNullModelSerializer):
 
     class Meta:
         model = Store
-        exclude = ('supplier', 'enabled')
+        exclude = ('site', 'supplier', 'enabled')
 
     def get_phones(self, obj):
         if not obj.phone:
