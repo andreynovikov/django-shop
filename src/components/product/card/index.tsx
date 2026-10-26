@@ -10,8 +10,28 @@ import FavoriteIcon from './favorite-icon'
 import BasketButton from './basket-button'
 import { ProductCardImpression, ProductCardLink } from './ecommerce'
 
+export interface SearchProduct {
+  id: number
+  code: string | undefined
+  instock: boolean
+  title: string
+  price: number
+  cost: number
+  image: string | undefined
+  isnew: undefined
+  recomended: undefined
+  enabled: true
+  variations: false
+  partnumber: undefined
+  whatisit: undefined
+  whatis: undefined
+  shortdescr: undefined
+  sales: undefined
+  sales_notes: undefined
+}
+
 interface ProductCardProps {
-  product: Product
+  product: Product | SearchProduct 
   limitedBadges?: boolean
   gtmCategory?: Category
   gtmList?: string

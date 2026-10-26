@@ -1,6 +1,8 @@
 import { Product } from "@/lib/types"
 
-export default function ProductPrice({ product, delFs, ...props }: { product: Product, delFs?: string }) {
+import { SearchProduct } from "./card"
+
+export default function ProductPrice({ product, delFs, ...props }: { product: Product | SearchProduct, delFs?: string }) {
   if (product.enabled && product.cost > 0)
     return (
       <>
