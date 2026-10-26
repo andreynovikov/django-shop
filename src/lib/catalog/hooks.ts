@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { useNavigation } from '@/lib/navigation'
 
 export function useCatalog() {
@@ -10,16 +10,13 @@ export function useCatalog() {
   }, [path])
 }
 
+// sessionStorage has no change events within the same tab, so there is nothing to subscribe to
+const subscribe = () => () => {}
+
 export function useLastCatalog() {
-  const [path, setPath] = useState('/')
-
-  useEffect(() => {
-    const p = sessionStorage.getItem('lastCatalogPath')
-    if (p)
-      // TODO: fix set-state-in-effect
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPath(p)
-  }, [])
-
-  return path
+  return useSyncExternalStore(
+    subscribe,
+    () => sessionStorage.getItem('lastCatalogPath') || '/',
+    () => '/'
+  )
 }

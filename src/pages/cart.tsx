@@ -10,7 +10,7 @@ import { PageLoading, ButtonLoading } from '@/components/loading'
 import useBasket from '@/lib/basket'
 import { useCreateOrder } from '@/lib/order'
 import { useSession } from '@/lib/session'
-import { useLastCatalog } from '@/lib/catalog'
+import { useLastCatalog } from '@/lib/catalog/hooks'
 
 export default function Cart() {
   const { user, registered, status, invalidate, signOut } = useSession()
@@ -19,7 +19,6 @@ export default function Cart() {
   const { mutate, isPending } = useCreateOrder()
 
   useEffect(() => {
-    console.log("order", registered, status)
     if (status === 'authenticated' && registered) {
       mutate()
       invalidate()

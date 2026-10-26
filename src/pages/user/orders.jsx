@@ -26,30 +26,24 @@ import moment from 'moment'
 
 export default function Orders({ filter, page, track }) {
   const [currentFilter, setFilter] = useState(filter)
-  const [isTracking, setIsTracking] = useState(track !== undefined)
   const router = useRouter()
   const { status } = useSession()
 
   const { data: lastOrder } = useQuery({
     queryKey: orderKeys.last(),
     queryFn: () => getLastOrder(),
-    enabled: status === 'authenticated' && isTracking
+    enabled: status === 'authenticated' && track !== undefined
   })
 
-  useEffect(() => {
-    setIsTracking(track !== undefined)
-  }, [track])
+  // keep showing the loader until redirected to the last order, if there is one
+  const isTracking = track !== undefined && !(lastOrder !== undefined && !lastOrder.id)
 
   useEffect(() => {
-    if (lastOrder !== undefined && isTracking) {
-      if (lastOrder.id) {
-        router.push({
-          pathname: '/user/orders/[id]',
-          query: { id: lastOrder.id }
-        })
-      } else {
-        setIsTracking(false)
-      }
+    if (isTracking && lastOrder?.id) {
+      router.push({
+        pathname: '/user/orders/[id]',
+        query: { id: lastOrder.id }
+      })
     }
   }, [lastOrder, router, isTracking])
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
@@ -9,6 +9,7 @@ import PageLayout from '@/components/layout/page'
 import FieldHelp from '@/components/product/field-help'
 import NoImage from '@/components/product/no-image'
 import ProductPrice from '@/components/product/price'
+import { PageLoading } from '@/components/loading'
 
 import useBasket from '@/lib/basket'
 import useComparison from '@/lib/comparison'
@@ -32,10 +33,7 @@ export default function Compare({ kindId, productIds }) {
   const router = useRouter()
   const { addItem } = useBasket()
 
-  const [currentKind, setCurrentKind] = useState(kindId)
   const [different, setDifferent] = useState(false)
-  const [productFields, setProductFields] = useState([])
-  const [fieldNames, setFieldNames] = useState({})
 
   // if kind is passed get filtered product list...
   const { comparisons, uncompare, isSuccess: isComparisonSuccess } = useComparison({ kind: kindId })
@@ -77,11 +75,7 @@ export default function Compare({ kindId, productIds }) {
 
   const isProductsSuccess = productIds.length > 0 && products.every(result => result.isSuccess)
 
-  useEffect(() => {
-    if (isProductsSuccess)
-      setCurrentKind(products[0].data.kind[0])
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isProductsSuccess])
+  const currentKind = isProductsSuccess ? products[0].data.kind[0] : kindId
 
   const { data: kind, isSuccess: isKindSuccess } = useQuery({
     queryKey: kindKeys.detail(currentKind),
@@ -94,47 +88,40 @@ export default function Compare({ kindId, productIds }) {
     queryFn: () => getProductFields()
   })
 
-  useEffect(() => {
+  const fieldNames = useMemo(() => {
+    const names = {}
     if (fields !== undefined) {
-      const names = {}
       Object.keys(fields).forEach((key) => {
         const name = fields[key].split(',')
         if (name.length === 1)
           name.push('')
         names[key] = name
       })
-      setFieldNames(names)
     }
+    return names
   }, [fields])
 
-  useEffect(() => {
-    if (isKindSuccess && isProductsSuccess) {
-      const comparison = kind.comparison.reduce((fields, field) => {
-        var differ = false, value = products[0].data[field]
-        for (var i = 1; i < products.length; i++) {
-          var val = products[i].data[field]
-          if (!deepCompare(val, value)) { // TODO: refactor to pass all products at once
-            differ = true
-            break
-          }
+  const productFields = !(isKindSuccess && isProductsSuccess) ? [] :
+    kind.comparison.reduce((fields, field) => {
+      var differ = false, value = products[0].data[field]
+      for (var i = 1; i < products.length; i++) {
+        var val = products[i].data[field]
+        if (!deepCompare(val, value)) { // TODO: refactor to pass all products at once
+          differ = true
+          break
         }
-        if (differ || (!different && value !== undefined && value !== ''))
-          fields.push({
-            field,
-            differ
-          })
-        return fields
-      }, [])
-      setProductFields(comparison)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isKindSuccess, isProductsSuccess, different, kind])
+      }
+      if (differ || (!different && value !== undefined && value !== ''))
+        fields.push({
+          field,
+          differ
+        })
+      return fields
+    }, [])
 
   const uncompareProduct = (productId) => {
     uncompare(productId, () => {
-      console.log("callback", productIds, productId)
       const ids = productIds.filter(id => +id !== productId)
-      console.log(ids)
       router.replace({
         pathname: router.pathname,
         query: { product: ids }
@@ -165,7 +152,7 @@ export default function Compare({ kindId, productIds }) {
         <Head>
           <meta name="robots" content="noindex" />
         </Head>
-        <div>Loading...</div>
+        <PageLoading />
       </>
     )
 
@@ -275,7 +262,7 @@ export default function Compare({ kindId, productIds }) {
               </td>
               {% endfor %}
             </tr>
-                          */
+            */
             }
             {productFields.length > 5 && (
               <tr>
