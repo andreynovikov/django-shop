@@ -239,8 +239,11 @@ export interface Store {
   city: City
   phones: string[]
   address: string
+  address2: string
   phone: string
+  phone2: string
   name: string
+  pickuponly: boolean
   publish: boolean
   marketplace: boolean
   lottery: boolean
@@ -249,6 +252,7 @@ export interface Store {
   longitude?: number
   postcode: string
   url: string
+  email: string
   hours: string
   logo: string
   payment_cash: boolean

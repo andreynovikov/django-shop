@@ -50,7 +50,7 @@ export default function ProductStock({ id }: { id: number }) {
           </Collapsible.Trigger>
           <Collapsible.Panel>
             {stores.map((store) => (
-              <Link className="d-block fs-xs pt-1" href={{ pathname: '/stores/[id]', query: { id: store.id } }} key={store.id}>
+              <Link className="d-block fs-xs pt-1" href={`/stores/${store.id}/`} key={store.id}>
                 <i className="ci-check me-1 text-muted" />
                 {store.address}
               </Link>
