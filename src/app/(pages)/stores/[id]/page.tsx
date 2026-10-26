@@ -67,7 +67,7 @@ export default async function StorePage({ params }: PageProps<'/stores/[id]'>) {
             </div>
             {hours.length > 0 && (
               <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-                <div className="card">
+                <div className="card h-100">
                   <div className="card-body text-center">
                     <i className="ci-time h3 mt-2 mb-4 text-primary" />
                     <h3 className="h6 mb-3">Часы работы</h3>
@@ -84,7 +84,7 @@ export default async function StorePage({ params }: PageProps<'/stores/[id]'>) {
             )}
             {store.phones && store.phones.length > 0 && (
               <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-                <div className="card">
+                <div className="card h-100">
                   <div className="card-body text-center">
                     <i className="ci-phone h3 mt-2 mb-4 text-primary" />
                     <h3 className="h6 mb-3">Телефон{store.phones.length > 1 && 'ы'}</h3>
@@ -101,7 +101,7 @@ export default async function StorePage({ params }: PageProps<'/stores/[id]'>) {
             )}
             {store.url && (
               <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-                <div className="card">
+                <div className="card h-100">
                   <div className="card-body text-center">
                     <i className="ci-dribbble h3 mt-2 mb-4 text-primary" />
                     <h3 className="h6 mb-3">Сайт магазина</h3>
