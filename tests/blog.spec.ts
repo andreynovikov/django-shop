@@ -20,6 +20,10 @@ test('blog entries pagination works', async ({ page }) => {
     expect(href).not.toBeNull()
     await pageLink.click()
     await expect(page).toHaveURL(href as string) // we've checked for null
+    // a failed client navigation falls back to a full page load, so the URL changes even when the page is broken
+    const pageNumber = (href as string).match(/\/(\d+)\/$/)?.[1]
+    await expect(pagination.locator('li[aria-current="page"]')).toHaveText(new RegExp(`^${pageNumber}`))
+    await expect(page.locator('article.blog-list')).not.toHaveCount(0)
   }
 })
 
