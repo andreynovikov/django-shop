@@ -63,12 +63,23 @@ export interface Product {
   code: string
   article: string
   partnumber: string
+  whatis: string
+  whatisit: string
   title: string
   price: number
   cost: number
   instock: number
+  image?: string
   enabled: boolean
+  isnew: boolean
+  recomended: boolean
+  ws_pack_only: boolean
+  pack_factor: number
+  sales?: string[]
+  sales_notes: string
+  shortdescr: string
   video_url?: string
+  variations?: string
   // TODO - add remaining fields
 }
 

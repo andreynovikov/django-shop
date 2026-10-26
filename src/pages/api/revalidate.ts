@@ -24,6 +24,8 @@ type RevalidationResponse = {
 
 function getPathForModelItem(model: string, item: Item) {
   switch (model) {
+    case 'index':
+      return '/'
     case 'category':
       return `/catalog/${item.path}/`
     case 'product':

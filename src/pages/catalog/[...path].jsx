@@ -15,7 +15,8 @@ import { Loading, PageLoading } from '@/components/loading'
 
 import { categoryKeys, advertKeys, productKeys, siteKeys, loadCategories, loadCategory, loadAdverts, loadProducts, loadCurrentSite, HttpError } from '@/lib/queries'
 import { useToolbar } from '@/lib/toolbar'
-import { useCatalog, baseFilters } from '@/lib/catalog'
+import { baseFilters } from '@/lib/catalog'
+import { useCatalog } from '@/lib/catalog/hooks'
 import { productSearchParams, productSearchParamsLoader } from '@/lib/search-params'
 
 const pageStaleTime = 3600

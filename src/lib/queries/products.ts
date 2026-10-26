@@ -16,7 +16,7 @@ export const productKeys = {
   info: (id: number) => [...productKeys.details(), id]
 }
 
-export async function loadProducts(page: number, page_size: number, filters: ProductSearchParamsType, ordering: string) {
+export async function loadProducts(page: number | null, page_size: number, filters: ProductSearchParamsType, ordering: string) {
   const url = 'products/' + productSearchParamsSerializer({
     ...filters,
     page,
