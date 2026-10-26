@@ -8,7 +8,7 @@ Next.js storefront for sewing-world.ru (package name `sworld`, branch `cartzilla
 
 ## Commands
 
-- `npm run dev`: dev server at https://127.0.0.1:3004 (experimental HTTPS; certs live in `certificates/`)
+- `npm run dev`: dev server at https://127.0.0.1:3004 (experimental HTTPS). It uses the certs in `certificates/`, which is gitignored. On a fresh clone, create them first with `mkcert -install -key-file certificates/localhost-key.pem -cert-file certificates/localhost.pem localhost 127.0.0.1 ::1`. The certs are passed explicitly because Next's own reuse check fails for an IP host and would regenerate them on every start.
 - `npm run test`: plain `next dev` at http://127.0.0.1:4004. Playwright uses this as its web server locally.
 - `npm run build` / `npm start`: production build (`output: 'standalone'`) and server on port 4004
 - `npm run lint`: ESLint over `src/` (next core-web-vitals, next typescript, and the tanstack-query recommended rules; `src/vendor/` is ignored)
