@@ -101,7 +101,13 @@ export async function getStaticProps(context) {
       queryKey: blogKeys.detail(uri),
       queryFn: () => loadBlogEntry(uri)
     })
-    if (uri.length === 1 && entry?.id)
+    // backend returns an empty entry instead of 404 for unknown uri
+    if (!entry?.id)
+      return {
+        notFound: true,
+      }
+
+    if (uri.length === 1)
       return {
         redirect: {
           destination: entry.urls.canonical,

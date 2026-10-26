@@ -4,7 +4,7 @@ import PageLayout from '@/components/layout/page'
 import BlogEntryPreview from '@/components/blog/entry-preview'
 import PageSelector from '@/components/page-selector'
 
-import { blogKeys, loadBlogEntries } from '@/lib/queries'
+import { HttpError, blogKeys, loadBlogEntries } from '@/lib/queries'
 
 import range from 'lodash/range'
 
@@ -64,11 +64,17 @@ export async function getStaticProps(context) {
   }
 
   const queryClient = new QueryClient()
-  await queryClient.query({
-    queryKey: blogKeys.list(currentPage, null),
-    queryFn: () => loadBlogEntries(currentPage, null),
-    staleTime: 60000,
-  }).catch(() => {})
+  try {
+    await queryClient.query({
+      queryKey: blogKeys.list(currentPage, null),
+      queryFn: () => loadBlogEntries(currentPage, null),
+      staleTime: 60000,
+    })
+  } catch (error) {
+    // backend returns 404 for pages beyond the last one
+    if (error instanceof HttpError && error.status === 404)
+      return { notFound: true }
+  }
 
   return {
     props: {
@@ -88,5 +94,6 @@ export async function getStaticPaths() {
       params: { page: String(page) }
     })))
   }
-  return { paths, fallback: false }
+  // with fallback: false pages missing from paths fall through to /blog/[...entry]
+  return { paths, fallback: 'blocking' }
 }
