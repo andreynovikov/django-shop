@@ -21,8 +21,8 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   /* Tests mostly wait for the backend, so CI runs more workers than its cores. Locally all workers share one `next dev` server, which compiles routes on first request */
   workers: process.env.CI ? 4 : 2,
-  /* Locally pages are rendered by `next dev` on every request, so navigations can take longer than the default 5s */
-  expect: { timeout: process.env.CI ? 5000 : 15000 },
+  /* Pages are not prerendered in tests (`next dev` locally, PLAYWRIGHT_TEST build on CI), so the first visit renders them from the backend and can take longer than the default 5s */
+  expect: { timeout: 15000 },
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */

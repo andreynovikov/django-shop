@@ -45,10 +45,11 @@ export default function SignInModal({ ctx: modalCtx, show, onHide }: SignInModal
           </Tabs.List>
         </ModalHeader>
         <ModalBody>
-          <Tabs.Panel value="signin" keepMounted>
+          {/* Base UI hides the previous panel only after its exit animation, so both forms would show for a frame */}
+          <Tabs.Panel value="signin" keepMounted hidden={key !== 'signin'}>
             <LoginForm key={phone} embedded={modalCtx} ctx={ctx} phone={phone} hideModal={onHide} />
           </Tabs.Panel>
-          <Tabs.Panel value="signup" keepMounted>
+          <Tabs.Panel value="signup" keepMounted hidden={key !== 'signup'}>
             <RegistrationForm embedded={modalCtx} onComplete={onRegistrationComplete} />
           </Tabs.Panel>
         </ModalBody>
