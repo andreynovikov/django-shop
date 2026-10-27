@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 
-import Collapse from 'react-bootstrap/Collapse'
+import { Collapsible } from '@base-ui/react/collapsible'
 
 import UserAvatar from '@/components/user/avatar'
 // import UserBonus from '@/components/user/bonus'
@@ -43,7 +43,7 @@ export default function UserSidebar() {
 
   return (
     <aside className="col-lg-4 pt-4 pt-lg-0 pe-xl-5">
-      <div className="bg-white rounded-3 shadow-lg pt-1 mb-5 mb-lg-0">
+      <Collapsible.Root className="bg-white rounded-3 shadow-lg pt-1 mb-5 mb-lg-0" open={menuOpen} onOpenChange={setMenuOpen}>
         <div className="d-md-flex justify-content-between align-items-center text-center text-md-start p-4">
           <div className="d-md-flex align-items-center">
             <div className="img-thumbnail rounded-circle position-relative flex-shrink-0 mx-auto mb-2 mx-md-0 mb-md-0" style={{ width: "6.375rem" }}>
@@ -57,11 +57,11 @@ export default function UserSidebar() {
               <span className="text-accent fs-sm">{formatPhone(user.phone)}</span>
             </div>
           </div>
-          <button className="btn btn-primary d-lg-none mb-2 mt-3 mt-md-0" onClick={() => setMenuOpen(!menuOpen)}>
+          <Collapsible.Trigger className="btn btn-primary d-lg-none mb-2 mt-3 mt-md-0">
             <i className="ci-menu me-2" />Личный кабинет
-          </button>
+          </Collapsible.Trigger>
         </div>
-        <Collapse in={menuOpen} className="d-lg-block">
+        <Collapsible.Panel className="sw-collapse-lg-down d-lg-block" keepMounted>
           <ul className="list-unstyled mb-0">
             <li className="border-bottom mb-0">
               <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (path === '/user/orders/' ? " active" : "")} href="/user/orders/">
@@ -86,8 +86,8 @@ export default function UserSidebar() {
               </a>
             </li>
           </ul>
-        </Collapse>
-      </div>
+        </Collapsible.Panel>
+      </Collapsible.Root>
     </aside>
   )
 }

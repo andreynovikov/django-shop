@@ -59,7 +59,7 @@ body {
 }
 
 // Collapsible.Panel height animation, matches Bootstrap .collapsing
-.sw-collapse {
+@mixin sw-collapse {
     height: var(--collapsible-panel-height);
     overflow: hidden;
     transition: $transition-collapse;
@@ -67,6 +67,17 @@ body {
     &[data-starting-style],
     &[data-ending-style] {
         height: 0;
+    }
+}
+
+.sw-collapse {
+    @include sw-collapse;
+}
+
+// for panels that are always expanded from lg up with .d-lg-block
+.sw-collapse-lg-down {
+    @include media-breakpoint-down(lg) {
+        @include sw-collapse;
     }
 }
 
