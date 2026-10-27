@@ -10,10 +10,80 @@ on:
 
 env:
   IMAGE: sworld
+  BRANCH: cartzilla
 
 jobs:
 
+  # On a tag push, reuse the image built by the branch push for the same commit,
+  # waiting for that build if the tag and the commit were pushed together.
+  find-image:
+    if: github.ref_type == 'tag'
+    outputs:
+      found: ${{ steps.wait.outputs.found }}
+      release: ${{ steps.wait.outputs.release }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Wait for branch build
+        id: wait
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WORKFLOW: ${{ github.workflow }}
+        run: |
+          # Short sha the same way docker/metadata-action's type=sha tags the image
+          SHA=$(git rev-parse HEAD)
+          SOURCE=ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE }}:sha-${SHA:0:7}
+          # Production images are tagged YYYY.MM.DD, without the git tag's "v"
+          RELEASE=${GITHUB_REF_NAME#v}
+          echo "release=$RELEASE" >> $GITHUB_OUTPUT
+          # A branch run pushed together with the tag may not be created yet
+          GRACE=90
+
+          while true; do
+            # Check runs before the image, so a run that finishes in between is not missed
+            ACTIVE=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$WORKFLOW" \
+              --branch "$BRANCH" --commit "$SHA" --json status \
+              --jq '[.[] | select(.status != "completed")] | length')
+            if docker buildx imagetools inspect "$SOURCE" > /dev/null 2>&1; then
+              echo "Found $SOURCE"
+              echo "found=true" >> $GITHUB_OUTPUT
+              break
+            fi
+            if [ "$ACTIVE" = 0 ] && [ $SECONDS -ge $GRACE ]; then
+              echo "No image and no pending $BRANCH build for $SHA, building it here"
+              echo "found=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Waiting for $SOURCE ($ACTIVE active $BRANCH runs)"
+            sleep 20
+          done
+
+          # Tag the existing image with the release name, without rebuilding
+          docker buildx imagetools create \
+            -t ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE }}:$RELEASE \
+            "$SOURCE"
+
   build:
+    needs: find-image
+    if: ${{ !cancelled() && (needs.find-image.result == 'skipped' || needs.find-image.outputs.found == 'false') }}
     outputs:
       VERSION: ${{ steps.package_version.outputs.VERSION }}
     runs-on: ubuntu-latest
@@ -40,10 +110,11 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE }}
           # generate Docker tags based on the following events/attributes
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'cartzilla') }}
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', env.BRANCH) }}
             type=raw,priority=1100,value=${{ steps.package_version.outputs.VERSION }}
-            type=edge,branch=cartzilla
+            type=edge,branch=${{ env.BRANCH }}
             type=ref,event=branch
+            type=match,pattern=v(.*),group=1
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=sha
@@ -72,8 +143,10 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  deploy:
+  deploy-stage:
     needs: build
+    # Explicit status check: the skipped find-image job would otherwise skip this one
+    if: ${{ !cancelled() && github.ref_type == 'branch' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -99,8 +172,24 @@ jobs:
             cd /www/cartzilla.sigalev.ru
             NAME=stage PORT=4004 IMAGE=ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE }}:${{ needs.build.outputs.VERSION }} docker compose up -d
 
+  deploy-production:
+    needs: [find-image, build]
+    if: ${{ !cancelled() && github.ref_type == 'tag' && needs.find-image.result == 'success' && (needs.find-image.outputs.found == 'true' || needs.build.result == 'success') }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Docker image
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+            docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE }}:${{ needs.find-image.outputs.release }}
+            docker logout ghcr.io
+
       - name: Restart production server
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -108,4 +197,4 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /www/www.sewing-world.ru
-            NAME=sworld PORT=4104 IMAGE=ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE }}:${{ needs.build.outputs.VERSION }} docker compose up -d
+            NAME=sworld PORT=4104 IMAGE=ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE }}:${{ needs.find-image.outputs.release }} docker compose up -d

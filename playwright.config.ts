@@ -19,8 +19,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. Locally all workers share one `next dev` server, which compiles routes on first request */
-  workers: process.env.CI ? 1 : 2,
+  /* Tests mostly wait for the backend, so CI runs more workers than its cores. Locally all workers share one `next dev` server, which compiles routes on first request */
+  workers: process.env.CI ? 4 : 2,
   /* Locally pages are rendered by `next dev` on every request, so navigations can take longer than the default 5s */
   expect: { timeout: process.env.CI ? 5000 : 15000 },
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */

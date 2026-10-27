@@ -31,6 +31,12 @@ jobs:
         env:
           PLAYWRIGHT_TEST: true
 
+      # The standalone server serves them from its own directory, as in the Dockerfile
+      - name: Copy static files into standalone build
+        run: |
+          cp -r .next/static .next/standalone/.next/
+          cp -r public .next/standalone/
+
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
