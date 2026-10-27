@@ -6,11 +6,9 @@ import { Dialog } from '@base-ui/react/dialog'
 
 import { useBreakpoint } from '@/lib/breakpoint'
 
-const OffcanvasContext = createContext<() => void>(() => {})
+import { shown } from './transition'
 
-// Bootstrap .show is toggled after the popup is mounted and before it is unmounted, so .offcanvas slides and the backdrop fades
-const shown = ({ transitionStatus }: { transitionStatus: Dialog.Popup.State['transitionStatus'] }) =>
-  transitionStatus !== 'starting' && transitionStatus !== 'ending'
+const OffcanvasContext = createContext<() => void>(() => {})
 
 // Sidebar that is rendered inline from lg up (see .offcanvas-lg in styles.scss) and slides in as a Base UI dialog below lg.
 // While it isn't open it is rendered inline below lg too and .offcanvas keeps it off screen, so its content is always in the page.

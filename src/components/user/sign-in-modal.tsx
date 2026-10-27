@@ -1,9 +1,8 @@
 import { useState } from 'react'
 
-import Modal from 'react-bootstrap/Modal'
-import Nav from 'react-bootstrap/Nav'
-import Tab from 'react-bootstrap/Tab'
+import { Tabs } from '@base-ui/react/tabs'
 
+import { Modal, ModalHeader, ModalBody } from '@/components/ui/modal'
 import LoginForm from '@/components/login-form'
 import RegistrationForm from '@/components/user/registration-form'
 
@@ -12,6 +11,8 @@ interface SignInModalProps {
   show: boolean
   onHide: () => void
 }
+
+const tabClassName = (state: Tabs.Tab.State) => 'nav-link fw-medium' + (state.active ? ' active' : '')
 
 export default function SignInModal({ ctx: modalCtx, show, onHide }: SignInModalProps) {
   const [key, setKey] = useState('signin')
@@ -25,35 +26,33 @@ export default function SignInModal({ ctx: modalCtx, show, onHide }: SignInModal
   }
 
   return (
-    <Modal show={show} onHide={onHide} centered>
-      <Tab.Container id={`${modalCtx}-tabs`} activeKey={key} onSelect={(k) => setKey(k ?? 'signin')}>
-        <Modal.Header closeButton>
-          <Nav variant="tabs" className="card-header-tabs">
-            <Nav.Item>
-              <Nav.Link eventKey="signin" className="fw-medium">
+    <Modal show={show} onHide={onHide}>
+      <Tabs.Root value={key} onValueChange={(value) => setKey(value)}>
+        <ModalHeader>
+          <Tabs.List className="nav nav-tabs card-header-tabs">
+            <div className="nav-item">
+              <Tabs.Tab value="signin" className={tabClassName}>
                 <i className="ci-unlocked me-2 mt-n1" />
                 Вход
-              </Nav.Link>
-            </Nav.Item>
-            <Nav.Item>
-              <Nav.Link eventKey="signup" className="fw-medium">
+              </Tabs.Tab>
+            </div>
+            <div className="nav-item">
+              <Tabs.Tab value="signup" className={tabClassName}>
                 <i className="ci-user me-2 mt-n1" />
                 Регистрация
-              </Nav.Link>
-            </Nav.Item>
-          </Nav>
-        </Modal.Header>
-        <Modal.Body>
-          <Tab.Content>
-            <Tab.Pane eventKey="signin">
-              <LoginForm key={phone} embedded={modalCtx} ctx={ctx} phone={phone} hideModal={onHide} />
-            </Tab.Pane>
-            <Tab.Pane eventKey="signup">
-              <RegistrationForm embedded={modalCtx} onComplete={onRegistrationComplete} />
-            </Tab.Pane>
-          </Tab.Content>
-        </Modal.Body>
-      </Tab.Container>
+              </Tabs.Tab>
+            </div>
+          </Tabs.List>
+        </ModalHeader>
+        <ModalBody>
+          <Tabs.Panel value="signin" keepMounted>
+            <LoginForm key={phone} embedded={modalCtx} ctx={ctx} phone={phone} hideModal={onHide} />
+          </Tabs.Panel>
+          <Tabs.Panel value="signup" keepMounted>
+            <RegistrationForm embedded={modalCtx} onComplete={onRegistrationComplete} />
+          </Tabs.Panel>
+        </ModalBody>
+      </Tabs.Root>
     </Modal>
   )
 }

@@ -1,10 +1,10 @@
 import { useState } from 'react'
 
 import { Toast } from '@base-ui/react/toast'
-import Modal from 'react-bootstrap/Modal'
 
 import { ButtonLoading } from '@/components/loading'
 import LoginForm from '@/components/login-form'
+import { Modal, ModalBody } from '@/components/ui/modal'
 
 import { createPreorder } from '@/lib/queries'
 import { useSession } from '@/lib/session'
@@ -40,8 +40,8 @@ export default function ProductPreorder({ product }: { product: Product }) {
       <a className="btn btn-success btn-shadow d-block w-100" onClick={showModal} style={{ cursor: 'pointer' }}>
         <i className="ci-loudspeaker fs-lg me-2" />Сообщить о поступлении
       </a>
-      <Modal show={show} onHide={hideModal} centered>
-        <Modal.Body>
+      <Modal show={show} onHide={hideModal}>
+        <ModalBody>
           {status === 'authenticated' ? (
             <>
               <div className="mb-2">{user?.name || "Уважаемый покупатель"}!</div>
@@ -57,7 +57,7 @@ export default function ProductPreorder({ product }: { product: Product }) {
           ) : (
             <LoginForm embedded="preorder" ctx="preorder" />
           )}
-        </Modal.Body>
+        </ModalBody>
       </Modal>
     </>
   )
