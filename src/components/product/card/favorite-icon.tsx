@@ -1,7 +1,6 @@
 'use client'
 
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import Tooltip from 'react-bootstrap/Tooltip'
+import Tooltip from '@/components/ui/tooltip'
 
 import useFavorites from '@/lib/favorites'
 import { useSession } from '@/lib/session'
@@ -26,17 +25,10 @@ export default function FavoriteIcon({ product }: { product: Product | SearchPro
     return null
 
   return (
-    <OverlayTrigger
-      placement="left"
-      overlay={
-        <Tooltip>
-          {favorites.includes(product.id) ? "В избранном" : "Отложить"}
-        </Tooltip>
-      }
-    >
+    <Tooltip side="left" content={favorites.includes(product.id) ? "В избранном" : "Отложить"}>
       <button onClick={handleFavoritesClick} className={"btn-wishlist btn-sm" + (favorites.includes(product.id) ? " bg-accent text-light" : "")}>
         <i className="ci-heart" />
       </button>
-    </OverlayTrigger>
+    </Tooltip>
   )
 }

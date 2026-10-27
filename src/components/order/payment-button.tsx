@@ -1,14 +1,12 @@
 import { MouseEvent } from 'react'
 import { useQuery } from "@tanstack/react-query"
 
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import Tooltip from 'react-bootstrap/Tooltip'
-
 import { apiFetch, loadOrder, orderKeys } from "@/lib/queries"
 import { useNavigation } from '@/lib/navigation'
 import { useSite } from '@/lib/site'
 
 import { PAYMENT_CREDIT } from '@/components/order/status-badge'
+import Tooltip from '@/components/ui/tooltip'
 
 export default function OrderPaymentButton({ orderId, iconOnly = false }: { orderId: number, iconOnly?: boolean }) {
 
@@ -37,29 +35,28 @@ export default function OrderPaymentButton({ orderId, iconOnly = false }: { orde
     }
   }
 
-  return (
-    <OverlayTrigger
-      placement="top"
-      overlay={iconOnly ?
-        <Tooltip>
-          {order.payment === PAYMENT_CREDIT ? 'Оформить кредит' : 'Оплатить заказ'}
-        </Tooltip> : <span />
-      }
-    >
-      <button type="button" className={`btn btn-sm btn${iconOnly ? '-outline' : ''}-success ${iconOnly ? 'py-0 px-1' : ''}`} onClick={handlePayment}>
-        {order.payment === PAYMENT_CREDIT ? (
-          <>
-            <i className={`ci-money-bag fs-${iconOnly ? 'sm' : 'lg'}`} />
-            {!iconOnly && <span className="ms-2">Оформить кредит</span>}
-          </>
-        ) : (
-          <>
-            <i className={`ci-card fs-${iconOnly ? 'sm' : 'lg'}`} />
-            {!iconOnly && <span className="ms-2">Оплатить заказ</span>}
-          </>
-        )}
-      </button>
+  const button = (
+    <button type="button" className={`btn btn-sm btn${iconOnly ? '-outline' : ''}-success ${iconOnly ? 'py-0 px-1' : ''}`} onClick={handlePayment}>
+      {order.payment === PAYMENT_CREDIT ? (
+        <>
+          <i className={`ci-money-bag fs-${iconOnly ? 'sm' : 'lg'}`} />
+          {!iconOnly && <span className="ms-2">Оформить кредит</span>}
+        </>
+      ) : (
+        <>
+          <i className={`ci-card fs-${iconOnly ? 'sm' : 'lg'}`} />
+          {!iconOnly && <span className="ms-2">Оплатить заказ</span>}
+        </>
+      )}
+    </button>
+  )
 
-    </OverlayTrigger>
+  if (!iconOnly)
+    return button
+
+  return (
+    <Tooltip content={order.payment === PAYMENT_CREDIT ? 'Оформить кредит' : 'Оплатить заказ'}>
+      {button}
+    </Tooltip>
   )
 }

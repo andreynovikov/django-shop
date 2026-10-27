@@ -4,9 +4,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery } from '@tanstack/react-query'
 
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import Tooltip from 'react-bootstrap/Tooltip'
-
 import { useSite } from '@/lib/site'
 import { useSession } from '@/lib/session'
 import { orderKeys, loadOrder } from '@/lib/queries'
@@ -18,6 +15,7 @@ import UserPageLayout from '@/components/layout/user-page'
 import UserTopbar from '@/components/user/topbar'
 import OrderPaymentButton from '@/components/order/payment-button'
 import OrderStatusBadge from '@/components/order/status-badge'
+import Tooltip from '@/components/ui/tooltip'
 import {
   STATUS_NEW,
   STATUS_ACCEPTED,
@@ -103,9 +101,9 @@ export default function Order({ id }) {
           <div className="fs-ms px-3">
             <div className="fw-medium">Дата оформления</div>
             <div className="fs-lg opacity-60 sw-order-created">
-              <OverlayTrigger placement="bottom" overlay={<Tooltip>{moment(order.created).format('LLL')}</Tooltip>}>
+              <Tooltip side="bottom" content={moment(order.created).format('LLL')}>
                 <span>{created}</span>
-              </OverlayTrigger>
+              </Tooltip>
             </div>
           </div>
           <div className="fs-ms px-3">

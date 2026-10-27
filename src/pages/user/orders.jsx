@@ -4,15 +4,13 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import Tooltip from 'react-bootstrap/Tooltip'
-
 import UserPageLayout from '@/components/layout/user-page'
 import UserTopbar from '@/components/user/topbar'
 import OrderPaymentButton from '@/components/order/payment-button'
 import OrderStatusBadge from '@/components/order/status-badge'
 import PageSelector from '@/components/page-selector'
 import { PageLoading } from '@/components/loading'
+import Tooltip from '@/components/ui/tooltip'
 
 import { useSession } from '@/lib/session'
 import { orderKeys, loadOrders, getLastOrder } from '@/lib/queries'
@@ -114,9 +112,9 @@ export default function Orders({ filter, page, track }) {
                       </Link>
                     </td>
                     <td className="py-3">
-                      <OverlayTrigger overlay={<Tooltip>{moment(order.created).format('LLL')}</Tooltip>}>
+                      <Tooltip content={moment(order.created).format('LLL')}>
                         <span>{moment(order.created).calendar().toLowerCase()}</span>
-                      </OverlayTrigger>
+                      </Tooltip>
                     </td>
                     <td className="py-3"><OrderStatusBadge status={order.status} text={order.status_text} /></td>
                     <td className="d-none d-sm-table-cell py-3">
