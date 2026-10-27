@@ -7,12 +7,14 @@ test('price range filter updates query', async ({ page, isMobile }) => {
   const thumbs = widget.getByRole('slider')
   await expect(thumbs).toHaveCount(2)
 
-  // moving the minimum thumb with keyboard
+  // moving the minimum thumb with keyboard, thumbs are server rendered so retry until hydrated
   const minInput = widget.locator('input[name="price_min"]')
   const initialMin = Number(await minInput.inputValue())
-  await thumbs.first().focus()
-  await page.keyboard.press('PageUp')
-  await expect(page).toHaveURL(/[?&]price=\d+-\d+/)
+  await expect(async () => {
+    await thumbs.first().focus()
+    await page.keyboard.press('PageUp')
+    await expect(page).toHaveURL(/[?&]price=\d+-\d+/, { timeout: 1000 })
+  }).toPass()
   await expect.poll(async () => Number(await minInput.inputValue())).toBeGreaterThan(initialMin)
 
   // typing the maximum moves the slider thumb
@@ -29,9 +31,12 @@ test('slider filter updates query', async ({ page, isMobile }) => {
   await expect(thumb).toHaveCount(1)
   const initialValue = await thumb.getAttribute('aria-valuenow')
 
-  await thumb.focus()
-  await page.keyboard.press('ArrowRight')
-  await expect(thumb).not.toHaveAttribute('aria-valuenow', initialValue!)
+  // thumb is server rendered so retry until hydrated
+  await expect(async () => {
+    await thumb.focus()
+    await page.keyboard.press('ArrowRight')
+    await expect(thumb).not.toHaveAttribute('aria-valuenow', initialValue!, { timeout: 1000 })
+  }).toPass()
   const value = await thumb.getAttribute('aria-valuenow')
   await expect(page).toHaveURL(new RegExp(`[?&]sm_power=${value}`))
   await expect(widget).toContainText(`${value} Вт`)
