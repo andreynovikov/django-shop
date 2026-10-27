@@ -1,4 +1,4 @@
-import { test, expect, openFilters } from './fixtures'
+import { test, expect, openFilters, signIn } from './fixtures'
 
 test('price range filter updates query', async ({ page, isMobile }) => {
   await page.goto('/catalog/sewing_machines/')
@@ -45,4 +45,48 @@ test('slider filter updates query', async ({ page, isMobile }) => {
   await page.keyboard.press('Home')
   await expect(thumb).toHaveAttribute('aria-valuenow', initialValue!)
   await expect(page).not.toHaveURL(/[?&]sm_power=/)
+})
+
+test('favorite icon shows tooltip', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Tooltips open on hover')
+  await signIn(page)
+  await page.goto('/catalog/sewing_machines/')
+  const tooltip = page.locator('.tooltip')
+
+  // the icon is rendered only for signed in users, so the page is hydrated when it appears
+  await page.locator('.product-card .btn-wishlist').first().hover()
+  await expect(tooltip).toHaveText('Отложить')
+  await expect(tooltip).toHaveClass(/bs-tooltip-start/)
+})
+
+test('filters are in the sidebar on desktop', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Filters are in an offcanvas below the lg breakpoint')
+  await page.goto('/catalog/sewing_machines/')
+  await expect(page.getByRole('heading', { name: 'Цена' })).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+})
+
+test('filters offcanvas closes on mobile', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'Filters are in an offcanvas below the lg breakpoint')
+  await page.goto('/catalog/sewing_machines/')
+  const filters = page.getByRole('dialog')
+
+  await openFilters(page, isMobile)
+  await expect(filters).toBeVisible()
+  await expect(filters.getByRole('heading', { name: 'Цена' })).toBeVisible()
+  await expect(page.locator('.modal-backdrop')).toBeVisible()
+
+  // the offcanvas leaves a strip of the backdrop on the right
+  const viewport = page.viewportSize()!
+  await page.mouse.click(viewport.width - 10, viewport.height / 2)
+  await expect(filters).toBeHidden()
+
+  await openFilters(page, isMobile)
+  await expect(filters).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(filters).toBeHidden()
+
+  await openFilters(page, isMobile)
+  await filters.getByRole('button', { name: 'Закрыть' }).click()
+  await expect(filters).toBeHidden()
 })

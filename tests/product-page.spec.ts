@@ -1,6 +1,6 @@
-import { test, expect } from './fixtures'
+import { test, expect, signIn, testUser } from './fixtures'
 
-import { findSewingMachines, findProductInStores } from './api'
+import { findSewingMachines, findProductInStores, findReviewableProduct } from './api'
 
 test('product page has canonical link', async ({ page }) => {
   await page.goto('/')
@@ -89,4 +89,40 @@ test('preorder shows toast notification', async ({ page, request }) => {
   // Base UI hides the close button from assistive technology, toasts are reachable with F6 instead
   await page.locator('.sw-toast-viewport').getByRole('button', { name: 'Close', includeHidden: true }).click()
   await expect(toast).toBeHidden()
+})
+
+test('nickname modal closes only explicitly', async ({ page, request }) => {
+  const product = await findReviewableProduct(request)
+  test.skip(product === undefined, 'No product allows reviews')
+
+  // a user without a nickname is offered to set one above the review form
+  await signIn(page, { username: '' })
+  await page.route('**/api/v0/users/form/', route => route.fulfill({
+    json: [{ id: 'id_username', name: 'username', label: 'Псевдоним', required: false }]
+  }))
+  await page.route('**/api/v0/reviews/shop.product/*/form/', route => route.fulfill({ json: [] }))
+  let updateBody
+  await page.route(`**/api/v0/users/${testUser.id}/`, route => {
+    updateBody = route.request().postDataJSON()
+    return route.fulfill({ json: { ...testUser, ...updateBody } })
+  })
+
+  await page.goto(`/products/${product!.code}/`)
+  // reviews are loaded when scrolled into view
+  await page.locator('#reviews').scrollIntoViewIfNeeded()
+  await page.getByText('указать', { exact: true }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+
+  // the backdrop is static
+  await page.mouse.click(5, 5)
+  await expect(dialog).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+
+  await page.getByText('указать', { exact: true }).click()
+  await dialog.getByRole('textbox', { name: 'Псевдоним' }).fill('nick')
+  await dialog.getByRole('button', { name: 'Сохранить' }).click()
+  await expect(dialog).toBeHidden()
+  expect(updateBody).toMatchObject({ username: 'nick' })
 })

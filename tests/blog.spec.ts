@@ -50,3 +50,26 @@ test('blog tag opens', async ({ page }) => {
   await firstEntryLink.click()
   await expect(page).toHaveTitle(new RegExp(`^Архив по тэгу '${title.slice(1)}'`))
 })
+
+test('blog entry navigation shows neighbour entries in popovers', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'Popovers open on hover')
+  await page.goto('/blog/entries/')
+  // the second entry has both previous and next entries
+  await page.locator('article.blog-list').nth(1).locator('.blog-entry-title > a').click()
+  await page.waitForURL(/\/blog\/(?!entries\/)/)
+
+  const popover = page.locator('.popover')
+  for (const icon of ['.ci-arrow-left', '.ci-arrow-right']) {
+    const link = page.locator('.entry-navigation a.entry-navigation-link', { has: page.locator(icon) })
+    // the page is server rendered, retry until hydrated
+    await expect(async () => {
+      await page.mouse.move(0, 0)
+      await link.hover()
+      await expect(popover).toBeVisible({ timeout: 1500 })
+    }).toPass()
+    await expect(popover.locator('h6')).not.toBeEmpty()
+
+    await page.mouse.move(0, 0)
+    await expect(popover).toBeHidden()
+  }
+})

@@ -23,6 +23,17 @@ async function loadProductStock(request: APIRequestContext, id: number) {
   return (await response.json() as Store[]).filter(store => store.id !== 295)
 }
 
+// Product page shows reviews only for products that allow them
+export async function findReviewableProduct(request: APIRequestContext) {
+  for (const product of await findSewingMachines(request)) {
+    const response = await request.get(`/api/v0/products/${product.id}/`)
+    expect(response.ok()).toBeTruthy()
+    if ((await response.json()).allow_reviews)
+      return product
+  }
+  return undefined
+}
+
 export async function findProductInStores(request: APIRequestContext) {
   for (const product of await findSewingMachines(request, { instock: '1' })) {
     const stores = await loadProductStock(request, product.id)
