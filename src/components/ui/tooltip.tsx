@@ -17,6 +17,7 @@ const bootstrapSides: Record<Side, string> = {
 }
 
 // Base UI tooltip rendered with Bootstrap .tooltip markup, the positioner gets .tooltip so the arrow is positioned against it.
+// The arrow is a sibling of .tooltip-inner as in Bootstrap, inside it the centered text would shift the arrow triangle.
 // With `popover` it is rendered with Bootstrap .popover markup instead, Bootstrap styles .popover-arrow only as a direct child
 // of .popover so the popup gets .popover and is taken out of absolute positioning to stay inside the positioner.
 export default function Tooltip({
@@ -45,8 +46,8 @@ export default function Tooltip({
           </BaseTooltip.Positioner>
         ) : (
           <BaseTooltip.Positioner side={side} className={(state) => `tooltip show bs-tooltip-${bootstrapSides[state.side]}`}>
+            <BaseTooltip.Arrow className="tooltip-arrow" />
             <BaseTooltip.Popup className="tooltip-inner">
-              <BaseTooltip.Arrow className="tooltip-arrow" />
               {content}
             </BaseTooltip.Popup>
           </BaseTooltip.Positioner>

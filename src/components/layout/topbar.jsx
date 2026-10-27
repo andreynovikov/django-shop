@@ -13,6 +13,7 @@ import OrderTracking from '@/components/order/tracking'
 import CompareLink from '@/components/user/compare-link'
 import UserProfileLink from '@/components/user/profile-link'
 import ProductSearchInput from '@/components/product/search-input'
+import Tooltip from '@/components/ui/tooltip'
 
 import CatalogDropDown from './catalog-dropdown'
 
@@ -140,18 +141,20 @@ export default function TopBar() {
               <button className="navbar-toggler d-md-none" type="button" onClick={toggleTopMenu}>
                 <span className="navbar-toggler-icon"></span>
               </button>
-              <button className="btn p-0 navbar-tool navbar-stuck-toggler" onClick={handleStuckToggler}>
-                <span className="navbar-tool-tooltip">Раскрыть меню</span>
-                <div className="navbar-tool-icon-box"><i className="navbar-tool-icon ci-menu" /></div>
-              </button>
+              <Tooltip content="Раскрыть меню">
+                <button className="btn p-0 navbar-tool navbar-stuck-toggler" onClick={handleStuckToggler}>
+                  <div className="navbar-tool-icon-box"><i className="navbar-tool-icon ci-menu" /></div>
+                </button>
+              </Tooltip>
               {status === 'authenticated' && (
-                <Link className="navbar-tool d-none d-lg-flex" href="/user/favorites">
-                  <div className="navbar-tool-icon-box">
-                    {favorites.length > 0 && <span className="navbar-tool-label">{favorites.length}</span>}
-                    <i className="navbar-tool-icon ci-heart" />
-                  </div>
-                  <span className="navbar-tool-tooltip">Избранное</span>
-                </Link>
+                <Tooltip content="Избранное">
+                  <Link className="navbar-tool d-none d-lg-flex" href="/user/favorites">
+                    <div className="navbar-tool-icon-box">
+                      {favorites.length > 0 && <span className="navbar-tool-label">{favorites.length}</span>}
+                      <i className="navbar-tool-icon ci-heart" />
+                    </div>
+                  </Link>
+                </Tooltip>
               )}
               {!hideSignIn && <UserProfileLink />}
               {!hideCartNotice && <CartNotice />}
