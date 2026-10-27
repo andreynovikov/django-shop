@@ -1,3 +1,5 @@
+'use client'
+
 import { useQuery } from '@tanstack/react-query'
 
 function generateAvatar(fullName: string, size: number) {

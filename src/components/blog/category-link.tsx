@@ -1,20 +1,20 @@
-import { useQuery } from '@tanstack/react-query'
-
+import { cache } from 'react'
 import Link from 'next/link'
 
-import { blogKeys, loadBlogCategory } from '@/lib/queries'
+import { loadBlogCategories } from '@/lib/queries'
 
-export default function BlogCategoryLink({ id }: { id: number }) {
-  const { data: category, isSuccess } = useQuery({
-    queryKey: blogKeys.category(id),
-    queryFn: () => loadBlogCategory(id)
-  })
+// Previews link to several categories each, load them all once per render
+const getBlogCategories = cache(loadBlogCategories)
 
-  if (!isSuccess)
+export default async function BlogCategoryLink({ id }: { id: number }) {
+  const categories = await getBlogCategories()
+  const category = categories.find((category) => category.id === id)
+
+  if (category === undefined)
     return null
 
   return (
-    <Link className="blog-entry-meta-link" href={{ pathname: '/blog/categories/[slug]', query: { slug: category.slug } }}>
+    <Link className="blog-entry-meta-link" href={`/blog/categories/${encodeURIComponent(category.slug)}/`}>
       {category.title}
     </Link>
   )

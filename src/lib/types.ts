@@ -463,7 +463,7 @@ interface BlogEntryBase {
   tags: Array<string>
 }
 
-interface BlogEntryNavigation extends BlogEntryBase {
+export interface BlogEntryNavigation extends BlogEntryBase {
   title: string
 }
 

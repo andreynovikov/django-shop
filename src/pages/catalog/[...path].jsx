@@ -307,9 +307,8 @@ export default function Category({ path, currentPage, pageSize, order, filters, 
                 <>
                   <hr className="my-3" />
                   <PageSelector
-                    pathname={router.pathname}
-                    query={router.query}
-                    path={path}
+                    pathname={`/catalog/${path.join('/')}/`}
+                    pageInPath
                     totalPages={currentProducts.totalPages}
                     currentPage={currentProducts.currentPage} />
                 </>

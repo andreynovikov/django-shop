@@ -1,7 +1,6 @@
 import { ReactElement } from 'react'
 import { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
 import Image from 'next/image'
-import { useRouter } from 'next/router'
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 import { ParsedUrlQuery } from 'querystring'
 
@@ -14,8 +13,6 @@ import { salesActionKeys, loadSalesActions, loadSalesAction, loadSalesActionProd
 const pageStaleTime = 3600
 
 export default function SalesAction({ slug, currentPage }: InferGetStaticPropsType<typeof getStaticProps>) {
-  const router = useRouter()
-
   const { data: action, isSuccess } = useQuery({
     queryKey: salesActionKeys.detail(slug),
     queryFn: () => loadSalesAction(slug)
@@ -57,9 +54,8 @@ export default function SalesAction({ slug, currentPage }: InferGetStaticPropsTy
             <>
               <hr className="my-3" />
               <PageSelector
-                pathname={router.pathname}
-                query={router.query}
-                path={[slug]}
+                pathname={`/actions/${slug}/`}
+                pageInPath
                 totalPages={products.totalPages}
                 currentPage={products.currentPage} />
             </>

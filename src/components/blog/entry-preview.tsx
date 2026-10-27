@@ -41,7 +41,7 @@ export default function BlogEntryPreview({ entry, last }: BlogEntryPreviewProps)
           </div>
           <div className="font-size-sm mb-2">
             {entry.tags && entry.tags.map((tag) => (
-              <Link className="btn-tag ms-2" href={{ pathname: '/blog/tags/[tag]', query: { tag } }} key={tag}>
+              <Link className="btn-tag ms-2" href={`/blog/tags/${encodeURIComponent(tag)}/`} key={tag}>
                 #{tag}
               </Link>
             ))}
