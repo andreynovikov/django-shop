@@ -5,13 +5,12 @@ import Link from 'next/link'
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 import { useQueryStates } from 'nuqs'
 
-import Offcanvas from 'react-bootstrap/Offcanvas'
-
 import PageLayout from '@/components/layout/page'
 import ProductCard from '@/components/product/card'
 import ProductFilter from '@/components/product/filter'
 import PageSelector from '@/components/page-selector'
 import { Loading, PageLoading } from '@/components/loading'
+import Offcanvas, { OffcanvasHeader, OffcanvasBody } from '@/components/ui/offcanvas'
 
 import { categoryKeys, advertKeys, productKeys, siteKeys, loadCategories, loadCategory, loadAdverts, loadProducts, loadCurrentSite, HttpError } from '@/lib/queries'
 import { useToolbar } from '@/lib/toolbar'
@@ -137,7 +136,7 @@ export default function Category({ path, currentPage, pageSize, order, filters, 
 
   const toolbarItem = useMemo(() => {
     return category?.filters ? (
-      <a className="d-table-cell handheld-toolbar-item" onClick={() => setShowFilters(true)}>
+      <a className="d-table-cell handheld-toolbar-item" onClick={() => setShowFilters(true)} style={{ cursor: 'pointer' }}>
         <span className="handheld-toolbar-icon"><i className="ci-filter-alt" /></span>
         <span className="handheld-toolbar-label">Фильтры</span>
       </a>
@@ -229,13 +228,12 @@ export default function Category({ path, currentPage, pageSize, order, filters, 
                     <Offcanvas
                       show={showFilters}
                       onHide={() => setShowFilters(false)}
-                      responsive="lg"
-                      className="offcanvas bg-white w-100 rounded-3 shadow-lg py-1"
+                      className="bg-white w-100 rounded-3 shadow-lg py-1"
                       style={{ maxWidth: "22rem" }}>
-                      <Offcanvas.Header className="align-items-center shadow-sm" closeButton>
+                      <OffcanvasHeader className="align-items-center shadow-sm">
                         <h2 className="h5 mb-0">Фильтры</h2>
-                      </Offcanvas.Header>
-                      <Offcanvas.Body className="py-grid-gutter px-lg-grid-gutter">
+                      </OffcanvasHeader>
+                      <OffcanvasBody className="py-grid-gutter px-lg-grid-gutter">
                         {category.filters && category.filters.map((filter, index) => (
                           <div className={"widget" + (index === category.filters.length - 1 ? "" : " pb-4 mb-4 border-bottom")} key={filter.id}>
                             <h3 className="widget-title">{filter.label}</h3>
@@ -245,7 +243,7 @@ export default function Category({ path, currentPage, pageSize, order, filters, 
                               onFilterChanged={handleFilterChanged} />
                           </div>
                         ))}
-                      </Offcanvas.Body>
+                      </OffcanvasBody>
                     </Offcanvas>
                   )}
                 </div></div>

@@ -6,14 +6,13 @@ import Head from 'next/head'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { useQueryStates, parseAsString, parseAsBoolean, parseAsInteger, parseAsArrayOf } from 'nuqs'
 
-import Offcanvas from 'react-bootstrap/Offcanvas'
-
 import PageLayout from '@/components/layout/page'
 import ProductSearchCard from '@/components/product/search-card'
 import MultipleChoiceFilter from '@/components/product/filters/multiple-choice-filter'
 import PriceFilter from '@/components/product/filters/price-filter'
 import PageSelector, { SmallPageSelector } from '@/components/page-selector'
 import { PageLoading } from '@/components/loading'
+import Offcanvas, { OffcanvasHeader, OffcanvasBody } from '@/components/ui/offcanvas'
 
 import { productKeys } from '@/lib/queries'
 import { loadProducts } from '@/lib/diginetica'
@@ -39,7 +38,7 @@ export default function Search({ text }) {
 
   const toolbarItem = useMemo(() => {
     return (
-      <a className="d-table-cell handheld-toolbar-item" onClick={() => setShowFilters(true)}>
+      <a className="d-table-cell handheld-toolbar-item" onClick={() => setShowFilters(true)} style={{ cursor: 'pointer' }}>
         <span className="handheld-toolbar-icon"><i className="ci-filter-alt" /></span>
         <span className="handheld-toolbar-label">Фильтры</span>
       </a>
@@ -94,13 +93,12 @@ export default function Search({ text }) {
             <Offcanvas
               show={showFilters}
               onHide={() => setShowFilters(false)}
-              responsive="lg"
-              className="offcanvas bg-white w-100 rounded-3 shadow-lg py-1"
+              className="bg-white w-100 rounded-3 shadow-lg py-1"
               style={{ maxWidth: "22rem" }}>
-              <Offcanvas.Header className="align-items-center shadow-sm" closeButton>
+              <OffcanvasHeader className="align-items-center shadow-sm">
                 <h2 className="h5 mb-0">Фильтры</h2>
-              </Offcanvas.Header>
-              <Offcanvas.Body className="py-grid-gutter px-lg-grid-gutter">
+              </OffcanvasHeader>
+              <OffcanvasBody className="py-grid-gutter px-lg-grid-gutter">
                 {brandsFilter && <div className="widget pb-4 mb-4 border-bottom">
                   <h3 className="widget-title">Производитель</h3>
                   <MultipleChoiceFilter
@@ -126,7 +124,7 @@ export default function Search({ text }) {
                     <label className="form-check-label" htmlFor="sw-awailable-check">Доступно к покупке</label>
                   </div>
                 </div>
-              </Offcanvas.Body>
+              </OffcanvasBody>
             </Offcanvas>
           </aside>
 
