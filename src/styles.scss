@@ -86,7 +86,7 @@ body {
 // Bootstrap tweaks
 
 .tooltip {
-    margin: 0; // https://github.com/react-bootstrap/react-bootstrap/issues/5081
+    margin: 0; // the Base UI tooltip positioner is .tooltip, a margin would offset it from the computed position
 }
 
 // Cartzilla tweaks
