@@ -16,18 +16,41 @@ const bootstrapSides: Record<Side, string> = {
   'inline-end': 'end',
 }
 
-// Base UI tooltip rendered with Bootstrap .tooltip markup, the positioner gets .tooltip so the arrow is positioned against it
-export default function Tooltip({ content, side = 'top', children }: { content: ReactNode, side?: Side, children: ReactElement }) {
+// Base UI tooltip rendered with Bootstrap .tooltip markup, the positioner gets .tooltip so the arrow is positioned against it.
+// With `popover` it is rendered with Bootstrap .popover markup instead, Bootstrap styles .popover-arrow only as a direct child
+// of .popover so the popup gets .popover and is taken out of absolute positioning to stay inside the positioner.
+export default function Tooltip({
+  content,
+  side = 'top',
+  popover = false,
+  children
+}: {
+  content: ReactNode,
+  side?: Side,
+  popover?: boolean,
+  children: ReactElement
+}) {
   return (
     <BaseTooltip.Root>
       <BaseTooltip.Trigger render={children} />
       <BaseTooltip.Portal>
-        <BaseTooltip.Positioner side={side} className={(state) => `tooltip show bs-tooltip-${bootstrapSides[state.side]}`}>
-          <BaseTooltip.Popup className="tooltip-inner">
-            <BaseTooltip.Arrow className="tooltip-arrow" />
-            {content}
-          </BaseTooltip.Popup>
-        </BaseTooltip.Positioner>
+        {popover ? (
+          <BaseTooltip.Positioner side={side} sideOffset={8}>
+            <BaseTooltip.Popup className={(state) => `popover bs-popover-${bootstrapSides[state.side]}`} style={{ position: 'relative' }}>
+              <BaseTooltip.Arrow className="popover-arrow" />
+              <div className="popover-body">
+                {content}
+              </div>
+            </BaseTooltip.Popup>
+          </BaseTooltip.Positioner>
+        ) : (
+          <BaseTooltip.Positioner side={side} className={(state) => `tooltip show bs-tooltip-${bootstrapSides[state.side]}`}>
+            <BaseTooltip.Popup className="tooltip-inner">
+              <BaseTooltip.Arrow className="tooltip-arrow" />
+              {content}
+            </BaseTooltip.Popup>
+          </BaseTooltip.Positioner>
+        )}
       </BaseTooltip.Portal>
     </BaseTooltip.Root>
   )

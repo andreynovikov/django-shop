@@ -1,11 +1,9 @@
 import Link from 'next/link'
 import { QueryClient } from '@tanstack/react-query'
 
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import Popover from 'react-bootstrap/Popover'
-
 import PageLayout from '@/components/layout/page'
 import BlogEntryAuthor from '@/components/blog/entry-author'
+import Tooltip from '@/components/ui/tooltip'
 
 import { HttpError, blogKeys, loadBlogEntries, loadBlogEntry } from '@/lib/queries'
 
@@ -13,28 +11,24 @@ import moment from 'moment'
 
 export default function BlogEntry({ entry }) {
   const previousPopover = entry.navigation.previous && (
-    <Popover id="previousPopover">
-      <Popover.Body>
-        <h6 className="fs-sm fw-semibold mb-0">
-          {entry.navigation.previous.title}
-        </h6>
-        <span className="d-block fs-xs text-muted">
-          {entry.navigation.previous.author.full_name}
-        </span>
-      </Popover.Body>
-    </Popover>
+    <>
+      <h6 className="fs-sm fw-semibold mb-0">
+        {entry.navigation.previous.title}
+      </h6>
+      <span className="d-block fs-xs text-muted">
+        {entry.navigation.previous.author.full_name}
+      </span>
+    </>
   )
   const nextPopover = entry.navigation.next && (
-    <Popover id="nextPopover">
-      <Popover.Body>
-        <h6 className="fs-sm fw-semibold mb-0">
-          {entry.navigation.next.title}
-        </h6>
-        <span className="d-block fs-xs text-muted">
-          {entry.navigation.next.author.full_name}
-        </span>
-      </Popover.Body>
-    </Popover>
+    <>
+      <h6 className="fs-sm fw-semibold mb-0">
+        {entry.navigation.next.title}
+      </h6>
+      <span className="d-block fs-xs text-muted">
+        {entry.navigation.next.author.full_name}
+      </span>
+    </>
   )
 
   return (
@@ -58,24 +52,24 @@ export default function BlogEntry({ entry }) {
           </div>
           <nav className="entry-navigation" aria-label="Навигация по записям">
             {entry.navigation.previous && (
-              <OverlayTrigger overlay={previousPopover}>
+              <Tooltip popover content={previousPopover}>
                 <Link className="entry-navigation-link" href={entry.navigation.previous.urls.canonical}>
                   <i className="ci-arrow-left me-2" />
                   <span className="d-none d-sm-inline">Предыдущая запись</span>
                 </Link>
-              </OverlayTrigger>
+              </Tooltip>
             )}
             <Link className="entry-navigation-link" href="/blog/entries">
               <i className="ci-view-list me-2" />
               <span className="d-none d-sm-inline">Все записи</span>
             </Link>
             {entry.navigation.next && (
-              <OverlayTrigger overlay={nextPopover}>
+              <Tooltip popover content={nextPopover}>
                 <Link className="entry-navigation-link" href={entry.navigation.next.urls.canonical}>
                   <span className="d-none d-sm-inline">Следующая запись</span>
                   <i className="ci-arrow-right ms-2" />
                 </Link>
-              </OverlayTrigger>
+              </Tooltip>
             )}
           </nav>
         </div>
