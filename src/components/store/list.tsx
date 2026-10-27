@@ -4,8 +4,7 @@
 import { Fragment, useState, useMemo, ReactNode } from 'react'
 import Link from 'next/link'
 
-import Button from 'react-bootstrap/Button'
-import Collapse from 'react-bootstrap/Collapse'
+import { Collapsible } from '@base-ui/react/collapsible'
 
 import type { LngLat } from '@yandex/ymaps3-types'
 
@@ -30,16 +29,14 @@ function Collapsable({
   className: string
 }) {
   return (
-    <>
-      <Button className={`d-block btn ${selected === id ? 'btn-info' : 'btn-light'} btn-link p-1 ${className}`} onClick={onSelect}>
+    <Collapsible.Root open={selected === id} onOpenChange={onSelect}>
+      <Collapsible.Trigger className={`d-block btn ${selected === id ? 'btn-info' : 'btn-light'} btn-link p-1 ${className}`}>
         {name}
-      </Button>
-      <Collapse in={selected === id}>
-        <div>
-          {children}
-        </div>
-      </Collapse>
-    </>
+      </Collapsible.Trigger>
+      <Collapsible.Panel className="sw-collapse" keepMounted>
+        {children}
+      </Collapsible.Panel>
+    </Collapsible.Root>
   )
 }
 
