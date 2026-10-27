@@ -166,16 +166,43 @@ a:not([href]):not([class]) {
     }
 }
 
-// React Bootstrap Typeahead tweaks
+// Autocomplete popup, see components/ui/autocomplete.tsx
 
-.rbt>.rbt-menu {
-    .dropdown-item.active {
-        background-color: map.get($theme-faded-colors, 'dark');
+.sw-autocomplete-menu {
+    position: relative; // placed by the Base UI positioner, but keeps .dropdown-menu z-index
+    width: var(--anchor-width);
+    max-height: 300px;
+    overflow-y: auto;
+
+    .dropdown-item {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        cursor: pointer;
+
+        &:focus {
+            outline: none;
+        }
+
+        &[data-highlighted] {
+            color: $dropdown-link-active-color;
+            background-color: map.get($theme-faded-colors, 'dark');
+        }
+
+        &.disabled {
+            cursor: default;
+        }
     }
 
     &::-webkit-scrollbar {
         background-color: $light;
     }
+}
+
+.sw-highlight-text {
+    padding: 0;
+    color: inherit;
+    font-weight: bold;
+    background-color: inherit;
 }
 
 // Custom styles

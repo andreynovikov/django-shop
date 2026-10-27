@@ -4,8 +4,6 @@ import Script from 'next/script'
 import localFont from 'next/font/local'
 
 import 'simplebar-react/dist/simplebar.min.css'
-import 'react-bootstrap-typeahead/css/Typeahead.css'
-import 'react-bootstrap-typeahead/css/Typeahead.bs5.css'
 import 'swiper/css'
 import 'swiper/css/free-mode'
 import 'swiper/css/navigation'

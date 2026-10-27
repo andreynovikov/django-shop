@@ -3,77 +3,15 @@
 import { useState, useMemo, useDeferredValue } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 
-import { AsyncTypeahead, Menu, MenuItem, Highlighter } from 'react-bootstrap-typeahead'
+import { Autocomplete } from '@base-ui/react/autocomplete'
+
+import { AutocompletePopup, AutocompleteStatus, AutocompleteGroup, AutocompleteItem, Highlighter } from '@/components/ui/autocomplete'
 
 import { useNavigation } from '@/lib/navigation'
 import { productKeys } from '@/lib/queries'
 import { loadProductSuggestions } from '@/lib/diginetica'
 
-function renderMenu(
-  results,
-  {
-    newSelectionPrefix,
-    paginationText,
-    renderMenuItemChildren,
-    ...menuProps
-  },
-  state
-) {
-  const items = results.reduce((items, item, index, results) => {
-    if (item.section === 'correction')
-      items.push(
-        <MenuItem key={`correction:${item.label}`} option={item} position={index}>
-          <Highlighter search={state.text}>{item.label}</Highlighter>
-        </MenuItem>
-      )
-    if (item.section === 'sts') {
-      if (index === 0 || results.at(index - 1).section !== 'sts') {
-        if (index > 0)
-          items.push(<Menu.Divider key="sts-divider" />)
-        items.push(
-          <Menu.Header key="sts">Часто ищут</Menu.Header>
-        )
-      }
-      items.push(
-        <MenuItem key={`sts:${item.label}`} option={item} position={index}>
-          <i className="ci-search text-muted fs-sm me-2" />
-          <Highlighter search={state.text}>{item.label}</Highlighter>
-        </MenuItem>
-      )
-    }
-
-    if (item.section === 'products') {
-      if (index === 0 || results.at(index - 1).section !== 'products') {
-        if (index > 0)
-          items.push(<Menu.Divider key="products-divider" />)
-        items.push(
-          <Menu.Header key="products">Популярные товары</Menu.Header>
-        )
-      }
-      items.push(
-        <MenuItem key={`products:${item.product.id}`} option={item} position={index}>
-          <div className="d-flex align-items-center gap-2">
-            <div style={{ width: "64px" }}>
-              {item.product.image_url ? <img src={item.product.image_url} className="img-fluid" /> : "no img"}
-            </div>
-            <div className="d-flex flex-column">
-              <div>
-                <Highlighter search={state.text}>{item.product.name}</Highlighter>
-              </div>
-              <div>
-                {(+item.product.price).toLocaleString('ru')}<small>&nbsp;руб</small>
-              </div>
-            </div>
-          </div>
-        </MenuItem>
-      )
-    }
-
-    return items
-  }, [])
-
-  return <Menu {...menuProps}>{items}</Menu>
-}
+const MIN_LENGTH = 3
 
 export default function ProductSearchInput({ mobile = false }) {
   const [searchText, setSearchText] = useState('')
@@ -82,92 +20,105 @@ export default function ProductSearchInput({ mobile = false }) {
   const { data: suggestions, isLoading } = useQuery({
     queryKey: productKeys.suggestions(deferredSearchText),
     queryFn: () => loadProductSuggestions(deferredSearchText),
-    enabled: searchText.length > 2,
+    enabled: searchText.length >= MIN_LENGTH,
     placeholderData: keepPreviousData
   })
 
-  const options = useMemo(() => {
-    if (!suggestions)
+  const groups = useMemo(() => {
+    if (!suggestions || searchText.length < MIN_LENGTH)
       return []
 
-    const options = []
-
-    if (suggestions.correction)
-      options.push(
-        {
-          section: 'correction',
-          label: suggestions.correction
-        }
-      )
-
-    if (suggestions.sts)
-      suggestions.sts.forEach(st => options.push(
-        {
-          section: 'sts',
-          label: st.st
-        }
-      ))
-
-    if (suggestions.products)
-      suggestions.products.forEach(product => options.push(
-        {
-          section: 'products',
-          label: product.name,
-          product
-        }
-      ))
-
-    return options
-  }, [suggestions])
+    return [
+      {
+        section: 'correction',
+        items: suggestions.correction ? [{ section: 'correction', label: suggestions.correction }] : []
+      },
+      {
+        section: 'sts',
+        label: 'Часто ищут',
+        items: (suggestions.sts ?? []).map(st => ({ section: 'sts', label: st.st }))
+      },
+      {
+        section: 'products',
+        label: 'Популярные товары',
+        items: (suggestions.products ?? []).map(product => ({ section: 'products', label: product.name, product }))
+      },
+    ].filter(group => group.items.length > 0)
+  }, [suggestions, searchText])
 
   const { navigate } = useNavigation()
 
-  const handleSelectionChange = (selected) => {
-    if (selected.length === 0)
-      return
-    if (selected[0].section === 'products')
-      navigate(selected[0].product.link_url.replace('.html', '/'))
+  // the input also changes while moving through suggestions, only typing starts a new search
+  const handleValueChange = (value, { reason }) => {
+    if (reason === 'input-change' || reason === 'input-clear')
+      setSearchText(value)
   }
+
+  const message =
+    searchText.length < MIN_LENGTH ? "Введите строку для поиска..." :
+    isLoading ? "Ищем..." :
+    groups.length === 0 ? "Ничего не найдено" : null
 
   return (
     <form className="w-100" action="/search/">
-      <AsyncTypeahead
-        id={"product-search-input" + (mobile ? "-mobile" : "")}
-        className="w-100"
-        filterBy={() => true}
-        isLoading={isLoading}
-        minLength={3}
-        onSearch={(query) => setSearchText(query)}
-        onChange={handleSelectionChange}
-        options={options}
-        placeholder="Поиск товаров"
-        promptText="Введите строку для поиска..."
-        searchText="Ищем..."
-        emptyLabel="Ничего не найдено"
-        renderMenu={renderMenu}
-        renderInput={({ inputRef, referenceElementRef, ...inputProps }) => (
-          <div className="input-group">
-            {mobile && <i className="ci-search position-absolute top-50 start-0 translate-middle-y text-muted fs-base ms-3" />}
-            <input
-              {...inputProps}
-              ref={(input) => {
-                inputRef(input)
-                referenceElementRef(input)
-              }}
-              onKeyUp={(e) => {
-                if (e.key === "Enter") e.currentTarget.form.submit()
-              }}
-              className={"form-control pe-5 " + (mobile ? "rounded-start" : "rounded-end")}
-              name="text"
-            />
-            {!mobile && (
-              <button className="btn btn-link position-absolute top-50 end-0 translate-middle-y p-0 me-3" type="submit">
-                <i className="ci-search text-muted fs-base" />
-              </button>
+      <Autocomplete.Root
+        items={groups}
+        mode="inline"
+        itemToStringValue={(item) => item.label}
+        onValueChange={handleValueChange}>
+        <div className="input-group">
+          {mobile && <i className="ci-search position-absolute top-50 start-0 translate-middle-y text-muted fs-base ms-3" />}
+          <Autocomplete.Input
+            className={"form-control pe-5 " + (mobile ? "rounded-start" : "rounded-end")}
+            name="text"
+            placeholder="Поиск товаров" />
+          {mobile ? (
+            // Base UI adds a hidden input, without a submit button a form with two inputs isn't submitted by Enter
+            <button className="visually-hidden" type="submit" tabIndex={-1} aria-hidden="true" />
+          ) : (
+            <button className="btn btn-link position-absolute top-50 end-0 translate-middle-y p-0 me-3" type="submit">
+              <i className="ci-search text-muted fs-base" />
+            </button>
+          )}
+        </div>
+        <AutocompletePopup>
+          {message && <AutocompleteStatus>{message}</AutocompleteStatus>}
+          <Autocomplete.List>
+            {(group, index) => (
+              <AutocompleteGroup key={group.section} label={group.label} items={group.items} separated={index > 0}>
+                {(item) => item.section === 'products' ? (
+                  <AutocompleteItem
+                    key={`products:${item.product.id}`}
+                    value={item}
+                    onClick={() => navigate(item.product.link_url.replace('.html', '/'))}>
+                    <div className="d-flex align-items-center gap-2">
+                      <div style={{ width: "64px" }}>
+                        {item.product.image_url ? <img src={item.product.image_url} className="img-fluid" /> : "no img"}
+                      </div>
+                      <div className="d-flex flex-column">
+                        <div>
+                          <Highlighter search={searchText}>{item.product.name}</Highlighter>
+                        </div>
+                        <div>
+                          {(+item.product.price).toLocaleString('ru')}<small>&nbsp;руб</small>
+                        </div>
+                      </div>
+                    </div>
+                  </AutocompleteItem>
+                ) : (
+                  <AutocompleteItem
+                    key={`${item.section}:${item.label}`}
+                    value={item}
+                    onClick={item.section === 'sts' ? () => navigate(`/search/?${new URLSearchParams({ text: item.label })}`) : undefined}>
+                    {item.section === 'sts' && <i className="ci-search text-muted fs-sm me-2" />}
+                    <Highlighter search={searchText}>{item.label}</Highlighter>
+                  </AutocompleteItem>
+                )}
+              </AutocompleteGroup>
             )}
-          </div>
-        )}
-      />
+          </Autocomplete.List>
+        </AutocompletePopup>
+      </Autocomplete.Root>
     </form>
   )
 }
