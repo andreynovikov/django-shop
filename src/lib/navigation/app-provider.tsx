@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, type ReactNode } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams, ReadonlyURLSearchParams } from "next/navigation";
 import { ParsedUrlQuery } from 'querystring';
 import { NavigationContext, type NavigateOptions, type NavigationContextValue } from ".";
@@ -26,6 +26,15 @@ export function convertSearchParams(searchParams: ReadonlyURLSearchParams | null
   return query;
 }
 
+// useSearchParams() needs a Suspense boundary in statically rendered routes. Reading it here instead of in the
+// provider keeps the boundary off the page, otherwise the page streams inside it and notFound() and redirect()
+// can no longer set the response status. The query is empty until hydration, consumers read it in effects and handlers.
+function SearchParamsListener({ onChange }: { onChange: (searchParams: ReadonlyURLSearchParams | null) => void }) {
+  const searchParams = useSearchParams();
+  useEffect(() => onChange(searchParams), [searchParams, onChange]);
+  return null;
+}
+
 export function AppNavigationProvider({
   children,
 }: {
@@ -33,7 +42,7 @@ export function AppNavigationProvider({
 }) {
   const router = useRouter();
   const pathname = usePathname() ?? '';
-  const searchParams = useSearchParams();
+  const [searchParams, setSearchParams] = useState<ReadonlyURLSearchParams | null>(null);
   const query = useMemo(() => convertSearchParams(searchParams), [searchParams])
 
   const queryString = searchParams?.toString();
@@ -66,6 +75,9 @@ export function AppNavigationProvider({
 
   return (
     <NavigationContext.Provider value={value}>
+      <Suspense fallback={null}>
+        <SearchParamsListener onChange={setSearchParams} />
+      </Suspense>
       {children}
     </NavigationContext.Provider>
   );
