@@ -20,13 +20,42 @@ export interface ProductImage {
   src: string
 }
 
+interface CategoryBreadcrumb {
+  id: number
+  slug: string
+  name: string
+}
+
+interface CategoryFilter {
+  name: string
+  id: string
+  class: string
+  label: string
+  widget: string
+}
+
+interface CategoryBrief {
+  id: number
+  name: string
+  slug: string
+  path: {
+    uri: string
+    breadcrumbs: Array<CategoryBreadcrumb>
+  }
+}
+
 export interface Category {
   id: number
   name: string
   slug: string
   svg_icon?: string
   image?: string
-  children?: Category[]
+  path: {
+    uri: string
+    breadcrumbs: Array<CategoryBreadcrumb>
+  }
+  filters?: Array<CategoryFilter>
+  children?: Array<Category>
 }
 
 export interface ProductInfo {
@@ -63,24 +92,173 @@ export interface Product {
   code: string
   article: string
   partnumber: string
+  gtin: string
+  gtins: Array<string>
+  tnved: string
+  enabled: boolean
+  title: string
+  cost: number
+  price: number
+  ws_price: number
+  ws_pack_only: boolean
+  pct_discount: number
+  val_discount: number
+  ws_pct_discount: number
+  max_val_discount: number
+  discount: number
+  image?: string
+  big_image?: string
+  images: ProductImage[]
+  kind?: Array<number>
+  categories: Array<CategoryBrief>
+  tags: string
+  service_life: number
+  warranty: number
+  extended_warranty: string
+  manufacturer_warranty: boolean
+  comment_warranty: string
+
+  accessories?: Array<ProductInfo>
+  similar?: Array<ProductInfo>
+  gifts?: Array<ProductInfo>
+  sales?: Array<SalesAction>
+  instock: number
+
+  swcode: string
+  runame: string
+  sales_notes: string
+  gift: boolean
+  merchant: boolean
+  wb_link: string
+  ozon_link: string
+  manufacturer: Manufacturer
+  country: Country
+  developer_country: Country
+  certificate: string
+  isnew: boolean
+  deshevle: boolean
+  recomended: boolean
+  absent: boolean
+  credit_allowed: boolean
+  present: string
+  coupon: boolean
+  not_for_sale: boolean
+  suspend: boolean
+  preorder: boolean
+  order: number
+  opinion: string
+  allow_reviews: boolean
+  measure: string
+  weight: number
+  length: number
+  width: number
+  height: number
+  delivery: number
+  consultant_delivery_price: number
+  spec: string
+  descr: string
+  state: string
+  manuals: string
+  stitches: string
+  complect: string
+  dealertxt: string
+  video_url: string
+  pack_factor: number
+  shortdescr: string
+  seodescr: string
+  yandexdescr: string
+  type_prefix: string
   whatis: string
   whatisit: string
-  title: string
-  price: number
-  cost: number
-  instock: number
-  image?: string
-  enabled: boolean
-  isnew: boolean
-  recomended: boolean
-  ws_pack_only: boolean
-  pack_factor: number
-  sales?: string[]
-  sales_notes: string
-  shortdescr: string
-  video_url?: string
-  variations?: string
-  // TODO - add remaining fields
+  variations: string
+  comment_packer: string
+
+  constituents?: Array<ProductInfo>
+  hide_contents: boolean
+
+  fabric_verylite: string
+  fabric_lite: string
+  fabric_medium: string
+  fabric_hard: string
+  fabric_veryhard: string
+  fabric_stretch: string
+  fabric_leather: string
+  sm_shuttletype: string
+  sm_stitchwidth: string
+  sm_stitchlenght: string
+  sm_stitchquantity: number
+  sm_buttonhole: string
+  sm_dualtransporter: string
+  sm_platformlenght: string
+  sm_freearm: string
+  ov_freearm: string
+  sm_feedwidth: string
+  sm_footheight: string
+  sm_constant: string
+  sm_speedcontrol: string
+  sm_needleupdown: string
+  sm_threader: string
+  sm_spool: string
+  sm_presscontrol: string
+  sm_power: number
+  sm_light: string
+  sm_organizer: string
+  sm_autostop: string
+  sm_ruler: string
+  sm_wastebin: string
+  sm_cover: string
+  sm_startstop: string
+  sm_kneelift: string
+  sm_display: string
+  sm_advisor: string
+  sm_memory: string
+  sm_mirror: string
+  sm_fix: string
+  sm_alphabet: string
+  sm_diffeed: string
+  sm_easythreading: string
+  sm_needles: string
+  sm_software: string
+  sm_autocutter: string
+  sm_maxi: string
+  sm_autobuttonhole_bool: boolean
+  sm_threader_bool: boolean
+  sm_dualtransporter_bool: boolean
+  sm_alphabet_bool: boolean
+  sm_maxi_bool: boolean
+  sm_patterncreation_bool: boolean
+  sm_advisor_bool: boolean
+  km_class: string
+  km_font: string
+  km_needles: string
+  km_prog: string
+  km_rapport: string
+  sw_hoopsize: string
+  sw_datalink: string
+  prom_transporter_type: string
+  prom_shuttle_type: string
+  prom_speed: string
+  prom_needle_type: string
+  prom_stitch_lenght: string
+  prom_foot_lift: string
+  prom_fabric_type: string
+  prom_oil_type: string
+  prom_weight: number
+  prom_cutting: string
+  prom_threads_num: string
+  prom_power: string
+  prom_bhlenght: string
+  prom_overstitch_lenght: string
+  prom_overstitch_width: string
+  prom_stitch_width: string
+  prom_needle_width: string
+  prom_needle_num: string
+  prom_platform_type: string
+  prom_button_diaouter: string
+  prom_button_diainner: string
+  prom_needle_height: string
+  prom_stitch_type: string
+  prom_autothread: string
 }
 
 export interface ProductKind {
@@ -216,6 +394,17 @@ export interface Order {
   firm_details: string
   comment: string
   items: OrderItem[]
+}
+
+export interface Manufacturer {
+  id: number
+  code: string
+  name: string
+  machinemaker: boolean
+  accessorymaker: boolean
+  logo: string
+  logo_width?: number
+  logo_height?: number
 }
 
 export interface Country {

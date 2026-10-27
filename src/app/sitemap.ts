@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 
 import { getCategoryDescendants } from '@/lib/categories'
 import { loadCategories, loadCurrentSite, loadPages, loadProducts, loadSalesActions, loadStores, loadTopics } from '@/lib/queries'
-import { Category, FlatPageInfo, ForumTopic, PaginatedResult, Product, SalesAction, Store } from '@/lib/types'
+import { Category, FlatPageInfo, ForumTopic, PaginatedResult, ProductInfo, SalesAction, Store } from '@/lib/types'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const site = await loadCurrentSite()
@@ -65,7 +65,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let currentPage = 1
 
   while (true) {
-    const productsPage = await loadProducts(currentPage, pageSize, filters, order) as PaginatedResult<Product>
+    const productsPage = await loadProducts(currentPage, pageSize, filters, order) as PaginatedResult<ProductInfo>
     productsPage.results.forEach(product => {
       routes.push({
         url: `${site.url_prefix}/products/${product.code}/`,
