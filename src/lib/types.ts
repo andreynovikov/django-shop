@@ -296,6 +296,12 @@ export interface AnonymousUser {
   name: undefined
 }
 
+export interface UserInfo {
+  id: number
+  full_name: string
+  gravatar: string
+}
+
 export interface User {
   id: number
   is_anonymous: false
@@ -446,4 +452,80 @@ export interface IntegrationProduct {
   price: number
   enabled: boolean
   stock?: number
+}
+
+interface BlogEntryBase {
+  author: UserInfo
+  urls: {
+    canonical: string
+    short: string
+  }
+  tags: Array<string>
+}
+
+interface BlogEntryNavigation extends BlogEntryBase {
+  title: string
+}
+
+export interface BlogEntryInfo extends BlogEntryBase {
+  id: number
+  title: string
+  slug: string
+  publication_date: string
+  created: string
+  modified: string
+  content: {
+    preview: string
+    total_words: number
+    remaining_words: number
+    remaining_percent: number
+  }
+  image: string
+  image_width?: number
+  image_height?: number
+  image_caption: string
+  related: Array<number>
+  featured: boolean
+  categories: Array<number>
+  tags: Array<string>
+}
+
+export interface BlogEntry extends BlogEntryBase {
+  id: number
+  title: string
+  slug: string
+  publication_date: string
+  created: string
+  modified: string
+  content: string
+  image: string
+  image_width?: number
+  image_height?: number
+  image_caption: string
+  related: Array<number>
+  featured: boolean
+  categories: Array<number>
+  tags: Array<string>
+  navigation: {
+    previous: BlogEntryNavigation | null
+    next: BlogEntryNavigation | null
+  }
+}
+
+export interface BlogTag {
+  name: string
+  count: number
+}
+
+export interface BlogCloudTag {
+  name: string
+  count: number
+  weight: number
+}
+
+export interface BlogCategory {
+  id: number
+  title: string
+  slug: string
+  count: number
 }

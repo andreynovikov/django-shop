@@ -1,3 +1,5 @@
+import { GetStaticPropsContext } from 'next/types'
+import { ParsedUrlQuery } from 'querystring'
 import { dehydrate, QueryClient } from '@tanstack/react-query'
 
 import { blogKeys, loadBlogEntries, loadBlogCategories, loadBlogCategory } from '@/lib/queries'
@@ -6,8 +8,12 @@ import BlogEntries from './[page]'
 
 export default BlogEntries
 
-export async function getStaticProps(context) {
-  const slug = context.params.slug
+interface IParams extends ParsedUrlQuery {
+  slug: string
+}
+
+export async function getStaticProps(context: GetStaticPropsContext<IParams>) {
+  const slug = context.params?.slug ?? ''
   const queryClient = new QueryClient()
   const category = await queryClient.fetchQuery({
     queryKey: blogKeys.category(slug),
@@ -23,13 +29,13 @@ export async function getStaticProps(context) {
     props: {
       dehydratedState: dehydrate(queryClient),
       category,
-      currentPage: '1'
+      currentPage: 1
     }
   }
 }
 
 export async function getStaticPaths() {
-  const paths = []
+  const paths: Array<{params: IParams}> = []
 
   if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST !== 'true') {
     const categories = await loadBlogCategories()

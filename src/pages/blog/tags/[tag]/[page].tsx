@@ -1,3 +1,6 @@
+import { ReactElement } from 'react'
+import { GetStaticPropsContext } from 'next/types'
+import { ParsedUrlQuery } from 'querystring'
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 
 import PageLayout from '@/components/layout/page'
@@ -6,7 +9,12 @@ import PageSelector from '@/components/page-selector'
 
 import { blogKeys, loadBlogEntries, loadBlogTags } from '@/lib/queries'
 
-export default function BlogEntries({ tag, currentPage }) {
+interface PageParams {
+  tag: string
+  currentPage: number
+}
+
+export default function BlogEntries({ tag, currentPage }: PageParams) {
   const filters = { 'tags': tag }
 
   const { data: entries, isSuccess } = useQuery({
@@ -42,16 +50,21 @@ export default function BlogEntries({ tag, currentPage }) {
   return null
 }
 
-BlogEntries.getLayout = function getLayout(page) {
+BlogEntries.getLayout = function getLayout(page: ReactElement, pageProps: PageParams) {
   return (
-    <PageLayout title={`Архив по тэгу '${page.props.tag}'`}>
+    <PageLayout title={`Архив по тэгу '${pageProps.tag}'`}>
       {page}
     </PageLayout>
   )
 }
 
-export async function getStaticProps(context) {
-  const tag = context.params.tag
+interface IParams extends ParsedUrlQuery {
+  tag: string
+  page: string
+}
+
+export async function getStaticProps(context: GetStaticPropsContext<IParams>) {
+  const tag = context.params?.tag ?? ''
   const currentPage = +(context.params?.page || '1')
   if (currentPage === 1 && context.params?.page) {
     return {
@@ -79,13 +92,13 @@ export async function getStaticProps(context) {
 }
 
 export async function getStaticPaths() {
-  const paths = []
+  const paths: Array<{params: IParams}> = []
 
   if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST !== 'true') {
     const tags = await loadBlogTags()
-    const entries = await loadBlogEntries(null, null) // just to get current page size
+    const entries = await loadBlogEntries(null) // just to get current page size
     const pageSize = entries.pageSize
-    paths.push(...tags.reduce((paths, tag) => {
+    paths.push(...tags.reduce<Array<{params: IParams}>>((paths, tag) => {
       const pages = Math.ceil(tag.count / pageSize)
       for (let page = 2; page <= pages; page++)
         paths.push({

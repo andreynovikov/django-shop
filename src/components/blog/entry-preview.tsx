@@ -4,7 +4,14 @@ import Link from 'next/link'
 import BlogEntryAuthor from '@/components/blog/entry-author'
 import BlogCategoryLink from '@/components/blog/category-link'
 
-export default function BlogEntryPreview({ entry, last }) {
+import { BlogEntryInfo } from '@/lib/types'
+
+interface BlogEntryPreviewProps {
+  entry: BlogEntryInfo
+  last: boolean
+}
+
+export default function BlogEntryPreview({ entry, last }: BlogEntryPreviewProps) {
   const previewContent = () => {
     return entry.content.preview.replace('<!--more-->', `
             <a href="${entry.urls.canonical}" class="blog-entry-meta-link fw-medium">[читать далее]</a>
@@ -12,7 +19,7 @@ export default function BlogEntryPreview({ entry, last }) {
   }
 
   return (
-    <article className={"blog-list pb-4 mb-5" + (!last && " border-bottom")}>
+    <article className={"blog-list pb-4 mb-5" + (last ? "" : " border-bottom")}>
       <div className="blog-start-column">
         <div className="d-flex align-items-center fs-sm pb-2 mb-1">
           <BlogEntryAuthor entry={entry} />

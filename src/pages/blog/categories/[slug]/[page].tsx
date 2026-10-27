@@ -1,3 +1,6 @@
+import { ReactElement } from 'react'
+import { GetStaticPropsContext } from 'next/types'
+import { ParsedUrlQuery } from 'querystring'
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 
 import PageLayout from '@/components/layout/page'
@@ -5,8 +8,14 @@ import BlogEntryPreview from '@/components/blog/entry-preview'
 import PageSelector from '@/components/page-selector'
 
 import { blogKeys, loadBlogEntries, loadBlogCategories, loadBlogCategory } from '@/lib/queries'
+import { BlogCategory } from '@/lib/types'
 
-export default function BlogEntries({ category, currentPage }) {
+interface PageParams {
+  category: BlogCategory
+  currentPage: number
+}
+
+export default function BlogEntries({ category, currentPage }: PageParams) {
   const filters = { categories: category.id }
 
   const { data: entries, isSuccess } = useQuery({
@@ -42,16 +51,21 @@ export default function BlogEntries({ category, currentPage }) {
   return null
 }
 
-BlogEntries.getLayout = function getLayout(page) {
+BlogEntries.getLayout = function getLayout(page: ReactElement, pageProps: PageParams) {
   return (
-    <PageLayout title={`Архив категории ${page.props.category.title}`}>
+    <PageLayout title={`Архив категории ${pageProps.category.title}`}>
       {page}
     </PageLayout>
   )
 }
 
-export async function getStaticProps(context) {
-  const slug = context.params.slug
+interface IParams extends ParsedUrlQuery {
+  slug: string
+  page: string
+}
+
+export async function getStaticProps(context: GetStaticPropsContext<IParams>) {
+  const slug = context.params?.slug ?? ''
   const currentPage = +(context.params?.page || '1')
   if (currentPage === 1 && context.params?.page) {
     return {
@@ -83,13 +97,13 @@ export async function getStaticProps(context) {
 }
 
 export async function getStaticPaths() {
-  const paths = []
+  const paths: Array<{params: IParams}> = []
 
   if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST !== 'true') {
     const categories = await loadBlogCategories()
-    const entries = await loadBlogEntries(null, null) // just to get current page size
+    const entries = await loadBlogEntries(null) // just to get current page size
     const pageSize = entries.pageSize
-    paths.push(...categories.reduce((paths, category) => {
+    paths.push(...categories.reduce<Array<{params: IParams}>>((paths, category) => {
       const pages = Math.ceil(category.count / pageSize)
       for (let page = 2; page <= pages; page++)
         paths.push({

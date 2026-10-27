@@ -1,4 +1,7 @@
+import { ReactElement } from 'react'
+import { ParsedUrlQuery } from 'querystring'
 import Link from 'next/link'
+import { GetStaticPropsContext } from 'next/types'
 import { QueryClient } from '@tanstack/react-query'
 
 import PageLayout from '@/components/layout/page'
@@ -6,10 +9,11 @@ import BlogEntryAuthor from '@/components/blog/entry-author'
 import Tooltip from '@/components/ui/tooltip'
 
 import { HttpError, blogKeys, loadBlogEntries, loadBlogEntry } from '@/lib/queries'
+import { BlogEntry } from '@/lib/types'
 
 import moment from 'moment'
 
-export default function BlogEntry({ entry }) {
+export default function BlogEntryPage({ entry }: { entry: BlogEntry }) {
   const previousPopover = entry.navigation.previous && (
     <>
       <h6 className="fs-sm fw-semibold mb-0">
@@ -77,17 +81,24 @@ export default function BlogEntry({ entry }) {
     </div>
   )
 }
+interface PageParams {
+  entry: BlogEntry
+}
 
-BlogEntry.getLayout = function getLayout(page) {
+BlogEntryPage.getLayout = function getLayout(page: ReactElement, pageProps: PageParams) {
   return (
-    <PageLayout title={page.props.entry.title}>
+    <PageLayout title={pageProps.entry.title}>
       {page}
     </PageLayout>
   )
 }
 
-export async function getStaticProps(context) {
-  const uri = context.params.entry
+interface IParams extends ParsedUrlQuery {
+  entry: string[]
+}
+
+export async function getStaticProps(context: GetStaticPropsContext<IParams>) {
+  const uri = context.params?.entry ?? []
 
   const queryClient = new QueryClient()
   try {
@@ -126,12 +137,12 @@ export async function getStaticProps(context) {
 }
 
 export async function getStaticPaths() {
-  const paths = []
+  const paths: Array<{params: IParams}> = []
 
   if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST !== 'true') {
-    let page = 1
+    let page: number | undefined = 1
     while (page !== undefined) {
-      const entries = await loadBlogEntries(page, null)
+      const entries = await loadBlogEntries(page)
       paths.push(...entries.results.map((entry) => {
         const date = moment(entry.publication_date)
         return {

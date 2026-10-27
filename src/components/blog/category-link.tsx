@@ -4,7 +4,7 @@ import Link from 'next/link'
 
 import { blogKeys, loadBlogCategory } from '@/lib/queries'
 
-export default function BlogCategoryLink({ id }) {
+export default function BlogCategoryLink({ id }: { id: number }) {
   const { data: category, isSuccess } = useQuery({
     queryKey: blogKeys.category(id),
     queryFn: () => loadBlogCategory(id)

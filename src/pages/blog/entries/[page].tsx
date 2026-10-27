@@ -1,3 +1,6 @@
+import { ReactElement } from 'react'
+import { GetStaticPropsContext } from 'next/types'
+import { ParsedUrlQuery } from 'querystring'
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
 
 import PageLayout from '@/components/layout/page'
@@ -8,11 +11,11 @@ import { HttpError, blogKeys, loadBlogEntries } from '@/lib/queries'
 
 import range from 'lodash/range'
 
-export default function BlogEntries({ currentPage }) {
+export default function BlogEntries({ currentPage }: {currentPage: number}) {
 
   const { data: entries, isSuccess } = useQuery({
-    queryKey: blogKeys.list(currentPage, null),
-    queryFn: () => loadBlogEntries(currentPage, null)
+    queryKey: blogKeys.list(currentPage, {}),
+    queryFn: () => loadBlogEntries(currentPage)
   })
 
   if (isSuccess)
@@ -44,7 +47,7 @@ export default function BlogEntries({ currentPage }) {
   return null
 }
 
-BlogEntries.getLayout = function getLayout(page) {
+BlogEntries.getLayout = function getLayout(page: ReactElement) {
   return (
     <PageLayout title="Блог">
       {page}
@@ -52,7 +55,11 @@ BlogEntries.getLayout = function getLayout(page) {
   )
 }
 
-export async function getStaticProps(context) {
+interface IParams extends ParsedUrlQuery {
+  page: string
+}
+
+export async function getStaticProps(context: GetStaticPropsContext<IParams>) {
   const currentPage = +(context.params?.page || '1')
   if (currentPage === 1 && context.params?.page) {
     return {
@@ -66,8 +73,8 @@ export async function getStaticProps(context) {
   const queryClient = new QueryClient()
   try {
     await queryClient.query({
-      queryKey: blogKeys.list(currentPage, null),
-      queryFn: () => loadBlogEntries(currentPage, null),
+      queryKey: blogKeys.list(currentPage, {}),
+      queryFn: () => loadBlogEntries(currentPage),
       staleTime: 60000,
     })
   } catch (error) {
@@ -85,10 +92,10 @@ export async function getStaticProps(context) {
 }
 
 export async function getStaticPaths() {
-  const paths = []
+  const paths: Array<{params: IParams}> = []
 
   if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST !== 'true') {
-    const entries = await loadBlogEntries(null, null)
+    const entries = await loadBlogEntries(null)
     const pages = Math.ceil(entries.count / entries.pageSize)
     paths.push(...range(2, pages + 1).map((page) => ({
       params: { page: String(page) }

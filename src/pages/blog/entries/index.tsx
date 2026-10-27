@@ -9,8 +9,8 @@ export default BlogEntries
 export async function getStaticProps() {
   const queryClient = new QueryClient()
   await queryClient.query({
-    queryKey: blogKeys.list(1, null),
-    queryFn: () => loadBlogEntries(1, null),
+    queryKey: blogKeys.list(1, {}),
+    queryFn: () => loadBlogEntries(1),
     staleTime: 60000,
   }).catch(() => {})
 

@@ -6,7 +6,7 @@ interface PageSelectorProps {
   pathname: string,                     /* dynamic route path with parameters, e.g.:
                                            "/blog/tags/[tag]/[page]"
                                            usually {router.pathname} */
-  query: ParsedUrlQuery,                /* {router.query} if query string params are used */
+  query?: ParsedUrlQuery,               /* {router.query} if query string params are used */
   totalPages: number,
   currentPage: number,
   path?: string[],                      /* current base path if [...path] is used as
@@ -16,7 +16,7 @@ interface PageSelectorProps {
                                           if not only page number is dynamic */
 }
 
-const getQuery = (page: number, query: ParsedUrlQuery, path: string[] | undefined, pathExtra: Record<string, unknown> = {}) => {
+const getQuery = (page: number, query: ParsedUrlQuery | undefined, path: string[] | undefined, pathExtra: Record<string, unknown> = {}) => {
   if (path !== undefined)
     return path.length > 0 ? { path: [...path, page] } : { ...pathExtra, page } // put page number in path
   else
