@@ -5,8 +5,8 @@ import Link from 'next/link'
 
 import { IconCategory, IconX } from '@tabler/icons-react'
 
+import { Collapsible } from '@base-ui/react/collapsible'
 import { Menu } from '@base-ui/react/menu'
-import Collapse from 'react-bootstrap/Collapse'
 
 import CartNotice from '@/components/cart/notice'
 import OrderTracking from '@/components/order/tracking'
@@ -160,7 +160,7 @@ export default function TopBar() {
         </div>
       </div>
       <div className="navbar navbar-expand-md navbar-light navbar-stuck-menu bg-light pt-0 pb-2" ref={stuckMenuRef}>
-        <div className="container">
+        <Collapsible.Root className="container" open={topMenuOpen}>
           <div className="d-flex gap-2">
             <ul className="navbar-nav pe-lg-2 me-lg-2 my-3 my-lg-0">
               <li className="nav-item bg-transparent mb-0">
@@ -179,33 +179,31 @@ export default function TopBar() {
               <ProductSearchInput mobile />
             </div>}
           </div>
-          <Collapse in={topMenuOpen} className="navbar-collapse">
-            <div>
-              <ul className="navbar-nav">
-                <li className="nav-item">
-                  <Link className="nav-link" href="/stores/">
-                    Магазины
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" href="/service/">
-                    Сервисные центры
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link className="nav-link" href="/pages/delivery/">
-                    Доставка
-                  </Link>
-                </li>
-                <li className="nav-item d-md-none">
-                  <Link className="nav-link" href="/user/orders?track" rel="nofollow">
-                    Отслеживание заказа
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </Collapse>
-        </div>
+          <Collapsible.Panel className="navbar-collapse sw-collapse-md-down" keepMounted>
+            <ul className="navbar-nav">
+              <li className="nav-item">
+                <Link className="nav-link" href="/stores/">
+                  Магазины
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link className="nav-link" href="/service/">
+                  Сервисные центры
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link className="nav-link" href="/pages/delivery/">
+                  Доставка
+                </Link>
+              </li>
+              <li className="nav-item d-md-none">
+                <Link className="nav-link" href="/user/orders?track" rel="nofollow">
+                  Отслеживание заказа
+                </Link>
+              </li>
+            </ul>
+          </Collapsible.Panel>
+        </Collapsible.Root>
       </div>
     </div>
   )

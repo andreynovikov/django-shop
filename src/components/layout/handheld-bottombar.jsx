@@ -32,7 +32,7 @@ export default function HandheldBottomBar() {
     <div className="handheld-toolbar">
       <div className="d-table table-layout-fixed w-100">
         {item}
-        <a className="d-table-cell handheld-toolbar-item" onClick={handleMenuOpen}>
+        <a className="d-table-cell handheld-toolbar-item" onClick={handleMenuOpen} style={{ cursor: 'pointer' }}>
           <span className="handheld-toolbar-icon"><i className="ci-menu" /></span>
           <span className="handheld-toolbar-label">Меню</span>
         </a>

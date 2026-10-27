@@ -74,10 +74,12 @@ body {
     @include sw-collapse;
 }
 
-// for panels that are always expanded from lg up with .d-lg-block
-.sw-collapse-lg-down {
-    @include media-breakpoint-down(lg) {
-        @include sw-collapse;
+// for panels that are always expanded from the breakpoint up, e.g. with .d-lg-block or in .navbar-expand-md
+@each $breakpoint in md, lg {
+    .sw-collapse-#{$breakpoint}-down {
+        @include media-breakpoint-down($breakpoint) {
+            @include sw-collapse;
+        }
     }
 }
 
