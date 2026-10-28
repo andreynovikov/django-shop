@@ -12,10 +12,12 @@ import '../styles.scss'
 
 import '@/lib/moment'
 
+import Catalog from '@/components/catalog'
 import TopBar from '@/components/layout/topbar'
 import BottomBar from '@/components/layout/bottombar'
 import HandheldBottomBar from '@/components/layout/handheld-bottombar'
 import ScrollTopButton from '@/components/layout/scroll-top-button'
+import { loadCategories } from '@/lib/queries'
 import { YandexMetrika } from '@/lib/ymec'
 
 import Providers from './providers'
@@ -47,7 +49,9 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const categories = await loadCategories()
+
   return (
     <html lang="ru">
       <body className={rubik.variable}>
@@ -55,7 +59,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <div className="root">
             <div className="d-flex flex-column min-vh-100">
               <main className="page-wrapper">
-                <TopBar />
+                <TopBar catalog={<Catalog categories={categories} />} />
                 {children}
               </main>
               <BottomBar />

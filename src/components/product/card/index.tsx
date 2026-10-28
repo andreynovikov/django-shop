@@ -33,7 +33,7 @@ export interface SearchProduct {
 interface ProductCardProps {
   product: ProductInfo | SearchProduct 
   limitedBadges?: boolean
-  gtmCategory?: Category
+  gtmCategory?: Pick<Category, 'name'>
   gtmList?: string
   gtmPosition?: number
 }

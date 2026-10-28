@@ -1,43 +1,31 @@
 /* eslint-disable @next/next/no-img-element */
 
-import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
-
 import Link from 'next/link'
 
-import { categoryKeys, loadCategories } from '@/lib/queries'
-import { CategoryTreeItem } from '@/lib/types'
+import { CategoryTree, CategoryTreeItem } from '@/lib/types'
 import { columns, rows } from '@/lib/partition'
 
 const first = [14, 15, 16, 17]
 const other = [339, 473, 324, 14, 15, 16, 17] // other than these
 
-export default function Catalog() {
-  const { data: categories, isSuccess } = useQuery({
-    queryKey: categoryKeys.lists(),
-    queryFn: () => loadCategories()
-  })
-
-  const [categoryNew, categoryPromo, categoryDiscount] = useMemo(() => {
-    const specialCategories = [null, null, null] as [CategoryTreeItem | null, CategoryTreeItem | null, CategoryTreeItem | null]
-    if (isSuccess) {
-      for (const category of categories) {
-        if (category.slug === 'New')
-          specialCategories[0] = category
-        if (category.slug === 'promo')
-          specialCategories[1] = category
-        if (category.slug === 'Discount')
-          specialCategories[2] = category
-      }
-    }
-    return specialCategories
-  }, [isSuccess, categories])
+// Kept free of hooks so App Router server components can render it
+export default function Catalog({ categories }: { categories: CategoryTree }) {
+  const specialCategories = [null, null, null] as [CategoryTreeItem | null, CategoryTreeItem | null, CategoryTreeItem | null]
+  for (const category of categories) {
+    if (category.slug === 'New')
+      specialCategories[0] = category
+    if (category.slug === 'promo')
+      specialCategories[1] = category
+    if (category.slug === 'Discount')
+      specialCategories[2] = category
+  }
+  const [categoryNew, categoryPromo, categoryDiscount] = specialCategories
 
   const ready = [categoryNew, categoryPromo, categoryDiscount].every(c => c !== null)
 
   return (
     <div className="sw-catalog">
-      {isSuccess && ready && (
+      {ready && (
         <>
           <div className="d-flex flex-wrap flex-md-nowrap justify-content-between mb-4">
             <Link className="w-100 d-flex align-items-center bg-faded-info rounded-3 py-2 ps-2 mb-4 mx-0 mx-md-2" href={`/catalog/${categoryNew!.slug}/`}>

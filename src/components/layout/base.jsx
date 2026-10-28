@@ -2,8 +2,12 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Script from 'next/script'
+import { useQuery } from '@tanstack/react-query'
 
 import { YandexMetrika } from '@/lib/ymec'
+
+import Catalog from '@/components/catalog'
+import { categoryKeys, loadCategories } from '@/lib/queries'
 
 import Favicons from './favicons'
 import TopBar from './topbar'
@@ -28,6 +32,12 @@ export default function BaseLayout({
   const router = useRouter()
   const { setTopMenuOpen } = useTopbar()
 
+  // Pages Router can't render server components, so the catalog is loaded here until the pages move to App Router
+  const { data: categories } = useQuery({
+    queryKey: categoryKeys.lists(),
+    queryFn: () => loadCategories()
+  })
+
   useEffect(() => {
     const handleRouteChange = () => {
       setTopMenuOpen(false)
@@ -49,7 +59,7 @@ export default function BaseLayout({
       <div className="root">
         <div className="d-flex flex-column min-vh-100">
           <main className="page-wrapper">
-            <TopBar />
+            <TopBar catalog={categories && <Catalog categories={categories} />} />
             {contentWrapper({ title, children, ...props })}
           </main>
 

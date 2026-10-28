@@ -2,11 +2,9 @@
 
 import { useRef, useEffect } from 'react'
 
-import Catalog from '@/components/catalog'
-
 import { useNavigation } from '@/lib/navigation'
 
-export default function CatalogDropDown({ visible, setVisible, buttonRef }) {
+export default function CatalogDropDown({ catalog, visible, setVisible, buttonRef }) {
   const ref = useRef()
 
   const { path } = useNavigation()
@@ -30,7 +28,7 @@ export default function CatalogDropDown({ visible, setVisible, buttonRef }) {
   return (
     <div className={"position-relative" + (visible ? "" : " d-none")} ref={ref}>
       <div className="sw-catalog-dropdown">
-        <Catalog />
+        {catalog}
       </div>
     </div>
   )

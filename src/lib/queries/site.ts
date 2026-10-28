@@ -22,7 +22,7 @@ export async function loadNews() {
   return await apiFetch<News[]>('news/')
 }
 
-export async function loadAdverts(places: string[], categoryId = undefined) {
+export async function loadAdverts(places: string[], categoryId?: number) {
   const url = 'adverts/' + advertSearchParamsSerializer({
     category: categoryId,
     places,
