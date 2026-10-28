@@ -77,7 +77,7 @@ export interface Category {
 }
 
 // Choices and ranges of a category filter for the current product list
-export interface ProductFilter {
+export interface ProductFilterFacet {
   id: string
   choices?: Array<[string | number, string]>
   attrs?: {
@@ -88,7 +88,7 @@ export interface ProductFilter {
 }
 
 export type ProductList = PaginatedResult<ProductInfo> & {
-  filters?: Record<string, ProductFilter>
+  filters?: Record<string, ProductFilterFacet>
 }
 
 export interface ProductInfo {
