@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, ReactNode, Suspense, useContext, useMemo, useState } from 'react'
+import { createContext, ReactNode, Suspense, useContext, useMemo, useState, useSyncExternalStore } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useQueryStates } from 'nuqs'
 
@@ -16,6 +16,9 @@ import { productSearchParams, ProductSearchParamsType } from '@/lib/search-param
 import { CategoryFilter, ProductFilterFacet, ProductList } from '@/lib/types'
 
 const pageStaleTime = 3600
+
+// nothing changes after hydration, so there is nothing to subscribe to
+const subscribeNothing = () => () => {}
 
 type FilterValues = Partial<Record<string, unknown>>
 type FilterChangeHandler = (name: string, value: unknown) => void
@@ -90,7 +93,18 @@ function useCategoryProducts() {
     setValues({ [name]: value } as Partial<typeof values>)
   }
 
-  return { values: values as FilterValues, setFilter, products, recommended }
+  // The server has no results for filtered lists. Suspense boundaries hydrate one by one, so a list loaded
+  // meanwhile for another boundary would not match the server HTML, it is shown once this one is hydrated.
+  const hydrated = useSyncExternalStore(subscribeNothing, () => true, () => false)
+  const showResults = hydrated || !isFiltered
+
+  return {
+    values: values as FilterValues,
+    setFilter,
+    productList: showResults ? products.data : undefined,
+    recommendedList: showResults ? recommended.data : undefined,
+    loading: hydrated && (products.isLoading || recommended.isLoading),
+  }
 }
 
 function FilterList({ filters, facets, values, onFilterChanged }: {
@@ -112,10 +126,10 @@ function FilterList({ filters, facets, values, onFilterChanged }: {
 
 function CurrentFilterList({ filters }: { filters: CategoryFilter[] }) {
   const { initialProducts } = useCategoryProductsContext()
-  const { values, setFilter, products } = useCategoryProducts()
+  const { values, setFilter, productList } = useCategoryProducts()
 
   // choices of the unfiltered list until the first filtered one is loaded
-  const facets = products.data?.filters ?? initialProducts.filters
+  const facets = productList?.filters ?? initialProducts.filters
   return <FilterList filters={filters} facets={facets} values={values} onFilterChanged={setFilter} />
 }
 
@@ -200,14 +214,14 @@ function ProductGrid({ products, recommended, loading, categoryName, pathname, c
 }
 
 function CurrentProductGrid(props: ProductGridProps) {
-  const { products, recommended } = useCategoryProducts()
+  const { productList, recommendedList, loading } = useCategoryProducts()
 
-  const found = products.isSuccess && products.data.count > 0
+  const found = productList !== undefined && productList.count > 0
   return (
     <ProductGrid
-      products={found ? products.data : recommended.data}
+      products={found ? productList : recommendedList}
       recommended={!found}
-      loading={products.isLoading || recommended.isLoading}
+      loading={loading}
       {...props} />
   )
 }

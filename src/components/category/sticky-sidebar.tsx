@@ -2,6 +2,18 @@
 
 import { ReactNode, useEffect, useRef } from 'react'
 
+function resetSidebarStyle(sidebar: HTMLElement) {
+  for (const property of ['position', 'top', 'bottom', 'width'])
+    sidebar.style.removeProperty(property)
+  delete sidebar.dataset.state
+}
+
+// Height of the columns beside the sidebar, the sidebar column itself is stretched to the tallest one
+function getContentHeight(container: HTMLElement) {
+  const columns = Array.from(container.parentElement?.children ?? []).filter((element) => element !== container)
+  return Math.max(0, ...columns.map((element) => element.getBoundingClientRect().height))
+}
+
 function updateSidebarStyle(container: HTMLElement, sidebar: HTMLElement, scrollOffset: number) {
   const navbar = document.querySelector<HTMLElement>('.sw-navbar')
   if (navbar === null || sidebar.parentElement === null)
@@ -10,6 +22,13 @@ function updateSidebarStyle(container: HTMLElement, sidebar: HTMLElement, scroll
   const containerRect = container.getBoundingClientRect()
   const sidebarRect = sidebar.getBoundingClientRect()
   const parentWidth = sidebar.parentElement.offsetWidth
+
+  // a sidebar as tall as the content beside it has nowhere to move and would overlap the footer
+  if (sidebarRect.height >= getContentHeight(container)) {
+    if (sidebar.dataset.state !== undefined)
+      resetSidebarStyle(sidebar)
+    return
+  }
 
   const state = sidebar.dataset.state
   const availableHeight = window.innerHeight - 20
@@ -87,9 +106,16 @@ export default function StickySidebar({ className, children }: { className?: str
     window.addEventListener('resize', updateSidebarWidth)
     window.addEventListener('scroll', updateSidebarPosition)
 
+    // filtered products change the content height without scrolling
+    const resizeObserver = new ResizeObserver(updateSidebarPosition)
+    for (const element of containerRef.current?.parentElement?.children ?? [])
+      if (element !== containerRef.current)
+        resizeObserver.observe(element)
+
     return () => {
       window.removeEventListener('resize', updateSidebarWidth)
       window.removeEventListener('scroll', updateSidebarPosition)
+      resizeObserver.disconnect()
     }
   }, [])
 
