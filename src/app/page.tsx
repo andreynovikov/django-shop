@@ -6,7 +6,7 @@ import ProductCard from '@/components/product/card'
 
 import { loadAdverts, loadProducts } from '@/lib/queries'
 import { recomendedProductsFilters, newProductsFilters } from '@/lib/catalog'
-import { Advert, Product } from '@/lib/types'
+import { Advert, ProductInfo } from '@/lib/types'
 
 export const revalidate = 3600
 
@@ -29,7 +29,7 @@ function Adverts({ adverts }: { adverts: Advert[] }) {
 }
 
 interface ProductsSectionProps {
-  products: Product[]
+  products: ProductInfo[]
   id: string
   title: string
   linkTitle: string

@@ -34,6 +34,21 @@ interface CategoryFilter {
   widget: string
 }
 
+export interface CategoryTreeItem {
+  id: number
+  name: string
+  subname: string
+  active: boolean
+  hidden: boolean
+  feed: boolean
+  slug: string
+  svg_icon?: string
+  image?: string
+  children?: Array<CategoryTreeItem>
+}
+
+export type CategoryTree = Array<CategoryTreeItem>
+
 interface CategoryBrief {
   id: number
   name: string

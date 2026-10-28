@@ -4,7 +4,7 @@ import Image from 'next/image'
 import NoImage from '@/components/product/no-image'
 import ProductPrice from '@/components/product/price'
 
-import { Category, Product } from '@/lib/types'
+import { Category, ProductInfo } from '@/lib/types'
 
 import FavoriteIcon from './favorite-icon'
 import BasketButton from './basket-button'
@@ -31,7 +31,7 @@ export interface SearchProduct {
 }
 
 interface ProductCardProps {
-  product: Product | SearchProduct 
+  product: ProductInfo | SearchProduct 
   limitedBadges?: boolean
   gtmCategory?: Category
   gtmList?: string
