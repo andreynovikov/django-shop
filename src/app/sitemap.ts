@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 
 import { getCategoryDescendants } from '@/lib/categories'
 import { loadCategories, loadCurrentSite, loadPages, loadProducts, loadSalesActions, loadStores, loadTopics } from '@/lib/queries'
-import { Category, FlatPageInfo, ForumTopic, PaginatedResult, ProductInfo, SalesAction, Store } from '@/lib/types'
+import { FlatPageInfo, ForumTopic, PaginatedResult, ProductInfo, SalesAction, Store } from '@/lib/types'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const site = await loadCurrentSite()
@@ -33,7 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Categories
 
-  const categories = await loadCategories() as Category[]
+  const categories = await loadCategories()
   categories.forEach(category => {
     routes.push({
       url: `${site.url_prefix}/catalog/${category.slug}/`,

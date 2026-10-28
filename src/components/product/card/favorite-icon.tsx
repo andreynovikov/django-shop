@@ -4,11 +4,11 @@ import Tooltip from '@/components/ui/tooltip'
 
 import useFavorites from '@/lib/favorites'
 import { useSession } from '@/lib/session'
-import { Product } from '@/lib/types'
+import { ProductInfo } from '@/lib/types'
 
 import { SearchProduct } from '.'
 
-export default function FavoriteIcon({ product }: { product: Product | SearchProduct }) {
+export default function FavoriteIcon({ product }: { product: ProductInfo | SearchProduct }) {
   const { status } = useSession()
   const { favorites, favoritize, unfavoritize } = useFavorites()
 

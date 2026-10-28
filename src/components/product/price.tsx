@@ -1,8 +1,13 @@
-import { Product } from "@/lib/types"
+import { Product, ProductInfo } from "@/lib/types"
 
 import { SearchProduct } from "./card"
 
-export default function ProductPrice({ product, delFs, ...props }: { product: Product | SearchProduct, delFs?: string }) {
+interface ProductPriceProps {
+  product: Product | ProductInfo | SearchProduct
+  delFs?: string
+}
+
+export default function ProductPrice({ product, delFs, ...props }: ProductPriceProps) {
   if (product.enabled && product.cost > 0)
     return (
       <>

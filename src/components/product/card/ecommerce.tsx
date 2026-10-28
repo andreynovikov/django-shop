@@ -4,12 +4,12 @@ import { AnchorHTMLAttributes, ReactNode, useEffect } from 'react'
 import Link from 'next/link'
 
 import { eCommerce } from '@/lib/ymec'
-import { Category, Product } from '@/lib/types'
+import { Category, ProductInfo } from '@/lib/types'
 
 import { SearchProduct } from '.'
 
 interface ProductCardImpressionProps {
-  product: Product | SearchProduct
+  product: ProductInfo | SearchProduct
   gtmList?: string
   gtmPosition?: number
 }
@@ -31,7 +31,7 @@ export function ProductCardImpression({ product, gtmList = '', gtmPosition = 0 }
 }
 
 interface ProductCardLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
-  product: Product | SearchProduct
+  product: ProductInfo | SearchProduct
   gtmCategory?: Category
   gtmList?: string
   gtmPosition?: number,

@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 
 import { categoryKeys, loadCategories } from '@/lib/queries'
-import { Category } from '@/lib/types'
+import { CategoryTreeItem } from '@/lib/types'
 import { columns, rows } from '@/lib/partition'
 
 const first = [14, 15, 16, 17]
@@ -19,7 +19,7 @@ export default function Catalog() {
   })
 
   const [categoryNew, categoryPromo, categoryDiscount] = useMemo(() => {
-    const specialCategories = [null, null, null] as [Category | null, Category | null, Category | null]
+    const specialCategories = [null, null, null] as [CategoryTreeItem | null, CategoryTreeItem | null, CategoryTreeItem | null]
     if (isSuccess) {
       for (const category of categories) {
         if (category.slug === 'New')

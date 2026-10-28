@@ -3,11 +3,11 @@
 import { useMemo } from 'react'
 
 import useBasket from '@/lib/basket'
-import { Product } from '@/lib/types'
+import { Product, ProductInfo } from '@/lib/types'
 
 import { SearchProduct } from '.'
 
-export default function BasketButton({ product }: { product: Product | SearchProduct }) {
+export default function BasketButton({ product }: { product: ProductInfo | SearchProduct }) {
   const { basket, addItem, isSuccess, isEmpty } = useBasket()
 
   const basketQuantity = useMemo(() => {
