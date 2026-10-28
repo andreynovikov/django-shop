@@ -26,7 +26,7 @@ interface CategoryBreadcrumb {
   name: string
 }
 
-interface CategoryFilter {
+export interface CategoryFilter {
   name: string
   id: string
   class: string
@@ -62,15 +62,33 @@ interface CategoryBrief {
 export interface Category {
   id: number
   name: string
+  subname?: string
   slug: string
+  description?: string
   svg_icon?: string
   image?: string
+  product_order?: string
   path: {
     uri: string
     breadcrumbs: Array<CategoryBreadcrumb>
   }
   filters?: Array<CategoryFilter>
-  children?: Array<Category>
+  children?: Array<CategoryTreeItem>
+}
+
+// Choices and ranges of a category filter for the current product list
+export interface ProductFilter {
+  id: string
+  choices?: Array<[string | number, string]>
+  attrs?: {
+    step?: number
+    min_value?: number
+    max_value?: number
+  }
+}
+
+export type ProductList = PaginatedResult<ProductInfo> & {
+  filters?: Record<string, ProductFilter>
 }
 
 export interface ProductInfo {

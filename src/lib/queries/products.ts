@@ -1,4 +1,4 @@
-import { PaginatedResult, Product, ProductInfo, Store } from '@/lib/types'
+import { PaginatedResult, Product, ProductInfo, ProductList, Store } from '@/lib/types'
 import { productSearchParamsSerializer, ProductSearchParamsType } from '@/lib/search-params'
 import { apiFetch } from './fetch'
 
@@ -23,7 +23,7 @@ export async function loadProducts(page: number | null, page_size: number, filte
     page_size,
     ordering,
   })
-  return await apiFetch<PaginatedResult<ProductInfo>>(url)
+  return await apiFetch<ProductList>(url)
 }
 
 /**

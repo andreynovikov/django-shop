@@ -24,7 +24,8 @@ import { useSession } from '@/lib/session'
 import { useTopbar } from '@/lib/topbar'
 import { formatPhone } from '@/lib/format'
 
-export default function TopBar() {
+// catalog is rendered by the caller, so App Router renders it on the server
+export default function TopBar({ catalog }) {
   const [catalogVisible, setCatalogVisible] = useState(false)
   const { site } = useSite()
   const { status } = useSession()
@@ -175,7 +176,7 @@ export default function TopBar() {
                   </span>
                   Каталог
                 </button>
-                <CatalogDropDown visible={catalogVisible} setVisible={setCatalogVisible} buttonRef={catalogButtonRef} />
+                <CatalogDropDown catalog={catalog} visible={catalogVisible} setVisible={setCatalogVisible} buttonRef={catalogButtonRef} />
               </li>
             </ul>
             {!catalogVisible && <div className="flex-shrink-1 d-md-none my-3">

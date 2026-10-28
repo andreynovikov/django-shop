@@ -32,7 +32,7 @@ export function ProductCardImpression({ product, gtmList = '', gtmPosition = 0 }
 
 interface ProductCardLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   product: ProductInfo | SearchProduct
-  gtmCategory?: Category
+  gtmCategory?: Pick<Category, 'name'>
   gtmList?: string
   gtmPosition?: number,
   className?: string,
