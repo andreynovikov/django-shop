@@ -13,7 +13,7 @@ import Offcanvas, { OffcanvasHeader, OffcanvasBody } from '@/components/ui/offca
 import { productKeys, loadProducts } from '@/lib/queries'
 import { useToolbar } from '@/lib/toolbar'
 import { productSearchParams, ProductSearchParamsType } from '@/lib/search-params'
-import { CategoryFilter, ProductFilter, ProductList } from '@/lib/types'
+import { CategoryFilter, ProductFilterFacet, ProductList } from '@/lib/types'
 
 const pageStaleTime = 3600
 
@@ -95,7 +95,7 @@ function useCategoryProducts() {
 
 function FilterList({ filters, facets, values, onFilterChanged }: {
   filters: CategoryFilter[]
-  facets?: Record<string, ProductFilter>
+  facets?: Record<string, ProductFilterFacet>
   values: FilterValues
   onFilterChanged: FilterChangeHandler
 }) {
