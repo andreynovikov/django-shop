@@ -51,7 +51,7 @@ export default async function ServicePage() {
     .map((service) => ({
       id: service.id,
       coordinates: [service.longitude!, service.latitude!],
-      icon: '/i/shoplogos/workshop.png',
+      pin: { icon: '/i/shoplogos/marks/workshop.svg', color: '#3163ad' },
       title: service.address,
       balloon: <ServiceBalloon service={service} />,
     }))
