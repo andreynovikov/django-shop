@@ -38,9 +38,9 @@ interface ProductsSectionProps {
 
 function ProductsSection({ products, id, title, linkTitle, href }: ProductsSectionProps) {
   return (
-    <section id={id} className="container pt-5">
+    <section id={id} className="container pt-5" itemScope itemType="http://schema.org/OfferCatalog">
       <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
-        <h2 className="h3 mb-0 pt-3 me-2">{title}</h2>
+        <h2 className="h3 mb-0 pt-3 me-2" itemProp="name">{title}</h2>
         <div className="pt-3">
           <Link className="btn btn-accent btn-sm" href={href}>
             {linkTitle}

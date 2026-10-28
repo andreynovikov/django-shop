@@ -148,7 +148,8 @@ export default function Search({ text }) {
               )}
             </div>
 
-            <div className="row mx-n2">
+            <div className="row mx-n2" itemScope itemType="http://schema.org/OfferCatalog">
+              <meta itemProp="name" content="Результаты поиска" />
               {result?.totalHits > 0 ? (
                 result.products.map((product, index) => (
                   <div className="col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
