@@ -5,12 +5,18 @@ import Link from 'next/link'
 
 import type { LngLat } from '@yandex/ymaps3-types'
 
-import { LocationMap, MapMarker, MarkersMap } from '@/components/map'
+import { LocationMap, MapMarker, MarkerPin, MarkersMap } from '@/components/map'
 
 import { Store } from '@/lib/types'
 
-const storeIcon = (store: Store) =>
-  store.logo ? `/i/shoplogos/marks/${store.logo}.png` : '/i/shoplogos/marks/other.png'
+const storePins: Record<string, MarkerPin> = {
+  sewingworld: { icon: '/i/shoplogos/marks/sewingworld.svg', color: '#3163ad' },
+  nadel: { icon: '/i/shoplogos/marks/nadel.svg', color: '#ffed00' },
+}
+
+const otherStorePin: MarkerPin = { icon: '/i/shoplogos/marks/other.svg', color: '#abaeb2' }
+
+const storePin = (store: Store) => storePins[store.logo] ?? otherStorePin
 
 function StoreBalloon({ store }: { store: Store }) {
   return (
@@ -61,7 +67,7 @@ export function StoreMap({ stores, focusPoints }: { stores: Store[] | undefined,
     .map((store) => ({
       id: store.id,
       coordinates: [store.longitude!, store.latitude!],
-      icon: storeIcon(store),
+      pin: storePin(store),
       title: store.name,
       balloon: <StoreBalloon store={store} />,
     })), [stores])
@@ -70,5 +76,5 @@ export function StoreMap({ stores, focusPoints }: { stores: Store[] | undefined,
 }
 
 export function StoreLocationMap({ store, coordinates }: { store: Store, coordinates: LngLat }) {
-  return <LocationMap coordinates={coordinates} icon={storeIcon(store)} title={store.name} />
+  return <LocationMap coordinates={coordinates} pin={storePin(store)} title={store.name} />
 }

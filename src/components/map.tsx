@@ -40,21 +40,46 @@ function YMaps({ children }: { children: (ymaps: YMapComponents) => ReactNode })
   )
 }
 
-function MarkerIcon({ icon, title, clickable = false }: { icon: string, title: string, clickable?: boolean }) {
+export interface MarkerPin {
+  icon: string  // 24x24 image drawn inside the pin
+  color: string
+}
+
+// Same shape as YMapDefaultMarker of @yandex/ymaps3-default-ui-theme in normal size,
+// which can't be used directly because it only shows icons of its own set
+const PIN_HEIGHT = 61
+const PIN_PATH = 'M23 61a2 2 0 1 1 0-4 2 2 0 0 1 0 4M28.342 45.376q-4.614 1.395-4.831 6.147a.5.5 0 0 1-.5.477h-.022a.5.5 0 0 1-.5-.477q-.216-4.752-4.831-6.147C7.53 42.968 0 33.863 0 23 0 10.298 10.298 0 23 0s23 10.298 23 23c0 10.863-7.531 19.968-17.658 22.376'
+
+function MarkerIcon({ pin, title, clickable = false }: { pin: MarkerPin, title: string, clickable?: boolean }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={icon}
-      alt={title}
-      width={27}
-      height={26}
-      style={{ position: 'absolute', left: -10, top: -23, cursor: clickable ? 'pointer' : 'auto', maxWidth: 'none' }} />
+    <div style={{ position: 'absolute', cursor: clickable ? 'pointer' : 'auto' }}>
+      <svg
+        width={46}
+        height={PIN_HEIGHT}
+        viewBox={`0 0 46 ${PIN_HEIGHT}`}
+        style={{
+          position: 'absolute',
+          display: 'block',
+          maxWidth: 'none',
+          transform: 'translate(-50%, calc(-100% + 2px))',
+          filter: 'drop-shadow(0px 2px 6px rgba(24, 27, 34, 0.4))',
+        }}>
+        <path fill={pin.color} d={PIN_PATH} />
+      </svg>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={pin.icon}
+        alt={title}
+        width={24}
+        height={24}
+        style={{ position: 'absolute', display: 'block', maxWidth: 'none', transform: `translate(-50%, ${-PIN_HEIGHT + 2 + 10}px)` }} />
+    </div>
   )
 }
 
 function MarkerBalloon({ children, onClose }: { children: ReactNode, onClose: () => void }) {
   return (
-    <div className="card shadow fs-xs" style={{ position: 'absolute', left: '-8rem', bottom: '1.75rem', width: '16rem', cursor: 'auto' }}>
+    <div className="card shadow fs-xs" style={{ position: 'absolute', left: '-8rem', bottom: PIN_HEIGHT + 6, width: '16rem', cursor: 'auto' }}>
       <div className="card-body p-2">
         <button type="button" className="btn-close float-end" aria-label="Закрыть" onClick={onClose}></button>
         {children}
@@ -66,7 +91,7 @@ function MarkerBalloon({ children, onClose }: { children: ReactNode, onClose: ()
 export interface MapMarker {
   id: number
   coordinates: LngLat
-  icon: string
+  pin: MarkerPin
   title: string
   balloon: ReactNode
 }
@@ -103,7 +128,7 @@ export function MarkersMap({ markers, focusPoints = NO_FOCUS_POINTS }: { markers
                 coordinates={marker.coordinates}
                 zIndex={selected === marker.id ? 1 : 0}
                 onClick={() => setSelected(selected === marker.id ? null : marker.id)}>
-                <MarkerIcon icon={marker.icon} title={marker.title} clickable />
+                <MarkerIcon pin={marker.pin} title={marker.title} clickable />
                 {selected === marker.id && (
                   <MarkerBalloon onClose={() => setSelected(null)}>
                     {marker.balloon}
@@ -118,7 +143,7 @@ export function MarkersMap({ markers, focusPoints = NO_FOCUS_POINTS }: { markers
   )
 }
 
-export function LocationMap({ coordinates, icon, title }: { coordinates: LngLat, icon: string, title: string }) {
+export function LocationMap({ coordinates, pin, title }: { coordinates: LngLat, pin: MarkerPin, title: string }) {
   // A new location object on every render would move the map back after user panning
   const location = useMemo<YMapLocationRequest>(() => ({ center: coordinates, zoom: 14 }), [coordinates])
 
@@ -130,7 +155,7 @@ export function LocationMap({ coordinates, icon, title }: { coordinates: LngLat,
             <ymaps.YMapDefaultSchemeLayer />
             <ymaps.YMapDefaultFeaturesLayer />
             <ymaps.YMapMarker coordinates={coordinates}>
-              <MarkerIcon icon={icon} title={title} />
+              <MarkerIcon pin={pin} title={title} />
             </ymaps.YMapMarker>
           </ymaps.YMap>
         )}
