@@ -7,6 +7,7 @@ import { ScrollLink } from '@/components/scroll-link'
 import { StoreLocationMap } from '@/components/store/map'
 
 import { HttpError, loadStore, loadStores } from '@/lib/queries'
+import { parsePhones } from '@/lib/format'
 
 // Shared by generateMetadata and the page, so the store is fetched once per render
 const getStore = cache(async (id: string) => {
@@ -89,9 +90,11 @@ export default async function StorePage({ params }: PageProps<'/stores/[id]'>) {
                     <i className="ci-phone h3 mt-2 mb-4 text-primary" />
                     <h3 className="h6 mb-3">Телефон{store.phones.length > 1 && 'ы'}</h3>
                     <ul className="list-unstyled fs-sm mb-0">
-                      {store.phones.map((phone, index) => (
-                        <li className={index === store.phones.length - 1 ? 'mb-0' : ''} key={index}>
-                          <a className="nav-link-style" href={'tel:' + phone.replace(/[ -]/g, '')}>{phone}</a>
+                      {parsePhones(store.phones).map(({ label, number, note, href }, index, phones) => (
+                        <li className={index === phones.length - 1 ? 'mb-0' : ''} key={index}>
+                          {label && <>{label} </>}
+                          {number && <a className="nav-link-style" href={href}>{number}</a>}
+                          {note && <> {note}</>}
                         </li>
                       ))}
                     </ul>

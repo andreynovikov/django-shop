@@ -4,6 +4,7 @@ import { pageContentWrapper } from '@/components/layout/page-content-wrapper'
 import { MapMarker, MarkersMap } from '@/components/map'
 
 import { loadServiceCenters } from '@/lib/queries'
+import { parsePhones } from '@/lib/format'
 import { Country, ServiceCenter } from '@/lib/types'
 
 export const revalidate = 3600
@@ -108,13 +109,14 @@ export default async function ServicePage() {
                           <li className="d-flex pt-2 mt-2 mb-0 border-top">
                             <i className="ci-phone fs-lg my-1 text-primary" />
                             <div className="ps-3 fs-sm">
-                              {service.phone.split(',').map((phone, index) => (
+                              {parsePhones([service.phone]).map(({ label, number, note, href }, index) => (
                                 <a
                                   className={'d-block nav-link-style' + (index > 0 ? ' mt-2' : '')}
-                                  href={'tel:' + phone.trim().replace(/[ -]/g, '')}
-                                  itemProp="telephone"
+                                  href={href || undefined}
                                   key={index}>
-                                  {phone.trim()}
+                                  {label && <>{label} </>}
+                                  {number && <span itemProp="telephone">{number}</span>}
+                                  {note && <> {note}</>}
                                 </a>
                               ))}
                             </div>

@@ -11,6 +11,7 @@ import type { LngLat } from '@yandex/ymaps3-types'
 import { useBreakpoint } from '@/lib/breakpoint'
 import { City, Store } from '@/lib/types'
 import { rows } from '@/lib/partition'
+import { parsePhones } from '@/lib/format'
 import { StoreMap } from './map'
 
 function Collapsable({
@@ -178,8 +179,8 @@ export function StoreList({ stores }: { stores: Store[] }) {
                     <div className="card-body" itemScope itemType="http://schema.org/Organization">
                       <h6 className="card-title">
                         {store.logo === 'sewingworld' ?
-                          <Link href={`/stores/${store.id}`} itemProp="name">
-                            &quot;{store.name}&quot; - {city.name}
+                          <Link href={`/stores/${store.id}`} itemProp="url">
+                            <span itemProp="name">&quot;{store.name}&quot; - {city.name}</span>
                           </Link>
                           :
                           <span itemProp="name">&quot;{store.name}&quot; ({city.name})</span>
@@ -201,13 +202,14 @@ export function StoreList({ stores }: { stores: Store[] }) {
                           <li className="d-flex pt-2 mt-2 mb-0 border-top">
                             <i className="ci-phone fs-lg my-1 text-primary" />
                             <div className="ps-3 fs-sm">
-                              {store.phones.map((phone, index) => (
+                              {parsePhones(store.phones).map(({ label, number, note, href }, index) => (
                                 <a
                                   className={'d-block nav-link-style' + (index > 0 ? ' mt-2' : '')}
-                                  href={'tel:' + phone.replace(' ', '')}
-                                  itemProp="telephone"
+                                  href={href || undefined}
                                   key={index}>
-                                  {phone}
+                                  {label && <>{label} </>}
+                                  {number && <span itemProp="telephone">{number}</span>}
+                                  {note && <> {note}</>}
                                 </a>
                               ))}
                             </div>

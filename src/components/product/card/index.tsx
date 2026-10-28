@@ -82,7 +82,7 @@ export default function ProductCard({ product, limitedBadges = false, gtmCategor
           <div className="d-flex justify-content-between align-items-center">
             <div className="product-price text-accent">
               {product.variations && "от "}
-              <ProductPrice product={product} />
+              <ProductPrice product={product} microdata />
             </div>
             <div>
               {product.variations ? (

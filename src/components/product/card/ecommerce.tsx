@@ -39,7 +39,7 @@ interface ProductCardLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   children: ReactNode,
 }
 
-export function ProductCardLink({ product, gtmCategory = undefined, gtmList = '', gtmPosition = 0, className, children }: ProductCardLinkProps) {
+export function ProductCardLink({ product, gtmCategory = undefined, gtmList = '', gtmPosition = 0, children, ...props }: ProductCardLinkProps) {
   const productLink = product.variations ? product.variations : `/products/${product.code}`
 
   const handleClick = () => {
@@ -58,7 +58,7 @@ export function ProductCardLink({ product, gtmCategory = undefined, gtmList = ''
   }
 
   return (
-    <Link className={className} href={productLink} onClick={handleClick}>
+    <Link {...props} href={productLink} onClick={handleClick}>
       {children}
     </Link>
   )

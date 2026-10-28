@@ -67,7 +67,8 @@ export default async function SalesActionPage({ params }: PageProps<'/actions/[s
         <div dangerouslySetInnerHTML={{ __html: action.description }}></div>
         {products !== undefined && (
           <>
-            <div className="row pt-2 mx-n2">
+            <div className="row pt-2 mx-n2" itemScope itemType="http://schema.org/OfferCatalog">
+              <meta itemProp="name" content={action.name} />
               {products.results.map((product, index) => (
                 <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
                   <ProductCard product={product} gtmList={`Рекламная акция ${action.name}`} gtmPosition={index} />
