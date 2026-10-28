@@ -30,12 +30,18 @@ function getPathForModelItem(model: string, item: Item) {
       return `/catalog/${item.path}/`
     case 'product':
       return `/products/${item.code}/`
+    case 'action':
+      return `/actions/${item.pk}/`
     case 'store':
       return `/stores/${item.pk}/`
     case 'page':
       return `/pages${item.uri}`
     case 'news':
       return '/news/'
+    case 'actions':
+      return `/actions/`
+    case 'stores':
+      return `/stores/`
     default:
       return undefined
   }
