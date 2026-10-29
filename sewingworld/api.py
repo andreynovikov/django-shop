@@ -22,6 +22,8 @@ from rest_framework.permissions import BasePermission, IsAuthenticated, DjangoMo
 from rest_framework.response import Response
 from rest_framework.throttling import SimpleRateThrottle
 
+from drf_spectacular.utils import extend_schema, OpenApiResponse
+
 from django.contrib.flatpages.models import FlatPage
 # from django_ipgeobase.models import IPGeoBase
 
@@ -441,6 +443,13 @@ class BasketViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method)
 
+    @extend_schema(
+        request=BasketItemActionSerializer,
+        responses={
+            204: None,
+        },
+        methods=['POST']
+    )
     @action(detail=True, methods=['post'], url_path='add')
     def add_item(self, request, pk=None):
         # TODO: check that basket belongs to current user
@@ -462,6 +471,13 @@ class BasketViewSet(viewsets.ModelViewSet):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        request=BasketItemActionSerializer,
+        responses={
+            204: None,
+        },
+        methods=['POST']
+    )
     @action(detail=True, methods=['post'], url_path='remove')
     def remove_item(self, request, pk=None):
         basket = self.get_object()
@@ -479,6 +495,13 @@ class BasketViewSet(viewsets.ModelViewSet):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        request=BasketItemActionSerializer,
+        responses={
+            204: None,
+        },
+        methods=['POST']
+    )
     @action(detail=True, methods=['post'], url_path='update')
     def update_item(self, request, pk=None):
         basket = self.get_object()
@@ -533,6 +556,10 @@ class OrderViewSet(viewsets.ModelViewSet):
         queryset = Order.objects.order_by('-id').filter(**filters).exclude(**excludes)
         return queryset
 
+    @extend_schema(
+        request=None,
+        responses=OrderSerializer,
+    )
     def create(self, request):
         try:
             basket = Basket.objects.get(site=request.site, session_id=request.session.session_key)
@@ -581,6 +608,11 @@ class OrderViewSet(viewsets.ModelViewSet):
     def destroy(self, request):
         raise MethodNotAllowed(request.method)
 
+    @extend_schema(
+        request=None,
+        responses=OrderSerializer,
+        methods=['POST']
+    )
     @action(detail=False, methods=['post'])
     def preorder(self, request):
         request.session.save()  # ensure session is persisted
@@ -607,6 +639,20 @@ class OrderViewSet(viewsets.ModelViewSet):
         basket.delete()
         return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: OpenApiResponse(
+                response={
+                    'type': 'object',
+                    'properties': {
+                        'location': {'type': 'string'},
+                    },
+                }
+            )
+        },
+        methods=['POST']
+    )
     @action(detail=True, methods=['post'])
     def pay(self, request, pk=None):
         order = self.get_object()  # this looks redundant but we keep it for framework internal checks
@@ -617,6 +663,20 @@ class OrderViewSet(viewsets.ModelViewSet):
         else:
             return response
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: OpenApiResponse(
+                response={
+                    'type': 'object',
+                    'properties': {
+                        'id': {'type': 'integer', 'nullable': True},
+                    },
+                }
+            )
+        },
+        methods=['POST']
+    )
     @action(detail=False, methods=['post'])
     def last(self, request):
         queryset = self.get_queryset().order_by('-id').values_list('id', flat=True)
@@ -625,6 +685,20 @@ class OrderViewSet(viewsets.ModelViewSet):
             'id': last
         })
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: OpenApiResponse(
+                response={
+                    'type': 'object',
+                    'properties': {
+                        'id': {'type': 'integer', 'nullable': True},
+                    },
+                }
+            )
+        },
+        methods=['POST']
+    )
     @action(detail=False, methods=['post'])
     def unpaid(self, request):
         queryset = self.get_queryset().order_by('-id').values_list('id', flat=True)
@@ -651,6 +725,12 @@ class FavoritesViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method)
 
+    @extend_schema(
+        responses={
+            204: None
+        },
+        methods=['POST']
+    )
     @action(detail=False, methods=['post'], url_path='add')
     def add_item(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -660,6 +740,12 @@ class FavoritesViewSet(viewsets.ModelViewSet):
             favorite.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @extend_schema(
+        responses={
+            204: None
+        },
+        methods=['POST']
+    )
     @action(detail=False, methods=['post'], url_path='remove')
     def remove_item(self, request):
         serializer = self.get_serializer(data=request.data)
@@ -769,6 +855,21 @@ class UserViewSet(viewsets.ModelViewSet):
         #     get_bonus_value.delay(user.phone)
         return Response(self.get_serializer(user.bonus, context=self.get_serializer_context()).data)
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: OpenApiResponse(
+                response={
+                    'type': 'object',
+                    'properties': {
+                        'phone': {'type': 'string'},
+                        'permanent_password': {'type': 'boolean'}
+                    },
+                }
+            )
+        },
+        methods=['POST']
+    )
     @action(detail=True, methods=['post'], throttle_classes=[CheckIpThrottle, CheckPhoneThrottle])
     def check(self, request, pk=None):
         user = self.get_object()
@@ -785,6 +886,21 @@ class UserViewSet(viewsets.ModelViewSet):
             'permanent_password': permanent_password and not reset
         })
 
+    @extend_schema(
+        request=LoginSerializer,
+        responses={
+            200: OpenApiResponse(
+                response={
+                    'type': 'object',
+                    'properties': {
+                        'id': {'type': 'integer'},
+                        'registered': {'type': 'boolean'}
+                    }
+                }
+            )
+        },
+        methods=['POST']
+    )
     @action(detail=False, methods=['post'], throttle_classes=[LoginIpThrottle, LoginPhoneThrottle, LoginPhoneDailyThrottle])
     def login(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -807,10 +923,16 @@ class UserViewSet(viewsets.ModelViewSet):
             basket.update_session(request.session.session_key)
 
         return Response({
-            "id": user.id,
-            "registered": user.registered
+            'id': user.id,
+            'registered': user.registered
         })
 
+    @extend_schema(
+        responses={
+            204: None
+        },
+        methods=['GET']
+    )
     @action(detail=False, methods=['get'])
     def logout(self, request, *args, **kwargs):
         try:
@@ -826,6 +948,26 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(
+                response={
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'name': {'type': 'string'},
+                            'label': {'type': 'string'},
+                            'id': {'type': 'string'},
+                            'help': {'type': 'string'},
+                            'required': {'type': 'boolean'},
+                        },
+                    }
+                }
+            )
+        },
+        methods=['GET']
+    )
     @action(detail=False, methods=['get'])
     def form(self, request, *args, **kwargs):
         fields = [

@@ -4,6 +4,7 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include, path
 
 from rest_framework.routers import DefaultRouter
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from two_factor.urls import urlpatterns as tf_urls
 
 from reviews.api import ReviewViewSet
@@ -48,6 +49,7 @@ else:
     urlpatterns = [
         # Rest API
         path('api/v0/', include(router.urls)),
+        path('api/v0/schema/', SpectacularAPIView.as_view(), name='schema'),
         path('api/v0/blog/', include('blog.urls')),
         path('api/v0/csrf/', api.CsrfTokenView.as_view()),
         path('api/v0/warrantycard/<str:code>/', api.WarrantyCardView.as_view()),

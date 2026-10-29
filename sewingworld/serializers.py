@@ -10,6 +10,9 @@ from django.core.files.storage import default_storage
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound
 
+from drf_spectacular.extensions import OpenApiSerializerExtension
+from drf_spectacular.utils import Direction
+
 from django.contrib.flatpages.models import FlatPage
 
 from sewingworld.models import SiteProfile
@@ -196,6 +199,22 @@ class ProductImagesSerializer(serializers.BaseSerializer):  # BaseSerializer is 
                 'src': request.build_absolute_uri(product_image.image.url),
             })
         return images
+
+
+class ProductImagesSerializerExtension(OpenApiSerializerExtension):
+    target_class = ProductImagesSerializer
+
+    def map_serializer(self, auto_schema, direction: Direction):
+        item_schema = {
+            'type': 'object',
+            'properties': {
+                'src': {'type': 'string', 'readOnly': True},
+            },
+        }
+        return {
+            'type': 'array',
+            'items': item_schema
+        }
 
 
 class ProductListSerializer(DynamicFieldsModelSerializer):
@@ -474,6 +493,15 @@ class FavoritesSerializer(serializers.ModelSerializer):
         return instance.product.id
 
 
+class FavoritesSerializerExtension(OpenApiSerializerExtension):
+    target_class = FavoritesSerializer
+
+    def map_serializer(self, auto_schema, direction: Direction):
+        return {
+            'type': 'integer',
+        }
+
+
 class SerialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Serial
@@ -573,6 +601,20 @@ class AnonymousUserSerializer(serializers.BaseSerializer):
         return {
             'id': None,
             'is_anonymous': True
+        }
+
+
+class AnonymousUserSerializerExtension(OpenApiSerializerExtension):
+    target_class = AnonymousUserSerializer
+
+    def map_serializer(self, auto_schema, direction: Direction):
+        return {
+            'type': 'object',
+            'properties': {
+                'src': {'type': 'null', 'readOnly': True},
+                'is_anonymous': {'type': 'boolean', 'readOnly': True},
+            },
+            'required': ['id', 'is_anonymous'],
         }
 
 

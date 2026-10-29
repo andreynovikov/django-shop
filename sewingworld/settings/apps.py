@@ -50,4 +50,5 @@ INSTALLED_APPS = (
     'forum',
     'constance',
     'django_cleanup',
+    'drf_spectacular',
 )
