@@ -1,4 +1,4 @@
-import { test, expect, openFilters, signIn } from './fixtures'
+import { test, expect, openFilters } from './fixtures'
 
 test('price range filter updates query', async ({ page, isMobile }) => {
   await page.goto('/catalog/sewing_machines/')
@@ -47,9 +47,9 @@ test('slider filter updates query', async ({ page, isMobile }) => {
   await expect(page).not.toHaveURL(/[?&]sm_power=/)
 })
 
-test('favorite icon shows tooltip', async ({ page, isMobile }) => {
+test('favorite icon shows tooltip', async ({ page, backend, isMobile }) => {
   test.skip(isMobile, 'Tooltips open on hover')
-  await signIn(page)
+  backend.signIn()
   await page.goto('/catalog/sewing_machines/')
   const tooltip = page.locator('.tooltip')
 
