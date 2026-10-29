@@ -416,7 +416,7 @@ export interface Order {
   delivery_handing_date: string | null
   delivery_time_from: string | null
   delivery_time_till: string | null
-  store: number | null
+  store: Store | null
   name: string
   phone: string
   email: string

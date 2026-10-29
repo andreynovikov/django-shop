@@ -49,6 +49,13 @@ function getError(field: string, error: unknown): FieldErrors {
   return { [field]: "Неизвестная ошибка входа" }
 }
 
+// Only paths on this site, so a link to the login page can't send the user to another site
+function getCallbackUrl(callbackUrl: unknown) {
+  if (typeof callbackUrl === 'string' && callbackUrl.startsWith('/') && !/^\/[/\\]/.test(callbackUrl))
+    return callbackUrl
+  return '/'
+}
+
 export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: LoginFormProps) {
   const [pdConsent, setPdConsent] = useState(false)
   const [ofConsent, setOfConsent] = useState(false)
@@ -177,7 +184,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
             if (hideModal)
               hideModal()
           } else {
-            navigate(typeof query.callbackUrl === 'string' ? query.callbackUrl : '/')
+            navigate(getCallbackUrl(query.callbackUrl))
           }
         } else if ('status' in result && [401, 403].includes(result.status)) {
           setError({ password: "Вы ввели неправильный " + (shopUser.permanent_password ? "пароль" : "код") })
@@ -278,7 +285,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
               id={`${embedded}${ctx}-phone-input`}
               placeholder="+7 (999) 111-22-33"
               onChange={handleChange}
-              autoComplete="phone"
+              autoComplete="tel"
               required />
             {'phone' in error && <div className="invalid-feedback">{error.phone}</div>}
           </div>

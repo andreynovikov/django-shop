@@ -152,7 +152,7 @@ export default function Order({ id }) {
                   {" "}
                   {order.store ? (
                     <>
-                      <a className="text-heading" href="order.store.id"><u>{order.store.city.name}, {order.store.address}</u></a>
+                      <a className="text-heading" href={`/stores/${order.store.id}/`}><u>{order.store.city.name}, {order.store.address}</u></a>
                       {order.store.hours && (
                         <> (часы работы: {order.store.hours})</>
                       )}

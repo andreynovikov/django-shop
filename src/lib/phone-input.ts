@@ -28,18 +28,20 @@ const phoneInputOptions = {
   ],
 } satisfies MaskitoOptions
 
-// Paste "89123456789" => "+7 (912) 345-67-89"
+// Paste or autofill "89123456789" => "+7 (912) 345-67-89"
 function createCompletePhoneInsertionPreprocessor(): MaskitoPreprocessor {
   const trimPrefix = (value: string): string => value.replace(/^(\+?7|8)\s?/, '')
   const countDigits = (value: string): number => value.replaceAll(/\D/g, '').length
 
-  return ({ elementState, data }) => {
+  return ({ elementState, data }, actionType) => {
     const { value, selection } = elementState
+    // Autofill replaces the whole value without beforeinput, so the number is validated as it is
+    const isComplete = actionType === 'validation' && countDigits(value) === 11
 
     return {
       elementState: {
         selection,
-        value: countDigits(value) > 11 ? trimPrefix(value) : value,
+        value: countDigits(value) > 11 || isComplete ? trimPrefix(value) : value,
       },
       data: countDigits(data) >= 11 ? trimPrefix(data) : data,
     }
