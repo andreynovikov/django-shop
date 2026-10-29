@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useRouter } from 'next/router'
-import Head from 'next/head'
+import { useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { useQueryStates, parseAsString, parseAsBoolean, parseAsInteger, parseAsArrayOf } from 'nuqs'
 
-import PageLayout from '@/components/layout/page'
+import { pageContentWrapper } from '@/components/layout/page-content-wrapper'
 import ProductSearchCard from '@/components/product/search-card'
 import MultipleChoiceFilter from '@/components/product/filters/multiple-choice-filter'
 import PriceFilter from '@/components/product/filters/price-filter'
@@ -15,10 +14,15 @@ import { PageLoading } from '@/components/loading'
 import Offcanvas, { OffcanvasHeader, OffcanvasBody } from '@/components/ui/offcanvas'
 
 import { productKeys } from '@/lib/queries'
+import { ProductSearchParamsType } from '@/lib/search-params'
 import { loadProducts } from '@/lib/diginetica'
+import { convertSearchParams } from '@/lib/navigation/app-provider'
 import { useToolbar } from '@/lib/toolbar'
 import { useCatalog } from '@/lib/catalog/hooks'
 import rupluralize from '@/lib/rupluralize'
+
+const pathname = '/search/'
+const pageSize = 15
 
 const searchParams = {
   text: parseAsString,
@@ -28,11 +32,23 @@ const searchParams = {
   page: parseAsInteger.withDefault(1),
 }
 
-export default function Search({ text }) {
+const searchTitle = (text: string | null) => text ? `Поиск товаров: ${text}` : 'Поиск товаров'
+
+// Shown while search params are not available, i.e. in the statically rendered page
+export function SearchResultsLoading() {
+  return pageContentWrapper({
+    title: searchTitle(null),
+    dark: true,
+    overlapped: true,
+    children: <PageLoading className="pt-5" />,
+  })
+}
+
+// Results come straight from Diginetica in the browser, so reading search params needs a Suspense boundary
+export default function SearchResults() {
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useQueryStates(searchParams)
-
-  const router = useRouter()
+  const query = convertSearchParams(useSearchParams())
 
   useCatalog()
 
@@ -48,46 +64,39 @@ export default function Search({ text }) {
   useToolbar(toolbarItem)
 
   const { data: result, isSuccess, isLoading, isError } = useQuery({
-    queryKey: productKeys.search(text, filters, null),
-    queryFn: () => loadProducts(text, filters.page, 15, filters),
+    // Diginetica filters differ from the backend ones, the key only needs to tell them apart
+    queryKey: productKeys.search(filters.text ?? '', filters as unknown as ProductSearchParamsType, ''),
+    queryFn: () => loadProducts(filters.text ?? '', filters.page, pageSize, filters),
     placeholderData: keepPreviousData // required for filters not to loose choices and attributes
   })
 
-  const pages = Math.ceil((result?.totalHits ?? 0) / 15)
+  const pages = Math.ceil((result?.totalHits ?? 0) / pageSize)
 
   const priceFilter = useMemo(() => {
-    const priceFacet = result?.facets?.reduce((selected, facet) => facet.name === 'price' ? facet : selected, undefined)
+    const priceFacet = result?.facets?.find((facet) => facet.name === 'price')
     if (priceFacet !== undefined)
-      return priceFacet.values.reduce((filter, value) => {
-        filter[`${value.id}_value`] = value.value
-        return filter
-      }, {})
+      return Object.fromEntries(priceFacet.values.map((value) => [`${value.id}_value`, value.value]))
     return undefined
   }, [result])
 
   const brandsFilter = useMemo(() => {
-    const brandsFacet = result?.facets?.reduce((selected, facet) => facet.name === 'brands' ? facet : selected, undefined)
-    if (brandsFacet?.values.length > 1)
-      return brandsFacet.values.reduce((filter, value) => {
-        filter.push([value.id, value.name])
-        return filter
-      }, [])
+    const brandsFacet = result?.facets?.find((facet) => facet.name === 'brands')
+    if (brandsFacet !== undefined && brandsFacet.values.length > 1)
+      return brandsFacet.values.map((value) => [value.id, value.name])
     return undefined
   }, [result])
 
-  const handleFilterChanged = (field, value) => {
+  const handleFilterChanged = (field: string, value: unknown) => {
     setFilters({
       [field]: value,
       page: 1
     })
   }
 
+  let content
   if (isSuccess) {
-    return (
+    content = (
       <div className="container pb-5 mb-2 mb-md-4">
-        <Head>
-          <meta name="robots" content="noindex" />
-        </Head>
         <div className="row">
           <aside className="col-lg-4">
             <Offcanvas
@@ -131,7 +140,7 @@ export default function Search({ text }) {
           <section className="col-lg-8">
             <div className="d-flex justify-content-center justify-content-sm-between align-items-center pt-2 pb-4 pb-sm-5">
               <div className="d-flex pb-3">
-                {result?.totalHits > 0 && (
+                {result.totalHits > 0 && (
                   <span className="text-light opacity-75 text-nowrap">
                     {rupluralize(result.totalHits, ['Найден', 'Найдены', 'Найдены'])}
                     {' '}{result.totalHits}{' '}
@@ -141,8 +150,8 @@ export default function Search({ text }) {
               </div>
               {pages > 1 && (
                 <SmallPageSelector
-                  pathname={router.pathname}
-                  query={router.query}
+                  pathname={pathname}
+                  query={query}
                   totalPages={pages}
                   currentPage={filters.page} />
               )}
@@ -150,7 +159,7 @@ export default function Search({ text }) {
 
             <div className="row mx-n2" itemScope itemType="http://schema.org/OfferCatalog">
               <meta itemProp="name" content="Результаты поиска" />
-              {result?.totalHits > 0 ? (
+              {result.totalHits > 0 ? (
                 result.products.map((product, index) => (
                   <div className="col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
                     <ProductSearchCard result={product} position={index} />
@@ -170,8 +179,8 @@ export default function Search({ text }) {
               <>
                 <hr className="my-3" />
                 <PageSelector
-                  pathname={router.pathname}
-                  query={router.query}
+                  pathname={pathname}
+                  query={query}
                   totalPages={pages}
                   currentPage={filters.page} />
               </>
@@ -180,13 +189,10 @@ export default function Search({ text }) {
         </div>
       </div>
     )
-  }
-
-  if (isLoading)
-    return <PageLoading className="pt-5" />
-
-  if (isError) {
-    return (
+  } else if (isLoading) {
+    content = <PageLoading className="pt-5" />
+  } else if (isError) {
+    content = (
       <div className="container pb-5 mb-2 mb-md-4">
         <div className="d-flex align-items-center my-5 py-5">
           <div className="lead ms-3">Error!</div>
@@ -195,19 +201,10 @@ export default function Search({ text }) {
     )
   }
 
-  return <></>
-}
-
-Search.getLayout = function getLayout(page) {
-  return (
-    <PageLayout title={"Поиск товаров: " + page.props.text} dark overlapped>
-      {page}
-    </PageLayout>
-  )
-}
-
-export async function getServerSideProps(context) {
-  return {
-    props: context.query || {}
-  }
+  return pageContentWrapper({
+    title: searchTitle(filters.text),
+    dark: true,
+    overlapped: true,
+    children: content,
+  })
 }
