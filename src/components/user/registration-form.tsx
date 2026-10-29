@@ -100,7 +100,7 @@ export default function RegistrationForm({ embedded = '', onComplete }: Registra
           id={`${embedded}reg-phone-input`}
           placeholder="+7 (999) 111-22-33"
           onChange={handleChange}
-          autoComplete="phone"
+          autoComplete="tel"
           required />
         {error['phone']?.map((err, index) => (
           <div className="invalid-feedback" key={index}>{err}</div>

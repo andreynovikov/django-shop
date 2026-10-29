@@ -115,7 +115,7 @@ export default function UpdateForm({ id, embedded = false, onReady, onUpdated }:
                 onChange={handleChange}
                 type="tel"
                 placeholder="(999) 111-22-33"
-                autoComplete="phone"
+                autoComplete="tel"
                 required={field.required} />
             ) : (
               <input
