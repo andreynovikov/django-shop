@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useEffectEvent, ReactNode, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useNavigation } from './navigation';
@@ -45,10 +45,14 @@ export function useSession(options?: { onUnauthenticated?: () => void }) {
   const { onUnauthenticated } = options || {}
   const required = onUnauthenticated !== undefined && value.status === 'unauthenticated'
 
+  // Callers pass a new callback on each render. Calling it again would restart its navigation,
+  // a full page load when the login page is in the other router.
+  const handleUnauthenticated = useEffectEvent(() => onUnauthenticated?.())
+
   useEffect(() => {
     if (required && !value.isRouting)
-      onUnauthenticated()
-  }, [onUnauthenticated, required, value.isRouting])
+      handleUnauthenticated()
+  }, [required, value.isRouting])
 
   return {
     ...value,
@@ -66,6 +70,13 @@ export function SessionProvider({ children }: SessionProviderProps) {
   const queryClient = useQueryClient()
   const { navigate, events } = useNavigation()
 
+  // A user request still in flight was sent before the change and would bring back the old user.
+  // Invalidation reuses a first request instead of repeating it, so it is cancelled first.
+  const refreshUser = useCallback(async () => {
+    await queryClient.cancelQueries({ queryKey: userKeys.current() })
+    queryClient.invalidateQueries({ queryKey: userKeys.current() })
+  }, [queryClient])
+
   const signIn = useCallback(async (credentials: LoginCredentials) => {
     try {
       const user = await loginUser(credentials)
@@ -82,19 +93,19 @@ export function SessionProvider({ children }: SessionProviderProps) {
         ok: false
       }
     } finally {
-      queryClient.invalidateQueries({ queryKey: userKeys.current() })
+      await refreshUser()
     }
-  }, [queryClient])
+  }, [refreshUser])
 
   const signOut = useCallback(async (options?: { callbackUrl?: string }) => {
     const { callbackUrl } = options || {}
 
     await logoutUser()
     setRegistered(false)
-    queryClient.invalidateQueries({ queryKey: userKeys.current() })
+    await refreshUser()
     if (callbackUrl)
       navigate(callbackUrl)
-  }, [queryClient, navigate])
+  }, [refreshUser, navigate])
 
   const register = useCallback(async (data: FormData) => {
     try {
@@ -109,14 +120,14 @@ export function SessionProvider({ children }: SessionProviderProps) {
         error
       }
     } finally {
-      queryClient.invalidateQueries({ queryKey: userKeys.current() })
+      await refreshUser()
     }
-  }, [queryClient])
+  }, [refreshUser])
 
   const invalidate = useCallback(() => {
     setRegistered(false)
-    queryClient.invalidateQueries({ queryKey: userKeys.current() })
-  }, [queryClient])
+    refreshUser()
+  }, [refreshUser])
 
   const handleRouteChangeStart = () => setIsRouting(true)
   const handleRouteChangeComplete = () => setIsRouting(false)

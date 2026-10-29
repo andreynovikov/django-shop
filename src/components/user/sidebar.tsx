@@ -16,12 +16,20 @@ import { User } from '@/lib/types'
 
 export default function UserSidebar() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
 
   const { navigate, path } = useNavigation()
 
+  // Signing out navigates to the home page, which may be a full page load that is still
+  // loading when the session ends, so the login page must not take over meanwhile
   const { user: sessionUser, status, signOut } = useSession({
-    onUnauthenticated: () => navigate(`/login?callbackUrl=${encodeURIComponent(path)}`)
+    onUnauthenticated: signingOut ? undefined : () => navigate(`/login?callbackUrl=${encodeURIComponent(path)}`)
   })
+
+  const handleSignOut = () => {
+    setSigningOut(true)
+    signOut({ callbackUrl: '/' })
+  }
   const user = status === 'authenticated' ? sessionUser as User : undefined
 
   const { favorites } = useFavorites()
@@ -81,7 +89,7 @@ export default function UserSidebar() {
               </Link>
             </li>
             <li className="border-top mb-0">
-              <a className="nav-link-style d-flex align-items-center px-4 py-3" onClick={() => signOut({ callbackUrl: '/' })} style={{ cursor: 'pointer' }}>
+              <a className="nav-link-style d-flex align-items-center px-4 py-3" onClick={handleSignOut} style={{ cursor: 'pointer' }}>
                 <i className="ci-sign-out opacity-60 me-2" />Выйти
               </a>
             </li>
