@@ -1,4 +1,4 @@
-import { test, expect, signIn, testUser } from './fixtures'
+import { test, expect } from './fixtures'
 
 import { findSewingMachines, findProductInStores, findReviewableProduct } from './api'
 
@@ -64,14 +64,12 @@ test('field help popover shows help page', async ({ page, request }) => {
   await expect(popup).toBeHidden()
 })
 
-test('preorder shows toast notification', async ({ page, request }) => {
+test('preorder shows toast notification', async ({ page, request, backend }) => {
   const [product] = await findSewingMachines(request, { instock: '0' })
   test.skip(product === undefined, 'No product is out of stock')
 
-  // Pretend to be signed in and do not create a real preorder
-  await page.route('**/api/v0/users/current/', route => route.fulfill({
-    json: { id: 1, name: 'Тестовый покупатель' }
-  }))
+  // the fake backend does not take preorders, the request is checked here
+  backend.signIn()
   let preorderBody
   await page.route('**/api/v0/orders/preorder/', route => {
     preorderBody = route.request().postDataJSON()
@@ -91,21 +89,16 @@ test('preorder shows toast notification', async ({ page, request }) => {
   await expect(toast).toBeHidden()
 })
 
-test('nickname modal closes only explicitly', async ({ page, request }) => {
+test('nickname modal closes only explicitly', async ({ page, request, backend }) => {
   const product = await findReviewableProduct(request)
   test.skip(product === undefined, 'No product allows reviews')
 
   // a user without a nickname is offered to set one above the review form
-  await signIn(page, { username: '' })
+  backend.signIn({ username: '' })
   await page.route('**/api/v0/users/form/', route => route.fulfill({
     json: [{ id: 'id_username', name: 'username', label: 'Псевдоним', required: false }]
   }))
   await page.route('**/api/v0/reviews/shop.product/*/form/', route => route.fulfill({ json: [] }))
-  let updateBody
-  await page.route(`**/api/v0/users/${testUser.id}/`, route => {
-    updateBody = route.request().postDataJSON()
-    return route.fulfill({ json: { ...testUser, ...updateBody } })
-  })
 
   await page.goto(`/products/${product!.code}/`)
   // reviews are loaded when scrolled into view
@@ -124,5 +117,5 @@ test('nickname modal closes only explicitly', async ({ page, request }) => {
   await dialog.getByRole('textbox', { name: 'Псевдоним' }).fill('nick')
   await dialog.getByRole('button', { name: 'Сохранить' }).click()
   await expect(dialog).toBeHidden()
-  expect(updateBody).toMatchObject({ username: 'nick' })
+  expect(backend.user?.username).toBe('nick')
 })

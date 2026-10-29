@@ -1,45 +1,28 @@
-import { test, expect, signIn } from './fixtures'
+import { Page } from '@playwright/test'
 
-import { PAYMENT_CARD, STATUS_COLLECTED } from '@/components/order/status-badge'
+import type { Order, Store } from '@/lib/types'
+import { DELIVERY_SELF, PAYMENT_CARD, STATUS_COLLECTED } from '@/components/order/status-badge'
 
-// collected and not paid yet, so the orders list shows the icon payment button
-const order = {
-  id: 12345,
-  created: '2026-10-20T14:30:00+03:00',
-  status: STATUS_COLLECTED,
-  status_text: 'Собран',
-  total: 25000,
-  paid: false,
-  payment: PAYMENT_CARD,
-  payment_text: 'Картой',
-  items: [],
-  delivery: 1,
-  delivery_info: '',
-  delivery_price: 0,
-  delivery_tracking_number: '',
-  delivery_dispatch_date: null,
-  delivery_handing_date: null,
-  delivery_time_from: null,
-  delivery_time_till: null,
-  address: '',
-  name: 'Тестовый покупатель',
-  phone: '+79161234567',
-  is_firm: false,
-  firm_name: '',
-  firm_address: '',
-  firm_details: '',
-  store: null,
+import { findSewingMachines } from './api'
+import { test, expect } from './fixtures'
+
+let order: Order
+
+// The topbar offers to pay the order once it is loaded, which can move the page under the mouse
+async function waitForPayment(page: Page) {
+  await expect(page.locator('.topbar').getByRole('button', { name: 'Оплатить заказ' })).toBeVisible()
 }
 
-test.beforeEach(async ({ page }) => {
-  await signIn(page)
-  await page.route('**/api/v0/orders/**', route => {
-    const url = route.request().url()
-    if (url.includes('/orders/last/'))
-      return route.fulfill({ json: { id: null } })
-    if (url.includes(`/orders/${order.id}/`))
-      return route.fulfill({ json: order })
-    return route.fulfill({ json: { count: 1, next: null, previous: null, results: [order] } })
+test.beforeEach(({ backend }) => {
+  backend.signIn()
+  // collected and not paid yet, so the orders list shows the icon payment button
+  order = backend.addOrder({
+    created: '2026-10-20T14:30:00+03:00',
+    status: STATUS_COLLECTED,
+    status_text: 'Собран',
+    payment: PAYMENT_CARD,
+    payment_text: 'Картой',
+    total: 25000,
   })
 })
 
@@ -68,6 +51,7 @@ test('user menu collapses on mobile', async ({ page, isMobile }) => {
 test('orders list shows tooltips', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Tooltips open on hover')
   await page.goto('/user/orders/')
+  await waitForPayment(page)
   const row = page.locator('tbody tr', { hasText: order.id.toString() })
   const tooltip = page.locator('.tooltip')
 
@@ -85,9 +69,31 @@ test('orders list shows tooltips', async ({ page, isMobile }) => {
 test('order page shows creation date in tooltip', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Tooltips open on hover')
   await page.goto(`/user/orders/${order.id}/`)
+  await waitForPayment(page)
   const tooltip = page.locator('.tooltip')
 
   await page.locator('.sw-order-created span').hover()
   await expect(tooltip).toContainText('октября 2026')
   await expect(tooltip).toHaveClass(/bs-tooltip-bottom/)
+})
+
+test('orders list opens order details', async ({ page, request, backend, isMobile }) => {
+  const [first, second] = await findSewingMachines(request)
+  const storesResponse = await request.get('/api/v0/stores/')
+  expect(storesResponse.ok()).toBeTruthy()
+  const [store] = await storesResponse.json() as Store[]
+  const pickup = backend.addOrder({ delivery: DELIVERY_SELF, store, items: [{ product: first, quantity: 2 }, { product: second }] })
+
+  await page.goto('/user/orders/')
+  const rows = page.locator('tbody tr')
+  await expect(rows).toHaveCount(2)
+  if (!isMobile)
+    await expect(page.locator('aside').getByRole('link', { name: /Заказы/ })).toContainText('2')
+  await rows.filter({ hasText: pickup.id.toString() }).click()
+
+  await expect(page).toHaveURL(`/user/orders/${pickup.id}/`)
+  const titles = page.locator('.product-title')
+  await expect(titles.getByText(first.title, { exact: true })).toBeVisible()
+  await expect(titles.getByText(second.title, { exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: `${store.city.name}, ${store.address}` })).toHaveAttribute('href', `/stores/${store.id}/`)
 })

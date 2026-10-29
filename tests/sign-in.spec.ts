@@ -1,6 +1,6 @@
 import { Page } from '@playwright/test'
 
-import { test, expect } from './fixtures'
+import { test, expect, accountLink } from './fixtures'
 
 async function openSignIn(page: Page) {
   await page.goto('/cart/')
@@ -47,15 +47,7 @@ test('sign-in modal closes on Escape and outside click', async ({ page }) => {
   await expect(dialog).toBeHidden()
 })
 
-test('registration in sign-in modal continues to login with the phone', async ({ page }) => {
-  // do not create a real user, and do not let the login form request a code for the phone
-  await page.route('**/api/v0/users/', route => route.fulfill({ status: 201, json: { id: 5 } }))
-  let checkedUrl
-  await page.route('**/api/v0/users/*/check/', route => {
-    checkedUrl = route.request().url()
-    return route.fulfill({ json: { phone: '+79161234567', permanent_password: false } })
-  })
-
+test('registration in sign-in modal continues to login with the phone', async ({ page, backend }) => {
   const dialog = await openSignIn(page)
   await dialog.getByRole('tab', { name: 'Регистрация' }).click()
   await dialog.getByRole('textbox', { name: 'Укажите номер мобильного телефона:' }).fill('9161234567')
@@ -66,5 +58,23 @@ test('registration in sign-in modal continues to login with the phone', async ({
   await expect(dialog.getByRole('tab', { name: 'Вход' })).toHaveAttribute('aria-selected', 'true')
   await expect(dialog.getByPlaceholder('Код из смс')).toBeVisible()
   await expect(dialog.locator('.lead')).toContainText(/916.*123.*45.*67/)
-  expect(checkedUrl).toContain('/users/+79161234567/check/')
+  expect(backend.findUser('+79161234567')).toBeDefined()
+  // the form checks the phone in an effect, which React runs twice in development
+  expect(new Set(backend.requestsTo('POST', /\/check\/$/).map(({ path }) => path))).toEqual(new Set(['users/+79161234567/check/']))
+})
+
+test('login in sign-in modal stays on the page', async ({ page, backend }) => {
+  const user = backend.addUser()
+  const dialog = await openSignIn(page)
+  await dialog.getByRole('textbox', { name: 'Укажите номер мобильного телефона:' }).fill('9161234567')
+  await dialog.getByRole('button', { name: 'Войти' }).click()
+
+  const code = dialog.getByPlaceholder('Код из смс')
+  await expect(code).toBeVisible()
+  await code.fill(backend.lastSmsCode(user.phone)!)
+  await dialog.getByRole('button', { name: 'Продолжить' }).click()
+
+  await expect(dialog).toBeHidden()
+  await expect(page).toHaveURL('/cart/')
+  await expect(accountLink(page)).toBeVisible()
 })

@@ -1,4 +1,4 @@
-import { test, expect, signIn } from './fixtures'
+import { test, expect } from './fixtures'
 
 // Phones menu is shown only below the lg breakpoint
 test.use({ viewport: { width: 390, height: 844 } })
@@ -45,9 +45,9 @@ test.describe('on desktop', () => {
     await expect(page.locator('.navbar-stuck-menu').getByRole('link', { name: 'Сервисные центры' })).toBeVisible()
   })
 
-  test('favorites tool shows tooltip', async ({ page, isMobile }) => {
+  test('favorites tool shows tooltip', async ({ page, backend, isMobile }) => {
     test.skip(isMobile, 'Tooltips open on hover')
-    await signIn(page)
+    backend.signIn()
     await page.goto('/cart/')
     const tooltip = page.locator('.tooltip')
 
