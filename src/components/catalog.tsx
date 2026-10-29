@@ -29,14 +29,14 @@ export default function Catalog({ categories }: { categories: CategoryTree }) {
         <>
           <div className="d-flex flex-wrap flex-md-nowrap justify-content-between mb-4">
             <Link className="w-100 d-flex align-items-center bg-faded-info rounded-3 py-2 ps-2 mb-4 mx-0 mx-md-2" href={`/catalog/${categoryNew!.slug}/`}>
-              {categoryNew!.image && <img className="sw-category-image" src={categoryNew!.image} alt={categoryNew!.name} />}
+              {categoryNew!.image && <img className="sw-category-image" loading="lazy" src={categoryNew!.image} alt={categoryNew!.name} />}
               <div className="py-4 px-3">
                 <div className="h5 mb-2">{categoryNew!.name}</div>
                 <div className="text-info fs-sm">Посмотреть все<i className="ci-arrow-right fs-xs ms-1" /></div>
               </div>
             </Link>
             <Link className="w-100 d-flex align-items-center bg-faded-warning rounded-3 py-2 ps-2 mb-4 mx-0 mx-md-2" href={`/catalog/${categoryPromo!.slug}/`}>
-              {categoryPromo!.image && <img className="sw-category-image" src={categoryPromo!.image} alt={categoryPromo!.name} />}
+              {categoryPromo!.image && <img className="sw-category-image" loading="lazy" src={categoryPromo!.image} alt={categoryPromo!.name} />}
               <div className="py-4 px-3">
                 <div className="h5 mb-2">{categoryPromo!.name}</div>
                 <div className="text-warning fs-sm">Посмотреть все<i className="ci-arrow-right fs-xs ms-1" /></div>
@@ -106,7 +106,7 @@ export default function Catalog({ categories }: { categories: CategoryTree }) {
 
           <div className="d-flex flex-wrap flex-md-nowrap justify-content-between mt-4">
             <Link className="w-100 d-flex align-items-center bg-faded-success rounded-3 py-2 ps-2 mx-0 mx-md-2" href={`/catalog/${categoryDiscount!.slug}/`}>
-              {categoryDiscount!.image && <img className="sw-category-image" src={categoryDiscount!.image} alt={categoryDiscount!.name} />}
+              {categoryDiscount!.image && <img className="sw-category-image" loading="lazy" src={categoryDiscount!.image} alt={categoryDiscount!.name} />}
               <div className="py-4 px-3">
                 <div className="h5 mb-2">{categoryDiscount!.name}</div>
                 <div className="text-success fs-sm">Посмотреть все<i className="ci-arrow-right fs-xs ml-1" /></div>
