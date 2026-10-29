@@ -13,7 +13,7 @@ from django.template.loader import render_to_string
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 
-from rest_framework import views, viewsets, filters, status
+from rest_framework import views, viewsets, filters, serializers, status
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework.decorators import action
 from rest_framework.exceptions import MethodNotAllowed, NotAuthenticated, NotFound
@@ -22,7 +22,8 @@ from rest_framework.permissions import BasePermission, IsAuthenticated, DjangoMo
 from rest_framework.response import Response
 from rest_framework.throttling import SimpleRateThrottle
 
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer, OpenApiResponse, PolymorphicProxySerializer
 
 from django.contrib.flatpages.models import FlatPage
 # from django_ipgeobase.models import IPGeoBase
@@ -47,10 +48,30 @@ from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSeri
     FavoritesSerializer, ComparisonSerializer, SerialSerializer, \
     UserListSerializer, UserSerializer, AnonymousUserSerializer, LoginSerializer, UserBonusSerializer, \
     FlatPageListSerializer, FlatPageSerializer, NewsSerializer, SalesActionSerializer, AdvertSerializer, \
-    StoreSerializer, ServiceCenterSerializer, SiteProfileSerializer, IntegrationSerializer, IntegrationProductSerializer
+    StoreSerializer, ServiceCenterSerializer, SiteProfileSerializer, IntegrationSerializer, IntegrationProductSerializer, \
+    ErrorDetailSerializer, validation_error_serializer
 
 
 logger = logging.getLogger("django")
+
+# Error responses for the API schema. NotAuthenticated is rendered as 403 too: DRF takes WWW-Authenticate
+# from the first authentication class, and SessionAuthentication has none.
+FORBIDDEN = OpenApiResponse(ErrorDetailSerializer, description='Not logged in or not allowed')
+NOT_FOUND = OpenApiResponse(ErrorDetailSerializer, description='Not found')
+THROTTLED = OpenApiResponse(ErrorDetailSerializer, description='Too many requests')
+
+# Built once, drf-spectacular expects one serializer class per component name
+BASKET_ITEM_ERRORS = validation_error_serializer(BasketItemActionSerializer)
+FAVORITE_ERRORS = validation_error_serializer(FavoritesSerializer)
+ORDER_ERRORS = validation_error_serializer(OrderActionSerializer)
+USER_ERRORS = validation_error_serializer(UserSerializer)
+
+# users/current/ returns the anonymous user too
+CURRENT_USER = PolymorphicProxySerializer(
+    component_name='CurrentUser',
+    serializers=[UserSerializer, AnonymousUserSerializer],
+    resource_type_field_name=None,
+)
 
 
 def ensure_session(request):
@@ -447,6 +468,8 @@ class BasketViewSet(viewsets.ModelViewSet):
         request=BasketItemActionSerializer,
         responses={
             204: None,
+            400: BASKET_ITEM_ERRORS,
+            404: NOT_FOUND,
         },
         methods=['POST']
     )
@@ -475,6 +498,8 @@ class BasketViewSet(viewsets.ModelViewSet):
         request=BasketItemActionSerializer,
         responses={
             204: None,
+            400: BASKET_ITEM_ERRORS,
+            404: NOT_FOUND,
         },
         methods=['POST']
     )
@@ -499,6 +524,8 @@ class BasketViewSet(viewsets.ModelViewSet):
         request=BasketItemActionSerializer,
         responses={
             204: None,
+            400: BASKET_ITEM_ERRORS,
+            404: NOT_FOUND,
         },
         methods=['POST']
     )
@@ -526,6 +553,11 @@ class BasketViewSet(viewsets.ModelViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema_view(
+    list=extend_schema(responses={200: OrderListSerializer(many=True), 403: FORBIDDEN}),
+    retrieve=extend_schema(responses={200: OrderSerializer, 403: FORBIDDEN, 404: NOT_FOUND}),
+    update=extend_schema(responses={200: OrderSerializer, 400: ORDER_ERRORS, 403: FORBIDDEN, 404: NOT_FOUND}),
+)
 class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
@@ -558,7 +590,11 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         request=None,
-        responses=OrderSerializer,
+        responses={
+            200: OrderSerializer,
+            400: OpenApiResponse(OpenApiTypes.STR, description='Basket does not exist, Basket is empty or Failed to register order'),
+            403: FORBIDDEN,
+        },
     )
     def create(self, request):
         try:
@@ -609,8 +645,11 @@ class OrderViewSet(viewsets.ModelViewSet):
         raise MethodNotAllowed(request.method)
 
     @extend_schema(
-        request=None,
-        responses=OrderSerializer,
+        request=inline_serializer('Preorder', fields={'product': serializers.IntegerField()}),
+        responses={
+            200: OrderSerializer,
+            403: FORBIDDEN,
+        },
         methods=['POST']
     )
     @action(detail=False, methods=['post'])
@@ -640,7 +679,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
 
     @extend_schema(
-        request=None,
+        request=inline_serializer('Payment', fields={'return_url': serializers.CharField(required=False)}),
         responses={
             200: OpenApiResponse(
                 response={
@@ -649,7 +688,9 @@ class OrderViewSet(viewsets.ModelViewSet):
                         'location': {'type': 'string'},
                     },
                 }
-            )
+            ),
+            403: FORBIDDEN,
+            404: NOT_FOUND,
         },
         methods=['POST']
     )
@@ -672,8 +713,10 @@ class OrderViewSet(viewsets.ModelViewSet):
                     'properties': {
                         'id': {'type': 'integer', 'nullable': True},
                     },
+                    'required': ['id'],
                 }
-            )
+            ),
+            403: FORBIDDEN,
         },
         methods=['POST']
     )
@@ -694,8 +737,10 @@ class OrderViewSet(viewsets.ModelViewSet):
                     'properties': {
                         'id': {'type': 'integer', 'nullable': True},
                     },
+                    'required': ['id'],
                 }
-            )
+            ),
+            403: FORBIDDEN,
         },
         methods=['POST']
     )
@@ -708,6 +753,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         })
 
 
+@extend_schema_view(
+    list=extend_schema(responses={200: FavoritesSerializer(many=True), 403: FORBIDDEN}),
+)
 class FavoritesViewSet(viewsets.ModelViewSet):
     serializer_class = FavoritesSerializer
     permission_classes = [IsAuthenticated]
@@ -727,7 +775,9 @@ class FavoritesViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         responses={
-            204: None
+            204: None,
+            400: FAVORITE_ERRORS,
+            403: FORBIDDEN,
         },
         methods=['POST']
     )
@@ -742,7 +792,9 @@ class FavoritesViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         responses={
-            204: None
+            204: None,
+            400: FAVORITE_ERRORS,
+            403: FORBIDDEN,
         },
         methods=['POST']
     )
@@ -800,6 +852,11 @@ class ComparisonsViewSet(viewsets.ViewSet):
         return Response(product_ids)
 
 
+@extend_schema_view(
+    create=extend_schema(responses={201: UserSerializer, 400: USER_ERRORS}),
+    retrieve=extend_schema(responses={200: CURRENT_USER, 403: FORBIDDEN, 404: NOT_FOUND}),
+    update=extend_schema(responses={200: UserSerializer, 400: USER_ERRORS, 403: FORBIDDEN, 404: NOT_FOUND}),
+)
 class UserViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
     queryset = ShopUser.objects.all()
@@ -856,7 +913,7 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(self.get_serializer(user.bonus, context=self.get_serializer_context()).data)
 
     @extend_schema(
-        request=None,
+        request=inline_serializer('UserCheck', fields={'reset': serializers.BooleanField(required=False)}),
         responses={
             200: OpenApiResponse(
                 response={
@@ -866,7 +923,9 @@ class UserViewSet(viewsets.ModelViewSet):
                         'permanent_password': {'type': 'boolean'}
                     },
                 }
-            )
+            ),
+            404: OpenApiResponse(ErrorDetailSerializer, description='Phone is not registered'),
+            429: THROTTLED,
         },
         methods=['POST']
     )
@@ -897,7 +956,9 @@ class UserViewSet(viewsets.ModelViewSet):
                         'registered': {'type': 'boolean'}
                     }
                 }
-            )
+            ),
+            403: OpenApiResponse(ErrorDetailSerializer, description='Wrong code or password'),
+            429: THROTTLED,
         },
         methods=['POST']
     )

@@ -11,7 +11,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import NotFound
 
 from drf_spectacular.extensions import OpenApiSerializerExtension
-from drf_spectacular.utils import Direction
+from drf_spectacular.utils import Direction, inline_serializer
 
 from django.contrib.flatpages.models import FlatPage
 
@@ -26,6 +26,24 @@ from shop.models import Basket, BasketItem, Order, OrderItem, Favorites, Serial,
 
 
 logger = logging.getLogger("django")
+
+
+class ErrorDetailSerializer(serializers.Serializer):
+    # Body of DRF exceptions in the API schema, e.g. 403 Forbidden or 404 Not Found
+    detail = serializers.CharField()
+
+
+def validation_error_serializer(serializer_class):
+    # Body of validation errors in the API schema: messages for each invalid field,
+    # and messages of validate() under non_field_errors
+    names = [name for name, field in serializer_class().fields.items() if not field.read_only]
+    return inline_serializer(
+        name=serializer_class.__name__.removesuffix('Serializer') + 'ValidationError',
+        fields={
+            name: serializers.ListField(child=serializers.CharField(), required=False)
+            for name in [*names, 'non_field_errors']
+        },
+    )
 
 
 class NonNullModelSerializer(serializers.ModelSerializer):
@@ -497,6 +515,9 @@ class FavoritesSerializerExtension(OpenApiSerializerExtension):
     target_class = FavoritesSerializer
 
     def map_serializer(self, auto_schema, direction: Direction):
+        # requests send the product, responses are product ids
+        if direction == 'request':
+            return auto_schema._map_serializer(self.target, direction, bypass_extensions=True)
         return {
             'type': 'integer',
         }
@@ -608,11 +629,12 @@ class AnonymousUserSerializerExtension(OpenApiSerializerExtension):
     target_class = AnonymousUserSerializer
 
     def map_serializer(self, auto_schema, direction: Direction):
+        # OpenAPI 3.0 has no null type. The enum keeps a signed in user from matching this schema too.
         return {
             'type': 'object',
             'properties': {
-                'src': {'type': 'null', 'readOnly': True},
-                'is_anonymous': {'type': 'boolean', 'readOnly': True},
+                'id': {'type': 'integer', 'nullable': True, 'readOnly': True},
+                'is_anonymous': {'type': 'boolean', 'enum': [True], 'readOnly': True},
             },
             'required': ['id', 'is_anonymous'],
         }
