@@ -13,7 +13,7 @@ from sewingworld.tasks import PRIORITY_HIGH, PRIORITY_NORMAL, PRIORITY_LOW, PRIO
 from reviews import get_review_model
 from reviews.signals import review_was_posted
 
-from shop.models import Order, OrderItem, Store, News
+from shop.models import Order, OrderItem, SalesAction, Store, News
 from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, \
     notify_user_order_delivered, notify_user_review_products, notify_review_posted, \
     create_modulpos_order, delete_modulpos_order, notify_manager, notify_manager_sms, \
@@ -119,12 +119,33 @@ def page_saved(sender, **kwargs):
         revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
 
 
+@receiver(post_save, sender=Store, dispatch_uid='sales_action_saved_receiver')
+def sales_action_saved(sender, **kwargs):
+    action = kwargs['instance']
+    sites = action.sites.exclude(profile__revalidation_token__exact='')
+    payload = {
+        'model': 'action',
+        'pk': action.pk,
+    }
+    for site in sites:
+        revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
+    payload = {
+        'model': 'stores',
+    }
+    for site in sites:
+        revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
+
+
 @receiver(post_save, sender=Store, dispatch_uid='store_saved_receiver')
 def store_saved(sender, **kwargs):
     store = kwargs['instance']
     payload = {
         'model': 'store',
         'pk': store.pk,
+    }
+    revalidate_nextjs.s(store.site.domain, store.site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
+    payload = {
+        'model': 'stores',
     }
     revalidate_nextjs.s(store.site.domain, store.site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
 
