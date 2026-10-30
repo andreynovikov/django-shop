@@ -11,7 +11,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import NotFound
 
 from drf_spectacular.extensions import OpenApiSerializerExtension
-from drf_spectacular.utils import Direction, inline_serializer
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import Direction, extend_schema_field, inline_serializer
 
 from django.contrib.flatpages.models import FlatPage
 
@@ -26,6 +27,18 @@ from shop.models import Basket, BasketItem, Order, OrderItem, Favorites, Serial,
 
 
 logger = logging.getLogger("django")
+
+
+@extend_schema_field(OpenApiTypes.NUMBER)
+class NumberReadOnlyField(serializers.ReadOnlyField):
+    # A Decimal or int property, rendered as a JSON number. The API schema can't tell the type of a property.
+    pass
+
+
+@extend_schema_field(OpenApiTypes.INT)
+class IntegerReadOnlyField(serializers.ReadOnlyField):
+    # An int property, see NumberReadOnlyField
+    pass
 
 
 class ErrorDetailSerializer(serializers.Serializer):
@@ -96,7 +109,7 @@ class StoreSerializer(NonNullModelSerializer):
         model = Store
         exclude = ('site', 'supplier', 'enabled')
 
-    def get_phones(self, obj):
+    def get_phones(self, obj) -> list[str] | None:
         if not obj.phone:
             return None
         phones = obj.phone.split(',')
@@ -401,24 +414,24 @@ class BasketItemProductSerializer(NonNullModelSerializer):
         fields = ('id', 'code', 'title', 'whatis', 'partnumber', 'article',
                   'ws_pack_only', 'pack_factor', 'price', 'cost', 'instock', 'image')
 
-    def get_price(self, obj):
+    def get_price(self, obj) -> float:
         request = self.context.get('request')
         return obj.site_price(request.site)
 
-    def get_cost(self, obj):
+    def get_cost(self, obj) -> float:
         request = self.context.get('request')
         return obj.site_cost(request.site)
 
-    def get_instock(self, obj):
+    def get_instock(self, obj) -> int:
         return max(min(obj.instock, 10), 0)
 
 
 class BasketItemSerializer(serializers.ModelSerializer):
     product = BasketItemProductSerializer(read_only=True)
-    cost = serializers.ReadOnlyField()
-    discount = serializers.ReadOnlyField()
+    cost = NumberReadOnlyField()
+    discount = NumberReadOnlyField()
     discount_text = serializers.ReadOnlyField()
-    price = serializers.ReadOnlyField()
+    price = NumberReadOnlyField()
 
     class Meta:
         model = BasketItem
@@ -427,8 +440,8 @@ class BasketItemSerializer(serializers.ModelSerializer):
 
 class BasketSerializer(serializers.ModelSerializer):
     items = BasketItemSerializer(many=True, read_only=True)
-    total = serializers.ReadOnlyField()
-    quantity = serializers.ReadOnlyField()
+    total = NumberReadOnlyField()
+    quantity = IntegerReadOnlyField()
 
     class Meta:
         model = Basket
@@ -452,10 +465,10 @@ class BasketItemActionSerializer(serializers.ModelSerializer):
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product = BasketItemProductSerializer(read_only=True)
-    cost = serializers.ReadOnlyField()
-    discount = serializers.ReadOnlyField()
+    cost = NumberReadOnlyField()
+    discount = NumberReadOnlyField()
     discount_text = serializers.ReadOnlyField()
-    price = serializers.ReadOnlyField()
+    price = NumberReadOnlyField()
 
     class Meta:
         model = OrderItem
@@ -463,7 +476,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 class OrderListSerializer(serializers.ModelSerializer):
-    total = serializers.ReadOnlyField()
+    total = NumberReadOnlyField()
     status_text = serializers.SerializerMethodField()
 
     class Meta:
@@ -476,10 +489,10 @@ class OrderListSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
-    total = serializers.ReadOnlyField()
+    total = NumberReadOnlyField()
     status_text = serializers.SerializerMethodField()
     payment_text = serializers.SerializerMethodField()
-    store = StoreSerializer(read_only=True)
+    store = StoreSerializer(read_only=True, allow_null=True)
 
     class Meta:
         model = Order
