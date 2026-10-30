@@ -344,14 +344,15 @@ export interface ProductReviewFormField {
 
 export type ProductReviewForm = Array<ProductReviewFormField>
 
+// The backend leaves out empty values of the product
 export interface BasketItemProduct {
   id: number
   code: string
   title: string
-  whatis: string
-  partnumber: string
-  article: string
-  image: string
+  whatis?: string
+  partnumber?: string
+  article?: string
+  image?: string
   ws_pack_only: boolean
   pack_factor: number
   price: number
@@ -526,7 +527,7 @@ export interface UserInfo {
 
 export interface User {
   id: number
-  is_anonymous: false
+  is_anonymous?: false  // only the anonymous user has it
   phone: string
   name: string
   full_name: string
@@ -541,7 +542,7 @@ export interface User {
   expiring_bonuses: number
   expiration_date: string | null
   permanent_password: boolean
-  last_login: string
+  last_login: string | null
   date_joined: string
 }
 
