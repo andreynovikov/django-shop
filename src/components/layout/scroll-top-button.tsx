@@ -6,8 +6,8 @@ export default function ScrollTopButton() {
   const [show, setShow] = useState(false)
 
   useEffect(() => {
-    const setVisibleState = (event) => {
-      setShow(event.currentTarget.pageYOffset > 600)
+    const setVisibleState = () => {
+      setShow(window.scrollY > 600)
     }
     window.addEventListener('scroll', setVisibleState)
     return () => {

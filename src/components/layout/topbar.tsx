@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, ReactNode } from 'react'
 import Link from 'next/link'
 
 import { IconCategory, IconX } from '@tabler/icons-react'
@@ -25,16 +25,16 @@ import { useTopbar } from '@/lib/topbar'
 import { formatPhone } from '@/lib/format'
 
 // catalog is rendered by the caller, so App Router renders it on the server
-export default function TopBar({ catalog }) {
+export default function TopBar({ catalog }: { catalog: ReactNode }) {
   const [catalogVisible, setCatalogVisible] = useState(false)
   const { site } = useSite()
   const { status } = useSession()
   const { hideSignIn, hideCartNotice, topMenuOpen, toggleTopMenu } = useTopbar()
 
-  const navbarRef = useRef()
-  const stickyRef = useRef()
-  const stuckMenuRef = useRef()
-  const catalogButtonRef = useRef()
+  const navbarRef = useRef<HTMLDivElement>(null)
+  const stickyRef = useRef<HTMLDivElement>(null)
+  const stuckMenuRef = useRef<HTMLDivElement>(null)
+  const catalogButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (catalogVisible) {
@@ -44,9 +44,9 @@ export default function TopBar({ catalog }) {
     }
     stickyRef.current?.classList.toggle('sw-sticky', !catalogVisible)
 
-    const setNavbarState = (event) => {
+    const setNavbarState = () => {
       const headerHeight = (navbarRef.current?.offsetHeight ?? 0) - 15
-      const offset = (stickyRef.current?.getBoundingClientRect().bottom ?? 0) + event.currentTarget.pageYOffset
+      const offset = (stickyRef.current?.getBoundingClientRect().bottom ?? 0) + window.scrollY
       if (offset >= headerHeight && !navbarRef.current?.classList.contains('sw-sticky') && !catalogVisible) {
         navbarRef.current?.classList.remove('show')
         navbarRef.current?.classList.add('sw-sticky')
