@@ -1,11 +1,9 @@
-import Spinner from 'react-bootstrap/Spinner'
-
 export function Loading({ className, mega = false }: { className?: string, mega?: boolean }) {
   return (
     <div className={className}>
-      <Spinner animation="border" role="status" style={mega ? { width: "5rem", height: "5rem" } : {}}>
+      <div className="spinner-border" role="status" style={mega ? { width: "5rem", height: "5rem" } : {}}>
         <span className="visually-hidden">Загружается...</span>
-      </Spinner>
+      </div>
     </div>
   )
 }
@@ -21,5 +19,5 @@ export function PageLoading({ className }: { className?: string }) {
 }
 
 export function ButtonLoading() {
-  return <Spinner animation="border" size="sm" style={{ marginLeft: "0.5rem" }} />
+  return <span className="spinner-border spinner-border-sm" style={{ marginLeft: "0.5rem" }} />
 }

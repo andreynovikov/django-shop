@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import Script from 'next/script'
 
@@ -42,12 +42,6 @@ export function YandexMetrika(props: YMParams) {
           window['ym'](ymId, "init", config)
         }}
       />
-      <noscript>
-        <div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`https://mc.yandex.ru/watch/${ymId}`} style={{ position: "absolute", left: "-9999px" }} alt="" />
-        </div>
-      </noscript>
     </>
   )
 }

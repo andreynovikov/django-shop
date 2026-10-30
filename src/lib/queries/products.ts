@@ -1,4 +1,4 @@
-import { PaginatedResult, Product, ProductInfo, ProductStock } from '@/lib/types'
+import { PaginatedResult, Product, ProductInfo, ProductList, Store } from '@/lib/types'
 import { productSearchParamsSerializer, ProductSearchParamsType } from '@/lib/search-params'
 import { apiFetch } from './fetch'
 
@@ -16,14 +16,14 @@ export const productKeys = {
   info: (id: number) => [...productKeys.details(), id]
 }
 
-export async function loadProducts(page: number, page_size: number, filters: ProductSearchParamsType, ordering: string) {
+export async function loadProducts(page: number | null, page_size: number, filters: ProductSearchParamsType, ordering: string) {
   const url = 'products/' + productSearchParamsSerializer({
     ...filters,
     page,
     page_size,
     ordering,
   })
-  return await apiFetch<PaginatedResult<ProductInfo>>(url)
+  return await apiFetch<ProductList>(url)
 }
 
 /**
@@ -34,6 +34,7 @@ export async function loadProductSuggestions(text: string) {
     title: text,
     ta: 1,
     page_size: 10,
+    enabled: true,
   })
   return await apiFetch<PaginatedResult<ProductInfo>>(url)
 }
@@ -43,7 +44,7 @@ export async function getProductImages(id: number) {
 }
 
 export async function loadProductStock(id: number) {
-  return await apiFetch<ProductStock[]>(`products/${id}/stock/`)
+  return await apiFetch<Store[]>(`products/${id}/stock/`)
 }
 
 export async function loadProduct(id: number) {

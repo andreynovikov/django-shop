@@ -1,11 +1,11 @@
-import { Category } from './types'
+import { CategoryTreeItem } from './types'
 
-interface CategoryWithParent extends Category {
+interface CategoryWithParent extends CategoryTreeItem {
   parent: number | null
   path: string[]
 }
 
-export function flattenCategoryTree(parent: Category, parentPath: string[], categories: Category[]) {
+export function flattenCategoryTree(parent: CategoryTreeItem, parentPath: string[], categories: CategoryTreeItem[]) {
   return categories.reduce((acc, category) => {
     const { children, ...categoryWithoutChildren } = category
     const categoryPath = [...parentPath, categoryWithoutChildren.slug]
@@ -21,7 +21,7 @@ export function flattenCategoryTree(parent: Category, parentPath: string[], cate
   }, [] as CategoryWithParent[])
 }
 
-export function getCategoryDescendants(category: Category) {
+export function getCategoryDescendants(category: CategoryTreeItem) {
   const { children, ...categoryWithoutChildren } = category
   if (children)
     return flattenCategoryTree(categoryWithoutChildren, [category.slug], children)

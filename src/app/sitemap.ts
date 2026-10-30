@@ -1,8 +1,8 @@
 import type { MetadataRoute } from 'next'
 
 import { getCategoryDescendants } from '@/lib/categories'
-import { loadCategories, loadCurrentSite, loadPages, loadProducts, loadSalesActions } from '@/lib/queries'
-import { Category, FlatPageInfo, PaginatedResult, Product, SalesAction } from '@/lib/types'
+import { loadCategories, loadCurrentSite, loadPages, loadProducts, loadSalesActions, loadStores } from '@/lib/queries'
+import { FlatPageInfo, PaginatedResult, ProductInfo, SalesAction, Store } from '@/lib/types'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const site = await loadCurrentSite()
@@ -27,7 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Categories
 
-  const categories = await loadCategories() as Category[]
+  const categories = await loadCategories()
   categories.forEach(category => {
     routes.push({
       url: `${site.url_prefix}/catalog/${category.slug}/`,
@@ -54,12 +54,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     in_category: categories.map(category => category.id),
     variations: '',
   }
-  const pageSize = 100
+  const pageSize = 500
   const order = 'id'
   let currentPage = 1
 
   while (true) {
-    const productsPage = await loadProducts(currentPage, pageSize, filters, order) as PaginatedResult<Product>
+    const productsPage = await loadProducts(currentPage, pageSize, filters, order) as PaginatedResult<ProductInfo>
     productsPage.results.forEach(product => {
       routes.push({
         url: `${site.url_prefix}/products/${product.code}/`,
@@ -72,6 +72,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       break;
     currentPage++
   }
+
+  // Stores
+
+  const stores = await loadStores() as Store[]
+  stores.filter(store => store.logo === 'sewingworld').forEach(store => {
+    routes.push({
+      url: `${site.url_prefix}/stores/${store.id}/`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.3,
+    })
+  })
 
   // Sales actions
 

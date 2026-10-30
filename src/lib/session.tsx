@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
-import { useRouter } from 'next/router'
+import { createContext, useContext, useState, useEffect, useEffectEvent, ReactNode, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
+import { useNavigation } from './navigation';
 import { userKeys, userReferences, userDependencies, currentUser, registerUser, loginUser, logoutUser, LoginCredentials, LoginResult, HttpError } from '@/lib/queries'
 import { AnonymousUser, User } from '@/lib/types';
 
@@ -12,7 +12,7 @@ type SignInResult = Promise<LoginResultWithOk | {
   ok: boolean
 }>
 
-type RegisterResult = Promise<User | {
+type RegisterResult = Promise<(User & { ok: boolean }) | {
   error: unknown
 }>
 
@@ -45,10 +45,14 @@ export function useSession(options?: { onUnauthenticated?: () => void }) {
   const { onUnauthenticated } = options || {}
   const required = onUnauthenticated !== undefined && value.status === 'unauthenticated'
 
+  // Callers pass a new callback on each render. Calling it again would restart its navigation,
+  // a full page load when the login page is in the other router.
+  const handleUnauthenticated = useEffectEvent(() => onUnauthenticated?.())
+
   useEffect(() => {
     if (required && !value.isRouting)
-      onUnauthenticated()
-  }, [onUnauthenticated, required, value.isRouting])
+      handleUnauthenticated()
+  }, [required, value.isRouting])
 
   return {
     ...value,
@@ -63,8 +67,15 @@ interface SessionProviderProps {
 export function SessionProvider({ children }: SessionProviderProps) {
   const [registered, setRegistered] = useState(false) // true if user is newly registered
   const [isRouting, setIsRouting] = useState(false)
-  const router = useRouter()
   const queryClient = useQueryClient()
+  const { navigate, events } = useNavigation()
+
+  // A user request still in flight was sent before the change and would bring back the old user.
+  // Invalidation reuses a first request instead of repeating it, so it is cancelled first.
+  const refreshUser = useCallback(async () => {
+    await queryClient.cancelQueries({ queryKey: userKeys.current() })
+    queryClient.invalidateQueries({ queryKey: userKeys.current() })
+  }, [queryClient])
 
   const signIn = useCallback(async (credentials: LoginCredentials) => {
     try {
@@ -82,19 +93,19 @@ export function SessionProvider({ children }: SessionProviderProps) {
         ok: false
       }
     } finally {
-      queryClient.invalidateQueries({ queryKey: userKeys.current() })
+      await refreshUser()
     }
-  }, [queryClient])
+  }, [refreshUser])
 
   const signOut = useCallback(async (options?: { callbackUrl?: string }) => {
     const { callbackUrl } = options || {}
 
     await logoutUser()
     setRegistered(false)
-    queryClient.invalidateQueries({ queryKey: userKeys.current() })
+    await refreshUser()
     if (callbackUrl)
-      router.push(callbackUrl)
-  }, [queryClient, router])
+      navigate(callbackUrl)
+  }, [refreshUser, navigate])
 
   const register = useCallback(async (data: FormData) => {
     try {
@@ -109,27 +120,30 @@ export function SessionProvider({ children }: SessionProviderProps) {
         error
       }
     } finally {
-      queryClient.invalidateQueries({ queryKey: userKeys.current() })
+      await refreshUser()
     }
-  }, [queryClient])
+  }, [refreshUser])
 
   const invalidate = useCallback(() => {
     setRegistered(false)
-    queryClient.invalidateQueries({ queryKey: userKeys.current() })
-  }, [queryClient])
+    refreshUser()
+  }, [refreshUser])
 
   const handleRouteChangeStart = () => setIsRouting(true)
   const handleRouteChangeComplete = () => setIsRouting(false)
 
   useEffect(() => {
-    router.events.on('routeChangeStart', handleRouteChangeStart)
-    router.events.on('routeChangeComplete', handleRouteChangeComplete)
+    if (events === undefined)
+      return
+
+    events.on('routeChangeStart', handleRouteChangeStart)
+    events.on('routeChangeComplete', handleRouteChangeComplete)
 
     return () => {
-      router.events.off('routeChangeStart', handleRouteChangeStart)
-      router.events.off('routeChangeComplete', handleRouteChangeComplete)
+      events.off('routeChangeStart', handleRouteChangeStart)
+      events.off('routeChangeComplete', handleRouteChangeComplete)
     }
-  }, [router.events])
+  }, [events])
 
   const { data: user, isSuccess, isLoading } = useQuery({
     queryKey: userKeys.current(),

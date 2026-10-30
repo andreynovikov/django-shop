@@ -1,5 +1,7 @@
 import { useMemo, useEffect, Suspense, lazy } from 'react'
 import { useRouter } from 'next/router'
+import Error from 'next/error'
+import Head from 'next/head'
 import Image from 'next/image'
 import Link from 'next/link'
 import { dehydrate, QueryClient, useQuery } from '@tanstack/react-query'
@@ -7,9 +9,6 @@ import { useInView } from 'react-intersection-observer'
 
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { FreeMode, Navigation } from 'swiper/modules'
-
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import Tooltip from 'react-bootstrap/Tooltip'
 
 import PageLayout from '@/components/layout/page'
 import FieldHelp from '@/components/product/field-help'
@@ -25,7 +24,7 @@ import { Loading, PageLoading } from '@/components/loading'
 import useFavorites from '@/lib/favorites'
 import useComparison from '@/lib/comparison'
 import { useSession } from '@/lib/session'
-import { productKeys, loadProducts, loadProductByCode, getProductFields, loadProductStock } from '@/lib/queries'
+import { productKeys, siteKeys, loadProducts, loadProductByCode, getProductFields, loadCurrentSite } from '@/lib/queries'
 import { baseFilters } from '@/lib/catalog'
 import { eCommerce } from '@/lib/ymec'
 
@@ -102,12 +101,15 @@ function renderTemplate(template, product) {
   return template
 };
 
-export default function Product({ code }) {
+export default function Product({ code, site }) {
   const router = useRouter()
 
   const { status } = useSession()
   const { favorites, favoritize, unfavoritize } = useFavorites()
   const { comparisons, compare } = useComparison()
+
+  const cleanedPath = router.asPath.split('?')[0]
+  const canonicalUrl = `${site.url_prefix}${cleanedPath}`
 
   const { data: fields } = useQuery({
     queryKey: productKeys.fields(),
@@ -127,7 +129,7 @@ export default function Product({ code }) {
     }, {})
   }, [fields])
 
-  const { data: product, isSuccess, isLoading } = useQuery({
+  const { data: product, isSuccess, isLoading, isError, error } = useQuery({
     queryKey: productKeys.detail(code),
     queryFn: () => loadProductByCode(code),
     enabled: code !== undefined
@@ -171,7 +173,7 @@ export default function Product({ code }) {
             {
               id: `${product.id}`,
               name: `${product.partnumber ? product.partnumber + ' ' : ''}${product.title}`,
-              category: `${product.categories[0]?.name}`,
+              category: `${product.categories[0].name}`,
               brand: `${product.manufacturer.code}`,
               price: `${product.cost}`
             }
@@ -205,12 +207,31 @@ export default function Product({ code }) {
       compare(product.id)
   }
 
+  if (isError)
+    if (error.response?.status === 404)
+      return <Error statusCode={404} />
+    else
+      return <Error statusCode={500} />
+
   if (isLoading || !isSuccess)
-    return <PageLoading className="bg-light shadow-lg rounded-3 px-4 py-3 mb-5" />
+    return (
+      <>
+        <Head>
+          <link rel="canonical" href={canonicalUrl} />
+        </Head>
+        <PageLoading className="bg-light shadow-lg rounded-3 px-4 py-3 mb-5" />
+      </>
+    )
 
   return (
     <>
-      <div className="container">
+      <Head>
+        <link rel="canonical" href={canonicalUrl} />
+      </Head>
+      <div className="container" itemScope itemType="https://schema.org/Product">
+        <meta itemProp="name" content={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
+        {product.article && <meta itemProp="sku" content={product.article} />}
+        {product.image && <meta itemProp="image" content={product.image} />}
         <div className="bg-light shadow-lg rounded-3 px-4 py-3 mb-5">
           <div className="px-lg-3">
             <div className="row">
@@ -229,28 +250,16 @@ export default function Product({ code }) {
                 )}
               </div>
               <div className="col-lg-5 pt-4 pt-lg-0">
-                <div className="product-details ms-auto pb-3">
+                <div className="product-details ms-auto pb-3" itemProp="offers" itemScope itemType="https://schema.org/Offer">
+                  <link itemProp="url" href={canonicalUrl} />
                   {product.enabled && product.cost > 0 && (
                     <div className="d-flex flex-row xalign-items-baseline mb-3">
                       <div className="h3 fw-normal text-accent flex-shrink-1">
-                        <ProductPrice product={product} delFs="lg" itemProp="price" />
-                        <span itemProp="priceCurrency" className="d-none">RUB</span>
+                        <ProductPrice product={product} delFs="lg" microdata />
                       </div>
                       <div className="ms-3 text-end w-100">
                         {product.discount > 0 && (
-                          <OverlayTrigger
-                            placement="bottom"
-                            overlay={
-                              <Tooltip>
-                                Базовая цена в магазинах &laquo;Швейный Мир&raquo;
-                                без учета скидок <b>{product.price.toLocaleString('ru')}</b>&nbsp;руб.
-                                Скидка при покупке в интернет-магазине составляет{' '}
-                                <b>{product.discount.toLocaleString('ru')}</b>&nbsp;руб.
-                              </Tooltip>
-                            }
-                          >
-                            <span className="badge bg-primary badge-shadow ms-2 mb-2">Скидка</span>
-                          </OverlayTrigger>
+                          <span className="badge bg-primary badge-shadow ms-2 mb-2">Скидка</span>
                         )}
                         {product.ishot && (
                           <span className="badge bg-accent badge-shadow ms-2 mb-2">Акция</span>
@@ -267,6 +276,7 @@ export default function Product({ code }) {
                       </div>
                     </div>
                   )}
+                  <link itemProp="availability" href={`https://schema.org/${product.enabled ? product.instock > 0 ? 'InStock' : 'OutOfStock' : 'Discontinued'}`} />
                   {product.instock < 1 && availableInStore ? (
                     <div className="pt-2 pb-3">
                       <i className="ci-location text-muted lead align-middle mt-n1 me-2" />
@@ -324,7 +334,7 @@ export default function Product({ code }) {
                         </div>
                       </div>
                       {product.cost > 0 ? (
-                        <div className="pt-2 pb-4" itemProp="offers" itemScope itemType="http://schema.org/Offer">
+                        <div className="pt-2 pb-4">
                           {product.instock > 0 ? (
                             <ProductShopping product={product} />
                           ) : (
@@ -464,10 +474,13 @@ export default function Product({ code }) {
           <div className="pt-lg-2 pb-3 mb-md-3">
             <div className="h3 d-flex align-items-end pb-2">
               <h2 className="h3 m-0 p-0 flex-grow-1">Характеристики</h2>
-              {product.manufacturer?.logo && <div className="flex-shrink-1">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img alt={product.manufacturer.name} src={product.manufacturer.logo} className="sw-product-logo" />
-              </div>}
+              {product.manufacturer?.logo && (
+                <div className="flex-shrink-1" itemProp="brand" itemScope itemType="https://schema.org/Brand">
+                  <meta itemProp="name" content={product.manufacturer.name} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img alt={product.manufacturer.name} src={product.manufacturer.logo} className="sw-product-logo" />
+                </div>
+              )}
             </div>
             <div className="product-spec container fs-sm">
               {productFields.map((field) => (
@@ -639,19 +652,24 @@ export async function getStaticProps(context) {
   const code = context.params.code
 
   const queryClient = new QueryClient()
-  const fieldsQuery = queryClient.fetchQuery({
+  const fieldsQuery = queryClient.query({
     queryKey: productKeys.fields(),
     queryFn: () => getProductFields(),
     staleTime: 60000,
   }).catch(() => { })
-  const dataQuery = queryClient.fetchQuery({
+  const dataQuery = queryClient.query({
     queryKey: productKeys.detail(code),
     queryFn: () => loadProductByCode(code),
     staleTime: 60000,
   })
+  const siteQuery = queryClient.query({
+    queryKey: siteKeys.current(),
+    queryFn: () => loadCurrentSite(),
+    staleTime: 60000,
+  })
   try {
     // run queries in parallel
-    const [data] = await Promise.all([dataQuery, fieldsQuery])
+    const [data, site] = await Promise.all([dataQuery, siteQuery, fieldsQuery])
 
     const description = data.seodescr ?
       data.seodescr :
@@ -677,8 +695,9 @@ export async function getStaticProps(context) {
         runame: data.runame || null,
         id: data.id,
         allowReviews: data.allow_reviews,
-        breadcrumbs,
         description,
+        breadcrumbs,
+        site
       },
       revalidate: 60 * 60 // <--- ISR cache: once an hour
     }
@@ -686,28 +705,31 @@ export async function getStaticProps(context) {
     if (error.response?.status === 404)
       return { notFound: true }
     else
-      throw (error)
+      throw error
   }
 }
 
 export async function getStaticPaths() {
   const included = new Set()
   const paths = []
-  let page = 1
-  while (page !== undefined) {
-    const products = await loadProducts(page, 100, baseFilters, null)
-    paths.push(...products.results.filter((product) => !included.has(product.id)).map((product) => {
-      included.add(product.id)
-      return {
-        params: {
-          code: product.code
+
+  if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST !== 'true') {
+    let page = 1
+    while (page !== undefined) {
+      const products = await loadProducts(page, 100, baseFilters, null)
+      paths.push(...products.results.filter((product) => !included.has(product.id)).map((product) => {
+        included.add(product.id)
+        return {
+          params: {
+            code: product.code
+          }
         }
-      }
-    }))
-    if (products.totalPages > products.currentPage)
-      page += 1
-    else
-      page = undefined
+      }))
+      if (products.totalPages > products.currentPage)
+        page += 1
+      else
+        page = undefined
+    }
   }
   return { paths, fallback: 'blocking' }
 }

@@ -39,7 +39,7 @@ export async function apiFetch<TReturn, TData = JSONValue>(endpoint: string, opt
     credentials: 'include',
   }
 
-  // Route POST requests through API proxy to correctly set CSRF header
+  // Route requests through API proxy to correctly set CSRF header
   const baseURL = (body ? '' : (process.env.API_SERVER ?? '')) + '/api/v0/'
   const response = await fetch(baseURL + endpoint, config)
 

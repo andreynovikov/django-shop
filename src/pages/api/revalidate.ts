@@ -10,7 +10,7 @@ type Item = Payload & {
   pk: number | string
 }
 
-type RevalidationRequest = Item & {
+type RevalidationRequest = Payload & {
   secret: string,
   model: string,
   items?: Item[],
@@ -24,16 +24,24 @@ type RevalidationResponse = {
 
 function getPathForModelItem(model: string, item: Item) {
   switch (model) {
+    case 'index':
+      return '/'
     case 'category':
       return `/catalog/${item.path}/`
     case 'product':
       return `/products/${item.code}/`
+    case 'action':
+      return `/actions/${item.pk}/`
     case 'store':
       return `/stores/${item.pk}/`
     case 'page':
       return `/pages${item.uri}`
     case 'news':
       return '/news/'
+    case 'actions':
+      return `/actions/`
+    case 'stores':
+      return `/stores/`
     default:
       return undefined
   }
@@ -47,8 +55,7 @@ export default async function handler(
   if (data === undefined)
     return res.status(400).json({ revalidated: false, message: 'Parameters missing' })
 
-  console.log(data)
-  if (data.secret !== process.env.REVALIDATION_TOKEN) {
+  if (!process.env.REVALIDATION_TOKEN || data.secret !== process.env.REVALIDATION_TOKEN) {
     return res.status(401).json({ revalidated: false, message: 'Invalid token' })
   }
 
@@ -56,22 +63,43 @@ export default async function handler(
     return res.status(400).json({ revalidated: false, message: 'Parameters missing' })
   }
 
-  const paths = []
+  const items: Item[] = []
   if (data.pk !== undefined)
-    paths.push(getPathForModelItem(data.model, data))
+    items.push(data as Item)
   if (data.items !== undefined)
-    data.items.forEach(item => paths.push(getPathForModelItem(data.model, item)))
+    items.push(...data.items)
 
-  try {
-    for (const path of paths) {
-      if (path === undefined)
-        return res.json({ revalidated: false })
-      await res.revalidate(path)
-    }
-  } catch (err) {
-    // If there was an error, Next.js will continue
-    // to show the last successfully generated page
-    return res.status(500).send({ revalidated: false, message: 'Revalidation error' })
+  const paths = new Set<string>()
+  const unmapped: (number | string | undefined)[] = []
+  for (const item of items) {
+    const path = getPathForModelItem(data.model, item)
+    if (path === undefined)
+      unmapped.push(item.pk)
+    else
+      paths.add(path)
   }
+
+  console.log('Revalidating', data.model, [...paths])
+
+  // Revalidate every path independently so one failure does not skip the rest.
+  // If there was an error, Next.js will continue to show the last successfully generated page
+  const failed: string[] = []
+  for (const path of paths) {
+    try {
+      await res.revalidate(path)
+    } catch (err) {
+      console.error('Failed to revalidate', path, err)
+      failed.push(path)
+    }
+  }
+
+  const problems = []
+  if (unmapped.length > 0)
+    problems.push(`No path for ${data.model} ${unmapped.join(', ')}`)
+  if (failed.length > 0)
+    problems.push(`Revalidation error for ${failed.join(', ')}`)
+
+  if (problems.length > 0)
+    return res.status(failed.length > 0 ? 500 : 200).json({ revalidated: false, message: problems.join('; ') })
   return res.json({ revalidated: true })
 }

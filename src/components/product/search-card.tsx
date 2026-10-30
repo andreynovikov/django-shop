@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 
 import { useQuery } from '@tanstack/react-query'
 
-import ProductCard from '@/components/product/card'
+import ProductCard, { SearchProduct } from '@/components/product/card'
 import { ProductResult } from "@/lib/diginetica"
 
 import { productKeys, loadProductInfo } from '@/lib/queries'
@@ -21,7 +21,7 @@ function resultToProduct(result: ProductResult) {
     price: Number(result.price),
     cost: Number(result.price),
     image: result.image_url,
-  }
+  } as SearchProduct
 }
 
 export default function ProductSearchCard({ result, position }: { result: ProductResult, position: number }) {

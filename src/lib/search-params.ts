@@ -8,6 +8,7 @@ import {
   parseAsNativeArrayOf,
   parseAsString,
   inferParserType,
+  createSearchParamsCache,
 } from 'nuqs/server'
 
 const parseAsBooleanExtended = createParser({
@@ -118,4 +119,5 @@ export const storeSearchParams = {
 
 export type StoreSearchParamsType = Partial<inferParserType<typeof storeSearchParams>>
 export const storeSearchParamsSerializer = createSerializer(storeSearchParams)
+export const storeSearchParamsCache = createSearchParamsCache(storeSearchParams)
 export const storeSearchParamsLoader = createLoader(storeSearchParams)

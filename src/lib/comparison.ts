@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { comparisonKeys, loadComparisons, addToComparison, removeFromComparison } from '@/lib/queries'
 
-export default function useComparison(options: { kind: number }) {
+export default function useComparison(options?: { kind: number }) {
   const queryClient = useQueryClient()
 
   const { kind } = options || { kind: null } // we use null instead of undefined to comply with SSR props in '/compare'

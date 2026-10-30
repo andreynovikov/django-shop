@@ -5,7 +5,7 @@ import sanitizeHtml from 'sanitize-html'
 import { flattenCategoryTree, getCategoryDescendants } from '@/lib/categories'
 import { HttpError, loadCategories, loadCurrentSite, loadProducts } from '@/lib/queries'
 import { listIntegrations, retriveIntegrationByUtm, retriveIntegrationProducts } from '@/lib/queries'
-import { Category, Integration, IntegrationProduct, Product } from '@/lib/types'
+import { CategoryTree, CategoryTreeItem, Integration, IntegrationProduct, ProductInfo } from '@/lib/types'
 
 export const revalidate = 3600
 export const dynamic = 'error'
@@ -20,8 +20,8 @@ function stripTags(html: string) {
   return sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} })
 }
 
-function topCategoryMap(categories: Category[]) {
-  const map = new Map<number, Category>()
+function topCategoryMap(categories: CategoryTree) {
+  const map = new Map<number, CategoryTreeItem>()
   for (const category of categories) {
     const { children, ...categoryWithoutChildren } = category
     if (children) {
@@ -39,7 +39,7 @@ export async function GET(request: Request, { params }: RouteContext<'/xml/[file
   const utm = path.parse(filename).name
 
   let integration: Integration | undefined
-  let products: IntegrationProduct[] | Product[]
+  let products: IntegrationProduct[] | ProductInfo[]
   let templateName = utm
 
   try {
@@ -51,7 +51,7 @@ export async function GET(request: Request, { params }: RouteContext<'/xml/[file
       templateName = integration.output_template
     }
 
-    const categories = integration?.output_skip_categories ? [] : await loadCategories({ feed: true }) as Category[]
+    const categories = integration?.output_skip_categories ? [] : await loadCategories({ feed: true })
     const categoryMap = topCategoryMap(categories)
 
     if (integration) {
@@ -112,12 +112,15 @@ export async function GET(request: Request, { params }: RouteContext<'/xml/[file
 }
 
 export async function generateStaticParams() {
+  if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
+    return []
+  
   const integrations = await listIntegrations()
   return integrations.filter(
     integration => integration.enabled
   ).map(
-    integration => ({ utm: integration.utm_source })
+    integration => integration.utm_source
   ).concat(
-    globalXmls.map(xml => ({ utm: xml }))
-  )
+    globalXmls
+  ).map(utm => ({filename: utm + '.xml'}))
 }

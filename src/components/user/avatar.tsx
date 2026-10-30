@@ -1,3 +1,5 @@
+'use client'
+
 import { useQuery } from '@tanstack/react-query'
 
 function generateAvatar(fullName: string, size: number) {
@@ -62,8 +64,8 @@ async function loadAvatar(gravatar: string, name: string, size: number) {
 interface UserAvatarProps {
   gravatar: string
   name: string
-  size: number
-  border: boolean
+  size?: number
+  border?: boolean
 }
 
 export default function UserAvatar({ gravatar, name, size = 50, border = false }: UserAvatarProps) {

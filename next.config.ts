@@ -4,13 +4,13 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   trailingSlash: true,
   output: 'standalone',
-  allowedDevOrigins: ['janome.club'],
   images: {
     remotePatterns: [
       new URL('https://api.sewing-world.ru/media/**'),
       new URL('https://www.sewing-world.ru/media/**'),
     ],
   },
+  staticPageGenerationTimeout: 240, // sitemap is generated very slow
   async redirects() {
     return [
       // restructure

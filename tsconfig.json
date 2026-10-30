@@ -6,7 +6,8 @@
       "node",
       "react",
       "react-dom",
-      "sanitize-html"
+      "sanitize-html",
+      "@yandex/ymaps3-types"
     ],
     "lib": [
       "dom",

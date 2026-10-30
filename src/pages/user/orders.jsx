@@ -4,17 +4,14 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 
-import OverlayTrigger from 'react-bootstrap/OverlayTrigger'
-import Tooltip from 'react-bootstrap/Tooltip'
-
 import UserPageLayout from '@/components/layout/user-page'
 import UserTopbar from '@/components/user/topbar'
 import OrderPaymentButton from '@/components/order/payment-button'
 import OrderStatusBadge from '@/components/order/status-badge'
 import PageSelector from '@/components/page-selector'
 import { PageLoading } from '@/components/loading'
+import Tooltip from '@/components/ui/tooltip'
 
-import { useSite } from '@/lib/site'
 import { useSession } from '@/lib/session'
 import { orderKeys, loadOrders, getLastOrder } from '@/lib/queries'
 import {
@@ -27,37 +24,30 @@ import moment from 'moment'
 
 export default function Orders({ filter, page, track }) {
   const [currentFilter, setFilter] = useState(filter)
-  const [isTracking, setIsTracking] = useState(track !== undefined)
   const router = useRouter()
-  const { site } = useSite()
   const { status } = useSession()
 
   const { data: lastOrder } = useQuery({
     queryKey: orderKeys.last(),
     queryFn: () => getLastOrder(),
-    enabled: status === 'authenticated' && isTracking
+    enabled: status === 'authenticated' && track !== undefined
   })
 
-  useEffect(() => {
-    setIsTracking(track !== undefined)
-  }, [track])
+  // keep showing the loader until redirected to the last order, if there is one
+  const isTracking = track !== undefined && !(lastOrder !== undefined && !lastOrder.id)
 
   useEffect(() => {
-    if (lastOrder !== undefined && isTracking) {
-      if (lastOrder.id) {
-        router.push({
-          pathname: '/user/orders/[id]',
-          query: { id: lastOrder.id }
-        })
-      } else {
-        setIsTracking(false)
-      }
+    if (isTracking && lastOrder?.id) {
+      router.push({
+        pathname: '/user/orders/[id]',
+        query: { id: lastOrder.id }
+      })
     }
   }, [lastOrder, router, isTracking])
 
   const { data: orders, isSuccess, isLoading } = useQuery({
     queryKey: orderKeys.list(page || 1, currentFilter),
-    queryFn: () => loadOrders(page || 1, currentFilter, site.id),
+    queryFn: () => loadOrders(page || 1, currentFilter),
     enabled: status === 'authenticated'
   })
 
@@ -122,9 +112,9 @@ export default function Orders({ filter, page, track }) {
                       </Link>
                     </td>
                     <td className="py-3">
-                      <OverlayTrigger overlay={<Tooltip>{moment(order.created).format('LLL')}</Tooltip>}>
+                      <Tooltip content={moment(order.created).format('LLL')}>
                         <span>{moment(order.created).calendar().toLowerCase()}</span>
-                      </OverlayTrigger>
+                      </Tooltip>
                     </td>
                     <td className="py-3"><OrderStatusBadge status={order.status} text={order.status_text} /></td>
                     <td className="d-none d-sm-table-cell py-3">

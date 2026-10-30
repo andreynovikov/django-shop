@@ -1,4 +1,4 @@
-import { useState, createRef } from 'react'
+import { useState } from 'react'
 
 import Head from 'next/head'
 
@@ -9,8 +9,6 @@ import UpdateForm from '@/components/user/update-form'
 export default function Profile() {
   const [formReady, setFormReady] = useState(false)
 
-  const formRef = createRef()
-
   return (
     <>
       <Head>
@@ -19,12 +17,12 @@ export default function Profile() {
       <UserTopbar>
         <div className="d-flex w-100 text-light text-center me-3">&nbsp;</div>
       </UserTopbar>
-      <UpdateForm ref={formRef} onReady={() => setFormReady(true)} />
+      <UpdateForm id="user-update-form" onReady={() => setFormReady(true)} />
       {formReady && (
         <>
           <hr className="mt-4 mb-3" />
           <div className="text-end">
-            <button className="btn btn-primary" type="submit" onClick={() => formRef.current.submit()}>Сохранить</button>
+            <button className="btn btn-primary" type="submit" form="user-update-form">Сохранить</button>
           </div>
         </>
       )}

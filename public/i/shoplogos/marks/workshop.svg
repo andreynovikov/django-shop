@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff">
+  <defs>
+    <mask id="wrench-jaw">
+      <rect width="24" height="24" fill="#fff"/>
+      <path d="M2 4.5 4.5 2 8 5.5 5.5 8z" fill="#000"/>
+    </mask>
+  </defs>
+  <g mask="url(#wrench-jaw)">
+    <path d="M7.5 7.5 20 20" stroke-width="2.6" stroke-linecap="round"/>
+    <circle cx="6" cy="6" r="4" fill="#fff" stroke="none"/>
+  </g>
+  <path d="M4 20 15 9" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M12.5 4.5l7 7" stroke-width="4.5"/>
+</svg>
