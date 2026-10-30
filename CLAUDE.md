@@ -13,10 +13,13 @@ Next.js storefront for sewing-world.ru (package name `sworld`, branch `cartzilla
 - `npm run build` / `npm start`: production build (`output: 'standalone'`) and server on port 4004
 - `npm run lint`: ESLint over `src/` (next core-web-vitals, next typescript, and the tanstack-query recommended rules; `src/vendor/` is ignored)
 - `npm run test:e2e`: Playwright tests in `tests/` (chromium, firefox, Mobile Chrome)
-  - Run one file: `npx playwright test tests/cart.spec.ts`
-  - Run one test by name: `npx playwright test -g "product can be put in cart"`
+  - Run one file: `npx playwright test tests/checkout.spec.ts`
+  - Run one test by name: `npx playwright test -g "anonymous buyer orders"`
   - Run one browser: `npx playwright test --project=chromium`
-  - The tests hit the real backend configured in `.env`. With `CI` set, they run against `node .next/standalone/server.js` instead of the dev server.
+  - The tests read from the real backend configured in `.env`. With `CI` set, they run against `node .next/standalone/server.js` instead of the dev server.
+  - Tests must never write to that backend. The auto fixture `blockApiWrites` in `tests/fixtures.ts` aborts every non-GET `/api/v0/` request that no test mocked, and fails the test.
+  - User flows (login, registration, cart, orders, favorites, profile) use the `backend` fixture: `tests/fake-backend.ts`, an in-memory copy of django-shop's user endpoints with a session, a basket, favorites, orders and an SMS log. It answers browser requests only, which is enough because user state is never rendered on the server. Requests it does not handle fall through to the real backend (GET) or the guard. Seed state with `backend.addUser()`, `backend.signIn()` and `backend.addOrder()`, and read the code a login sent with `backend.lastSmsCode(phone)`.
+  - Contract checks (`tests/contract.ts`) validate every request the fake answers, and every fake answer, against the backend's OpenAPI schema; a mismatch fails the test. Global setup downloads the schema from `${API_SERVER}/api/v0/schema/` with `API_TOKEN` into `tests/.cache/openapi.json` and reuses it for an hour (delete the file to refresh). Set `API_SCHEMA` to a local schema file, e.g. from django-shop's `manage.py spectacular --format openapi-json`, to check backend changes before deploying them.
 
 Required `.env` variables: `API_SERVER`, `API_TOKEN`, `ORIGIN`, `NEXT_PUBLIC_YMAPS_API_KEY`, the `NEXT_PUBLIC_*_VERIFICATION` variables, and `REVALIDATION_TOKEN` (used by `/api/revalidate`).
 
