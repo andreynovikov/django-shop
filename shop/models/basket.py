@@ -26,7 +26,7 @@ class Basket(models.Model):
 
     @classmethod
     def product_cost_for_user(cls, site, product, product_price, user):
-        return product_price - cls.product_discount_with_user_discount(wholesale, product, user.discount)
+        return product_price - cls.product_discount_with_user_discount(site, product, user.discount)
 
     @classmethod
     def product_pct_discount(cls, site, product, user_discount):
