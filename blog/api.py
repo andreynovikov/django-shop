@@ -12,6 +12,8 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
+from drf_spectacular.utils import extend_schema
+
 from .models import Entry, Category
 from .serializers import EntrySerializer, EntryListSerializer, TagCloudSerializer, CategorySerializer
 
@@ -115,6 +117,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class TagView(views.APIView):
+    @extend_schema(responses=TagCloudSerializer(many=True))
     def get(self, request, *args, **kwargs):
         entries = Entry.objects.filter(sites=self.request.site, status=Entry.PUBLISHED)
         tags = Entry.tags.tag_model.objects.filter(

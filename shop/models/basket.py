@@ -187,7 +187,7 @@ class BasketItem(models.Model):
         return self.basket.product_discount(self.product)
 
     @property
-    def discount_text(self):
+    def discount_text(self) -> str:
         """ Provides human readable discount string. """
         return self.basket.product_discount_text(self.product)
 

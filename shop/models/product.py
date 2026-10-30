@@ -322,7 +322,7 @@ class Product(models.Model):
         return self.price - self.discount
 
     @property
-    def discount(self):
+    def discount(self) -> Decimal:
         pd = Decimal(0)
         if self.pct_discount > 0:
             price = self.price.quantize(Decimal('1'), rounding=ROUND_UP)
@@ -382,7 +382,7 @@ class Product(models.Model):
             return self.val_discount
 
     @property
-    def instock(self):
+    def instock(self) -> int:
         if self.num >= 0:
             return self.num
         self.num = self.get_stock()

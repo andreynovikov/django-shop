@@ -23,7 +23,8 @@ from rest_framework.response import Response
 from rest_framework.throttling import SimpleRateThrottle
 
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer, OpenApiResponse, PolymorphicProxySerializer
+from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer, OpenApiParameter, OpenApiResponse, \
+    PolymorphicProxySerializer
 
 from django.contrib.flatpages.models import FlatPage
 # from django_ipgeobase.models import IPGeoBase
@@ -62,6 +63,7 @@ THROTTLED = OpenApiResponse(ErrorDetailSerializer, description='Too many request
 
 # Built once, drf-spectacular expects one serializer class per component name
 BASKET_ITEM_ERRORS = validation_error_serializer(BasketItemActionSerializer)
+COMPARISON_ERRORS = validation_error_serializer(ComparisonSerializer)
 FAVORITE_ERRORS = validation_error_serializer(FavoritesSerializer)
 ORDER_ERRORS = validation_error_serializer(OrderActionSerializer)
 USER_ERRORS = validation_error_serializer(UserSerializer)
@@ -72,6 +74,8 @@ CURRENT_USER = PolymorphicProxySerializer(
     serializers=[UserSerializer, AnonymousUserSerializer],
     resource_type_field_name=None,
 )
+
+PRODUCT_IDS = OpenApiResponse(response={'type': 'array', 'items': {'type': 'integer'}}, description='Product ids')
 
 
 def ensure_session(request):
@@ -453,6 +457,7 @@ class ViolationModelPermission(AccountsModelPermission):
 
 class BasketViewSet(viewsets.ModelViewSet):
     serializer_class = BasketSerializer
+    queryset = Basket.objects.none()  # model for the API schema, get_queryset() needs a request
 
     def get_queryset(self):
         queryset = Basket.objects.filter(site=self.request.site, session_id__isnull=False, session_id=self.request.session.session_key)
@@ -560,6 +565,7 @@ class BasketViewSet(viewsets.ModelViewSet):
 )
 class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
+    queryset = Order.objects.none()  # model for the API schema, get_queryset() needs a request
     pagination_class = StandardResultsSetPagination
 
     def get_serializer_class(self):
@@ -758,6 +764,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 )
 class FavoritesViewSet(viewsets.ModelViewSet):
     serializer_class = FavoritesSerializer
+    queryset = Favorites.objects.none()  # model for the API schema, get_queryset() needs a request
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -809,6 +816,12 @@ class FavoritesViewSet(viewsets.ModelViewSet):
 
 
 class ComparisonsViewSet(viewsets.ViewSet):
+    @extend_schema(
+        parameters=[OpenApiParameter('kind', OpenApiTypes.INT, description='Only products of this kind')],
+        responses={
+            200: PRODUCT_IDS,
+        },
+    )
     def list(self, request):
         comparison_list = request.session.get('comparison_list', None)
         if comparison_list:
@@ -820,6 +833,14 @@ class ComparisonsViewSet(viewsets.ViewSet):
             product_ids = []
         return Response(product_ids)
 
+    @extend_schema(
+        request=ComparisonSerializer,
+        responses={
+            200: PRODUCT_IDS,
+            400: COMPARISON_ERRORS,
+        },
+        methods=['POST']
+    )
     @action(detail=False, methods=['post'], url_path='add')
     def add_item(self, request):
         serializer = ComparisonSerializer(data=request.data)
@@ -836,6 +857,14 @@ class ComparisonsViewSet(viewsets.ViewSet):
             product_ids = [product.id]
         return Response(product_ids)
 
+    @extend_schema(
+        request=ComparisonSerializer,
+        responses={
+            200: PRODUCT_IDS,
+            400: COMPARISON_ERRORS,
+        },
+        methods=['POST']
+    )
     @action(detail=False, methods=['post'], url_path='remove')
     def remove_item(self, request):
         serializer = ComparisonSerializer(data=request.data)
@@ -1070,6 +1099,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 class SerialViewSet(viewsets.ModelViewSet):
     serializer_class = SerialSerializer
+    queryset = Serial.objects.none()  # model for the API schema, get_queryset() needs a request
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -1084,6 +1114,19 @@ class SerialViewSet(viewsets.ModelViewSet):
 
 
 class CsrfTokenView(views.APIView):
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(
+                response={
+                    'type': 'object',
+                    'properties': {
+                        'csrf': {'type': 'string'},
+                    },
+                    'required': ['csrf'],
+                }
+            )
+        },
+    )
     @method_decorator(ensure_csrf_cookie)
     def get(self, request, *args, **kwargs):
         return Response({
@@ -1092,6 +1135,29 @@ class CsrfTokenView(views.APIView):
 
 
 class WarrantyCardView(views.APIView):
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(
+                response={
+                    'type': 'object',
+                    'properties': {
+                        'html': {'type': 'string'},
+                    },
+                    'required': ['html'],
+                },
+                description='Warranty card to print',
+            ),
+            400: OpenApiResponse(
+                response={
+                    'type': 'object',
+                    'properties': {
+                        'code': {'type': 'array', 'items': {'type': 'string'}},
+                    },
+                },
+                description='The shop has not sold a product with this serial number',
+            ),
+        },
+    )
     def get(self, request, code):
         item = OrderItem.objects.filter(serial_number=code.strip()).order_by('-order__created').first()
         if item is None:
@@ -1134,6 +1200,7 @@ class FlatPageViewSet(viewsets.ReadOnlyModelViewSet):
 
 class NewsViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = NewsSerializer
+    queryset = News.objects.none()  # model for the API schema, get_queryset() needs a request
 
     def get_queryset(self):
         return News.objects.filter(sites=self.request.site, active=True)
@@ -1143,6 +1210,7 @@ class SalesActionViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_field = 'slug'
     ordering = ('order',)
     serializer_class = SalesActionSerializer
+    queryset = SalesAction.objects.none()  # model for the API schema, get_queryset() needs a request
 
     def get_queryset(self):
         queryset = SalesAction.objects.filter(active=True, sites=self.request.site)
@@ -1167,6 +1235,7 @@ class SalesActionViewSet(viewsets.ReadOnlyModelViewSet):
 
 class AdvertViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AdvertSerializer
+    queryset = Advert.objects.none()  # model for the API schema, get_queryset() needs a request
 
     def get_queryset(self):
         queryset = Advert.objects.filter(sites=self.request.site, active=True)
@@ -1181,6 +1250,7 @@ class AdvertViewSet(viewsets.ReadOnlyModelViewSet):
 
 class StoreViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = StoreSerializer
+    queryset = Store.objects.none()  # model for the API schema, get_queryset() needs a request
 
     def get_queryset(self):
         stores = Store.objects.filter(site=self.request.site, enabled=True).order_by('city__country__ename', 'city__name')

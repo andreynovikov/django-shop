@@ -30,16 +30,16 @@ class Bonus(models.Model):
             return str(self.value)
 
     @property
-    def is_fresh(self):
+    def is_fresh(self) -> bool:
         fresh = timezone.now() - timedelta(hours=1)
         return bool(self.status == self.STATUS_OK and self.updated > fresh)
 
     @property
-    def is_undefined(self):
+    def is_undefined(self) -> bool:
         return bool(self.status & self.STATUS_UNDEFINED)
 
     @property
-    def is_updating(self):
+    def is_updating(self) -> bool:
         return bool(self.status & self.STATUS_PENDING)
 
     class Meta:

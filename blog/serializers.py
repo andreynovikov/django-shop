@@ -2,6 +2,8 @@ from collections import OrderedDict
 
 from rest_framework import serializers
 
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
+
 from django_tagulous.contrib.drf import TagRelatedManagerField
 
 from sewingworld.serializers import UserListSerializer
@@ -18,11 +20,18 @@ class NonNullModelSerializer(serializers.ModelSerializer):
         return OrderedDict([(key, result[key]) for key in result if keep(result[key])])
 
 
+class EntryUrlsSerializer(serializers.Serializer):
+    # For the API schema of BaseEntrySerializer.urls
+    canonical = serializers.CharField()
+    short = serializers.CharField()
+
+
 class BaseEntrySerializer(NonNullModelSerializer):
     author = UserListSerializer()
     urls = serializers.SerializerMethodField()
     tags = TagRelatedManagerField()
 
+    @extend_schema_field(EntryUrlsSerializer)
     def get_urls(self, obj):
         return {
             'canonical': obj.get_absolute_url(),
@@ -36,6 +45,14 @@ class EntryNavSerializer(BaseEntrySerializer):
         fields = ('title', 'urls', 'author')
 
 
+class EntryContentSerializer(serializers.Serializer):
+    # For the API schema of EntryListSerializer.content
+    preview = serializers.CharField()
+    total_words = serializers.IntegerField()
+    remaining_words = serializers.IntegerField()
+    remaining_percent = serializers.IntegerField()
+
+
 class EntryListSerializer(BaseEntrySerializer):
     content = serializers.SerializerMethodField()
 
@@ -43,6 +60,7 @@ class EntryListSerializer(BaseEntrySerializer):
         model = Entry
         exclude = ('sites', 'status')
 
+    @extend_schema_field(EntryContentSerializer)
     def get_content(self, obj):
         preview = obj.html_preview
         return {
@@ -53,6 +71,12 @@ class EntryListSerializer(BaseEntrySerializer):
         }
 
 
+class EntryNavigationSerializer(serializers.Serializer):
+    # For the API schema of EntrySerializer.navigation
+    previous = EntryNavSerializer(allow_null=True)
+    next = EntryNavSerializer(allow_null=True)
+
+
 class EntrySerializer(BaseEntrySerializer):
     navigation = serializers.SerializerMethodField()
 
@@ -60,6 +84,7 @@ class EntrySerializer(BaseEntrySerializer):
         model = Entry
         exclude = ('sites', 'status')
 
+    @extend_schema_field(EntryNavigationSerializer)
     def get_navigation(self, obj):
         request = self.context.get('request')
         entries = list(Entry.objects.filter(sites=request.site, status=Entry.PUBLISHED).values_list('id', flat=True))
@@ -91,6 +116,7 @@ class TagCloudSerializer(serializers.Serializer):
     weight = serializers.IntegerField()
 
 
+@extend_schema_serializer(component_name='BlogCategory')  # the shop has a Category too
 class CategorySerializer(NonNullModelSerializer):
     count = serializers.IntegerField()
 

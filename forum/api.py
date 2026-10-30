@@ -1,6 +1,8 @@
 from rest_framework import viewsets, serializers, status
 from rest_framework.response import Response
 
+from drf_spectacular.utils import extend_schema_field
+
 from .models import Topic, Thread, Opinion
 
 
@@ -22,6 +24,7 @@ class ThreadSerializer(ThreadListSerializer):
     class Meta(ThreadListSerializer.Meta):
         fields = ThreadListSerializer.Meta.fields + ('opinions',)
 
+    @extend_schema_field(OpinionSerializer(many=True))
     def get_opinions(self, obj):
         opinions = Opinion.objects.filter(tid=obj.id).order_by('post')
         return OpinionSerializer(opinions, many=True).data
@@ -34,6 +37,7 @@ class TopicSerializer(serializers.ModelSerializer):
         model = Topic
         fields = ('id', 'title', 'threads')
 
+    @extend_schema_field(ThreadListSerializer(many=True))
     def get_threads(self, obj):
         threads = Thread.objects.filter(topic=obj.id, enabled=True).order_by('-mtime')
         return ThreadListSerializer(threads, many=True).data

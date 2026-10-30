@@ -134,6 +134,19 @@ class CategoryTreeSerializer(NonNullModelSerializer):
         fields = ('id', 'name', 'subname', 'active', 'hidden', 'feed', 'slug', 'svg_icon', 'image', 'children')
 
 
+class CategoryBreadcrumbSerializer(serializers.Serializer):
+    # For the API schema of CategoryPathSerializer
+    id = serializers.IntegerField()
+    slug = serializers.CharField()
+    name = serializers.CharField()
+
+
+class CategoryPathSerializer(serializers.Serializer):
+    # For the API schema of the category path
+    uri = serializers.CharField()
+    breadcrumbs = CategoryBreadcrumbSerializer(many=True)
+
+
 class CategoryBriefSerializer(NonNullModelSerializer):
     path = serializers.SerializerMethodField()
 
@@ -141,6 +154,7 @@ class CategoryBriefSerializer(NonNullModelSerializer):
         model = Category
         fields = ('id', 'name', 'subname', 'slug', 'path')
 
+    @extend_schema_field(CategoryPathSerializer)
     def get_path(self, obj):
         ancestors = obj.get_ancestors(include_self=True)[1:]  # exclude root category
         uri = '/'.join([item.slug for item in ancestors])
@@ -164,6 +178,7 @@ class CategorySerializer(NonNullModelSerializer):
         model = Category
         exclude = ('active', 'hidden', 'feed', 'tree_id', 'lft', 'rght')
 
+    @extend_schema_field(CategoryPathSerializer)
     def get_path(self, obj):
         ancestors = obj.get_ancestors(include_self=True)[1:]  # exclude root category
         uri = '/'.join([item.slug for item in ancestors])
@@ -177,6 +192,16 @@ class CategorySerializer(NonNullModelSerializer):
             'breadcrumbs': breadcrumbs
         }
 
+    # inline, because "class" can't be a field name
+    @extend_schema_field(inline_serializer('CategoryFilter', fields={
+        'name': serializers.CharField(),
+        'id': serializers.CharField(),
+        'class': serializers.CharField(),
+        'label': serializers.CharField(),
+        'widget': serializers.CharField(),
+        'unit': serializers.CharField(required=False),
+        'help': serializers.CharField(required=False),
+    }, many=True, allow_null=True))
     def get_filters(self, obj):
         request = self.context.get('request')
         if not obj.filters:
@@ -253,7 +278,7 @@ class ProductListSerializer(DynamicFieldsModelSerializer):
     cost = serializers.SerializerMethodField()
     instock = serializers.SerializerMethodField()
     sales = serializers.SerializerMethodField()
-    rank = serializers.ReadOnlyField()
+    rank = NumberReadOnlyField()  # annotated by the product search
 
     class Meta:
         model = Product
@@ -270,18 +295,18 @@ class ProductListSerializer(DynamicFieldsModelSerializer):
                 return instance.title
         return super().to_representation(instance)
 
-    def get_price(self, obj):
+    def get_price(self, obj) -> float:
         request = self.context.get('request')
         return obj.site_price(request.site)
 
-    def get_cost(self, obj):
+    def get_cost(self, obj) -> float:
         request = self.context.get('request')
         return obj.site_cost(request.site)
 
-    def get_instock(self, obj):
+    def get_instock(self, obj) -> int:
         return max(min(obj.instock, 10), 0)
 
-    def get_sales(self, obj):
+    def get_sales(self, obj) -> list[str] | None:
         request = self.context.get('request')
         if request is not None:
             # TODO: put this in middleware
@@ -320,6 +345,7 @@ class ProductSerializer(NonNullModelSerializer):
         super().__init__(*args, **kwargs)
         self.fields['constituents'].context.update(self.context)
 
+    @extend_schema_field(CategoryBriefSerializer(many=True))
     def get_categories(self, obj):
         request = self.context.get('request')
         root_category = request.site.profile.root_category
@@ -328,17 +354,18 @@ class ProductSerializer(NonNullModelSerializer):
         ]
         return CategoryBriefSerializer(categories, many=True).data
 
-    def get_price(self, obj):
+    def get_price(self, obj) -> float:
         request = self.context.get('request')
         return obj.site_price(request.site)
 
-    def get_cost(self, obj):
+    def get_cost(self, obj) -> float:
         request = self.context.get('request')
         return obj.site_cost(request.site)
 
     def get_instock(self, obj):
         return obj.instock  # TODO: limit output
 
+    @extend_schema_field(ProductListSerializer(many=True))
     def get_accessories(self, obj):
         request = self.context.get('request')
         accessories = obj.related.filter(
@@ -348,6 +375,7 @@ class ProductSerializer(NonNullModelSerializer):
         )
         return ProductListSerializer(accessories, many=True, context=self.context).data
 
+    @extend_schema_field(ProductListSerializer(many=True))
     def get_similar(self, obj):
         request = self.context.get('request')
         similar = obj.related.filter(
@@ -357,6 +385,7 @@ class ProductSerializer(NonNullModelSerializer):
         )
         return ProductListSerializer(similar, many=True, context=self.context).data
 
+    @extend_schema_field(ProductListSerializer(many=True))
     def get_gifts(self, obj):
         request = self.context.get('request')
         gifts = obj.related.filter(
@@ -366,6 +395,7 @@ class ProductSerializer(NonNullModelSerializer):
         )
         return ProductListSerializer(gifts, many=True, context=self.context).data
 
+    @extend_schema_field(SalesActionSerializer(many=True))
     def get_sales(self, obj):
         request = self.context.get('request')
         # TODO: put this in middleware
@@ -375,7 +405,7 @@ class ProductSerializer(NonNullModelSerializer):
         sales = obj.sales_actions.filter(active=True)  # , sites__domain=domain).order_by('order') - TODO!
         return SalesActionSerializer(sales, many=True, context=self.context).data
 
-    def get_stitches(self, obj):
+    def get_stitches(self, obj) -> str:
         filepath = 'images/{manufacturer}/stitches/{code}_stitches.jpg'.format(manufacturer=obj.manufacturer.code, code=obj.code)
         if default_storage.exists(filepath):
             request = self.context.get('request')
@@ -483,7 +513,7 @@ class OrderListSerializer(serializers.ModelSerializer):
         model = Order
         fields = ('id', 'total', 'created', 'status', 'status_text', 'payment', 'paid')
 
-    def get_status_text(self, obj):
+    def get_status_text(self, obj) -> str:
         return obj.get_status_display()
 
 
@@ -502,10 +532,10 @@ class OrderSerializer(serializers.ModelSerializer):
                   'store', 'name', 'phone', 'email', 'address', 'is_firm', 'firm_name', 'firm_address', 'firm_details',
                   'items', 'comment')
 
-    def get_status_text(self, obj):
+    def get_status_text(self, obj) -> str:
         return obj.get_status_display()
 
-    def get_payment_text(self, obj):
+    def get_payment_text(self, obj) -> str:
         return obj.get_payment_display()
 
 
@@ -573,10 +603,10 @@ class UserListSerializer(serializers.ModelSerializer):
         model = ShopUser
         fields = ('id', 'full_name', 'gravatar')
 
-    def get_full_name(self, obj):
+    def get_full_name(self, obj) -> str:
         return obj.get_full_name()
 
-    def get_gravatar(self, obj):
+    def get_gravatar(self, obj) -> str:
         return get_gravatar_url(obj, 90)
 
 
@@ -595,10 +625,10 @@ class UserSerializer(serializers.ModelSerializer):
         model = ShopUser
         exclude = ('groups', 'user_permissions', 'password', 'tags', 'is_superuser', 'is_active', 'is_staff', 'first_name', 'last_name')
 
-    def get_full_name(self, obj):
+    def get_full_name(self, obj) -> str:
         return obj.get_full_name()
 
-    def get_gravatar(self, obj):
+    def get_gravatar(self, obj) -> str:
         return get_gravatar_url(obj, 90)
 
     def validate_phone(self, value):
@@ -734,10 +764,10 @@ class SiteProfileSerializer(NonNullModelSerializer):
         model = SiteProfile
         fields = ('id', 'url_prefix', 'title', 'description', 'city', 'phone')
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> int:
         return obj.site.pk
 
-    def get_url_prefix(self, obj):
+    def get_url_prefix(self, obj) -> str:
         return 'https://' + obj.site.domain
 
 

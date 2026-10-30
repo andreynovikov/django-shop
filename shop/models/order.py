@@ -494,7 +494,7 @@ class OrderItem(models.Model):
         return pd
 
     @property
-    def discount_text(self):
+    def discount_text(self) -> str:
         """ Provides human readable discount string. """
         pd = Decimal(0)
         pdv = 0
