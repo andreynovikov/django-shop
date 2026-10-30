@@ -13,6 +13,8 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
  */
 export default defineConfig({
   testDir: './tests',
+  /* Downloads the backend API schema for the contract checks of the fake backend */
+  globalSetup: './tests/global-setup.ts',
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */

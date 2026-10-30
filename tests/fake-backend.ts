@@ -14,6 +14,8 @@ import {
   STATUS_NEW,
 } from '@/components/order/status-badge'
 
+import { checkContract } from './contract'
+
 // Messages and status codes follow django-shop: sewingworld/api.py and sewingworld/serializers.py
 const NOT_AUTHENTICATED = 'Учетные данные не были предоставлены.'
 const PERMISSION_DENIED = 'У вас недостаточно прав для выполнения данного действия.'
@@ -64,15 +66,14 @@ export function normalizePhone(phone: string) {
   return '+7' + (digits.length === 11 ? digits.slice(1) : digits)
 }
 
+// The backend serializes basket products with NonNullModelSerializer, which leaves out empty values
 function toBasketProduct(product: ProductInfo | BasketItemProduct): BasketItemProduct {
+  const optional = { whatis: product.whatis, partnumber: product.partnumber, article: product.article, image: product.image }
   return {
     id: product.id,
     code: product.code,
     title: product.title,
-    whatis: product.whatis ?? '',
-    partnumber: product.partnumber ?? '',
-    article: product.article ?? '',
-    image: product.image ?? '',
+    ...Object.fromEntries(Object.entries(optional).filter(([, value]) => value)),
     ws_pack_only: product.ws_pack_only ?? false,
     pack_factor: product.pack_factor ?? 1,
     price: product.price,
@@ -100,6 +101,8 @@ Requests it does not handle fall through, so GET requests still read the product
 export class FakeBackend {
   readonly requests: LoggedRequest[] = []
   readonly smsLog: { phone: string, code: string }[] = []
+  // requests and answers that differ from the API schema, see contract.ts
+  readonly violations: string[] = []
 
   private users: FakeUser[] = []
   private sessionUserId: number | null = null
@@ -129,7 +132,6 @@ export class FakeBackend {
     const name = user.name ?? 'Тестовый покупатель'
     const created: FakeUser = {
       id,
-      is_anonymous: false,
       phone: '+79161234567',
       name,
       full_name: name,
@@ -144,8 +146,8 @@ export class FakeBackend {
       expiring_bonuses: 0,
       expiration_date: null,
       permanent_password: false,
-      last_login: '',
-      date_joined: '',
+      last_login: new Date().toISOString(),
+      date_joined: new Date().toISOString(),
       ...user,
     }
     created.phone = normalizePhone(created.phone)
@@ -247,6 +249,17 @@ export class FakeBackend {
     const response = await this.respond(request.method(), segments, url.searchParams, (body ?? {}) as Body)
     if (response === undefined)
       return route.fallback()
+    const query = Object.fromEntries([...new Set(url.searchParams.keys())].map(key => {
+      const values = url.searchParams.getAll(key)
+      return [key, values.length === 1 ? values[0] : values]
+    }))
+    this.violations.push(...await checkContract({
+      method: request.method(),
+      path: decodeURIComponent(url.pathname),
+      query,
+      headers: request.headers(),
+      body: body ?? undefined,
+    }, response))
     if (response.status === 204)
       return route.fulfill({ status: 204 })
     return route.fulfill({ status: response.status, json: response.body })

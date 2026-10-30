@@ -40,7 +40,9 @@ export const test = base.extend<{ blockApiWrites: void, skipHeavyResources: void
   backend: async ({ page, request, blockApiWrites }, use) => {
     const backend = new FakeBackend(request)
     await backend.install(page)
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     await use(backend)
+    expect([...new Set(backend.violations)], 'Requests or fake answers that differ from the API schema').toEqual([])
   },
 })
 
