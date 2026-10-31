@@ -1,6 +1,6 @@
 {
   "name": "sworld",
-  "version": "2026.10.23",
+  "version": "2026.10.31",
   "scripts": {
     "dev": "next dev -H 127.0.0.1 -p 3004 --experimental-https --experimental-https-key certificates/localhost-key.pem --experimental-https-cert certificates/localhost.pem",
     "test": "next dev -H 127.0.0.1 -p 4004",
