@@ -10,16 +10,16 @@ const other = [743, 3, 4, 5, 6, 744, 745] // other than these
 
 // Kept free of hooks so App Router server components can render it
 export default function Catalog({ categories }: { categories: CategoryTree }) {
-  const specialCategories = [null, null, null] as [CategoryTreeItem | null, CategoryTreeItem | null, CategoryTreeItem | null]
+  const specialCategories = [null, null] as [CategoryTreeItem | null, CategoryTreeItem | null]
   for (const category of categories) {
     if (category.slug === 'New')
       specialCategories[0] = category
     if (category.slug === 'promo')
       specialCategories[1] = category
   }
-  const [categoryNew, categoryPromo, categoryDiscount] = specialCategories
+  const [categoryNew, categoryPromo] = specialCategories
 
-  const ready = [categoryNew, categoryPromo, categoryDiscount].every(c => c !== null)
+  const ready = [categoryNew, categoryPromo].every(c => c !== null)
 
   return (
     <div className="sw-catalog">

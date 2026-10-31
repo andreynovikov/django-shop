@@ -8,8 +8,7 @@ import { Autocomplete } from '@base-ui/react/autocomplete'
 import { AutocompletePopup, AutocompleteStatus, AutocompleteGroup, AutocompleteItem, Highlighter } from '@/components/ui/autocomplete'
 
 import { useNavigation } from '@/lib/navigation'
-import { productKeys } from '@/lib/queries'
-import { loadProductSuggestions } from '@/lib/diginetica'
+import { productKeys, loadProductSuggestions } from '@/lib/queries'
 
 const MIN_LENGTH = 3
 
@@ -36,12 +35,12 @@ export default function ProductSearchInput({ mobile = false }) {
       {
         section: 'sts',
         label: 'Часто ищут',
-        items: (suggestions.sts ?? []).map(st => ({ section: 'sts', label: st.st }))
+        items: (suggestions.results ?? []).map(product => ({ section: 'sts', label: product }))
       },
       {
         section: 'products',
         label: 'Популярные товары',
-        items: (suggestions.products ?? []).map(product => ({ section: 'products', label: product.name, product }))
+        items: (suggestions.products ?? []).map(product => ({ section: 'products', label: product.title, product }))
       },
     ].filter(group => group.items.length > 0)
   }, [suggestions, searchText])
@@ -90,14 +89,14 @@ export default function ProductSearchInput({ mobile = false }) {
                   <AutocompleteItem
                     key={`products:${item.product.id}`}
                     value={item}
-                    onClick={() => navigate(item.product.link_url.replace('.html', '/'))}>
+                    onClick={() => navigate(`/products/${product.code}`)}>
                     <div className="d-flex align-items-center gap-2">
                       <div style={{ width: "64px" }}>
-                        {item.product.image_url ? <img src={item.product.image_url} className="img-fluid" /> : "no img"}
+                        {item.product.image ? <img src={item.product.image} className="img-fluid" /> : "no img"}
                       </div>
                       <div className="d-flex flex-column">
                         <div>
-                          <Highlighter search={searchText}>{item.product.name}</Highlighter>
+                          <Highlighter search={searchText}>{item.product.title}</Highlighter>
                         </div>
                         <div>
                           {(+item.product.price).toLocaleString('ru')}<small>&nbsp;руб</small>

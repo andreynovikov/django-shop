@@ -24,7 +24,7 @@ import { Loading, PageLoading } from '@/components/loading'
 import useFavorites from '@/lib/favorites'
 import useComparison from '@/lib/comparison'
 import { useSession } from '@/lib/session'
-import { productKeys, siteKeys, loadProducts, loadProductByCode, getProductFields, loadCurrentSite } from '@/lib/queries'
+import { productKeys, siteKeys, loadProducts, loadProductByCode, getProductFields, loadProductStock, loadCurrentSite } from '@/lib/queries'
 import { baseFilters } from '@/lib/catalog'
 import { eCommerce } from '@/lib/ymec'
 

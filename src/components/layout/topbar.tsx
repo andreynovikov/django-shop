@@ -69,7 +69,7 @@ export default function TopBar({ catalog }: { catalog: ReactNode }) {
   const { comparisons } = useComparison()
   const { favorites } = useFavorites()
 
-  const seoLogoAlt = "Швейный Мир - всероссийская сеть швейных супермаркетов.&#10; Швейные машинки, вышивальные и вязальные машины, оверлоки и аксессуары."
+  const seoLogoAlt = "Janome.Club - Фирменный магазин Janome. Швейные машины, вышивальные машины, оверлоки и аксессуары."
 
   return (
     <div className="sw-navbar" ref={navbarRef}>
@@ -85,14 +85,14 @@ export default function TopBar({ catalog }: { catalog: ReactNode }) {
                 <Menu.Portal>
                   <Menu.Positioner sideOffset={8}>
                     <Menu.Popup className="dropdown-menu position-static topbar flex-column align-items-start gap-2 p-3">
-                        <div className="topbar-text text-nowrap">
-                          <a className="topbar-link" href={"tel:" + "+74957440087"}>{formatPhone("+74957440087")}</a>
-                          <span className="text-muted">&nbsp;&ndash;&nbsp;розничные магазины</span>
-                        </div>
+                      <div className="topbar-text text-nowrap">
+                        <a className="topbar-link" href={"tel:" + "+74957844855"}>{formatPhone("+74957844855")}</a>
+                        <span className="text-muted">&nbsp;&ndash;&nbsp;Магазин на Автозаводской</span>
+                      </div>
                       {site.phone && (
                         <div className="topbar-text text-nowrap">
                           <a className="topbar-link" href={"tel:" + site.phone}>{formatPhone(site.phone)}</a>
-                          <span className="text-muted">&nbsp;&ndash;&nbsp;интернет-магазин</span>
+                          <span className="text-muted">&nbsp;&ndash;&nbsp;Интернет-магазин</span>
                         </div>
                       )}
                     </Menu.Popup>
@@ -101,14 +101,14 @@ export default function TopBar({ catalog }: { catalog: ReactNode }) {
               </Menu.Root>
               <div className={"d-none d-lg-inline-block topbar-text text-nowrap" + (site.phone ? " border-end pe-3 me-3" : "")}>
                 <i className="ci-support mt-n1" />
-                <a className="topbar-link" href={"tel:" + "+74957440087"}>{formatPhone("+74957440087")}</a>
-                <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;розничные магазины</span>
+                <a className="topbar-link" href={"tel:" + "+74957844855"}>{formatPhone("+74957844855")}</a>
+                <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;Магазин на Автозаводской</span>
               </div>
               {site.phone && (
                 <div className="d-none d-lg-inline-block topbar-text text-nowrap">
                   <i className="ci-support mt-n1" />
                   <a className="topbar-link" href={"tel:" + site.phone}>{formatPhone(site.phone)}</a>
-                  <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;интернет-магазин</span>
+                  <span className="text-muted d-none d-lg-inline">&nbsp;&ndash;&nbsp;Интернет-магазин</span>
                 </div>
               )}
               <div className={"d-none d-md-inline-block d-lg-none" + (site.phone ? " border-start ps-3 ms-3" : "")} style={{ width: 0 }}>&nbsp;</div>
@@ -169,7 +169,7 @@ export default function TopBar({ catalog }: { catalog: ReactNode }) {
             <ul className="navbar-nav pe-lg-2 me-lg-2 my-3 my-lg-0">
               <li className="nav-item bg-transparent mb-0">
                 <button ref={catalogButtonRef}
-                  className="btn btn-primary w-100 fw-bold text-start text-lg-center dropdown-toggle"
+                  className="btn btn-secondary w-100 fs-lg text-start text-lg-center dropdown-toggle"
                   onClick={() => setCatalogVisible(!catalogVisible)}>
                   <span className="me-2 align-text-bottom d-none d-md-inline">
                     {catalogVisible ? <IconX strokeWidth={1.5} /> : <IconCategory strokeWidth={1.5} />}
@@ -187,12 +187,7 @@ export default function TopBar({ catalog }: { catalog: ReactNode }) {
             <ul className="navbar-nav">
               <li className="nav-item">
                 <Link className="nav-link" href="/stores/">
-                  Магазины
-                </Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" href="/service/">
-                  Сервисные центры
+                  Магазин на Автозаводской
                 </Link>
               </li>
               <li className="nav-item">
@@ -202,7 +197,7 @@ export default function TopBar({ catalog }: { catalog: ReactNode }) {
               </li>
               <li className="nav-item d-md-none">
                 <Link className="nav-link" href="/user/orders?track" rel="nofollow">
-                  Отслеживание заказа
+                  Состояние заказа
                 </Link>
               </li>
             </ul>

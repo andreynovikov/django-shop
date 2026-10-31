@@ -38,7 +38,7 @@ export default function ProductPreorder({ product }: { product: Product }) {
   return (
     <>
       <a className="btn btn-success btn-shadow d-block w-100" onClick={showModal} style={{ cursor: 'pointer' }}>
-        <i className="ci-loudspeaker fs-lg me-2" />Сообщить о поступлении
+        <i className="ci-loudspeaker fs-lg me-2" />Сообщить о поступлении в интернет-магазин
       </a>
       <Modal show={show} onHide={hideModal}>
         <ModalBody>

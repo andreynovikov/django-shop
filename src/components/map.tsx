@@ -7,7 +7,7 @@ import Script from 'next/script'
 
 import type { LngLat, YMapLocationRequest } from '@yandex/ymaps3-types'
 
-const DEFAULT_LOCATION: YMapLocationRequest = { center: [37.64, 55.76], zoom: 10 }
+const DEFAULT_LOCATION: YMapLocationRequest = { center: [37.658536, 55.706959], zoom: 16 }
 // Kept stable, a new default array on every render would move the map back to the default location
 const NO_FOCUS_POINTS: LngLat[] = []
 

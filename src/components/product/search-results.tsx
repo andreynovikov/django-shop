@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { useQueryStates, parseAsString, parseAsBoolean, parseAsInteger, parseAsArrayOf } from 'nuqs'
+import { useQueryStates, parseAsString, parseAsBoolean, parseAsInteger, parseAsArrayOf, parseAsNativeArrayOf } from 'nuqs'
 
 import { pageContentWrapper } from '@/components/layout/page-content-wrapper'
 import ProductSearchCard from '@/components/product/search-card'
@@ -19,6 +19,7 @@ import { useToolbar } from '@/lib/toolbar'
 import { useCatalog } from '@/lib/catalog/hooks'
 import rupluralize from '@/lib/rupluralize'
 import { baseFilters } from '@/lib/catalog'
+import ProductCard from './card'
 
 const pathname = '/search/'
 const pageSize = 15
@@ -26,7 +27,7 @@ const pageSize = 15
 const searchParams = {
   text: parseAsString,
   price: parseAsArrayOf(parseAsInteger, '-'),
-  manufacturer: parseAsArrayOf(parseAsString, ';'),
+  manufacturer: parseAsNativeArrayOf(parseAsInteger),
   available: parseAsBoolean.withDefault(false),
   page: parseAsInteger.withDefault(1),
 }
@@ -65,24 +66,26 @@ export default function SearchResults() {
   const productFilters = { ...filters, ...baseFilters }
 
   const { data: result, isSuccess, isLoading, isError } = useQuery({
-    queryKey: productKeys.list(filters.page || 1, 15, productFilters, null),
-    queryFn: () => loadProducts(filters.page || 1, 15, productFilters, null),
+    queryKey: productKeys.list(filters.page || 1, pageSize, productFilters, '-price'),
+    queryFn: () => loadProducts(filters.page || 1, pageSize, productFilters, '-price'),
     placeholderData: keepPreviousData // required for filters not to loose choices and attributes
   })
 
-  const pages = Math.ceil((result?.totalHits ?? 0) / pageSize)
-
   const priceFilter = useMemo(() => {
+    /*
     const priceFacet = result?.facets?.find((facet) => facet.name === 'price')
     if (priceFacet !== undefined)
       return Object.fromEntries(priceFacet.values.map((value) => [`${value.id}_value`, value.value]))
+    */
     return undefined
   }, [result])
 
   const brandsFilter = useMemo(() => {
+    /*
     const brandsFacet = result?.facets?.find((facet) => facet.name === 'brands')
     if (brandsFacet !== undefined && brandsFacet.values.length > 1)
       return brandsFacet.values.map((value) => [value.id, value.name])
+    */
     return undefined
   }, [result])
 
@@ -140,29 +143,29 @@ export default function SearchResults() {
           <section className="col-lg-8">
             <div className="d-flex justify-content-center justify-content-sm-between align-items-center pt-2 pb-4 pb-sm-5">
               <div className="d-flex pb-3">
-                {result.totalHits > 0 && (
+                {result.count > 0 && (
                   <span className="text-light opacity-75 text-nowrap">
-                    {rupluralize(result.totalHits, ['Найден', 'Найдены', 'Найдены'])}
-                    {' '}{result.totalHits}{' '}
-                    {rupluralize(result.totalHits, ['товар', 'товара', 'товаров'])}
+                    {rupluralize(result.count, ['Найден', 'Найдены', 'Найдены'])}
+                    {' '}{result.count}{' '}
+                    {rupluralize(result.count, ['товар', 'товара', 'товаров'])}
                   </span>
                 )}
               </div>
-              {pages > 1 && (
+              {result.totalPages > 1 && (
                 <SmallPageSelector
                   pathname={pathname}
                   query={query}
-                  totalPages={pages}
+                  totalPages={result.totalPages}
                   currentPage={filters.page} />
               )}
             </div>
 
             <div className="row mx-n2" itemScope itemType="http://schema.org/OfferCatalog">
               <meta itemProp="name" content="Результаты поиска" />
-              {result.totalHits > 0 ? (
-                result.products.map((product, index) => (
+              {result.count > 0 ? (
+                result.results.map((product, index) => (
                   <div className="col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
-                    <ProductSearchCard result={product} position={index} />
+                    <ProductCard product={product} gtmList="Результаты поиска" gtmPosition={index} />
                     <hr className="d-sm-none" />
                   </div>
                 ))
@@ -175,13 +178,13 @@ export default function SearchResults() {
               )}
             </div>
 
-            {pages > 1 && (
+            {result.totalPages > 1 && (
               <>
                 <hr className="my-3" />
                 <PageSelector
                   pathname={pathname}
                   query={query}
-                  totalPages={pages}
+                  totalPages={result.totalPages}
                   currentPage={filters.page} />
               </>
             )}

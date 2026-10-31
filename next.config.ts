@@ -89,6 +89,7 @@ const nextConfig: NextConfig = {
   sassOptions: {
     silenceDeprecations: ['import', 'if-function']
   },
+  allowedDevOrigins: ['janome.club'],
   logging: {
     browserToTerminal: true,
   },

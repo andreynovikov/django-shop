@@ -42,7 +42,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/sanitize-html": "^2.16.2",
-    "@yandex/ymaps3-types": "^1.0.21703254",
+    "@yandex/ymaps3-types": "^1.0.21772363",
     "eslint": "^10.13.0",
     "eslint-config-next": "^16.4.2",
     "sass": "^1.100.0",

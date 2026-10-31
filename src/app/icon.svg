@@ -1,6 +1,19 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg version="1.1" width="14mm" height="14mm" viewBox="0 0 1400 1400" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
-  <circle cx="700" cy="700" r="700" fill="#FEFEFE" />
-  <path fill="#3163AD" d="M482.27 564.73c139,-197 570,-150 595,165 25,316 -184,422 -369,452 -184,30 -447,-61 -525,-302 12,0 8,0 45,0l0 11c0,22 18,41 40,41l0 0c22,0 40,-19 40,-41l0 -12c137,0 333,-2 390,-2 89,-1 136,-78 135,-160 0,-83 -57,-150 -141,-151 -84,0 -133,-2 -210,-1z" />
-  <path fill="#21426B" d="M109.27 705.73c0,-324 264,-591 588,-591 324,0 588,264 588,588 0,324 -264,588 -588,588 -199,0 -375,-99 -481,-250 138,148 333,206 492,181 207,-33 444,-150 416,-498 -27,-340 -497,-397 -663,-197 -46,65 -56,117 -56,178l-115 0 -25 188 -31 -187 -125 0z" />
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Creator: CorelDRAW -->
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="8mm" height="8mm" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+viewBox="0 0 800 800"
+ xmlns:xlink="http://www.w3.org/1999/xlink"
+ xmlns:xodm="http://www.corel.com/coreldraw/odm/2003">
+ <defs>
+  <style type="text/css">
+   <![CDATA[
+    .fil0 {fill:#E21E30;fill-rule:nonzero}
+   ]]>
+  </style>
+ </defs>
+ <g id="Слой_x0020_1">
+  <metadata id="CorelCorpID_0Corel-Layer"/>
+  <path class="fil0" d="M244.69 559.25l16.85 22.46c16.85,19.65 39.3,30.88 64.57,33.69l16.84 -0.01c19.65,-2.81 39.31,-14.04 47.73,-33.69 8.43,-28.08 11.23,-56.16 11.23,-87.03l0 -443.61 241.45 0 0 466.07c2.81,64.57 -19.65,129.15 -58.96,179.68 -36.5,42.12 -98.26,64.57 -174.07,64.57 -56.15,2.82 -112.3,-11.22 -162.84,-39.3 -42.12,-25.27 -78.61,-58.96 -103.89,-103.89l0.02 -11.21 87.03 -64.57 14.04 16.84z"/>
+ </g>
 </svg>

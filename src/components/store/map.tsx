@@ -11,6 +11,7 @@ import { Store } from '@/lib/types'
 
 const storePins: Record<string, MarkerPin> = {
   sewingworld: { icon: '/i/shoplogos/marks/sewingworld.svg', color: '#3163ad' },
+  janome: { icon: '/i/shoplogos/marks/janome.svg', color: '#e21e30' },
   nadel: { icon: '/i/shoplogos/marks/nadel.svg', color: '#ffed00' },
 }
 
@@ -52,7 +53,7 @@ function StoreBalloon({ store }: { store: Store }) {
           <span className="d-inline-block align-top"><a href={store.url}>{store.url}</a></span>
         </div>
       )}
-      {store.logo !== 'sewingworld' && (
+      {store.logo !== 'janome' && (
         <small className="d-block mt-2 text-muted">
           *магазин-партнер. Рекламные акции Швейного Мира могут не действовать в этом магазине
         </small>

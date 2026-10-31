@@ -44,7 +44,7 @@ export default async function StorePage({ params }: PageProps<'/stores/[id]'>) {
     children: (
       <>
         <section className="container py-3 py-lg-5">
-          <p className="lead">Продажа швейных машин, оверлоков, вязальных машин и аксессуаров для рукоделия в г. {store.city.name}</p>
+          <p className="lead">Продажа швейных машин, оверлоков, плоскошовных и вышивальных машин и аксессуаров для рукоделия производства компании Janome в г. {store.city.name}</p>
         </section>
         <section className="container-fluid">
           <div className="row">

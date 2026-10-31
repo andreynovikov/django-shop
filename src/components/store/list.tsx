@@ -136,6 +136,7 @@ export function StoreList({ stores }: { stores: Store[] }) {
                 ))}
               </Collapsable>
             </div>
+            {/*
             <div className="d-flex gap-1 mt-1">
               {storeGroups.length > 0 && rows(storeGroups, cols).map((column, index) => (
                 <div key={index} style={{ flex: "1 1 0" }}>
@@ -165,6 +166,7 @@ export function StoreList({ stores }: { stores: Store[] }) {
                 </div>
               ))}
             </div>
+            */}
           </div>
         </div>
       </div>
@@ -227,15 +229,7 @@ export function StoreList({ stores }: { stores: Store[] }) {
                             </div>
                           </li>
                         )}
-                        {store.url && (
-                          <li className="d-flex pt-2 mt-2 mb-0 border-top">
-                            <i className="ci-dribbble fs-lg my-1 text-primary" />
-                            <div className="ps-3 fs-sm">
-                              <a className="nav-link-style" href={store.url}>{store.url}</a>
-                            </div>
-                          </li>
-                        )}
-                        {store.logo !== 'sewingworld' && (
+                        {store.logo !== 'janome' && (
                           <li className="pt-2 mt-2 mb-0">
                             <small className="text-muted">
                               Магазин-партнер: рекламные акции Швейного Мира могут не действовать в этом магазине

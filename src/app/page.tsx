@@ -32,21 +32,18 @@ interface ProductsSectionProps {
   products: ProductInfo[]
   id: string
   title: string
-  linkTitle: string
+  img: string
   href: string
 }
 
-function ProductsSection({ products, id, title, linkTitle, href }: ProductsSectionProps) {
+function ProductsSection({ products, id, title, img, href }: ProductsSectionProps) {
   return (
     <section id={id} className="container pt-5" itemScope itemType="http://schema.org/OfferCatalog">
-      <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
-        <h2 className="h3 mb-0 pt-3 me-2" itemProp="name">{title}</h2>
-        <div className="pt-3">
-          <Link className="btn btn-accent btn-sm" href={href}>
-            {linkTitle}
-            <i className="ci-arrow-right ms-1 me-n1" />
-          </Link>
-        </div>
+      <div className="d-flex flex-wrap align-items-end border-bottom border-header border-2 pt-1 pb-0 mb-4">
+        <div className="d-none d-sm-block"><img src={`/i/categories/${img}`} alt="*" /></div>
+        <Link href={href}>
+          <h2 className="h3 mb-0 pt-3 pb-2 me-2 flex-grow-1" itemProp="name">{title}</h2>
+        </Link>
       </div>
       <div className="row pt-2 mx-n2">
         {products.map((product, index) => (
@@ -56,7 +53,7 @@ function ProductsSection({ products, id, title, linkTitle, href }: ProductsSecti
           </div>
         ))}
       </div>
-    </section>
+    </section >
   )
 }
 
@@ -64,9 +61,11 @@ export default async function HomePage() {
   const recomendedProducts = await loadProducts(null, itemsPerSection, recomendedProductsFilters, sort)
   const newProducts = await loadProducts(null, itemsPerSection, newProductsFilters, sort)
 
-  const adverts = await loadAdverts(['main', 'index_top_new', 'index_middle_new', 'index_bottom_new'])
+  const adverts = await loadAdverts(['mainTop', 'mainMiddle', 'mainBottom', 'index_top_new', 'index_middle_new', 'index_bottom_new'])
 
-  const mainAdvert = adverts.find(advert => advert.place === 'main')
+  const mainTopAdvert = adverts?.find(advert => advert.place === 'mainTop')
+  const mainMiddleAdvert = adverts?.find(advert => advert.place === 'mainMiddle')
+  const mainBottomAdvert = adverts?.find(advert => advert.place === 'mainBottom')
   const topAdverts = adverts.filter(advert => advert.place === 'index_top_new')
   const middleAdverts = adverts.filter(advert => advert.place === 'index_middle_new')
   const bottomAdverts = adverts.filter(advert => advert.place === 'index_bottom_new')
@@ -74,19 +73,23 @@ export default async function HomePage() {
   return (
     <div className="mb-3">
       <section className="pb-5">
-        <div className="bg-dark py-5"></div>
-        <div className="py-3"></div>
+        <div className="bg-info">
+          <div className="d-none d-md-flex justify-content-between">
+            <div><img src="/i/tree_left.svg" /></div>
+            <div><img src="/i/tree_right.svg" /></div>
+          </div>
+        </div>
       </section>
 
-      <div className="d-flex flex-column position-relative pt-3 pt-lg-0 mt-n10" style={{ zIndex: 10 }}>
+      <div className="d-flex flex-column position-relative pt-3 pt-lg-0 mt-md-n25" style={{ zIndex: 10 }}>
         <section className="container order-2 order-sm-1">
           <TopCategoriesCard />
           <CurrentCatalog />
         </section>
 
-        {mainAdvert && (
+        {mainTopAdvert && (
           <section className="container pt-0 pt-sm-5 order-1 order-sm-2">
-            <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainAdvert.content }} />
+            <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainTopAdvert.content }} />
           </section>
         )}
       </div>
@@ -94,16 +97,49 @@ export default async function HomePage() {
       <Adverts adverts={topAdverts} />
 
       {recomendedProducts.results.length > 0 && (
-        <ProductsSection products={recomendedProducts.results} id="sw-recomended" title="Специальные предложения" linkTitle="Больше специальных предложений" href="/catalog/promo/" />
+        <ProductsSection products={recomendedProducts.results} id="sw-recomended" title="Специальные предложения" img="heart.svg" href="/catalog/promo/" />
+      )}
+
+      {mainMiddleAdvert && (
+        <section className="container pt-0 pt-sm-5 order-1 order-sm-2">
+          <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainMiddleAdvert.content }} />
+        </section>
       )}
 
       <Adverts adverts={middleAdverts} />
 
       {newProducts.results.length > 0 && (
-        <ProductsSection products={newProducts.results} id="sw-new" title="Новинки" linkTitle="Больше новинок" href="/catalog/New/" />
+        <ProductsSection products={newProducts.results} id="sw-new" title="Новинки" img="stars.svg" href="/catalog/New/" />
+      )}
+
+      {mainBottomAdvert && (
+        <section className="container pt-0 pt-sm-5 order-1 order-sm-2">
+          <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainBottomAdvert.content }} />
+        </section>
       )}
 
       <Adverts adverts={bottomAdverts} />
+
+      <div className="container text-center">
+        <div className="row">
+          <div className="col-md-3 p-4">
+            <h2 className="text-primary">Бренд №1</h2>
+            <p>по&nbsp;объёму продаж швейного оборудования в&nbsp;мире</p>
+          </div>
+          <div className="col-md-3 p-4">
+            <h2 className="text-primary">3 собственных завода</h2>
+            <p>в Японии, Таиланде и на Тайване</p>
+          </div>
+          <div className="col-md-3 p-4">
+            <h2 className="text-primary">Официальные</h2>
+            <p>поставки в&nbsp;Россию</p>
+          </div>
+          <div className="col-md-3 p-4">
+            <h2 className="text-primary">В 1921 году</h2>
+            <p>основана первая фабрика в&nbsp;Японии</p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

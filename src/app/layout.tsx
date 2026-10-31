@@ -38,11 +38,11 @@ const rubik = localFont({
 
 export const metadata: Metadata = {
   title: {
-    template: '%s - Швейный Мир',
-    default: 'Швейный Мир',
+    template: '%s - Janome.Club',
+    default: 'Janome.Club',
   },
-  description: 'Швейный Мир - швейные, вышивальные и вязальные машины, оверлоки и аксессуары',
-  keywords: 'швейные машины, вышивальные и вязальные машины, оверлоки и аксессуары во всероссийской сети супермаркетов Швейный Мир, швейная, швейные, вышивальная, вышивальные, вязальная, вязальные, машинка, машина, машинки, машины, оверлок, оверлоки,  шитье, вышивка, вязание, купить, интернет, магазин, pfaff, brother, janome, bernina, husqvarna, huskystar, viking, оверлок, строчка, петля, челнок, стежок, ткань, рукав',
+  description: 'Janome - швейные машины, вышивальные машины, оверлоки и аксессуары',
+  keywords: 'швейные машины, вышивальные машины, оверлоки и аксессуары Janome',
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION,
     yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION,

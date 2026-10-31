@@ -1,11 +1,10 @@
 export const baseFilters = {
   enabled: true,
-  show_on_sw: true,
 }
 
 export const recomendedProductsFilters = {
   ...baseFilters,
-  categories: 473,
+  categories: 743,
   firstpage: true,
 }
 
