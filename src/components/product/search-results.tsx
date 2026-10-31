@@ -13,13 +13,12 @@ import PageSelector, { SmallPageSelector } from '@/components/page-selector'
 import { PageLoading } from '@/components/loading'
 import Offcanvas, { OffcanvasHeader, OffcanvasBody } from '@/components/ui/offcanvas'
 
-import { productKeys } from '@/lib/queries'
-import { ProductSearchParamsType } from '@/lib/search-params'
-import { loadProducts } from '@/lib/diginetica'
+import { productKeys, loadProducts } from '@/lib/queries'
 import { convertSearchParams } from '@/lib/navigation/app-provider'
 import { useToolbar } from '@/lib/toolbar'
 import { useCatalog } from '@/lib/catalog/hooks'
 import rupluralize from '@/lib/rupluralize'
+import { baseFilters } from '@/lib/catalog'
 
 const pathname = '/search/'
 const pageSize = 15
@@ -63,10 +62,11 @@ export default function SearchResults() {
 
   useToolbar(toolbarItem)
 
+  const productFilters = { ...filters, ...baseFilters }
+
   const { data: result, isSuccess, isLoading, isError } = useQuery({
-    // Diginetica filters differ from the backend ones, the key only needs to tell them apart
-    queryKey: productKeys.search(filters.text ?? '', filters as unknown as ProductSearchParamsType, ''),
-    queryFn: () => loadProducts(filters.text ?? '', filters.page, pageSize, filters),
+    queryKey: productKeys.list(filters.page || 1, 15, productFilters, null),
+    queryFn: () => loadProducts(filters.page || 1, 15, productFilters, null),
     placeholderData: keepPreviousData // required for filters not to loose choices and attributes
   })
 

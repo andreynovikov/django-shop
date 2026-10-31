@@ -5,8 +5,8 @@ import Link from 'next/link'
 import { CategoryTree, CategoryTreeItem } from '@/lib/types'
 import { columns, rows } from '@/lib/partition'
 
-const first = [14, 15, 16, 17]
-const other = [339, 473, 324, 14, 15, 16, 17] // other than these
+const first = [3, 4, 5, 6, 744]
+const other = [743, 3, 4, 5, 6, 744, 745] // other than these
 
 // Kept free of hooks so App Router server components can render it
 export default function Catalog({ categories }: { categories: CategoryTree }) {
@@ -16,8 +16,6 @@ export default function Catalog({ categories }: { categories: CategoryTree }) {
       specialCategories[0] = category
     if (category.slug === 'promo')
       specialCategories[1] = category
-    if (category.slug === 'Discount')
-      specialCategories[2] = category
   }
   const [categoryNew, categoryPromo, categoryDiscount] = specialCategories
 
@@ -103,17 +101,6 @@ export default function Catalog({ categories }: { categories: CategoryTree }) {
               )}
             </div>
           ))}
-
-          <div className="d-flex flex-wrap flex-md-nowrap justify-content-between mt-4">
-            <Link className="w-100 d-flex align-items-center bg-faded-success rounded-3 py-2 ps-2 mx-0 mx-md-2" href={`/catalog/${categoryDiscount!.slug}/`}>
-              {categoryDiscount!.image && <img className="sw-category-image" loading="lazy" src={categoryDiscount!.image} alt={categoryDiscount!.name} />}
-              <div className="py-4 px-3">
-                <div className="h5 mb-2">{categoryDiscount!.name}</div>
-                <div className="text-success fs-sm">Посмотреть все<i className="ci-arrow-right fs-xs ml-1" /></div>
-              </div>
-            </Link>
-            <div className="d-none d-lg-flex w-100 py-2 ps-2 mx-0 mx-md-2"></div>
-          </div>
         </>
       )}
     </div>
