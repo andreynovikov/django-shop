@@ -176,7 +176,7 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
                     {product.enabled && product.cost > 0 && (
                       <div className="d-flex flex-row xalign-items-baseline mb-3">
                         <div className="h3 fw-normal text-accent flex-shrink-1">
-                          <ProductPrice product={product} delFs="lg" />
+                          <ProductPrice product={product} delFs="lg" microdata />
                         </div>
                         <div className="ms-3 text-end w-100">
                           {product.discount > 0 && (
