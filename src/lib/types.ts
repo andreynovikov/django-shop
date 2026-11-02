@@ -581,6 +581,8 @@ export type UserForm = Array<UserFormField>
 export interface UserCheck {
   phone: string
   permanent_password: boolean
+  retry_after: number
+  attempts_left: number
 }
 
 export interface UserBonus {

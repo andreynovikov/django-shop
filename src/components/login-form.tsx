@@ -14,9 +14,6 @@ import { useSession } from '@/lib/session'
 import { useNavigation } from '@/lib/navigation'
 import { checkUser, normalizePhone, HttpError, LoginCredentials } from '@/lib/queries'
 
-const CODE_RESEND_DELAY = 240
-const CODE_MAX_ATTEMPTS = 5 // the backend discards the code after that many wrong attempts
-
 type FieldErrors = Record<string, string>
 
 interface LoginFormProps {
@@ -63,8 +60,8 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
   const [isSignInPending, setSignInPending] = useState(false)
   const [error, setError] = useState<FieldErrors>({})
 
-  const [delay, setDelay] = useState(-1) // TODO: keep delay on page reload
-  const [codeAttempts, setCodeAttempts] = useState(0)
+  const [delay, setDelay] = useState(-1)
+  const [codeAttemptsLeft, setCodeAttemptsLeft] = useState(0)
 
   const [showPermanentPassword, setShowPermanentPassword] = useState(ctx === 'reg')
 
@@ -80,8 +77,8 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
   } = useMutation({
     mutationFn: ({ phone, reset }: { phone: string, reset: boolean }) => checkUser(phone, reset),
     onSuccess: (data) => {
-      setDelay(data.permanent_password ? 0 : CODE_RESEND_DELAY)
-      setCodeAttempts(0)
+      setDelay(data.retry_after)
+      setCodeAttemptsLeft(data.attempts_left)
     },
     onError: async (error, { phone }) => {
       console.log(error)
@@ -100,6 +97,8 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
         } else {
           setError({ phone: "Пользователь с таким телефоном не зарегистрирован" })
         }
+      } else if (error instanceof HttpError && error.status === 429) {
+        setError({ phone: "Слишком много запросов, попробуйте позже" })
       }
     }
   })
@@ -194,7 +193,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
             setError({ password: "Вы ввели неправильный пароль" })
           } else {
             setError({ password: "Неверный или устаревший код" })
-            setCodeAttempts(attempts => attempts + 1)
+            setCodeAttemptsLeft(attempts => attempts - 1)
           }
         } else {
           setError(getError('password', 'error' in result ? result.error : undefined))
@@ -245,7 +244,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
               autoFocus />
             {'password' in error && <div className="invalid-feedback">{error.password}</div>}
             <div className="form-text">
-              <Countdown delay={codeAttempts < CODE_MAX_ATTEMPTS ? delay : 0} permanentPassword={shopUser.permanent_password} reset={resetPassword} />
+              <Countdown delay={codeAttemptsLeft > 0 ? delay : 0} permanentPassword={shopUser.permanent_password} reset={resetPassword} />
             </div>
           </div>
           {!['order', 'preorder', 'warranty'].includes(ctx) && !shopUser.permanent_password && (
