@@ -20,6 +20,7 @@ import { checkContract } from './contract'
 const NOT_AUTHENTICATED = 'Учетные данные не были предоставлены.'
 const PERMISSION_DENIED = 'У вас недостаточно прав для выполнения данного действия.'
 const NOT_FOUND = 'Не найдено.'
+const THROTTLED = 'Запрос был проигнорирован.'
 const PHONE_TAKEN = 'Пользователь с указанным номером уже зарегестрирован'
 const EMAIL_TAKEN = 'Пользователь с указанным адресом уже зарегестрирован'
 const USERNAME_TAKEN = 'Пользователь с указанным псевдонимом уже зарегестрирован'
@@ -37,10 +38,18 @@ const PAYMENT_TEXTS: Record<number, string> = {
 
 const PAGE_SIZE = 20
 const CODE_MAX_ATTEMPTS = 5
+const CODE_RESEND_DELAY = 240
+const CODES_PER_PHONE = 5 // check_phone throttle, smsLog holds what it counts
+
+interface LoginCode {
+  code: string
+  attempts: number
+  issued: number // a timestamp
+}
 
 export interface FakeUser extends User {
   password?: string // the permanent password
-  loginCode?: { code: string, attempts: number } // the last SMS code, until it is used up
+  loginCode?: LoginCode // the last SMS code, until it is used up
 }
 
 export interface LoggedRequest {
@@ -62,6 +71,9 @@ const ok = (body: unknown): FakeResponse => ({ status: 200, body })
 const noContent = (): FakeResponse => ({ status: 204 })
 const notAuthenticated = (): FakeResponse => ({ status: 403, body: { detail: NOT_AUTHENTICATED } })
 const notFound = (): FakeResponse => ({ status: 404, body: { detail: NOT_FOUND } })
+const throttled = (): FakeResponse => ({ status: 429, body: { detail: THROTTLED } })
+
+const retryAfter = ({ issued }: LoginCode) => Math.max(0, Math.ceil((issued - Date.now()) / 1000) + CODE_RESEND_DELAY)
 
 export function normalizePhone(phone: string) {
   const digits = phone.replaceAll(/\D/g, '')
@@ -225,6 +237,11 @@ export class FakeBackend {
     return this.orders.at(-1)
   }
 
+  // As if the code was sent that many seconds earlier
+  ageLoginCode(phone: string, seconds: number) {
+    this.findUser(phone)!.loginCode!.issued -= seconds * 1000
+  }
+
   lastSmsCode(phone: string) {
     const normalized = normalizePhone(phone)
     return this.smsLog.findLast(sms => sms.phone === normalized)?.code
@@ -319,19 +336,30 @@ export class FakeBackend {
     return { status: 201, body: this.userJson(user) }
   }
 
-  // Starts an SMS login, the code is in smsLog instead
+  // Starts an SMS login, the code is in smsLog instead. Follows UserViewSet.check
   private check(phone: string, body: Body) {
     const user = this.findUser(phone)
     if (user === undefined)
       return notFound()
     const permanent = user.permanent_password
     const reset = Boolean(body.reset)
+    let loginCode: LoginCode | undefined
     if (!permanent || reset) {
-      const code = String(100000 + Math.floor(Math.random() * 900000))
-      user.loginCode = { code, attempts: 0 }
-      this.smsLog.push({ phone: user.phone, code })
+      loginCode = user.loginCode
+      if (loginCode === undefined || retryAfter(loginCode) === 0) {
+        if (this.smsLog.filter(sms => sms.phone === user.phone).length >= CODES_PER_PHONE)
+          return throttled()
+        const code = String(100000 + Math.floor(Math.random() * 900000))
+        loginCode = user.loginCode = { code, attempts: 0, issued: Date.now() }
+        this.smsLog.push({ phone: user.phone, code })
+      }
     }
-    return ok({ phone: user.phone, permanent_password: permanent && !reset })
+    return ok({
+      phone: user.phone,
+      permanent_password: permanent && !reset,
+      retry_after: loginCode ? retryAfter(loginCode) : 0,
+      attempts_left: loginCode ? CODE_MAX_ATTEMPTS - loginCode.attempts : 0,
+    })
   }
 
   private login(body: Body) {

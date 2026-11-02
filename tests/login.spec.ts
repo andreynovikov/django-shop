@@ -126,6 +126,76 @@ test('new code can be requested at once when attempts run out', async ({ page, b
   expect(backend.user?.id).toBe(user.id)
 })
 
+test('reload keeps the code and its attempts', async ({ page, backend }) => {
+  const user = backend.addUser()
+  await page.goto(`/login/?phone=${encodeURIComponent(user.phone)}`)
+
+  const code = page.getByPlaceholder('Код из смс')
+  const resend = page.getByText('Прислать код повторно')
+  await expect(code).toBeVisible()
+  await code.fill('000000')
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    await page.getByRole('button', { name: 'Продолжить' }).click()
+    await expect.poll(() => backend.requestsTo('POST', 'users/login/').length).toBe(attempt)
+    await expect(page.getByText('Неверный или устаревший код')).toBeVisible()
+  }
+
+  await page.reload()
+  await expect(code).toBeVisible()
+  expect(backend.smsLog).toHaveLength(1)
+  await expect(resend).toHaveCount(0)
+
+  // the last attempt, with no delay to wait out after it
+  await code.fill('000000')
+  await page.getByRole('button', { name: 'Продолжить' }).click()
+  await expect(resend).toBeVisible()
+})
+
+test('phone typed again after a reload gets no new code', async ({ page, backend }) => {
+  const user = backend.addUser()
+  await typePhone(phoneInput(page), '9161234567')
+  await page.getByRole('button', { name: 'Войти' }).click()
+  const code = page.getByPlaceholder('Код из смс')
+  await expect(code).toBeVisible()
+
+  await page.reload()
+  await focusPhone(phoneInput(page))
+  await typePhone(phoneInput(page), '9161234567')
+  await page.getByRole('button', { name: 'Войти' }).click()
+  await expect(code).toBeVisible()
+  expect(backend.smsLog).toHaveLength(1)
+
+  await code.fill(backend.lastSmsCode(user.phone)!)
+  await page.getByRole('button', { name: 'Продолжить' }).click()
+  await expect(page).toHaveURL('/')
+})
+
+test('resend delay goes on after a reload', async ({ page, backend }) => {
+  const user = backend.addUser()
+  await page.goto(`/login/?phone=${encodeURIComponent(user.phone)}`)
+  await expect(page.getByText('Код выслан на указанный телефон по смс')).toBeVisible()
+
+  backend.ageLoginCode(user.phone, 120)
+  await page.reload()
+  await expect(page.getByText(/можно через (2 минуты|1 минуту)/)).toBeVisible()
+  expect(backend.smsLog).toHaveLength(1)
+
+  backend.ageLoginCode(user.phone, 120)
+  await page.reload()
+  await expect(page.getByText('Код выслан на указанный телефон по смс')).toBeVisible()
+  expect(backend.smsLog).toHaveLength(2)
+})
+
+test('limit of sent codes is explained', async ({ page, backend }) => {
+  const user = backend.addUser()
+  backend.smsLog.push(...Array(5).fill({ phone: user.phone, code: '123456' }))
+  await typePhone(phoneInput(page), '9161234567')
+  await page.getByRole('button', { name: 'Войти' }).click()
+
+  await expect(page.getByText('Слишком много запросов, попробуйте позже')).toBeVisible()
+  expect(backend.smsLog).toHaveLength(5)
+})
+
 test.describe('phone input', () => {
   test.beforeEach(({ backend }) => {
     backend.addUser()
