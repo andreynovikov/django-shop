@@ -41,7 +41,7 @@ export default function Favorites() {
         isSuccess && products.results.map((product, index) => (
           <div className={"d-sm-flex justify-content-between mt-lg-4 mb-4 pb-3 pb-sm-2" + (index < favorites.length - 1 ? " border-bottom" : "")} key={product.id}>
             <div className="d-block d-sm-flex align-items-start text-center text-sm-start">
-              <Link className="d-block flex-shrink-0 mx-auto me-sm-4" style={{ width: "10rem" }} href={{ pathname: '/products/[code]', query: { code: product.code } }}>
+              <Link className="d-block flex-shrink-0 mx-auto me-sm-4" style={{ width: "10rem" }} href={`/products/${product.code}`}>
                 {product.image ? (
                   <div className="position-relative" style={{ width: 160, height: 160 }}>
                     <Image
@@ -57,7 +57,7 @@ export default function Favorites() {
               </Link>
               <div className="pt-2">
                 <h3 className="product-title fs-base mb-2">
-                  <Link href={{ pathname: '/products/[code]', query: { code: product.code } }}>
+                  <Link href={`/products/${product.code}`}>
                     {product.title}
                   </Link>
                 </h3>

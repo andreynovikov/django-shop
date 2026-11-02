@@ -47,7 +47,7 @@ export default function CartItem({ item, first, last, removeItem, setQuantity }:
   return (
     <div className={"d-sm-flex justify-content-between align-items-center my-2 " + (first ? "pb-3" : "py-3") + (!last && " border-bottom")}>
       <div className="d-block d-sm-flex align-items-center text-center text-sm-start">
-        <Link className="d-inline-block flex-shrink-0 mx-auto me-sm-4" href={{ pathname: '/products/[code]', query: { code: item.product.code } }}>
+        <Link className="d-inline-block flex-shrink-0 mx-auto me-sm-4" href={`/products/${item.product.code}`}>
           {item.product.image ? (
             <div className="position-relative" style={{ width: 160, height: 160 }}>
               <Image
@@ -63,7 +63,7 @@ export default function CartItem({ item, first, last, removeItem, setQuantity }:
         </Link>
         <div className="pt-2">
           <h3 className="product-title fs-base mb-2">
-            <Link href={{ pathname: '/products/[code]', query: { code: item.product.code } }}>
+            <Link href={`/products/${item.product.code}`}>
               {item.product.title}
             </Link>
           </h3>

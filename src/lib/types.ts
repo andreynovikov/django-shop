@@ -49,7 +49,7 @@ export interface CategoryTreeItem {
 
 export type CategoryTree = Array<CategoryTreeItem>
 
-interface CategoryBrief {
+export interface CategoryBrief {
   id: number
   name: string
   slug: string
@@ -499,6 +499,8 @@ export interface SalesAction {
   name: string
   slug: string
   show_products: boolean
+  notice: string
+  brief: string
   description: string
   image: string | undefined
   image_width: number | undefined

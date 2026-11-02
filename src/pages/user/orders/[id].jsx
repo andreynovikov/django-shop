@@ -287,7 +287,7 @@ export default function Order({ id }) {
       {order.items.map((item, index) => (
         <div className={"d-sm-flex justify-content-between pb-3 pb-sm-2 " + (index === 0 ? "mb-3" : "my-3") + (!(index === order.items.length - 1) && " border-bottom")} key={item.product.id}>
           <div className="d-sm-flex text-center text-sm-start">
-            <Link className="d-inline-block flex-shrink-0 mx-auto position-relative" style={{ width: "10rem" }} href={{ pathname: '/products/[code]', query: { code: item.product.code } }}>
+            <Link className="d-inline-block flex-shrink-0 mx-auto position-relative" style={{ width: "10rem" }} href={`/products/${item.product.code}`}>
               {item.product.image ? (
                 <Image
                   src={item.product.image}
@@ -301,7 +301,7 @@ export default function Order({ id }) {
             </Link>
             <div className="ps-sm-4 pt-2">
               <h3 className="product-title fs-base mb-2">
-                <Link href={{ pathname: '/products/[code]', query: { code: item.product.code } }}>
+                <Link href={`/products/${item.product.code}`}>
                   {item.product.title}
                 </Link>
               </h3>
