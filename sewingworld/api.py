@@ -1,5 +1,4 @@
 import logging
-from random import randint
 
 from django.conf import settings
 from django.contrib.auth import login, logout
@@ -39,7 +38,7 @@ from yandex_kassa.views import payment as yandex_payment
 # from rarus.tasks import get_bonus_value
 from shop.filters import get_product_filter
 from shop.models import Category, ProductKind, Product, ProductSet, Stock, Basket, BasketItem, Order, OrderItem, \
-    Favorites, ShopUser, ShopUserManager, Bonus, News, SalesAction, Advert, Store, ServiceCenter, Serial, Integration, ProductIntegration
+    Favorites, ShopUser, ShopUserManager, LoginCode, Bonus, News, SalesAction, Advert, Store, ServiceCenter, Serial, Integration, ProductIntegration
 from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail
 
 from .models import SiteProfile
@@ -964,11 +963,8 @@ class UserViewSet(viewsets.ModelViewSet):
         permanent_password = getattr(user, 'permanent_password', False)
         reset = request.data.get('reset', False)
         if not permanent_password or reset:
-            password = str(randint(1000, 9999))
-            user.set_password(password)
-            user.permanent_password = False
-            user.save()
-            send_password.delay(user.phone, password)
+            # Nothing changes for user until the code is proven, see LoginSerializer
+            send_password.delay(user.phone, LoginCode.issue(user))
         return Response({
             'phone': getattr(user, 'phone', None),
             'permanent_password': permanent_password and not reset

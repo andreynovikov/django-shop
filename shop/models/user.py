@@ -1,14 +1,18 @@
 import re
 import logging
+import secrets
+
+from datetime import timedelta
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
+from django.utils.crypto import constant_time_compare, salted_hmac
 
 # from tagging.fields import TagField
 
 __all__ = [
-    'ShopUserManager', 'ShopUser'
+    'ShopUserManager', 'ShopUser', 'LoginCode'
 ]
 
 logger = logging.getLogger(__name__)
@@ -134,3 +138,48 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
             return "%s (%s)" % (self.name, self.phone)
         else:
             return self.phone
+
+
+class LoginCode(models.Model):
+    """ One-time code sent by SMS, a user has at most one: requesting a new code replaces the previous """
+    LIFETIME = timedelta(minutes=5)
+    MAX_ATTEMPTS = 5
+
+    user = models.OneToOneField(ShopUser, verbose_name='пользователь', on_delete=models.CASCADE, related_name='login_code')
+    code_hash = models.CharField('хэш кода', max_length=64)
+    expires = models.DateTimeField('действует до')
+    attempts = models.PositiveSmallIntegerField('попытки', default=0)
+
+    class Meta:
+        verbose_name = 'код для входа'
+        verbose_name_plural = 'коды для входа'
+
+    @staticmethod
+    def hash_code(user, code):
+        return salted_hmac('shop.LoginCode', '%s:%s' % (user.pk, code), algorithm='sha256').hexdigest()
+
+    @classmethod
+    def issue(cls, user):
+        code = '%06d' % secrets.randbelow(10 ** 6)
+        cls.objects.update_or_create(user=user, defaults={
+            'code_hash': cls.hash_code(user, code),
+            'expires': timezone.now() + cls.LIFETIME,
+            'attempts': 0,
+        })
+        return code
+
+    @classmethod
+    def verify(cls, user, code):
+        """ Returns True if code is valid. It is used up then, as it is when it expires or attempts run out. """
+        with transaction.atomic():
+            login_code = cls.objects.select_for_update().filter(user=user).first()
+            if login_code is None:
+                return False
+            expired = login_code.expires <= timezone.now()
+            matched = not expired and constant_time_compare(login_code.code_hash, cls.hash_code(user, code))
+            login_code.attempts += 1
+            if matched or expired or login_code.attempts >= cls.MAX_ATTEMPTS:
+                login_code.delete()
+            else:
+                login_code.save(update_fields=['attempts'])
+            return matched

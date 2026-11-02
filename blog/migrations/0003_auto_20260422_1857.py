@@ -4,15 +4,13 @@ from django.db import migrations
 
 
 def copy_tags(apps, schema_editor):
-    from tagging.utils import parse_tag_input
     model = apps.get_model('blog', 'Entry')
     for obj in model.objects.all():
-        obj.tags_new = parse_tag_input(obj.tags)
+        obj.tags_new = []
         obj.save()
 
 
 def clean_tags(apps, schema_editor):
-    from tagging.utils import parse_tag_input
     model = apps.get_model('blog', 'Entry')
     for obj in model.objects.all():
         obj.tags_new.clear()

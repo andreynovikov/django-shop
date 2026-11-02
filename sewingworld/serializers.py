@@ -1,6 +1,5 @@
 import logging
 from collections import OrderedDict
-from random import randint
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -21,7 +20,7 @@ from sewingworld.templatetags.gravatar import get_gravatar_url
 
 from shop.filters import get_product_filter
 from shop.models import Basket, BasketItem, Order, OrderItem, Favorites, Serial, \
-    Category, Product, ProductRelation, ProductKind, Stock, ShopUser, ShopUserManager, Bonus, \
+    Category, Product, ProductRelation, ProductKind, Stock, ShopUser, ShopUserManager, LoginCode, Bonus, \
     Country, City, Store, ServiceCenter, News, Advert, SalesAction, Manufacturer, \
     Integration
 
@@ -425,6 +424,7 @@ class ProductSerializer(NonNullModelSerializer):
             raise NotFound()
         return data
 
+
 class StockSerializer(serializers.ModelSerializer):
     product = serializers.CharField(source='product.code')
     supplier = serializers.CharField(source='supplier.code')
@@ -699,23 +699,36 @@ class LoginSerializer(serializers.Serializer):
     permanent_password = serializers.CharField(required=False)
     ctx = serializers.CharField(required=False)
 
+    def check_credentials(self, phone, password):
+        """ Password field holds either SMS code or permanent password """
+        user = ShopUser.objects.filter(phone=phone, is_active=True).first()
+        if user is None or password is None:
+            return None
+        if LoginCode.verify(user, password):
+            # Phone is proven: as always with SMS login, drop the password and sessions opened with it,
+            # such as the one that created account silently. Staff need their password in admin.
+            if not user.is_staff:
+                user.set_unusable_password()
+                user.permanent_password = False
+                user.save()
+            return user
+        if user.permanent_password:  # otherwise it can only be a code left from when they were stored as passwords
+            return authenticate(phone=phone, password=password)
+        return None
+
     def validate(self, data):
         norm_phone = ShopUserManager.normalize_phone(data['phone'])
         exists = ShopUser.objects.filter(phone=norm_phone).exists()
         if not exists and data.get('ctx', None) in ('order', 'preorder', 'warranty'):
-            # Silently create user if they are creating order or registering warranty
-            user = ShopUser.objects.create(phone=norm_phone)
-            password = str(randint(1000, 9999))
-            user.set_password(password)
-            user.save()
-            user = authenticate(phone=norm_phone, password=password)
+            # Silently create user if they are creating order or registering warranty. Phone
+            # is not proven, so account gets no password until owner logs in with SMS code.
+            user = ShopUser.objects.create_user(norm_phone)
             user.registered = True
-        else:
-            user = authenticate(**data)
-            if user:
-                user.registered = False
+            return user
 
-        if user and user.is_active:
+        user = self.check_credentials(norm_phone, data.get('password'))
+        if user:
+            user.registered = False
             if 'permanent_password' in data and len(data['permanent_password']):
                 user.set_password(data['permanent_password'])
                 user.permanent_password = True

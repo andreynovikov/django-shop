@@ -10,13 +10,14 @@ The same codebase is deployed many times, once per site (sewing-world, janome, s
 
 ## Commands
 
-There is no test suite and no CI for this branch (the only workflow builds a Docker image from the `cartzilla` branch).
+Tests are in `tests/` and so far cover only the SMS login. There is no CI for this branch (the only workflow builds a Docker image from the `cartzilla` branch).
 
 ```bash
 python3 -m venv env && source env/bin/activate
 pip install -r requirements.txt
 flake8                                  # lint; E501 (line length) is ignored, see .flake8
 python manage.py check
+python manage.py test tests --settings=tests.settings   # needs a Postgres role with CREATEDB, see tests/settings.py
 python manage.py runserver
 python manage.py makemigrations <app>
 celery -A sewingworld worker -Q default,priority,integrations,import,revalidation
