@@ -119,7 +119,7 @@ def page_saved(sender, **kwargs):
         revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
 
 
-@receiver(post_save, sender=Store, dispatch_uid='sales_action_saved_receiver')
+@receiver(post_save, sender=SalesAction, dispatch_uid='sales_action_saved_receiver')
 def sales_action_saved(sender, **kwargs):
     action = kwargs['instance']
     sites = action.sites.exclude(profile__revalidation_token__exact='')
@@ -130,7 +130,7 @@ def sales_action_saved(sender, **kwargs):
     for site in sites:
         revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
     payload = {
-        'model': 'stores',
+        'model': 'actions',
     }
     for site in sites:
         revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
