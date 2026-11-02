@@ -64,7 +64,7 @@ export default async function SalesActionPage({ params }: PageProps<'/actions/[s
             alt={action.name}
             preload />
         )}
-        <div dangerouslySetInnerHTML={{ __html: action.description }}></div>
+        {action.description && <div dangerouslySetInnerHTML={{ __html: action.description }}></div>}
         {products !== undefined && (
           <>
             <div className="row pt-2 mx-n2" itemScope itemType="http://schema.org/OfferCatalog">
