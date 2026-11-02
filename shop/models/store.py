@@ -70,7 +70,6 @@ class StoreImage(models.Model):
         (KIND_ENTRANCE, 'вход'),
         (KIND_LOGO, 'логотип'),
         (KIND_GOODS, 'товары'),
-        (KIND_FOOD, 'блюда, напитки')
     )
     store = models.ForeignKey(Store, related_name='images', on_delete=models.CASCADE)
     image = models.ImageField('изображение', upload_to='stores', width_field='image_width', height_field='image_height')
