@@ -36,9 +36,11 @@ const PAYMENT_TEXTS: Record<number, string> = {
 }
 
 const PAGE_SIZE = 20
+const CODE_MAX_ATTEMPTS = 5
 
 export interface FakeUser extends User {
-  password?: string // the last SMS code, or the permanent password
+  password?: string // the permanent password
+  loginCode?: { code: string, attempts: number } // the last SMS code, until it is used up
 }
 
 export interface LoggedRequest {
@@ -325,9 +327,8 @@ export class FakeBackend {
     const permanent = user.permanent_password
     const reset = Boolean(body.reset)
     if (!permanent || reset) {
-      const code = String(1000 + Math.floor(Math.random() * 9000))
-      user.password = code
-      user.permanent_password = false
+      const code = String(100000 + Math.floor(Math.random() * 900000))
+      user.loginCode = { code, attempts: 0 }
       this.smsLog.push({ phone: user.phone, code })
     }
     return ok({ phone: user.phone, permanent_password: permanent && !reset })
@@ -336,20 +337,37 @@ export class FakeBackend {
   private login(body: Body) {
     const phone = normalizePhone(String(body.phone ?? ''))
     let user = this.findUser(phone)
-    let registered = false
     if (user === undefined && ['order', 'preorder', 'warranty'].includes(String(body.ctx))) {
-      // the backend silently registers a buyer, without sending a code
+      // the backend silently registers a buyer, without sending a code or taking a permanent password
       user = this.addUser({ phone, name: '', username: '' })
-      registered = true
-    } else if (user === undefined || !body.password || body.password !== user.password) {
-      return notAuthenticated()
+      this.sessionUserId = user.id
+      return ok({ id: user.id, registered: true })
     }
+    if (user === undefined || !body.password || !this.checkCredentials(user, String(body.password)))
+      return notAuthenticated()
     if (typeof body.permanent_password === 'string' && body.permanent_password.length > 0) {
       user.password = body.permanent_password
       user.permanent_password = true
     }
     this.sessionUserId = user.id
-    return ok({ id: user.id, registered })
+    return ok({ id: user.id, registered: false })
+  }
+
+  // Follows LoginSerializer.check_credentials and LoginCode.verify, except that codes don't expire here
+  private checkCredentials(user: FakeUser, password: string) {
+    const loginCode = user.loginCode
+    if (loginCode !== undefined) {
+      loginCode.attempts++
+      if (password === loginCode.code) {
+        user.loginCode = undefined
+        user.password = undefined
+        user.permanent_password = false
+        return true
+      }
+      if (loginCode.attempts >= CODE_MAX_ATTEMPTS)
+        user.loginCode = undefined
+    }
+    return user.permanent_password && password === user.password
   }
 
   private updateUser(user: FakeUser, body: Body) {
@@ -522,7 +540,7 @@ export class FakeBackend {
 
   private userJson(user: FakeUser): User {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...json } = user
+    const { password, loginCode, ...json } = user
     return json
   }
 

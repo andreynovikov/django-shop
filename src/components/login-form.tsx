@@ -15,6 +15,7 @@ import { useNavigation } from '@/lib/navigation'
 import { checkUser, normalizePhone, HttpError, LoginCredentials } from '@/lib/queries'
 
 const CODE_RESEND_DELAY = 240
+const CODE_MAX_ATTEMPTS = 5 // the backend discards the code after that many wrong attempts
 
 type FieldErrors = Record<string, string>
 
@@ -63,6 +64,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
   const [error, setError] = useState<FieldErrors>({})
 
   const [delay, setDelay] = useState(-1) // TODO: keep delay on page reload
+  const [codeAttempts, setCodeAttempts] = useState(0)
 
   const [showPermanentPassword, setShowPermanentPassword] = useState(ctx === 'reg')
 
@@ -79,6 +81,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
     mutationFn: ({ phone, reset }: { phone: string, reset: boolean }) => checkUser(phone, reset),
     onSuccess: (data) => {
       setDelay(data.permanent_password ? 0 : CODE_RESEND_DELAY)
+      setCodeAttempts(0)
     },
     onError: async (error, { phone }) => {
       console.log(error)
@@ -114,7 +117,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
   }
 
   const validatePassword = (value: string): FieldErrors => {
-    if (!/^(:?\d{4}|.{5,30})$/.test(value))
+    if (!(shopUser?.permanent_password ? /^.{5,}$/ : /^\d{6}$/).test(value))
       return { password: "Указан неверный " + (shopUser?.permanent_password ? "пароль" : "код") }
     else
       return {}
@@ -187,7 +190,12 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
             navigate(getCallbackUrl(query.callbackUrl))
           }
         } else if ('status' in result && [401, 403].includes(result.status)) {
-          setError({ password: "Вы ввели неправильный " + (shopUser.permanent_password ? "пароль" : "код") })
+          if (shopUser.permanent_password) {
+            setError({ password: "Вы ввели неправильный пароль" })
+          } else {
+            setError({ password: "Неверный или устаревший код" })
+            setCodeAttempts(attempts => attempts + 1)
+          }
         } else {
           setError(getError('password', 'error' in result ? result.error : undefined))
         }
@@ -223,18 +231,21 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
           )}
           <div className="mb-3 has-feedback">
             <input
-              type="password"
+              type={shopUser.permanent_password ? "password" : "text"}
               name="password"
               className={"form-control" + ('password' in error ? " is-invalid" : "")}
               style={embedded ? {} : { maxWidth: "20rem" }}
               id={`${embedded}${ctx}-password-input`}
               placeholder={shopUser.permanent_password ? "Пароль" : "Код из смс"}
               onChange={handleChange}
+              autoComplete={shopUser.permanent_password ? "current-password" : "one-time-code"}
+              inputMode={shopUser.permanent_password ? undefined : "numeric"}
+              maxLength={shopUser.permanent_password ? undefined : 6}
               required
               autoFocus />
             {'password' in error && <div className="invalid-feedback">{error.password}</div>}
             <div className="form-text">
-              <Countdown delay={delay} permanentPassword={shopUser.permanent_password} reset={resetPassword} />
+              <Countdown delay={codeAttempts < CODE_MAX_ATTEMPTS ? delay : 0} permanentPassword={shopUser.permanent_password} reset={resetPassword} />
             </div>
           </div>
           {!['order', 'preorder', 'warranty'].includes(ctx) && !shopUser.permanent_password && (
