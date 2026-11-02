@@ -131,7 +131,7 @@ export default function ProductCard({ product, limitedBadges = false, gtmCategor
                             Купить
                         </button>
                     ) : (
-                        <Link className="btn btn-secondary btn-sm d-block w-100" href={{ pathname: '/products/[code]', query: { code: product.code }}}>
+                        <Link className="btn btn-secondary btn-sm d-block w-100" href={`/products/${product.code}`}>
                             Подробное описание
                         </Link>
                     )}

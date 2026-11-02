@@ -195,7 +195,7 @@ export default function Compare({ kindId, productIds }) {
                   <Link
                     className="d-inline-block mb-3 position-relative"
                     style={{ width: 80, height: 80 }}
-                    href={{ pathname: '/products/[code]', query: { code: product.code } }}>
+                    href={`/products/${product.code}`}>
                     {product.image ? (
                       <Image
                         src={product.image}
@@ -208,7 +208,7 @@ export default function Compare({ kindId, productIds }) {
                     )}
                   </Link>
                   <h3 className="product-title fs-sm">
-                    <Link href={{ pathname: '/products/[code]', query: { code: product.code } }}>
+                    <Link href={`/products/${product.code}`}>
                       {product.title}
                     </Link>
                   </h3>

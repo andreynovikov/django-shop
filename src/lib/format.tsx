@@ -1,3 +1,5 @@
+import { CategoryBrief, Country, Manufacturer, Product, ProductImage, ProductInfo, SalesAction } from './types'
+
 export function formatPhone(phone: string) {
   const match = phone.match(/(\+7)(\d{3})(\d{2,3})(\d{2})(\d{2})/)
   if (match === null)
@@ -28,4 +30,21 @@ export function parsePhones(phones: string[]): PhoneEntry[] {
       href: 'tel:' + match[2].replace(/[^\d+]/g, ''),
     }
   })
+}
+
+// we need to accept all types for TypeScript to be happy, but we do not in fact process all product fields
+export function prettifyProductFieldValue(field: keyof Product, value: string | number | boolean | Country | string[] | ProductImage[] | number[] | CategoryBrief[] | ProductInfo[] | SalesAction[] | Manufacturer | undefined) {
+  if (value === undefined)
+    return ""
+  if (field === 'manufacturer')
+    return (value as Manufacturer).name
+  if (field === 'country' || field === 'developer_country')
+    return (value as Country).enabled ? (value as Country).name : ""
+  if (field === 'complect')
+    return <div dangerouslySetInnerHTML={{ __html: value }} />
+  if (typeof value === 'boolean')
+    return value ? 'да' : 'нет'
+  if (typeof value === 'string')
+    return value.trim()
+  return value as number
 }
