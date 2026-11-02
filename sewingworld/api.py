@@ -7,7 +7,7 @@ from django.core.exceptions import FieldDoesNotExist
 from django.core.mail import mail_admins
 from django.db.models import Sum, F, Q, OuterRef, Subquery
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
@@ -104,12 +104,10 @@ class PhoneRateThrottle(SimpleRateThrottle):
     def get_cache_key(self, request, view):
         if view.detail:
             ident = str(view.kwargs.get(view.lookup_field, ''))
-            if not ident.isdigit():  # see UserViewSet.get_object: digits are user id, otherwise phone
-                ident = ShopUserManager.normalize_phone(ident)
         else:
             data = request.data if isinstance(request.data, dict) else {}
-            ident = ShopUserManager.normalize_phone(str(data.get('phone', '')))
-        return self.cache_format % {'scope': self.scope, 'ident': ident}
+            ident = str(data.get('phone', ''))
+        return self.cache_format % {'scope': self.scope, 'ident': ShopUserManager.normalize_phone(ident)}
 
 
 class IpRateThrottle(SimpleRateThrottle):
@@ -942,6 +940,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         request=inline_serializer('UserCheck', fields={'reset': serializers.BooleanField(required=False)}),
+        parameters=[OpenApiParameter('id', str, OpenApiParameter.PATH, description='Phone number')],
         responses={
             200: OpenApiResponse(
                 response={
@@ -959,15 +958,15 @@ class UserViewSet(viewsets.ModelViewSet):
     )
     @action(detail=True, methods=['post'], throttle_classes=[CheckIpThrottle, CheckPhoneThrottle])
     def check(self, request, pk=None):
-        user = self.get_object()
-        permanent_password = getattr(user, 'permanent_password', False)
+        # By phone only: anyone can call this, so accepting user id would reveal phones of all customers
+        user = get_object_or_404(self.get_queryset(), phone=ShopUserManager.normalize_phone(pk))
         reset = request.data.get('reset', False)
-        if not permanent_password or reset:
+        if not user.permanent_password or reset:
             # Nothing changes for user until the code is proven, see LoginSerializer
             send_password.delay(user.phone, LoginCode.issue(user))
         return Response({
-            'phone': getattr(user, 'phone', None),
-            'permanent_password': permanent_password and not reset
+            'phone': user.phone,
+            'permanent_password': user.permanent_password and not reset
         })
 
     @extend_schema(

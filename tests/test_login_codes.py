@@ -169,6 +169,45 @@ class SeparationTests(Base):
         self.assertIsNotNone(self.current())
 
 
+class LookupTests(Base):
+    def test_user_id_does_not_reveal_phone(self):
+        user = self.customer()
+        response = self.check(user.id)
+        self.assertEqual(response.status_code, 404)
+        self.assertNotIn(PHONE, response.content.decode())
+        self.assertNotIn(PHONE[1:], response.content.decode())
+        self.sms.delay.assert_not_called()
+        self.assertFalse(LoginCode.objects.filter(user=user).exists())
+
+    def test_user_id_of_staff_does_not_reveal_phone(self):
+        user = self.customer(is_staff=True, is_superuser=True)
+        self.assertEqual(self.check(user.id).status_code, 404)
+        self.sms.delay.assert_not_called()
+
+    def test_current_is_not_a_phone(self):
+        self.assertEqual(self.check('current').status_code, 404)
+        self.customer()
+        self.check()
+        self.login(password=self.code())
+        self.assertEqual(self.check('current').status_code, 404)
+
+    def test_any_form_of_phone_finds_user(self):
+        self.customer()
+        for phone in (PHONE, '79161234567', '9161234567'):
+            self.assertEqual(self.check(phone).json(), {'phone': PHONE, 'permanent_password': False})
+
+    def test_unregistered_phone(self):
+        self.assertEqual(self.check().status_code, 404)
+        self.sms.delay.assert_not_called()
+
+    def test_forms_of_phone_share_rate_limit(self):
+        self.customer()
+        for phone in (PHONE, '79161234567', '9161234567', PHONE, '79161234567'):
+            self.assertEqual(self.check(phone).status_code, 200)
+        self.assertEqual(self.check('9161234567').status_code, 429)
+        self.assertEqual(self.sms.delay.call_count, 5)
+
+
 class PermanentPasswordTests(Base):
     def test_password_login_sends_no_code(self):
         user = self.permanent()
