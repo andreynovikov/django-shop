@@ -5,6 +5,7 @@ from django.contrib.auth import login, logout
 from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.core.exceptions import FieldDoesNotExist
 from django.core.mail import mail_admins
+from django.db import transaction
 from django.db.models import Sum, F, Q, OuterRef, Subquery
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
@@ -133,6 +134,7 @@ class CheckIpThrottle(IpRateThrottle):
 
 
 class CheckPhoneThrottle(PhoneRateThrottle):
+    """ Limits codes sent, not requests, so it is applied only when a code is about to be sent """
     scope = 'check_phone'
 
 
@@ -947,8 +949,11 @@ class UserViewSet(viewsets.ModelViewSet):
                     'type': 'object',
                     'properties': {
                         'phone': {'type': 'string'},
-                        'permanent_password': {'type': 'boolean'}
+                        'permanent_password': {'type': 'boolean'},
+                        'retry_after': {'type': 'integer', 'description': 'Seconds until a new code can be requested'},
+                        'attempts_left': {'type': 'integer', 'description': 'Attempts left for the code, zero if there is no code'}
                     },
+                    'required': ['phone', 'permanent_password', 'retry_after', 'attempts_left'],
                 }
             ),
             404: OpenApiResponse(ErrorDetailSerializer, description='Phone is not registered'),
@@ -956,17 +961,29 @@ class UserViewSet(viewsets.ModelViewSet):
         },
         methods=['POST']
     )
-    @action(detail=True, methods=['post'], throttle_classes=[CheckIpThrottle, CheckPhoneThrottle])
+    @action(detail=True, methods=['post'], throttle_classes=[CheckIpThrottle])
     def check(self, request, pk=None):
         # By phone only: anyone can call this, so accepting user id would reveal phones of all customers
         user = get_object_or_404(self.get_queryset(), phone=ShopUserManager.normalize_phone(pk))
         reset = request.data.get('reset', False)
+        login_code = None
         if not user.permanent_password or reset:
-            # Nothing changes for user until the code is proven, see LoginSerializer
-            send_password.delay(user.phone, LoginCode.issue(user))
+            # A page reload lands here too: it should not send a code or lose attempts of the one being typed
+            with transaction.atomic():
+                ShopUser.objects.select_for_update().get(pk=user.pk)  # the first code has no record to lock yet
+                login_code = LoginCode.objects.filter(user=user).first()
+                if login_code is None or login_code.retry_after == 0:
+                    throttle = CheckPhoneThrottle()
+                    if not throttle.allow_request(request, self):
+                        self.throttled(request, throttle.wait())
+                    # Nothing changes for user until the code is proven, see LoginSerializer
+                    code, login_code = LoginCode.issue(user)
+                    send_password.delay(user.phone, code)  # if it fails, record is rolled back and user can retry
         return Response({
             'phone': user.phone,
-            'permanent_password': user.permanent_password and not reset
+            'permanent_password': user.permanent_password and not reset,
+            'retry_after': login_code.retry_after if login_code else 0,
+            'attempts_left': login_code.attempts_left if login_code else 0
         })
 
     @extend_schema(

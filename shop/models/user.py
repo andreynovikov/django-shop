@@ -3,6 +3,7 @@ import logging
 import secrets
 
 from datetime import timedelta
+from math import ceil
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models, transaction
@@ -143,6 +144,7 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
 class LoginCode(models.Model):
     """ One-time code sent by SMS, a user has at most one: requesting a new code replaces the previous """
     LIFETIME = timedelta(minutes=5)
+    RESEND_DELAY = timedelta(minutes=4)
     MAX_ATTEMPTS = 5
 
     user = models.OneToOneField(ShopUser, verbose_name='пользователь', on_delete=models.CASCADE, related_name='login_code')
@@ -158,15 +160,26 @@ class LoginCode(models.Model):
     def hash_code(user, code):
         return salted_hmac('shop.LoginCode', '%s:%s' % (user.pk, code), algorithm='sha256').hexdigest()
 
+    @property
+    def retry_after(self):
+        """ Seconds until the code can be replaced with a new one """
+        resend_at = self.expires - self.LIFETIME + self.RESEND_DELAY
+        return max(0, ceil((resend_at - timezone.now()).total_seconds()))
+
+    @property
+    def attempts_left(self):
+        return self.MAX_ATTEMPTS - self.attempts
+
     @classmethod
     def issue(cls, user):
+        """ Returns the code and its record, which holds only a hash of it """
         code = '%06d' % secrets.randbelow(10 ** 6)
-        cls.objects.update_or_create(user=user, defaults={
+        login_code, _ = cls.objects.update_or_create(user=user, defaults={
             'code_hash': cls.hash_code(user, code),
             'expires': timezone.now() + cls.LIFETIME,
             'attempts': 0,
         })
-        return code
+        return code, login_code
 
     @classmethod
     def verify(cls, user, code):

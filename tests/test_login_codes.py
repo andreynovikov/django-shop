@@ -7,6 +7,7 @@ from unittest import mock
 
 from django.core.cache import cache
 from django.db import connection
+from django.db.models import F
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 
@@ -38,6 +39,9 @@ class Base(TestCase):
 
     def code(self):
         return self.sms.delay.call_args.args[1]
+
+    def resend_delay_passes(self):
+        LoginCode.objects.update(expires=F('expires') - LoginCode.RESEND_DELAY)
 
     def current(self, client=None):
         return (client or self.client).get('/api/v0/users/current/').json()['id']
@@ -121,6 +125,7 @@ class CodeTests(Base):
         with mock.patch('shop.models.user.secrets.randbelow', side_effect=[111111, 222222]):
             self.check()
             self.login(password=WRONG_CODE)
+            self.resend_delay_passes()
             self.check()
         self.assertEqual(LoginCode.objects.get(user=user).attempts, 0)
         self.assertEqual(self.login(password='111111').status_code, 403)
@@ -143,6 +148,107 @@ class CodeTests(Base):
         self.customer()
         self.check()
         self.assertEqual(self.login().status_code, 403)
+
+
+class ResendTests(Base):
+    def test_new_code_reports_full_delay_and_attempts(self):
+        self.customer()
+        self.assertEqual(self.check().json(), {
+            'phone': PHONE, 'permanent_password': False, 'retry_after': 240, 'attempts_left': 5
+        })
+
+    def test_recent_code_is_kept_and_delay_goes_on(self):
+        user = self.customer()
+        self.check()
+        code = self.code()
+        LoginCode.objects.filter(user=user).update(expires=F('expires') - timedelta(seconds=100))
+        response = self.check()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.sms.delay.call_count, 1)
+        self.assertAlmostEqual(response.json()['retry_after'], 140, delta=2)
+        self.assertEqual(self.login(password=code).status_code, 200)
+
+    def test_recent_code_keeps_attempts(self):
+        self.customer()
+        self.check()
+        self.login(password=WRONG_CODE)
+        self.login(password=WRONG_CODE)
+        self.assertEqual(self.check().json()['attempts_left'], 3)
+
+    def test_new_code_when_delay_has_passed(self):
+        self.customer()
+        with mock.patch('shop.models.user.secrets.randbelow', side_effect=[111111, 222222]):
+            self.check()
+            self.resend_delay_passes()
+            response = self.check()
+        self.assertEqual(self.sms.delay.call_count, 2)
+        self.assertEqual(response.json()['retry_after'], 240)
+        self.assertEqual(self.login(password='111111').status_code, 403)
+        self.assertEqual(self.login(password='222222').status_code, 200)
+
+    def test_new_code_at_once_when_attempts_run_out(self):
+        self.customer()
+        self.check()
+        for _ in range(LoginCode.MAX_ATTEMPTS):
+            self.login(password=WRONG_CODE)
+        self.assertEqual(self.check().json()['attempts_left'], LoginCode.MAX_ATTEMPTS)
+        self.assertEqual(self.sms.delay.call_count, 2)
+
+    def test_new_code_at_once_after_code_is_used(self):
+        self.customer()
+        self.check()
+        self.login(password=self.code())
+        self.check(client=APIClient())
+        self.assertEqual(self.sms.delay.call_count, 2)
+
+    def test_reset_keeps_recent_code(self):
+        self.permanent()
+        self.check(reset=True)
+        response = self.check(reset=True).json()
+        self.assertEqual(self.sms.delay.call_count, 1)
+        self.assertFalse(response['permanent_password'])
+        self.assertGreater(response['retry_after'], 0)
+        self.assertEqual(response['attempts_left'], LoginCode.MAX_ATTEMPTS)
+
+    def test_password_step_ignores_pending_reset(self):
+        self.permanent()
+        self.check(reset=True)
+        self.assertEqual(self.check().json(), {
+            'phone': PHONE, 'permanent_password': True, 'retry_after': 0, 'attempts_left': 0
+        })
+
+    def test_limit_counts_sent_codes_only(self):
+        self.customer()
+        for _ in range(8):
+            self.assertEqual(self.check().status_code, 200)
+        self.assertEqual(self.sms.delay.call_count, 1)
+
+    def test_limit_does_not_apply_when_nothing_is_sent(self):
+        self.permanent()
+        for _ in range(8):
+            self.assertEqual(self.check().status_code, 200)
+
+    def test_over_limit_recent_code_is_still_reported(self):
+        user = self.customer()
+        for _ in range(4):
+            self.check()
+            self.resend_delay_passes()
+        self.check()
+        self.assertEqual(self.check().status_code, 200)
+        self.resend_delay_passes()
+        before = LoginCode.objects.get(user=user).code_hash
+        self.assertEqual(self.check().status_code, 429)
+        self.assertEqual(self.sms.delay.call_count, 5)
+        self.assertEqual(LoginCode.objects.get(user=user).code_hash, before)
+
+    def test_failed_sending_does_not_start_delay(self):
+        self.customer()
+        self.sms.delay.side_effect = [ConnectionError, None]
+        with self.assertRaises(ConnectionError):
+            self.check()
+        self.assertFalse(LoginCode.objects.exists())
+        self.assertEqual(self.check().json()['retry_after'], 240)
+        self.assertEqual(self.sms.delay.call_count, 2)
 
 
 class SeparationTests(Base):
@@ -194,7 +300,7 @@ class LookupTests(Base):
     def test_any_form_of_phone_finds_user(self):
         self.customer()
         for phone in (PHONE, '79161234567', '9161234567'):
-            self.assertEqual(self.check(phone).json(), {'phone': PHONE, 'permanent_password': False})
+            self.assertEqual(self.check(phone).json()['phone'], PHONE)
 
     def test_unregistered_phone(self):
         self.assertEqual(self.check().status_code, 404)
@@ -204,6 +310,7 @@ class LookupTests(Base):
         self.customer()
         for phone in (PHONE, '79161234567', '9161234567', PHONE, '79161234567'):
             self.assertEqual(self.check(phone).status_code, 200)
+            self.resend_delay_passes()
         self.assertEqual(self.check('9161234567').status_code, 429)
         self.assertEqual(self.sms.delay.call_count, 5)
 
@@ -212,7 +319,7 @@ class PermanentPasswordTests(Base):
     def test_password_login_sends_no_code(self):
         user = self.permanent()
         response = self.check()
-        self.assertEqual(response.json(), {'phone': PHONE, 'permanent_password': True})
+        self.assertEqual(response.json(), {'phone': PHONE, 'permanent_password': True, 'retry_after': 0, 'attempts_left': 0})
         self.sms.delay.assert_not_called()
         self.assertEqual(self.login(password='old-secret').status_code, 200)
         self.assertEqual(self.current(), user.id)
@@ -230,7 +337,7 @@ class PermanentPasswordTests(Base):
         user = self.permanent()
         self.login(password='old-secret')
         response = self.check(reset=True, client=APIClient())
-        self.assertEqual(response.json(), {'phone': PHONE, 'permanent_password': False})
+        self.assertFalse(response.json()['permanent_password'])
         self.sms.delay.assert_called_once()
         user.refresh_from_db()
         self.assertTrue(user.permanent_password)
@@ -306,7 +413,7 @@ class SilentRegistrationTests(Base):
     def test_owner_gets_a_code_later(self):
         user = ShopUser.objects.get(pk=self.login(ctx='order').json()['id'])
         client = APIClient()
-        self.assertEqual(self.check(client=client).json(), {'phone': PHONE, 'permanent_password': False})
+        self.assertFalse(self.check(client=client).json()['permanent_password'])
         response = self.login(client=client, password=self.code())
         self.assertEqual(response.json(), {'id': user.id, 'registered': False})
 
@@ -351,11 +458,12 @@ class StaffTests(Base):
         self.assertTrue(user.permanent_password)
 
 
+@override_settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}})
 class RaceTests(TransactionTestCase):
     def test_parallel_verification_uses_code_once(self):
         user = ShopUser.objects.create(phone=PHONE)
         for _ in range(5):
-            code = LoginCode.issue(user)
+            code = LoginCode.issue(user)[0]
             barrier = threading.Barrier(6)
             results = []
 
@@ -370,3 +478,24 @@ class RaceTests(TransactionTestCase):
             for thread in threads:
                 thread.join()
             self.assertEqual(sorted(results), [False] * 5 + [True])
+
+    @mock.patch('sewingworld.api.send_password')
+    def test_parallel_requests_send_one_code(self, sms):
+        ShopUser.objects.create(phone=PHONE)
+        for _ in range(5):
+            cache.clear()
+            LoginCode.objects.all().delete()
+            sms.reset_mock()
+            barrier = threading.Barrier(6)
+
+            def request():
+                barrier.wait()
+                APIClient().post(f'/api/v0/users/{PHONE}/check/', {}, format='json')
+                connection.close()
+
+            threads = [threading.Thread(target=request) for _ in range(6)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+            self.assertEqual(sms.delay.call_count, 1)
