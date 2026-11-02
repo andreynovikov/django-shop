@@ -455,7 +455,7 @@ class OrderItem(models.Model):
         verbose_name_plural = 'товарные позиции'
         ordering = ['id']
         indexes = [
-            Index(Upper('serial_number'), name='shop_order_item_serial_number_idx')
+            Index(Upper('serial_number'), name='shop_orderitm_serialnumber_idx')
         ]
 
     @property
