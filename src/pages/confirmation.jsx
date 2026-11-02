@@ -158,7 +158,7 @@ export default function Confirmation() {
                   <Link
                     className="d-block flex-shrink-0 position-relative"
                     style={{ width: 64, height: 64 }}
-                    href={{ pathname: '/products/[code]', query: { code: item.product.code } }}>
+                    href={`/products/${item.product.code}`}>
                     {item.product.image ? (
                       <Image
                         src={item.product.image}
@@ -173,7 +173,7 @@ export default function Confirmation() {
                   </Link>
                   <div className="ps-2">
                     <h6 className="widget-product-title">
-                      <Link href={{ pathname: '/products/[code]', query: { code: item.product.code } }}>
+                      <Link href={`/products/${item.product.code}`}>
                         {item.product.title}
                       </Link>
                     </h6>

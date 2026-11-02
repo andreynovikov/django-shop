@@ -10,7 +10,7 @@ export default function ProductMiniCard({ product }) {
       <Link
         className="d-inline-block overflow-hidden position-relative w-100"
         style={{ aspectRatio: "4/3" }}
-        href={{ pathname: '/products/[code]', query: { code: product.code } }}>
+        href={`/products/${product.code}`}>
         {product.image ? (
           <Image
             src={product.image}
@@ -24,11 +24,11 @@ export default function ProductMiniCard({ product }) {
         )}
       </Link>
       <div className="card-body py-2">
-        <Link className="product-meta d-block fs-xs pb-1" href={{ pathname: '/products/[code]', query: { code: product.code } }}>
+        <Link className="product-meta d-block fs-xs pb-1" href={`/products/${product.code}`}>
           {product.whatis} {product.partnumber}
         </Link>
         <h3 className="product-title fs-sm">
-          <Link href={{ pathname: '/products/[code]', query: { code: product.code } }}>
+          <Link href={`/products/${product.code}`}>
             {product.title}
           </Link>
         </h3>
