@@ -1,8 +1,9 @@
-import { SubmitEvent, useEffect, useRef, useState, type ReactElement } from 'react'
+'use client'
+
+import { SubmitEvent, useEffect, useRef, useState } from 'react'
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import PageLayout from '@/components/layout/page'
 import LoginForm from '@/components/user/login-form'
 
 import { useSession } from '@/lib/session'
@@ -10,7 +11,7 @@ import { createSerial, HttpError, serialKeys } from '@/lib/queries'
 
 import { Serial } from '@/lib/types'
 
-export default function ExtendWarranty() {
+export default function ExtendWarrantyForm() {
   const [sn, setSN] = useState<string>()
   const [serial, setSerial] = useState<Serial>()
   const [errors, setErrors] = useState<string[]>()
@@ -82,13 +83,5 @@ export default function ExtendWarranty() {
         </>
       )}
     </div>
-  )
-}
-
-ExtendWarranty.getLayout = function getLayout(page: ReactElement) {
-  return (
-    <PageLayout title="Расширение гарантии" hideSignIn hideCartNotice>
-      {page}
-    </PageLayout>
   )
 }
