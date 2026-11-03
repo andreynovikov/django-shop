@@ -2,15 +2,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { comparisonKeys, loadComparisons, addToComparison, removeFromComparison } from '@/lib/queries'
 
-export default function useComparison(options?: { kind: number }) {
+const noComparisons: number[] = []
+
+export default function useComparison(options?: { kind: number | null }) {
   const queryClient = useQueryClient()
 
-  const { kind } = options || { kind: null } // we use null instead of undefined to comply with SSR props in '/compare'
+  const { kind } = options || { kind: null } // null like a missing kind in the '/compare' query
 
-  const { data: comparisons, isSuccess, isLoading, isError } = useQuery({
+  // Initial data would count as fresh under the App Router's default staleTime and skip the first request,
+  // so the list is empty until it is loaded and isSuccess tells that it is
+  const { data: comparisons = noComparisons, isSuccess, isLoading, isError } = useQuery({
     queryKey: comparisonKeys.list(kind),
     queryFn: () => loadComparisons(kind),
-    initialData: [],
   })
 
   const addToComparisonMutation = useMutation({

@@ -1,37 +1,32 @@
-import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/router'
-import Head from 'next/head'
+'use client'
+
+import { useState, useEffect, useMemo, SubmitEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
-import PageLayout from '@/components/layout/page'
 import NoImage from '@/components/product/no-image'
 import { STATUS_NEW } from '@/components/order/status-badge'
 import { PageLoading } from '@/components/loading'
 
+import { useNavigation } from '@/lib/navigation'
 import { useSession } from '@/lib/session'
-import { basketKeys, orderKeys, loadOrder, updateOrder } from '@/lib/queries'
+import { basketKeys, orderKeys, loadOrder, updateOrder, FormDataJson } from '@/lib/queries'
+import { User } from '@/lib/types'
 
-export default function Confirmation() {
+export default function OrderConfirmation() {
   const [updated, setUpdated] = useState(false)
 
-  const router = useRouter()
+  const { navigate } = useNavigation()
 
-  const { user, status } = useSession({
+  const { user: sessionUser, status } = useSession({
     onUnauthenticated: () => {
-      router.push('/cart')
+      navigate('/cart')
     }
   })
+  const user = status === 'authenticated' ? sessionUser as User : undefined
 
   const queryClient = useQueryClient()
-
-  const updateOrderMutation = useMutation({
-    mutationFn: (formData) => updateOrder(order.id, formData),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: orderKeys.details(order.id) })
-    }
-  })
 
   useEffect(() => {
     // we do it here otherwise cart page flickers on order registration
@@ -42,28 +37,35 @@ export default function Confirmation() {
     if (status !== 'authenticated')
       return 0 // wait for authentication
 
-    const id = sessionStorage.getItem('lastOrder') // TODO: clean after some extent
-    return +id > 0 ? +id : undefined
+    const id = Number(sessionStorage.getItem('lastOrder')) // TODO: clean after some extent
+    return id > 0 ? id : undefined
   }, [status])
 
   useEffect(() => {
     if (orderId === undefined)
-      router.push({ pathname: '/user/orders' }) // we know nothing about last order
-  }, [orderId, router])
+      navigate('/user/orders') // we know nothing about last order
+  }, [orderId, navigate])
 
   const { data: order, isSuccess, isFetching, isError } = useQuery({
-    queryKey: orderKeys.detail(orderId),
-    queryFn: () => loadOrder(orderId),
-    enabled: orderId > 0 && status === 'authenticated',
+    queryKey: orderKeys.detail(orderId ?? 0),
+    queryFn: () => loadOrder(orderId!),
+    enabled: !!orderId && status === 'authenticated',
     refetchInterval: (query) => query.state.data?.status === STATUS_NEW ? 60 * 1000 : false // check for updates every minute
   })
 
-  const handleSubmit = (e) => {
+  const updateOrderMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number, data: FormDataJson }) => updateOrder(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) })
+    }
+  })
+
+  const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
     e.stopPropagation()
 
-    const formData = Object.fromEntries(new FormData(e.target).entries())
-    updateOrderMutation.mutate(formData, {
+    const data = Object.fromEntries(new FormData(e.currentTarget).entries())
+    updateOrderMutation.mutate({ id: order!.id, data }, {
       onSuccess: () => {
         setUpdated(true)
       },
@@ -75,30 +77,22 @@ export default function Confirmation() {
 
   if (!isSuccess)
     return (
-      <>
-        <Head>
-          <meta name="robots" content="noindex" />
-        </Head>
-        <section className="col-lg-8">
-          <div className="d-flex justify-content-between align-items-center pt-3 pb-2 pb-sm-5 mt-1">
-            <h2 className="h6 text-light mb-0">&nbsp;</h2>
-          </div>
-          {isFetching ? (
-            <PageLoading />
-          ) : isError ? (
-            <div className="lead">Что-то пошло не так...</div>
-          ) : (
-            null
-          )}
-        </section>
-      </>
+      <section className="col-lg-8">
+        <div className="d-flex justify-content-between align-items-center pt-3 pb-2 pb-sm-5 mt-1">
+          <h2 className="h6 text-light mb-0">&nbsp;</h2>
+        </div>
+        {isFetching ? (
+          <PageLoading />
+        ) : isError ? (
+          <div className="lead">Что-то пошло не так...</div>
+        ) : (
+          null
+        )}
+      </section>
     )
 
   return (
     <>
-      <Head>
-        <meta name="robots" content="noindex" />
-      </Head>
       <section className="col-lg-8">
         <div className="d-flex justify-content-center justify-content-lg-between align-items-center pt-0 pt-lg-3 pb-5 mt-1 mb-3 mb-lg-0">
           <h2 className="h1 text-light mb-0">№{order.id}</h2>
@@ -126,20 +120,20 @@ export default function Confirmation() {
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
               <label className="form-label" htmlFor="order-name-input">Фамилия Имя Отчество:</label>
-              <input type="text" name="name" className="form-control form-control-lg" id="order-name-input" defaultValue={order.name || user.name} autoComplete="name" />
+              <input type="text" name="name" className="form-control form-control-lg" id="order-name-input" defaultValue={order.name || user?.name} autoComplete="name" />
             </div>
             <div className="mb-3">
               <label className="form-label" htmlFor="order-email-input">E-mail для уведомлений:</label>
-              <input type="text" name="email" className="form-control form-control-lg" id="order-email-input" defaultValue={order.email || user.email} autoComplete="email" />
+              <input type="text" name="email" className="form-control form-control-lg" id="order-email-input" defaultValue={order.email || user?.email} autoComplete="email" />
             </div>
             <div className="mb-3">
               <label className="form-label" htmlFor="order-address-input">Адрес доставки:</label>
               <input type="text" name="address" className="form-control form-control-lg" id="order-address-input"
-                defaultValue={order.address || user.address} autoComplete="postal-code address-level2 street-address" />
+                defaultValue={order.address || user?.address} autoComplete="postal-code address-level2 street-address" />
             </div>
             <div className="mb-3">
               <label className="form-label" htmlFor="order-comment-input">Комментарии к заказу:</label>
-              <textarea name="comment" className="form-control form-control-lg" id="order-comment-input" defaultValue={order.comment} rows="3"></textarea>
+              <textarea name="comment" className="form-control form-control-lg" id="order-comment-input" defaultValue={order.comment} rows={3}></textarea>
             </div>
             <hr className="mt-4 mb-3" />
             <div className="text-end">
@@ -192,17 +186,5 @@ export default function Confirmation() {
         </div>
       </aside>
     </>
-  )
-}
-
-Confirmation.getLayout = function getLayout(page) {
-  return (
-    <PageLayout title="Оформление заказа" dark overlapped hideCartNotice>
-      <div className="container pb-5 mb-2 mb-md-4">
-        <div className="row">
-          {page}
-        </div>
-      </div>
-    </PageLayout>
   )
 }

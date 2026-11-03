@@ -1,8 +1,8 @@
-import { ReactElement, useEffect } from 'react'
-import Head from 'next/head'
+'use client'
+
+import { useEffect } from 'react'
 import Link from 'next/link'
 
-import PageLayout from '@/components/layout/page'
 import LoginForm from '@/components/user/login-form'
 import CartItem from '@/components/cart/item'
 import { PageLoading, ButtonLoading } from '@/components/loading'
@@ -12,12 +12,20 @@ import { useCreateOrder } from '@/lib/order'
 import { useSession } from '@/lib/session'
 import { useLastCatalog } from '@/lib/catalog/hooks'
 
-export default function Cart() {
+const noCartStyle = {
+  width: '200px',
+  height: '200px',
+  fontSize: '100px',
+  padding: '50px'
+}
+
+export default function CartContents() {
   const { user, registered, status, invalidate, signOut } = useSession()
   const { basket, isEmpty, isLoading, isSuccess, removeItem, setQuantity } = useBasket()
 
   const { mutate, isPending } = useCreateOrder()
 
+  // a new buyer, registered by the login form without a code, orders right away
   useEffect(() => {
     if (status === 'authenticated' && registered) {
       mutate()
@@ -31,47 +39,32 @@ export default function Cart() {
 
   const lastPage = useLastCatalog()
 
-  const noCartStyle = {
-    width: '200px',
-    height: '200px',
-    fontSize: '100px',
-    padding: '50px'
-  }
-
   if (!isSuccess || isEmpty)
     return (
-      <>
-        <Head>
-          <meta name="robots" content="noindex" />
-        </Head>
-        <section className="col-lg-8">
-          <div className="d-flex justify-content-between align-items-center pt-3 pb-2 pb-sm-5 mt-1">
-            <h2 className="h6 text-light mb-0">
-              {isLoading ? "Загружается..." : isEmpty ? "Нет товаров" : ""}
-            </h2>
-            <Link className="btn btn-outline-primary btn-sm ps-2" href={lastPage}>
-              <i className="ci-arrow-left me-2" />Продолжить покупки
-            </Link>
+      <section className="col-lg-8">
+        <div className="d-flex justify-content-between align-items-center pt-3 pb-2 pb-sm-5 mt-1">
+          <h2 className="h6 text-light mb-0">
+            {isLoading ? "Загружается..." : isEmpty ? "Нет товаров" : ""}
+          </h2>
+          <Link className="btn btn-outline-primary btn-sm ps-2" href={lastPage}>
+            <i className="ci-arrow-left me-2" />Продолжить покупки
+          </Link>
+        </div>
+        {isLoading ? (
+          <PageLoading />
+        ) : isEmpty ? (
+          <div className="d-flex flex-row align-items-center">
+            <i className="ci-cart d-block text-muted" style={noCartStyle} />
+            <div className="lead">Положите в корзину товар для оформления заказа</div>
           </div>
-          {isLoading ? (
-            <PageLoading />
-          ) : isEmpty ? (
-            <div className="d-flex flex-row align-items-center">
-              <i className="ci-cart d-block text-muted" style={noCartStyle} />
-              <div className="lead">Положите в корзину товар для оформления заказа</div>
-            </div>
-          ) : (
-            <div className="lead">Что-то пошло не так...</div>
-          )}
-        </section>
-      </>
+        ) : (
+          <div className="lead">Что-то пошло не так...</div>
+        )}
+      </section>
     )
 
   return (
     <>
-      <Head>
-        <meta name="robots" content="noindex" />
-      </Head>
       <section className="col-lg-8">
         <div className="d-flex justify-content-between align-items-center pt-3 pb-2 pb-sm-5 mt-1">
           <h2 className="h6 text-light mb-0">Товары</h2>
@@ -113,17 +106,5 @@ export default function Cart() {
         </div>
       </aside>
     </>
-  )
-}
-
-Cart.getLayout = function getLayout(page: ReactElement) {
-  return (
-    <PageLayout title="Ваша корзина" htmlTitle="Корзина" dark overlapped hideCartNotice>
-      <div className="container pb-5 mb-2 mb-md-4">
-        <div className="row">
-          {page}
-        </div>
-      </div>
-    </PageLayout>
   )
 }
