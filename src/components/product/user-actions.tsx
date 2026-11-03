@@ -1,13 +1,14 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+
 import useComparison from '@/lib/comparison'
 import useFavorites from '@/lib/favorites'
-import { useNavigation } from '@/lib/navigation'
 import { useSession } from '@/lib/session'
 import { Product } from '@/lib/types'
 
 export default function ProductUserActions({ product }: { product: Product }) {
-  const { navigate } = useNavigation()
+  const router = useRouter()
   const { status } = useSession()
   const { favorites, favoritize, unfavoritize } = useFavorites()
   const { comparisons, compare } = useComparison()
@@ -23,7 +24,7 @@ export default function ProductUserActions({ product }: { product: Product }) {
 
   const handleComparisonClick = () => {
     if (comparisons.includes(product.id))
-      navigate(`/compare?kind=${product.kind![0]}`)
+      router.push(`/compare?kind=${product.kind![0]}`)
     else
       compare(product.id)
   }

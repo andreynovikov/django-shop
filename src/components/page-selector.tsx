@@ -2,7 +2,7 @@ import { Fragment } from 'react'
 import Link from 'next/link'
 import { ParsedUrlQuery } from 'querystring'
 
-// Free of hooks so it renders both in App Router server components and in Pages Router pages
+// Free of hooks so server components can render it
 interface PageSelectorProps {
   pathname: string,                     /* path of the first page with trailing slash, e.g.:
                                            "/blog/tags/sewing/" */

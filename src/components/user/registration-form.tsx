@@ -2,15 +2,13 @@
 
 import { useState, Fragment, ChangeEvent, SubmitEvent } from 'react'
 import Link from 'next/link'
-
-import { stringify as stringifyQuery } from 'querystring'
+import { useRouter } from 'next/navigation'
 
 import { ButtonLoading } from '@/components/loading'
 import { passPhoneToLogin } from '@/components/user/login-page-form'
 
 import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
 import { useSession } from '@/lib/session'
-import { useNavigation } from '@/lib/navigation'
 import { normalizePhone, HttpError } from '@/lib/queries'
 
 type FieldErrors = Record<string, string[]>
@@ -34,7 +32,7 @@ export default function RegistrationForm({ embedded = '', onComplete }: Registra
   const [isRegisterPending, setRegisterPending] = useState(false)
   const [error, setError] = useState<FieldErrors>({})
 
-  const { query, navigate } = useNavigation()
+  const router = useRouter()
 
   const { register } = useSession()
 
@@ -74,8 +72,7 @@ export default function RegistrationForm({ embedded = '', onComplete }: Registra
         onComplete(normalizedPhone)
     } else {
       passPhoneToLogin(normalizedPhone)
-      const params = stringifyQuery(query)
-      navigate('/login/' + (params ? `?${params}` : ''))
+      router.push('/login/' + window.location.search) // the callback URL goes on to the login
     }
     setRegisterPending(false)
   }

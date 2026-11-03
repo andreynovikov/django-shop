@@ -1,6 +1,6 @@
 /*
 Global moment configuration. Import it for side effects at every rendering entry point
-(app/layout.tsx, app/providers.tsx, pages/_app.tsx) so that `import moment from 'moment'`
+(app/layout.tsx, app/providers.tsx) so that `import moment from 'moment'`
 uses Russian locale everywhere.
 */
 

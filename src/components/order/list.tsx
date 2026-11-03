@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
 
@@ -13,7 +14,6 @@ import { PageLoading } from '@/components/loading'
 import Tooltip from '@/components/ui/tooltip'
 
 import { useSession } from '@/lib/session'
-import { useNavigation } from '@/lib/navigation'
 import { orderKeys, loadOrders, getLastOrder } from '@/lib/queries'
 import {
   STATUS_COLLECTED,
@@ -45,7 +45,7 @@ export function OrderListLoading() {
 
 export default function OrderList() {
   const [{ page, filter, track }, setParams] = useQueryStates(orderListParams)
-  const { navigate } = useNavigation()
+  const router = useRouter()
   const { status } = useSession()
 
   const { data: lastOrder } = useQuery({
@@ -59,8 +59,8 @@ export default function OrderList() {
 
   useEffect(() => {
     if (isTracking && lastOrder?.id)
-      navigate(orderPathname(lastOrder.id))
-  }, [lastOrder, navigate, isTracking])
+      router.push(orderPathname(lastOrder.id))
+  }, [lastOrder, router, isTracking])
 
   // pending until the session is loaded too, so the list doesn't say there are no orders meanwhile
   const { data: orders, isSuccess, isPending } = useQuery({
@@ -106,7 +106,7 @@ export default function OrderList() {
               </thead>
               <tbody>
                 {orders.results.map((order) => (
-                  <tr key={order.id} onClick={() => navigate(orderPathname(order.id))} style={{ cursor: "pointer" }}>
+                  <tr key={order.id} onClick={() => router.push(orderPathname(order.id))} style={{ cursor: "pointer" }}>
                     <td className="py-3">
                       <Link className="nav-link-style fw-medium fs-sm" href={orderPathname(order.id)}>
                         {order.id}

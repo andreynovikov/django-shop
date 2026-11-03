@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useEffectEvent, ReactNode, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { useNavigation } from './navigation';
 import { userKeys, userReferences, userDependencies, currentUser, registerUser, loginUser, logoutUser, LoginCredentials, LoginResult, HttpError } from '@/lib/queries'
 import { AnonymousUser, User } from '@/lib/types';
 
@@ -19,7 +19,6 @@ type RegisterResult = Promise<(User & { ok: boolean }) | {
 type SessionStatusType = 'loading' | 'unauthenticated' | 'authenticated'
 interface SessionContextType {
   user: AnonymousUser | User | undefined
-  isRouting: boolean
   registered: boolean
   status: SessionStatusType
   signIn: (credentials: LoginCredentials) => SignInResult
@@ -30,7 +29,6 @@ interface SessionContextType {
 
 export const SessionContext = createContext<SessionContextType>({
   user: undefined,
-  isRouting: false,
   registered: false,
   status: 'unauthenticated',
   signIn: () => Promise.reject({ status: 'unauthenticated', error: undefined, ok: false }),
@@ -45,14 +43,13 @@ export function useSession(options?: { onUnauthenticated?: () => void }) {
   const { onUnauthenticated } = options || {}
   const required = onUnauthenticated !== undefined && value.status === 'unauthenticated'
 
-  // Callers pass a new callback on each render. Calling it again would restart its navigation,
-  // a full page load when the login page is in the other router.
+  // Callers pass a new callback on each render, calling it again would restart its navigation
   const handleUnauthenticated = useEffectEvent(() => onUnauthenticated?.())
 
   useEffect(() => {
-    if (required && !value.isRouting)
+    if (required)
       handleUnauthenticated()
-  }, [required, value.isRouting])
+  }, [required])
 
   return {
     ...value,
@@ -66,9 +63,8 @@ interface SessionProviderProps {
 
 export function SessionProvider({ children }: SessionProviderProps) {
   const [registered, setRegistered] = useState(false) // true if user is newly registered
-  const [isRouting, setIsRouting] = useState(false)
   const queryClient = useQueryClient()
-  const { navigate, events } = useNavigation()
+  const router = useRouter()
 
   // A user request still in flight was sent before the change and would bring back the old user.
   // Invalidation reuses a first request instead of repeating it, so it is cancelled first.
@@ -104,8 +100,8 @@ export function SessionProvider({ children }: SessionProviderProps) {
     setRegistered(false)
     await refreshUser()
     if (callbackUrl)
-      navigate(callbackUrl)
-  }, [refreshUser, navigate])
+      router.push(callbackUrl)
+  }, [refreshUser, router])
 
   const register = useCallback(async (data: FormData) => {
     try {
@@ -129,22 +125,6 @@ export function SessionProvider({ children }: SessionProviderProps) {
     refreshUser()
   }, [refreshUser])
 
-  const handleRouteChangeStart = () => setIsRouting(true)
-  const handleRouteChangeComplete = () => setIsRouting(false)
-
-  useEffect(() => {
-    if (events === undefined)
-      return
-
-    events.on('routeChangeStart', handleRouteChangeStart)
-    events.on('routeChangeComplete', handleRouteChangeComplete)
-
-    return () => {
-      events.off('routeChangeStart', handleRouteChangeStart)
-      events.off('routeChangeComplete', handleRouteChangeComplete)
-    }
-  }, [events])
-
   const { data: user, isSuccess, isLoading } = useQuery({
     queryKey: userKeys.current(),
     queryFn: () => currentUser(),
@@ -163,7 +143,6 @@ export function SessionProvider({ children }: SessionProviderProps) {
 
   const value = {
     user,
-    isRouting,
     registered,
     status: (isLoading ? 'loading' : isSuccess && (user?.id ?? 0) > 0 ? 'authenticated' : 'unauthenticated') as SessionStatusType,
     signIn,

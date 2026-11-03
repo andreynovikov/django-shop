@@ -26,7 +26,7 @@ test('user logs out from the account menu', async ({ page, backend, isMobile }) 
     await menu.getByRole('button', { name: 'Личный кабинет' }).click()
   await menu.getByText('Выйти').click()
 
-  // the home page is a full page load rendered from the backend
+  // the home page is rendered from the backend
   await expect(page).toHaveURL('/', { timeout: 30_000 })
   expect(backend.user).toBeUndefined()
 

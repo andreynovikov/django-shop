@@ -2,12 +2,12 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import SimpleBar from 'simplebar-react'
 
 import { ButtonLoading } from '@/components/loading'
 import NoImage from '@/components/product/no-image'
 
-import { useNavigation } from '@/lib/navigation'
 import useBasket from '@/lib/basket'
 import { useCreateOrder } from '@/lib/order'
 import { useSession } from '@/lib/session'
@@ -33,7 +33,7 @@ export default function CartNotice() {
   const { status } = useSession()
   const { basket, isEmpty, removeItem } = useBasket()
   const { mutate, isPending } = useCreateOrder()
-  const { navigate } = useNavigation()
+  const router = useRouter()
 
   const handleRemoveItem = (product: BasketItemProduct) => {
     removeItem(product)
@@ -43,7 +43,7 @@ export default function CartNotice() {
     if (status === 'authenticated')
       mutate()
     else
-      navigate('/cart')
+      router.push('/cart')
   }
 
   if (isEmpty)

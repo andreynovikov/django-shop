@@ -1,8 +1,7 @@
 'use client'
 
 import { useRef, useEffect, RefObject, Dispatch, SetStateAction, ReactNode } from 'react'
-
-import { useNavigation } from '@/lib/navigation'
+import { usePathname } from 'next/navigation'
 
 interface CatalogDropDownProps {
   catalog: ReactNode
@@ -14,11 +13,11 @@ interface CatalogDropDownProps {
 export default function CatalogDropDown({ catalog, visible, setVisible, buttonRef }: CatalogDropDownProps) {
   const ref = useRef<HTMLDivElement>(null)
 
-  const { path } = useNavigation()
+  const pathname = usePathname()
 
   useEffect(() => {
       setVisible(false)
-  }, [path, setVisible])
+  }, [pathname, setVisible])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

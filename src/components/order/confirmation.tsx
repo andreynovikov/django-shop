@@ -3,13 +3,13 @@
 import { useState, useEffect, useMemo, SubmitEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import NoImage from '@/components/product/no-image'
 import { STATUS_NEW } from '@/components/order/status-badge'
 import { PageLoading } from '@/components/loading'
 
-import { useNavigation } from '@/lib/navigation'
 import { useSession } from '@/lib/session'
 import { basketKeys, orderKeys, loadOrder, updateOrder, FormDataJson } from '@/lib/queries'
 import { User } from '@/lib/types'
@@ -17,11 +17,11 @@ import { User } from '@/lib/types'
 export default function OrderConfirmation() {
   const [updated, setUpdated] = useState(false)
 
-  const { navigate } = useNavigation()
+  const router = useRouter()
 
   const { user: sessionUser, status } = useSession({
     onUnauthenticated: () => {
-      navigate('/cart')
+      router.push('/cart')
     }
   })
   const user = status === 'authenticated' ? sessionUser as User : undefined
@@ -43,8 +43,8 @@ export default function OrderConfirmation() {
 
   useEffect(() => {
     if (orderId === undefined)
-      navigate('/user/orders') // we know nothing about last order
-  }, [orderId, navigate])
+      router.push('/user/orders') // we know nothing about last order
+  }, [orderId, router])
 
   const { data: order, isSuccess, isFetching, isError } = useQuery({
     queryKey: orderKeys.detail(orderId ?? 0),
