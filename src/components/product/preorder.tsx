@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { Toast } from '@base-ui/react/toast'
 
 import { ButtonLoading } from '@/components/loading'
-import LoginForm from '@/components/login-form'
+import LoginForm from '@/components/user/login-form'
 import { Modal, ModalBody } from '@/components/ui/modal'
 
 import { createPreorder } from '@/lib/queries'

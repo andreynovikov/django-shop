@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Tabs } from '@base-ui/react/tabs'
 
 import { Modal, ModalHeader, ModalBody } from '@/components/ui/modal'
-import LoginForm from '@/components/login-form'
+import LoginForm from '@/components/user/login-form'
 import RegistrationForm from '@/components/user/registration-form'
 
 interface SignInModalProps {

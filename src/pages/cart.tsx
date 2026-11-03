@@ -3,7 +3,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 
 import PageLayout from '@/components/layout/page'
-import LoginForm from '@/components/login-form'
+import LoginForm from '@/components/user/login-form'
 import CartItem from '@/components/cart/item'
 import { PageLoading, ButtonLoading } from '@/components/loading'
 

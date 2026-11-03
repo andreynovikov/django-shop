@@ -3,7 +3,7 @@ import { SubmitEvent, useEffect, useRef, useState, type ReactElement } from 'rea
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import PageLayout from '@/components/layout/page'
-import LoginForm from '@/components/login-form'
+import LoginForm from '@/components/user/login-form'
 
 import { useSession } from '@/lib/session'
 import { createSerial, HttpError, serialKeys } from '@/lib/queries'
