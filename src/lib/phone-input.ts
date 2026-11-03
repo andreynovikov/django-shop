@@ -1,4 +1,4 @@
-import type { MaskitoOptions, MaskitoPreprocessor } from '@maskito/core'
+import { maskitoInitialCalibrationPlugin, type MaskitoOptions, type MaskitoPreprocessor } from '@maskito/core'
 import {
   maskitoAddOnFocusPlugin,
   maskitoCaretGuard,
@@ -18,6 +18,8 @@ const phoneInputOptions = {
   ],
   preprocessors: [createCompletePhoneInsertionPreprocessor()],
   plugins: [
+    // Maskito formats only what the user types, so a value filled in before the mask is attached stays raw
+    maskitoInitialCalibrationPlugin(),
     maskitoAddOnFocusPlugin('+7 '),
     maskitoRemoveOnBlurPlugin('+7 '),
     // Forbids putting caret before non-removable country prefix, but allows selection of full value
