@@ -17,11 +17,14 @@ import { orderKeys, loadOrders } from '@/lib/queries'
 import { User } from '@/lib/types'
 
 export default function UserSidebar() {
-  const [menuOpen, setMenuOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
 
   const router = useRouter()
   const pathname = usePathname()
+
+  // The sidebar stays mounted in the account layout, the menu is open on the page it was opened on only
+  const [menuOpenAt, setMenuOpenAt] = useState<string | null>(null)
+  const menuOpen = menuOpenAt === pathname
 
   // Signing out navigates to the home page, which is still loading when the session ends,
   // so the login page must not take over meanwhile.
@@ -54,7 +57,7 @@ export default function UserSidebar() {
 
   return (
     <aside className="col-lg-4 pt-4 pt-lg-0 pe-xl-5">
-      <Collapsible.Root className="bg-white rounded-3 shadow-lg pt-1 mb-5 mb-lg-0" open={menuOpen} onOpenChange={setMenuOpen}>
+      <Collapsible.Root className="bg-white rounded-3 shadow-lg pt-1 mb-5 mb-lg-0" open={menuOpen} onOpenChange={open => setMenuOpenAt(open ? pathname : null)}>
         <div className="d-md-flex justify-content-between align-items-center text-center text-md-start p-4">
           <div className="d-md-flex align-items-center">
             <div className="img-thumbnail rounded-circle position-relative flex-shrink-0 mx-auto mb-2 mx-md-0 mb-md-0" style={{ width: "6.375rem" }}>
