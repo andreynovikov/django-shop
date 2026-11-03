@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/router'
-import Head from 'next/head'
+'use client'
+
+import { useEffect } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
+import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs'
 
-import UserPageLayout from '@/components/layout/user-page'
 import UserTopbar from '@/components/user/topbar'
 import OrderPaymentButton from '@/components/order/payment-button'
 import OrderStatusBadge from '@/components/order/status-badge'
@@ -13,6 +13,7 @@ import { PageLoading } from '@/components/loading'
 import Tooltip from '@/components/ui/tooltip'
 
 import { useSession } from '@/lib/session'
+import { useNavigation } from '@/lib/navigation'
 import { orderKeys, loadOrders, getLastOrder } from '@/lib/queries'
 import {
   STATUS_COLLECTED,
@@ -22,63 +23,63 @@ import {
 
 import moment from 'moment'
 
-export default function Orders({ filter, page, track }) {
-  const [currentFilter, setFilter] = useState(filter)
-  const router = useRouter()
+const orderListParams = {
+  page: parseAsInteger.withDefault(1),
+  filter: parseAsString.withDefault(''),
+  track: parseAsString, // "?track" without a value opens the last order
+}
+
+const orderPathname = (id: number) => `/user/orders/${id}/`
+
+// Shown by the static page until the query is read in the browser
+export function OrderListLoading() {
+  return (
+    <>
+      <UserTopbar>
+        <div className="d-flex w-100 text-light text-center me-3">&nbsp;</div>
+      </UserTopbar>
+      <PageLoading />
+    </>
+  )
+}
+
+export default function OrderList() {
+  const [{ page, filter, track }, setParams] = useQueryStates(orderListParams)
+  const { navigate } = useNavigation()
   const { status } = useSession()
 
   const { data: lastOrder } = useQuery({
     queryKey: orderKeys.last(),
     queryFn: () => getLastOrder(),
-    enabled: status === 'authenticated' && track !== undefined
+    enabled: status === 'authenticated' && track !== null
   })
 
   // keep showing the loader until redirected to the last order, if there is one
-  const isTracking = track !== undefined && !(lastOrder !== undefined && !lastOrder.id)
+  const isTracking = track !== null && !(lastOrder !== undefined && !lastOrder.id)
 
   useEffect(() => {
-    if (isTracking && lastOrder?.id) {
-      router.push({
-        pathname: '/user/orders/[id]',
-        query: { id: lastOrder.id }
-      })
-    }
-  }, [lastOrder, router, isTracking])
+    if (isTracking && lastOrder?.id)
+      navigate(orderPathname(lastOrder.id))
+  }, [lastOrder, navigate, isTracking])
 
-  const { data: orders, isSuccess, isLoading } = useQuery({
-    queryKey: orderKeys.list(page || 1, currentFilter),
-    queryFn: () => loadOrders(page || 1, currentFilter),
+  // pending until the session is loaded too, so the list doesn't say there are no orders meanwhile
+  const { data: orders, isSuccess, isPending } = useQuery({
+    queryKey: orderKeys.list(page, filter),
+    queryFn: () => loadOrders(page, filter),
     enabled: status === 'authenticated'
   })
 
-  const onFilterChanged = (value) => {
-    if (+page > 1) {
-      router.push({
-        pathname: router.pathname,
-        query: { ...router.query, page: 1 }
-      })
-    }
-    setFilter(value)
-  }
-
-  const handleRowClick = (id) => {
-    router.push({
-      pathname: '/user/orders/[id]',
-      query: { id }
-    })
-  }
+  // the filter is kept in the query, a new filter starts from the first page
+  const onFilterChanged = (value: string) => setParams({ filter: value || null, page: null })
 
   return (
     <>
-      <Head>
-        <meta name="robots" content="noindex" />
-      </Head>
       <UserTopbar>
         <div className="d-flex align-items-center flex-nowrap me-3 me-sm-4">
-          {isSuccess && !isTracking && (orders.results.length > 0 || !!currentFilter) ? (
+          {isSuccess && !isTracking && (orders.results.length > 0 || !!filter) ? (
             <>
               <label className="text-light opacity-75 text-nowrap fs-sm me-2 d-none d-sm-block" htmlFor="sw-order-filter">Отображать:</label>
-              <select className="form-select" id="sw-order-filter" value={currentFilter} onChange={(e) => onFilterChanged(e.target.value)}>
+              <select className="form-select" id="sw-order-filter" value={filter} onChange={(e) => onFilterChanged(e.target.value)}>
                 <option value="">Все</option>
                 <option value="active">Активные</option>
                 <option value="done">Выполненные</option>
@@ -105,9 +106,9 @@ export default function Orders({ filter, page, track }) {
               </thead>
               <tbody>
                 {orders.results.map((order) => (
-                  <tr key={order.id} onClick={() => handleRowClick(order.id)} style={{ cursor: "pointer" }}>
+                  <tr key={order.id} onClick={() => navigate(orderPathname(order.id))} style={{ cursor: "pointer" }}>
                     <td className="py-3">
-                      <Link className="nav-link-style fw-medium fs-sm" href={{ pathname: '/user/orders/[id]', query: { id: order.id } }}>
+                      <Link className="nav-link-style fw-medium fs-sm" href={orderPathname(order.id)}>
                         {order.id}
                       </Link>
                     </td>
@@ -132,13 +133,13 @@ export default function Orders({ filter, page, track }) {
           </div>
           {orders.totalPages > 1 && (
             <PageSelector
-              pathname={router.pathname}
-              query={router.query}
+              pathname="/user/orders/"
+              query={filter ? { filter } : {}}
               totalPages={orders.totalPages}
               currentPage={orders.currentPage} />
           )}
         </>
-      ) : (isLoading || isTracking) ? (
+      ) : (isPending || isTracking) ? (
         <PageLoading />
       ) : (
         <p className="lead">У вас нет {
@@ -150,24 +151,4 @@ export default function Orders({ filter, page, track }) {
       )}
     </>
   )
-}
-
-Orders.getLayout = function getLayout(page) {
-  const breadcrumbs = [
-    {
-      label: 'Личный кабинет',
-      href: '/user/profile'
-    }
-  ]
-  return (
-    <UserPageLayout title="Список заказов" breadcrumbs={breadcrumbs}>
-      {page}
-    </UserPageLayout>
-  )
-}
-
-export async function getServerSideProps(context) {
-  return {
-    props: context.query || {}
-  }
 }

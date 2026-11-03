@@ -1,18 +1,19 @@
-import Head from 'next/head'
+'use client'
+
 import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery } from '@tanstack/react-query'
 
 import NoImage from '@/components/product/no-image'
 import ProductPrice from '@/components/product/price'
-import UserPageLayout from '@/components/layout/user-page'
 import UserTopbar from '@/components/user/topbar'
 
 import useBasket from '@/lib/basket'
 import useFavorites from '@/lib/favorites'
 import { productKeys, loadProducts } from '@/lib/queries'
+import { ProductInfo } from '@/lib/types'
 
-export default function Favorites() {
+export default function UserFavorites() {
   const { addItem } = useBasket()
   const { favorites, unfavoritize } = useFavorites()
 
@@ -22,18 +23,13 @@ export default function Favorites() {
     enabled: favorites.length > 0
   })
 
-  const handleClick = (product) => {
-    if (product.variations) {
-    } else {
+  const handleClick = (product: ProductInfo) => {
+    if (!product.variations)
       addItem(product)
-    }
   }
 
   return (
     <>
-      <Head>
-        <meta name="robots" content="noindex" />
-      </Head>
       <UserTopbar>
         <div className="d-flex w-100 text-light text-center me-3">&nbsp;</div>
       </UserTopbar>
@@ -83,19 +79,5 @@ export default function Favorites() {
         <p className="lead">Здесь появятся ваши отложенные товары</p>
       )}
     </>
-  )
-}
-
-Favorites.getLayout = function getLayout(page) {
-  const breadcrumbs = [
-    {
-      label: 'Личный кабинет',
-      href: '/user/profile'
-    }
-  ]
-  return (
-    <UserPageLayout title="Избранное" breadcrumbs={breadcrumbs}>
-      {page}
-    </UserPageLayout>
   )
 }

@@ -1,5 +1,6 @@
+'use client'
+
 import { useMemo } from 'react'
-import Head from 'next/head'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery } from '@tanstack/react-query'
@@ -11,7 +12,6 @@ import { formatPhone } from '@/lib/format'
 
 import { Loading } from '@/components/loading'
 import NoImage from '@/components/product/no-image'
-import UserPageLayout from '@/components/layout/user-page'
 import UserTopbar from '@/components/user/topbar'
 import OrderPaymentButton from '@/components/order/payment-button'
 import OrderStatusBadge from '@/components/order/status-badge'
@@ -38,7 +38,7 @@ import {
 
 import moment from 'moment'
 
-export default function Order({ id }) {
+export default function OrderDetails({ id }: { id: number }) {
   const { site } = useSite()
   const { status } = useSession()
 
@@ -48,7 +48,7 @@ export default function Order({ id }) {
     enabled: status === 'authenticated',
     refetchInterval: (query) => {
       const orderStatus = query.state.data?.status
-      return [STATUS_NEW, STATUS_ACCEPTED].includes(orderStatus) ? 60 * 1000 : false // check for updates every minute
+      return orderStatus === STATUS_NEW || orderStatus === STATUS_ACCEPTED ? 60 * 1000 : false // check for updates every minute
     }
   })
 
@@ -72,30 +72,22 @@ export default function Order({ id }) {
 
   if (!isSuccess)
     return (
-      <>
-        <Head>
-          <meta name="robots" content="noindex" />
-        </Head>
-        <div className="container pb-5 mb-2 mb-md-4">
-          <div className="row">
-            <section className="col-lg-12">
-              <div className="pt-2 pb-4 pb-sm-5">
-                <div className="pb-3">
-                  &nbsp;
-                </div>
+      <div className="container pb-5 mb-2 mb-md-4">
+        <div className="row">
+          <section className="col-lg-12">
+            <div className="pt-2 pb-4 pb-sm-5">
+              <div className="pb-3">
+                &nbsp;
               </div>
-              <Loading className="my-3 py-3 text-center" mega />
-            </section>
-          </div>
+            </div>
+            <Loading className="my-3 py-3 text-center" mega />
+          </section>
         </div>
-      </>
+      </div>
     )
 
   return (
     <>
-      <Head>
-        <meta name="robots" content="noindex" />
-      </Head>
       <UserTopbar>
         <div className="d-flex w-100 text-light text-center me-3">
           <div className="fs-ms px-3">
@@ -210,7 +202,7 @@ export default function Order({ id }) {
                     {order.delivery_time_from && <> с {moment(order.delivery_time_from, moment.HTML5_FMT.TIME_SECONDS).format('HH:mm')}</>}
                     {order.delivery_time_till && <> до {moment(order.delivery_time_till, moment.HTML5_FMT.TIME_SECONDS).format('HH:mm')}</>}
                   </li>
-                ) : order.delivery == DELIVERY_SELF ? (
+                ) : order.delivery === DELIVERY_SELF ? (
                   <li>
                     <span className="text-muted">Дата получения:</span>
                     {" "}{moment(order.delivery_handing_date).format('D MMMM')}
@@ -285,7 +277,7 @@ export default function Order({ id }) {
         </div>
       </div>
       {order.items.map((item, index) => (
-        <div className={"d-sm-flex justify-content-between pb-3 pb-sm-2 " + (index === 0 ? "mb-3" : "my-3") + (!(index === order.items.length - 1) && " border-bottom")} key={item.product.id}>
+        <div className={"d-sm-flex justify-content-between pb-3 pb-sm-2 " + (index === 0 ? "mb-3" : "my-3") + (index < order.items.length - 1 ? " border-bottom" : "")} key={item.product.id}>
           <div className="d-sm-flex text-center text-sm-start">
             <Link className="d-inline-block flex-shrink-0 mx-auto position-relative" style={{ width: "10rem" }} href={`/products/${item.product.code}`}>
               {item.product.image ? (
@@ -343,30 +335,4 @@ export default function Order({ id }) {
       )}
     </>
   )
-}
-
-Order.getLayout = function getLayout(page) {
-  const breadcrumbs = [
-    {
-      label: 'Личный кабинет',
-      href: '/user/profile'
-    },
-    {
-      label: 'Заказы',
-      href: '/user/orders'
-    }
-  ]
-  return (
-    <UserPageLayout title={`Заказ №${page.props.id}`} breadcrumbs={breadcrumbs}>
-      {page}
-    </UserPageLayout>
-  )
-}
-
-export async function getServerSideProps(context) {
-  return {
-    props: {
-      id: context.params.id
-    }
-  }
 }
