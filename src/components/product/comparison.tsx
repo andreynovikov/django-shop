@@ -1,11 +1,11 @@
+'use client'
+
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/router'
-import Head from 'next/head'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery, useQueries } from '@tanstack/react-query'
+import { useQueryStates, parseAsInteger, parseAsNativeArrayOf } from 'nuqs'
 
-import PageLayout from '@/components/layout/page'
 import FieldHelp from '@/components/product/field-help'
 import NoImage from '@/components/product/no-image'
 import ProductPrice from '@/components/product/price'
@@ -14,23 +14,19 @@ import { PageLoading } from '@/components/loading'
 import useBasket from '@/lib/basket'
 import useComparison from '@/lib/comparison'
 import { deepCompare } from '@/lib/compare'
-
+import { prettifyProductFieldValue } from '@/lib/format'
 import { kindKeys, productKeys, loadKinds, loadKind, loadProduct, getProductFields } from '@/lib/queries'
+import { Product } from '@/lib/types'
 
-function prettify(field, value) {
-  if (field === 'manufacturer')
-    return value.name
-  if (field === 'country' || field === 'developer_country')
-    return value.enabled ? value.name : ""
-  if (field === 'complect')
-    return <div dangerouslySetInnerHTML={{ __html: value }} />
-  if (typeof value === 'string')
-    return value.trim()
-  return value
+// ?kind= picks the compared products of a kind, ?product=&product= are the products to show
+const comparisonParams = {
+  kind: parseAsInteger,
+  product: parseAsNativeArrayOf(parseAsInteger),
 }
 
-export default function Compare({ kindId, productIds }) {
-  const router = useRouter()
+// Reading the query needs a Suspense boundary, the page is static
+export default function ProductComparison() {
+  const [{ kind: kindId, product: productIds }, setParams] = useQueryStates(comparisonParams)
   const { addItem } = useBasket()
 
   const [different, setDifferent] = useState(false)
@@ -41,45 +37,36 @@ export default function Compare({ kindId, productIds }) {
   // ...and redirect to explicit comparison
   useEffect(() => {
     if (kindId !== null && isComparisonSuccess)
-      router.replace({
-        pathname: router.pathname,
-        query: { product: comparisons }
-      })
-  }, [comparisons, isComparisonSuccess, kindId, router])
+      setParams({ kind: null, product: comparisons })
+  }, [comparisons, isComparisonSuccess, kindId, setParams])
 
   // get list of comparable kinds
   const { data: kinds, isSuccess: isKindsSuccess } = useQuery({
-    queryKey: kindKeys.list(comparisons),
-    queryFn: () => loadKinds(comparisons)
+    queryKey: kindKeys.list({ product: comparisons }),
+    queryFn: () => loadKinds(comparisons),
+    enabled: isComparisonSuccess, // comparisons are empty until loaded, and the backend lists all kinds for none
   })
 
   // if nothing is passed, redirect to first comparable kind
   useEffect(() => {
-    if (isComparisonSuccess && comparisons.length > 0 && isKindsSuccess && kinds.length > 0 && kindId === null && productIds.length === 0) {
-      router.replace({
-        pathname: router.pathname,
-        query: { kind: kinds[0].id }
-      })
-    }
-  }, [isKindsSuccess, kinds, kindId, productIds, isComparisonSuccess, comparisons, router])
+    if (isComparisonSuccess && comparisons.length > 0 && isKindsSuccess && kinds.length > 0 && kindId === null && productIds.length === 0)
+      setParams({ kind: kinds[0].id })
+  }, [isKindsSuccess, kinds, kindId, productIds, isComparisonSuccess, comparisons, setParams])
 
-  // if product list is passed compare them
+  // if product list is passed compare them, once all of them are loaded
   const products = useQueries({
-    queries: productIds.map(productId => {
-      return {
-        queryKey: productKeys.detail(productId),
-        queryFn: () => loadProduct(productId),
-      }
-    })
+    queries: productIds.map((productId) => ({
+      queryKey: productKeys.detail(productId),
+      queryFn: () => loadProduct(productId),
+    })),
+    combine: (results) => results.every((result) => result.isSuccess) ? results.map((result) => result.data) : undefined,
   })
 
-  const isProductsSuccess = productIds.length > 0 && products.every(result => result.isSuccess)
-
-  const currentKind = isProductsSuccess ? products[0].data.kind[0] : kindId
+  const currentKind = products?.[0]?.kind?.[0] ?? kindId
 
   const { data: kind, isSuccess: isKindSuccess } = useQuery({
-    queryKey: kindKeys.detail(currentKind),
-    queryFn: () => loadKind(currentKind),
+    queryKey: kindKeys.detail(currentKind ?? 0),
+    queryFn: () => loadKind(currentKind!),
     enabled: currentKind !== null
   })
 
@@ -88,8 +75,9 @@ export default function Compare({ kindId, productIds }) {
     queryFn: () => getProductFields()
   })
 
+  // field names come with units after a comma
   const fieldNames = useMemo(() => {
-    const names = {}
+    const names: Record<string, string[]> = {}
     if (fields !== undefined) {
       Object.keys(fields).forEach((key) => {
         const name = fields[key].split(',')
@@ -101,70 +89,46 @@ export default function Compare({ kindId, productIds }) {
     return names
   }, [fields])
 
-  const productFields = !(isKindSuccess && isProductsSuccess) ? [] :
-    kind.comparison.reduce((fields, field) => {
-      var differ = false, value = products[0].data[field]
-      for (var i = 1; i < products.length; i++) {
-        var val = products[i].data[field]
-        if (!deepCompare(val, value)) { // TODO: refactor to pass all products at once
-          differ = true
-          break
-        }
-      }
+  const productFields = !(isKindSuccess && products !== undefined && products.length > 0) ? [] :
+    kind.comparison.reduce((fields, name) => {
+      const field = name as keyof Product
+      const value = products[0][field]
+      const differ = !deepCompare(...products.map((product) => product[field]))
       if (differ || (!different && value !== undefined && value !== ''))
         fields.push({
           field,
           differ
         })
       return fields
-    }, [])
+    }, [] as { field: keyof Product, differ: boolean }[])
 
-  const uncompareProduct = (productId) => {
+  const uncompareProduct = (productId: number) => {
     uncompare(productId, () => {
-      const ids = productIds.filter(id => +id !== productId)
-      router.replace({
-        pathname: router.pathname,
-        query: { product: ids }
-      })
+      setParams({ product: productIds.filter((id) => id !== productId) })
     })
   }
 
-  const handleCartClick = (product) => {
-    if (product.variations) {
-    } else {
+  const handleCartClick = (product: Product) => {
+    if (!product.variations)
       addItem(product)
-    }
   }
 
-  if (productIds.length === 0 && kindId === null && comparisons.length === 0)
+  if (isComparisonSuccess && productIds.length === 0 && kindId === null && comparisons.length === 0)
     return (
-      <>
-        <Head>
-          <meta name="robots" content="noindex" />
-        </Head>
-        <div className="alert alert-danger" role="alert">Отсутствуют товары для сравнения</div>
-      </>
+      <div className="alert alert-danger" role="alert">Отсутствуют товары для сравнения</div>
     )
 
-  if (kindId !== null || (productIds.length > 0 && !isProductsSuccess) || !isKindsSuccess)
+  if (kindId !== null || products === undefined || !isKindsSuccess)
     return (
-      <>
-        <Head>
-          <meta name="robots" content="noindex" />
-        </Head>
-        <PageLoading />
-      </>
+      <PageLoading />
     )
 
   return (
     <>
-      <Head>
-        <meta name="robots" content="noindex" />
-      </Head>
-      {isKindsSuccess && kinds.length > 1 ? (
+      {kinds.length > 1 ? (
         <div className="btn-group btn-group-lg mb-5" role="group">
           {kinds.map((kind) => (
-            <Link className={"btn btn-" + (kind.id === currentKind ? "dark" : "secondary")} href={{ pathname: router.pathname, query: { kind: kind.id } }} key={kind.id}>
+            <Link className={"btn btn-" + (kind.id === currentKind ? "dark" : "secondary")} href={`/compare/?kind=${kind.id}`} key={kind.id}>
               {kind.name}
             </Link>
           ))}
@@ -187,7 +151,7 @@ export default function Compare({ kindId, productIds }) {
                   <label className="form-check-label" htmlFor="differences">Только различия</label>
                 </div>
               </td>
-              {products.map(({ data: product }) => (
+              {products.map((product) => (
                 <td className="text-center px-4 pb-4" key={product.id}>
                   <button type="button" className="btn btn-sm d-block w-100 text-danger mb-2" onClick={() => uncompareProduct(product.id)}>
                     <i className="ci-trash me-1" />Удалить
@@ -228,11 +192,11 @@ export default function Compare({ kindId, productIds }) {
                   {fieldNames[field][0]}
                   <FieldHelp field={field} />
                 </th>
-                {products.map(({ data: product }) => (
+                {products.map((product) => (
                   <td key={product.id}>
                     {product[field] && (
                       <>
-                        {prettify(field, product[field])}
+                        {prettifyProductFieldValue(field, product[field])}
                         {fieldNames[field][1]}
                       </>
                     )}
@@ -242,7 +206,7 @@ export default function Compare({ kindId, productIds }) {
             ))}
             <tr>
               <th className="text-dark">Цена</th>
-              {products.map(({ data: product }) => (
+              {products.map((product) => (
                 <td key={product.id}>
                   {product.enabled && product.price > 0 && <ProductPrice product={product} delFs="xs" />}
                 </td>
@@ -267,7 +231,7 @@ export default function Compare({ kindId, productIds }) {
             {productFields.length > 5 && (
               <tr>
                 <th></th>
-                {products.map(({ data: product }) => (
+                {products.map((product) => (
                   <td key={product.id}>
                     {product.instock > 0 && (
                       <button type="button" className="btn btn-success d-block w-100" onClick={() => handleCartClick(product)}>
@@ -281,30 +245,6 @@ export default function Compare({ kindId, productIds }) {
           </tbody>
         </table>
       </div>
-
     </>
   )
-}
-
-Compare.getLayout = function getLayout(page) {
-  return (
-    <PageLayout title="Сравнение товаров" dark>
-      <div className="container py-5 mb-2">
-        {page}
-      </div>
-    </PageLayout>
-  )
-}
-
-export async function getServerSideProps(context) {
-  const kindId = context.query?.kind || null
-  const product = context.query?.product || []
-  const productIds = Array.isArray(product) ? product : [product]
-
-  return {
-    props: {
-      kindId,
-      productIds
-    }
-  }
 }
