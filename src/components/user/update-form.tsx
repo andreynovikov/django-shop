@@ -5,7 +5,7 @@ import { Loading } from '@/components/loading'
 
 import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
 import { useSession } from '@/lib/session'
-import { userKeys, getUserForm, updateUser, HttpError } from '@/lib/queries'
+import { userKeys, getUserForm, updateUser, normalizePhone, HttpError } from '@/lib/queries'
 import { User, UserEdit } from '@/lib/types'
 
 type FieldErrors = Partial<Record<keyof UserEdit, string[]>>
@@ -70,10 +70,11 @@ export default function UpdateForm({ id, embedded = false, onReady, onUpdated }:
     e.preventDefault()
     if (!user)
       return
-    if (!isValidPhone(fieldValue('phone'))) {
+    const phone = fieldValue('phone')
+    if (!isValidPhone(phone)) {
       setError({ phone: ["Введите корректный номер"] })
     } else {
-      updateUserMutation.mutate({ ...user, ...edits }, {
+      updateUserMutation.mutate({ ...user, ...edits, phone: normalizePhone(phone) }, {
         onSuccess: () => {
           if (onUpdated !== undefined)
             onUpdated()
