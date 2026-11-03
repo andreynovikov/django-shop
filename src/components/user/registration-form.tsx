@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { stringify as stringifyQuery } from 'querystring'
 
 import { ButtonLoading } from '@/components/loading'
+import { passPhoneToLogin } from '@/components/user/login-page-form'
 
 import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
 import { useSession } from '@/lib/session'
@@ -72,12 +73,9 @@ export default function RegistrationForm({ embedded = '', onComplete }: Registra
       if (onComplete)
         onComplete(normalizedPhone)
     } else {
-      const params = stringifyQuery({
-        ...query,
-        phone: normalizedPhone,
-        ctx: 'reg'
-      })
-      navigate(`/login?${params}`)
+      passPhoneToLogin(normalizedPhone)
+      const params = stringifyQuery(query)
+      navigate('/login/' + (params ? `?${params}` : ''))
     }
     setRegisterPending(false)
   }

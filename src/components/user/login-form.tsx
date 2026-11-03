@@ -47,10 +47,18 @@ function getError(field: string, error: unknown): FieldErrors {
   return { [field]: "Неизвестная ошибка входа" }
 }
 
-// Only paths on this site, so a link to the login page can't send the user to another site
+// Only paths on this site, so a link to the login page can't send the user to another site.
+// The origin is compared after parsing, because browsers drop tabs and newlines: '/\t/example.com' is //example.com
 function getCallbackUrl(callbackUrl: unknown) {
-  if (typeof callbackUrl === 'string' && callbackUrl.startsWith('/') && !/^\/[/\\]/.test(callbackUrl))
-    return callbackUrl
+  if (typeof callbackUrl === 'string') {
+    try {
+      const url = new URL(callbackUrl, window.location.origin)
+      if (url.origin === window.location.origin)
+        return url.pathname + url.search + url.hash
+    } catch {
+      // not a URL
+    }
+  }
   return '/'
 }
 
@@ -103,6 +111,8 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
     }
   })
 
+  // The phone comes from a registration that has just finished, never from the URL:
+  // a link must not make the form send an SMS or create an account
   useEffect(() => {
     if (phone && isIdle)
       performUserCheck({ phone, reset: false })

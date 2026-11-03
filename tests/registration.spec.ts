@@ -17,9 +17,8 @@ test('user registers and logs in with a code from SMS', async ({ page, backend }
   await page.goto('/register/')
   await register(page)
 
-  // the login form gets the new phone and asks for the code it sent
-  await expect(page).toHaveURL(url => url.pathname === '/login/' &&
-    url.searchParams.get('phone') === '+79161234567' && url.searchParams.get('ctx') === 'reg')
+  // the login form gets the new phone, though not in the URL, and asks for the code it sent
+  await expect(page).toHaveURL(url => url.pathname === '/login/' && url.search === '')
   expect(backend.requestsTo('POST', 'users/').map(({ body }) => body)).toEqual([
     expect.objectContaining({ phone: '+79161234567', email: 'anna@example.com', name: 'Анна Иванова' })
   ])

@@ -72,8 +72,9 @@ test('callback survives registration', async ({ page, backend }) => {
   await expect(page).toHaveURL('/user/profile/')
 })
 
-for (const callbackUrl of ['https://example.com/', '//example.com/']) {
-  test(`login does not follow off-site callback ${callbackUrl}`, async ({ page, backend }) => {
+// Browsers drop tabs and newlines from URLs, so the last two turn into //example.com/
+for (const callbackUrl of ['https://example.com/', '//example.com/', '/\t/example.com/', '/\n/example.com/']) {
+  test(`login does not follow off-site callback ${JSON.stringify(callbackUrl)}`, async ({ page, backend }) => {
     await page.route(/^https?:\/\/example\.com\//, route => route.fulfill({ body: 'Another site' }))
     const user = backend.addUser()
     await page.goto(`/login/?callbackUrl=${encodeURIComponent(callbackUrl)}`)

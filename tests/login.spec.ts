@@ -11,6 +11,14 @@ test.beforeEach(async ({ page }) => {
   await focusPhone(phoneInput(page))
 })
 
+// The page keeps no phone to restore, so after a reload it is typed again
+async function reloadAndTypePhone(page: Page) {
+  await page.reload()
+  await focusPhone(phoneInput(page))
+  await typePhone(phoneInput(page), '9161234567')
+  await page.getByRole('button', { name: 'Войти' }).click()
+}
+
 test('user logs in with a code from SMS', async ({ page, backend }) => {
   const user = backend.addUser()
   await typePhone(phoneInput(page), '9161234567')
@@ -127,8 +135,9 @@ test('new code can be requested at once when attempts run out', async ({ page, b
 })
 
 test('reload keeps the code and its attempts', async ({ page, backend }) => {
-  const user = backend.addUser()
-  await page.goto(`/login/?phone=${encodeURIComponent(user.phone)}`)
+  backend.addUser()
+  await typePhone(phoneInput(page), '9161234567')
+  await page.getByRole('button', { name: 'Войти' }).click()
 
   const code = page.getByPlaceholder('Код из смс')
   const resend = page.getByText('Прислать код повторно')
@@ -140,7 +149,7 @@ test('reload keeps the code and its attempts', async ({ page, backend }) => {
     await expect(page.getByText('Неверный или устаревший код')).toBeVisible()
   }
 
-  await page.reload()
+  await reloadAndTypePhone(page)
   await expect(code).toBeVisible()
   expect(backend.smsLog).toHaveLength(1)
   await expect(resend).toHaveCount(0)
@@ -158,10 +167,7 @@ test('phone typed again after a reload gets no new code', async ({ page, backend
   const code = page.getByPlaceholder('Код из смс')
   await expect(code).toBeVisible()
 
-  await page.reload()
-  await focusPhone(phoneInput(page))
-  await typePhone(phoneInput(page), '9161234567')
-  await page.getByRole('button', { name: 'Войти' }).click()
+  await reloadAndTypePhone(page)
   await expect(code).toBeVisible()
   expect(backend.smsLog).toHaveLength(1)
 
@@ -172,18 +178,45 @@ test('phone typed again after a reload gets no new code', async ({ page, backend
 
 test('resend delay goes on after a reload', async ({ page, backend }) => {
   const user = backend.addUser()
-  await page.goto(`/login/?phone=${encodeURIComponent(user.phone)}`)
+  await typePhone(phoneInput(page), '9161234567')
+  await page.getByRole('button', { name: 'Войти' }).click()
   await expect(page.getByText('Код выслан на указанный телефон по смс')).toBeVisible()
 
   backend.ageLoginCode(user.phone, 120)
-  await page.reload()
+  await reloadAndTypePhone(page)
   await expect(page.getByText(/можно через (2 минуты|1 минуту)/)).toBeVisible()
   expect(backend.smsLog).toHaveLength(1)
 
   backend.ageLoginCode(user.phone, 120)
-  await page.reload()
+  await reloadAndTypePhone(page)
   await expect(page.getByText('Код выслан на указанный телефон по смс')).toBeVisible()
   expect(backend.smsLog).toHaveLength(2)
+})
+
+// A link could otherwise send SMS to any phone, or sign the visitor into an account made for the phone in it.
+// The form would act on load, before the typed phone is sent.
+test('a link with a registered phone sends no code', async ({ page, backend }) => {
+  const linked = backend.addUser({ phone: '+79167654321' })
+  const user = backend.addUser()
+  await page.goto(`/login/?phone=${encodeURIComponent(linked.phone)}`)
+  await focusPhone(phoneInput(page))
+  await typePhone(phoneInput(page), '9161234567')
+  await page.getByRole('button', { name: 'Войти' }).click()
+
+  await expect(page.getByPlaceholder('Код из смс')).toBeVisible()
+  expect(backend.smsLog.map(({ phone }) => phone)).toEqual([user.phone])
+})
+
+test('a link with an unknown phone creates no account', async ({ page, backend }) => {
+  backend.addUser()
+  await page.goto(`/login/?phone=${encodeURIComponent('+79167654321')}&ctx=order`)
+  await focusPhone(phoneInput(page))
+  await typePhone(phoneInput(page), '9161234567')
+  await page.getByRole('button', { name: 'Войти' }).click()
+
+  await expect(page.getByPlaceholder('Код из смс')).toBeVisible()
+  expect(backend.findUser('+79167654321')).toBeUndefined()
+  expect(backend.requestsTo('POST', 'users/login/')).toEqual([])
 })
 
 test('limit of sent codes is explained', async ({ page, backend }) => {
