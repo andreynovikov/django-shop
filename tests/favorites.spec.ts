@@ -24,3 +24,14 @@ test('signed in user keeps products in favorites', async ({ page, request, backe
   await expect(page.getByText('Здесь появятся ваши отложенные товары')).toBeVisible()
   expect(backend.favoriteIds).toEqual([])
 })
+
+test('favorites page lists favorites on a direct visit', async ({ page, request, backend }) => {
+  const [first, second] = await findSewingMachines(request)
+  backend.signIn()
+  backend.addFavorites([first, second])
+
+  await page.goto('/user/favorites/')
+  const titles = page.locator('.product-title')
+  await expect(titles.getByText(first.title, { exact: true })).toBeVisible()
+  await expect(titles.getByText(second.title, { exact: true })).toBeVisible()
+})

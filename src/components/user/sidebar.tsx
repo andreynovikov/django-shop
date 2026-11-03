@@ -1,3 +1,5 @@
+'use client'
+
 import { useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
@@ -21,9 +23,10 @@ export default function UserSidebar() {
   const { navigate, path } = useNavigation()
 
   // Signing out navigates to the home page, which may be a full page load that is still
-  // loading when the session ends, so the login page must not take over meanwhile
+  // loading when the session ends, so the login page must not take over meanwhile.
+  // The session can load before the App Router navigation has read the query, so the URL is taken from the location.
   const { user: sessionUser, status, signOut } = useSession({
-    onUnauthenticated: signingOut ? undefined : () => navigate(`/login?callbackUrl=${encodeURIComponent(path)}`)
+    onUnauthenticated: signingOut ? undefined : () => navigate(`/login?callbackUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`)
   })
 
   const handleSignOut = () => {

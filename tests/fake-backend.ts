@@ -225,6 +225,13 @@ export class FakeBackend {
     return this.orderJson(created)
   }
 
+  // Seeds favorites of the given user, the signed in one by default
+  addFavorites(products: { id: number }[], user = this.user) {
+    if (user === undefined)
+      throw new Error('addFavorites needs a user')
+    this.favorites.set(user.id, [...this.favorites.get(user.id) ?? [], ...products.map(({ id }) => id)])
+  }
+
   get basketItems() {
     return this.basket?.items.map(({ product, quantity }) => ({ product: product.id, quantity })) ?? []
   }
