@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
+import { revalidatePath } from 'next/cache'
 
 type Payload = {
   path?: string,
@@ -47,20 +47,20 @@ function getPathForModelItem(model: string, item: Item) {
   }
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<RevalidationResponse>
-) {
-  const data = req.body as RevalidationRequest
-  if (data === undefined)
-    return res.status(400).json({ revalidated: false, message: 'Parameters missing' })
+const respond = (body: RevalidationResponse, status = 200) => Response.json(body, { status })
+
+// The backend posts the saved model items, their pages are rendered again on the next visit
+export async function POST(request: Request) {
+  const data = await request.json().catch(() => undefined) as RevalidationRequest | undefined
+  if (!data)
+    return respond({ revalidated: false, message: 'Parameters missing' }, 400)
 
   if (!process.env.REVALIDATION_TOKEN || data.secret !== process.env.REVALIDATION_TOKEN) {
-    return res.status(401).json({ revalidated: false, message: 'Invalid token' })
+    return respond({ revalidated: false, message: 'Invalid token' }, 401)
   }
 
   if (!!!data.model || (data.pk === undefined && data.items === undefined)) {
-    return res.status(400).json({ revalidated: false, message: 'Parameters missing' })
+    return respond({ revalidated: false, message: 'Parameters missing' }, 400)
   }
 
   const items: Item[] = []
@@ -81,25 +81,10 @@ export default async function handler(
 
   console.log('Revalidating', data.model, [...paths])
 
-  // Revalidate every path independently so one failure does not skip the rest.
-  // If there was an error, Next.js will continue to show the last successfully generated page
-  const failed: string[] = []
-  for (const path of paths) {
-    try {
-      await res.revalidate(path)
-    } catch (err) {
-      console.error('Failed to revalidate', path, err)
-      failed.push(path)
-    }
-  }
+  for (const path of paths)
+    revalidatePath(path)
 
-  const problems = []
   if (unmapped.length > 0)
-    problems.push(`No path for ${data.model} ${unmapped.join(', ')}`)
-  if (failed.length > 0)
-    problems.push(`Revalidation error for ${failed.join(', ')}`)
-
-  if (problems.length > 0)
-    return res.status(failed.length > 0 ? 500 : 200).json({ revalidated: false, message: problems.join('; ') })
-  return res.json({ revalidated: true })
+    return respond({ revalidated: false, message: `No path for ${data.model} ${unmapped.join(', ')}` })
+  return respond({ revalidated: true })
 }

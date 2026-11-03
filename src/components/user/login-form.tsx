@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, ChangeEvent, SubmitEvent } from 'react'
+import { useState, useEffect, ChangeEvent, SubmitEvent, Suspense } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
-import { stringify as stringifyQuery } from 'querystring'
 
 import Countdown from '@/components/countdown'
 import { ButtonLoading } from '@/components/loading'
@@ -11,7 +11,6 @@ import { ButtonLoading } from '@/components/loading'
 import { formatPhone } from '@/lib/format'
 import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
 import { useSession } from '@/lib/session'
-import { useNavigation } from '@/lib/navigation'
 import { checkUser, normalizePhone, HttpError, LoginCredentials } from '@/lib/queries'
 
 type FieldErrors = Record<string, string>
@@ -62,6 +61,12 @@ function getCallbackUrl(callbackUrl: unknown) {
   return '/'
 }
 
+// Passes the query on, the callback URL in it. The static page has the link without it until hydration
+function RegisterLink() {
+  const query = useSearchParams().toString()
+  return <Link href={`/register/${query ? `?${query}` : ''}`}>зарегистрироваться</Link>
+}
+
 export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: LoginFormProps) {
   const [pdConsent, setPdConsent] = useState(false)
   const [ofConsent, setOfConsent] = useState(false)
@@ -73,7 +78,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
 
   const [showPermanentPassword, setShowPermanentPassword] = useState(ctx === 'reg')
 
-  const { query, navigate } = useNavigation()
+  const router = useRouter()
   const { signIn } = useSession()
 
   const {
@@ -196,7 +201,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
             if (hideModal)
               hideModal()
           } else {
-            navigate(getCallbackUrl(query.callbackUrl))
+            router.push(getCallbackUrl(new URLSearchParams(window.location.search).get('callbackUrl')))
           }
         } else if ('status' in result && [401, 403].includes(result.status)) {
           if (shopUser.permanent_password) {
@@ -379,9 +384,9 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
       {!shopUser && !embedded && (
         <div className="mt-4 fs-md">
           Если Вы не совершали покупок в магазине, Вы можете{" "}
-          <Link href={`/register?${stringifyQuery(query)}`}>
-            зарегистрироваться
-          </Link>
+          <Suspense fallback={<Link href="/register/">зарегистрироваться</Link>}>
+            <RegisterLink />
+          </Suspense>
         </div>
       )}
     </form>

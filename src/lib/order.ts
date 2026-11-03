@@ -1,11 +1,11 @@
+import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { useNavigation } from '@/lib/navigation'
 import { orderKeys, createOrder } from '@/lib/queries'
 import { eCommerce } from '@/lib/ymec'
 
 export function useCreateOrder() {
-  const { navigate } = useNavigation()
+  const router = useRouter()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -27,7 +27,7 @@ export function useCreateOrder() {
           }))
         }
       })
-      navigate('/confirmation')
+      router.push('/confirmation')
       console.log(data)
     },
     onError: (error) => {

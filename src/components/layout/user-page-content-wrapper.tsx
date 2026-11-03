@@ -11,7 +11,7 @@ type UserPageContentProps = {
   children: ReactNode
 }
 
-// Kept free of hooks so App Router server components can use it
+// Kept free of hooks so server components can use it
 export const userPageContentWrapper = ({ title, breadcrumbs, children }: UserPageContentProps) => {
   return pageContentWrapper({
     title,

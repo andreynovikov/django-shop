@@ -1,7 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { ParsedUrlQuery } from 'querystring'
+import { ReadonlyURLSearchParams, useSearchParams } from 'next/navigation'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { useQueryStates, parseAsString, parseAsBoolean, parseAsInteger, parseAsArrayOf, parseAsNativeArrayOf } from 'nuqs'
 
@@ -23,6 +24,16 @@ import ProductCard from './card'
 
 const pathname = '/search/'
 const pageSize = 15
+
+// The page selector takes the query as an object, a repeated key as an array
+function convertSearchParams(searchParams: ReadonlyURLSearchParams): ParsedUrlQuery {
+  const query: ParsedUrlQuery = {}
+  searchParams.forEach((value, key) => {
+    const existing = query[key]
+    query[key] = existing === undefined ? value : Array.isArray(existing) ? [...existing, value] : [existing, value]
+  })
+  return query
+}
 
 const searchParams = {
   text: parseAsString,

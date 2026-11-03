@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useDeferredValue } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 
 import { Autocomplete } from '@base-ui/react/autocomplete'
@@ -45,7 +46,7 @@ export default function ProductSearchInput({ mobile = false }) {
     ].filter(group => group.items.length > 0)
   }, [suggestions, searchText])
 
-  const { navigate } = useNavigation()
+  const router = useRouter()
 
   // the input also changes while moving through suggestions, only typing starts a new search
   const handleValueChange = (value, { reason }) => {
@@ -108,7 +109,7 @@ export default function ProductSearchInput({ mobile = false }) {
                   <AutocompleteItem
                     key={`${item.section}:${item.label}`}
                     value={item}
-                    onClick={item.section === 'sts' ? () => navigate(`/search/?${new URLSearchParams({ text: item.label })}`) : undefined}>
+                    onClick={item.section === 'sts' ? () => router.push(`/search/?${new URLSearchParams({ text: item.label })}`) : undefined}>
                     {item.section === 'sts' && <i className="ci-search text-muted fs-sm me-2" />}
                     <Highlighter search={searchText}>{item.label}</Highlighter>
                   </AutocompleteItem>

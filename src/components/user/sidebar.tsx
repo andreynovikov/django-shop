@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 
 import { Collapsible } from '@base-ui/react/collapsible'
@@ -12,7 +13,6 @@ import UserAvatar from '@/components/user/avatar'
 import { formatPhone } from '@/lib/format'
 import useFavorites from '@/lib/favorites'
 import { useSession } from '@/lib/session'
-import { useNavigation } from '@/lib/navigation'
 import { orderKeys, loadOrders } from '@/lib/queries'
 import { User } from '@/lib/types'
 
@@ -20,13 +20,13 @@ export default function UserSidebar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
 
-  const { navigate, path } = useNavigation()
+  const router = useRouter()
+  const pathname = usePathname()
 
-  // Signing out navigates to the home page, which may be a full page load that is still
-  // loading when the session ends, so the login page must not take over meanwhile.
-  // The session can load before the App Router navigation has read the query, so the URL is taken from the location.
+  // Signing out navigates to the home page, which is still loading when the session ends,
+  // so the login page must not take over meanwhile.
   const { user: sessionUser, status, signOut } = useSession({
-    onUnauthenticated: signingOut ? undefined : () => navigate(`/login?callbackUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+    onUnauthenticated: signingOut ? undefined : () => router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`)
   })
 
   const handleSignOut = () => {
@@ -75,19 +75,19 @@ export default function UserSidebar() {
         <Collapsible.Panel className="sw-collapse-lg-down d-lg-block" keepMounted>
           <ul className="list-unstyled mb-0">
             <li className="border-bottom mb-0">
-              <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (path === '/user/orders/' ? " active" : "")} href="/user/orders/">
+              <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (pathname === '/user/orders/' ? " active" : "")} href="/user/orders/">
                 <i className="ci-bag opacity-60 me-2" />Заказы
                 {orders !== undefined && orders.count > 0 && <span className="fs-sm text-muted ms-auto">{orders.count}</span>}
               </Link>
             </li>
             <li className="border-bottom mb-0">
-              <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (path === '/user/favorites/' ? " active" : "")} href="/user/favorites/">
+              <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (pathname === '/user/favorites/' ? " active" : "")} href="/user/favorites/">
                 <i className="ci-heart opacity-60 me-2" />Избранное
                 {favorites.length > 0 && <span className="fs-sm text-muted ms-auto">{favorites.length}</span>}
               </Link>
             </li>
             <li className="mb-0">
-              <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (path === '/user/profile/' ? " active" : "")} href="/user/profile/">
+              <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (pathname === '/user/profile/' ? " active" : "")} href="/user/profile/">
                 <i className="ci-user opacity-60 me-2" />Профиль
               </Link>
             </li>

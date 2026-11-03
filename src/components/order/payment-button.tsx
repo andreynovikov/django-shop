@@ -2,7 +2,6 @@ import { MouseEvent } from 'react'
 import { useQuery } from "@tanstack/react-query"
 
 import { apiFetch, loadOrder, orderKeys } from "@/lib/queries"
-import { useNavigation } from '@/lib/navigation'
 import { useSite } from '@/lib/site'
 
 import { PAYMENT_CREDIT } from '@/components/order/status-badge'
@@ -10,7 +9,6 @@ import Tooltip from '@/components/ui/tooltip'
 
 export default function OrderPaymentButton({ orderId, iconOnly = false }: { orderId: number, iconOnly?: boolean }) {
 
-  const { path } = useNavigation()
   const { site } = useSite()
 
   const { data: order, isSuccess } = useQuery({
@@ -26,7 +24,7 @@ export default function OrderPaymentButton({ orderId, iconOnly = false }: { orde
     try {
       const result = await apiFetch<{ location: string}>(`orders/${orderId}/pay/`, {
         body: {
-          'return_url': site.url_prefix + path
+          'return_url': site.url_prefix + window.location.pathname + window.location.search
         }
       })
       window.location.assign(result.location) // axios didn't support redirects so API returns JSON with location

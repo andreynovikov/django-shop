@@ -12,7 +12,7 @@ type PageContentProps = {
   children?: ReactNode
 }
 
-// Kept free of hooks and next/router so App Router server components can use it
+// Kept free of hooks so server components can use it
 export const pageContentWrapper = ({ title, titleAddon, secondaryTitle, dark = false, overlapped, breadcrumbs, children }: PageContentProps) => {
   return (
     <>

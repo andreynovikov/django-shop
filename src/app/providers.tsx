@@ -16,7 +16,6 @@ import { SiteProvider } from '@/lib/site'
 import { SessionProvider } from '@/lib/session'
 import { ToolbarProvider } from '@/lib/toolbar'
 import { TopbarProvider } from '@/lib/topbar'
-import { AppNavigationProvider } from '@/lib/navigation/app-provider'
 import { getQueryClient } from '@/lib/query-client'
 
 import '@/lib/moment'
@@ -30,22 +29,20 @@ export default function Providers({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <NuqsAdapter>
         <SiteProvider>
-          <AppNavigationProvider>
-            <SessionProvider>
-              <Toast.Provider toastManager={toastManager}>
-                <TopbarProvider>
-                  <ToolbarProvider>
-                    {children}
-                  </ToolbarProvider>
-                </TopbarProvider>
-                <Toast.Portal>
-                  <Toast.Viewport className="sw-toast-viewport">
-                    <ToastList />
-                  </Toast.Viewport>
-                </Toast.Portal>
-              </Toast.Provider>
-            </SessionProvider>
-          </AppNavigationProvider>
+          <SessionProvider>
+            <Toast.Provider toastManager={toastManager}>
+              <TopbarProvider>
+                <ToolbarProvider>
+                  {children}
+                </ToolbarProvider>
+              </TopbarProvider>
+              <Toast.Portal>
+                <Toast.Viewport className="sw-toast-viewport">
+                  <ToastList />
+                </Toast.Viewport>
+              </Toast.Portal>
+            </Toast.Provider>
+          </SessionProvider>
         </SiteProvider>
       </NuqsAdapter>
       <ReactQueryDevtools initialIsOpen={false} />
