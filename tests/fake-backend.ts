@@ -295,6 +295,8 @@ export class FakeBackend {
         return this.respondOrders(method, rest, query, body)
       case 'favorites':
         return this.respondFavorites(method, rest, body)
+      case 'serials':
+        return this.respondSerials(method, rest, body)
     }
     return undefined
   }
@@ -536,6 +538,15 @@ export class FakeBackend {
     const favorites = this.favoriteIds.filter(id => id !== product)
     this.favorites.set(user.id, action === 'add' ? [...favorites, product] : favorites)
     return noContent()
+  }
+
+  // Answers like Serial.register for a number the backend has no orders with, so it waits for approval
+  private respondSerials(method: string, [id]: string[], body: Body) {
+    if (method !== 'POST' || id !== undefined)
+      return undefined
+    if (!this.user)
+      return notAuthenticated()
+    return { status: 201, body: { number: String(body.number), purchase_date: null, approved: false, product: null, order: null } }
   }
 
   private async product(id: number) {

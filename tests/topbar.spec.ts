@@ -4,7 +4,7 @@ import { test, expect } from './fixtures'
 test.use({ viewport: { width: 390, height: 844 } })
 
 // Topbar is rendered by both Pages Router and App Router layouts
-for (const path of ['/warranty/extend/', '/stores/']) {
+for (const path of ['/user/favorites/', '/stores/']) {
   test(`phones menu opens on ${path}`, async ({ page }) => {
     await page.goto(path)
     await page.getByRole('button', { name: 'Телефоны' }).click()
