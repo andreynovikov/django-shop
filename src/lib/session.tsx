@@ -68,9 +68,11 @@ export function SessionProvider({ children }: SessionProviderProps) {
 
   // A user request still in flight was sent before the change and would bring back the old user.
   // Invalidation reuses a first request instead of repeating it, so it is cancelled first.
+  // The new user is awaited: until it arrives the old one is in the cache, and a page opened
+  // right after signing in would see the visitor as anonymous and send them back to the login page.
   const refreshUser = useCallback(async () => {
     await queryClient.cancelQueries({ queryKey: userKeys.current() })
-    queryClient.invalidateQueries({ queryKey: userKeys.current() })
+    await queryClient.invalidateQueries({ queryKey: userKeys.current() })
   }, [queryClient])
 
   const signIn = useCallback(async (credentials: LoginCredentials) => {

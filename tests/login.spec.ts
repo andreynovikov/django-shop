@@ -11,9 +11,13 @@ test.beforeEach(async ({ page }) => {
   await focusPhone(phoneInput(page))
 })
 
-// The page keeps no phone to restore, so after a reload it is typed again
+// The page keeps no phone to restore, so after a reload it is typed again.
+// Firefox restores the phone the input had before the code replaced it, the static page is cacheable,
+// so it is cleared first, the blur makes the mask add the country code on the next focus
 async function reloadAndTypePhone(page: Page) {
   await page.reload()
+  await phoneInput(page).clear()
+  await phoneInput(page).blur()
   await focusPhone(phoneInput(page))
   await typePhone(phoneInput(page), '9161234567')
   await page.getByRole('button', { name: 'Войти' }).click()

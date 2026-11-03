@@ -115,9 +115,12 @@ test.describe('search input', () => {
   })
 
   test('choosing a frequent search with keyboard opens its results', async ({ page }) => {
-    await search(page, 'jan')
-    // the first option is janome 1143
+    const suggestions = await search(page, 'jan')
+    // the first option is janome 1143, the keys are pressed once it is shown
+    await expect(suggestions.getByRole('option').first()).toHaveText('janome 1143')
     await page.keyboard.press('ArrowDown')
+    // the highlighted suggestion is put into the input
+    await expect(searchInput(page)).toHaveValue('janome 1143')
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL('/search/?text=janome+1143')
   })
