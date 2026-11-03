@@ -48,6 +48,32 @@ test('user menu collapses on mobile', async ({ page, isMobile }) => {
   await expect(ordersLink).toBeHidden()
 })
 
+// The menu and the header frame are in the account layout, the title comes from the @header slot
+test('user menu switches account pages', async ({ page, isMobile }) => {
+  await page.goto('/user/orders/')
+  const menu = page.locator('aside')
+  const toggle = menu.getByRole('button', { name: 'Личный кабинет' })
+  const heading = page.getByRole('heading', { level: 1 })
+  await expect(heading).toHaveText('Список заказов')
+
+  const pages = [
+    { link: /Избранное/, title: 'Избранное', path: '/user/favorites/' },
+    { link: /Профиль/, title: 'Профиль', path: '/user/profile/' },
+    { link: /Заказы/, title: 'Список заказов', path: '/user/orders/' },
+  ]
+  for (const { link, title, path } of pages) {
+    if (isMobile)
+      await toggle.click()
+    await menu.getByRole('link', { name: link }).click()
+
+    await expect(page).toHaveURL(path)
+    await expect(heading).toHaveText(title)
+    await expect(page).toHaveTitle(`${title} - Швейный Мир`)
+    if (isMobile)
+      await expect(menu.getByRole('link', { name: link })).toBeHidden()
+  }
+})
+
 test('orders list shows tooltips', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Tooltips open on hover')
   await page.goto('/user/orders/')
@@ -92,6 +118,8 @@ test('orders list opens order details', async ({ page, request, backend, isMobil
   await rows.filter({ hasText: pickup.id.toString() }).click()
 
   await expect(page).toHaveURL(`/user/orders/${pickup.id}/`)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Заказ №${pickup.id}`)
+  await expect(page.locator('.breadcrumb').getByRole('link', { name: 'Заказы' })).toHaveAttribute('href', '/user/orders/')
   const titles = page.locator('.product-title')
   await expect(titles.getByText(first.title, { exact: true })).toBeVisible()
   await expect(titles.getByText(second.title, { exact: true })).toBeVisible()
