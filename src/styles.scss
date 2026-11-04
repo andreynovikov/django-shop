@@ -356,6 +356,32 @@ a:not([href]):not([class]) {
     }
 }
 
+// store images carousel: same height for all slides, width follows image aspect ratio
+
+.sw-store-images {
+    --sw-store-image-height: 200px;
+
+    @include media-breakpoint-up(md) {
+        --sw-store-image-height: 260px;
+    }
+
+    @include media-breakpoint-up(xl) {
+        --sw-store-image-height: 320px;
+    }
+
+    .swiper-slide {
+        height: var(--sw-store-image-height);
+        width: calc(var(--sw-store-image-height) * var(--sw-aspect-ratio, 1));
+
+        img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    }
+}
+
 // swiper controls
 
 .swiper {
