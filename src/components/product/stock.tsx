@@ -7,7 +7,7 @@ import { Collapsible } from '@base-ui/react/collapsible'
 import { Loading } from '@/components/loading'
 
 import { productKeys, loadProductStock } from '@/lib/queries'
-import { City, Store } from '@/lib/types'
+import { City, StoreInfo } from '@/lib/types'
 
 export default function ProductStock({ id }: { id: number }) {
   const { data: stores, isSuccess, isLoading } = useQuery({
@@ -29,7 +29,7 @@ export default function ProductStock({ id }: { id: number }) {
       }
       groups[groups.length - 1].stores.push(store)
       return { groups, city }
-    }, { groups: [] as {city: City, stores: Store[]}[], city: null as number | null })
+    }, { groups: [] as {city: City, stores: StoreInfo[]}[], city: null as number | null })
 
     return groups.sort((a, b) => a.city.name.localeCompare(b.city.name))
   }, [stores, isSuccess])

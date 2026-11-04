@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 
 import { getCategoryDescendants } from '@/lib/categories'
 import { loadCategories, loadCurrentSite, loadPages, loadProducts, loadSalesActions, loadStores } from '@/lib/queries'
-import { FlatPageInfo, PaginatedResult, ProductInfo, SalesAction, Store } from '@/lib/types'
+import { FlatPageInfo, PaginatedResult, ProductInfo, SalesAction } from '@/lib/types'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const site = await loadCurrentSite()
@@ -75,7 +75,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Stores
 
-  const stores = await loadStores() as Store[]
+  const stores = await loadStores()
   stores.filter(store => store.logo === 'sewingworld').forEach(store => {
     routes.push({
       url: `${site.url_prefix}/stores/${store.id}/`,

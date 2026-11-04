@@ -9,8 +9,7 @@ import { Collapsible } from '@base-ui/react/collapsible'
 import type { LngLat } from '@yandex/ymaps3-types'
 
 import { useBreakpoint } from '@/lib/breakpoint'
-import { City, Store } from '@/lib/types'
-import { rows } from '@/lib/partition'
+import { City, StoreInfo } from '@/lib/types'
 import { parsePhones } from '@/lib/format'
 import { StoreMap } from './map'
 
@@ -43,10 +42,10 @@ function Collapsable({
 
 type StoreGroup = {
   city: City
-  stores: Store[]
+  stores: StoreInfo[]
 }
 
-export function StoreList({ stores }: { stores: Store[] }) {
+export function StoreList({ stores }: { stores: StoreInfo[] }) {
   const [currentCity, setCurrentCity] = useState<number | null>(null)
   const [mapFocusPoints, setMapFocusPoints] = useState<LngLat[]>([])
   const breakpoint = useBreakpoint()
@@ -232,7 +231,7 @@ export function StoreList({ stores }: { stores: Store[] }) {
                         {store.logo !== 'janome' && (
                           <li className="pt-2 mt-2 mb-0">
                             <small className="text-muted">
-                              Магазин-партнер: рекламные акции Швейного Мира могут не действовать в этом магазине
+                              Магазин-партнер: рекламные акции Janome могут не действовать в этом магазине
                             </small>
                           </li>
                         )}

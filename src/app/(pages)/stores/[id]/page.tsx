@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { pageContentWrapper } from '@/components/layout/page-content-wrapper'
 import { ScrollLink } from '@/components/scroll-link'
 import { StoreLocationMap } from '@/components/store/map'
+import StoreImageCarousel from '@/components/store/image-carousel'
 
 import { HttpError, loadStore, loadStores } from '@/lib/queries'
 import { parsePhones } from '@/lib/format'
@@ -43,10 +44,7 @@ export default async function StorePage({ params }: PageProps<'/stores/[id]'>) {
     breadcrumbs: [{ label: 'Магазины', href: '/stores/' }],
     children: (
       <>
-        <section className="container py-3 py-lg-5">
-          <p className="lead">Продажа швейных машин, оверлоков, плоскошовных и вышивальных машин и аксессуаров для рукоделия производства компании Janome в г. {store.city.name}</p>
-        </section>
-        <section className="container-fluid">
+        <section className="container-fluid mt-4">
           <div className="row">
             <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
               <ScrollLink className="card h-100" href="#map">
@@ -122,6 +120,11 @@ export default async function StorePage({ params }: PageProps<'/stores/[id]'>) {
         {store.description && (
           <section className="container py-3 py-lg-5 mt-4 mb-3">
             <div dangerouslySetInnerHTML={{ __html: store.description }}></div>
+          </section>
+        )}
+        {store.images && (
+          <section className="container-fluid py-3 py-lg-5 mt-4 mb-3">
+            <StoreImageCarousel images={store.images} />
           </section>
         )}
         {hasLocation && (

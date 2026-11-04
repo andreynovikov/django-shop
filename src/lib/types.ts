@@ -417,7 +417,7 @@ export interface Order {
   delivery_handing_date: string | null
   delivery_time_from: string | null
   delivery_time_till: string | null
-  store: Store | null
+  store: StoreInfo | null
   name: string
   phone: string
   email: string
@@ -457,7 +457,15 @@ export interface City {
   region: number
 }
 
-export interface Store {
+export interface StoreImage {
+  image: string
+  image_width: number
+  image_height: number
+  kind: string
+  order: number
+}
+
+export interface StoreInfo {
   id: number
   city: City
   phones: string[]
@@ -483,6 +491,10 @@ export interface Store {
   payment_master: boolean
   payment_mir: boolean
   payment_credit: boolean
+}
+
+export interface Store extends StoreInfo {
+  images: Array<StoreImage>
 }
 
 export interface ServiceCenter {

@@ -187,7 +187,7 @@ export default function TopBar({ catalog }: { catalog: ReactNode }) {
             <ul className="navbar-nav">
               <li className="nav-item">
                 <Link className="nav-link" href="/stores/">
-                  Магазин на Автозаводской
+                  Магазины
                 </Link>
               </li>
               <li className="nav-item">

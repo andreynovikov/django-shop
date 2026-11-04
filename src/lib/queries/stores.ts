@@ -1,5 +1,5 @@
 import { storeSearchParamsSerializer, StoreSearchParamsType } from '@/lib/search-params'
-import { Store } from '@/lib/types'
+import { Store, StoreInfo } from '@/lib/types'
 import { apiFetch } from './fetch'
 
 export const storeKeys = {
@@ -11,7 +11,7 @@ export const storeKeys = {
 }
 
 export async function loadStores(filters: StoreSearchParamsType = {}) {
-  return await apiFetch<Store[]>('stores/' + storeSearchParamsSerializer(filters))
+  return await apiFetch<StoreInfo[]>('stores/' + storeSearchParamsSerializer(filters))
 }
 
 export async function loadStore(id: number) {
