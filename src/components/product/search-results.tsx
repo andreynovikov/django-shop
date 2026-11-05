@@ -61,11 +61,11 @@ export default function SearchResults() {
   if (isSuccess) {
     content = (
       <>
-        <div className="container pb-3">
-          <div className="d-flex justify-content-between align-items-center">
+        <div className="px-3 pb-4">
+          <div className="flex items-center justify-between">
             <div>
               {products.count > 0 && (
-                <span className="text-nowrap">
+                <span className="whitespace-nowrap">
                   {rupluralize(products.count, ['Найден', 'Найдены', 'Найдены'])}
                   {' '}{products.count}{' '}
                   {rupluralize(products.count, ['товар', 'товара', 'товаров'])}
@@ -83,19 +83,19 @@ export default function SearchResults() {
         </div>
 
         {products.count > 0 ? (
-          <div className="d-flex flex-wrap justify-content-between py-2" style={{ gap: "20px" }} itemScope itemType="http://schema.org/OfferCatalog">
+          <div className="flex flex-wrap justify-between py-2" style={{ gap: "20px" }} itemScope itemType="http://schema.org/OfferCatalog">
             <meta itemProp="name" content="Результаты поиска" />
             {products.results.map((product, index) => (
               <ProductCard product={product} key={product.id} gtmList="Результаты поиска" gtmPosition={index} />
             ))}
           </div>
         ) : (
-          <div className="lead my-4">Ничего не найдено</div>
+          <div className="my-6 text-xl font-light">Ничего не найдено</div>
         )}
 
         {products.totalPages > 1 && (
           <>
-            <hr className="my-3" />
+            <hr className="my-4" />
             <PageSelector
               pathname={pathname}
               query={query}
@@ -109,9 +109,9 @@ export default function SearchResults() {
     content = <PageLoading />
   } else if (isError) {
     content = (
-      <div className="container pb-5 mb-2 mb-md-4">
-        <div className="d-flex align-items-center my-5 py-5">
-          <div className="lead ms-3">Error!</div>
+      <div className="mb-2 px-3 pb-12 md:mb-6">
+        <div className="my-12 flex items-center py-12">
+          <div className="ms-4 text-xl font-light">Error!</div>
         </div>
       </div>
     )

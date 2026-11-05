@@ -2,7 +2,7 @@ import { ReactNode } from 'react'
 
 export default function TopSidebar({ children }: { children: ReactNode}) {
   return (
-    <div className="d-lg-flex justify-content-between align-items-center pb-3">
+    <div className="items-center justify-between pb-4 lg:flex">
       {children}
     </div>
   )

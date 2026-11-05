@@ -1,0 +1,61 @@
+/*
+ * Bootstrap layout classes used by the HTML that the backend stores for singer's products (descr, spec):
+ * rows of columns and responsive video frames. Only the layout is kept, the text inside is shown as
+ * Tailwind's preflight leaves it. The product page turns the old 24-column classes into these
+ * (col-md-8 → col-md-4, col-md-10 → col-md-5, col-md-12 → col-md-6), other column classes take the full width.
+ */
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-inline: -0.75rem;
+}
+
+.row > * {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 100%;
+  padding-inline: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .col-md-2 {
+    flex: 0 0 auto;
+    width: 16.66666667%;
+  }
+
+  .col-md-4 {
+    flex: 0 0 auto;
+    width: 33.33333333%;
+  }
+
+  .col-md-5 {
+    flex: 0 0 auto;
+    width: 41.66666667%;
+  }
+
+  .col-md-6 {
+    flex: 0 0 auto;
+    width: 50%;
+  }
+}
+
+.ratio {
+  position: relative;
+  width: 100%;
+}
+
+.ratio-4x3 {
+  aspect-ratio: 4 / 3;
+}
+
+.ratio-16x9 {
+  aspect-ratio: 16 / 9;
+}
+
+.ratio > * {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}

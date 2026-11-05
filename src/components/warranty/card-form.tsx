@@ -2,6 +2,9 @@
 
 import { useState, SubmitEvent } from 'react'
 
+import { buttonClass } from '@/components/ui/button'
+import { feedbackClass, formTextClass, inputClass } from '@/components/ui/form'
+
 import { getWarrantyCard, HttpError } from '@/lib/queries'
 
 type FieldErrors = Record<string, string[]>
@@ -37,25 +40,25 @@ export default function WarrantyCardForm() {
     <form onSubmit={handleSubmit} noValidate>
       {error['non_field_errors']?.map((err, index) => (
         <div key={index}>
-          <div className="is-invalid text-danger">Ошибка: </div>
-          <div className="invalid-feedback mt-0 mb-3">{err}</div>
+          <div className="text-danger">Ошибка: </div>
+          <div className="mb-4 text-xs text-danger">{err}</div>
         </div>
       ))}
-      <div className="mb-3">
+      <div className="mb-4">
         <label htmlFor="id_code">Серийный номер:</label>
         <input
           type="text"
           name="code"
-          className={"form-control" + ('code' in error ? " is-invalid" : "")}
+          className={inputClass({ invalid: 'code' in error })}
           maxLength={100}
           required
           id="id_code" />
         {error['code']?.map((err, index) => (
-          <div className="invalid-feedback" key={index}>{err}</div>
+          <div className={feedbackClass} key={index}>{err}</div>
         ))}
-        <small className="form-text text-muted">Серийный номер можно найти на корпусе изделия или в гарантийном талоне</small>
+        <small className={formTextClass}>Серийный номер можно найти на корпусе изделия или в гарантийном талоне</small>
       </div>
-      <input type="submit" className="btn btn-primary" value="Распечатать" />
+      <input type="submit" className={buttonClass()} value="Распечатать" />
     </form>
   )
 }

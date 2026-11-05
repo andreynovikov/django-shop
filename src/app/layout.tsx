@@ -2,7 +2,7 @@ import { cache, ReactNode } from 'react'
 import { Metadata } from 'next/types'
 
 import 'yet-another-react-lightbox/styles.css'
-import '../styles.scss'
+import '../styles.css'
 
 import '@/lib/moment'
 
@@ -34,7 +34,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ru">
       <body>
         <Providers>
-          <div className="root">
+          {/* Base UI popups are portalled after it, so they stack on top */}
+          <div className="isolate">
             <Header />
             <main>
               {children}

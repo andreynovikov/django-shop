@@ -9,6 +9,8 @@ import { IconBasket, IconLockOpen, IconLogin } from '@tabler/icons-react'
 
 import Countdown from '@/components/countdown'
 import { ButtonLoading } from '@/components/loading'
+import { buttonClass } from '@/components/ui/button'
+import { checkClass, checkInputClass, feedbackClass, formTextClass, inputClass } from '@/components/ui/form'
 
 import { formatPhone } from '@/lib/format'
 import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
@@ -239,17 +241,17 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
       {shopUser !== undefined ? (
         <>
           { /* Пользователь с таким телефоном уже есть, требуем подтверждение пароля */}
-          <div className="lead mb-2">{formatPhone(shopUser.phone)}</div>
+          <div className="mb-2 text-xl font-light">{formatPhone(shopUser.phone)}</div>
           {ctx === 'order' && (
-            <div className="form-text mt-n2 mb-3">
-              <a className="link-primary" onClick={resetPhone} style={{ cursor: 'pointer' }}>Указать другой телефон</a>
+            <div className="-mt-2 mb-4 text-xs text-muted">
+              <a onClick={resetPhone} style={{ cursor: 'pointer' }}>Указать другой телефон</a>
             </div>
           )}
-          <div className="mb-3 has-feedback">
+          <div className="mb-4">
             <input
               type={shopUser.permanent_password ? "password" : "text"}
               name="password"
-              className={"form-control" + ('password' in error ? " is-invalid" : "")}
+              className={inputClass({ invalid: 'password' in error })}
               style={embedded ? {} : { maxWidth: "20rem" }}
               id={`${embedded}${ctx}-password-input`}
               placeholder={shopUser.permanent_password ? "Пароль" : "Код из смс"}
@@ -259,38 +261,38 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
               maxLength={shopUser.permanent_password ? undefined : 6}
               required
               autoFocus />
-            {'password' in error && <div className="invalid-feedback">{error.password}</div>}
-            <div className="form-text">
+            {'password' in error && <div className={feedbackClass}>{error.password}</div>}
+            <div className={formTextClass}>
               <Countdown delay={codeAttemptsLeft > 0 ? delay : 0} permanentPassword={shopUser.permanent_password} reset={resetPassword} />
             </div>
           </div>
           {!['order', 'preorder', 'warranty'].includes(ctx) && !shopUser.permanent_password && (
             showPermanentPassword ? (
-              <div className="row">
-                <div className="mb-3 col-md">
+              <div className="md:flex md:gap-6">
+                <div className="mb-4 md:flex-1">
                   <label htmlFor="permanent-password-input">Постоянный пароль:</label>
                   <input
                     type="password"
-                    className={"form-control form-control-sm" + ('permanent_password' in error ? " is-invalid" : "")}
+                    className={inputClass({ size: 'sm', invalid: 'permanent_password' in error })}
                     name="permanent_password"
                     id="permanent-password-input" />
-                  {'permanent_password' in error && <div className="invalid-feedback">{error.permanent_password}</div>}
+                  {'permanent_password' in error && <div className={feedbackClass}>{error.permanent_password}</div>}
                   {ctx === 'reg' && (
-                    <span className="form-text">Если Вы не укажете постоянный пароль, вход будет осуществляться с помощью смс</span>
+                    <span className={formTextClass}>Если Вы не укажете постоянный пароль, вход будет осуществляться с помощью смс</span>
                   )}
                 </div>
-                <div className="mb-3 col-md">
+                <div className="mb-4 md:flex-1">
                   <label htmlFor="permanent-password-input2">ещё раз:</label>
                   <input
                     type="password"
-                    className={"form-control form-control-sm" + ('permanent_password2' in error ? " is-invalid" : "")}
+                    className={inputClass({ size: 'sm', invalid: 'permanent_password2' in error })}
                     name="permanent_password2"
                     id="permanent-password-input2" />
-                  {'permanent_password2' in error && <div className="invalid-feedback">{error.permanent_password2}</div>}
+                  {'permanent_password2' in error && <div className={feedbackClass}>{error.permanent_password2}</div>}
                 </div>
               </div>
             ) : (
-              <div className="mb-3 fs-md">
+              <div className="mb-4 text-base">
                 Вы можете <a onClick={() => setShowPermanentPassword(true)}>указать постоянный пароль</a>, чтобы не получать каждый раз смс
               </div>
             )
@@ -299,92 +301,92 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
       ) : (
         <>
           { /* Анонимный пользователь */}
-          <div className="mb-3">
-            <label className="lead" htmlFor={`${embedded}${ctx}-phone-input`}>
+          <div className="mb-4">
+            <label className="text-xl font-light" htmlFor={`${embedded}${ctx}-phone-input`}>
               {ctx === 'order' ? "Для продолжения у" : "У"}
               кажите номер мобильного телефона:
             </label>
             <input
               type="tel"
               name="phone"
-              className={"form-control" + ('phone' in error ? " is-invalid" : "")}
+              className={inputClass({ invalid: 'phone' in error })}
               ref={phoneRef}
               id={`${embedded}${ctx}-phone-input`}
               placeholder="+7 (999) 111-22-33"
               onChange={handleChange}
               autoComplete="tel"
               required />
-            {'phone' in error && <div className="invalid-feedback">{error.phone}</div>}
+            {'phone' in error && <div className={feedbackClass}>{error.phone}</div>}
           </div>
         </>
       )}
 
       {['order', 'preorder', 'warranty'].includes(ctx) && (
         <>
-          <div className="form-check mb-3">
+          <div className={`${checkClass} mb-4`}>
             <input
               type="checkbox"
-              className={"form-check-input" + ('pd-consent' in error ? " is-invalid" : "")}
+              className={checkInputClass({ invalid: 'pd-consent' in error })}
               name="pd-consent"
               id="sw-pd-consent-check"
               checked={pdConsent}
               onChange={handleChange} />
             {" "}
-            <label className="form-check-label" htmlFor="sw-pd-consent-check">
+            <label htmlFor="sw-pd-consent-check">
               Я даю{" "}
               <Link href="/pages/personaldata/">
                 согласие на обработку персональных данных
               </Link>
             </label>
-            {'pd-consent' in error && <div className="invalid-feedback">{error['pd-consent']}</div>}
+            {'pd-consent' in error && <div className={feedbackClass}>{error['pd-consent']}</div>}
           </div>
           {ctx === 'order' && (
-            <div className="form-check mb-3">
+            <div className={`${checkClass} mb-4`}>
               <input
                 type="checkbox"
-                className={"form-check-input" + ('of-consent' in error ? " is-invalid" : "")}
+                className={checkInputClass({ invalid: 'of-consent' in error })}
                 name="of-consent"
                 id="sw-of-consent-check"
                 checked={ofConsent}
                 onChange={handleChange} />
               {" "}
-              <label className="form-check-label" htmlFor="sw-of-consent-check">
+              <label htmlFor="sw-of-consent-check">
                 Я подтверждаю согласие с{" "}
                 <Link href="/pages/oferta/">
                   условиями публичной оферты
                 </Link>
               </label>
-              {'of-consent' in error && <div className="invalid-feedback">{error['of-consent']}</div>}
+              {'of-consent' in error && <div className={feedbackClass}>{error['of-consent']}</div>}
             </div>
           )}
         </>
       )}
       {ctx === 'order' ? (
-        <button className="btn btn-primary btn-shadow d-block w-100 mt-4" disabled={isPending}>
-          {shopUser ? <IconLogin size={20} stroke={1.5} className="me-2 align-text-bottom" /> : <IconBasket size={20} stroke={1.5} className="me-2 align-text-bottom" />}Оформить заказ
+        <button className={`${buttonClass({ block: true })} mt-6`} disabled={isPending}>
+          {shopUser ? <IconLogin size={20} stroke={1.5} className="me-2" /> : <IconBasket size={20} stroke={1.5} className="me-2" />}Оформить заказ
           {isPending && <ButtonLoading />}
         </button>
       ) : ctx === 'preorder' ? (
-        <button className="btn btn-primary btn-shadow d-block w-100 mt-4" disabled={isPending}>
-          {shopUser ? <IconLogin size={20} stroke={1.5} className="me-2 align-text-bottom" /> : <IconBasket size={20} stroke={1.5} className="me-2 align-text-bottom" />}Оформить запрос о поступлении
+        <button className={`${buttonClass({ block: true })} mt-6`} disabled={isPending}>
+          {shopUser ? <IconLogin size={20} stroke={1.5} className="me-2" /> : <IconBasket size={20} stroke={1.5} className="me-2" />}Оформить запрос о поступлении
           {isPending && <ButtonLoading />}
         </button>
       ) : ctx === 'warranty' ? (
-        <button className="btn btn-primary btn-shadow d-block mt-4" disabled={isPending}>
-          {shopUser ? <IconLogin size={20} stroke={1.5} className="me-2 align-text-bottom" /> : <IconLockOpen size={20} stroke={1.5} className="me-2 align-text-bottom" />}Продолжить
+        <button className={`${buttonClass()} mt-6`} disabled={isPending}>
+          {shopUser ? <IconLogin size={20} stroke={1.5} className="me-2" /> : <IconLockOpen size={20} stroke={1.5} className="me-2" />}Продолжить
           {isPending && <ButtonLoading />}
         </button>
       ) : (
         <div className="text-end">
-          <button className={"btn btn-primary ms-4" + (embedded ? " btn-shadow" : "")} type="submit" disabled={isPending}>
-            {!embedded && (shopUser ? <IconLogin size={20} stroke={1.5} className="me-2 align-text-bottom" /> : <IconLockOpen size={20} stroke={1.5} className="me-2 align-text-bottom" />)}
+          <button className={`${buttonClass()} ms-6`} type="submit" disabled={isPending}>
+            {!embedded && (shopUser ? <IconLogin size={20} stroke={1.5} className="me-2" /> : <IconLockOpen size={20} stroke={1.5} className="me-2" />)}
             {!!shopUser ? "Продолжить" : "Войти"}
             {isPending && <ButtonLoading />}
           </button>
         </div>
       )}
       {!shopUser && !embedded && (
-        <div className="mt-4 fs-md">
+        <div className="mt-6 text-base">
           Если Вы не совершали покупок в магазине, Вы можете{" "}
           <Suspense fallback={<Link href="/register/">зарегистрироваться</Link>}>
             <RegisterLink />

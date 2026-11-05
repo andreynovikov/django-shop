@@ -16,6 +16,10 @@ interface PageSelectorProps {
   currentPage: number,
 }
 
+// A page link or the current page number
+const pageClass = 'block rounded-md border px-3 py-1.5'
+const pageLinkClass = `${pageClass} bg-white text-primary hover:bg-light hover:no-underline`
+
 const getHref = (page: number, pathname: string, query: ParsedUrlQuery | undefined, pageInPath: boolean | undefined) => {
   if (pageInPath)
     return page > 1 ? `${pathname}${page}/` : pathname
@@ -31,15 +35,15 @@ const getHref = (page: number, pathname: string, query: ParsedUrlQuery | undefin
 
 export function SmallPageSelector({ pathname, query, pageInPath, totalPages, currentPage }: PageSelectorProps) {
   return (
-    <div className="d-flex pb-3">
+    <div className="flex items-center pb-4">
       {currentPage > 1 && (
-        <Link className="me-3" href={getHref(currentPage - 1, pathname, query, pageInPath)}>
+        <Link className="me-4" href={getHref(currentPage - 1, pathname, query, pageInPath)}>
           <IconChevronCompactLeft size={20} stroke={1.5} />
         </Link>
       )}
-      <span className="fs-md">{currentPage} / {totalPages}</span>
+      <span className="text-base">{currentPage} / {totalPages}</span>
       {currentPage < totalPages && (
-        <Link className="ms-3" href={getHref(currentPage + 1, pathname, query, pageInPath)}>
+        <Link className="ms-4" href={getHref(currentPage + 1, pathname, query, pageInPath)}>
           <IconChevronCompactRight size={20} stroke={1.5} />
         </Link>
       )}
@@ -58,49 +62,49 @@ export default function PageSelector({ pathname, query, pageInPath, totalPages, 
     maxPage = totalPages
 
   return (
-    <nav className="d-flex justify-content-between pt-2" aria-label="Переключение страниц">
+    <nav className="flex justify-between pt-2" aria-label="Переключение страниц">
       {currentPage > 1 && (
-        <ul className="pagination">
-          <li className="page-item">
-            <Link className="page-link" href={getHref(currentPage - 1, pathname, query, pageInPath)}>
-              <IconChevronCompactLeft size={20} stroke={1.5} className="me-2 align-text-bottom" />
-              Пред<span className="d-none d-sm-inline d-md-none d-xl-inline">ыдущая</span>
+        <ul className="flex">
+          <li>
+            <Link className={pageLinkClass} href={getHref(currentPage - 1, pathname, query, pageInPath)}>
+              <IconChevronCompactLeft size={20} stroke={1.5} className="me-2 inline align-text-bottom" />
+              Пред<span className="hidden sm:inline md:hidden xl:inline">ыдущая</span>
             </Link>
           </li>
         </ul>
       )}
-      <ul className="pagination">
-        <li className="page-item d-sm-none">
-          <span className="page-link page-link-static">{currentPage} / {totalPages}</span>
+      <ul className="flex items-center gap-1">
+        <li className="sm:hidden">
+          <span className={`${pageClass} bg-white`}>{currentPage} / {totalPages}</span>
         </li>
         {Array(totalPages).fill(undefined).map((_, i) => i + 1).map((page) => (
           page === currentPage ? (
-            <li className="page-item active d-none d-sm-block" aria-current="page" key={page}>
-              <span className="page-link">{page}<span className="visually-hidden">(текущая)</span></span>
+            <li className="hidden sm:block" aria-current="page" key={page}>
+              <span className={`${pageClass} border-primary bg-primary text-white`}>{page}<span className="sr-only">(текущая)</span></span>
             </li>
           ) : (page >= minPage && page <= maxPage || page === 1 || page === totalPages) ? (
             <Fragment key={page}>
               {(maxPage < totalPages && page === totalPages) && (
-                <li className="page-item d-none d-md-block">&hellip;</li>
+                <li className="hidden px-1 md:block">&hellip;</li>
               )}
-              <li className="page-item d-none d-sm-block">
-                <Link className="page-link" href={getHref(page, pathname, query, pageInPath)}>
+              <li className="hidden sm:block">
+                <Link className={pageLinkClass} href={getHref(page, pathname, query, pageInPath)}>
                   {page}
                 </Link>
               </li>
               {(minPage > 1 && page === 1) && (
-                <li className="page-item d-none d-md-block">&hellip;</li>
+                <li className="hidden px-1 md:block">&hellip;</li>
               )}
             </Fragment>
           ) : (null)
         ))}
       </ul>
       {currentPage < totalPages && (
-        <ul className="pagination">
-          <li className="page-item">
-            <Link className="page-link" href={getHref(currentPage + 1, pathname, query, pageInPath)}>
-              След<span className="d-none d-sm-inline d-md-none d-xl-inline">ующая</span>
-              <IconChevronCompactRight size={20} stroke={1.5} className="ms-2 align-text-bottom" />
+        <ul className="flex">
+          <li>
+            <Link className={pageLinkClass} href={getHref(currentPage + 1, pathname, query, pageInPath)}>
+              След<span className="hidden sm:inline md:hidden xl:inline">ующая</span>
+              <IconChevronCompactRight size={20} stroke={1.5} className="ms-2 inline align-text-bottom" />
             </Link>
           </li>
         </ul>

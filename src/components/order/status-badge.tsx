@@ -1,3 +1,5 @@
+import { badgeClass } from '@/components/ui/badge'
+
 // Must be synced with Order model
 export const STATUS_NEW = 0x0
 export const STATUS_ACCEPTED = 0x00000001
@@ -46,35 +48,35 @@ const getColor = (status: number) => {
   // 'danger' is currently unused
   switch (status) {
     case STATUS_NEW:
-      return 'info'
+      return 'bg-info text-white'
     case STATUS_ACCEPTED:
     case STATUS_COLLECTING:
     case STATUS_COLLECTED:
     case STATUS_OTHERSHOP:
     case STATUS_SENT:
     case STATUS_DELIVERED_STORE:
-      return 'accent'
+      return 'bg-accent text-white'
     case STATUS_DELIVERED:
     case STATUS_DELIVERED_SHOP:
-      return 'primary'
+      return 'bg-primary text-white'
     case STATUS_DONE:
     case STATUS_FINISHED:
-      return 'success'
+      return 'bg-success text-white'
     case STATUS_PROBLEM:
     case STATUS_UNCLAIMED:
     case STATUS_SERVICE:
-      return 'warning'
+      return 'bg-warning text-white'
     case STATUS_FROZEN:
     case STATUS_CONSULTATION:
     case STATUS_RETURNING:
-      return 'dark'
+      return 'bg-dark text-white'
     case STATUS_CANCELED:
-      return 'secondary'
+      return 'bg-secondary text-white'
     default:
-      return 'light'
+      return 'bg-light text-dark'
   }
 }
 
 export default function OrderStatusBadge({ status, text }: { status: number, text: string }) {
-  return <span className={"badge bg-" + getColor(status) + " fs-sm"}>{text}</span>
+  return <span className={`${badgeClass} ${getColor(status)} text-xs`}>{text}</span>
 }

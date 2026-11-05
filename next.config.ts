@@ -37,9 +37,6 @@ const nextConfig: NextConfig = {
       },
     ]
   },
-  sassOptions: {
-    silenceDeprecations: ['import', 'if-function']
-  },
   logging: {
     browserToTerminal: true,
   },

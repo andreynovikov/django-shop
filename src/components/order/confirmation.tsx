@@ -11,6 +11,8 @@ import { IconBasket } from '@tabler/icons-react'
 import NoImage from '@/components/product/no-image'
 import { STATUS_NEW } from '@/components/order/status-badge'
 import { PageLoading } from '@/components/loading'
+import { buttonClass } from '@/components/ui/button'
+import { inputClass, labelClass } from '@/components/ui/form'
 
 import { useSession } from '@/lib/session'
 import { basketKeys, orderKeys, loadOrder, updateOrder, FormDataJson } from '@/lib/queries'
@@ -79,14 +81,14 @@ export default function OrderConfirmation() {
 
   if (!isSuccess)
     return (
-      <section className="col-lg-8">
-        <div className="d-flex justify-content-between align-items-center pt-3 pb-2 mt-1">
-          <h2 className="h6 mb-0">&nbsp;</h2>
+      <section className="lg:col-span-2">
+        <div className="mt-1 flex items-center justify-between pt-4 pb-2">
+          <h2 className="leading-none font-light">&nbsp;</h2>
         </div>
         {isFetching ? (
           <PageLoading />
         ) : isError ? (
-          <div className="lead">Что-то пошло не так...</div>
+          <div className="text-xl font-light">Что-то пошло не так...</div>
         ) : (
           null
         )}
@@ -95,22 +97,22 @@ export default function OrderConfirmation() {
 
   return (
     <>
-      <section className="col-lg-8">
-        <div className="d-flex justify-content-center justify-content-lg-between align-items-center pt-0 pt-lg-3 pb-3 mt-1">
-          <h2 className="h1 mb-0">№{order.id}</h2>
+      <section className="lg:col-span-2">
+        <div className="mt-1 flex items-center justify-center pt-0 pb-4 lg:justify-between lg:pt-4">
+          <h2 className="text-4xl leading-none font-light">№{order.id}</h2>
         </div>
 
         {(updated || order.status !== STATUS_NEW) ? (
           <>
-            <h3>Спасибо за заказ!</h3>
-            <p>
+            <h3 className="mt-2.5 mb-2 text-2xl leading-none font-light">Спасибо за заказ!</h3>
+            <p className="mb-4">
               Регистрационный номер Вашего заказа: <b>{order.id}</b>.
             </p>
-            <p>
+            <p className="mb-4">
               Наш менеджер свяжется с Вами, уточнит состав заказа, согласует способ оплаты,
               стоимость и способ доставки, и договорится об удобном времени доставки.
             </p>
-            <p>
+            <p className="mb-4">
               Узнать о состоянии заказа Вы можете по ссылке{" "}
               <Link href="/user/orders?track">
                 &laquo;Отслеживание заказа&raquo;
@@ -120,39 +122,39 @@ export default function OrderConfirmation() {
           </>
         ) : (
           <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label className="form-label" htmlFor="order-name-input">Фамилия Имя Отчество:</label>
-              <input type="text" name="name" className="form-control form-control-lg" id="order-name-input" defaultValue={order.name || user?.name} autoComplete="name" />
+            <div className="mb-4">
+              <label className={labelClass} htmlFor="order-name-input">Фамилия Имя Отчество:</label>
+              <input type="text" name="name" className={inputClass({ size: 'lg' })} id="order-name-input" defaultValue={order.name || user?.name} autoComplete="name" />
             </div>
-            <div className="mb-3">
-              <label className="form-label" htmlFor="order-email-input">E-mail для уведомлений:</label>
-              <input type="text" name="email" className="form-control form-control-lg" id="order-email-input" defaultValue={order.email || user?.email} autoComplete="email" />
+            <div className="mb-4">
+              <label className={labelClass} htmlFor="order-email-input">E-mail для уведомлений:</label>
+              <input type="text" name="email" className={inputClass({ size: 'lg' })} id="order-email-input" defaultValue={order.email || user?.email} autoComplete="email" />
             </div>
-            <div className="mb-3">
-              <label className="form-label" htmlFor="order-address-input">Адрес доставки:</label>
-              <input type="text" name="address" className="form-control form-control-lg" id="order-address-input"
+            <div className="mb-4">
+              <label className={labelClass} htmlFor="order-address-input">Адрес доставки:</label>
+              <input type="text" name="address" className={inputClass({ size: 'lg' })} id="order-address-input"
                 defaultValue={order.address || user?.address} autoComplete="postal-code address-level2 street-address" />
             </div>
-            <div className="mb-3">
-              <label className="form-label" htmlFor="order-comment-input">Комментарии к заказу:</label>
-              <textarea name="comment" className="form-control form-control-lg" id="order-comment-input" defaultValue={order.comment} rows={3}></textarea>
+            <div className="mb-4">
+              <label className={labelClass} htmlFor="order-comment-input">Комментарии к заказу:</label>
+              <textarea name="comment" className={inputClass({ size: 'lg' })} id="order-comment-input" defaultValue={order.comment} rows={3}></textarea>
             </div>
-            <hr className="mt-4 mb-3" />
+            <hr className="mt-6 mb-4" />
             <div className="text-end">
-              <button type="submit" className="btn btn-primary btn-lg"><IconBasket size={20} stroke={1.5} className="me-1 align-text-bottom" />Оформить заказ</button>
+              <button type="submit" className={buttonClass({ size: 'lg' })}><IconBasket size={20} stroke={1.5} className="me-1" />Оформить заказ</button>
             </div>
           </form>
         )}
       </section>
-      <aside className="col-lg-4 pt-4 pt-lg-0 ps-xl-5">
-        <div className="bg-white rounded-3 shadow-lg p-4 ms-lg-auto">
-          <div className="py-2 px-xl-2">
-            <div className="mb-3">
-              <h2 className="h4 text-center mb-3">Детали заказа</h2>
+      <aside className="pt-6 lg:pt-0 xl:ps-12">
+        <div className="rounded-lg bg-white p-6 shadow-lg lg:ms-auto">
+          <div className="py-2 xl:px-2">
+            <div className="mb-4">
+              <h2 className="mb-4 text-center text-xl leading-none font-light">Детали заказа</h2>
               {order.items.map((item, index) => (
-                <div className={"d-flex align-items-center border-bottom " + (index === 0 ? "pb-3" : "py-3")} key={item.product.id}>
+                <div className={"flex items-center border-b " + (index === 0 ? "pb-4" : "py-4")} key={item.product.id}>
                   <Link
-                    className="d-block flex-shrink-0 position-relative"
+                    className="relative block shrink-0"
                     style={{ width: 64, height: 64 }}
                     href={`/products/${item.product.code}`}>
                     {item.product.image ? (
@@ -168,20 +170,20 @@ export default function OrderConfirmation() {
                     )}
                   </Link>
                   <div className="ps-2">
-                    <h6>
+                    <h6 className="mb-2 leading-none font-light">
                       <Link href={`/products/${item.product.code}`}>
                         {item.product.title}
                       </Link>
                     </h6>
                     <div>
-                      <span className="text-accent me-2">{item.cost.toLocaleString('ru')}<small>&nbsp;руб</small></span>
+                      <span className="me-2 text-accent">{item.cost.toLocaleString('ru')}<small>&nbsp;руб</small></span>
                       <span className="text-muted">x {item.quantity}</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <h3 className="fw-normal text-center my-4">
+            <h3 className="my-6 text-center text-2xl leading-none">
               {order.total.toLocaleString('ru')}<small>&nbsp;руб</small>
             </h3>
           </div>

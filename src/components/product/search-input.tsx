@@ -8,6 +8,7 @@ import { Autocomplete } from '@base-ui/react/autocomplete'
 
 import { IconSearch } from '@tabler/icons-react'
 
+import { inputClass } from '@/components/ui/form'
 import { AutocompletePopup, AutocompleteStatus, AutocompleteItem, Highlighter } from '@/components/ui/autocomplete'
 
 import { productKeys, loadProductSuggestions } from '@/lib/queries'
@@ -46,18 +47,18 @@ export default function ProductSearchInput() {
     titles.length === 0 ? "Ничего не найдено" : null
 
   return (
-    <div className="position-relative mt-2">
+    <div className="relative mt-2">
       <form action="/search/">
         <Autocomplete.Root
           items={titles}
           mode="inline"
           onValueChange={handleValueChange}>
-          <div className="input-group">
+          <div className="flex">
             <Autocomplete.Input
-              className="form-control"
+              className={`${inputClass()} min-w-0 flex-1 rounded-e-none`}
               name="text"
               placeholder="Поиск товаров" />
-            <button className="input-group-text" type="submit">
+            <button className="-ms-px flex items-center rounded-e-md border bg-light px-3 py-1.5 text-body" type="submit">
               <IconSearch />
             </button>
           </div>

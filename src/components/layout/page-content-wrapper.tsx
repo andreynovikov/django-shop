@@ -18,7 +18,7 @@ type PageHeaderProps = {
 // The frame of the page header, children are the title. A layout renders it around a title from a slot.
 export function PageHeader({ overlapped, children }: PageHeaderProps) {
   return (
-    <div className="mt-3 mb-2" style={overlapped ? {} : { borderBottom: "2px solid #D7D2CB" }}>
+    <div className={`mt-4 mb-2 ${overlapped ? '' : 'border-b-2'}`}>
       {children}
     </div>
   )
@@ -34,7 +34,7 @@ type PageTitleProps = {
 export function PageTitle({ title, titleAddon }: PageTitleProps) {
   return (
     <>
-      <h1>{title}</h1>
+      <h1 className="mt-2.5 mb-5 text-4xl leading-none font-light text-primary">{title}</h1>
       {titleAddon}
     </>
   )

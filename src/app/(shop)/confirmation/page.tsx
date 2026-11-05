@@ -15,10 +15,8 @@ export default function ConfirmationPage() {
     dark: true,
     overlapped: true,
     children: (
-      <div className="container pb-5 mb-2 mb-md-4">
-        <div className="row">
-          <OrderConfirmation />
-        </div>
+      <div className="mb-2 grid px-3 pb-12 md:mb-6 lg:grid-cols-3 lg:gap-x-6">
+        <OrderConfirmation />
       </div>
     ),
   })

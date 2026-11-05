@@ -7,6 +7,8 @@ import BuyButton from '@/components/product/buy-button'
 import FieldHelp from '@/components/product/field-help'
 import NoImage from '@/components/product/no-image'
 import { ProductImageGallery, GalleryLink } from '@/components/product/image-gallery'
+import { badgeClass } from '@/components/ui/badge'
+import { buttonClass } from '@/components/ui/button'
 
 import { prettifyProductFieldValue } from '@/lib/format'
 import { loadProducts, getProductFields } from '@/lib/queries'
@@ -15,6 +17,8 @@ import { Product } from '@/lib/types'
 import { getProduct } from './load'
 
 export const revalidate = 86400 // once a day
+
+const sectionTitleClass = 'mt-2.5 mb-2 text-3xl leading-none font-light'
 
 const fieldList: (keyof Product)[] = [
   'km_class', 'km_font', 'km_needles', 'km_prog', 'km_rapport',
@@ -96,66 +100,66 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
     <ProductImageGallery slides={slides}>
       <div itemScope itemType="http://schema.org/Product">
         <ProductImpression product={product} />
-        <h1 className="si-product-header" itemProp="name">
+        <h1 className="mt-2.5 mb-5 text-4xl leading-none font-light text-primary uppercase" itemProp="name">
           {product.title}
-          <sup className="d-block d-sm-inline mt-4 mt-sm-0">
-            {product.isnew && <span className="badge text-bg-danger ms-1">Новинка</span>}
-            {product.recomended && <span className="badge text-bg-success ms-1">Рекомендуем</span>}
+          <sup className="mt-6 block sm:mt-0 sm:inline">
+            {product.isnew && <span className={`${badgeClass} ms-1 bg-danger text-sm text-white`}>Новинка</span>}
+            {product.recomended && <span className={`${badgeClass} ms-1 bg-success text-sm text-white`}>Рекомендуем</span>}
           </sup>
         </h1>
 
-        {product.partnumber && <p>Код производителя: {product.partnumber}</p>}
-        {(product.runame || product.whatis) && <p>{product.whatis} {product.runame}</p>}
+        {product.partnumber && <p className="mb-4">Код производителя: {product.partnumber}</p>}
+        {(product.runame || product.whatis) && <p className="mb-4">{product.whatis} {product.runame}</p>}
 
-        <div className="d-flex flex-column-reverse flex-sm-row" style={{ gap: 10 }}>
-          <div className="flex-grow-1">
+        <div className="flex flex-col-reverse sm:flex-row" style={{ gap: 10 }}>
+          <div className="grow">
             {product.image ? (
               <div className="text-center">
                 <GalleryLink index={0} className="me-1">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    className="img-fluid xsi-product-image"
+                    className="xsi-product-image mx-auto"
                     src={product.image}
                     alt={`${product.title} ${product.whatis}`}
                     itemProp="image" />
                 </GalleryLink>
               </div>
             ) : (
-              <NoImage size={160} className="d-none d-lg-block mx-auto" />
+              <NoImage size={160} className="mx-auto hidden! lg:block!" />
             )}
           </div>
 
-          <div className="card align-self-stretch align-self-sm-start">
-            <div className="card-body">
+          <div className="self-stretch rounded-md border border-black/15 bg-white sm:self-start">
+            <div className="p-4">
               {product.enabled ? (
                 <div itemProp="offers" itemScope itemType="http://schema.org/Offer">
                   {product.discount > 0 && (
-                    <p className="oldprice">
+                    <p className="oldprice mb-4">
                       <del>{product.price.toLocaleString('ru')}&nbsp;руб.</del>
                     </p>
                   )}
                   <div>
-                    <span className="align-middle fs-md fw-bold">
-                      <span className="lead fw-bold" itemProp="price">{product.cost.toLocaleString('ru')}</span>&nbsp;руб.
+                    <span className="align-middle text-base font-bold">
+                      <span className="text-xl font-bold" itemProp="price">{product.cost.toLocaleString('ru')}</span>&nbsp;руб.
                     </span>
 
-                    <BuyButton product={product} className="btn btn-primary fw-bold ms-2 align-middle" />
+                    <BuyButton product={product} className={`${buttonClass()} ms-2 font-bold`} />
 
                     {product.wb_link && <div className="mt-2">
-                      <a href={product.wb_link} className="btn sw-btn-wb fw-bold" role="button">
+                      <a href={product.wb_link} className={`${buttonClass({ variant: 'wb' })} font-bold`} role="button">
                         Купить на WB
                       </a>
                     </div>}
                     {product.ozon_link && <div className="mt-2">
-                      <a href={product.ozon_link} className="btn sw-btn-ozon fw-bold" role="button">
+                      <a href={product.ozon_link} className={`${buttonClass({ variant: 'ozon' })} font-bold`} role="button">
                         Купить на Ozon
                       </a>
                     </div>}
 
-                    <span itemProp="priceCurrency" className="d-none">RUB</span>
+                    <span itemProp="priceCurrency" className="hidden">RUB</span>
                   </div>
 
-                  <div className="mt-3">
+                  <div className="mt-4">
                     <span className="product-nal-caption">Наличие:</span>{" "}
                     {product.instock > 1 ? (
                       <span className="product-nal-true">Есть</span>
@@ -166,7 +170,7 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
                     )}
                   </div>
 
-                  {product.sales_notes && <p className="mt-3">{product.sales_notes}</p>}
+                  {product.sales_notes && <p className="my-4">{product.sales_notes}</p>}
                 </div>
               ) : (
                 <span className="product-nal-false">Товар снят с продажи</span>
@@ -178,7 +182,7 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
         <div className="mt-2">
           {images.map((image, index) => (
             <GalleryLink index={index + firstImageSlide} className="me-1" key={index}>
-              <span className="d-inline-block position-relative" style={{ width: 80, height: 80 }}>
+              <span className="relative inline-block" style={{ width: 80, height: 80 }}>
                 <Image
                   src={image.src}
                   fill
@@ -191,34 +195,34 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
           ))}
         </div>
 
-        <div className="mt-3" />
+        <div className="mt-4" />
 
         {product.descr && (
-          <div className="pb-3" itemProp="description" dangerouslySetInnerHTML={{ __html: rebootstrap(product.descr) }} />
+          <div className="pb-4" itemProp="description" dangerouslySetInnerHTML={{ __html: rebootstrap(product.descr) }} />
         )}
         {product.spec && (
-          <div className="pb-3" dangerouslySetInnerHTML={{ __html: rebootstrap(product.spec) }} />
+          <div className="pb-4" dangerouslySetInnerHTML={{ __html: rebootstrap(product.spec) }} />
         )}
 
         {product.manuals && (
           <>
-            <h2>Инструкции для {product.title}:</h2>
-            <div className="pb-3" dangerouslySetInnerHTML={{ __html: product.manuals.replaceAll('/static', '') }} />
+            <h2 className={sectionTitleClass}>Инструкции для {product.title}:</h2>
+            <div className="pb-4" dangerouslySetInnerHTML={{ __html: product.manuals.replaceAll('/static', '') }} />
           </>
         )}
 
         {Object.keys(fieldNames).length > 0 && productFields.length > 0 && (
           <>
-            <h2>Характеристики{product.kind ? " " + product.title : ""}:</h2>
-            <table className="table text-sm pb-3">
+            <h2 className={sectionTitleClass}>Характеристики{product.kind ? " " + product.title : ""}:</h2>
+            <table className="mb-4 w-full">
               <tbody>
                 {productFields.map((field, index) => (
                   <tr key={field}>
-                    <th className={"fw-normal" + (index === productFields.length - 1 ? " border-0" : "")}>
+                    <th className={"p-2 text-start align-top font-normal" + (index === productFields.length - 1 ? "" : " border-b")}>
                       {fieldNames[field][0]}
                       <FieldHelp field={field} />
                     </th>
-                    <td className={"text-muted" + (index === productFields.length - 1 ? " border-0" : "")}>
+                    <td className={"p-2 align-top text-muted" + (index === productFields.length - 1 ? "" : " border-b")}>
                       {prettifyProductFieldValue(field, product[field])}
                       {fieldNames[field][1]}
                     </td>
@@ -231,24 +235,24 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
 
         {product.stitches && (
           <>
-            <h2>Строчки {product.title}:</h2>
-            <div className="py-3" dangerouslySetInnerHTML={{ __html: product.stitches }} />
+            <h2 className={sectionTitleClass}>Строчки {product.title}:</h2>
+            <div className="py-4" dangerouslySetInnerHTML={{ __html: product.stitches }} />
           </>
         )}
 
         {product.complect && (
           <>
-            <h2>Комплектация{product.kind ? " " + product.title : ""}:</h2>
-            <div className="py-3" dangerouslySetInnerHTML={{ __html: product.complect }} />
+            <h2 className={sectionTitleClass}>Комплектация{product.kind ? " " + product.title : ""}:</h2>
+            <div className="py-4" dangerouslySetInnerHTML={{ __html: product.complect }} />
           </>
         )}
 
         {product.certificate && (
-          <div className="pb-3">
+          <div className="pb-4">
             {product.certificate.startsWith('http') ? (
               <a href={product.certificate} target="_blank">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/i/fgis-icon.svg" alt="" width="20" className="mx-1 ratio-1x1 align-text-bottom" />
+                <img src="/i/fgis-icon.svg" alt="" width="20" className="mx-1 inline align-text-bottom" />
                 Сертификат соответствия требованиям технического регламента
               </a>
             ) : (

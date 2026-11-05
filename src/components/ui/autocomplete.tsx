@@ -4,13 +4,15 @@ import { MouseEventHandler, ReactNode } from 'react'
 
 import { Autocomplete } from '@base-ui/react/autocomplete'
 
-// Base UI autocomplete parts rendered with Bootstrap .dropdown-menu markup, see .sw-autocomplete-menu in styles.scss
+// Base UI autocomplete parts styled as a dropdown menu
+
+const itemClass = 'block w-full truncate px-4 py-1'
 
 export function AutocompletePopup({ children }: { children: ReactNode }) {
   return (
     <Autocomplete.Portal>
       <Autocomplete.Positioner align="start">
-        <Autocomplete.Popup className="dropdown-menu show sw-autocomplete-menu">
+        <Autocomplete.Popup className="relative z-1000 max-h-[300px] w-(--anchor-width) min-w-40 overflow-y-auto rounded-md border border-black/15 bg-white py-2 text-left text-body [&::-webkit-scrollbar]:bg-light">
           {children}
         </Autocomplete.Popup>
       </Autocomplete.Positioner>
@@ -21,7 +23,7 @@ export function AutocompletePopup({ children }: { children: ReactNode }) {
 // Prompt, loading or nothing found message shown in place of items
 export function AutocompleteStatus({ children }: { children: ReactNode }) {
   return (
-    <Autocomplete.Status className="dropdown-item disabled">
+    <Autocomplete.Status className={`${itemClass} cursor-default text-gray-400`}>
       {children}
     </Autocomplete.Status>
   )
@@ -40,9 +42,9 @@ export function AutocompleteGroup<Item>({
 }) {
   return (
     <>
-      {separated && <Autocomplete.Separator className="dropdown-divider" />}
+      {separated && <Autocomplete.Separator className="my-2 border-t border-black/15" />}
       <Autocomplete.Group items={items}>
-        {label && <Autocomplete.GroupLabel className="dropdown-header">{label}</Autocomplete.GroupLabel>}
+        {label && <Autocomplete.GroupLabel className="block px-4 py-2 text-xs whitespace-nowrap text-secondary">{label}</Autocomplete.GroupLabel>}
         <Autocomplete.Collection>
           {children}
         </Autocomplete.Collection>
@@ -61,8 +63,7 @@ export function AutocompleteItem({
   children: ReactNode
 }) {
   return (
-    // highlighted items are styled by [data-highlighted], Cartzilla's .dropdown-item.active isn't clickable
-    <Autocomplete.Item value={value} onClick={onClick} className="dropdown-item">
+    <Autocomplete.Item value={value} onClick={onClick} className={`${itemClass} cursor-pointer text-primary outline-none data-highlighted:bg-light`}>
       {children}
     </Autocomplete.Item>
   )
@@ -75,6 +76,6 @@ export function Highlighter({ search, children }: { search: string, children: st
 
   const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return children.split(new RegExp(`(${escaped})`, 'gi')).map((part, index) =>
-    index % 2 === 1 ? <mark className="sw-highlight-text" key={index}>{part}</mark> : part
+    index % 2 === 1 ? <mark className="bg-inherit p-0 font-bold text-inherit" key={index}>{part}</mark> : part
   )
 }

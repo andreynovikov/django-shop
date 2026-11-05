@@ -1,11 +1,13 @@
 import Link from 'next/link'
 
+const titleClass = 'mt-2.5 mb-2 text-2xl leading-none font-light'
+
 // Static, the category images are served from the site's /media/
 export default function HomePage() {
   return (
-    <div className="d-flex flex-wrap justify-content-between py-2" style={{ gap: "20px" }}>
+    <div className="flex flex-wrap justify-between py-2" style={{ gap: "20px" }}>
       <div className="product_display text-center">
-        <h3>
+        <h3 className={titleClass}>
           <Link href="/catalog/electronic/">Электронные машины</Link>
         </h3>
         <div className="thumb">
@@ -16,7 +18,7 @@ export default function HomePage() {
         </div>
       </div>
       <div className="product_display text-center">
-        <h3>
+        <h3 className={titleClass}>
           <Link href="/catalog/basic/">Механические машины</Link>
         </h3>
         <div className="thumb">
@@ -27,7 +29,7 @@ export default function HomePage() {
         </div>
       </div>
       <div className="product_display text-center">
-        <h3>
+        <h3 className={titleClass}>
           <Link href="/catalog/serger/">Оверлоки</Link>
         </h3>
         <div className="thumb">
@@ -38,7 +40,7 @@ export default function HomePage() {
         </div>
       </div>
       <div className="product_display text-center">
-        <h3>
+        <h3 className={titleClass}>
           <Link href="/catalog/irons/">Уход за домом</Link>
         </h3>
         <div className="thumb">
@@ -49,7 +51,7 @@ export default function HomePage() {
         </div>
       </div>
       <div className="product_display text-center">
-        <h3>
+        <h3 className={titleClass}>
           <Link href="/catalog/Feet/">Лапки</Link>
         </h3>
         <div className="thumb">
@@ -60,7 +62,7 @@ export default function HomePage() {
         </div>
       </div>
       <div className="product_display text-center">
-        <h3>
+        <h3 className={titleClass}>
           <Link href="/catalog/Accessories/">Аксессуары</Link>
         </h3>
         <div className="thumb">

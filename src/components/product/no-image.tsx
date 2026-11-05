@@ -11,6 +11,6 @@ export default function NoImage({ size = 200, block = false, className = '' }: {
   }
 
   return (
-    <IconCamera className={(block ? "d-block mx-auto" : "d-inline-block") + " text-muted " + className} style={style} stroke={1.5} />
+    <IconCamera className={(block ? "mx-auto block" : "inline-block") + " text-muted " + className} style={style} stroke={1.5} />
   )
 }

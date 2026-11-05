@@ -22,27 +22,28 @@ export default function ProductsMenu() {
   return (
     <div>
       <Menu.Root>
-        <Menu.Trigger className="navLink dropdown-toggle" nativeButton={false} render={<a />}>
+        <Menu.Trigger
+          className="navLink after:ms-1 after:inline-block after:border-x-[0.3em] after:border-t-[0.3em] after:border-b-0 after:border-x-transparent after:border-t-current after:align-[0.255em]"
+          nativeButton={false}
+          render={<a />}>
           ПРОДУКЦИЯ
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Positioner sideOffset={8} align="start">
-            <Menu.Popup className="dropdown-menu show position-static si-mega-menu rounded-0 shadow border-0">
-              <div className="container-fluid p-3">
-                {categories.map((row, index) => (
-                  <div className="row" key={index}>
-                    {row.map((category) => (
-                      <div className="col-md-3 fw-bold text-center mb-3" key={category.href}>
-                        <Menu.LinkItem className="dropdown-item" render={<Link href={category.href} />} closeOnClick>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={category.image} alt={category.alt} width="147" height="102" />
-                          <div>{category.label}</div>
-                        </Menu.LinkItem>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
+            <Menu.Popup className="w-screen max-w-[960px] bg-white px-4 py-6 text-left shadow-lg">
+              {categories.map((row, index) => (
+                <div className="grid gap-x-6 md:grid-cols-4" key={index}>
+                  {row.map((category) => (
+                    <div className="mb-4 text-center font-bold" key={category.href}>
+                      <Menu.LinkItem className="block text-primary outline-none hover:no-underline" render={<Link href={category.href} />} closeOnClick>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img className="mx-auto" src={category.image} alt={category.alt} width="147" height="102" />
+                        <div>{category.label}</div>
+                      </Menu.LinkItem>
+                    </div>
+                  ))}
+                </div>
+              ))}
             </Menu.Popup>
           </Menu.Positioner>
         </Menu.Portal>

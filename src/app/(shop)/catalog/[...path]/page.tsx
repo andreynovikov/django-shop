@@ -62,7 +62,7 @@ export default async function CategoryPage({ params }: PageProps<'/catalog/[...p
   return pageContentWrapper({
     title: category.name,
     children: (
-      <div className="d-flex flex-wrap justify-content-between py-2" style={{ gap: "20px" }}>
+      <div className="flex flex-wrap justify-between py-2" style={{ gap: "20px" }}>
         <CurrentCatalog />
         {category.promo_image && (
           <div>
@@ -71,7 +71,7 @@ export default async function CategoryPage({ params }: PageProps<'/catalog/[...p
           </div>
         )}
         {category.children && (
-          <ul className="si-category-list fs-md order-sm-first">
+          <ul className="si-category-list text-base sm:order-first">
             { /* TODO: filter hidden (here or in API) */}
             {category.children.map((subcategory) => (
               <li key={subcategory.id}>

@@ -16,12 +16,12 @@ export default function Countdown({
       Код выслан на указанный телефон по смс
     </span>
   ) : countdown > 0 ? (
-    <div className="d-block">
+    <div>
       Запросить {permanentPassword ? "пароль" : "код"} повторно можно {countdownText}
     </div>
   ) : reset !== undefined && delay >= 0 && countdown === 0 ? (
     <div>
-      <a className="link-primary" onClick={reset} style={{ cursor: 'pointer' }}>
+      <a onClick={reset} style={{ cursor: 'pointer' }}>
         {permanentPassword ? (
           "Сбросить забытый пароль"
         ) : (

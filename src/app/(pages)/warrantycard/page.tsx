@@ -14,11 +14,9 @@ export default function WarrantyCardPage() {
   return pageContentWrapper({
     title,
     children: (
-      <div className="container mb-5">
-        <div className="row justify-content-md-center">
-          <div className="col-md-6">
-            <WarrantyCardForm />
-          </div>
+      <div className="mb-12 px-3">
+        <div className="md:mx-auto md:w-1/2">
+          <WarrantyCardForm />
         </div>
       </div>
     ),

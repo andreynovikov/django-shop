@@ -7,16 +7,16 @@ import ProductsMenu from '@/components/layout/products-menu'
 export default function Header() {
   return (
     <header>
-      <div className="row">
-        <div className="col-sm-6 p-2">
+      <div className="-mx-3 flex flex-wrap">
+        <div className="w-full p-2 sm:w-1/2">
           <Link href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/i/newsingerco/logo_singer.png" alt="Singer logo" width="323" height="105" />
           </Link>
         </div>
-        <div className="col-sm-6 p-3 text-center text-sm-end" id="secondaryNavigation">
-          <Link className="d-block mb-1 d-sm-inline mb-sm-0" href="/user/orders/">Мои заказы</Link>
-          <span className="d-none d-sm-inline">&nbsp;&nbsp;|&nbsp;&nbsp;</span>
+        <div className="w-full p-4 text-center sm:w-1/2 sm:text-end" id="secondaryNavigation">
+          <Link className="mb-1 block sm:mb-0 sm:inline" href="/user/orders/">Мои заказы</Link>
+          <span className="hidden sm:inline">&nbsp;&nbsp;|&nbsp;&nbsp;</span>
           <CartNotice />
           <ProductSearchInput />
         </div>

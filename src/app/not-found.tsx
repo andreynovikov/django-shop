@@ -50,7 +50,7 @@ export default function NotFound() {
   return (
     <div style={styles.error}>
       <div>
-        <h1 style={styles.h1}>404</h1>
+        <h1 className="text-primary" style={styles.h1}>404</h1>
         <div style={styles.desc}>
           <h2 style={styles.h2}>Страница не найдена</h2>
         </div>
