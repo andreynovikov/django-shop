@@ -125,7 +125,7 @@ export default function SearchResults() {
                 {brandsFilter && <div className="widget pb-4 mb-4 border-bottom">
                   <h3 className="widget-title">Производитель</h3>
                   <MultipleChoiceFilter
-                    filter={{ name: 'manufacturer', choices: brandsFilter }}
+                    filter={{ name: 'manufacturer', id: 'sw-manufacturer', choices: brandsFilter }}
                     filterValue={filters.manufacturer}
                     onFilterChanged={handleFilterChanged} />
                 </div>}

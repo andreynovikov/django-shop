@@ -1,9 +1,11 @@
-export default function BooleanFilter({ filter, filterValue, onFilterChanged }) {
-  const handleChange = (event) => {
-    let value = event.target.value
-    if (value === '')
-      value = null
-    onFilterChanged(filter.name, value)
+import { ChangeEvent } from 'react'
+
+import { FilterProps } from './types'
+
+export default function BooleanFilter({ filter, filterValue, onFilterChanged }: FilterProps<'name' | 'id', boolean>) {
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value
+    onFilterChanged(filter.name, value === '' ? null : value === 'true')
   }
 
   return (
@@ -15,7 +17,7 @@ export default function BooleanFilter({ filter, filterValue, onFilterChanged }) 
           name={filter.name}
           id={`${filter.id}-1`}
           value="true"
-          checked={filterValue === 'true'}
+          checked={filterValue === true}
           onChange={handleChange} />
         <label className="form-check-label" htmlFor={`${filter.id}-1`}>да</label>
       </div>
@@ -26,7 +28,7 @@ export default function BooleanFilter({ filter, filterValue, onFilterChanged }) 
           name={filter.name}
           id={`${filter.id}-0`}
           value="false"
-          checked={filterValue === 'false'}
+          checked={filterValue === false}
           onChange={handleChange} />
         <label className="form-check-label" htmlFor={`${filter.id}-0`}>нет</label>
       </div>

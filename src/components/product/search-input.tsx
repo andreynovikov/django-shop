@@ -13,7 +13,17 @@ import { productKeys, loadProductSuggestions } from '@/lib/queries'
 
 const MIN_LENGTH = 3
 
-export default function ProductSearchInput({ mobile = false }) {
+type SuggestionItem =
+  | { section: 'correction' | 'sts', label: string }
+  | { section: 'products', label: string, product: ProductResult }
+
+interface SuggestionGroup {
+  section: SuggestionItem['section']
+  label?: string
+  items: SuggestionItem[]
+}
+
+export default function ProductSearchInput({ mobile = false }: { mobile?: boolean }) {
   const [searchText, setSearchText] = useState('')
   const deferredSearchText = useDeferredValue(searchText)
 
@@ -28,7 +38,7 @@ export default function ProductSearchInput({ mobile = false }) {
     if (!suggestions || searchText.length < MIN_LENGTH)
       return []
 
-    return [
+    const allGroups: SuggestionGroup[] = [
       {
         section: 'correction',
         items: suggestions.correction ? [{ section: 'correction', label: suggestions.correction }] : []
@@ -43,13 +53,14 @@ export default function ProductSearchInput({ mobile = false }) {
         label: 'Популярные товары',
         items: (suggestions.products ?? []).map(product => ({ section: 'products', label: product.title, product }))
       },
-    ].filter(group => group.items.length > 0)
+    ]
+    return allGroups.filter(group => group.items.length > 0)
   }, [suggestions, searchText])
 
   const router = useRouter()
 
   // the input also changes while moving through suggestions, only typing starts a new search
-  const handleValueChange = (value, { reason }) => {
+  const handleValueChange = (value: string, { reason }: Autocomplete.Root.ChangeEventDetails) => {
     if (reason === 'input-change' || reason === 'input-clear')
       setSearchText(value)
   }
@@ -84,7 +95,7 @@ export default function ProductSearchInput({ mobile = false }) {
         <AutocompletePopup>
           {message && <AutocompleteStatus>{message}</AutocompleteStatus>}
           <Autocomplete.List>
-            {(group, index) => (
+            {(group: SuggestionGroup, index: number) => (
               <AutocompleteGroup key={group.section} label={group.label} items={group.items} separated={index > 0}>
                 {(item) => item.section === 'products' ? (
                   <AutocompleteItem

@@ -1,18 +1,35 @@
-import { useState, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useEffect, ChangeEvent, SubmitEvent } from 'react'
+import { useQuery, useMutation, useQueryClient, skipToken } from '@tanstack/react-query'
 
 import { Loading } from '@/components/loading'
 import UserUpdateModal from '@/components/user/update-modal'
 
 import { useSession } from '@/lib/session'
-import { reviewKeys, getReviewForm, loadProductReview, createProductReview, updateProductReview } from '@/lib/queries'
+import { reviewKeys, getReviewForm, loadProductReview, createProductReview, updateProductReview, HttpError } from '@/lib/queries'
+import { Product, ProductReview, User } from '@/lib/types'
 
-export default function ReviewForm({ product, review: reviewId }) {
+type FieldErrors = Record<string, string[]>
+
+interface ReviewFormProps {
+  product: Product
+  review?: number  // id of the user's review, it is edited instead of adding a new one
+}
+
+// Value of a form field in the edited review, the rating is an object with its value
+function reviewValue(review: ProductReview | undefined, name: string) {
+  const value = review?.[name as keyof ProductReview]
+  if (typeof value === 'object' && value !== null && 'value' in value)
+    return value.value
+  return typeof value === 'string' || typeof value === 'number' ? value : undefined
+}
+
+export default function ReviewForm({ product, review: reviewId }: ReviewFormProps) {
   const [updated, setUpdated] = useState(false)
-  const [error, setError] = useState({})
+  const [error, setError] = useState<FieldErrors>({})
   const queryClient = useQueryClient()
   const [showUpdateModal, setShowUpdateModal] = useState(false)
-  const { user } = useSession()
+  const { user: sessionUser, status } = useSession()
+  const user = status === 'authenticated' ? sessionUser as User : undefined
 
   const { data: form, isSuccess: isFormSuccess } = useQuery({
     queryKey: reviewKeys.form(product.id),
@@ -20,9 +37,8 @@ export default function ReviewForm({ product, review: reviewId }) {
   })
 
   const { data: review, isSuccess: isReviewSuccess } = useQuery({
-    queryKey: reviewKeys.detail(product.id, reviewId),
-    queryFn: () => loadProductReview(product.id, reviewId),
-    enabled: reviewId !== undefined,
+    queryKey: reviewKeys.detail(product.id, reviewId ?? 0),
+    queryFn: reviewId !== undefined ? () => loadProductReview(product.id, reviewId) : skipToken,
   })
 
   useEffect(() => {
@@ -34,49 +50,35 @@ export default function ReviewForm({ product, review: reviewId }) {
     }
   }, [updated])
 
-  const createReviewMutation = useMutation({
-    mutationFn: (data) => createProductReview(product.id, data),
+  const saveReviewMutation = useMutation({
+    mutationFn: (data: FormData) => reviewId !== undefined
+      ? updateProductReview(product.id, reviewId, data)
+      : createProductReview(product.id, data),
     onSuccess: () => {
+      if (reviewId !== undefined)
+        queryClient.invalidateQueries({ queryKey: reviewKeys.detail(product.id, reviewId) })
       queryClient.invalidateQueries({ queryKey: reviewKeys.list(product.id) })
     }
   })
 
-  const updateReviewMutation = useMutation({
-    mutationFn: (data) => updateProductReview(product.id, reviewId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: reviewKeys.detail(product.id, reviewId) })
-      queryClient.invalidateQueries({ queryKey: reviewKeys.list(product.id) })
-    }
-  })
-
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const field = e.currentTarget.name
-    if (error && field in error) {
-      setError(Object.keys(error).reduce(function (filtered, key) {
-        if (key !== field)
-          filtered[key] = error[key]
-        return filtered
-      }, {}))
-    }
+    if (field in error)
+      setError(Object.fromEntries(Object.entries(error).filter(([key]) => key !== field)))
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-    const config = {
+    saveReviewMutation.mutate(new FormData(e.currentTarget), {
       onSuccess: () => {
         setUpdated(true)
       },
-      onError: (error) => {
+      onError: async (error) => {
         console.error(error)
-        if (error.response?.data && error.response.headers['content-type'].toLowerCase() === 'application/json')
-          setError(error.response.data)
+        if (error instanceof HttpError && error.response.headers.get('content-type')?.toLowerCase().includes('application/json'))
+          setError(await error.response.json())
       }
-    }
-    if (reviewId)
-      updateReviewMutation.mutate(formData, config)
-    else
-      createReviewMutation.mutate(formData, config)
+    })
   }
 
   if (!isFormSuccess || (reviewId !== undefined && !isReviewSuccess))
@@ -130,13 +132,13 @@ export default function ReviewForm({ product, review: reviewId }) {
                   required={field.required} />
               ) : field.widget === 'Select' ? (
                 <select
-                  className={"form-select" + ((error && field.name in error) ? " is-invalid" : "")}
+                  className={"form-select" + (field.name in error ? " is-invalid" : "")}
                   id={field.id}
                   name={field.name}
-                  defaultValue={review?.[field.name].value || review?.[field.name]}
+                  defaultValue={reviewValue(review, field.name)}
                   onChange={handleChange}
                   required={field.required}>
-                  {field.choices.map((choice) => (
+                  {field.choices?.map((choice) => (
                     <option value={choice[0]} key={choice[0]}>
                       {choice[1]}
                       {' '}
@@ -146,25 +148,25 @@ export default function ReviewForm({ product, review: reviewId }) {
                 </select>
               ) : field.widget === 'Textarea' ? (
                 <textarea
-                  className={"form-control" + ((error && field.name in error) ? " is-invalid" : "")}
+                  className={"form-control" + (field.name in error ? " is-invalid" : "")}
                   id={field.id}
                   name={field.name}
-                  defaultValue={review?.[field.name]}
-                  rows={field.attrs?.rows || 5}
-                  maxLength={field.attrs?.maxlength || 5000}
+                  defaultValue={reviewValue(review, field.name)}
+                  rows={Number(field.attrs?.rows) || 5}
+                  maxLength={Number(field.attrs?.maxlength) || 5000}
                   required={field.required} />
               ) : (
                 <input
-                  className={"form-control" + ((error && field.name in error) ? " is-invalid" : "")}
+                  className={"form-control" + (field.name in error ? " is-invalid" : "")}
                   id={field.id}
                   name={field.name}
-                  defaultValue={review?.[field.name] || field.value}
+                  defaultValue={reviewValue(review, field.name) || field.value}
                   required={field.required} />
               )}
-              {error && field.name in error && error[field.name].map((err, index) => (
+              {error[field.name]?.map((err, index) => (
                 <div className="invalid-feedback" key={index}>{err}</div>
               ))}
-              {field.text && <small className="form-text text-muted">{field.help}</small>}
+              {field.help && <small className="form-text text-muted">{field.help}</small>}
             </div>
           ))}
         </div>

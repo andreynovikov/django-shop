@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { ComponentProps, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Popover } from '@base-ui/react/popover'
 
@@ -8,12 +8,12 @@ import styles from './field-help.module.scss'
 
 import { pageKeys, loadPages, loadPage } from '@/lib/queries'
 
-const fieldMappings = {
+const fieldMappings: Partial<Record<string, string>> = {
   'sm_stitchwidth': 'sm_stitchlength',
   'sm_stitchlenght': 'sm_stitchlength',
 }
 
-export default function FieldHelp({ field }) {
+export default function FieldHelp({ field }: { field: string }) {
   const [open, setOpen] = useState(false)
 
   const { data: fields } = useQuery({
@@ -23,15 +23,16 @@ export default function FieldHelp({ field }) {
     placeholderData: []
   })
 
-  const uri = ['help', fieldMappings[field] ?? (fields.includes(field) ? field : null)]
+  const helpPage = fieldMappings[field] ?? (fields?.includes(field) ? field : undefined)
+  const uri = ['help', helpPage ?? '']
 
   const { data, isSuccess } = useQuery({
     queryKey: pageKeys.detail(uri),
     queryFn: () => loadPage(uri),
-    enabled: open && uri[1] !== null
+    enabled: open && helpPage !== undefined
   })
 
-  if (uri[1] === null)
+  if (helpPage === undefined)
     return null
 
   return (
@@ -59,7 +60,7 @@ export default function FieldHelp({ field }) {
   )
 }
 
-function ArrowSvg(props) {
+function ArrowSvg(props: ComponentProps<'svg'>) {
   return (
     <svg width="20" height="10" viewBox="0 0 20 10" fill="none" {...props}>
       <path

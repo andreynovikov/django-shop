@@ -4,7 +4,9 @@ import Image from 'next/image'
 import NoImage from '@/components/product/no-image'
 import ProductPrice from '@/components/product/price'
 
-export default function ProductMiniCard({ product }) {
+import { ProductInfo } from '@/lib/types'
+
+export default function ProductMiniCard({ product }: { product: ProductInfo }) {
   return (
     <div className="card product-card card-static">
       <Link
