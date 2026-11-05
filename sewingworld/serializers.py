@@ -532,7 +532,7 @@ class OrderSerializer(serializers.ModelSerializer):
     total = NumberReadOnlyField()
     status_text = serializers.SerializerMethodField()
     payment_text = serializers.SerializerMethodField()
-    store = StoreSerializer(read_only=True, allow_null=True)
+    store = StoreListSerializer(read_only=True, allow_null=True)
 
     class Meta:
         model = Order
