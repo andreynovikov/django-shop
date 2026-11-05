@@ -1,8 +1,69 @@
-$font-family-serif: 'Roboto',serif;
-$font-family-sans-serif: 'Roboto',sans-serif;
-$font-family-heading: 'Roboto',sans-serif;
+// Roboto is loaded by next/font in the root layout
+$font-family-serif: var(--font-roboto), serif;
+$font-family-sans-serif: var(--font-roboto), sans-serif;
+$font-family-heading: var(--font-roboto), sans-serif;
 
 @import "vendor/sell/scss/style.red";
+
+// Base UI
+
+.root {
+    isolation: isolate;
+}
+
+// Collapsible.Panel height animation, matches Bootstrap .collapsing
+@mixin sw-collapse {
+    height: var(--collapsible-panel-height);
+    overflow: hidden;
+    transition: $transition-collapse;
+
+    &[data-starting-style],
+    &[data-ending-style] {
+        height: 0;
+    }
+}
+
+.sw-collapse {
+    @include sw-collapse;
+}
+
+// for panels that are always expanded from the breakpoint up, e.g. in .navbar-expand-lg
+@each $breakpoint in md, lg {
+    .sw-collapse-#{$breakpoint}-down {
+        @include media-breakpoint-down($breakpoint) {
+            @include sw-collapse;
+        }
+    }
+}
+
+// Cartzilla classes used by components copied from it
+
+.fs-sm {
+    font-size: $font-size-base * .875 !important;
+}
+
+.fs-xs {
+    font-size: $font-size-base * .75 !important;
+}
+
+// Full height map
+.iframe-full-height-wrap {
+    position: relative;
+    min-height: 18rem;
+    overflow: hidden;
+}
+
+.iframe-full-height {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+// familysew
 
 .navbar-brand > img {
     max-width: 240px;

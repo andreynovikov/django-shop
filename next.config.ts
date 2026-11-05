@@ -1,0 +1,31 @@
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  reactStrictMode: true,
+  trailingSlash: true,
+  output: 'standalone',
+  images: {
+    remotePatterns: [
+      new URL('https://api.sewing-world.ru/media/**'),
+      new URL('https://www.sewing-world.ru/media/**'),
+      // Media URLs are built from the backend host, e.g. a local Django in development
+      ...(process.env.API_SERVER ? [new URL(`${process.env.API_SERVER}/media/**`)] : []),
+    ],
+  },
+  async headers() {
+    return [
+      {
+        source: '/compare',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex' }],
+      },
+    ]
+  },
+  sassOptions: {
+    silenceDeprecations: ['import', 'if-function']
+  },
+  logging: {
+    browserToTerminal: true,
+  },
+}
+
+export default nextConfig;

@@ -1,0 +1,217 @@
+'use client'
+
+import { useState, useEffect, useMemo } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+import { useQuery, useQueries } from '@tanstack/react-query'
+import { useQueryStates, parseAsInteger, parseAsNativeArrayOf } from 'nuqs'
+
+import { IconTrashX } from '@tabler/icons-react'
+
+import FieldHelp from '@/components/product/field-help'
+import NoImage from '@/components/product/no-image'
+import { PageLoading } from '@/components/loading'
+
+import useComparison from '@/lib/comparison'
+import { deepCompare } from '@/lib/compare'
+import { prettifyProductFieldValue } from '@/lib/format'
+import { kindKeys, productKeys, loadKinds, loadKind, loadProduct, getProductFields } from '@/lib/queries'
+import { Product } from '@/lib/types'
+
+// ?kind= picks the compared products of a kind, ?product=&product= are the products to show
+const comparisonParams = {
+  kind: parseAsInteger,
+  product: parseAsNativeArrayOf(parseAsInteger),
+}
+
+// Reading the query needs a Suspense boundary, the page is static
+export default function ProductComparison() {
+  const [{ kind: kindId, product: productIds }, setParams] = useQueryStates(comparisonParams)
+
+  const [different, setDifferent] = useState(false)
+
+  // if kind is passed get filtered product list...
+  const { comparisons, uncompare, isSuccess: isComparisonSuccess } = useComparison({ kind: kindId })
+
+  // ...and redirect to explicit comparison
+  useEffect(() => {
+    if (kindId !== null && isComparisonSuccess)
+      setParams({ kind: null, product: comparisons })
+  }, [comparisons, isComparisonSuccess, kindId, setParams])
+
+  // get list of comparable kinds
+  const { data: kinds, isSuccess: isKindsSuccess } = useQuery({
+    queryKey: kindKeys.list({ product: comparisons }),
+    queryFn: () => loadKinds(comparisons),
+    enabled: isComparisonSuccess, // comparisons are empty until loaded, and the backend lists all kinds for none
+  })
+
+  // if nothing is passed, redirect to first comparable kind
+  useEffect(() => {
+    if (isComparisonSuccess && comparisons.length > 0 && isKindsSuccess && kinds.length > 0 && kindId === null && productIds.length === 0)
+      setParams({ kind: kinds[0].id })
+  }, [isKindsSuccess, kinds, kindId, productIds, isComparisonSuccess, comparisons, setParams])
+
+  // if product list is passed compare them, once all of them are loaded
+  const products = useQueries({
+    queries: productIds.map((productId) => ({
+      queryKey: productKeys.detail(productId),
+      queryFn: () => loadProduct(productId),
+    })),
+    combine: (results) => results.every((result) => result.isSuccess) ? results.map((result) => result.data) : undefined,
+  })
+
+  const currentKind = products?.[0]?.kind?.[0] ?? kindId
+
+  const { data: kind, isSuccess: isKindSuccess } = useQuery({
+    queryKey: kindKeys.detail(currentKind ?? 0),
+    queryFn: () => loadKind(currentKind!),
+    enabled: currentKind !== null
+  })
+
+  const { data: fields } = useQuery({
+    queryKey: productKeys.fields(),
+    queryFn: () => getProductFields()
+  })
+
+  // field names come with units after a comma
+  const fieldNames = useMemo(() => {
+    const names: Record<string, string[]> = {}
+    if (fields !== undefined) {
+      Object.keys(fields).forEach((key) => {
+        const name = fields[key].split(',')
+        if (name.length === 1)
+          name.push('')
+        names[key] = name
+      })
+    }
+    return names
+  }, [fields])
+
+  const productFields = !(isKindSuccess && products !== undefined && products.length > 0) ? [] :
+    kind.comparison.reduce((fields, name) => {
+      const field = name as keyof Product
+      const value = products[0][field]
+      const differ = !deepCompare(...products.map((product) => product[field]))
+      if (differ || (!different && value !== undefined && value !== ''))
+        fields.push({
+          field,
+          differ
+        })
+      return fields
+    }, [] as { field: keyof Product, differ: boolean }[])
+
+  const uncompareProduct = (productId: number) => {
+    uncompare(productId, () => {
+      setParams({ product: productIds.filter((id) => id !== productId) })
+    })
+  }
+
+  if (isComparisonSuccess && productIds.length === 0 && kindId === null && comparisons.length === 0)
+    return (
+      <div className="alert alert-danger" role="alert">Отсутствуют товары для сравнения</div>
+    )
+
+  if (kindId !== null || products === undefined || !isKindsSuccess)
+    return (
+      <PageLoading />
+    )
+
+  return (
+    <>
+      {kinds.length > 1 ? (
+        <div className="btn-group btn-group-lg mb-5" role="group">
+          {kinds.map((kind) => (
+            <Link className={"btn btn-" + (kind.id === currentKind ? "dark" : "secondary")} href={`/compare/?kind=${kind.id}`} key={kind.id}>
+              {kind.name}
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <h2 className="h3 pb-3">{isKindSuccess ? kind.name : "Товары"}</h2>
+      )}
+
+      {products.length === 1 && (
+        <div className="alert alert-secondary mb-5" role="alert">Добавьте ещё как минимум один товар в сравнение</div>
+      )}
+
+      <div className="table-responsive">
+        <table className="table table-bordered table-layout-fixed fs-sm" style={{ minWidth: "45rem" }} id="comparison">
+          <thead>
+            <tr>
+              <td className="align-middle">
+                <div className="form-check">
+                  <input className="form-check-input" type="checkbox" id="differences" checked={different} onChange={() => setDifferent(!different)} />
+                  <label className="form-check-label" htmlFor="differences">Только различия</label>
+                </div>
+              </td>
+              {products.map((product) => (
+                <td className="text-center px-4 pb-4" key={product.id}>
+                  <button type="button" className="btn btn-sm d-block w-100 text-danger mb-2" onClick={() => uncompareProduct(product.id)}>
+                    <IconTrashX className="me-1" />Удалить
+                  </button>
+                  <Link
+                    className="d-inline-block mb-3 position-relative"
+                    style={{ width: 80, height: 80 }}
+                    href={`/products/${product.code}`}>
+                    {product.image ? (
+                      <Image
+                        src={product.image}
+                        fill
+                        style={{ objectFit: 'contain' }}
+                        sizes="80px"
+                        alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
+                    ) : (
+                      <NoImage size={80} />
+                    )}
+                  </Link>
+                  <h3 className="product-title fs-sm">
+                    <Link href={`/products/${product.code}`}>
+                      {product.title}
+                    </Link>
+                  </h3>
+                </td>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Object.keys(fieldNames).length > 0 && productFields.length > 0 && productFields.map(({ field, differ }) => (
+              <tr className={(differ && !different) ? "table-danger" : ""} key={field}>
+                <th className="text-dark">
+                  {fieldNames[field][0]}
+                  <FieldHelp field={field} />
+                </th>
+                {products.map((product) => (
+                  <td key={product.id}>
+                    {product[field] && (
+                      <>
+                        {prettifyProductFieldValue(field, product[field])}
+                        {fieldNames[field][1]}
+                      </>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+            { /*
+            <tr>
+              <th class="text-dark">Рейтинг</th>
+              {% for product in products %}
+              <td>
+              {% if product.allow_reviews %}
+              {% get_rating for product as product_rating %}
+              {% if product_rating %}
+              {{ product_rating|prettify }}/5
+              {% endif %}
+              {% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+            */
+            }
+          </tbody>
+        </table>
+      </div>
+    </>
+  )
+}
