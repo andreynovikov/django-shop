@@ -46,7 +46,7 @@ export default function ProductCard({ product, gtmCategory = undefined, gtmList 
 
       <div className="description">
         <p>{product.whatis} {product.partnumber}</p>
-        <div dangerouslySetInnerHTML={{ __html: product.shortdescr }} />
+        <div className="backend-content" dangerouslySetInnerHTML={{ __html: product.shortdescr }} />
       </div>
 
       {product.price > 0 && (

@@ -198,16 +198,16 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
         <div className="mt-4" />
 
         {product.descr && (
-          <div className="pb-4" itemProp="description" dangerouslySetInnerHTML={{ __html: rebootstrap(product.descr) }} />
+          <div className="backend-content pb-4" itemProp="description" dangerouslySetInnerHTML={{ __html: rebootstrap(product.descr) }} />
         )}
         {product.spec && (
-          <div className="pb-4" dangerouslySetInnerHTML={{ __html: rebootstrap(product.spec) }} />
+          <div className="backend-content pb-4" dangerouslySetInnerHTML={{ __html: rebootstrap(product.spec) }} />
         )}
 
         {product.manuals && (
           <>
             <h2 className={sectionTitleClass}>Инструкции для {product.title}:</h2>
-            <div className="pb-4" dangerouslySetInnerHTML={{ __html: product.manuals.replaceAll('/static', '') }} />
+            <div className="backend-content pb-4" dangerouslySetInnerHTML={{ __html: product.manuals.replaceAll('/static', '') }} />
           </>
         )}
 
@@ -236,14 +236,14 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
         {product.stitches && (
           <>
             <h2 className={sectionTitleClass}>Строчки {product.title}:</h2>
-            <div className="py-4" dangerouslySetInnerHTML={{ __html: product.stitches }} />
+            <div className="backend-content py-4" dangerouslySetInnerHTML={{ __html: product.stitches }} />
           </>
         )}
 
         {product.complect && (
           <>
             <h2 className={sectionTitleClass}>Комплектация{product.kind ? " " + product.title : ""}:</h2>
-            <div className="py-4" dangerouslySetInnerHTML={{ __html: product.complect }} />
+            <div className="backend-content py-4" dangerouslySetInnerHTML={{ __html: product.complect }} />
           </>
         )}
 

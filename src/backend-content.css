@@ -1,8 +1,77 @@
 /*
- * Bootstrap layout classes used by the HTML that the backend stores for singer's products (descr, spec):
- * rows of columns and responsive video frames. Only the layout is kept, the text inside is shown as
- * Tailwind's preflight leaves it. The product page turns the old 24-column classes into these
- * (col-md-8 → col-md-4, col-md-10 → col-md-5, col-md-12 → col-md-6), other column classes take the full width.
+ * Styles for the HTML that the backend stores for singer: product texts (descr, spec, manuals, stitches, complect,
+ * shortdescr), flat pages and field help. Containers of such HTML get the backend-content class.
+ */
+
+/*
+ * Typography. Tailwind's preflight resets headings, paragraphs, lists and images, so the parts of Bootstrap's reboot
+ * the HTML relies on are restored here with the values of singer's old Bootstrap variables: 0.9rem base font size,
+ * headings of weight 300 and line height 1, links without underline (the base layer styles links everywhere).
+ * :where() keeps the rules at element specificity, as in the reboot, so site rules and utilities still win.
+ */
+
+:where(.backend-content) :is(h1, h2, h3, h4, h5, h6) {
+  margin-bottom: 0.5rem;
+  font-weight: 300;
+  line-height: 1;
+}
+
+:where(.backend-content) h1 {
+  margin-top: 10px;
+  margin-bottom: 20px;
+  font-size: 2.25rem;
+  color: var(--color-primary);
+}
+
+:where(.backend-content) h2 {
+  font-size: 1.8rem;
+}
+
+:where(.backend-content) h3 {
+  font-size: 1.53rem;
+}
+
+:where(.backend-content) :is(h2, h3) {
+  margin-top: 10px;
+}
+
+:where(.backend-content) h4 {
+  font-size: 1.35rem;
+}
+
+:where(.backend-content) h5 {
+  font-size: 1.125rem;
+}
+
+:where(.backend-content) h6 {
+  font-size: 0.9rem;
+}
+
+:where(.backend-content) p {
+  margin-bottom: 1rem;
+}
+
+/* revert brings back the browser's markers: disc and decimal, circle and square in nested lists */
+:where(.backend-content) :is(ul, ol) {
+  margin-bottom: 1rem;
+  padding-inline-start: 2rem;
+  list-style: revert;
+}
+
+:where(.backend-content) :is(ul, ol) :is(ul, ol) {
+  margin-bottom: 0;
+}
+
+/* Images stand in the text, e.g. a stitch before its name or a picture inside a paragraph; preflight makes them blocks.
+   Images with align="left|right" float as before. */
+:where(.backend-content) img {
+  display: inline;
+}
+
+/*
+ * Layout. Bootstrap layout classes used by the product texts: rows of columns and responsive video frames. The product
+ * page turns the old 24-column classes into these (col-md-8 → col-md-4, col-md-10 → col-md-5, col-md-12 → col-md-6),
+ * other column classes take the full width.
  */
 
 .row {
@@ -58,4 +127,39 @@
   inset: 0;
   width: 100%;
   height: 100%;
+}
+
+/* a feature card: picture, title, text */
+.ratio + h5 {
+  margin-top: 0.5rem;
+}
+
+/* File icons before links, e.g. the product manuals, as in cartzilla. The filters color the black icons,
+   see https://codepen.io/sosuke/pen/Pjoqqp */
+
+:is(.sw-file-pdf, .sw-file-video, .sw-file-web)::before {
+  content: "";
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  vertical-align: text-bottom;
+  margin-right: 4px;
+}
+
+.sw-file-pdf::before {
+  background-image: url("/i/icons/file-pdf.svg");
+  filter: invert(19%) sepia(97%) saturate(7254%) hue-rotate(6deg) brightness(97%) contrast(105%);
+}
+
+.sw-file-video::before {
+  background-image: url("/i/icons/file-video.svg");
+  filter: invert(10%) sepia(90%) saturate(7251%) hue-rotate(5deg) brightness(99%) contrast(113%);
+}
+
+.sw-file-web::before {
+  background-image: url("/i/icons/file-web.svg");
+  filter: invert(7%) sepia(100%) saturate(7139%) hue-rotate(247deg) brightness(109%) contrast(138%);
 }

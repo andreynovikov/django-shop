@@ -50,7 +50,7 @@ export default function FieldHelp({ field }: { field: string }) {
             </Popover.Arrow>
             <Popover.Viewport className="[&_img]:mb-[0.625em] [&_img]:h-auto [&_img]:max-w-full [&_img[align=left]]:me-[0.625em] [&_img[align=left]]:max-w-[60%]">
               {isSuccess ? (
-                <div className="text-xs" dangerouslySetInnerHTML={{ __html: data.content }}></div>
+                <div className="backend-content text-xs" dangerouslySetInnerHTML={{ __html: data.content }}></div>
               ) : (
                 <Spinner label="Загрузка..." />
               )}
