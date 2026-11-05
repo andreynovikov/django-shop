@@ -19,7 +19,7 @@ export default function ProductRating({ product }: { product: number }) {
   return (
     <>
       <ReviewRating value={average.value} />
-      <span className="text-muted text-uppercase text-sm">
+      <span className="text-xs tracking-widest text-muted uppercase">
         {average.count} {rupluralize(average.count, ['отзыв', 'отзыва', 'отзывов'])}
       </span>
     </>

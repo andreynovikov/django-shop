@@ -19,12 +19,8 @@ type PageHeaderProps = {
 // The frame of the page header, children are the title
 export function PageHeader({ children }: PageHeaderProps) {
   return (
-    <section className="hero">
-      <div className="container">
-        <div className="hero-content mt-3 pb-5 text-center">
-          {children}
-        </div>
-      </div>
+    <section className="container mt-4 pb-12 text-center">
+      {children}
     </section>
   )
 }
@@ -40,14 +36,10 @@ type PageTitleProps = {
 export function PageTitle({ title, titleAddon, description }: PageTitleProps) {
   return (
     <>
-      <h1 className="hero-heading">{title}</h1>
+      <h1 className="mb-8 text-4xl leading-[1.1] font-bold tracking-widest uppercase lg:text-6xl">{title}</h1>
       {titleAddon}
       {description && (
-        <div className="row">
-          <div className="col-xl-8 offset-xl-2">
-            <p className="lead text-muted" dangerouslySetInnerHTML={{ __html: description }}></p>
-          </div>
-        </div>
+        <p className="mb-4 text-xl font-light text-muted xl:mx-auto xl:w-2/3" dangerouslySetInnerHTML={{ __html: description }}></p>
       )}
     </>
   )

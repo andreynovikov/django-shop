@@ -17,20 +17,20 @@ export const metadata: Metadata = {
 
 const servicePin: MarkerPin = { icon: '/i/shoplogos/marks/workshop.svg', color: '#E63946' }
 
-const balloonIconProps = { size: 16, className: 'text-primary flex-shrink-0 me-2 mt-1' }
+const balloonIconProps = { size: 16, className: 'me-2 mt-0.5 shrink-0 text-primary' }
 
 function ServiceBalloon({ service }: { service: ServiceCenter }) {
   return (
     <>
-      <h6 className="fs-sm mb-2">{service.city.name}</h6>
+      <h6 className="mb-2 text-sm leading-[1.1] font-bold">{service.city.name}</h6>
       {service.address && (
-        <div className="d-flex">
+        <div className="flex">
           <IconMapPin {...balloonIconProps} />
           <span>{service.address}</span>
         </div>
       )}
       {service.phone && (
-        <div className="d-flex mt-1">
+        <div className="mt-1 flex">
           <IconPhone {...balloonIconProps} />
           <span>{service.phone}</span>
         </div>
@@ -56,29 +56,27 @@ export default async function ServicePage() {
 
   return pageContentWrapper({
     title: 'Сервис и поддержка',
-    description: 'Получить консультации по выбору и использованию швейной техники можно по телефону в Москве: <strong class="fw-bold">+7&nbsp;495&nbsp;744-00-87</strong> или в чате <strong class="fw-bold">WhatsApp:&nbsp;+7&nbsp;985&nbsp;766-56-75</strong>',
+    description: 'Получить консультации по выбору и использованию швейной техники можно по телефону в Москве: <strong class="font-bold">+7&nbsp;495&nbsp;744-00-87</strong> или в чате <strong class="font-bold">WhatsApp:&nbsp;+7&nbsp;985&nbsp;766-56-75</strong>',
     children: (
       <>
-        <section>
-          <div className="container">
-            <div className="iframe-full-height-wrap" style={{ height: 400 }}>
-              <MarkersMap markers={markers} />
-            </div>
+        <section className="container">
+          <div className="relative min-h-72 overflow-hidden" style={{ height: 400 }}>
+            <MarkersMap markers={markers} />
           </div>
         </section>
-        <section className="pb-5">
+        <section className="container pb-12">
           {serviceGroups.map(({ country, cities }) => (
-            <div className="container" key={country.id}>
-              <h2 className="mt-4 mb-3 text-muted">{country.name}</h2>
-              <div className="row">
+            <div key={country.id}>
+              <h2 className="mt-6 mb-4 text-3xl leading-[1.1] font-bold text-muted lg:text-[2.7rem]">{country.name}</h2>
+              <div className="grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {cities.map(({ city, items }) => (
                   items.map((center) => (
-                    <div className="col-xl-3 col-lg-4 col-sm-6" key={center.id}>
-                      <div className="block-header">
-                        <h6 className="text-uppercase mb-0">{city.name}</h6>
+                    <div key={center.id}>
+                      <div className="bg-gray-100 px-6 py-5">
+                        <h6 className="leading-[1.1] font-bold tracking-widest uppercase">{city.name}</h6>
                       </div>
-                      <div className="block-body bg-light pt-1 mb-2">
-                        <p>
+                      <div className="mb-2 bg-gray-100 px-6 pt-1 pb-5">
+                        <p className="mb-4">
                           {center.address && <>{center.address}<br /></>}
                           {center.phone && <>{center.phone}<br /></>}
                         </p>

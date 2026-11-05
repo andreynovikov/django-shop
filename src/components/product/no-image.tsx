@@ -21,7 +21,7 @@ export default function NoImage({ size = 200, block = false, className, style, .
   return (
     <SvgIcon
       id="shipping-box-1"
-      className={"svg-icon text-muted " + (block ? "d-block mx-auto" : "d-inline-block") + (className ? " " + className : "")}
+      className={"svg-icon text-muted " + (block ? "mx-auto block" : "inline-block") + (className ? " " + className : "")}
       style={{ ...sizeStyle, ...style }}
       {...props} />
   )

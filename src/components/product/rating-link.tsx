@@ -1,5 +1,6 @@
 'use client'
 
+import { navbarId } from '@/components/layout/header'
 import ProductRating from '@/components/product/rating'
 import { productTabsId, useProductTabs } from '@/components/product/tabs'
 
@@ -14,10 +15,10 @@ export default function ProductRatingLink({ product }: { product: number }) {
     if (tabs === null)
       return
 
-    const stickyNavbar = document.querySelector('nav.navbar-sticky')
+    const stickyNavbar = document.getElementById(navbarId)
     if (stickyNavbar) {
       let offset = stickyNavbar.getBoundingClientRect().bottom
-      if (!stickyNavbar.classList.contains('fixed-top'))
+      if (stickyNavbar.dataset.fixed === undefined)
         offset = offset * 2 // because it will become fixed during scroll
       window.scrollTo({
         behavior: 'smooth',
@@ -31,7 +32,7 @@ export default function ProductRatingLink({ product }: { product: number }) {
   }
 
   return (
-    <a className="d-flex align-items-center text-primary sw-rating-link" onClick={handleClick}>
+    <a className="flex cursor-pointer items-center text-primary hover:no-underline" onClick={handleClick}>
       <ProductRating product={product} />
     </a>
   )

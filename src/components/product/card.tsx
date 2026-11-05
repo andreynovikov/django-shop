@@ -4,6 +4,8 @@ import Image from 'next/image'
 import { IconSearch } from '@tabler/icons-react'
 
 import NoImage from '@/components/product/no-image'
+import ProductRibbons from '@/components/product/ribbons'
+import { buttonClass } from '@/components/ui/button'
 
 import { ProductInfo } from '@/lib/types'
 
@@ -11,12 +13,12 @@ export default function ProductCard({ product }: { product: ProductInfo }) {
   const href = `/products/${product.code}/`
 
   return (
-    <div className="product">
-      <div className="product-image text-center">
-        {product.isnew && <div className="ribbon ribbon-primary">Новинка</div>}
-        {product.recomended && <div className="ribbon ribbon-info">Рекомендуем</div>}
+    <div className="mb-6">
+      {/* the overlay with the details button shows on hover */}
+      <div className="group relative border-b-2 border-gray-700 text-center hover:border-primary">
+        <ProductRibbons product={product} />
         {product.image ? (
-          <div className="position-relative" style={{ width: 350, aspectRatio: 1 }}>
+          <div className="relative mx-auto aspect-square w-full max-w-[350px]">
             <Image
               src={product.image}
               fill
@@ -26,21 +28,21 @@ export default function ProductCard({ product }: { product: ProductInfo }) {
               alt={`${product.title} ${product.whatis}`} />
           </div>
         ) : (
-          <NoImage size={350} style={{ padding: 100 }} />
+          <NoImage size={350} block className="max-w-full" style={{ padding: 100 }} />
         )}
-        <div className="product-hover-overlay">
-          <Link className="product-hover-overlay-link" href={href} />
-          <div className="product-hover-overlay-buttons">
-            <Link className="btn btn-dark btn-buy" href={href}>
+        <div className="absolute inset-0 flex items-center justify-center bg-white/92 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <Link className="absolute inset-0" href={href} />
+          <div className="z-3">
+            <Link className={`${buttonClass({ size: 'overlay' })} mx-2`} href={href}>
               <IconSearch />
-              <span className="btn-buy-label ms-2">Подробнее</span>
+              <span className="ms-2">Подробнее</span>
             </Link>
           </div>
         </div>
       </div>
       <div className="py-2">
-        <p className="text-muted text-sm mb-1">{product.whatis}</p>
-        <h3 className="h6 text-uppercase mb-1">
+        <p className="mb-1 text-xs text-muted">{product.whatis}</p>
+        <h3 className="mb-1 text-[.9rem] leading-[1.1] font-bold tracking-widest uppercase">
           <Link className="text-dark" href={href}>
             {product.title}
           </Link>

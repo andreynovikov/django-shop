@@ -1,0 +1,151 @@
+/*
+ * Styles for the HTML that the backend stores for familysew: product texts (descr, spec, manuals, stitches, complect),
+ * flat pages, news and field help. Containers of such HTML get the backend-content class.
+ */
+
+/*
+ * Typography. Tailwind's preflight resets headings, paragraphs, lists and images, so the parts of Bootstrap's reboot
+ * the HTML relies on are restored here with the values of the old theme: bold headings with line height 1.1, the
+ * bigger ones shrinking on narrow screens as Bootstrap's responsive font sizes did, links without underline (the base
+ * layer styles links everywhere). :where() keeps the rules at element specificity, as in the reboot, so site rules
+ * and utilities still win.
+ */
+
+:where(.backend-content) :is(h1, h2, h3, h4, h5, h6) {
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+:where(.backend-content) h1 {
+  font-size: min(4.05rem, calc(1.53rem + 3.36vw));
+}
+
+:where(.backend-content) h2 {
+  font-size: min(2.7rem, calc(1.395rem + 1.74vw));
+}
+
+:where(.backend-content) h3 {
+  font-size: min(1.8rem, calc(1.305rem + 0.66vw));
+}
+
+:where(.backend-content) h4 {
+  font-size: min(1.35rem, calc(1.26rem + 0.12vw));
+}
+
+:where(.backend-content) h5 {
+  font-size: 1.125rem;
+}
+
+:where(.backend-content) h6 {
+  font-size: 0.9rem;
+}
+
+:where(.backend-content) p {
+  margin-bottom: 1rem;
+}
+
+/* revert brings back the browser's markers: disc and decimal, circle and square in nested lists */
+:where(.backend-content) :is(ul, ol) {
+  margin-bottom: 1rem;
+  padding-inline-start: 2rem;
+  list-style: revert;
+}
+
+:where(.backend-content) :is(ul, ol) :is(ul, ol) {
+  margin-bottom: 0;
+}
+
+/* Images stand in the text, e.g. a picture inside a paragraph; preflight makes them blocks.
+   Images with align="left|right" float as before, e.g. in the field help. */
+:where(.backend-content) img {
+  display: inline;
+}
+
+/* Flat pages space their blocks wider */
+:where(.backend-content.text-content) :is(h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote) {
+  margin-bottom: 2rem;
+}
+
+/*
+ * Layout. Bootstrap layout classes used by the product texts: rows of columns and responsive video frames. The product
+ * page turns the old 24-column classes into these (col-md-8 → col-md-4, col-md-10 → col-md-5, col-md-12 → col-md-6),
+ * other column classes take the full width.
+ */
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-inline: -0.75rem;
+}
+
+.row > * {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 100%;
+  padding-inline: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .col-md-2 {
+    flex: 0 0 auto;
+    width: 16.66666667%;
+  }
+
+  .col-md-4 {
+    flex: 0 0 auto;
+    width: 33.33333333%;
+  }
+
+  .col-md-5 {
+    flex: 0 0 auto;
+    width: 41.66666667%;
+  }
+
+  .col-md-6 {
+    flex: 0 0 auto;
+    width: 50%;
+  }
+}
+
+.ratio {
+  position: relative;
+  width: 100%;
+}
+
+.ratio-4x3 {
+  aspect-ratio: 4 / 3;
+}
+
+.ratio-16x9 {
+  aspect-ratio: 16 / 9;
+}
+
+.ratio > * {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* a feature card: picture, title, text */
+.ratio + h5 {
+  margin-top: 0.5rem;
+}
+
+/* A file icon before links to PDF files, e.g. the product manuals, as in cartzilla. The filter colors the black icon,
+   see https://codepen.io/sosuke/pen/Pjoqqp */
+
+.sw-file-pdf::before {
+  content: "";
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background-image: url("/i/icons/file-pdf.svg");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  vertical-align: text-bottom;
+  margin-right: 4px;
+  filter: invert(19%) sepia(97%) saturate(7254%) hue-rotate(6deg) brightness(97%) contrast(105%);
+}

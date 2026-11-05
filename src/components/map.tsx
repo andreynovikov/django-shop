@@ -5,6 +5,8 @@ import * as ReactDOM from 'react-dom'
 import { ReactNode, useMemo, useState } from 'react'
 import Script from 'next/script'
 
+import { IconX } from '@tabler/icons-react'
+
 import type { LngLat, YMapLocationRequest } from '@yandex/ymaps3-types'
 
 const DEFAULT_LOCATION: YMapLocationRequest = { center: [37.64, 55.76], zoom: 10 }
@@ -79,9 +81,11 @@ function MarkerIcon({ pin, title, clickable = false }: { pin: MarkerPin, title: 
 
 function MarkerBalloon({ children, onClose }: { children: ReactNode, onClose: () => void }) {
   return (
-    <div className="card shadow fs-xs" style={{ position: 'absolute', left: '-8rem', bottom: PIN_HEIGHT + 6, width: '16rem', cursor: 'auto' }}>
-      <div className="card-body p-2">
-        <button type="button" className="btn-close float-end" aria-label="Закрыть" onClick={onClose}></button>
+    <div className="border border-black/15 bg-white text-xs shadow-lg" style={{ position: 'absolute', left: '-8rem', bottom: PIN_HEIGHT + 6, width: '16rem', cursor: 'auto' }}>
+      <div className="p-2">
+        <button type="button" className="float-end opacity-50 hover:opacity-75" aria-label="Закрыть" onClick={onClose}>
+          <IconX size={16} />
+        </button>
         {children}
       </div>
     </div>
@@ -116,7 +120,7 @@ export function MarkersMap({ markers, focusPoints = NO_FOCUS_POINTS }: { markers
   }, [focusPoints])
 
   return (
-    <div className="iframe-full-height">
+    <div className="absolute inset-0">
       <YMaps>
         {(ymaps) => (
           <ymaps.YMap location={location} margin={[100, 100, 100, 100]}>
@@ -148,7 +152,7 @@ export function LocationMap({ coordinates, pin, title }: { coordinates: LngLat, 
   const location = useMemo<YMapLocationRequest>(() => ({ center: coordinates, zoom: 14 }), [coordinates])
 
   return (
-    <div className="iframe-full-height">
+    <div className="absolute inset-0">
       <YMaps>
         {(ymaps) => (
           <ymaps.YMap location={location}>

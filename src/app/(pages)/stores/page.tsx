@@ -15,14 +15,14 @@ export const metadata: Metadata = {
 
 const storePin: MarkerPin = { icon: '/i/shoplogos/marks/other.svg', color: '#E63946' }
 
-const balloonIconProps = { size: 16, className: 'text-primary flex-shrink-0 me-2 mt-1' }
+const balloonIconProps = { size: 16, className: 'me-2 mt-0.5 shrink-0 text-primary' }
 
 function StoreBalloon({ store }: { store: StoreInfo }) {
   return (
     <>
-      <h6 className="fs-sm mb-2">{store.name}</h6>
+      <h6 className="mb-2 text-sm leading-[1.1] font-bold">{store.name}</h6>
       {store.address && (
-        <div className="d-flex">
+        <div className="flex">
           <IconMapPin {...balloonIconProps} />
           <span>
             {store.address}
@@ -31,13 +31,13 @@ function StoreBalloon({ store }: { store: StoreInfo }) {
         </div>
       )}
       {store.hours && (
-        <div className="d-flex mt-1">
+        <div className="mt-1 flex">
           <IconClock {...balloonIconProps} />
           <span>{store.hours}</span>
         </div>
       )}
       {store.phone && (
-        <div className="d-flex mt-1">
+        <div className="mt-1 flex">
           <IconPhone {...balloonIconProps} />
           <span>
             {store.phone}
@@ -46,7 +46,7 @@ function StoreBalloon({ store }: { store: StoreInfo }) {
         </div>
       )}
       {store.url && (
-        <div className="d-flex mt-1">
+        <div className="mt-1 flex">
           <IconWorld {...balloonIconProps} />
           <span><a href={store.url}>{store.url}</a></span>
         </div>
@@ -76,26 +76,24 @@ export default async function StoresPage() {
     description: 'Эксклюзивное право представления и распространения продукции бренда “Family” в России и странах СНГ принадлежит компании “Торговый Дом Швейных Машин”. Со списком проверенных официальных дилеров вы можете ознакомиться ниже:',
     children: (
       <>
-        <section>
-          <div className="container">
-            <div className="iframe-full-height-wrap" style={{ height: 400 }}>
-              <MarkersMap markers={markers} />
-            </div>
+        <section className="container">
+          <div className="relative min-h-72 overflow-hidden" style={{ height: 400 }}>
+            <MarkersMap markers={markers} />
           </div>
         </section>
-        <section className="pb-5">
+        <section className="container pb-12">
           {storeGroups.map(({ country, cities }) => (
-            <div className="container" key={country.id}>
-              <h2 className="mt-4 mb-3 text-muted">{country.name}</h2>
-              <div className="row">
+            <div key={country.id}>
+              <h2 className="mt-6 mb-4 text-3xl leading-[1.1] font-bold text-muted lg:text-[2.7rem]">{country.name}</h2>
+              <div className="grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {cities.map(({ city, items }) => (
                   items.map((store) => (
-                    <div className="col-xl-3 col-lg-4 col-sm-6" key={store.id}>
-                      <div className="block-header">
-                        <h6 className="text-uppercase mb-0">{city.name}</h6>
+                    <div key={store.id}>
+                      <div className="bg-gray-100 px-6 py-5">
+                        <h6 className="leading-[1.1] font-bold tracking-widest uppercase">{city.name}</h6>
                       </div>
-                      <div className="block-body bg-light pt-1 mb-2">
-                        <p>
+                      <div className="mb-2 bg-gray-100 px-6 pt-1 pb-5">
+                        <p className="mb-4">
                           <strong>{store.name}</strong><br />
                           {store.address && <>{store.address}<br /></>}
                           {store.address2 && <>{store.address2}<br /></>}

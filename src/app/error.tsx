@@ -8,9 +8,9 @@ export default function Error({ error }: { error: unknown }) {
     console.error(error)
   }, [error])
 
-  return <div className="m-5 text-center">
-    <div className="fs-2">К сожалению, что-то пошло не так</div>
-    <div className="lead mt-1">Мы постараемся исправить это как можно скорее</div>
-    <div className="mt-5 text-secondary" style={{ fontSize: "10rem" }}>500</div>
+  return <div className="m-12 text-center">
+    <div className="text-3xl">К сожалению, что-то пошло не так</div>
+    <div className="mt-1 text-xl font-light">Мы постараемся исправить это как можно скорее</div>
+    <div className="mt-12 text-secondary" style={{ fontSize: "10rem" }}>500</div>
   </div>
 }

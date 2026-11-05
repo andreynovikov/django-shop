@@ -11,6 +11,7 @@ import { IconTrashX } from '@tabler/icons-react'
 import FieldHelp from '@/components/product/field-help'
 import NoImage from '@/components/product/no-image'
 import { PageLoading } from '@/components/loading'
+import { buttonClass } from '@/components/ui/button'
 
 import useComparison from '@/lib/comparison'
 import { deepCompare } from '@/lib/compare'
@@ -23,6 +24,8 @@ const comparisonParams = {
   kind: parseAsInteger,
   product: parseAsNativeArrayOf(parseAsInteger),
 }
+
+const cellClass = 'border border-gray-200 p-2'
 
 // Reading the query needs a Suspense boundary, the page is static
 export default function ProductComparison() {
@@ -109,7 +112,7 @@ export default function ProductComparison() {
 
   if (isComparisonSuccess && productIds.length === 0 && kindId === null && comparisons.length === 0)
     return (
-      <div className="alert alert-danger" role="alert">Отсутствуют товары для сравнения</div>
+      <div className="mb-4 border border-red-200 bg-red-50 p-4 text-red-800" role="alert">Отсутствуют товары для сравнения</div>
     )
 
   if (kindId !== null || products === undefined || !isKindsSuccess)
@@ -120,38 +123,38 @@ export default function ProductComparison() {
   return (
     <>
       {kinds.length > 1 ? (
-        <div className="btn-group btn-group-lg mb-5" role="group">
+        <div className="mb-12 inline-flex flex-wrap" role="group">
           {kinds.map((kind) => (
-            <Link className={"btn btn-" + (kind.id === currentKind ? "dark" : "secondary")} href={`/compare/?kind=${kind.id}`} key={kind.id}>
+            <Link className={buttonClass({ variant: kind.id === currentKind ? 'dark' : 'secondary', size: 'lg' })} href={`/compare/?kind=${kind.id}`} key={kind.id}>
               {kind.name}
             </Link>
           ))}
         </div>
       ) : (
-        <h2 className="h3 pb-3">{isKindSuccess ? kind.name : "Товары"}</h2>
+        <h2 className="mb-2 pb-4 text-[1.8rem] leading-[1.1] font-bold">{isKindSuccess ? kind.name : "Товары"}</h2>
       )}
 
       {products.length === 1 && (
-        <div className="alert alert-secondary mb-5" role="alert">Добавьте ещё как минимум один товар в сравнение</div>
+        <div className="mb-12 border border-gray-300 bg-gray-200 p-4 text-gray-700" role="alert">Добавьте ещё как минимум один товар в сравнение</div>
       )}
 
-      <div className="table-responsive">
-        <table className="table table-bordered table-layout-fixed fs-sm" style={{ minWidth: "45rem" }} id="comparison">
+      <div className="overflow-x-auto">
+        <table className="mb-4 w-full table-fixed text-xs" style={{ minWidth: "45rem" }} id="comparison">
           <thead>
             <tr>
-              <td className="align-middle">
-                <div className="form-check">
-                  <input className="form-check-input" type="checkbox" id="differences" checked={different} onChange={() => setDifferent(!different)} />
-                  <label className="form-check-label" htmlFor="differences">Только различия</label>
+              <td className={`${cellClass} align-middle`}>
+                <div className="ps-6">
+                  <input className="float-start -ms-6 mt-px size-4 accent-dark" type="checkbox" id="differences" checked={different} onChange={() => setDifferent(!different)} />
+                  <label htmlFor="differences">Только различия</label>
                 </div>
               </td>
               {products.map((product) => (
-                <td className="text-center px-4 pb-4" key={product.id}>
-                  <button type="button" className="btn btn-sm d-block w-100 text-danger mb-2" onClick={() => uncompareProduct(product.id)}>
+                <td className={`${cellClass} px-6 pb-6 text-center align-top`} key={product.id}>
+                  <button type="button" className={`${buttonClass({ variant: 'link-danger', size: 'sm', block: true })} mb-2`} onClick={() => uncompareProduct(product.id)}>
                     <IconTrashX className="me-1" />Удалить
                   </button>
                   <Link
-                    className="d-inline-block mb-3 position-relative"
+                    className="relative mb-4 inline-block"
                     style={{ width: 80, height: 80 }}
                     href={`/products/${product.code}`}>
                     {product.image ? (
@@ -165,7 +168,7 @@ export default function ProductComparison() {
                       <NoImage size={80} />
                     )}
                   </Link>
-                  <h3 className="product-title fs-sm">
+                  <h3 className="mb-2 text-xs leading-[1.1] font-bold">
                     <Link href={`/products/${product.code}`}>
                       {product.title}
                     </Link>
@@ -176,13 +179,13 @@ export default function ProductComparison() {
           </thead>
           <tbody>
             {Object.keys(fieldNames).length > 0 && productFields.length > 0 && productFields.map(({ field, differ }) => (
-              <tr className={(differ && !different) ? "table-danger" : ""} key={field}>
-                <th className="text-dark">
+              <tr className={(differ && !different) ? "bg-red-100" : ""} key={field}>
+                <th className={`${cellClass} text-start align-top text-dark first-letter:uppercase`}>
                   {fieldNames[field][0]}
                   <FieldHelp field={field} />
                 </th>
                 {products.map((product) => (
-                  <td key={product.id}>
+                  <td className={`${cellClass} backend-content align-top`} key={product.id}>
                     {product[field] && (
                       <>
                         {prettifyProductFieldValue(field, product[field])}

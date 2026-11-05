@@ -48,18 +48,10 @@ export default async function CategoryPage({ params }: PageProps<'/catalog/[...p
     title: category.name,
     description: category.description,
     children: (
-      <div className="container mb-5">
-        <div className="row">
-          <div className="products-grid col-12 sidebar-none">
-            <div className="row">
-              {products.results.map((product) => (
-                <div className="col-lg-4 col-sm-6" key={product.id}>
-                  <ProductCard product={product} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+      <div className="container mb-12 grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
+        {products.results.map((product) => (
+          <ProductCard product={product} key={product.id} />
+        ))}
       </div>
     )
   })

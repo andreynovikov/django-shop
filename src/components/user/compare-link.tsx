@@ -8,9 +8,9 @@ export default function CompareLink() {
 
   return (
     <>
-      <LawOrionIcon className="svg-icon" />
+      <LawOrionIcon className="svg-icon size-[25px]" />
       {comparisons.length > 0 && (
-        <div className="navbar-icon-link-badge">
+        <div className="absolute -top-1.25 -right-2 size-5 rounded-full bg-dark text-center text-[.6rem] leading-5 text-white">
           {comparisons.length}
         </div>
       )}

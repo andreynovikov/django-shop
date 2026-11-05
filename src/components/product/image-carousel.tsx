@@ -24,7 +24,7 @@ export default function ImageCarousel({ image, images = [] }: { image: string, i
         pagination={{ clickable: true }}
         modules={[Pagination]}
       >
-        <SwiperSlide key={image} className="d-flex position-relative" style={{ aspectRatio: "4/3" }}>
+        <SwiperSlide key={image} className="relative" style={{ aspectRatio: "4/3" }}>
           <Image
             src={image}
             fill
@@ -35,7 +35,7 @@ export default function ImageCarousel({ image, images = [] }: { image: string, i
             alt="" />
         </SwiperSlide>
         {images.map((image, index) => (
-          <SwiperSlide key={image.src} className="d-flex position-relative" style={{ aspectRatio: "4/3" }}>
+          <SwiperSlide key={image.src} className="relative" style={{ aspectRatio: "4/3" }}>
             <Image
               src={image.src}
               fill

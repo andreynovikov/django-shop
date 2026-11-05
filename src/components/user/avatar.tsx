@@ -79,6 +79,6 @@ export default function UserAvatar({ gravatar, name, size = 50, border = false, 
 
   /* eslint-disable @next/next/no-img-element */
   return (
-    <img className={className ?? ("rounded-circle" + (border ? " border border-1" : ""))} width={size} height={size} src={avatar} alt={name} />
+    <img className={className ?? ("rounded-full" + (border ? " border" : ""))} width={size} height={size} src={avatar} alt={name} />
   )
 }

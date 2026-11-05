@@ -7,6 +7,7 @@ import NoImage from '@/components/product/no-image'
 import ProductCompareButton from '@/components/product/compare-button'
 import ProductRatingLink from '@/components/product/rating-link'
 import ProductReviews from '@/components/product/reviews'
+import ProductRibbons from '@/components/product/ribbons'
 import { ProductTab, ProductTabs, ProductTabsProvider } from '@/components/product/tabs'
 
 import { prettifyProductFieldValue } from '@/lib/format'
@@ -94,55 +95,53 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
       value: 'description',
       label: 'Описание',
       content: (
-        <div className="container">
-          <div className="pb-3 mb-md-3" itemProp="description" dangerouslySetInnerHTML={{ __html: rebootstrap(product.descr) }} />
-          {product.spec && <div className="pb-3 mb-md-3" dangerouslySetInnerHTML={{ __html: rebootstrap(product.spec) }} />}
-        </div>
+        <>
+          <div className="backend-content pb-4 md:mb-4" itemProp="description" dangerouslySetInnerHTML={{ __html: rebootstrap(product.descr) }} />
+          {product.spec && <div className="backend-content pb-4 md:mb-4" dangerouslySetInnerHTML={{ __html: rebootstrap(product.spec) }} />}
+        </>
       )
     })
   if (product.manuals)
     tabs.push({
       value: 'manuals',
       label: 'Инструкция',
-      content: <div dangerouslySetInnerHTML={{ __html: product.manuals.replaceAll('/static', '') }} />
+      content: <div className="backend-content" dangerouslySetInnerHTML={{ __html: product.manuals.replaceAll('/static', '') }} />
     })
   if (product.complect)
     tabs.push({
       value: 'complect',
       label: 'Комплектация',
-      content: <div dangerouslySetInnerHTML={{ __html: product.complect }} />
+      content: <div className="backend-content" dangerouslySetInnerHTML={{ __html: product.complect }} />
     })
   if (product.stitches)
     tabs.push({
       value: 'stitches',
       label: 'Строчки',
-      content: <div dangerouslySetInnerHTML={{ __html: product.stitches }} />
+      content: <div className="backend-content" dangerouslySetInnerHTML={{ __html: product.stitches }} />
     })
   if (Object.keys(fieldNames).length > 0 && productFields.length > 0)
     tabs.push({
       value: 'specification',
       label: 'Технические характеристики',
       content: (
-        <div className="row">
+        <div className="grid items-start gap-x-6 lg:grid-cols-2">
           {rows(productFields, 2).map((row, index) => (
-            <div className="col-lg-6" key={index}>
-              <table className="table text-sm">
-                <tbody>
-                  {row.map((field, index) => (
-                    <tr key={field}>
-                      <th className={"text-uppercase fw-normal" + (index === row.length - 1 ? " border-0" : "")}>
-                        {fieldNames[field][0]}
-                        <FieldHelp field={field} />
-                      </th>
-                      <td className={"text-muted" + (index === row.length - 1 ? " border-0" : "")}>
-                        {prettifyProductFieldValue(field, product[field])}
-                        {fieldNames[field][1]}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <table className="mb-4 w-full text-xs" key={index}>
+              <tbody>
+                {row.map((field) => (
+                  <tr className="border-b border-gray-200 last:border-b-0" key={field}>
+                    <th className="p-2 text-start align-top font-normal tracking-widest uppercase">
+                      {fieldNames[field][0]}
+                      <FieldHelp field={field} />
+                    </th>
+                    <td className="p-2 align-top text-muted">
+                      {prettifyProductFieldValue(field, product[field])}
+                      {fieldNames[field][1]}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           ))}
         </div>
       )
@@ -157,51 +156,38 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
   return (
     <ProductTabsProvider defaultTab={tabs[0]?.value ?? ''}>
       <div itemScope itemType="http://schema.org/Product">
-        <section className="product-details py-3">
-          <div className="container">
-            <div className="row">
-              <div className="col-lg-7 order-2 order-lg-1">
-                <div className="row">
-                  <div className="col-12 detail-carousel">
-                    {product.isnew && <div className="ribbon ribbon-primary">Новинка</div>}
-                    {product.recomended && <div className="ribbon ribbon-info">Рекомендуем</div>}
-                    {product.image ? (
-                      <ImageCarousel image={product.image} images={product.images} />
-                    ) : (
-                      <div className="d-none d-lg-block">
-                        <NoImage size={300} block />
-                      </div>
-                    )}
-                  </div>
-                </div>
+        <section className="container grid gap-x-6 py-4 lg:grid-cols-[7fr_5fr]">
+          <div className="relative order-2 min-w-0 lg:order-1">
+            <ProductRibbons product={product} detail />
+            {product.image ? (
+              <ImageCarousel image={product.image} images={product.images} />
+            ) : (
+              <div className="hidden lg:block">
+                <NoImage size={300} block />
               </div>
+            )}
+          </div>
 
-              <div className="col-lg-5 pl-lg-4 order-1 order-lg-2">
-                <h1 className="mb-3 display-4 font-weight-bold text-uppercase" itemProp="name">{product.title}</h1>
-                <div itemProp="offers" itemScope itemType="http://schema.org/Offer">
-                  <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-end mb-4">
-                    {product.allow_reviews && <ProductRatingLink product={product.id} />}
-                  </div>
-                </div>
-                {product.partnumber && <p className="mb-4 text-muted">Код производителя: {product.partnumber}</p>}
-                {(product.runame || product.whatis) && <p className="mb-4 text-muted">{product.whatis} {product.runame}</p>}
-
-                <ul className="list-inline">
-                  {product.kind && (
-                    <li className="list-inline-item">
-                      <ProductCompareButton productId={product.id} kind={product.kind[0]} />
-                    </li>
-                  )}
-                </ul>
+          <div className="order-1 min-w-0 lg:order-2">
+            <h1 className="mb-4 text-4xl leading-[1.1] tracking-widest uppercase lg:text-[3.5rem]" itemProp="name">{product.title}</h1>
+            <div itemProp="offers" itemScope itemType="http://schema.org/Offer">
+              <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-end">
+                {product.allow_reviews && <ProductRatingLink product={product.id} />}
               </div>
             </div>
+            {product.partnumber && <p className="mb-6 text-muted">Код производителя: {product.partnumber}</p>}
+            {(product.runame || product.whatis) && <p className="mb-6 text-muted">{product.whatis} {product.runame}</p>}
+
+            {product.kind && (
+              <div className="mb-4">
+                <ProductCompareButton productId={product.id} kind={product.kind[0]} />
+              </div>
+            )}
           </div>
         </section>
 
-        <section className="mt-5">
-          <div className="container">
-            <ProductTabs tabs={tabs} />
-          </div>
+        <section className="container mt-12">
+          <ProductTabs tabs={tabs} />
         </section>
       </div>
     </ProductTabsProvider>

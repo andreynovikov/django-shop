@@ -5,7 +5,7 @@ import { Roboto } from 'next/font/google'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import 'yet-another-react-lightbox/styles.css'
-import '../styles.scss'
+import '../styles.css'
 
 import '@/lib/moment'
 
@@ -41,12 +41,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    // the font variable is set on the root element, Bootstrap's --bs-font-* variables refer to it there
+    // the font variable is set on the root element, the theme's --font-sans refers to it there
     <html lang="ru" className={roboto.variable}>
       <body>
         <Providers>
           {/* Base UI popups are portalled after it, so they stack on top */}
-          <div className="root">
+          <div className="isolate">
             <Header />
             <main>
               {children}

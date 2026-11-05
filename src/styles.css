@@ -1,0 +1,136 @@
+@import 'tailwindcss';
+@import './backend-content.css' layer(components);
+
+/* The colors and fonts of the old "Sell" Bootstrap theme in its red variant */
+@theme {
+  /* Roboto is loaded by next/font in the root layout, which sets the variable on <html> */
+  --font-sans: var(--font-roboto), sans-serif;
+
+  /* the text of buttons */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1.5;
+
+  /* Bootstrap's grays replace Tailwind's */
+  --color-gray-100: #f8f9fa;
+  --color-gray-200: #e9ecef;
+  --color-gray-300: #dee2e6;
+  --color-gray-400: #ced4da;
+  --color-gray-500: #adb5bd;
+  --color-gray-600: #868e96;
+  --color-gray-700: #495057;
+  --color-gray-800: #343a40;
+  --color-gray-900: #212529;
+
+  --color-body: #212529;
+  --color-muted: rgb(33 37 41 / 0.75); /* the body color, faded */
+
+  --color-primary: #e63946;
+  --color-primary-dark: #a41520; /* the folded end of a ribbon */
+  --color-secondary: #868e96;
+  --color-secondary-hover: #727980;
+  --color-dark: #343a40;
+  --color-dark-hover: #52585d;
+  --color-info: #17a2b8;
+  --color-info-dark: #0c525d;
+  --color-warning: #ffc107;
+  --color-danger: #dc3545;
+}
+
+/* Centered with gutters, from xl up as narrow as Bootstrap's container was */
+@utility container {
+  margin-inline: auto;
+  padding-inline: 0.75rem;
+
+  @variant xl {
+    max-width: var(--container-6xl);
+  }
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-300);
+  }
+
+  body {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--color-body);
+  }
+
+  a {
+    color: var(--color-primary);
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:not([href]) {
+      cursor: pointer;
+    }
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* A closed Collapsible panel that stays shown from lg up, e.g. the navbar menu. Preflight hides [hidden] with
+     !important in this layer, a utility can't override it, a more specific rule here can. */
+  [hidden].sw-shown-lg {
+    @variant lg {
+      display: block !important;
+    }
+  }
+}
+
+@layer components {
+  /* Icons of the Orion sprite (public/vendor/sell/orion-svg-sprite.svg) and the Orion law icon, their layers are
+     stroked in the text color. Utilities set another size or stroke width. */
+  .svg-icon {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    vertical-align: text-bottom;
+    stroke: currentColor;
+    stroke-width: 3;
+    --layer1: currentColor;
+    --layer2: currentColor;
+  }
+}
+
+/* Swiper carousels, the bullets are bigger and gray */
+
+.swiper-pagination {
+  position: relative !important;
+  padding-top: 10px;
+}
+
+.swiper-pagination-bullet {
+  width: 10px !important;
+  height: 10px !important;
+  margin: 5px !important;
+  opacity: 1 !important;
+  background: var(--color-secondary) !important;
+
+  &:hover:not(.swiper-pagination-bullet-active) {
+    background: var(--color-gray-100) !important;
+  }
+}
+
+.swiper-pagination-bullet-active {
+  width: 14px !important;
+  height: 14px !important;
+  background: var(--color-dark) !important;
+}
+
+.yarl__root {
+  --yarl__color_backdrop: rgba(255, 255, 255, 1);
+  --yarl__color_button: rgba(192, 192, 192, 1);
+  --yarl__color_button_disabled: rgba(192, 192, 192, 0);
+  --yarl__color_button_active: var(--color-primary);
+  --yarl__button_filter: none;
+}

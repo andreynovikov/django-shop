@@ -14,7 +14,7 @@ export default function ReviewsCarousel({ reviews }: { reviews: ProductReview[] 
   return (
     <Swiper autoHeight pagination={{ clickable: true }} modules={[Pagination]}>
       {reviews.map((review) => (
-        <SwiperSlide className="container text-start fs-6" key={review.id}>
+        <SwiperSlide className="px-3 text-start text-base" key={review.id}>
           <ReviewItem review={review} last />
         </SwiperSlide>
       ))}

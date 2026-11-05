@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 
 import { IconScale } from '@tabler/icons-react'
 
+import { buttonClass } from '@/components/ui/button'
+
 import useComparison from '@/lib/comparison'
 
 // Adds the product to the comparison, or opens the comparison of its kind when it is already there
@@ -24,7 +26,7 @@ export default function ProductCompareButton({ productId, kind }: { productId: n
     <button
       type="button"
       onClick={handleClick}
-      className="btn btn-outline-secondary mb-1">
+      className={`${buttonClass({ variant: 'outline-secondary' })} mb-1`}>
       <IconScale className="me-2" />
       <span>
         {compared ? "Сравнение" : "Добавить в сравнение"}

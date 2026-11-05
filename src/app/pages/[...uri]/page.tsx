@@ -36,13 +36,9 @@ export default async function FlatPage({ params }: PageProps<'/pages/[...uri]'>)
   return pageContentWrapper({
     title: page.title,
     children: (
-      <section>
-        <div className="container">
-          <div className="row">
-            <div className="col-xl-8 col-lg-10 mx-auto mb-5">
-              <div className="text-content text-lg" dangerouslySetInnerHTML={{ __html: page.content }}></div>
-            </div>
-          </div>
+      <section className="container">
+        <div className="mx-auto mb-12 lg:w-5/6 xl:w-2/3">
+          <div className="backend-content text-content text-lg" dangerouslySetInnerHTML={{ __html: page.content }}></div>
         </div>
       </section>
     )
