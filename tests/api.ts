@@ -1,6 +1,6 @@
 import { APIRequestContext, expect } from '@playwright/test'
 
-import type { Category, PaginatedResult, ProductInfo, Store } from '@/lib/types'
+import type { Category, PaginatedResult, ProductInfo, StoreInfo } from '@/lib/types'
 
 // Catalog data changes over time, so tests look up suitable products instead of hardcoding them
 export async function findSewingMachines(request: APIRequestContext, filters: Record<string, string> = {}) {
@@ -20,7 +20,7 @@ async function loadProductStock(request: APIRequestContext, id: number) {
   const response = await request.get(`/api/v0/products/${id}/stock/`)
   expect(response.ok()).toBeTruthy()
   // ProductStock hides store 295
-  return (await response.json() as Store[]).filter(store => store.id !== 295)
+  return (await response.json() as StoreInfo[]).filter(store => store.id !== 295)
 }
 
 // Product page shows reviews only for products that allow them

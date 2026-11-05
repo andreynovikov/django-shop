@@ -1,6 +1,6 @@
 import { Page } from '@playwright/test'
 
-import type { Order, Store } from '@/lib/types'
+import type { Order, StoreInfo } from '@/lib/types'
 import { DELIVERY_SELF, PAYMENT_CARD, STATUS_COLLECTED } from '@/components/order/status-badge'
 
 import { findSewingMachines } from './api'
@@ -107,7 +107,7 @@ test('orders list opens order details', async ({ page, request, backend, isMobil
   const [first, second] = await findSewingMachines(request)
   const storesResponse = await request.get('/api/v0/stores/')
   expect(storesResponse.ok()).toBeTruthy()
-  const [store] = await storesResponse.json() as Store[]
+  const [store] = await storesResponse.json() as StoreInfo[]
   const pickup = backend.addOrder({ delivery: DELIVERY_SELF, store, items: [{ product: first, quantity: 2 }, { product: second }] })
 
   await page.goto('/user/orders/')

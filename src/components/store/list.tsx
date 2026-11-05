@@ -9,7 +9,7 @@ import { Collapsible } from '@base-ui/react/collapsible'
 import type { LngLat } from '@yandex/ymaps3-types'
 
 import { useBreakpoint } from '@/lib/breakpoint'
-import { City, Store } from '@/lib/types'
+import { City, StoreInfo } from '@/lib/types'
 import { rows } from '@/lib/partition'
 import { parsePhones } from '@/lib/format'
 import { StoreMap } from './map'
@@ -43,10 +43,10 @@ function Collapsable({
 
 type StoreGroup = {
   city: City
-  stores: Store[]
+  stores: StoreInfo[]
 }
 
-export function StoreList({ stores }: { stores: Store[] }) {
+export function StoreList({ stores }: { stores: StoreInfo[] }) {
   const [currentCity, setCurrentCity] = useState<number | null>(null)
   const [mapFocusPoints, setMapFocusPoints] = useState<LngLat[]>([])
   const breakpoint = useBreakpoint()

@@ -7,7 +7,7 @@ import type { LngLat } from '@yandex/ymaps3-types'
 
 import { LocationMap, MapMarker, MarkerPin, MarkersMap } from '@/components/map'
 
-import { Store } from '@/lib/types'
+import { Store, StoreInfo } from '@/lib/types'
 
 const storePins: Record<string, MarkerPin> = {
   sewingworld: { icon: '/i/shoplogos/marks/sewingworld.svg', color: '#3163ad' },
@@ -16,9 +16,9 @@ const storePins: Record<string, MarkerPin> = {
 
 const otherStorePin: MarkerPin = { icon: '/i/shoplogos/marks/other.svg', color: '#abaeb2' }
 
-const storePin = (store: Store) => storePins[store.logo] ?? otherStorePin
+const storePin = (store: StoreInfo) => storePins[store.logo] ?? otherStorePin
 
-function StoreBalloon({ store }: { store: Store }) {
+function StoreBalloon({ store }: { store: StoreInfo }) {
   return (
     <>
       <h6 className="fs-sm mb-2">
@@ -61,7 +61,7 @@ function StoreBalloon({ store }: { store: Store }) {
   )
 }
 
-export function StoreMap({ stores, focusPoints }: { stores: Store[] | undefined, focusPoints: LngLat[] }) {
+export function StoreMap({ stores, focusPoints }: { stores: StoreInfo[] | undefined, focusPoints: LngLat[] }) {
   const markers = useMemo<MapMarker[]>(() => (stores ?? [])
     .filter((store) => store.latitude && store.longitude)
     .map((store) => ({
