@@ -21,7 +21,7 @@ from sewingworld.templatetags.gravatar import get_gravatar_url
 from shop.filters import get_product_filter
 from shop.models import Basket, BasketItem, Order, OrderItem, Favorites, Serial, \
     Category, Product, ProductRelation, ProductKind, Stock, ShopUser, ShopUserManager, LoginCode, Bonus, \
-    Country, City, Store, ServiceCenter, News, Advert, SalesAction, Manufacturer, \
+    Country, City, Store, StoreImage, ServiceCenter, News, Advert, SalesAction, Manufacturer, \
     Integration
 
 
@@ -100,7 +100,13 @@ class CitySerializer(NonNullModelSerializer):
         fields = '__all__'  # TODO refactor
 
 
-class StoreSerializer(NonNullModelSerializer):
+class StoreImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StoreImage
+        exclude = ('id', 'store')
+
+
+class StoreListSerializer(NonNullModelSerializer):
     city = CitySerializer(read_only=True)
     phones = serializers.SerializerMethodField()
 
@@ -115,6 +121,10 @@ class StoreSerializer(NonNullModelSerializer):
         if obj.phone2:
             phones.append(obj.phone2)
         return [phone.strip() for phone in phones]
+
+
+class StoreSerializer(StoreListSerializer):
+    images = StoreImageSerializer(many=True)
 
 
 class ServiceCenterSerializer(NonNullModelSerializer):

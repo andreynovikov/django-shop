@@ -49,7 +49,7 @@ from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSeri
     FavoritesSerializer, ComparisonSerializer, SerialSerializer, \
     UserListSerializer, UserSerializer, AnonymousUserSerializer, LoginSerializer, UserBonusSerializer, \
     FlatPageListSerializer, FlatPageSerializer, NewsSerializer, SalesActionSerializer, AdvertSerializer, \
-    StoreSerializer, ServiceCenterSerializer, SiteProfileSerializer, IntegrationSerializer, IntegrationProductSerializer, \
+    StoreListSerializer, StoreSerializer, ServiceCenterSerializer, SiteProfileSerializer, IntegrationSerializer, IntegrationProductSerializer, \
     ErrorDetailSerializer, validation_error_serializer
 
 
@@ -405,7 +405,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                             quantity = q
             if quantity > 0.0:
                 results.append(store)
-        return Response(StoreSerializer(results, many=True, context=self.get_serializer_context()).data)
+        return Response(StoreListSerializer(results, many=True, context=self.get_serializer_context()).data)
 
     @action(detail=True)
     def video(self, request, pk=None):
@@ -1261,8 +1261,12 @@ class AdvertViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class StoreViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = StoreSerializer
     queryset = Store.objects.none()  # model for the API schema, get_queryset() needs a request
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return StoreListSerializer
+        return StoreSerializer
 
     def get_queryset(self):
         stores = Store.objects.filter(site=self.request.site, enabled=True).order_by('city__country__ename', 'city__name')
