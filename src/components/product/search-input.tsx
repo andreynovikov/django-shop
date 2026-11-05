@@ -9,11 +9,21 @@ import { Autocomplete } from '@base-ui/react/autocomplete'
 import { AutocompletePopup, AutocompleteStatus, AutocompleteGroup, AutocompleteItem, Highlighter } from '@/components/ui/autocomplete'
 
 import { productKeys } from '@/lib/queries'
-import { loadProductSuggestions } from '@/lib/diginetica'
+import { loadProductSuggestions, ProductResult } from '@/lib/diginetica'
 
 const MIN_LENGTH = 3
 
-export default function ProductSearchInput({ mobile = false }) {
+type SuggestionItem =
+  | { section: 'correction' | 'sts', label: string }
+  | { section: 'products', label: string, product: ProductResult }
+
+interface SuggestionGroup {
+  section: SuggestionItem['section']
+  label?: string
+  items: SuggestionItem[]
+}
+
+export default function ProductSearchInput({ mobile = false }: { mobile?: boolean }) {
   const [searchText, setSearchText] = useState('')
   const deferredSearchText = useDeferredValue(searchText)
 
@@ -28,7 +38,7 @@ export default function ProductSearchInput({ mobile = false }) {
     if (!suggestions || searchText.length < MIN_LENGTH)
       return []
 
-    return [
+    const allGroups: SuggestionGroup[] = [
       {
         section: 'correction',
         items: suggestions.correction ? [{ section: 'correction', label: suggestions.correction }] : []
@@ -43,13 +53,14 @@ export default function ProductSearchInput({ mobile = false }) {
         label: 'Популярные товары',
         items: (suggestions.products ?? []).map(product => ({ section: 'products', label: product.name, product }))
       },
-    ].filter(group => group.items.length > 0)
+    ]
+    return allGroups.filter(group => group.items.length > 0)
   }, [suggestions, searchText])
 
   const router = useRouter()
 
   // the input also changes while moving through suggestions, only typing starts a new search
-  const handleValueChange = (value, { reason }) => {
+  const handleValueChange = (value: string, { reason }: Autocomplete.Root.ChangeEventDetails) => {
     if (reason === 'input-change' || reason === 'input-clear')
       setSearchText(value)
   }
@@ -84,7 +95,7 @@ export default function ProductSearchInput({ mobile = false }) {
         <AutocompletePopup>
           {message && <AutocompleteStatus>{message}</AutocompleteStatus>}
           <Autocomplete.List>
-            {(group, index) => (
+            {(group: SuggestionGroup, index: number) => (
               <AutocompleteGroup key={group.section} label={group.label} items={group.items} separated={index > 0}>
                 {(item) => item.section === 'products' ? (
                   <AutocompleteItem
@@ -93,7 +104,9 @@ export default function ProductSearchInput({ mobile = false }) {
                     onClick={() => router.push(item.product.link_url.replace('.html', '/'))}>
                     <div className="d-flex align-items-center gap-2">
                       <div style={{ width: "64px" }}>
-                        {item.product.image_url ? <img src={item.product.image_url} className="img-fluid" /> : "no img"}
+                        {/* Diginetica's image host isn't in images.remotePatterns, the name next to it describes the product */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {item.product.image_url ? <img src={item.product.image_url} className="img-fluid" alt="" /> : "no img"}
                       </div>
                       <div className="d-flex flex-column">
                         <div>

@@ -1,11 +1,13 @@
 import { Slider } from '@base-ui/react/slider'
 import styles from './slider-filter.module.scss'
 
-export default function SliderFilter({ filter, filterValue, onFilterChanged }) {
+import { FilterProps } from './types'
+
+export default function SliderFilter({ filter, filterValue, onFilterChanged }: FilterProps<'name' | 'unit' | 'attrs', number>) {
   const minValue = filter.attrs?.min_value || 0
   const currentValue = filterValue ?? minValue
 
-  const handleValueChange = (value) => {
+  const handleValueChange = (value: number) => {
     if (value === minValue)
       onFilterChanged(filter.name, null)
     else

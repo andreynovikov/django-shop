@@ -92,7 +92,7 @@ export default function SearchResults() {
   const brandsFilter = useMemo(() => {
     const brandsFacet = result?.facets?.find((facet) => facet.name === 'brands')
     if (brandsFacet !== undefined && brandsFacet.values.length > 1)
-      return brandsFacet.values.map((value) => [value.id, value.name])
+      return brandsFacet.values.map((value): [string, string] => [value.id, value.name])
     return undefined
   }, [result])
 
@@ -121,7 +121,7 @@ export default function SearchResults() {
                 {brandsFilter && <div className="widget pb-4 mb-4 border-bottom">
                   <h3 className="widget-title">Производитель</h3>
                   <MultipleChoiceFilter
-                    filter={{ name: 'manufacturer', choices: brandsFilter }}
+                    filter={{ name: 'manufacturer', id: 'sw-manufacturer', choices: brandsFilter }}
                     filterValue={filters.manufacturer}
                     onFilterChanged={handleFilterChanged} />
                 </div>}

@@ -32,6 +32,8 @@ export interface CategoryFilter {
   class: string
   label: string
   widget: string
+  unit?: string
+  help?: string
 }
 
 export interface CategoryTreeItem {
@@ -333,13 +335,14 @@ export interface ProductReview {
 export interface ProductReviewFormField {
   name: string
   label: string
+  id: string
   help: string
   class: string
   widget: string
   required: boolean
-  choices?: unknown
-  attrs?: unknown
-  value?: unknown
+  choices?: Array<[string | number, string]>
+  attrs?: Record<string, string | number>  // widget attributes, Django sends rows and maxlength as strings
+  value?: string | number
 }
 
 export type ProductReviewForm = Array<ProductReviewFormField>
