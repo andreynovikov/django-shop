@@ -2,12 +2,10 @@ import path from 'path'
 import ejs from 'ejs'
 import sanitizeHtml from 'sanitize-html'
 
-import { AxiosError } from 'axios'
-
 import { flattenCategoryTree, getCategoryDescendants } from '@/lib/categories'
-import { loadCategories, loadCurrentSite, loadProducts } from '@/lib/queries'
-import { listIntegrations, retriveIntegrationByUtm, retriveIntegrationProducts } from "@/lib/token-queries"
-import { Category, Integration, Product } from '@/lib/types'
+import { HttpError, loadCategories, loadCurrentSite, loadProducts } from '@/lib/queries'
+import { listIntegrations, retriveIntegrationByUtm, retriveIntegrationProducts } from '@/lib/queries'
+import { CategoryTree, CategoryTreeItem, Integration, IntegrationProduct, ProductInfo } from '@/lib/types'
 
 export const revalidate = 3600
 export const dynamic = 'error'
@@ -22,8 +20,8 @@ function stripTags(html: string) {
   return sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} })
 }
 
-function topCategoryMap(categories: Category[]) {
-  const map = new Map<number, Category>()
+function topCategoryMap(categories: CategoryTree) {
+  const map = new Map<number, CategoryTreeItem>()
   for (const category of categories) {
     const { children, ...categoryWithoutChildren } = category
     if (children) {
@@ -36,15 +34,12 @@ function topCategoryMap(categories: Category[]) {
   return map
 }
 
-export async function GET(
-  request: Request,
-  { params }: RouteContext<'/xml/[filename]'>
-) {
+export async function GET(request: Request, { params }: RouteContext<'/xml/[filename]'>) {
   const { filename } = await params
   const utm = path.parse(filename).name
 
   let integration: Integration | undefined
-  let products: Product[]
+  let products: IntegrationProduct[] | ProductInfo[]
   let templateName = utm
 
   try {
@@ -56,7 +51,7 @@ export async function GET(
       templateName = integration.output_template
     }
 
-    const categories = integration?.output_skip_categories ? [] : await loadCategories({ feed: true }) as Category[]
+    const categories = integration?.output_skip_categories ? [] : await loadCategories({ feed: true })
     const categoryMap = topCategoryMap(categories)
 
     if (integration) {
@@ -70,7 +65,7 @@ export async function GET(
         in_category: categories.map(category => category.id),
         variations: '',
       }
-      const pageSize = 1000
+      const pageSize = 100
       const order = 'id'
       let currentPage = 1
       while (true) {
@@ -109,7 +104,7 @@ export async function GET(
       })
   } catch (error) {
     console.error(error)
-    if (error instanceof AxiosError || (error instanceof Error && 'code' in error && error.code === 'ENOENT'))
+    if (error instanceof HttpError || (error instanceof Error && 'code' in error && error.code === 'ENOENT'))
       return Response.json({ error: 'Not found' }, { status: 404 })
     else
       return Response.json({ error: 'Internal Server Error' }, { status: 500 })
@@ -117,12 +112,15 @@ export async function GET(
 }
 
 export async function generateStaticParams() {
+  if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
+    return []
+  
   const integrations = await listIntegrations()
   return integrations.filter(
     integration => integration.enabled
   ).map(
-    integration => ({ utm: integration.utm_source })
+    integration => integration.utm_source
   ).concat(
-    globalXmls.map(xml => ({ utm: xml }))
-  )
+    globalXmls
+  ).map(utm => ({filename: utm + '.xml'}))
 }

@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       new URL('https://api.sewing-world.ru/media/**'),
       new URL('https://www.sewing-world.ru/media/**'),
+      // Media URLs are built from the backend host, e.g. a local Django in development
+      ...(process.env.API_SERVER ? [new URL(`${process.env.API_SERVER}/media/**`)] : []),
     ],
   },
   async headers() {

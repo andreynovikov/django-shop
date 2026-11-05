@@ -1,0 +1,27 @@
+'use client'
+
+import { useState } from 'react'
+
+import UserTopbar from '@/components/user/topbar'
+import UpdateForm from '@/components/user/update-form'
+
+export default function UserProfile() {
+  const [formReady, setFormReady] = useState(false)
+
+  return (
+    <>
+      <UserTopbar>
+        <div className="d-flex w-100 text-center me-3">&nbsp;</div>
+      </UserTopbar>
+      <UpdateForm id="user-update-form" onReady={() => setFormReady(true)} />
+      {formReady && (
+        <>
+          <hr className="mt-4 mb-3" />
+          <div className="text-end">
+            <button className="btn btn-primary" type="submit" form="user-update-form">Сохранить</button>
+          </div>
+        </>
+      )}
+    </>
+  )
+}
