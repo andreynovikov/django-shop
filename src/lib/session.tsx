@@ -135,7 +135,6 @@ export function SessionProvider({ children }: SessionProviderProps) {
   })
 
   useEffect(() => {
-    console.log("SessionProvider", user?.id, "isLoading", isLoading)
     if (!isLoading) {
       if ((user?.id ?? 0) === 0)
         userReferences.map((key) => queryClient.resetQueries({ queryKey: key }))

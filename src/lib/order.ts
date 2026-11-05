@@ -28,7 +28,6 @@ export function useCreateOrder() {
         }
       })
       router.push('/confirmation')
-      console.log(data)
     },
     onError: (error) => {
       console.error(error)
