@@ -1,6 +1,6 @@
 {
   "name": "janome",
-  "version": "2026.10.31",
+  "version": "2026.11.06",
   "scripts": {
     "dev": "next dev -H 127.0.0.1 -p 3003",
     "test": "next dev -H 127.0.0.1 -p 4003",

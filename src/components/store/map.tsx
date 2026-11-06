@@ -28,7 +28,7 @@ function StoreBalloon({ store }: { store: StoreInfo }) {
       <div>
         <i className="ci-location text-primary d-inline-block me-2"></i>
         <span className="d-inline-block align-top">
-          {store.address}
+          {store.city.name}, {store.address}
           {store.address2 && <><br />{store.address2}</>}
         </span>
       </div>
