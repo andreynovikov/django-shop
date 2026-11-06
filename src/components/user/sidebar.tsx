@@ -1,0 +1,105 @@
+'use client'
+
+import { useState } from 'react'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
+
+import { Collapsible } from '@base-ui/react/collapsible'
+
+import { IconLogout, IconMenu2, IconShoppingBag, IconUser } from '@tabler/icons-react'
+
+import UserAvatar from '@/components/user/avatar'
+// import UserBonus from '@/components/user/bonus'
+
+import { formatPhone } from '@/lib/format'
+import { useSession } from '@/lib/session'
+import { useSite } from '@/lib/site'
+import { orderKeys, loadOrders } from '@/lib/queries'
+import { User } from '@/lib/types'
+
+export default function UserSidebar() {
+  const [signingOut, setSigningOut] = useState(false)
+
+  const router = useRouter()
+  const pathname = usePathname()
+
+  // The sidebar stays mounted in the account layout, the menu is open on the page it was opened on only
+  const [menuOpenAt, setMenuOpenAt] = useState<string | null>(null)
+  const menuOpen = menuOpenAt === pathname
+
+  // Signing out navigates to the home page, which is still loading when the session ends,
+  // so the login page must not take over meanwhile.
+  const { user: sessionUser, status, signOut } = useSession({
+    onUnauthenticated: signingOut ? undefined : () => router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+  })
+
+  const handleSignOut = () => {
+    setSigningOut(true)
+    signOut({ callbackUrl: '/' })
+  }
+  const user = status === 'authenticated' ? sessionUser as User : undefined
+
+  const { site } = useSite()
+
+  // counts the orders made on this site only, the site is the same for every query of the storefront
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const { data: orders } = useQuery({
+    queryKey: orderKeys.list(1, ''),
+    queryFn: () => loadOrders(1, '', site.id),
+    enabled: status === 'authenticated' && site.id !== undefined
+  })
+
+  if (status === 'loading' || !!!user) {
+    return (
+      <aside className="col-lg-4 pt-4 pt-lg-0 pe-xl-5">
+        <div className="bg-white rounded-3 shadow-lg pt-1 mb-5 mb-lg-0" style={{ height: 320 }}> { /* TODO: use placeholders */}
+        </div>
+      </aside>
+    )
+  }
+
+  return (
+    <aside className="col-lg-4 pt-4 pt-lg-0 pe-xl-5">
+      <Collapsible.Root className="bg-white rounded-3 shadow-lg pt-1 mb-5 mb-lg-0" open={menuOpen} onOpenChange={open => setMenuOpenAt(open ? pathname : null)}>
+        <div className="d-md-flex justify-content-between align-items-center text-center text-md-start p-4">
+          <div className="d-md-flex align-items-center">
+            <div className="img-thumbnail rounded-circle position-relative flex-shrink-0 mx-auto mb-2 mx-md-0 mb-md-0" style={{ width: "6.375rem" }}>
+              {/* <UserBonus /> */}
+              <picture>
+                <UserAvatar gravatar={user.gravatar} name={user.name || user.full_name} size={90} />
+              </picture>
+            </div>
+            <div className="ps-md-3">
+              <h3 className="fs-base mb-0">{user.name || user.full_name}</h3>
+              <span className="text-accent fs-sm">{formatPhone(user.phone)}</span>
+            </div>
+          </div>
+          <Collapsible.Trigger className="btn btn-primary d-lg-none mb-2 mt-3 mt-md-0">
+            <IconMenu2 size={20} stroke={1.5} className="me-1 align-text-bottom" />Личный кабинет
+          </Collapsible.Trigger>
+        </div>
+        <Collapsible.Panel className="sw-collapse-lg-down d-lg-block" keepMounted>
+          <ul className="list-unstyled mb-0">
+            <li className="border-bottom mb-0">
+              <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (pathname === '/user/orders/' ? " active" : "")} href="/user/orders/">
+                <IconShoppingBag size={20} stroke={1.5} className="opacity-50 me-2" />Заказы
+                {orders !== undefined && orders.count > 0 && <span className="fs-sm text-muted ms-auto">{orders.count}</span>}
+              </Link>
+            </li>
+            <li className="mb-0">
+              <Link className={"nav-link-style d-flex align-items-center px-4 py-3" + (pathname === '/user/profile/' ? " active" : "")} href="/user/profile/">
+                <IconUser size={20} stroke={1.5} className="opacity-50 me-2" />Профиль
+              </Link>
+            </li>
+            <li className="border-top mb-0">
+              <a className="nav-link-style d-flex align-items-center px-4 py-3" onClick={handleSignOut} style={{ cursor: 'pointer' }}>
+                <IconLogout size={20} stroke={1.5} className="opacity-50 me-2" />Выйти
+              </a>
+            </li>
+          </ul>
+        </Collapsible.Panel>
+      </Collapsible.Root>
+    </aside>
+  )
+}

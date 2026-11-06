@@ -1,0 +1,58 @@
+import Image from 'next/image'
+
+import { IconTrashX } from '@tabler/icons-react'
+
+import NoImage from '@/components/product/no-image'
+import QuantityInput from '@/components/cart/quantity-input'
+
+import { BasketItem, BasketItemProduct } from '@/lib/types'
+
+interface CartItemProps {
+  item: BasketItem
+  first: boolean
+  last: boolean
+  removeItem: (product: BasketItemProduct) => void
+  setQuantity: (product: BasketItemProduct, quantity: number) => void
+}
+
+// Dor Tak has no product pages, so the item isn't linked. The quantity is changed in packs where the product is sold in packs.
+export default function CartItem({ item, first, last, removeItem, setQuantity }: CartItemProps) {
+  return (
+    <div className={"d-sm-flex justify-content-between align-items-center my-2 " + (first ? "pb-3" : "py-3") + (last ? "" : " border-bottom")}>
+      <div className="d-block d-sm-flex align-items-center text-center text-sm-start">
+        {item.product.image ? (
+          <div className="position-relative" style={{ width: 160, height: 160 }}>
+            <Image
+              src={item.product.image}
+              fill
+              style={{ objectFit: 'contain' }}
+              sizes="160px"
+              alt={`${item.product.whatis ? item.product.whatis + ' ' : ''}${item.product.title}`} />
+          </div>
+        ) : (
+          <NoImage size={160} />
+        )}
+        <div className="pt-2">
+          <h3 className="product-title fs-base mb-2">
+            {item.product.title}
+          </h3>
+          <div className="fs-sm"><span className="text-muted me-2">Цена:</span>{item.product.price.toLocaleString('ru')}<small>&nbsp;руб</small></div>
+          {item.discount > 0 && <div className="fs-sm"><span className="text-muted me-2">Скидка:</span>{item.discount_text}</div>}
+          <div className="fs-lg text-accent pt-2"><span>{item.price.toLocaleString('ru')}</span><small>&nbsp;руб</small></div>
+        </div>
+      </div>
+      <div className="pt-2 pt-sm-0 ps-sm-3 mx-auto mx-sm-0 text-center text-sm-start" style={{ maxWidth: "9rem" }}>
+        <label className="form-label">Количество</label>
+        <QuantityInput
+          quantity={item.quantity}
+          setQuantity={(quantity) => setQuantity(item.product, quantity)}
+          packOnly={item.product.ws_pack_only}
+          packFactor={item.product.pack_factor} />
+        <button className="btn btn-link px-0 text-danger" type="button" onClick={() => removeItem(item.product)}>
+          <IconTrashX size={20} stroke={1.5} className="me-1 align-text-bottom" />
+          Удалить
+        </button>
+      </div>
+    </div>
+  )
+}
