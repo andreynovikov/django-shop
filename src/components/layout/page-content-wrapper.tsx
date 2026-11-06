@@ -18,7 +18,7 @@ type PageHeaderProps = {
 // The frame of the page header, children are the title. A layout renders it around a title from a slot.
 export function PageHeader({ children }: PageHeaderProps) {
   return (
-    <div className="container mt-3 mb-2">
+    <div className="container mt-4 mb-2">
       {children}
     </div>
   )
@@ -34,7 +34,7 @@ type PageTitleProps = {
 export function PageTitle({ title, titleAddon }: PageTitleProps) {
   return (
     <>
-      <h1>{title}</h1>
+      <h1 className="mb-2 text-h1">{title}</h1>
       {titleAddon}
     </>
   )

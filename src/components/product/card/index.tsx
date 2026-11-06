@@ -10,6 +10,7 @@ import { IconChevronCompactLeft, IconChevronCompactRight, IconX } from '@tabler/
 
 import NoImage from '@/components/product/no-image'
 import QuantityInput from '@/components/cart/quantity-input'
+import { buttonClass } from '@/components/ui/button'
 
 import useBasket from '@/lib/basket'
 import { productKeys, getProductImages } from '@/lib/queries'
@@ -51,22 +52,22 @@ export default function ProductCard({ product, gtmCategory = undefined, gtmList 
       setQuantity(product, quantity)
   }
 
-  const productAction = (children: ReactNode) => product.variations ? (
-    <ProductCardLink product={product} gtmCategory={gtmCategory} gtmList={gtmList} gtmPosition={gtmPosition}>
+  const productAction = (children: ReactNode, className?: string) => product.variations ? (
+    <ProductCardLink className={className} product={product} gtmCategory={gtmCategory} gtmList={gtmList} gtmPosition={gtmPosition}>
       {children}
     </ProductCardLink>
   ) : (
-    <a onClick={() => setShowImage(true)} style={{ cursor: 'pointer' }}>
+    <a className={className} onClick={() => setShowImage(true)} style={{ cursor: 'pointer' }}>
       {children}
     </a>
   )
 
   return (
-    <div className="sw-p-l card">
+    <div className="flex flex-col rounded-md border border-black/10 bg-white max-sm:my-[.2rem]">
       <ProductCardImpression product={product} gtmList={gtmList} gtmPosition={gtmPosition} />
-      <div className="card-body text-center">
+      <div className="flex-auto p-2 text-center">
         {productAction(product.image ? (
-          <div className="mx-auto position-relative" style={{ width: 120, height: 120 }}>
+          <div className="relative mx-auto" style={{ width: 120, height: 120 }}>
             <Image
               src={product.image}
               fill
@@ -77,23 +78,23 @@ export default function ProductCard({ product, gtmCategory = undefined, gtmList 
         ) : (
           <NoImage size={160} className="text-muted" />
         ))}
-        <div className="sw-p-l-name">
-          <div className="sw-p-l-action">
-            {product.isnew && <span className="label sw-new">Новинка</span>}
-            {product.recomended && <span className="label sw-recomended">Рекомендуем</span>}
+        <div className="relative pt-4">
+          <div className="absolute -top-4">
+            {product.isnew && <span className="ps-px opacity-90">Новинка</span>}
+            {product.recomended && <span className="ps-px opacity-90">Рекомендуем</span>}
             { /* TODO - list actions */}
           </div>
-          <h3 className="sw-p-l-name-h">
-            {productAction(product.title.replace('Dor Tak', ''))}
+          <h3 className="mb-2 text-h6 font-bold">
+            {productAction(product.title.replace('Dor Tak', ''), 'text-black no-underline')}
           </h3>
           {product.whatis && <p>{product.whatis}</p>}
-          {product.shortdescr && <div className="sw-p-l-brif" dangerouslySetInnerHTML={{ __html: product.shortdescr }} />}
+          {product.shortdescr && <div className="backend-content text-[#555]" dangerouslySetInnerHTML={{ __html: product.shortdescr }} />}
         </div>
 
         {product.price > 0 && (
           <div className="mt-2">
             {product.variations ? (
-              <ProductCardLink className="btn btn-sm btn-success" role="button" product={product} gtmCategory={gtmCategory} gtmList={gtmList} gtmPosition={gtmPosition}>
+              <ProductCardLink className={buttonClass({ variant: 'success', size: 'sm' })} role="button" product={product} gtmCategory={gtmCategory} gtmList={gtmList} gtmPosition={gtmPosition}>
                 Выбрать
               </ProductCardLink>
             ) : (product.ws_pack_only && product.instock >= product.pack_factor) || (!product.ws_pack_only && product.instock > 0) ? (
@@ -104,10 +105,10 @@ export default function ProductCard({ product, gtmCategory = undefined, gtmList 
                 packFactor={product.pack_factor}
                 isLoading={isLoading} />
             ) : (
-              <div className="product-nal-false">Закончились</div>
+              <div className="font-bold text-[#aaa]">Закончились</div>
             )}
-            <div className="mt-2 fs-xs">
-              <span className="fs-base fw-bold">
+            <div className="mt-2 text-xs">
+              <span className="text-base font-bold">
                 { /* TODO: show user price! */}
                 {product.cost.toLocaleString('ru')}
               </span>
@@ -120,7 +121,7 @@ export default function ProductCard({ product, gtmCategory = undefined, gtmList 
           </div>
         )}
 
-        {product.sales_notes && <div className="sw-p-salesnotes text-center">{product.sales_notes}</div>}
+        {product.sales_notes && <div className="text-center">{product.sales_notes}</div>}
         {product.image && (
           <Lightbox
             open={showImage}

@@ -1,0 +1,191 @@
+@import 'tailwindcss';
+@import './backend-content.css' layer(components);
+
+/* Dor Tak's look of its Bootstrap 5.3 days: its colors, the system font and Bootstrap's sizes on a 0.95rem base */
+@theme {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  /* Bootstrap's font sizes replace Tailwind's: xs, sm and lg are Bootstrap's .fs-xs, small and large text, md is
+     Dor Tak's own. They keep the line height of the text around them, as Bootstrap's font size classes did. */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.83125rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 0.95rem;
+  --text-base--line-height: 1.5;
+  --text-md: 1.0925rem;
+  --text-md--line-height: 1.5;
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: 1.5;
+
+  /* Bootstrap's headings, as its .h1-.h6 classes: the bigger ones shrink on screens narrower than 1200px */
+  --text-h1: min(2.375rem, calc(1.3625rem + 1.35vw));
+  --text-h1--line-height: 1.2;
+  --text-h1--font-weight: 500;
+  --text-h2: min(1.9rem, calc(1.315rem + 0.78vw));
+  --text-h2--line-height: 1.2;
+  --text-h2--font-weight: 500;
+  --text-h3: min(1.6625rem, calc(1.29125rem + 0.495vw));
+  --text-h3--line-height: 1.2;
+  --text-h3--font-weight: 500;
+  --text-h4: min(1.425rem, calc(1.2675rem + 0.21vw));
+  --text-h4--line-height: 1.2;
+  --text-h4--font-weight: 500;
+  --text-h5: 1.1875rem;
+  --text-h5--line-height: 1.2;
+  --text-h5--font-weight: 500;
+  --text-h6: 0.95rem;
+  --text-h6--line-height: 1.2;
+  --text-h6--font-weight: 500;
+
+  --color-body: #212529;
+  --color-muted: rgb(33 37 41 / 0.75); /* the body color, faded */
+  --color-border: #ddd;
+
+  --color-primary: #337ab7;
+  --color-primary-hover: #2b689c;
+  --color-secondary: #e0e1e2;
+  --color-success: #10a04e;
+  --color-success-hover: #0e8842;
+  --color-accent: #10a04e; /* the success color, cartzilla's components use it for prices and order statuses */
+  --color-info: #0dcaf0;
+  --color-warning: #ffc107;
+  --color-danger: #dc3545;
+  --color-light: #f8f9fa;
+  --color-dark: #212529;
+
+  /* message boxes, Bootstrap's subtle backgrounds, borders and texts */
+  --color-success-subtle: #cfecdc;
+  --color-success-border: #9fd9b8;
+  --color-success-emphasis: #06401f;
+  --color-info-subtle: #cff4fc;
+  --color-info-border: #9eeaf9;
+  --color-info-emphasis: #055160;
+
+  --shadow-lg: 0 1rem 3rem rgb(0 0 0 / 0.175);
+
+  /* Bootstrap's .spinner-grow: a dot that grows and fades */
+  --animate-grow: grow 0.75s linear infinite;
+
+  @keyframes grow {
+    0% {
+      transform: scale(0);
+    }
+
+    50% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* Centered with gutters and as wide as Bootstrap's container was, the product list's columns fit these widths */
+@utility container {
+  margin-inline: auto;
+  padding-inline: 0.75rem;
+
+  @variant sm {
+    max-width: 540px;
+  }
+
+  @variant md {
+    max-width: 720px;
+  }
+
+  @variant lg {
+    max-width: 960px;
+  }
+
+  @variant xl {
+    max-width: 1140px;
+  }
+
+  @variant 2xl {
+    max-width: 1320px;
+  }
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border);
+  }
+
+  body {
+    font-size: var(--text-base);
+    line-height: 1.5;
+    color: var(--color-body);
+  }
+
+  /* links are underlined as in Bootstrap 5.3, also those without href, e.g. ones that run a script */
+  a {
+    color: var(--color-primary);
+    text-decoration: underline;
+
+    &:hover {
+      color: var(--color-primary-hover);
+    }
+
+    &:not([href]) {
+      cursor: pointer;
+    }
+  }
+
+  small {
+    font-size: 0.875em;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* A closed Collapsible panel that stays shown from lg up, e.g. the navbar menu. Preflight hides [hidden] with
+     !important in this layer, a utility can't override it, a more specific rule here can. */
+  [hidden].sw-shown-lg {
+    @variant lg {
+      display: block !important;
+    }
+  }
+}
+
+@layer components {
+  /* Product cards in as many columns as fit the container, the widths fit its widths */
+  .product-list {
+    display: grid;
+    grid-template-columns: 100%;
+    justify-content: space-between;
+    gap: 5px;
+
+    @variant sm {
+      grid-template-columns: repeat(auto-fill, 255px);
+    }
+
+    @variant md {
+      grid-template-columns: repeat(auto-fill, 228px);
+    }
+
+    @variant lg {
+      grid-template-columns: repeat(auto-fill, 230px);
+    }
+
+    @variant xl {
+      grid-template-columns: repeat(auto-fill, 275px);
+    }
+
+    @variant 2xl {
+      grid-template-columns: repeat(auto-fill, 255px);
+    }
+  }
+}
+
+.yarl__root {
+  --yarl__color_backdrop: rgba(255, 255, 255, 1);
+  --yarl__color_button: rgba(192, 192, 192, 1);
+  --yarl__color_button_disabled: rgba(192, 192, 192, 0);
+  --yarl__color_button_active: var(--color-primary);
+  --yarl__button_filter: none;
+}

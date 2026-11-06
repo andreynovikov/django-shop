@@ -1,9 +1,25 @@
+const spinnerSizes = {
+  sm: 'size-4 border-2',
+  md: 'size-8 border-4',
+  lg: 'size-20 border-4',
+}
+
+// A spinning ring in the text color, announced when it has a label
+export function Spinner({ size = 'md', label, className = '' }: { size?: keyof typeof spinnerSizes, label?: string, className?: string }) {
+  return (
+    <span
+      className={`inline-block shrink-0 animate-spin rounded-full border-current border-e-transparent align-[-0.125em] ${spinnerSizes[size]} ${className}`}
+      role={label ? 'status' : undefined}
+      aria-hidden={label ? undefined : true}>
+      {label && <span className="sr-only">{label}</span>}
+    </span>
+  )
+}
+
 export function Loading({ className, mega = false }: { className?: string, mega?: boolean }) {
   return (
     <div className={className}>
-      <div className="spinner-border" role="status" style={mega ? { width: "5rem", height: "5rem" } : {}}>
-        <span className="visually-hidden">Загружается...</span>
-      </div>
+      <Spinner size={mega ? 'lg' : 'md'} label="Загружается..." />
     </div>
   )
 }
@@ -12,12 +28,12 @@ export function PageLoading({ className }: { className?: string }) {
   return (
       <div className="container">
         <div className={className}>
-          <Loading className="text-center my-5 py-5" mega />
+          <Loading className="my-12 py-12 text-center" mega />
         </div>
       </div>
   )
 }
 
 export function ButtonLoading() {
-  return <span className="spinner-border spinner-border-sm" style={{ marginLeft: "0.5rem" }} />
+  return <Spinner size="sm" className="ms-2" />
 }

@@ -16,7 +16,6 @@
         "@maskito/react": "^5.6.1",
         "@tabler/icons-react": "^3.50.0",
         "@tanstack/react-query": "^5.106.1",
-        "bootstrap": "^5.3.8",
         "libphonenumber-js": "^1.13.15",
         "moment": "^2.31.0",
         "next": "^16.4.5",
@@ -26,6 +25,7 @@
         "yet-another-react-lightbox": "^3.33.0"
     },
     "devDependencies": {
+        "@tailwindcss/postcss": "^4.3.5",
         "@tanstack/eslint-plugin-query": "^5.106.1",
         "@tanstack/react-query-devtools": "^5.106.1",
         "@types/node": "^26.6.6",
@@ -33,7 +33,7 @@
         "@types/react-dom": "^19.3.0",
         "eslint": "^10.14.0",
         "eslint-config-next": "^16.4.5",
-        "sass": "^1.108.0",
+        "tailwindcss": "^4.3.5",
         "typescript": "^6.0.3"
     }
 }

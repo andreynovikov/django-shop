@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { IconCircleCheck } from '@tabler/icons-react'
 
 import { Loading } from '@/components/loading'
+import { Alert } from '@/components/ui/alert'
+import { feedbackClass, formTextClass, inputClass, labelClass } from '@/components/ui/form'
 
 import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
 import { useSession } from '@/lib/session'
@@ -98,20 +100,19 @@ export default function UpdateForm({ id, embedded = false, onReady, onUpdated }:
   return (
     <form id={id} noValidate onSubmit={handleSubmit}>
       {updated && (
-        <div className="alert alert-success d-flex" role="alert">
-          <IconCircleCheck stroke={1.5} className="flex-shrink-0 me-3" />
-          <div>Изменения успешно сохранены.</div>
-        </div>
+        <Alert variant="success" icon={<IconCircleCheck stroke={1.5} className="shrink-0" />}>
+          Изменения успешно сохранены.
+        </Alert>
       )}
 
-      <div className="row gx-4 gy-3">
+      <div className={"grid gap-x-6 gap-y-4" + (embedded ? "" : " md:grid-cols-2")}>
         {form.map((field) => (
-          <div className={`col-${embedded ? "12" : "md-6"}`} key={field.id}>
-            <label className="form-label" htmlFor={field.id}>{field.label}:</label>
+          <div key={field.id}>
+            <label className={labelClass} htmlFor={field.id}>{field.label}:</label>
             {field.name === "phone" ? (
               <input
                 ref={phoneRef}
-                className={"form-control" + (error[field.name] ? " is-invalid" : "")}
+                className={inputClass({ invalid: !!error[field.name] })}
                 id={field.id}
                 name={field.name}
                 value={fieldValue(field.name)}
@@ -122,7 +123,7 @@ export default function UpdateForm({ id, embedded = false, onReady, onUpdated }:
                 required={field.required} />
             ) : (
               <input
-                className={"form-control" + (error[field.name] ? " is-invalid" : "")}
+                className={inputClass({ invalid: !!error[field.name] })}
                 id={field.id}
                 name={field.name}
                 value={fieldValue(field.name)}
@@ -130,9 +131,9 @@ export default function UpdateForm({ id, embedded = false, onReady, onUpdated }:
                 required={field.required} />
             )}
             {error[field.name]?.map((err, index) => (
-              <div className="invalid-feedback" key={index}>{err}</div>
+              <div className={feedbackClass} key={index}>{err}</div>
             ))}
-            {field.help && <small className="form-text text-muted">{field.help}</small>}
+            {field.help && <small className={formTextClass}>{field.help}</small>}
           </div>
         ))}
       </div>

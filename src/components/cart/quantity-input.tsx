@@ -2,10 +2,16 @@
 
 import { useEffect, useRef } from 'react'
 
+import { buttonClass } from '@/components/ui/button'
+
 import { useDebounceCallback } from '@/lib/debounce'
 
 const MAX_QUANTITY = 10000
 const DEBOUNCE_DELAY = 300
+
+// The buttons and the field between them are joined, as in Bootstrap's small .input-group
+const stepButtonClass = `${buttonClass({ variant: 'success', size: 'sm' })} relative w-[1.8rem] focus-visible:z-10`
+const fieldClass = 'relative min-w-0 flex-1 rounded-none border-y px-2 py-1 text-sm leading-normal'
 
 interface QuantityInputProps {
   quantity: number | undefined  // undefined until the basket is loaded
@@ -56,26 +62,24 @@ export default function QuantityInput({ quantity, setQuantity, packOnly, packFac
   }
 
   return (
-    <div className="input-group input-group-sm d-inline-flex" style={{ width: '7rem' }}>
+    <div className="inline-flex w-28 items-stretch">
       <button
-        className="btn btn-success"
+        className={`${stepButtonClass} rounded-e-none`}
         type="button"
-        style={{ width: '1.8rem' }}
         onClick={() => modifyValue(-1)}
         disabled={isLoading}>-</button>
       <input
         ref={inputRef}
         type="text"
-        className={"form-control text-center" + (isLoading ? " d-none" : "")}
+        className={`${fieldClass} bg-white text-center text-body focus:z-10 focus:border-primary/50 focus:outline-none focus:ring-4 focus:ring-primary/25${isLoading ? " hidden" : ""}`}
         defaultValue={quantity ?? 0}
         onChange={(e) => handleInputChange(e.currentTarget.value)} />
-      <button className={"form-control btn btn-outline-success" + (isLoading ? "" : " d-none")} type="button" disabled>
-        <span className="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+      <button className={`${fieldClass} flex items-center justify-center border-success text-success opacity-65${isLoading ? "" : " hidden"}`} type="button" disabled>
+        <span className="inline-block size-4 animate-grow rounded-full bg-current opacity-0" role="status" aria-hidden="true"></span>
       </button>
       <button
-        className="btn btn-success"
+        className={`${stepButtonClass} rounded-s-none`}
         type="button"
-        style={{ width: '1.8rem' }}
         onClick={() => modifyValue(1)}
         disabled={isLoading}>+</button>
     </div>

@@ -12,11 +12,9 @@ export default async function LoginPage() {
   return pageContentWrapper({
     title: 'Добро пожаловать',
     children: (
-      <div className="container py-3 py-lg-4 mb-4">
-        <div className="row justify-content-md-center">
-          <div className="col-md-6">
-            <LoginPageForm />
-          </div>
+      <div className="container mb-6 py-4 lg:py-6">
+        <div className="md:mx-auto md:w-1/2">
+          <LoginPageForm />
         </div>
       </div>
     ),

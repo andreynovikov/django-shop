@@ -1,0 +1,61 @@
+/*
+ * Styles for the HTML that the backend stores for Dor Tak: flat pages and the product's short description.
+ * Containers of such HTML get the backend-content class. The HTML has no Bootstrap classes.
+ */
+
+/*
+ * Typography. Tailwind's preflight resets headings, paragraphs and lists, so the parts of Bootstrap's reboot the HTML
+ * relies on are restored here with Dor Tak's Bootstrap 5.3 values: headings of weight 500 and line height 1.2,
+ * the bigger ones shrinking on narrow screens (the --text-h* theme sizes), links underlined (the base layer styles
+ * links everywhere). :where() keeps the rules at element specificity, as in the reboot, so utilities still win.
+ */
+
+:where(.backend-content) :is(h1, h2, h3, h4, h5, h6) {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+:where(.backend-content) h1 {
+  font-size: var(--text-h1);
+}
+
+:where(.backend-content) h2 {
+  font-size: var(--text-h2);
+}
+
+:where(.backend-content) h3 {
+  font-size: var(--text-h3);
+}
+
+:where(.backend-content) h4 {
+  font-size: var(--text-h4);
+}
+
+:where(.backend-content) h5 {
+  font-size: var(--text-h5);
+}
+
+:where(.backend-content) h6 {
+  font-size: var(--text-h6);
+}
+
+:where(.backend-content) p {
+  margin-bottom: 1rem;
+}
+
+/* revert brings back the browser's markers: disc and decimal, circle and square in nested lists */
+:where(.backend-content) :is(ul, ol) {
+  margin-bottom: 1rem;
+  padding-inline-start: 2rem;
+  list-style: revert;
+}
+
+:where(.backend-content) :is(ul, ol) :is(ul, ol) {
+  margin-bottom: 0;
+}
+
+/* Images stand in the text, preflight makes them blocks */
+:where(.backend-content) img {
+  display: inline;
+}

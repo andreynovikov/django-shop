@@ -8,6 +8,7 @@ import { useSite } from '@/lib/site'
 
 import { PAYMENT_CREDIT } from '@/components/order/status-badge'
 import Tooltip from '@/components/ui/tooltip'
+import { buttonClass } from '@/components/ui/button'
 
 export default function OrderPaymentButton({ orderId, iconOnly = false }: { orderId: number, iconOnly?: boolean }) {
 
@@ -36,15 +37,15 @@ export default function OrderPaymentButton({ orderId, iconOnly = false }: { orde
   }
 
   const button = (
-    <button type="button" className={`btn btn-sm btn${iconOnly ? '-outline' : ''}-success ${iconOnly ? 'py-0 px-1' : ''}`} onClick={handlePayment}>
+    <button type="button" className={iconOnly ? buttonClass({ variant: 'outline-success', size: 'icon' }) : buttonClass({ variant: 'success', size: 'sm' })} onClick={handlePayment}>
       {order.payment === PAYMENT_CREDIT ? (
         <>
-          <IconPigMoney size={iconOnly ? 16 : 20} stroke={1.5} className="align-text-bottom" />
+          <IconPigMoney size={iconOnly ? 16 : 20} stroke={1.5} />
           {!iconOnly && <span className="ms-2">Оформить кредит</span>}
         </>
       ) : (
         <>
-          <IconCreditCard size={iconOnly ? 16 : 20} stroke={1.5} className="align-text-bottom" />
+          <IconCreditCard size={iconOnly ? 16 : 20} stroke={1.5} />
           {!iconOnly && <span className="ms-2">Оплатить заказ</span>}
         </>
       )}

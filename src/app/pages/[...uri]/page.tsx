@@ -35,7 +35,7 @@ export default async function FlatPage({ params }: PageProps<'/pages/[...uri]'>)
 
   return pageContentWrapper({
     title: page.title,
-    children: <div className="container" dangerouslySetInnerHTML={{ __html: page.content }}></div>
+    children: <div className="container backend-content" dangerouslySetInnerHTML={{ __html: page.content }}></div>
   })
 }
 

@@ -12,6 +12,7 @@ import OrderStatusBadge from '@/components/order/status-badge'
 import PageSelector from '@/components/page-selector'
 import { PageLoading } from '@/components/loading'
 import Tooltip from '@/components/ui/tooltip'
+import { inputClass } from '@/components/ui/form'
 
 import { useSession } from '@/lib/session'
 import { useSite } from '@/lib/site'
@@ -37,7 +38,7 @@ export function OrderListLoading() {
   return (
     <>
       <UserTopbar>
-        <div className="d-flex w-100 text-center me-3">&nbsp;</div>
+        <div className="me-4 flex w-full text-center">&nbsp;</div>
       </UserTopbar>
       <PageLoading />
     </>
@@ -79,11 +80,11 @@ export default function OrderList() {
   return (
     <>
       <UserTopbar>
-        <div className="d-flex align-items-center flex-nowrap me-3 me-sm-4">
+        <div className="me-4 flex flex-nowrap items-center sm:me-6">
           {isSuccess && !isTracking && (orders.results.length > 0 || !!filter) ? (
             <>
-              <label className="text-muted text-nowrap fs-sm me-2 d-none d-sm-block" htmlFor="sw-order-filter">Отображать:</label>
-              <select className="form-select" id="sw-order-filter" value={filter} onChange={(e) => onFilterChanged(e.target.value)}>
+              <label className="me-2 hidden text-sm whitespace-nowrap text-muted sm:block" htmlFor="sw-order-filter">Отображать:</label>
+              <select className={inputClass()} id="sw-order-filter" value={filter} onChange={(e) => onFilterChanged(e.target.value)}>
                 <option value="">Все</option>
                 <option value="active">Активные</option>
                 <option value="done">Выполненные</option>
@@ -91,38 +92,38 @@ export default function OrderList() {
               </select>
             </>
           ) : (
-            <div className="d-flex w-100 text-center me-3">&nbsp;</div>
+            <div className="me-4 flex w-full text-center">&nbsp;</div>
           )}
         </div>
       </UserTopbar>
 
       {isSuccess && !isTracking && orders.results.length > 0 ? (
         <>
-          <div className="table-responsive fs-md">
-            <table className="table table-hover mb-0">
+          <div className="overflow-x-auto text-md">
+            <table className="w-full text-black">
               <thead>
-                <tr>
-                  <th><span className="d-none d-sm-inline">Заказ </span>№</th>
-                  <th>Дата<span className="d-none d-sm-inline"> оформления</span></th>
-                  <th>Статус</th>
-                  <th className="d-none d-sm-table-cell">Сумма</th>
+                <tr className="border-b">
+                  <th className="p-2 text-start"><span className="hidden sm:inline">Заказ </span>№</th>
+                  <th className="p-2 text-start">Дата<span className="hidden sm:inline"> оформления</span></th>
+                  <th className="p-2 text-start">Статус</th>
+                  <th className="hidden p-2 text-start sm:table-cell">Сумма</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.results.map((order) => (
-                  <tr key={order.id} onClick={() => router.push(orderPathname(order.id))} style={{ cursor: "pointer" }}>
-                    <td className="py-3">
-                      <Link className="nav-link-style fw-medium fs-sm" href={orderPathname(order.id)}>
+                  <tr className="border-b hover:bg-black/5" key={order.id} onClick={() => router.push(orderPathname(order.id))} style={{ cursor: "pointer" }}>
+                    <td className="px-2 py-4">
+                      <Link className="text-sm font-medium" href={orderPathname(order.id)}>
                         {order.id}
                       </Link>
                     </td>
-                    <td className="py-3">
+                    <td className="px-2 py-4">
                       <Tooltip content={moment(order.created).format('LLL')}>
                         <span>{moment(order.created).calendar().toLowerCase()}</span>
                       </Tooltip>
                     </td>
-                    <td className="py-3"><OrderStatusBadge status={order.status} text={order.status_text} /></td>
-                    <td className="d-none d-sm-table-cell py-3">
+                    <td className="px-2 py-4"><OrderStatusBadge status={order.status} text={order.status_text} /></td>
+                    <td className="hidden px-2 py-4 sm:table-cell">
                       {order.total.toLocaleString('ru')}<small>&nbsp;руб</small>
                       {(order.status === STATUS_COLLECTED && !order.paid && (order.payment === PAYMENT_CARD || order.payment === PAYMENT_CREDIT)) && (
                         <span className="ps-2">
@@ -146,7 +147,7 @@ export default function OrderList() {
       ) : (isPending || isTracking) ? (
         <PageLoading />
       ) : (
-        <p className="lead">У вас нет {
+        <p className="mb-4 text-lg font-light">У вас нет {
           filter === 'active' ? "активных"
             : filter === 'done' ? "выполненных"
               : filter === 'canceled' ? "отменённых"

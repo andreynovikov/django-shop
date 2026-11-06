@@ -2,47 +2,50 @@ import Link from 'next/link'
 
 import CartNotice from '@/components/cart/notice'
 import Navbar from '@/components/layout/navbar'
+import { buttonClass } from '@/components/ui/button'
+import { inputClass } from '@/components/ui/form'
+import { navbarClass, navLinkClass, navLinksClass } from '@/components/ui/navbar'
 
 export default function Header() {
   return (
     <header className="container">
-      <div className="row">
-        <div className="col-sm-4"></div>
-        <div className="col-sm-3 d-flex align-items-center justify-content-center">
+      <div className="grid sm:grid-cols-12 sm:gap-x-6">
+        <div className="sm:col-span-4"></div>
+        <div className="flex items-center justify-center sm:col-span-3">
           <Link href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/i/logo.svg" alt="DorTak" width="300" className="img-fluid" />
+            <img src="/i/logo.svg" alt="DorTak" width="300" />
           </Link>
         </div>
-        <div className="col-sm-5 d-flex align-items-center justify-content-center justify-content-md-end">
+        <div className="flex items-center justify-center sm:col-span-5 md:justify-end">
           <CartNotice />
         </div>
       </div>
-      <nav className="navbar navbar-expand-lg navbar-light bg-light border rounded">
+      <nav className={navbarClass}>
         <Navbar
           brand={
-            <Link className="navbar-brand" href="/">
+            <Link className="me-4 py-[.3125rem]" href="/">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img alt="DorTak" src="/i/home.svg" width="30" height="30" className="img-fluid" />
+              <img alt="DorTak" src="/i/home.svg" width="30" height="30" />
             </Link>
           }>
-          <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-            <li className="nav-item">
-              <Link className="nav-link" href="/catalog/nitki-dor-tak/">Каталоги ниток</Link>
+          <ul className={`${navLinksClass} mb-2 lg:me-auto lg:mb-0`}>
+            <li>
+              <Link className={navLinkClass} href="/catalog/nitki-dor-tak/">Каталоги ниток</Link>
             </li>
-            <li className="nav-item">
-              <Link className="nav-link" href="/pages/price/">Прайс-лист</Link>
+            <li>
+              <Link className={navLinkClass} href="/pages/price/">Прайс-лист</Link>
             </li>
-            <li className="nav-item">
-              <Link className="nav-link" href="/pages/where-to-buy/">Где купить</Link>
+            <li>
+              <Link className={navLinkClass} href="/pages/where-to-buy/">Где купить</Link>
             </li>
-            <li className="nav-item">
-              <Link className="nav-link" href="/user/orders/">Кабинет покупателя</Link>
+            <li>
+              <Link className={navLinkClass} href="/user/orders/">Кабинет покупателя</Link>
             </li>
           </ul>
-          <form className="d-flex" action="/search/">
-            <input type="search" name="text" className="form-control me-2" placeholder="Введите номер цвета" autoComplete="off" />
-            <button type="submit" className="btn btn-outline-primary">Найти</button>
+          <form className="flex" action="/search/">
+            <input type="search" name="text" className={`${inputClass()} me-2`} placeholder="Введите номер цвета" autoComplete="off" />
+            <button type="submit" className={buttonClass({ variant: 'outline-primary' })}>Найти</button>
           </form>
         </Navbar>
       </nav>

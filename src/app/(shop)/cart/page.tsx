@@ -15,10 +15,8 @@ export default function CartPage() {
     dark: true,
     overlapped: true,
     children: (
-      <div className="container pb-5 mb-2 mb-md-4">
-        <div className="row">
-          <CartContents />
-        </div>
+      <div className="container mb-2 grid pb-12 md:mb-6 lg:grid-cols-3 lg:gap-x-6">
+        <CartContents />
       </div>
     ),
   })

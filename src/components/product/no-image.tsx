@@ -9,6 +9,6 @@ export default function NoImage({ size = 160, block = false, ...props }: { size?
   }
 
   return (
-    <span className={(block ? "d-block mx-auto" : "d-inline-block") + " text-muted"} style={style} {...props}>&#8709;</span>
+    <span className={(block ? "mx-auto block" : "inline-block") + " text-muted"} style={style} {...props}>&#8709;</span>
   )
 }

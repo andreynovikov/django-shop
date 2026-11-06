@@ -65,10 +65,10 @@ export default async function CategoryPage({ params }: PageProps<'/catalog/[...p
       <div className="container">
         <CurrentCatalog />
         {category.children && (
-          <ul className="catalog">
+          <ul className="mb-4 list-disc ps-8">
             { /* TODO: filter hidden (here or in API) */}
             {category.children.map((subcategory) => (
-              <li className="category" key={subcategory.id}>
+              <li key={subcategory.id}>
                 <Link href={categoryPathname([...path, subcategory.slug])}>
                   {subcategory.name}
                 </Link>
