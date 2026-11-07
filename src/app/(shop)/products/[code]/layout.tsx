@@ -27,7 +27,7 @@ export default async function ProductLayout({ params, children }: LayoutProps<'/
       {(product.runame || product.whatis) && (
         <span className="text-white opacity-70">
           <span>{product.whatis}</span>
-          <span className="d-none d-sm-inline"> {product.runame}</span>
+          <span className="hidden sm:inline"> {product.runame}</span>
         </span>
       )}
       {product.allow_reviews && <ProductRating product={product.id} anchor="reviews" />}

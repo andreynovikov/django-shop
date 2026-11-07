@@ -1,5 +1,7 @@
 import { ChangeEvent } from 'react'
 
+import { checkClass, checkInputClass, checkLabelClass } from '@/components/ui/form'
+
 import { FilterProps } from './types'
 
 export default function BooleanFilter({ filter, filterValue, onFilterChanged }: FilterProps<'name' | 'id', boolean>) {
@@ -10,37 +12,37 @@ export default function BooleanFilter({ filter, filterValue, onFilterChanged }: 
 
   return (
     <div className="mb-2">
-      <div className="form-check form-check-inline">
+      <div className={checkClass({ inline: true })}>
         <input
-          className="form-check-input"
+          className={checkInputClass()}
           type="radio"
           name={filter.name}
           id={`${filter.id}-1`}
           value="true"
           checked={filterValue === true}
           onChange={handleChange} />
-        <label className="form-check-label" htmlFor={`${filter.id}-1`}>да</label>
+        <label className={checkLabelClass} htmlFor={`${filter.id}-1`}>да</label>
       </div>
-      <div className="form-check form-check-inline">
+      <div className={checkClass({ inline: true })}>
         <input
-          className="form-check-input"
+          className={checkInputClass()}
           type="radio"
           name={filter.name}
           id={`${filter.id}-0`}
           value="false"
           checked={filterValue === false}
           onChange={handleChange} />
-        <label className="form-check-label" htmlFor={`${filter.id}-0`}>нет</label>
+        <label className={checkLabelClass} htmlFor={`${filter.id}-0`}>нет</label>
       </div>
-      <div className={"form-check form-check-inline" + (filterValue !== null ? "" : " d-none")}>
+      <div className={filterValue !== null ? checkClass({ inline: true }) : 'hidden'}>
         <input
-          className="form-check-input"
+          className={checkInputClass()}
           type="radio"
           name={filter.name}
           id={filter.id}
           value=""
           onChange={handleChange} />
-        <label className="form-check-label" htmlFor={filter.id}>не важно</label>
+        <label className={checkLabelClass} htmlFor={filter.id}>не важно</label>
       </div>
     </div>
   )

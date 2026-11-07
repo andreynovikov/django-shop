@@ -3,6 +3,10 @@
 import { useState, useMemo } from 'react'
 
 import Link from 'next/link'
+import { IconShoppingCart } from '@tabler/icons-react'
+
+import { buttonClass } from '@/components/ui/button'
+import { selectClass } from '@/components/ui/form'
 
 import useBasket from '@/lib/basket'
 import { Product } from '@/lib/types'
@@ -36,26 +40,24 @@ export default function ProductShopping({ product }: { product: Product }) {
 
   return basketQuantity > 0 ? (
     <>
-      <div className="d-flex justify-content-between align-items-center">
-        <button className="btn btn-success btn-shadow d-block px-5" type="button" onClick={() => handleSetQuantity(-1)}>
-          <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+      <div className="flex items-center justify-between">
+        <button className={buttonClass({ variant: 'success', size: 'wide', shadow: true })} type="button" onClick={() => handleSetQuantity(-1)} aria-label="Убрать одну штуку">
           -
         </button>
         <span className="px-2">
-          <span className="d-none d-md-inline">В корзине: </span>
+          <span className="hidden md:inline">В корзине: </span>
           {basketQuantity} шт
         </span>
-        <button className="btn btn-success btn-shadow d-block px-5" type="button" onClick={() => handleSetQuantity(+1)}>
-          <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+        <button className={buttonClass({ variant: 'success', size: 'wide', shadow: true })} type="button" onClick={() => handleSetQuantity(+1)} aria-label="Добавить ещё одну">
           +
         </button>
       </div>
-      <Link href="/cart" className="btn btn-primary d-block w-100 mt-4">Оформить заказ</Link>
+      <Link href="/cart" className={`${buttonClass({ block: true })} mt-6`}>Оформить заказ</Link>
     </>
   ) : (
-    <div className="d-flex justify-content-between align-items-center">
+    <div className="flex items-center justify-between">
       {product.instock > 5 && (
-        <select className="form-select me-3" style={{ width: "5rem" }} value={quantity} onChange={(e) => setAddQuantity(+e.target.value)}>
+        <select className={`${selectClass({ full: false })} me-4 w-20 shrink-0`} value={quantity} onChange={(e) => setAddQuantity(+e.target.value)} aria-label="Количество">
           <option value="1">1</option>
           <option value="2">2</option>
           <option value="3">3</option>
@@ -63,9 +65,8 @@ export default function ProductShopping({ product }: { product: Product }) {
           <option value="5">5</option>
         </select>
       )}
-      <button className="btn btn-success btn-shadow d-block w-100" type="button" onClick={handleCartClick}>
-        <span className="d-none spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-        <i className="ci-cart fs-lg me-2" />Купить
+      <button className={buttonClass({ variant: 'success', block: true, shadow: true })} type="button" onClick={handleCartClick}>
+        <IconShoppingCart size={18} stroke={1.5} className="me-2" />Купить
       </button>
     </div>
   )

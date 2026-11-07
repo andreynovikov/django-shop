@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
+import { IconStarFilled } from '@tabler/icons-react'
+
 import { Loading } from '@/components/loading'
 import ReviewRating from '@/components/review/rating'
 import ReviewItem from '@/components/review/item'
@@ -62,23 +64,23 @@ export default function ProductReviews({ product }: { product: Product }) {
     <>
       {reviews.count > 0 && (
         <>
-          <div className="row pb-3">
-            <div className="col-lg-4 col-md-5">
-              <h2 className="h3 mb-4">{reviews.count} {rupluralize(reviews.count, ['обзор', 'обзора', 'обзоров'])}</h2>
-              <ReviewRating value={reviews.statistics.value} classAddon="fs-sm me-1" />
-              <span className="d-inline-block align-middle ms-1">{reviews.statistics.value.toFixed(1)} &ndash; {reviews.statistics.text}</span>
+          <div className="grid gap-x-7.5 pb-4 md:grid-cols-12">
+            <div className="md:col-span-5 lg:col-span-4">
+              <h2 className="mb-6 text-h3">{reviews.count} {rupluralize(reviews.count, ['обзор', 'обзора', 'обзоров'])}</h2>
+              <ReviewRating value={reviews.statistics.value} size="sm" />
+              <span className="ms-1 inline-block align-middle">{reviews.statistics.value.toFixed(1)} &ndash; {reviews.statistics.text}</span>
             </div>
-            <div className="col-lg-8 col-md-7">
+            <div className="md:col-span-7 lg:col-span-8">
               {ratingChoices.toReversed().map((choice, index) => (
-                <div className="d-flex align-items-center mb-2" key={index}>
-                  <div className="text-nowrap me-3">
-                    <span className="d-inline-block align-middle text-muted">{choice.rating}</span>
-                    <i className="ci-star-filled fs-xs ms-1" />
+                <div className="mb-2 flex items-center" key={index}>
+                  <div className="me-4 whitespace-nowrap">
+                    <span className="inline-block align-middle text-muted">{choice.rating}</span>
+                    <IconStarFilled size={12} className="ms-1 align-middle" />
                   </div>
-                  <div className="w-100">
-                    <div className="progress" style={{ height: "4px" }}>
+                  <div className="w-full">
+                    <div className="h-1 overflow-hidden rounded-sm bg-gray-200">
                       <div
-                        className="progress-bar"
+                        className="h-full"
                         role="progressbar"
                         style={{ width: choice.percent + "%", backgroundColor: colors[index] }}
                         aria-valuenow={choice.percent}
@@ -87,24 +89,24 @@ export default function ProductReviews({ product }: { product: Product }) {
                       </div>
                     </div>
                   </div>
-                  <span className="text-muted ms-3">{choice.count}</span>
+                  <span className="ms-4 text-muted">{choice.count}</span>
                 </div>
               ))}
             </div>
           </div>
-          <hr className="mt-4 mb-3" />
+          <hr className="mt-6 mb-4" />
         </>
       )}
-      <div className="row pt-4">
-        <div className="col-md-7">
+      <div className="grid gap-x-7.5 pt-6 md:grid-cols-12">
+        <div className="md:col-span-7">
           {reviews.results.length > 0 ? (
             reviews.results.map((review, index) => <ReviewItem review={review} last={index === reviews.results.length - 1} key={review.id} />)
           ) : (
             <div>Нет отзывов об этом товаре. Вы можете быть первым, кто опубликует отзыв.</div>
           )}
         </div>
-        <div className="col-md-5 mt-2 pt-4 mt-md-0 pt-md-0">
-          <div className="bg-secondary py-grid-gutter px-grid-gutter rounded-3">
+        <div className="mt-2 pt-6 md:col-span-5 md:mt-0 md:pt-0">
+          <div className="rounded-lg bg-gray-100 p-7.5">
             {status === 'authenticated' ? (
               <ReviewForm product={product} review={reviews.user_reviews?.[0]} />
             ) : (

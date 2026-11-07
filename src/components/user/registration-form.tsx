@@ -4,7 +4,11 @@ import { useState, Fragment, ChangeEvent, SubmitEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
+import { IconUser } from '@tabler/icons-react'
+
 import { ButtonLoading } from '@/components/loading'
+import { buttonClass } from '@/components/ui/button'
+import { checkClass, checkInputClass, checkLabelClass, feedbackClass, formTextClass, inputClass } from '@/components/ui/form'
 import { passPhoneToLogin } from '@/components/user/login-page-form'
 
 import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
@@ -81,16 +85,16 @@ export default function RegistrationForm({ embedded = '', onComplete }: Registra
     <form onSubmit={handleSubmit} noValidate>
       {error['non_field_errors']?.map((err, index) => (
         <Fragment key={index}>
-          <div className="is-invalid text-danger">Ошибка: </div>
-          <div className="invalid-feedback mt-0 mb-3">{err}</div>
+          <div className="text-danger">Ошибка: </div>
+          <div className="mb-4 w-full text-xs text-danger">{err}</div>
         </Fragment>
       ))}
-      <div className="mb-3">
-        <label htmlFor={`${embedded}reg-phone-input`}>Укажите номер мобильного телефона:</label>
+      <div className="mb-4">
+        <label className="inline-block" htmlFor={`${embedded}reg-phone-input`}>Укажите номер мобильного телефона:</label>
         <input
           type="tel"
           name="phone"
-          className={"form-control" + (error['phone'] ? " is-invalid" : "")}
+          className={inputClass({ invalid: !!error['phone'] })}
           ref={phoneRef}
           id={`${embedded}reg-phone-input`}
           placeholder="+7 (999) 111-22-33"
@@ -98,72 +102,72 @@ export default function RegistrationForm({ embedded = '', onComplete }: Registra
           autoComplete="tel"
           required />
         {error['phone']?.map((err, index) => (
-          <div className="invalid-feedback" key={index}>{err}</div>
+          <div className={feedbackClass} key={index}>{err}</div>
         ))}
       </div>
-      <div className="mb-3">
-        <label htmlFor={`${embedded}reg-email-input`}>Адрес электронной почты:</label>
+      <div className="mb-4">
+        <label className="inline-block" htmlFor={`${embedded}reg-email-input`}>Адрес электронной почты:</label>
         <input
           type="email"
-          className={"form-control" + (error['email'] ? " is-invalid" : "")}
+          className={inputClass({ invalid: !!error['email'] })}
           name="email"
           id={`${embedded}reg-email-input`}
           onChange={handleChange}
           autoComplete="email" />
         {error['email']?.map((err, index) => (
-          <div className="invalid-feedback" key={index}>{err}</div>
+          <div className={feedbackClass} key={index}>{err}</div>
         ))}
-        <small className="form-text text-muted">опционально</small>
+        <small className={formTextClass}>опционально</small>
       </div>
-      <div className="mb-3">
-        <label htmlFor={`${embedded}reg-name-input`}>Фамилия Имя Отчество:</label>
+      <div className="mb-4">
+        <label className="inline-block" htmlFor={`${embedded}reg-name-input`}>Фамилия Имя Отчество:</label>
         <input
           type="text"
-          className={"form-control" + (error['name'] ? " is-invalid" : "")}
+          className={inputClass({ invalid: !!error['name'] })}
           name="name"
           id={`${embedded}reg-name-input`}
           onChange={handleChange}
           autoComplete="name" />
         {error['name']?.map((err, index) => (
-          <div className="invalid-feedback" key={index}>{err}</div>
+          <div className={feedbackClass} key={index}>{err}</div>
         ))}
-        <small className="form-text text-muted">если Вы планируете оформлять заказы</small>
+        <small className={formTextClass}>если Вы планируете оформлять заказы</small>
       </div>
-      <div className="mb-3">
-        <label htmlFor={`${embedded}reg-username-input`}>Псевдоним для отзывов:</label>
+      <div className="mb-4">
+        <label className="inline-block" htmlFor={`${embedded}reg-username-input`}>Псевдоним для отзывов:</label>
         <input
           type="text"
-          className={"form-control" + (error['username'] ? " is-invalid" : "")}
+          className={inputClass({ invalid: !!error['username'] })}
           name="username"
           id={`${embedded}reg-username-input`}
           onChange={handleChange} />
         {error['username']?.map((err, index) => (
-          <div className="invalid-feedback" key={index}>{err}</div>
+          <div className={feedbackClass} key={index}>{err}</div>
         ))}
-        <small className="form-text text-muted">если Вы не хотите, чтобы Ваше настоящее имя отображалось в отзывах</small>
+        <small className={formTextClass}>если Вы не хотите, чтобы Ваше настоящее имя отображалось в отзывах</small>
       </div>
-      <div className="form-check mb-3">
+      <div className={`${checkClass()} mb-4`}>
         <input
           type="checkbox"
-          className={"form-check-input" + (error['consent'] ? " is-invalid" : "")}
+          className={checkInputClass({ invalid: !!error['consent'] })}
           name="consent"
           id="sw-consent-check"
           checked={consent}
           onChange={handleChange} />
         {" "}
-        <label className="form-check-label" htmlFor="sw-consent-check">
+        <label className={checkLabelClass} htmlFor="sw-consent-check">
           Я даю{" "}
           <Link href="/pages/personaldata/">
             согласие на обработку персональных данных
           </Link>
         </label>
         {error['consent']?.map((err, index) => (
-          <div className="invalid-feedback" key={index}>{err}</div>
+          <div className={feedbackClass} key={index}>{err}</div>
         ))}
       </div>
       <div className="text-end">
-        <button className={"btn btn-primary ms-4" + (embedded ? " btn-shadow" : "")} type="submit" disabled={isRegisterPending}>
-          {!embedded && <i className="ci-user me-2 ms-n1" />}
+        <button className={`${buttonClass({ shadow: !!embedded })} ms-6`} type="submit" disabled={isRegisterPending}>
+          {!embedded && <IconUser size={16} stroke={1.5} className="-ms-1 me-2" />}
           Зарегистрироваться
           {isRegisterPending && <ButtonLoading />}
         </button>

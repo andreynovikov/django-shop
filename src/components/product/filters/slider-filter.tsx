@@ -1,5 +1,6 @@
 import { Slider } from '@base-ui/react/slider'
-import styles from './slider-filter.module.scss'
+
+import { sliderControlClass, sliderIndicatorClass, sliderThumbClass, sliderTrackClass } from '@/components/ui/slider'
 
 import { FilterProps } from './types'
 
@@ -15,7 +16,7 @@ export default function SliderFilter({ filter, filterValue, onFilterChanged }: F
   }
 
   return (
-    <div className="d-flex align-items-center">
+    <div className="flex items-center">
       <Slider.Root
         thumbAlignment="edge"
         value={currentValue}
@@ -23,16 +24,16 @@ export default function SliderFilter({ filter, filterValue, onFilterChanged }: F
         min={minValue}
         max={filter.attrs?.max_value}
         step={filter.attrs?.step || 1}
-        className="flex-grow-1"
+        className="grow"
       >
-        <Slider.Control className={styles.Control}>
-          <Slider.Track className={styles.Track}>
-            <Slider.Indicator className={styles.Indicator} />
-            <Slider.Thumb className={styles.Thumb} />
+        <Slider.Control className={sliderControlClass}>
+          <Slider.Track className={sliderTrackClass}>
+            <Slider.Indicator className={sliderIndicatorClass} />
+            <Slider.Thumb className={sliderThumbClass} />
           </Slider.Track>
         </Slider.Control>
       </Slider.Root>
-      <div className="ms-2 fs-sm">
+      <div className="ms-2 text-sm">
         <span>{currentValue}</span>
         {filter.unit && <span>&nbsp;{filter.unit}</span>}
       </div>

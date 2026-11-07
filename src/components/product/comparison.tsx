@@ -7,6 +7,11 @@ import { useQuery, useQueries } from '@tanstack/react-query'
 import { useQueryStates, parseAsInteger, parseAsNativeArrayOf } from 'nuqs'
 
 import FieldHelp from '@/components/product/field-help'
+import { IconTrash } from '@tabler/icons-react'
+
+import { Alert } from '@/components/ui/alert'
+import { buttonClass } from '@/components/ui/button'
+import { checkClass, checkInputClass, checkLabelClass } from '@/components/ui/form'
 import NoImage from '@/components/product/no-image'
 import ProductPrice from '@/components/product/price'
 import { PageLoading } from '@/components/loading'
@@ -25,6 +30,10 @@ const comparisonParams = {
 }
 
 // Reading the query needs a Suspense boundary, the page is static
+// A bordered table cell and the field name at the start of a row
+const cellClass = 'border p-3'
+const headerCellClass = 'border p-3 text-start font-medium text-heading first-letter:uppercase'
+
 export default function ProductComparison() {
   const [{ kind: kindId, product: productIds }, setParams] = useQueryStates(comparisonParams)
   const { addItem } = useBasket()
@@ -115,7 +124,7 @@ export default function ProductComparison() {
 
   if (isComparisonSuccess && productIds.length === 0 && kindId === null && comparisons.length === 0)
     return (
-      <div className="alert alert-danger" role="alert">Отсутствуют товары для сравнения</div>
+      <Alert variant="danger" className="mb-4">Отсутствуют товары для сравнения</Alert>
     )
 
   if (kindId !== null || products === undefined || !isKindsSuccess)
@@ -126,39 +135,42 @@ export default function ProductComparison() {
   return (
     <>
       {kinds.length > 1 ? (
-        <div className="btn-group btn-group-lg mb-5" role="group">
-          {kinds.map((kind) => (
-            <Link className={"btn btn-" + (kind.id === currentKind ? "dark" : "secondary")} href={`/compare/?kind=${kind.id}`} key={kind.id}>
+        <div className="mb-12 inline-flex" role="group">
+          {kinds.map((kind, index) => (
+            <Link
+              className={`${buttonClass({ variant: kind.id === currentKind ? 'dark' : 'secondary', size: 'lg' })} ${index > 0 ? '-ms-px rounded-s-none' : ''} ${index < kinds.length - 1 ? 'rounded-e-none' : ''}`}
+              href={`/compare/?kind=${kind.id}`}
+              aria-current={kind.id === currentKind ? 'page' : undefined}
+              key={kind.id}>
               {kind.name}
             </Link>
           ))}
         </div>
       ) : (
-        <h2 className="h3 pb-3">{isKindSuccess ? kind.name : "Товары"}</h2>
+        <h2 className="mb-3 pb-4 text-h3">{isKindSuccess ? kind.name : "Товары"}</h2>
       )}
 
       {products.length === 1 && (
-        <div className="alert alert-secondary mb-5" role="alert">Добавьте ещё как минимум один товар в сравнение</div>
+        <Alert variant="secondary" className="mb-12">Добавьте ещё как минимум один товар в сравнение</Alert>
       )}
 
-      <div className="table-responsive">
-        <table className="table table-bordered table-layout-fixed fs-sm" style={{ minWidth: "45rem" }} id="comparison">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[45rem] table-fixed align-top text-sm">
           <thead>
-            <tr>
-              <td className="align-middle">
-                <div className="form-check">
-                  <input className="form-check-input" type="checkbox" id="differences" checked={different} onChange={() => setDifferent(!different)} />
-                  <label className="form-check-label" htmlFor="differences">Только различия</label>
+            <tr className="border-b border-[#bccad9] align-bottom">
+              <td className={`${cellClass} align-middle`}>
+                <div className={checkClass()}>
+                  <input className={checkInputClass()} type="checkbox" id="differences" checked={different} onChange={() => setDifferent(!different)} />
+                  <label className={checkLabelClass} htmlFor="differences">Только различия</label>
                 </div>
               </td>
               {products.map((product) => (
-                <td className="text-center px-4 pb-4" key={product.id}>
-                  <button type="button" className="btn btn-sm d-block w-100 text-danger mb-2" onClick={() => uncompareProduct(product.id)}>
-                    <i className="ci-trash me-1" />Удалить
+                <td className="border px-6 pt-3 pb-6 text-center" key={product.id}>
+                  <button type="button" className={`${buttonClass({ variant: 'link-danger', size: 'sm', block: true })} mb-2`} onClick={() => uncompareProduct(product.id)}>
+                    <IconTrash size={14} stroke={1.5} className="me-1" />Удалить
                   </button>
                   <Link
-                    className="d-inline-block mb-3 position-relative"
-                    style={{ width: 80, height: 80 }}
+                    className="relative mb-4 inline-block size-20"
                     href={`/products/${product.code}`}>
                     {product.image ? (
                       <Image
@@ -171,13 +183,13 @@ export default function ProductComparison() {
                       <NoImage size={80} />
                     )}
                   </Link>
-                  <h3 className="product-title fs-sm">
-                    <Link href={`/products/${product.code}`}>
+                  <h3 className="mb-3 text-sm leading-[1.2] font-medium">
+                    <Link className="text-heading hover:text-primary" href={`/products/${product.code}`}>
                       {product.title}
                     </Link>
                   </h3>
                   {product.enabled && product.instock > 0 && (
-                    <button type="button" className="btn btn-success btn-sm" onClick={() => handleCartClick(product)}>
+                    <button type="button" className={buttonClass({ variant: 'success', size: 'sm' })} onClick={() => handleCartClick(product)}>
                       {product.variations ? "Выбрать" : "Купить"}
                     </button>
                   )}
@@ -187,13 +199,13 @@ export default function ProductComparison() {
           </thead>
           <tbody>
             {Object.keys(fieldNames).length > 0 && productFields.length > 0 && productFields.map(({ field, differ }) => (
-              <tr className={(differ && !different) ? "table-danger" : ""} key={field}>
-                <th className="text-dark">
+              <tr className={(differ && !different) ? "bg-[color-mix(in_srgb,var(--color-danger)_10%,white)]" : ""} key={field}>
+                <th className={headerCellClass}>
                   {fieldNames[field][0]}
                   <FieldHelp field={field} />
                 </th>
                 {products.map((product) => (
-                  <td key={product.id}>
+                  <td className={cellClass} key={product.id}>
                     {product[field] && (
                       <>
                         {prettifyProductFieldValue(field, product[field])}
@@ -205,9 +217,9 @@ export default function ProductComparison() {
               </tr>
             ))}
             <tr>
-              <th className="text-dark">Цена</th>
+              <th className={headerCellClass}>Цена</th>
               {products.map((product) => (
-                <td key={product.id}>
+                <td className={cellClass} key={product.id}>
                   {product.enabled && product.price > 0 && <ProductPrice product={product} delFs="xs" />}
                 </td>
               ))}
@@ -230,11 +242,11 @@ export default function ProductComparison() {
             }
             {productFields.length > 5 && (
               <tr>
-                <th></th>
+                <th className={headerCellClass}></th>
                 {products.map((product) => (
-                  <td key={product.id}>
+                  <td className={cellClass} key={product.id}>
                     {product.instock > 0 && (
-                      <button type="button" className="btn btn-success d-block w-100" onClick={() => handleCartClick(product)}>
+                      <button type="button" className={buttonClass({ variant: 'success', block: true })} onClick={() => handleCartClick(product)}>
                         {product.variations ? "Выбрать" : "Купить"}
                       </button>
                     )}

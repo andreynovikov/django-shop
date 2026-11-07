@@ -1,0 +1,236 @@
+@import 'tailwindcss' source('.');
+@plugin '@tailwindcss/typography';
+@import './backend-safelist.css';
+@import './backend-content.css'; /* unlayered: it beats Tailwind utilities of the same names */
+
+/* The look of the Cartzilla theme: its grays, type scale, radii and shadows, with Janome's colors and font */
+@theme {
+  /* Roboto where the system has it, as before: the site doesn't load it */
+  --font-sans: Roboto, sans-serif;
+
+  /* Cartzilla's grays replace Tailwind's */
+  --color-gray-100: #f6f9fc;
+  --color-gray-200: #f3f5f9;
+  --color-gray-300: #e3e9ef;
+  --color-gray-400: #dae1e7;
+  --color-gray-500: #aeb4be;
+  --color-gray-600: #7d879c;
+  --color-gray-700: #4b566b;
+  --color-gray-800: #373f50;
+  --color-gray-900: #2b3445;
+
+  --color-body: #000;
+  --color-heading: #373f50;
+  --color-muted: #7d879c;
+  --color-border: #e3e9ef;
+
+  /* Janome's colors; the hover shades are Cartzilla's buttons', 10% darker, and its links', lightness scaled by -10% */
+  --color-primary: #df0623;
+  --color-primary-hover: #ad051b;
+  --color-link-hover: #c90520;
+  --color-accent: #26723c;
+  --color-accent-hover: #194c28;
+  --color-secondary: #f3f5f9;
+  --color-secondary-hover: #d1d9e8;
+  --color-success: #7eb08a;
+  --color-success-hover: #5f9c6e;
+  --color-info: #99bc9e;
+  --color-info-hover: #7aa881;
+  --color-warning: #ef7f1a;
+  --color-danger: #df0623;
+  --color-dark: #6f8975;
+  --color-dark-hover: #586d5d;
+  --color-light: #fff;
+  --color-topbar: #f3f5f9;
+
+  /* Tailwind's xs, sm, base and lg are Cartzilla's sizes; ms and md are Cartzilla's own sizes between them.
+     They keep the line height of the text around them, as Bootstrap's font size classes did. */
+  --text-xs--line-height: 1.5;
+  --text-sm--line-height: 1.5;
+  --text-base--line-height: 1.5;
+  --text-lg--line-height: 1.5;
+  --text-xl--line-height: 1.5;
+  --text-ms: 0.8125rem;
+  --text-ms--line-height: 1.5;
+  --text-md: 0.9375rem;
+  --text-md--line-height: 1.5;
+
+  /* Cartzilla's headings, as its .h1-.h6 classes: the bigger ones shrink on screens narrower than 1200px */
+  --text-h1: min(2.5rem, calc(1.375rem + 1.5vw));
+  --text-h1--line-height: 1.2;
+  --text-h1--font-weight: 500;
+  --text-h2: min(2rem, calc(1.325rem + 0.9vw));
+  --text-h2--line-height: 1.2;
+  --text-h2--font-weight: 500;
+  --text-h3: min(1.75rem, calc(1.3rem + 0.6vw));
+  --text-h3--line-height: 1.2;
+  --text-h3--font-weight: 500;
+  --text-h4: min(1.5rem, calc(1.275rem + 0.3vw));
+  --text-h4--line-height: 1.2;
+  --text-h4--font-weight: 500;
+  --text-h5: 1.25rem;
+  --text-h5--line-height: 1.2;
+  --text-h5--font-weight: 500;
+  --text-h6: 1.0625rem;
+  --text-h6--line-height: 1.2;
+  --text-h6--font-weight: 500;
+
+  --radius-md: 0.3125rem;
+  --radius-lg: 0.4375rem;
+
+  --shadow-sm: 0 0.125rem 0.3rem -0.0625rem rgb(0 0 0 / 0.03), 0 0.275rem 0.75rem -0.0625rem rgb(0 0 0 / 0.06);
+  --shadow-md: 0 0.25rem 0.5625rem -0.0625rem rgb(0 0 0 / 0.03), 0 0.275rem 1.25rem -0.0625rem rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 0.3rem 1.525rem -0.375rem rgb(0 0 0 / 0.1);
+
+  /* Cartzilla's dropdowns slide up a little when they open */
+  --animate-slide-up: slide-up 0.25s ease-in-out;
+
+  @keyframes slide-up {
+    from {
+      transform: translateY(0.5rem);
+    }
+
+    to {
+      transform: translateY(0);
+    }
+  }
+}
+
+/* As wide as the screen with gutters, 1260px from xl up, as Cartzilla's container */
+@utility container {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+  padding-inline: 0.9375rem;
+
+  @variant xl {
+    max-width: 1260px;
+  }
+
+  @variant 2xl {
+    max-width: 1260px;
+  }
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border);
+  }
+
+  body {
+    color: var(--color-body);
+    scrollbar-color: var(--color-body) var(--color-light);
+  }
+
+  :is(h1, h2, h3, h4, h5, h6) {
+    color: var(--color-heading);
+  }
+
+  a {
+    color: var(--color-primary);
+    transition: color 0.25s ease-in-out;
+
+    &:hover {
+      color: var(--color-link-hover);
+    }
+
+    &:not([href]) {
+      cursor: pointer;
+    }
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Tabler icons stand in the text, as the icon font did; preflight makes svg a block */
+  svg.tabler-icon {
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  /* Closed Collapsible panels that stay shown from a breakpoint up, e.g. the top menu and the account menu.
+     Preflight hides [hidden] with !important in this layer, a utility can't override it, a more specific rule here can. */
+  [hidden].sw-shown-md {
+    @variant md {
+      display: block !important;
+    }
+  }
+
+  [hidden].sw-shown-lg {
+    @variant lg {
+      display: block !important;
+    }
+  }
+}
+
+/* Swiper's own elements: the theme color of its controls, its pagination dots and the active thumbnail */
+:root {
+  --swiper-theme-color: #fff;
+  --swiper-navigation-size: 25px;
+  --swiper-navigation-sides-offset: 5px;
+}
+
+.swiper-pagination {
+  position: relative !important;
+  padding-top: 10px;
+}
+
+.swiper-pagination-bullet {
+  width: 0.5rem !important;
+  height: 0.5rem !important;
+  margin: 0.25rem !important;
+  opacity: 1 !important;
+  background: #b0b6c0 !important;
+  vertical-align: middle;
+
+  &:hover:not(.swiper-pagination-bullet-active) {
+    background: #c8ccd3 !important;
+  }
+}
+
+.swiper-pagination-bullet-active {
+  width: 0.75rem !important;
+  height: 0.75rem !important;
+  margin-block: 0.125rem !important;
+  background: var(--color-primary) !important;
+}
+
+.swiper-thumbs .swiper-slide-thumb-active {
+  border-color: var(--color-primary) !important;
+}
+
+/* File icons before links in product manuals, from the backend HTML. The filters color the black icons,
+   see https://codepen.io/sosuke/pen/Pjoqqp */
+
+:is(.sw-file-pdf, .sw-file-video, .sw-file-web)::before {
+  content: "";
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  vertical-align: text-bottom;
+  margin-right: 4px;
+}
+
+.sw-file-pdf::before {
+  background-image: url("/i/icons/file-pdf.svg");
+  filter: invert(19%) sepia(97%) saturate(7254%) hue-rotate(6deg) brightness(97%) contrast(105%);
+}
+
+.sw-file-video::before {
+  background-image: url("/i/icons/file-video.svg");
+  filter: invert(10%) sepia(90%) saturate(7251%) hue-rotate(5deg) brightness(99%) contrast(113%);
+}
+
+.sw-file-web::before {
+  background-image: url("/i/icons/file-web.svg");
+  filter: invert(7%) sepia(100%) saturate(7139%) hue-rotate(247deg) brightness(109%) contrast(138%);
+}

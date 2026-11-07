@@ -2,6 +2,9 @@
 
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { FreeMode, Navigation } from 'swiper/modules'
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
+
+import { carouselIconSizes, carouselNavClass } from '@/components/ui/carousel'
 
 import ProductMiniCard from './mini-card'
 
@@ -11,7 +14,7 @@ const productSwiperProps = {
   slidesPerView: 1,
   spaceBetween: 0,
   breakpoints: {
-    500: { slidesPerView: 2 },
+    640: { slidesPerView: 2 },
     770: { slidesPerView: 3 },
     1100: { slidesPerView: 4 },
   },
@@ -35,15 +38,15 @@ interface RelatedProductsCarouselProps {
 
 export default function RelatedProductsCarousel({ product, related, title }: RelatedProductsCarouselProps) {
   return <>
-    <h2 className="h3 text-center pb-4">{title} {product.title}</h2>
+    <h2 className="mb-3 pb-6 text-center text-h3">{title} {product.title}</h2>
     <Swiper {...productSwiperProps}>
-      <span className="nav-button-prev"><i className="ci-arrow-left"></i></span>
+      <span className={carouselNavClass({ side: 'prev' })}><IconChevronLeft size={carouselIconSizes.md} stroke={2} /></span>
       {related.map((accessory) => (
         <SwiperSlide key={accessory.id} className="px-4">
           <ProductMiniCard product={accessory} />
         </SwiperSlide>
       ))}
-      <span className="nav-button-next"><i className="ci-arrow-right"></i></span>
+      <span className={carouselNavClass({ side: 'next' })}><IconChevronRight size={carouselIconSizes.md} stroke={2} /></span>
     </Swiper>
   </>
 }

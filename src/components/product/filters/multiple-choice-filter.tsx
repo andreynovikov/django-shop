@@ -1,6 +1,8 @@
 import { ChangeEvent, useCallback, useState } from 'react'
 
-import SimpleBar from 'simplebar-react'
+import { IconSearch } from '@tabler/icons-react'
+
+import { checkClass, checkInputClass, checkLabelClass, inputClass } from '@/components/ui/form'
 
 import { FilterProps } from './types'
 
@@ -33,37 +35,38 @@ export default function MultipleChoiceFilter({ filter, filterValue, onFilterChan
   }
 
   return (
-    <div className="widget-filter">
+    <div>
       {(filter.choices?.length ?? 0) > 6 && (
-        <div className="input-group input-group-sm mb-2">
+        <div className="relative mb-2">
           <input
-            className="widget-filter-search form-control rounded-end pe-5"
+            className={`${inputClass({ size: 'sm' })} pe-12`}
             type="text"
             placeholder="Поиск"
+            aria-label="Поиск"
             value={itemsFilter}
             onChange={(event) => setItemsFilter(event.target.value)} />
-          <i className="ci-search position-absolute top-50 end-0 translate-middle-y fs-sm me-3" />
+          <IconSearch size={14} stroke={1.5} className="absolute top-1/2 right-0 me-4 -translate-y-1/2" />
         </div>
       )}
-      <SimpleBar style={{ maxHeight: "11rem" }} autoHide={false}>
-        <ul className="widget-list widget-filter-list list-unstyled pt-1">
+      <div className="max-h-44 overflow-y-auto pe-4 [scrollbar-width:thin]">
+        <ul className="pt-1">
           {filter.choices?.filter(([, label]) => filterItems(label)).map(([value, label]) => (
-            <li className="widget-filter-item d-flex justify-content-between align-items-center mb-1" key={value}>
-              <div className="form-check">
+            <li className="mb-1 flex items-center justify-between" key={value}>
+              <div className={checkClass()}>
                 <input
-                  className="form-check-input"
+                  className={checkInputClass()}
                   type="checkbox"
                   name={filter.name}
                   id={`${filter.id}-${value}`}
                   value={value}
                   checked={currentValue.includes(value)}
                   onChange={handleChange} />
-                <label className="form-check-label widget-filter-item-text" htmlFor={`${filter.id}-${value}`}>{label}</label>
+                <label className={checkLabelClass} htmlFor={`${filter.id}-${value}`}>{label}</label>
               </div>
             </li>
           ))}
         </ul>
-      </SimpleBar>
+      </div>
     </div>
   )
 }

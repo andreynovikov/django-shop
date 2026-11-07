@@ -1,0 +1,235 @@
+/*
+ * Transitional: the Bootstrap and Cartzilla classes that the HTML stored by the backend still uses, until django-shop's
+ * `manage.py tailwindize_html --write` converts them to Tailwind classes. Delete this file and the `backend-content`
+ * class then (see shop/tailwind_html.py in django-shop).
+ *
+ * Only classes that have styles in Cartzilla's theme and occur in the HTML this site shows are here, at Tailwind's
+ * breakpoints. Typography comes from `prose` (components/ui/content.ts). Every rule is scoped to .backend-content, so
+ * it beats a Tailwind utility of the same name with another value, e.g. mb-4 or h-100.
+ */
+
+/* Rows of columns with Cartzilla's 1.875rem gutters */
+.backend-content .row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-inline: -0.9375rem;
+}
+
+.backend-content .row > * {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 100%;
+  padding-inline: 0.9375rem;
+}
+
+.backend-content .col-12 {
+  flex: none;
+  width: 100%;
+}
+
+@media (min-width: 40rem) {
+  .backend-content .col-sm-6 {
+    flex: none;
+    width: 50%;
+  }
+}
+
+@media (min-width: 48rem) {
+  .backend-content .col-md-1 { flex: none; width: 8.33333%; }
+  .backend-content .col-md-2 { flex: none; width: 16.66667%; }
+  .backend-content .col-md-3 { flex: none; width: 25%; }
+  .backend-content .col-md-4 { flex: none; width: 33.33333%; }
+  .backend-content .col-md-5 { flex: none; width: 41.66667%; }
+  .backend-content .col-md-6 { flex: none; width: 50%; }
+  .backend-content .col-md-8 { flex: none; width: 66.66667%; }
+  .backend-content .col-md-10 { flex: none; width: 83.33333%; }
+  .backend-content .col-md-12 { flex: none; width: 100%; }
+}
+
+@media (min-width: 64rem) {
+  .backend-content .col-lg-3 { flex: none; width: 25%; }
+  .backend-content .col-lg-4 { flex: none; width: 33.33333%; }
+}
+
+@media (min-width: 80rem) {
+  .backend-content .col-xl-4 { flex: none; width: 33.33333%; }
+}
+
+/* Boxes of a fixed aspect ratio, their children fill them */
+.backend-content .ratio {
+  position: relative;
+  width: 100%;
+}
+
+.backend-content .ratio-16x9 {
+  aspect-ratio: 16 / 9;
+}
+
+.backend-content .ratio-4x3 {
+  aspect-ratio: 4 / 3;
+}
+
+.backend-content .ratio > * {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+/* Display */
+.backend-content .d-none { display: none; }
+.backend-content .d-block { display: block; }
+.backend-content .d-flex { display: flex; }
+
+@media (min-width: 40rem) {
+  .backend-content .d-sm-none { display: none; }
+}
+
+@media (min-width: 48rem) {
+  .backend-content .d-md-none { display: none; }
+  .backend-content .d-md-block { display: block; }
+  .backend-content .d-md-inline-block { display: inline-block; }
+}
+
+@media (min-width: 64rem) {
+  .backend-content .d-lg-none { display: none; }
+  .backend-content .d-lg-block { display: block; }
+}
+
+@media (min-width: 80rem) {
+  .backend-content .d-xl-none { display: none; }
+  .backend-content .d-xl-block { display: block; }
+}
+
+/* Cards: a bordered white box and its padded body, also as a product card pasted from the theme */
+.backend-content .card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid rgb(0 0 0 / 0.085);
+  border-radius: var(--radius-lg);
+  background-color: #fff;
+}
+
+.backend-content .card-body {
+  flex: auto;
+  padding: 1.25rem;
+}
+
+.backend-content .product-card {
+  border: 0;
+}
+
+.backend-content .product-title {
+  color: var(--color-heading);
+}
+
+.backend-content .product-meta {
+  color: var(--color-muted);
+}
+
+/* Bootstrap's caption over a carousel picture, in the adverts */
+.backend-content .carousel-caption {
+  position: absolute;
+  inset-inline: 15%;
+  bottom: 1.25rem;
+  padding-block: 1.25rem;
+  color: #fff;
+  text-align: center;
+}
+
+/* Buttons */
+.backend-content .btn {
+  display: inline-block;
+  padding: 0.625rem 1.375rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  text-decoration: none;
+}
+
+.backend-content .btn-success {
+  border-color: var(--color-success);
+  background-color: var(--color-success);
+  color: #fff;
+
+  &:hover {
+    border-color: var(--color-success-hover);
+    background-color: var(--color-success-hover);
+  }
+}
+
+.backend-content .btn-secondary {
+  border-color: var(--color-border);
+  background-color: var(--color-secondary);
+  color: var(--color-gray-700);
+}
+
+.backend-content .btn-sm {
+  padding: 0.425rem 1rem;
+  border-radius: 0.25rem;
+  font-size: 0.8125rem;
+}
+
+.backend-content .btn-lg {
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-lg);
+  font-size: 1.0625rem;
+}
+
+/* Utilities with Cartzilla's values */
+.backend-content .container,
+.backend-content .container-fluid {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: 0.9375rem;
+}
+
+.backend-content .m-3 { margin: 1rem; }
+.backend-content .mb-0 { margin-bottom: 0; }
+.backend-content .mb-1 { margin-bottom: 0.25rem; }
+.backend-content .mb-2 { margin-bottom: 0.5rem; }
+.backend-content .mb-4 { margin-bottom: 1.5rem; }
+.backend-content .me-2 { margin-inline-end: 0.5rem; }
+.backend-content .mt-3 { margin-top: 1rem; }
+.backend-content .mt-auto { margin-top: auto; }
+.backend-content .mx-n2 { margin-inline: -0.5rem; }
+.backend-content .p-3 { padding: 1rem; }
+.backend-content .p-5 { padding: 3rem; }
+.backend-content .pb-1 { padding-bottom: 0.25rem; }
+.backend-content .pb-2 { padding-bottom: 0.5rem; }
+.backend-content .pt-1 { padding-top: 0.25rem; }
+.backend-content .pt-2 { padding-top: 0.5rem; }
+.backend-content .px-2 { padding-inline: 0.5rem; }
+.backend-content .py-2 { padding-block: 0.5rem; }
+.backend-content .py-5 { padding-block: 3rem; }
+.backend-content .w-100 { width: 100%; }
+.backend-content .h-100 { height: 100%; }
+.backend-content .overflow-hidden { overflow: hidden; }
+.backend-content .position-relative { position: relative; }
+.backend-content .flex-column { flex-direction: column; }
+.backend-content .justify-content-between { justify-content: space-between; }
+.backend-content .align-items-center { align-items: center; }
+.backend-content .rounded { border-radius: var(--radius-md); }
+.backend-content .rounded-3 { border-radius: var(--radius-lg); }
+.backend-content .text-center { text-align: center; }
+.backend-content .text-uppercase { text-transform: uppercase; }
+.backend-content .text-muted { color: var(--color-muted); }
+.backend-content .text-dark { color: var(--color-dark); }
+.backend-content .text-accent { color: var(--color-accent); }
+.backend-content .text-info { color: var(--color-info); }
+.backend-content .text-danger { color: var(--color-danger); }
+.backend-content .fw-bold { font-weight: 700; }
+.backend-content .small { font-size: 0.8em; }
+.backend-content .fs-xs { font-size: 0.75rem; }
+.backend-content .fs-ms { font-size: 0.8125rem; }
+.backend-content .fs-sm { font-size: 0.875rem; }
+.backend-content .fs-6 { font-size: 1rem; }
+.backend-content .h6 { font-size: 1.0625rem; font-weight: 500; line-height: 1.2; color: var(--color-heading); }
+.backend-content .display-5 { font-size: min(3rem, calc(1.425rem + 2.1vw)); font-weight: 500; line-height: 1; }

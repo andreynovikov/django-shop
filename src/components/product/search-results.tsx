@@ -7,20 +7,22 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { useQueryStates, parseAsString, parseAsBoolean, parseAsInteger, parseAsArrayOf, parseAsNativeArrayOf } from 'nuqs'
 
 import { pageContentWrapper } from '@/components/layout/page-content-wrapper'
-import ProductSearchCard from '@/components/product/search-card'
+import ProductCard from '@/components/product/card'
 import MultipleChoiceFilter from '@/components/product/filters/multiple-choice-filter'
 import PriceFilter from '@/components/product/filters/price-filter'
 import PageSelector, { SmallPageSelector } from '@/components/page-selector'
 import { PageLoading } from '@/components/loading'
 import Offcanvas, { OffcanvasHeader, OffcanvasBody } from '@/components/ui/offcanvas'
+import { checkClass, checkInputClass, checkLabelClass } from '@/components/ui/form'
+import { handheldIconClass, handheldItemClass, handheldLabelClass } from '@/components/ui/handheld-toolbar'
+import { widgetTitleClass } from '@/components/ui/widget'
+import { IconAdjustmentsHorizontal } from '@tabler/icons-react'
 
 import { productKeys, loadProducts } from '@/lib/queries'
-import { convertSearchParams } from '@/lib/navigation/app-provider'
+import { baseFilters } from '@/lib/catalog'
 import { useToolbar } from '@/lib/toolbar'
 import { useCatalog } from '@/lib/catalog/hooks'
 import rupluralize from '@/lib/rupluralize'
-import { baseFilters } from '@/lib/catalog'
-import ProductCard from './card'
 
 const pathname = '/search/'
 const pageSize = 15
@@ -51,11 +53,11 @@ export function SearchResultsLoading() {
     title: searchTitle(null),
     dark: true,
     overlapped: true,
-    children: <PageLoading className="pt-5" />,
+    children: <PageLoading className="pt-12" />,
   })
 }
 
-// Results come straight from Diginetica in the browser, so reading search params needs a Suspense boundary
+// Products are searched on the backend in the browser, so reading search params needs a Suspense boundary
 export default function SearchResults() {
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useQueryStates(searchParams)
@@ -65,10 +67,10 @@ export default function SearchResults() {
 
   const toolbarItem = useMemo(() => {
     return (
-      <a className="d-table-cell handheld-toolbar-item" onClick={() => setShowFilters(true)} style={{ cursor: 'pointer' }}>
-        <span className="handheld-toolbar-icon"><i className="ci-filter-alt" /></span>
-        <span className="handheld-toolbar-label">Фильтры</span>
-      </a>
+      <button type="button" className={handheldItemClass} onClick={() => setShowFilters(true)}>
+        <span className={handheldIconClass}><IconAdjustmentsHorizontal size={20} stroke={1.5} /></span>
+        <span className={handheldLabelClass}>Фильтры</span>
+      </button>
     )
   }, [])
 
@@ -95,7 +97,7 @@ export default function SearchResults() {
     /*
     const brandsFacet = result?.facets?.find((facet) => facet.name === 'brands')
     if (brandsFacet !== undefined && brandsFacet.values.length > 1)
-      return brandsFacet.values.map((value) => [value.id, value.name])
+      return brandsFacet.values.map((value): [string, string] => [value.id, value.name])
     */
     return undefined
   }, [result])
@@ -110,52 +112,48 @@ export default function SearchResults() {
   let content
   if (isSuccess) {
     content = (
-      <div className="container pb-5 mb-2 mb-md-4">
-        <div className="row">
-          <aside className="col-lg-4">
-            <Offcanvas
-              show={showFilters}
-              onHide={() => setShowFilters(false)}
-              className="bg-white w-100 rounded-3 shadow-lg py-1"
-              style={{ maxWidth: "22rem" }}>
-              <OffcanvasHeader className="align-items-center shadow-sm">
-                <h2 className="h5 mb-0">Фильтры</h2>
+      <div className="container mb-2 pb-12 md:mb-6">
+        <div className="grid gap-x-7.5 lg:grid-cols-3">
+          <aside>
+            <Offcanvas show={showFilters} onHide={() => setShowFilters(false)}>
+              <OffcanvasHeader>
+                <h2 className="mb-0 text-h5">Фильтры</h2>
               </OffcanvasHeader>
-              <OffcanvasBody className="py-grid-gutter px-lg-grid-gutter">
-                {brandsFilter && <div className="widget pb-4 mb-4 border-bottom">
-                  <h3 className="widget-title">Производитель</h3>
+              <OffcanvasBody>
+                {brandsFilter && <div className="mb-6 border-b pb-6">
+                  <h3 className={widgetTitleClass}>Производитель</h3>
                   <MultipleChoiceFilter
                     filter={{ name: 'manufacturer', id: 'sw-manufacturer', choices: brandsFilter }}
                     filterValue={filters.manufacturer}
                     onFilterChanged={handleFilterChanged} />
                 </div>}
-                {priceFilter && <div className="widget pb-4 mb-4 border-bottom">
-                  <h3 className="widget-title">Цена</h3>
+                {priceFilter && <div className="mb-6 border-b pb-6">
+                  <h3 className={widgetTitleClass}>Цена</h3>
                   <PriceFilter
                     filter={{ name: 'price', unit: 'руб', attrs: priceFilter }}
                     filterValue={filters.price}
                     onFilterChanged={handleFilterChanged} />
                 </div>}
-                <div className="widget">
-                  <div className="form-check">
+                <div>
+                  <div className={checkClass()}>
                     <input
-                      className="form-check-input"
+                      className={checkInputClass()}
                       type="checkbox"
                       id="sw-awailable-check"
                       checked={filters.available}
                       onChange={(e) => handleFilterChanged('available', e.currentTarget.checked)} />
-                    <label className="form-check-label" htmlFor="sw-awailable-check">Доступно к покупке</label>
+                    <label className={checkLabelClass} htmlFor="sw-awailable-check">Доступно к покупке</label>
                   </div>
                 </div>
               </OffcanvasBody>
             </Offcanvas>
           </aside>
 
-          <section className="col-lg-8">
-            <div className="d-flex justify-content-center justify-content-sm-between align-items-center pt-2 pb-4 pb-sm-5">
-              <div className="d-flex pb-3">
+          <section className="min-w-0 lg:col-span-2">
+            <div className="flex items-center justify-center pt-2 pb-6 sm:justify-between sm:pb-12">
+              <div className="flex pb-4">
                 {result.count > 0 && (
-                  <span className="text-light opacity-75 text-nowrap">
+                  <span className="whitespace-nowrap text-white opacity-75">
                     {rupluralize(result.count, ['Найден', 'Найдены', 'Найдены'])}
                     {' '}{result.count}{' '}
                     {rupluralize(result.count, ['товар', 'товара', 'товаров'])}
@@ -171,17 +169,17 @@ export default function SearchResults() {
               )}
             </div>
 
-            <div className="row mx-n2" itemScope itemType="http://schema.org/OfferCatalog">
+            <div className="grid gap-x-4 sm:grid-cols-2 md:grid-cols-3" itemScope itemType="http://schema.org/OfferCatalog">
               <meta itemProp="name" content="Результаты поиска" />
               {result.count > 0 ? (
                 result.results.map((product, index) => (
-                  <div className="col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
+                  <div className="mb-6" key={product.id}>
                     <ProductCard product={product} gtmList="Результаты поиска" gtmPosition={index} />
-                    <hr className="d-sm-none" />
+                    <hr className="sm:hidden" />
                   </div>
                 ))
               ) : (
-                <div className="lead my-4">
+                <div className="col-span-full my-6 text-xl font-light">
                   По вашему запросу ничего не найдено.
                   Попробуйте сократить запрос или задать его по-другому.
                   Убедитесь, что название бренда и модели написано правильно.
@@ -191,7 +189,7 @@ export default function SearchResults() {
 
             {result.totalPages > 1 && (
               <>
-                <hr className="my-3" />
+                <hr className="my-4" />
                 <PageSelector
                   pathname={pathname}
                   query={query}
@@ -204,12 +202,12 @@ export default function SearchResults() {
       </div>
     )
   } else if (isLoading) {
-    content = <PageLoading className="pt-5" />
+    content = <PageLoading className="pt-12" />
   } else if (isError) {
     content = (
-      <div className="container pb-5 mb-2 mb-md-4">
-        <div className="d-flex align-items-center my-5 py-5">
-          <div className="lead ms-3">Error!</div>
+      <div className="container mb-2 pb-12 md:mb-6">
+        <div className="my-12 flex items-center py-12">
+          <div className="ms-4 text-xl font-light">Error!</div>
         </div>
       </div>
     )

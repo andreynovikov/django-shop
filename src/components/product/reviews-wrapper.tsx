@@ -20,8 +20,8 @@ export default function ProductReviewsWrapper({ product }: { product: Product })
     return null
 
   return (
-    <div className="border-top my-lg-3 py-5">
-      <div className="container pt-md-2" id="reviews" ref={reviewsRef}>
+    <div className="border-t py-12 lg:my-4">
+      <div className="container md:pt-2" id="reviews" ref={reviewsRef}>
         {reviewsVisible && (
           <Suspense fallback={<Loading className="text-center" />}>
             <ProductReviews product={product} />

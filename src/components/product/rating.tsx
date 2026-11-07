@@ -30,7 +30,7 @@ export default function ProductRating({ product, anchor }: { product: number, an
   return (
     <div {...props}>
       <ReviewRating value={average.value} />
-      <span className="d-inline-block fs-sm text-white opacity-70 align-middle mt-1 ms-1">
+      <span className="ms-1 mt-1 inline-block align-middle text-sm text-white opacity-70">
         {average.count} {rupluralize(average.count, ['обзор', 'обзора', 'обзоров'])}
       </span>
     </div>

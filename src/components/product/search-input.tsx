@@ -5,24 +5,27 @@ import { useRouter } from 'next/navigation'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 
 import { Autocomplete } from '@base-ui/react/autocomplete'
+import { IconSearch } from '@tabler/icons-react'
 
+import { inputClass } from '@/components/ui/form'
 import { AutocompletePopup, AutocompleteStatus, AutocompleteGroup, AutocompleteItem, Highlighter } from '@/components/ui/autocomplete'
 
-import { useNavigation } from '@/lib/navigation'
 import { productKeys, loadProductSuggestions } from '@/lib/queries'
 
 const MIN_LENGTH = 3
 
-type SuggestionItem =
-  | { section: 'correction' | 'sts', label: string }
-  | { section: 'products', label: string, product: ProductResult }
+interface SuggestionItem {
+  section: 'sts'
+  label: string
+}
 
 interface SuggestionGroup {
   section: SuggestionItem['section']
-  label?: string
+  label: string
   items: SuggestionItem[]
 }
 
+// Suggests product titles from the backend, a picked title is searched for
 export default function ProductSearchInput({ mobile = false }: { mobile?: boolean }) {
   const [searchText, setSearchText] = useState('')
   const deferredSearchText = useDeferredValue(searchText)
@@ -38,20 +41,12 @@ export default function ProductSearchInput({ mobile = false }: { mobile?: boolea
     if (!suggestions || searchText.length < MIN_LENGTH)
       return []
 
+    const titles = suggestions.results.filter((title, index, all) => all.indexOf(title) === index)
     const allGroups: SuggestionGroup[] = [
-      {
-        section: 'correction',
-        items: suggestions.correction ? [{ section: 'correction', label: suggestions.correction }] : []
-      },
       {
         section: 'sts',
         label: 'Часто ищут',
-        items: (suggestions.results ?? []).map(product => ({ section: 'sts', label: product }))
-      },
-      {
-        section: 'products',
-        label: 'Популярные товары',
-        items: (suggestions.products ?? []).map(product => ({ section: 'products', label: product.title, product }))
+        items: titles.map(title => ({ section: 'sts', label: title }))
       },
     ]
     return allGroups.filter(group => group.items.length > 0)
@@ -71,24 +66,24 @@ export default function ProductSearchInput({ mobile = false }: { mobile?: boolea
     groups.length === 0 ? "Ничего не найдено" : null
 
   return (
-    <form className="w-100" action="/search/">
+    <form className="w-full" action="/search/">
       <Autocomplete.Root
         items={groups}
         mode="inline"
         itemToStringValue={(item) => item.label}
         onValueChange={handleValueChange}>
-        <div className="input-group">
-          {mobile && <i className="ci-search position-absolute top-50 start-0 translate-middle-y text-muted fs-base ms-3" />}
+        <div className="relative">
+          {mobile && <IconSearch size={16} stroke={1.5} className="absolute top-1/2 left-0 z-5 ms-4 -translate-y-1/2 text-muted" />}
           <Autocomplete.Input
-            className={"form-control pe-5 " + (mobile ? "rounded-start" : "rounded-end")}
+            className={`${inputClass()} ${mobile ? 'ps-10' : 'pe-12'}`}
             name="text"
             placeholder="Поиск товаров" />
           {mobile ? (
             // Base UI adds a hidden input, without a submit button a form with two inputs isn't submitted by Enter
-            <button className="visually-hidden" type="submit" tabIndex={-1} aria-hidden="true" />
+            <button className="sr-only" type="submit" tabIndex={-1} aria-hidden="true" />
           ) : (
-            <button className="btn btn-link position-absolute top-50 end-0 translate-middle-y p-0 me-3" type="submit">
-              <i className="ci-search text-muted fs-base" />
+            <button className="absolute top-1/2 right-0 me-4 -translate-y-1/2 p-0 text-muted" type="submit" aria-label="Найти">
+              <IconSearch size={16} stroke={1.5} className="block" />
             </button>
           )}
         </div>
@@ -97,31 +92,12 @@ export default function ProductSearchInput({ mobile = false }: { mobile?: boolea
           <Autocomplete.List>
             {(group: SuggestionGroup, index: number) => (
               <AutocompleteGroup key={group.section} label={group.label} items={group.items} separated={index > 0}>
-                {(item) => item.section === 'products' ? (
-                  <AutocompleteItem
-                    key={`products:${item.product.id}`}
-                    value={item}
-                    onClick={() => navigate(`/products/${product.code}`)}>
-                    <div className="d-flex align-items-center gap-2">
-                      <div style={{ width: "64px" }}>
-                        {item.product.image ? <img src={item.product.image} className="img-fluid" /> : "no img"}
-                      </div>
-                      <div className="d-flex flex-column">
-                        <div>
-                          <Highlighter search={searchText}>{item.product.title}</Highlighter>
-                        </div>
-                        <div>
-                          {(+item.product.price).toLocaleString('ru')}<small>&nbsp;руб</small>
-                        </div>
-                      </div>
-                    </div>
-                  </AutocompleteItem>
-                ) : (
+                {(item) => (
                   <AutocompleteItem
                     key={`${item.section}:${item.label}`}
                     value={item}
-                    onClick={item.section === 'sts' ? () => router.push(`/search/?${new URLSearchParams({ text: item.label })}`) : undefined}>
-                    {item.section === 'sts' && <i className="ci-search text-muted fs-sm me-2" />}
+                    onClick={() => router.push(`/search/?${new URLSearchParams({ text: item.label })}`)}>
+                    <IconSearch size={14} stroke={1.5} className="me-2 align-[-2px] text-muted" />
                     <Highlighter search={searchText}>{item.label}</Highlighter>
                   </AutocompleteItem>
                 )}

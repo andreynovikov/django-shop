@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { pageContentWrapper } from '@/components/layout/page-content-wrapper'
 
 import { HttpError, loadPage, loadPages } from '@/lib/queries'
+import { contentClass } from '@/components/ui/content'
 
 // help and dialog pages are shown inside other pages, not on their own
 const isEmbedded = (uri: string[]) => ['help', 'dialog'].includes(uri[0])
@@ -36,8 +37,8 @@ export default async function FlatPage({ params }: PageProps<'/pages/[...uri]'>)
   return pageContentWrapper({
     title: page.title,
     children: (
-      <div className="container py-5 mb-2 mb-md-4">
-        <div dangerouslySetInnerHTML={{ __html: page.content }}></div>
+      <div className="container mb-2 py-12 md:mb-6">
+        <div className={contentClass()} dangerouslySetInnerHTML={{ __html: page.content }}></div>
       </div>
     )
   })

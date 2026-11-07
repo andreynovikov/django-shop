@@ -10,6 +10,8 @@ import { useSession } from '@/lib/session'
 import { createSerial, HttpError, serialKeys } from '@/lib/queries'
 
 import { Serial } from '@/lib/types'
+import { buttonClass } from '@/components/ui/button'
+import { inputClass } from '@/components/ui/form'
 
 export default function ExtendWarrantyForm() {
   const [sn, setSN] = useState<string>()
@@ -48,15 +50,15 @@ export default function ExtendWarrantyForm() {
   }
 
   return (
-    <div className="container py-5 mb-2 mb-md-4">
+    <div className="container mb-2 py-12 md:mb-6">
       {errors !== undefined ? (
         /* серийный номер уже был зарегистрирован */
         errors.map(error => (
-          <p key={error}>{error}</p>
+          <p className="mb-4" key={error}>{error}</p>
         ))
       ) : serial !== undefined ? (
         /* серийный номер зарегистрирован */
-        <p>
+        <p className="mb-4">
           Серийный номер <b>{serial.number}</b> зарегистрирован.{' '}
           {serial.approved ? 'И' : 'После проверки и'}нформация о нём
           {!serial.approved && ' будет'}{' '}доступна в личном кабинете.
@@ -67,17 +69,17 @@ export default function ExtendWarrantyForm() {
       ) : (
         /* первичный экран */
         <>
-          <h3 className="h4 pb-2">Заполните форму и увеличьте период бесплатного ремонта</h3>
-          <p>
+          <h3 className="mb-3 pb-2 text-h4">Заполните форму и увеличьте период бесплатного ремонта</h3>
+          <p className="mb-4">
             Введите серийный номер швейной машины и продлите право на бесплатное устранение недостатков, возникших по вине изготовителя.
           </p>
-          <p>
+          <p className="mb-4">
             Серийный номер указан на самой швейной машине (как правило, на наклейке на задней стороне корпуса), а также на упаковочной коробке
           </p>
           <form onSubmit={handleSubmit}>
-            <div className="d-flex gap-3">
-              <input type="text" name="sn" placeholder="Серийный номер" autoComplete="off" className="form-control form-control-lg" />
-              <button type="submit" className="btn btn-primary btn-lg"><i className="fs-lg me-2" />Продлить</button>
+            <div className="flex gap-4">
+              <input type="text" name="sn" placeholder="Серийный номер" aria-label="Серийный номер" autoComplete="off" className={inputClass({ size: 'lg' })} />
+              <button type="submit" className={buttonClass({ size: 'lg' })}>Продлить</button>
             </div>
           </form>
         </>

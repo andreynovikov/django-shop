@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 
 import { Collapsible } from '@base-ui/react/collapsible'
+import { IconCheck } from '@tabler/icons-react'
 
 import { Loading } from '@/components/loading'
 
@@ -38,27 +39,27 @@ export default function ProductStock({ id }: { id: number }) {
     return <Loading className="text-center" />
 
   if (!isSuccess || stores.length === 0)
-    return <div className="fw-bold text-dark py-3">Данного товара нет в наличии в розничных магазинах</div>
+    return <div className="py-4 font-bold text-dark">Данного товара нет в наличии в розничных магазинах</div>
 
   return (
     <>
-      <div className="pt-2 pb-3 fs-sm">Товар есть в наличии в следующих магазинах:</div>
+      <div className="pt-2 pb-4 text-sm">Товар есть в наличии в следующих магазинах:</div>
       {storeGroups.map(({ city, stores }, index) => (
-        <Collapsible.Root className={"border-bottom " + (index === 0 ? "pb-2" : "py-2")} key={city.id}>
-          <Collapsible.Trigger className="d-block p-0 fs-sm product-meta" nativeButton={false} render={<div />}>
+        <Collapsible.Root className={`border-b ${index === 0 ? "pb-2" : "py-2"}`} key={city.id}>
+          <Collapsible.Trigger className="block cursor-pointer p-0 text-sm text-muted transition-colors hover:text-gray-700" nativeButton={false} render={<div />}>
             {city.name}
           </Collapsible.Trigger>
           <Collapsible.Panel>
             {stores.map((store) => (
-              <Link className="d-block fs-xs pt-1" href={`/stores/${store.id}/`} key={store.id}>
-                <i className="ci-check me-1 text-muted" />
+              <Link className="block pt-1 text-xs" href={`/stores/${store.id}/`} key={store.id}>
+                <IconCheck size={12} stroke={2} className="me-1 text-muted" />
                 {store.address}
               </Link>
             ))}
           </Collapsible.Panel>
         </Collapsible.Root>
       ))}
-      <div className="pt-2 fs-xs text-muted">
+      <div className="pt-2 text-xs text-muted">
         Наличие в других магазинах сети можно уточнить по <Link href="/stores">телефонам магазинов</Link>
       </div>
     </>

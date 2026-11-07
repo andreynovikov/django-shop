@@ -1,26 +1,38 @@
+/* eslint-disable @next/next/no-img-element */
 import Link from 'next/link'
 
 import TopCategoriesCard from '@/components/top-categories-card'
 import CurrentCatalog from '@/components/current-catalog'
 import ProductCard from '@/components/product/card'
+import { cardClass } from '@/components/ui/card'
 
 import { loadAdverts, loadProducts } from '@/lib/queries'
 import { recomendedProductsFilters, newProductsFilters } from '@/lib/catalog'
 import { Advert, ProductInfo } from '@/lib/types'
+import { advertClass } from '@/components/ui/content'
 
 export const revalidate = 3600
 
 const itemsPerSection = 16
 const sort = '-price'
 
+// A banner in a row of its own, its HTML holds the column
+function MainAdvert({ advert }: { advert: Advert }) {
+  return (
+    <section className="container order-1 pt-0 sm:order-2 sm:pt-12">
+      <div className={`${advertClass} -mx-2`} dangerouslySetInnerHTML={{ __html: advert.content }} />
+    </section>
+  )
+}
+
 function Adverts({ adverts }: { adverts: Advert[] }) {
   return adverts.length > 0 && (
-    <section className="container pt-5">
-      <div className="row mx-n2">
+    <section className="container pt-12">
+      <div className="grid gap-x-4 sm:grid-cols-2 lg:grid-cols-4">
         {adverts.map((advert) => (
-          <div className="col-lg-3 col-sm-6 px-2 mb-4" key={advert.id}>
-            <div className="card overflow-hidden h-100" dangerouslySetInnerHTML={{ __html: advert.content }} />
-            <hr className="d-sm-none" />
+          <div className="mb-6" key={advert.id}>
+            <div className={`${cardClass} ${advertClass} h-full overflow-hidden`} dangerouslySetInnerHTML={{ __html: advert.content }} />
+            <hr className="sm:hidden" />
           </div>
         ))}
       </div>
@@ -38,24 +50,31 @@ interface ProductsSectionProps {
 
 function ProductsSection({ products, id, title, img, href }: ProductsSectionProps) {
   return (
-    <section id={id} className="container pt-5" itemScope itemType="http://schema.org/OfferCatalog">
-      <div className="d-flex flex-wrap align-items-end border-bottom border-header border-2 pt-1 pb-0 mb-4">
-        <div className="d-none d-sm-block"><img src={`/i/categories/${img}`} alt="*" /></div>
+    <section id={id} className="container pt-12" itemScope itemType="http://schema.org/OfferCatalog">
+      <div className="mb-6 flex flex-wrap items-end border-b-2 border-primary pt-1 pb-0">
+        <div className="hidden sm:block"><img src={`/i/categories/${img}`} alt="*" /></div>
         <Link href={href}>
-          <h2 className="h3 mb-0 pt-3 pb-2 me-2 flex-grow-1" itemProp="name">{title}</h2>
+          <h2 className="me-2 mb-0 pt-4 pb-2 text-h3" itemProp="name">{title}</h2>
         </Link>
       </div>
-      <div className="row pt-2 mx-n2">
+      <div className="grid gap-x-4 pt-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {products.map((product, index) => (
-          <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
+          <div className="mb-6" key={product.id}>
             <ProductCard product={product} gtmList="Первая страница акции" gtmPosition={index} />
-            <hr className="d-sm-none" />
+            <hr className="sm:hidden" />
           </div>
         ))}
       </div>
-    </section >
+    </section>
   )
 }
+
+const facts = [
+  { title: 'Бренд №1', text: <>по&nbsp;объёму продаж швейного оборудования в&nbsp;мире</> },
+  { title: '3 собственных завода', text: 'в Японии, Таиланде и на Тайване' },
+  { title: 'Официальные', text: <>поставки в&nbsp;Россию</> },
+  { title: 'В 1921 году', text: <>основана первая фабрика в&nbsp;Японии</> },
+]
 
 export default async function HomePage() {
   const recomendedProducts = await loadProducts(null, itemsPerSection, recomendedProductsFilters, sort)
@@ -71,27 +90,23 @@ export default async function HomePage() {
   const bottomAdverts = adverts.filter(advert => advert.place === 'index_bottom_new')
 
   return (
-    <div className="mb-3">
-      <section className="pb-5">
+    <div className="mb-4">
+      <section className="pb-12">
         <div className="bg-info">
-          <div className="d-none d-md-flex justify-content-between">
-            <div><img src="/i/tree_left.svg" /></div>
-            <div><img src="/i/tree_right.svg" /></div>
+          <div className="hidden justify-between md:flex">
+            <div><img src="/i/tree_left.svg" alt="" /></div>
+            <div><img src="/i/tree_right.svg" alt="" /></div>
           </div>
         </div>
       </section>
 
-      <div className="d-flex flex-column position-relative pt-3 pt-lg-0 mt-md-n25" style={{ zIndex: 10 }}>
-        <section className="container order-2 order-sm-1">
+      <div className="relative z-10 flex flex-col pt-4 md:-mt-100 lg:pt-0">
+        <section className="container order-2 sm:order-1">
           <TopCategoriesCard />
           <CurrentCatalog />
         </section>
 
-        {mainTopAdvert && (
-          <section className="container pt-0 pt-sm-5 order-1 order-sm-2">
-            <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainTopAdvert.content }} />
-          </section>
-        )}
+        {mainTopAdvert && <MainAdvert advert={mainTopAdvert} />}
       </div>
 
       <Adverts adverts={topAdverts} />
@@ -100,11 +115,7 @@ export default async function HomePage() {
         <ProductsSection products={recomendedProducts.results} id="sw-recomended" title="Специальные предложения" img="heart.svg" href="/catalog/promo/" />
       )}
 
-      {mainMiddleAdvert && (
-        <section className="container pt-0 pt-sm-5 order-1 order-sm-2">
-          <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainMiddleAdvert.content }} />
-        </section>
-      )}
+      {mainMiddleAdvert && <MainAdvert advert={mainMiddleAdvert} />}
 
       <Adverts adverts={middleAdverts} />
 
@@ -112,32 +123,18 @@ export default async function HomePage() {
         <ProductsSection products={newProducts.results} id="sw-new" title="Новинки" img="stars.svg" href="/catalog/New/" />
       )}
 
-      {mainBottomAdvert && (
-        <section className="container pt-0 pt-sm-5 order-1 order-sm-2">
-          <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainBottomAdvert.content }} />
-        </section>
-      )}
+      {mainBottomAdvert && <MainAdvert advert={mainBottomAdvert} />}
 
       <Adverts adverts={bottomAdverts} />
 
       <div className="container text-center">
-        <div className="row">
-          <div className="col-md-3 p-4">
-            <h2 className="text-primary">Бренд №1</h2>
-            <p>по&nbsp;объёму продаж швейного оборудования в&nbsp;мире</p>
-          </div>
-          <div className="col-md-3 p-4">
-            <h2 className="text-primary">3 собственных завода</h2>
-            <p>в Японии, Таиланде и на Тайване</p>
-          </div>
-          <div className="col-md-3 p-4">
-            <h2 className="text-primary">Официальные</h2>
-            <p>поставки в&nbsp;Россию</p>
-          </div>
-          <div className="col-md-3 p-4">
-            <h2 className="text-primary">В 1921 году</h2>
-            <p>основана первая фабрика в&nbsp;Японии</p>
-          </div>
+        <div className="grid md:grid-cols-4">
+          {facts.map(({ title, text }) => (
+            <div className="p-6" key={title}>
+              <h2 className="mb-3 text-h2 text-primary">{title}</h2>
+              <p className="mb-4">{text}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

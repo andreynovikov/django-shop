@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import Link from 'next/link'
 
 import type { LngLat } from '@yandex/ymaps3-types'
+import { IconClock, IconMapPin, IconPhone, IconWorld } from '@tabler/icons-react'
 
 import { LocationMap, MapMarker, MarkerPin, MarkersMap } from '@/components/map'
 
@@ -19,29 +20,31 @@ const otherStorePin: MarkerPin = { icon: '/i/shoplogos/marks/other.svg', color: 
 
 const storePin = (store: StoreInfo) => storePins[store.logo] ?? otherStorePin
 
+const balloonIcon = { size: 16, stroke: 1.5, className: 'me-2 inline-block align-top text-primary' }
+
 function StoreBalloon({ store }: { store: StoreInfo }) {
   return (
     <>
-      <h6 className="fs-sm mb-2">
+      <h6 className="mb-2 text-sm leading-[1.2] font-medium">
         <Link href={`/stores/${store.id}/`}>{store.name}</Link>
       </h6>
       <div>
-        <i className="ci-location text-primary d-inline-block me-2"></i>
-        <span className="d-inline-block align-top">
+        <IconMapPin {...balloonIcon} />
+        <span className="inline-block align-top">
           {store.city.name}, {store.address}
           {store.address2 && <><br />{store.address2}</>}
         </span>
       </div>
       {store.hours && (
         <div className="mt-1">
-          <i className="ci-time text-primary d-inline-block me-2"></i>
-          <span className="d-inline-block align-top">{store.hours}</span>
+          <IconClock {...balloonIcon} />
+          <span className="inline-block align-top">{store.hours}</span>
         </div>
       )}
       {store.phone && (
         <div className="mt-1">
-          <i className="ci-phone text-primary d-inline-block me-2"></i>
-          <span className="d-inline-block align-top">
+          <IconPhone {...balloonIcon} />
+          <span className="inline-block align-top">
             {store.phone}
             {store.phone2 && <><br />{store.phone2}</>}
           </span>
@@ -49,12 +52,12 @@ function StoreBalloon({ store }: { store: StoreInfo }) {
       )}
       {store.url && (
         <div className="mt-1">
-          <i className="ci-dribbble text-primary d-inline-block me-2"></i>
-          <span className="d-inline-block align-top"><a href={store.url}>{store.url}</a></span>
+          <IconWorld {...balloonIcon} />
+          <span className="inline-block align-top"><a href={store.url}>{store.url}</a></span>
         </div>
       )}
       {store.logo !== 'janome' && (
-        <small className="d-block mt-2 text-muted">
+        <small className="mt-2 block text-muted">
           *магазин-партнер. Рекламные акции Швейного Мира могут не действовать в этом магазине
         </small>
       )}

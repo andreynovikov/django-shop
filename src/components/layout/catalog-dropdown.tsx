@@ -34,8 +34,8 @@ export default function CatalogDropDown({ catalog, visible, setVisible, buttonRe
   }, [buttonRef, setVisible])
 
   return (
-    <div className={"position-relative" + (visible ? "" : " d-none")} ref={ref}>
-      <div className="sw-catalog-dropdown">
+    <div className={`relative ${visible ? '' : 'hidden'}`} ref={ref}>
+      <div className="bg-white py-5 md:absolute md:top-[.78125rem] md:z-995 md:min-w-[48rem] md:rounded-b-md md:border md:border-t-0 md:border-black/[.085] md:px-5 md:shadow-[0_1rem_1rem_rgb(0_0_0/.15)] lg:min-w-[50rem]">
         {catalog}
       </div>
     </div>

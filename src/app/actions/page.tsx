@@ -19,14 +19,14 @@ export default async function SalesActionsPage() {
   return pageContentWrapper({
     title: <>Акции сети магазинов &laquo;Швейный Мир&raquo;</>,
     children: (
-      <div className="container py-5 mb-2 mb-md-4">
+      <div className="container mb-2 py-12 md:mb-6">
         {actions.map(action => (
           <Fragment key={action.id}>
-            <h3>{action.name}</h3>
-            <Link className="d-block mb-5" href={`/actions/${action.slug}/`}>
+            <h3 className="mb-3 text-h3">{action.name}</h3>
+            <Link className="mb-12 block" href={`/actions/${action.slug}/`}>
               {action.image !== undefined ? (
                 <Image
-                  className="d-block img-fluid"
+                  className="block h-auto max-w-full"
                   src={action.image}
                   width={action.image_width}
                   height={action.image_height}

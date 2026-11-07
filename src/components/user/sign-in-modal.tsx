@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { Tabs } from '@base-ui/react/tabs'
+import { IconLockOpen, IconUser } from '@tabler/icons-react'
 
 import { Modal, ModalHeader, ModalBody } from '@/components/ui/modal'
 import LoginForm from '@/components/user/login-form'
@@ -12,7 +13,9 @@ interface SignInModalProps {
   onHide: () => void
 }
 
-const tabClassName = (state: Tabs.Tab.State) => 'nav-link fw-medium' + (state.active ? ' active' : '')
+// Cartzilla's tabs: the active one is primary and underlined
+const tabClass = 'relative flex items-center px-5 py-3 font-medium text-gray-700 transition-colors hover:text-primary data-active:pointer-events-none data-active:text-primary before:absolute before:bottom-0 before:left-5 before:h-px before:w-[calc(100%-2.5rem)] before:transition-colors data-active:before:bg-primary'
+const tabIcon = { size: 18, stroke: 1.5, className: 'me-2' }
 
 export default function SignInModal({ ctx: modalCtx, show, onHide }: SignInModalProps) {
   const [key, setKey] = useState('signin')
@@ -29,19 +32,15 @@ export default function SignInModal({ ctx: modalCtx, show, onHide }: SignInModal
     <Modal show={show} onHide={onHide}>
       <Tabs.Root value={key} onValueChange={(value) => setKey(value)}>
         <ModalHeader>
-          <Tabs.List className="nav nav-tabs card-header-tabs">
-            <div className="nav-item">
-              <Tabs.Tab value="signin" className={tabClassName}>
-                <i className="ci-unlocked me-2 mt-n1" />
-                Вход
-              </Tabs.Tab>
-            </div>
-            <div className="nav-item">
-              <Tabs.Tab value="signup" className={tabClassName}>
-                <i className="ci-user me-2 mt-n1" />
-                Регистрация
-              </Tabs.Tab>
-            </div>
+          <Tabs.List className="-mx-5 -mt-[.3125rem] -mb-4 flex">
+            <Tabs.Tab value="signin" className={tabClass}>
+              <IconLockOpen {...tabIcon} />
+              Вход
+            </Tabs.Tab>
+            <Tabs.Tab value="signup" className={tabClass}>
+              <IconUser {...tabIcon} />
+              Регистрация
+            </Tabs.Tab>
           </Tabs.List>
         </ModalHeader>
         <ModalBody>

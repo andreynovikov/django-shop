@@ -10,15 +10,15 @@ interface BlogEntryListProps {
 
 export default function BlogEntryList({ entries, pathname }: BlogEntryListProps) {
   return (
-    <div className="row justify-content-center pt-5 mt-2">
-      <section className="col-lg-9">
+    <div className="mt-2 flex justify-center pt-12">
+      <section className="w-full lg:w-3/4">
         {entries.results.map((entry, index) => (
           <BlogEntryPreview entry={entry} last={index === entries.results.length - 1} key={entry.id} />
         ))}
 
         {entries.totalPages > 1 && (
           <>
-            <hr className="my-3" />
+            <hr className="my-4" />
             <PageSelector
               pathname={pathname}
               pageInPath

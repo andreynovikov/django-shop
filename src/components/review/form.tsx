@@ -1,5 +1,10 @@
 import { useState, useEffect, ChangeEvent, SubmitEvent } from 'react'
 import { useQuery, useMutation, useQueryClient, skipToken } from '@tanstack/react-query'
+import { IconAlertCircle, IconCircleCheck } from '@tabler/icons-react'
+
+import { Alert } from '@/components/ui/alert'
+import { buttonClass } from '@/components/ui/button'
+import { feedbackClass, formTextClass, inputClass, labelClass, selectClass } from '@/components/ui/form'
 
 import { Loading } from '@/components/loading'
 import UserUpdateModal from '@/components/user/update-modal'
@@ -87,40 +92,34 @@ export default function ReviewForm({ product, review: reviewId }: ReviewFormProp
   return (
     <>
       {review && !review.is_public && (
-        <div className="alert alert-accent mb-3 fs-sm" role="alert">Ваш отзыв в настоящее время находится на проверке</div>
+        <Alert variant="accent" className="mb-4 text-sm">Ваш отзыв в настоящее время находится на проверке</Alert>
       )}
 
-      <h3 className="h4 pb-2">{reviewId ? "Изменить" : "Оставить"} отзыв</h3>
+      <h3 className="mb-3 pb-2 text-h4">{reviewId ? "Изменить" : "Оставить"} отзыв</h3>
 
       {user?.username === '' && (
         <>
           <UserUpdateModal show={showUpdateModal} onHide={() => setShowUpdateModal(false)} />
-          <div className="alert alert-warning d-flex" role="alert">
-            <div className="alert-icon">
-              <i className="ci-announcement" />
-            </div>
-            <div>
-              Вы можете{' '}
-              <a className="alert-link" onClick={() => setShowUpdateModal(true)} style={{ cursor: 'pointer' }}>указать</a>
-              {' '}псевдоним, если не хотите, чтобы отображалось Ваше реальное имя.
-            </div>
-          </div>
+          <Alert variant="warning" icon={<IconAlertCircle size={18} stroke={1.5} />} className="mb-4">
+            Вы можете{' '}
+            <a onClick={() => setShowUpdateModal(true)}>указать</a>
+            {' '}псевдоним, если не хотите, чтобы отображалось Ваше реальное имя.
+          </Alert>
         </>
       )}
 
       <form noValidate onSubmit={handleSubmit}>
         {updated && (
-          <div className="alert alert-success d-flex" role="alert">
-            <div className="alert-icon"><i className="ci-check-circle" /></div>
-            <div>Изменения успешно сохранены.</div>
-          </div>
+          <Alert variant="success" icon={<IconCircleCheck size={18} stroke={1.5} />} className="mb-4">
+            Изменения успешно сохранены.
+          </Alert>
         )}
 
-        <div className="row gx-4 gy-3">
+        <div className="grid gap-y-4">
           {form.map((field) => (
             <div style={{ display: (field.widget === 'HiddenInput' || field.name === 'honeypot') ? "none" : "initial" }} key={field.id}>
               {field.widget !== 'HiddenInput' && (
-                <label className="form-label" htmlFor={field.id}>
+                <label className={labelClass} htmlFor={field.id}>
                   {field.label}{field.required && <span className="text-danger">*</span>}
                 </label>
               )}
@@ -132,7 +131,7 @@ export default function ReviewForm({ product, review: reviewId }: ReviewFormProp
                   required={field.required} />
               ) : field.widget === 'Select' ? (
                 <select
-                  className={"form-select" + (field.name in error ? " is-invalid" : "")}
+                  className={selectClass({ invalid: field.name in error })}
                   id={field.id}
                   name={field.name}
                   defaultValue={reviewValue(review, field.name)}
@@ -148,7 +147,7 @@ export default function ReviewForm({ product, review: reviewId }: ReviewFormProp
                 </select>
               ) : field.widget === 'Textarea' ? (
                 <textarea
-                  className={"form-control" + (field.name in error ? " is-invalid" : "")}
+                  className={inputClass({ invalid: field.name in error })}
                   id={field.id}
                   name={field.name}
                   defaultValue={reviewValue(review, field.name)}
@@ -157,20 +156,20 @@ export default function ReviewForm({ product, review: reviewId }: ReviewFormProp
                   required={field.required} />
               ) : (
                 <input
-                  className={"form-control" + (field.name in error ? " is-invalid" : "")}
+                  className={inputClass({ invalid: field.name in error })}
                   id={field.id}
                   name={field.name}
                   defaultValue={reviewValue(review, field.name) || field.value}
                   required={field.required} />
               )}
               {error[field.name]?.map((err, index) => (
-                <div className="invalid-feedback" key={index}>{err}</div>
+                <div className={feedbackClass} key={index}>{err}</div>
               ))}
-              {field.help && <small className="form-text text-muted">{field.help}</small>}
+              {field.help && <small className={formTextClass}>{field.help}</small>}
             </div>
           ))}
         </div>
-        <button className="btn btn-primary btn-shadow d-block mt-4" type="submit">Опубликовать отзыв</button>
+        <button className={`${buttonClass({ shadow: true })} mt-6`} type="submit">Опубликовать отзыв</button>
       </form>
     </>
   )

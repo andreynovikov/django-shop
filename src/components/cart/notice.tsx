@@ -3,10 +3,16 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import SimpleBar from 'simplebar-react'
+import { IconBasket, IconChevronRight, IconShoppingCart } from '@tabler/icons-react'
 
 import { ButtonLoading } from '@/components/loading'
 import NoImage from '@/components/product/no-image'
+import { badgeClass } from '@/components/ui/badge'
+import { buttonClass } from '@/components/ui/button'
+import { handheldBadgeClass, handheldIconClass, handheldItemClass, handheldLabelClass } from '@/components/ui/handheld-toolbar'
+import { hoverMenuClass } from '@/components/ui/menu'
+import { navbarToolCaptionClass, navbarToolClass, navbarToolIconClass, navbarToolLabelClass, navbarToolTextClass } from '@/components/ui/navbar'
+import { widgetProductMetaClass, widgetProductTitleClass } from '@/components/ui/widget'
 
 import useBasket from '@/lib/basket'
 import { useCreateOrder } from '@/lib/order'
@@ -17,12 +23,12 @@ export function MobileCartNotice({ extraItemsCount }: { extraItemsCount: number 
   const { basket, isEmpty } = useBasket()
 
   return (
-    <Link className={((isEmpty && extraItemsCount > 2) ? "d-none d-md-table-cell" : "d-table-cell") + " handheld-toolbar-item"} href="/cart">
-      <span className="handheld-toolbar-icon">
-        <i className="ci-cart" />
-        {!isEmpty && <span className="badge bg-primary rounded-pill ms-1">{basket.quantity}</span>}
+    <Link className={`${handheldItemClass} ${isEmpty && extraItemsCount > 2 ? 'max-md:hidden' : ''}`} href="/cart" aria-label="Корзина">
+      <span className={handheldIconClass}>
+        <IconShoppingCart size={20} stroke={1.5} />
+        {!isEmpty && <span className={handheldBadgeClass} title="Товаров в корзине">{basket.quantity}</span>}
       </span>
-      <span className="handheld-toolbar-label">
+      <span className={handheldLabelClass}>
         {isEmpty ? <>Корзина&nbsp;пуста</> : <>{basket.total.toLocaleString('ru')}&nbsp;руб</>}
       </span>
     </Link>
@@ -48,32 +54,34 @@ export default function CartNotice() {
 
   if (isEmpty)
     return (
-      <div className="navbar-tool ms-3 d-none d-lg-flex">
-        <span className="navbar-tool-icon-box bg-secondary"><i className="navbar-tool-icon ci-cart" /></span>
-        <span className="navbar-tool-text"><small>Корзина</small>пуста</span>
+      <div className={`${navbarToolClass} ms-4 hidden lg:flex`}>
+        <span className={navbarToolIconClass({ secondary: true })}><IconShoppingCart size={20} stroke={1.5} /></span>
+        <span className={navbarToolTextClass()}><small className={navbarToolCaptionClass}>Корзина</small>пуста</span>
       </div>
     )
 
   return (
-    <div className="navbar-tool ms-3 d-none d-lg-flex dropdown">
-      <Link className="navbar-tool-icon-box bg-secondary dropdown-toggle" href="/cart">
-        <span className="navbar-tool-label">{basket.quantity}</span><i className="navbar-tool-icon ci-cart" />
+    <div className={`${navbarToolClass} ms-4 hidden lg:flex`}>
+      <Link className={navbarToolIconClass({ secondary: true })} href="/cart" aria-label="Корзина">
+        <span className={navbarToolLabelClass} title="Товаров в корзине">{basket.quantity}</span><IconShoppingCart size={20} stroke={1.5} />
       </Link>
-      <Link className="navbar-tool-text" href="/cart">
-        <small>Корзина</small>{basket.total.toLocaleString('ru')}<small className="d-inline">&nbsp;руб</small>
+      <Link className={navbarToolTextClass({ dropdown: true })} href="/cart">
+        <small className={navbarToolCaptionClass}>Корзина</small>{basket.total.toLocaleString('ru')}<small>&nbsp;руб</small>
       </Link>
-      <div className="dropdown-menu dropdown-menu-end">
-        <div className="widget widget-cart px-3 pt-2 pb-3" style={{ width: "25rem" }}>
-          <SimpleBar style={{ height: "15rem" }}>
+      <div className={hoverMenuClass}>
+        <div className="w-[25rem] px-4 pt-2 pb-4">
+          <div className="h-60 overflow-y-auto pe-4 [scrollbar-width:thin]">
             {basket.items.map((item, index) => (
-              <div key={item.product.id} className={"widget-cart-item border-bottom " + (index === 0 ? "pb-2" : "py-2")}>
-                <button className="btn-close text-danger" onClick={() => handleRemoveItem(item.product)} aria-label="Удалить">
+              <div key={item.product.id} className={`group/item relative border-b ${index === 0 ? 'pb-2' : 'py-2'}`}>
+                <button
+                  className="invisible absolute top-1/2 left-0 -translate-y-1/2 text-2xl leading-none font-light text-danger opacity-0 transition-[visibility,opacity] duration-250 group-hover/item:visible group-hover/item:opacity-100"
+                  onClick={() => handleRemoveItem(item.product)}
+                  aria-label="Удалить">
                   <span aria-hidden="true">&times;</span>
                 </button>
-                <div className="d-flex align-items-center">
+                <div className="flex items-center transition-transform duration-250 group-hover/item:translate-x-[1.125rem]">
                   <Link
-                    className="d-block flex-shrink-0 position-relative"
-                    style={{ width: 64, height: 64 }}
+                    className="relative block size-16 shrink-0"
                     href={`/products/${item.product.code}`}>
                     {item.product.image ? (
                       <Image
@@ -88,32 +96,32 @@ export default function CartNotice() {
                     )}
                   </Link>
                   <div className="ps-2">
-                    <h6 className="widget-product-title">
+                    <h6 className={`mb-1 ${widgetProductTitleClass}`}>
                       <Link href={`/products/${item.product.code}`}>
                         {item.product.title}
                       </Link>
                     </h6>
-                    <div className="widget-product-meta">
-                      <span className="text-accent me-2">{item.cost.toLocaleString('ru')}<small>&nbsp;руб</small></span>
+                    <div className={widgetProductMetaClass}>
+                      <span className="me-2 text-accent">{item.cost.toLocaleString('ru')}<small>&nbsp;руб</small></span>
                       <span className="text-muted">x {item.quantity}</span>
-                      {item.product.instock < 1 && <span className="fs-lg ms-1"><sup><span className="badge badge-pill badge-warning">нет в наличии</span></sup></span>}
+                      {item.product.instock < 1 && <span className="ms-1 text-lg"><sup><span className={`${badgeClass({ pill: true })} bg-warning text-white`}>нет в наличии</span></sup></span>}
                     </div>
                   </div>
                 </div>
               </div>
             ))}
-          </SimpleBar>
-          <div className="d-flex flex-wrap justify-content-between align-items-center py-3">
-            <div className="fs-sm me-2 py-2">
+          </div>
+          <div className="flex flex-wrap items-center justify-between py-4">
+            <div className="me-2 py-2 text-sm">
               <span className="text-muted">Всего:</span>
-              <span className="text-accent fs-base ms-1">{basket.total.toLocaleString('ru')}<small>&nbsp;руб</small></span>
+              <span className="ms-1 text-base text-accent">{basket.total.toLocaleString('ru')}<small>&nbsp;руб</small></span>
             </div>
-            <Link className="btn btn-outline-secondary btn-sm" href="/cart">
-              Открыть корзину<i className="ci-arrow-right ms-1 me-n1" />
+            <Link className={buttonClass({ variant: 'outline-secondary', size: 'sm' })} href="/cart">
+              Открыть корзину<IconChevronRight size={14} stroke={1.5} className="-me-1 ms-1" />
             </Link>
           </div>
-          <button className="btn btn-primary btn-sm d-block w-100" type="button" onClick={handleCreateOrder} disabled={isPending}>
-            <i className="ci-basket-alt me-2 fs-base align-middle" />Оформить заказ
+          <button className={buttonClass({ size: 'sm', block: true })} type="button" onClick={handleCreateOrder} disabled={isPending}>
+            <IconBasket size={16} stroke={1.5} className="me-2" />Оформить заказ
             {isPending && <ButtonLoading />}
           </button>
         </div>

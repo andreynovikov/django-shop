@@ -1,3 +1,5 @@
+import { badgeClass } from '@/components/ui/badge'
+
 // Must be synced with Order model
 export const STATUS_NEW = 0x0
 export const STATUS_ACCEPTED = 0x00000001
@@ -41,7 +43,7 @@ export const DELIVERY_BOXBERRY = 11
 export const DELIVERY_EXPRESS = 98
 export const DELIVERY_UNKNOWN = 99
 
-const getColor = (status: number) => {
+const getColor = (status: number): keyof typeof colorClasses => {
   // badge colors from https://demo.createx.studio/cartzilla/components/badge.html
   // 'danger' is currently unused
   switch (status) {
@@ -75,6 +77,18 @@ const getColor = (status: number) => {
   }
 }
 
+// Background and text of each color
+const colorClasses = {
+  info: 'bg-info text-white',
+  accent: 'bg-accent text-white',
+  primary: 'bg-primary text-white',
+  success: 'bg-success text-white',
+  warning: 'bg-warning text-white',
+  dark: 'bg-dark text-white',
+  secondary: 'bg-gray-100 text-heading',
+  light: 'bg-white text-heading',
+}
+
 export default function OrderStatusBadge({ status, text }: { status: number, text: string }) {
-  return <span className={"badge bg-" + getColor(status) + " fs-sm"}>{text}</span>
+  return <span className={`${badgeClass({ size: 'sm' })} ${colorClasses[getColor(status)]}`}>{text}</span>
 }

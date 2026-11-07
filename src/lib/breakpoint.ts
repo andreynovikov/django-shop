@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 
+// Tailwind's breakpoints, xxl is its 2xl
 const breakpoints = {
-  sm: 576,
+  sm: 640,
   md: 768,
-  lg: 992,
-  xl: 1200,
-  xxl: 1400,
+  lg: 1024,
+  xl: 1280,
+  xxl: 1536,
 }
 
 export const useBreakpoint = () => {

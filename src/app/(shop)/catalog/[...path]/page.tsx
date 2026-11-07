@@ -7,6 +7,9 @@ import { pageContentWrapper } from '@/components/layout/page-content-wrapper'
 import CurrentCatalog from '@/components/current-catalog'
 import StickySidebar from '@/components/category/sticky-sidebar'
 import { CategoryFilters, CategoryProducts, CategoryProductsProvider, type CategoryProductsQuery } from '@/components/category/products'
+import { cardClass } from '@/components/ui/card'
+import { advertClass, contentClass } from '@/components/ui/content'
+import { widgetLinkClass, widgetListItemClass, widgetTitleClass } from '@/components/ui/widget'
 
 import { HttpError, loadAdverts, loadCategories, loadCategory, loadCurrentSite, loadProducts } from '@/lib/queries'
 import { baseFilters } from '@/lib/catalog'
@@ -73,11 +76,11 @@ export async function generateMetadata({ params }: PageProps<'/catalog/[...path]
 
 function SubcategoryLinks({ path, subcategories, compact = false }: { path: string[], subcategories: CategoryTreeItem[], compact?: boolean }) {
   return (
-    <ul className="widget-list">
+    <ul>
       {subcategories.map((subcategory, index) => (
-        <li className={"widget-list-item" + (!compact && index > 0 ? " pt-2" : "")} key={subcategory.id}>
-          <Link className="widget-list-link" href={categoryPathname([...path, subcategory.slug])}>
-            <span className="fw-medium">{subcategory.name}</span>
+        <li className={`${widgetListItemClass} ${!compact && index > 0 ? "pt-2" : ""}`} key={subcategory.id}>
+          <Link className={widgetLinkClass()} href={categoryPathname([...path, subcategory.slug])}>
+            <span className="font-medium">{subcategory.name}</span>
             {subcategory.subname && <><br />{subcategory.subname}</>}
           </Link>
         </li>
@@ -109,7 +112,7 @@ export default async function CategoryPage({ params }: PageProps<'/catalog/[...p
   const subcategories = category.children?.length ? category.children : undefined
   const filters = category.filters?.length ? category.filters : undefined
   const hasSidebar = subcategories !== undefined || filters !== undefined
-  const columnClassName = (hasSidebar ? "" : "col-lg-3 ") + "col-md-4 col-sm-6 px-2 mb-4"
+  const gridClassName = `sm:grid-cols-2 md:grid-cols-3 ${hasSidebar ? "" : "lg:grid-cols-4"}`
 
   const breadcrumbs = [
     { label: 'Каталог', href: '/catalog/' },
@@ -125,48 +128,46 @@ export default async function CategoryPage({ params }: PageProps<'/catalog/[...p
     breadcrumbs,
     dark: true,
     children: (
-      <div className="container py-5 mb-2 mb-md-4">
+      <div className="container mb-2 py-12 md:mb-6">
         <CurrentCatalog />
         <CategoryProductsProvider query={query} initialProducts={products} initialRecommended={recommended}>
-          <div className="row">
+          <div className={`grid gap-x-7.5 ${hasSidebar ? "lg:grid-cols-3" : ""}`}>
             {hasSidebar && (
-              <StickySidebar className="col-lg-4">
+              <StickySidebar>
                 {subcategories && (
-                  <div className={"d-none d-lg-block bg-white w-100 rounded-3 shadow-lg py-1" + (filters ? " mb-4" : "")} style={{ maxWidth: "22rem" }}>
-                    <div className="py-grid-gutter px-lg-grid-gutter">
-                      <div className="widget widget-links">
-                        <h3 className="widget-title">Категории</h3>
-                        <SubcategoryLinks path={path} subcategories={subcategories} />
-                      </div>
+                  <div className={`hidden w-full max-w-[22rem] rounded-lg bg-white py-1 shadow-lg lg:block ${filters ? "mb-6" : ""}`}>
+                    <div className="px-6 py-7.5 lg:px-7.5">
+                      <h3 className={widgetTitleClass}>Категории</h3>
+                      <SubcategoryLinks path={path} subcategories={subcategories} />
                     </div>
                   </div>
                 )}
                 {filters && <CategoryFilters filters={filters} />}
               </StickySidebar>
             )}
-            <section className={`col-lg-${hasSidebar ? 8 : 12}`} itemScope itemType="http://schema.org/OfferCatalog">
+            <section className={`min-w-0 ${hasSidebar ? "lg:col-span-2" : ""}`} itemScope itemType="http://schema.org/OfferCatalog">
               <meta itemProp="name" content={category.name} />
 
               {(category.description && currentPage === 1) && (
-                <div className="card mb-grid-gutter">
-                  <div className="card-body px-4" dangerouslySetInnerHTML={{ __html: category.description }} itemProp="description"></div>
+                <div className={`${cardClass} mb-7.5`}>
+                  <div className={`${contentClass()} px-6 py-5`} dangerouslySetInnerHTML={{ __html: category.description }} itemProp="description"></div>
                 </div>
               )}
 
               {subcategories && (
-                <div className="d-lg-none card mb-grid-gutter">
-                  <div className="card-body px-4">
-                    <h5 className="card-title">Категории</h5>
+                <div className={`${cardClass} mb-7.5 lg:hidden`}>
+                  <div className="px-6 py-5">
+                    <h5 className="mb-3 text-h5">Категории</h5>
                     <SubcategoryLinks path={path} subcategories={subcategories} compact />
                   </div>
                 </div>
               )}
 
-              <CategoryProducts categoryName={category.name} pathname={categoryPathname(path)} columnClassName={columnClassName}>
+              <CategoryProducts categoryName={category.name} pathname={categoryPathname(path)} gridClassName={gridClassName}>
                 {adverts.map(advert => (
-                  <div className={columnClassName} key={advert.id}>
-                    <div className="card overflow-hidden h-100" dangerouslySetInnerHTML={{ __html: advert.content }} />
-                    <hr className="d-sm-none" />
+                  <div className="mb-6" key={advert.id}>
+                    <div className={`${cardClass} ${advertClass} h-full overflow-hidden`} dangerouslySetInnerHTML={{ __html: advert.content }} />
+                    <hr className="sm:hidden" />
                   </div>
                 ))}
               </CategoryProducts>

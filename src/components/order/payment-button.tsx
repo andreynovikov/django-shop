@@ -4,7 +4,10 @@ import { useQuery } from "@tanstack/react-query"
 import { apiFetch, loadOrder, orderKeys } from "@/lib/queries"
 import { useSite } from '@/lib/site'
 
+import { IconCreditCard, IconMoneybag } from '@tabler/icons-react'
+
 import { PAYMENT_CREDIT } from '@/components/order/status-badge'
+import { buttonClass } from '@/components/ui/button'
 import Tooltip from '@/components/ui/tooltip'
 
 export default function OrderPaymentButton({ orderId, iconOnly = false }: { orderId: number, iconOnly?: boolean }) {
@@ -33,19 +36,17 @@ export default function OrderPaymentButton({ orderId, iconOnly = false }: { orde
     }
   }
 
+  const label = order.payment === PAYMENT_CREDIT ? 'Оформить кредит' : 'Оплатить заказ'
+  const Icon = order.payment === PAYMENT_CREDIT ? IconMoneybag : IconCreditCard
+
   const button = (
-    <button type="button" className={`btn btn-sm btn${iconOnly ? '-outline' : ''}-success ${iconOnly ? 'py-0 px-1' : ''}`} onClick={handlePayment}>
-      {order.payment === PAYMENT_CREDIT ? (
-        <>
-          <i className={`ci-money-bag fs-${iconOnly ? 'sm' : 'lg'}`} />
-          {!iconOnly && <span className="ms-2">Оформить кредит</span>}
-        </>
-      ) : (
-        <>
-          <i className={`ci-card fs-${iconOnly ? 'sm' : 'lg'}`} />
-          {!iconOnly && <span className="ms-2">Оплатить заказ</span>}
-        </>
-      )}
+    <button
+      type="button"
+      className={buttonClass({ variant: iconOnly ? 'outline-success' : 'success', size: iconOnly ? 'icon-sm' : 'sm' })}
+      onClick={handlePayment}
+      aria-label={iconOnly ? label : undefined}>
+      <Icon size={iconOnly ? 14 : 18} stroke={1.5} />
+      {!iconOnly && <span className="ms-2">{label}</span>}
     </button>
   )
 
@@ -53,7 +54,7 @@ export default function OrderPaymentButton({ orderId, iconOnly = false }: { orde
     return button
 
   return (
-    <Tooltip content={order.payment === PAYMENT_CREDIT ? 'Оформить кредит' : 'Оплатить заказ'}>
+    <Tooltip content={label}>
       {button}
     </Tooltip>
   )

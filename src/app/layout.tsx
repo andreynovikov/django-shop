@@ -3,12 +3,11 @@ import { Metadata } from 'next/types'
 import Script from 'next/script'
 import localFont from 'next/font/local'
 
-import 'simplebar-react/dist/simplebar.min.css'
 import 'swiper/css'
 import 'swiper/css/free-mode'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
-import '../styles.scss'
+import '../styles.css'
 
 import '@/lib/moment'
 
@@ -53,13 +52,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const categories = await loadCategories()
 
   return (
-    <html lang="ru">
-      <body className={rubik.variable}>
+    <html lang="ru" className={`${rubik.variable} has-[.sw-no-body-scroll]:overflow-hidden`}>
+      <body>
         <Providers>
-          <div className="root">
-            <div className="d-flex flex-column min-vh-100">
-              <main className="page-wrapper">
-                <TopBar catalog={<Catalog categories={categories} />} />
+          <div className="isolate">
+            <div className="flex min-h-screen flex-col">
+              <TopBar catalog={<Catalog categories={categories} />} />
+              <main className="flex-auto">
                 {children}
               </main>
               <BottomBar />

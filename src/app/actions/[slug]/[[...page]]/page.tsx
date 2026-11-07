@@ -9,6 +9,7 @@ import ProductCard from '@/components/product/card'
 
 import { HttpError, loadSalesAction, loadSalesActionProducts, loadSalesActions } from '@/lib/queries'
 import { parsePageParam } from '@/lib/pagination'
+import { contentClass } from '@/components/ui/content'
 
 export const revalidate = 3600
 
@@ -54,31 +55,31 @@ export default async function SalesActionPage({ params }: PageProps<'/actions/[s
     title: action.name,
     breadcrumbs: [{ label: 'Все акции', href: '/actions/' }],
     children: (
-      <div className="container py-5 mb-2 mb-md-4">
+      <div className="container mb-2 py-12 md:mb-6">
         {action.image !== undefined && (
           <Image
-            className="d-block mb-5 img-fluid"
+            className="mb-12 block h-auto max-w-full"
             src={action.image}
             width={action.image_width}
             height={action.image_height}
             alt={action.name}
             preload />
         )}
-        {action.description && <div dangerouslySetInnerHTML={{ __html: action.description }}></div>}
+        {action.description && <div className={contentClass()} dangerouslySetInnerHTML={{ __html: action.description }}></div>}
         {products !== undefined && (
           <>
-            <div className="row pt-2 mx-n2" itemScope itemType="http://schema.org/OfferCatalog">
+            <div className="grid gap-x-4 pt-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" itemScope itemType="http://schema.org/OfferCatalog">
               <meta itemProp="name" content={action.name} />
               {products.results.map((product, index) => (
-                <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
+                <div className="mb-6" key={product.id}>
                   <ProductCard product={product} gtmList={`Рекламная акция ${action.name}`} gtmPosition={index} />
-                  <hr className="d-sm-none" />
+                  <hr className="sm:hidden" />
                 </div>
               ))}
             </div>
             {products.totalPages > 1 && (
               <>
-                <hr className="my-3" />
+                <hr className="my-4" />
                 <PageSelector
                   pathname={pathname}
                   pageInPath

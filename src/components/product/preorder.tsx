@@ -3,10 +3,12 @@
 import { useState } from 'react'
 
 import { Toast } from '@base-ui/react/toast'
+import { IconBasket, IconSpeakerphone } from '@tabler/icons-react'
 
 import { ButtonLoading } from '@/components/loading'
 import LoginForm from '@/components/user/login-form'
 import { Modal, ModalBody } from '@/components/ui/modal'
+import { buttonClass } from '@/components/ui/button'
 
 import { createPreorder } from '@/lib/queries'
 import { useSession } from '@/lib/session'
@@ -39,20 +41,20 @@ export default function ProductPreorder({ product }: { product: Product }) {
 
   return (
     <>
-      <a className="btn btn-success btn-shadow d-block w-100" onClick={showModal} style={{ cursor: 'pointer' }}>
-        <i className="ci-loudspeaker fs-lg me-2" />Сообщить о поступлении в интернет-магазин
-      </a>
+      <button type="button" className={buttonClass({ variant: 'success', block: true, shadow: true })} onClick={showModal}>
+        <IconSpeakerphone size={18} stroke={1.5} className="me-2" />Сообщить о поступлении в интернет-магазин
+      </button>
       <Modal show={show} onHide={hideModal}>
         <ModalBody>
           {status === 'authenticated' ? (
             <>
               <div className="mb-2">{user?.name || "Уважаемый покупатель"}!</div>
-              <p>
+              <p className="mb-4">
                 В случае оформления запроса, мы свяжемся с Вами, как только <b>{product.title}</b> появится у нас на складе.
                 Если данный товар ожидается нескоро, мы свяжемся с Вами в ближайшее время и предложим альтернативные варианты.
               </p>
-              <button className="btn btn-primary btn-shadow d-block w-100 mt-4" onClick={registerPreorder} disabled={isPending}>
-                <i className="fs-lg me-2 ci-basket-alt" />Оформить запрос о поступлении
+              <button className={`${buttonClass({ block: true, shadow: true })} mt-6`} onClick={registerPreorder} disabled={isPending}>
+                <IconBasket size={18} stroke={1.5} className="me-2" />Оформить запрос о поступлении
                 {isPending && <ButtonLoading />}
               </button>
             </>

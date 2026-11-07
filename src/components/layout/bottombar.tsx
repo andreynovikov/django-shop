@@ -1,63 +1,63 @@
 'use client'
 
-import Link from 'next/link'
+import { IconMail, IconPhone } from '@tabler/icons-react'
 
-import DzenIcon from '@/assets/icons/social/dzen'
+import { widgetLinkClass } from '@/components/ui/widget'
 
 import { useSite } from '@/lib/site'
 import { formatPhone } from '@/lib/format'
+
+const captionClass = 'mb-2 text-white'
+const linkIcon = { size: 16, stroke: 1.5, className: 'me-1 -mt-0.5 align-middle' }
 
 export default function BottomBar() {
   const { site } = useSite()
 
   return (
-    <footer className="footer bg-dark pt-5">
+    // below lg the handheld toolbar covers the bottom of the page
+    <footer className="shrink-0 bg-dark pt-12 pb-14 lg:pb-0">
       <div className="container">
-        <div className="row pb-2">
-          <div className="col-md-12 text-center mb-4">
-            <div className="d-block d-md-flex justify-content-center gap-3">
-              <div>
-                <div className="widget widget-links widget-light mb-2">
-                  <a className="widget-list-link" href="mailto:info@janome.club">
-                    <i className="ci-mail me-1"></i>
-                    info@janome.club
-                  </a>
-                </div>
-              </div>
-              <div>
-                <div className="fs-s text-light mb-2">Магазин на Автозаводской:</div>
-                <div className="widget widget-links widget-light mb-2">
-                  <a className="widget-list-link" href={"tel:" + "+74957844855"}>
-                    <i className="ci-phone me-1"></i>
-                    {formatPhone("+74957844855")}
-                  </a>
-                </div>
-                <div className="fs-s text-light mb-2">Москва, Автозаводская ул., д.9/1</div>
-              </div>
-              {site.phone && (
-                <div>
-                  <div className="fs-s text-light mb-2">Интернет-магазин:</div>
-                  <div className="widget widget-links widget-light mb-2">
-                    <a className="widget-list-link" href={"tel:" + site.phone}>
-                      <i className="ci-phone me-1"></i>
-                      {formatPhone(site.phone)}
-                    </a>
-                  </div>
-                </div>
-              )}
+        <div className="pb-2">
+          <div className="mb-6 justify-center gap-4 text-center md:flex">
+            <div className="mb-2">
+              <a className={widgetLinkClass({ light: true })} href="mailto:info@janome.club">
+                <IconMail {...linkIcon} />
+                info@janome.club
+              </a>
             </div>
+            <div>
+              <div className={captionClass}>Магазин на Автозаводской:</div>
+              <div className="mb-2">
+                <a className={widgetLinkClass({ light: true })} href={"tel:" + "+74957844855"}>
+                  <IconPhone {...linkIcon} />
+                  {formatPhone("+74957844855")}
+                </a>
+              </div>
+              <div className={captionClass}>Москва, Автозаводская ул., д.9/1</div>
+            </div>
+            {site.phone && (
+              <div>
+                <div className={captionClass}>Интернет-магазин:</div>
+                <div className="mb-2">
+                  <a className={widgetLinkClass({ light: true })} href={"tel:" + site.phone}>
+                    <IconPhone {...linkIcon} />
+                    {formatPhone(site.phone)}
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-        <div className="pb-1 fs-xs text-light text-center">
-          <p>
-            &copy; 2003-{new Date().getFullYear()} Janome. Все права защищены.{' '}
+        <div className="pb-1 text-center text-xs text-white">
+          <p className="mb-4">
+            &copy; 2003-{new Date().getFullYear()} Janome. Все права защищены.
           </p>
-          <p className="opacity-50">
-            Developed by <a className="text-light" href="https://newf.ru/" target="_blank" rel="noopener">Andrey Novikov</a>.
-            Design by <a className="text-light" href="https://createx.studio/" target="_blank" rel="noopener">Createx Studio</a>.
+          <p className="mb-4 opacity-50">
+            Developed by <a className="text-white" href="https://newf.ru/" target="_blank" rel="noopener">Andrey Novikov</a>.
+            Design by <a className="text-white" href="https://createx.studio/" target="_blank" rel="noopener">Createx Studio</a>.
           </p>
         </div>
       </div>
-    </footer >
+    </footer>
   )
 }
