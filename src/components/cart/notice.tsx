@@ -70,7 +70,7 @@ export default function CartNotice() {
       </Link>
       <div className={hoverMenuClass}>
         <div className="w-[25rem] px-4 pt-2 pb-4">
-          <div className="h-60 overflow-y-auto pe-4 [scrollbar-width:thin]">
+          <div className="h-60 overflow-x-hidden overflow-y-auto pe-4 [scrollbar-width:thin]">
             {basket.items.map((item, index) => (
               <div key={item.product.id} className={`group/item relative border-b ${index === 0 ? 'pb-2' : 'py-2'}`}>
                 <button
