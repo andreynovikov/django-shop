@@ -1,20 +1,20 @@
-function getStarClassName(star: number, value: number, classAddon?: string) {
-  let modifier = ''
-  if (star <= value)
-    modifier = '-filled'
-  else if (star <= (value + 0.7))
-    modifier = '-half'
-  return `ci-star${modifier} active ${classAddon ? classAddon : "star-rating-icon"}`
+import { IconStar, IconStarFilled, IconStarHalfFilled } from '@tabler/icons-react'
+
+const sizes = {
+  xs: { size: 12, className: 'me-[.1875rem]' },
+  sm: { size: 14, className: 'me-1' },
 }
 
-export default function ReviewRating({ value, classAddon }: { value: number, classAddon?: string }) {
+function Star({ star, value, size }: { star: number, value: number, size: keyof typeof sizes }) {
+  const Icon = star <= value ? IconStarFilled : star <= value + 0.7 ? IconStarHalfFilled : IconStar
+  return <Icon size={sizes[size].size} stroke={1.5} className={`align-middle ${sizes[size].className}`} />
+}
+
+// Five stars in the warning color, filled up to the value
+export default function ReviewRating({ value, size = 'xs' }: { value: number, size?: keyof typeof sizes }) {
   return (
-    <div className="star-rating">
-      <i className={getStarClassName(1, value, classAddon)} />
-      <i className={getStarClassName(2, value, classAddon)} />
-      <i className={getStarClassName(3, value, classAddon)} />
-      <i className={getStarClassName(4, value, classAddon)} />
-      <i className={getStarClassName(5, value, classAddon)} />
+    <div className="inline-block leading-none whitespace-nowrap text-warning" role="img" aria-label={`Оценка ${value.toFixed(1)} из 5`}>
+      {[1, 2, 3, 4, 5].map(star => <Star star={star} value={value} size={size} key={star} />)}
     </div>
   )
 }

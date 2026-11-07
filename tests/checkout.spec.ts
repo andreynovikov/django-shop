@@ -13,13 +13,12 @@ async function buy(page: Page, product: ProductInfo) {
   await expect(page.getByRole('link', { name: 'Оформить заказ' })).toBeVisible()
 }
 
-// The cart notice is in the topbar from the lg breakpoint, below it is in the handheld toolbar
-const cartCount = (page: Page, isMobile: boolean) => isMobile
-  ? page.locator('a.handheld-toolbar-item[href^="/cart"] .badge')
-  : page.locator('a.navbar-tool-icon-box[href^="/cart"] .navbar-tool-label')
+// The cart notice is in the topbar from the lg breakpoint, below it is in the handheld toolbar; only one of them is shown
+const cartCount = (page: Page) => page.getByRole('link', { name: 'Корзина', exact: true })
+  .getByTitle('Товаров в корзине')
 
 const cartItem = (page: Page, product: ProductInfo) => page.locator('section > div')
-  .filter({ has: page.locator('.product-title').getByText(product.title, { exact: true }) })
+  .filter({ has: page.getByRole('heading', { name: product.title, exact: true }) })
 
 const orderedItems = (order: { items: { product: { id: number }, quantity: number }[] } | undefined) =>
   order?.items.map(({ product, quantity }) => ({ product: product.id, quantity }))
@@ -27,13 +26,13 @@ const orderedItems = (order: { items: { product: { id: number }, quantity: numbe
 // checkout goes through product pages, the cart and the order confirmation
 test.slow()
 
-test('anonymous buyer orders with a new phone', async ({ page, request, backend, isMobile }) => {
+test('anonymous buyer orders with a new phone', async ({ page, request, backend }) => {
   const [first, second] = await findSewingMachines(request, { instock: '1' })
   backend.addProducts(first, second)
 
   await buy(page, first)
   await buy(page, second)
-  await expect(cartCount(page, isMobile)).toHaveText('2')
+  await expect(cartCount(page)).toHaveText('2')
 
   await page.goto('/cart/')
   const total = page.locator('aside h3')

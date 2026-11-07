@@ -3,6 +3,9 @@ import Link from 'next/link'
 
 import { loadBlogCategories } from '@/lib/queries'
 
+// A link in the details of a blog entry: its author, date and categories
+export const metaLinkClass = 'inline-block text-muted hover:text-gray-700'
+
 // Previews link to several categories each, load them all once per render
 const getBlogCategories = cache(loadBlogCategories)
 
@@ -14,7 +17,7 @@ export default async function BlogCategoryLink({ id }: { id: number }) {
     return null
 
   return (
-    <Link className="blog-entry-meta-link" href={`/blog/categories/${encodeURIComponent(category.slug)}/`}>
+    <Link className={metaLinkClass} href={`/blog/categories/${encodeURIComponent(category.slug)}/`}>
       {category.title}
     </Link>
   )

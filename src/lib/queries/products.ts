@@ -36,7 +36,8 @@ export async function loadProductSuggestions(text: string) {
     page_size: 10,
     enabled: true,
   })
-  return await apiFetch<PaginatedResult<ProductInfo>>(url)
+  // with ta=1 the backend returns product titles instead of products
+  return await apiFetch<PaginatedResult<string>>(url)
 }
 
 export async function getProductImages(id: number) {

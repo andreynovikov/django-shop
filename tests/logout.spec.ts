@@ -6,11 +6,11 @@ test('user logs out from the topbar menu', async ({ page, backend, isMobile }) =
   await page.goto('/cart/')
 
   await accountLink(page).hover()
-  await page.locator('.navbar-tool .dropdown-menu').getByText('Выйти').click()
+  await page.getByRole('banner').getByRole('button', { name: 'Выйти' }).click()
 
-  await expect(page.locator('.navbar-tool-text', { hasText: 'Вход в' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Вход в личный кабинет', exact: true })).toBeVisible()
   await expect(accountLink(page)).toHaveCount(0)
-  await expect(page.locator('a.navbar-tool[href^="/user/favorites"]')).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Избранное', exact: true })).toHaveCount(0)
   expect(backend.user).toBeUndefined()
 })
 

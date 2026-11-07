@@ -1,10 +1,10 @@
-import { test, expect } from './fixtures'
+import { test, expect, gotoHydrated } from './fixtures'
 
 import { findSewingMachines, findProductInStores, findReviewableProduct } from './api'
 
 test('product page has canonical link', async ({ page }) => {
   await page.goto('/')
-  await page.locator('.product-card > a').first().click()
+  await page.locator('[itemtype="http://schema.org/Offer"]').first().getByRole('link').first().click()
   await page.waitForURL('/products/**')
   const path = new URL(page.url()).pathname
   await page.goto(path + '?test')
@@ -51,14 +51,15 @@ test('field help popover shows help page', async ({ page, request }) => {
   const [product] = await findSewingMachines(request, { instock: '1' })
 
   await page.goto(`/products/${product.code}/`)
-  const row = page.locator('.product-spec .row', { hasText: 'Тип челнока' })
+  const row = page.getByRole('term').filter({ hasText: 'Тип челнока' })
   // help button appears after help page list is loaded
   await row.getByRole('button').click()
 
   const popup = page.getByRole('dialog')
   await expect(popup).toBeVisible()
-  await expect(popup.locator('.spinner-border')).toHaveCount(0)
-  await expect(popup.locator('.fs-sm')).not.toBeEmpty()
+  // the help page replaces the loading spinner
+  await expect(popup.getByRole('status')).toHaveCount(0)
+  await expect(popup).not.toBeEmpty()
 
   await page.keyboard.press('Escape')
   await expect(popup).toBeHidden()
@@ -76,16 +77,18 @@ test('preorder shows toast notification', async ({ page, request, backend }) => 
     return route.fulfill({ status: 201, json: {} })
   })
 
-  await page.goto(`/products/${product.code}/`)
+  // the button is server rendered, it opens the dialog once the page is hydrated
+  await gotoHydrated(page, `/products/${product.code}/`)
   await page.getByText('Сообщить о поступлении').click()
   await page.getByRole('button', { name: 'Оформить запрос о поступлении' }).click()
 
-  const toast = page.locator('.sw-toast-viewport').getByText('Запрос зарегистрирован')
+  const notifications = page.getByRole('region', { name: 'Уведомления' })
+  const toast = notifications.getByText('Запрос зарегистрирован')
   await expect(toast).toBeVisible()
   expect(preorderBody).toEqual({ product: product.id })
 
   // Base UI hides the close button from assistive technology, toasts are reachable with F6 instead
-  await page.locator('.sw-toast-viewport').getByRole('button', { name: 'Close', includeHidden: true }).click()
+  await notifications.getByRole('button', { name: 'Закрыть', includeHidden: true }).click()
   await expect(toast).toBeHidden()
 })
 

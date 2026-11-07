@@ -8,7 +8,10 @@ import ProductCard from '@/components/product/card'
 import ProductFilter from '@/components/product/filter'
 import PageSelector from '@/components/page-selector'
 import { Loading } from '@/components/loading'
+import { IconAdjustmentsHorizontal } from '@tabler/icons-react'
+import { handheldIconClass, handheldItemClass, handheldLabelClass } from '@/components/ui/handheld-toolbar'
 import Offcanvas, { OffcanvasHeader, OffcanvasBody } from '@/components/ui/offcanvas'
+import { widgetTitleClass } from '@/components/ui/widget'
 
 import { productKeys, loadProducts } from '@/lib/queries'
 import { useToolbar } from '@/lib/toolbar'
@@ -114,8 +117,8 @@ function FilterList({ filters, facets, values, onFilterChanged }: {
   onFilterChanged: FilterChangeHandler
 }) {
   return filters.map((filter, index) => (
-    <div className={"widget" + (index === filters.length - 1 ? "" : " pb-4 mb-4 border-bottom")} key={filter.id}>
-      <h3 className="widget-title">{filter.label}</h3>
+    <div className={index === filters.length - 1 ? "" : "mb-6 border-b pb-6"} key={filter.id}>
+      <h3 className={widgetTitleClass}>{filter.label}</h3>
       <ProductFilter
         filter={{ ...filter, ...facets?.[filter.name] }}
         filterValue={values[filter.name] ?? null}
@@ -141,24 +144,20 @@ export function CategoryFilters({ filters }: { filters: CategoryFilter[] }) {
   const [showFilters, setShowFilters] = useState(false)
 
   const toolbarItem = useMemo(() => (
-    <a className="d-table-cell handheld-toolbar-item" onClick={() => setShowFilters(true)} style={{ cursor: 'pointer' }}>
-      <span className="handheld-toolbar-icon"><i className="ci-filter-alt" /></span>
-      <span className="handheld-toolbar-label">Фильтры</span>
-    </a>
+    <button type="button" className={handheldItemClass} onClick={() => setShowFilters(true)}>
+      <span className={handheldIconClass}><IconAdjustmentsHorizontal size={20} stroke={1.5} /></span>
+      <span className={handheldLabelClass}>Фильтры</span>
+    </button>
   ), [])
 
   useToolbar(toolbarItem)
 
   return (
-    <Offcanvas
-      show={showFilters}
-      onHide={() => setShowFilters(false)}
-      className="bg-white w-100 rounded-3 shadow-lg py-1"
-      style={{ maxWidth: "22rem" }}>
-      <OffcanvasHeader className="align-items-center shadow-sm">
-        <h2 className="h5 mb-0">Фильтры</h2>
+    <Offcanvas show={showFilters} onHide={() => setShowFilters(false)}>
+      <OffcanvasHeader>
+        <h2 className="mb-0 text-h5">Фильтры</h2>
       </OffcanvasHeader>
-      <OffcanvasBody className="py-grid-gutter px-lg-grid-gutter">
+      <OffcanvasBody>
         {/* the server renders unset filters, the query is applied after hydration */}
         <Suspense fallback={<FilterList filters={filters} facets={initialProducts.filters} values={{}} onFilterChanged={ignoreFilterChange} />}>
           <CurrentFilterList filters={filters} />
@@ -171,37 +170,37 @@ export function CategoryFilters({ filters }: { filters: CategoryFilter[] }) {
 interface ProductGridProps {
   categoryName: string
   pathname: string  // path of the first page, the page number is appended to it
-  columnClassName: string
-  children?: ReactNode  // shown before the products
+  gridClassName: string  // grid columns of the products
+  children?: ReactNode  // shown before the products, each in a column with mb-6
 }
 
-function ProductGrid({ products, recommended, loading, categoryName, pathname, columnClassName, children }: ProductGridProps & {
+function ProductGrid({ products, recommended, loading, categoryName, pathname, gridClassName, children }: ProductGridProps & {
   products: ProductList | undefined
   recommended: boolean
   loading: boolean
 }) {
   return (
     <>
-      <div className="row mx-n2">
+      <div className={`grid gap-x-4 ${gridClassName}`}>
         {children}
         {loading && (
-          <Loading className={`${columnClassName} d-flex align-items-center justify-content-center`} mega />
+          <Loading className="mb-6 flex items-center justify-center" mega />
         )}
         {products?.results.map((product, index) => (
-          <div className={columnClassName} key={product.id}>
+          <div className="mb-6" key={product.id}>
             <ProductCard
               product={product}
               gtmCategory={{ name: categoryName }}
               gtmList={recommended ? "Рекомендуем в каталоге" : "Каталог"}
               gtmPosition={index} />
-            <hr className="d-sm-none" />
+            <hr className="sm:hidden" />
           </div>
         ))}
       </div>
 
       {products !== undefined && products.totalPages > 1 && (
         <>
-          <hr className="my-3" />
+          <hr className="my-4" />
           <PageSelector
             pathname={pathname}
             pageInPath

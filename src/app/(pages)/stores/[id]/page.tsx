@@ -5,6 +5,15 @@ import { notFound } from 'next/navigation'
 import { pageContentWrapper } from '@/components/layout/page-content-wrapper'
 import { ScrollLink } from '@/components/scroll-link'
 import { StoreLocationMap } from '@/components/store/map'
+import { cardClass } from '@/components/ui/card'
+import { contentClass } from '@/components/ui/content'
+import { navLinkClass } from '@/components/ui/nav'
+import { IconChevronRight, IconClock, IconMapPin, IconPhone, IconWorld } from '@tabler/icons-react'
+
+// A card about the store: an icon, a title and the details
+const infoBodyClass = 'flex-auto p-5 text-center'
+const infoTitleClass = 'mb-4 text-h6'
+const infoIcon = { size: 28, stroke: 1.5, className: 'mt-2 mb-6 text-primary' }
 
 import { HttpError, loadStore, loadStores } from '@/lib/queries'
 import { parsePhones } from '@/lib/format'
@@ -43,38 +52,38 @@ export default async function StorePage({ params }: PageProps<'/stores/[id]'>) {
     breadcrumbs: [{ label: 'Магазины', href: '/stores/' }],
     children: (
       <>
-        <section className="container py-3 py-lg-5">
-          <p className="lead">Продажа швейных машин, оверлоков, вязальных машин и аксессуаров для рукоделия в г. {store.city.name}</p>
+        <section className="container py-4 lg:py-12">
+          <p className="mb-4 text-xl font-light">Продажа швейных машин, оверлоков, вязальных машин и аксессуаров для рукоделия в г. {store.city.name}</p>
         </section>
-        <section className="container-fluid">
-          <div className="row">
-            <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-              <ScrollLink className="card h-100" href="#map">
-                <div className="card-body text-center">
-                  <i className="ci-location h3 mt-2 mb-4 text-primary" />
-                  <h3 className="h6 mb-3">Адрес</h3>
-                  <ul className="list-unstyled fs-sm text-muted mb-0">
+        <section className="w-full px-[.9375rem] xl:px-7.5">
+          <div className={`grid gap-x-7.5 md:grid-cols-2 ${cols === 3 ? 'xl:grid-cols-4' : 'xl:grid-cols-3'}`}>
+            <div className="mb-7.5">
+              <ScrollLink className={`${cardClass} h-full`} href="#map">
+                <div className={infoBodyClass}>
+                  <IconMapPin {...infoIcon} />
+                  <h3 className={infoTitleClass}>Адрес</h3>
+                  <ul className="mb-0 text-sm text-muted *:mb-[.4rem]">
                     <li>{store.address}</li>
                     {store.address2 && <li>{store.address2}</li>}
                   </ul>
                   {hasLocation && (
-                    <div className="fs-sm text-primary">
+                    <div className="text-sm text-primary">
                       Посмотреть на карте
-                      <i className="ci-arrow-right fs-xs ms-1" />
+                      <IconChevronRight size={12} stroke={2} className="ms-1" />
                     </div>
                   )}
                 </div>
               </ScrollLink>
             </div>
             {hours.length > 0 && (
-              <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-                <div className="card h-100">
-                  <div className="card-body text-center">
-                    <i className="ci-time h3 mt-2 mb-4 text-primary" />
-                    <h3 className="h6 mb-3">Часы работы</h3>
-                    <ul className="list-unstyled fs-sm text-muted mb-0">
+              <div className="mb-7.5">
+                <div className={`${cardClass} h-full`}>
+                  <div className={infoBodyClass}>
+                    <IconClock {...infoIcon} />
+                    <h3 className={infoTitleClass}>Часы работы</h3>
+                    <ul className="mb-0 text-sm text-muted *:mb-[.4rem] *:last:mb-0">
                       {hours.map((item, index) => (
-                        <li className={index === hours.length - 1 ? 'mb-0' : ''} key={index}>
+                        <li key={index}>
                           {item.trim()}
                         </li>
                       ))}
@@ -84,16 +93,16 @@ export default async function StorePage({ params }: PageProps<'/stores/[id]'>) {
               </div>
             )}
             {store.phones && store.phones.length > 0 && (
-              <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-                <div className="card h-100">
-                  <div className="card-body text-center">
-                    <i className="ci-phone h3 mt-2 mb-4 text-primary" />
-                    <h3 className="h6 mb-3">Телефон{store.phones.length > 1 && 'ы'}</h3>
-                    <ul className="list-unstyled fs-sm mb-0">
-                      {parsePhones(store.phones).map(({ label, number, note, href }, index, phones) => (
-                        <li className={index === phones.length - 1 ? 'mb-0' : ''} key={index}>
+              <div className="mb-7.5">
+                <div className={`${cardClass} h-full`}>
+                  <div className={infoBodyClass}>
+                    <IconPhone {...infoIcon} />
+                    <h3 className={infoTitleClass}>Телефон{store.phones.length > 1 && 'ы'}</h3>
+                    <ul className="mb-0 text-sm *:mb-[.4rem] *:last:mb-0">
+                      {parsePhones(store.phones).map(({ label, number, note, href }, index) => (
+                        <li key={index}>
                           {label && <>{label} </>}
-                          {number && <a className="nav-link-style" href={href}>{number}</a>}
+                          {number && <a className={navLinkClass()} href={href}>{number}</a>}
                           {note && <> {note}</>}
                         </li>
                       ))}
@@ -103,14 +112,14 @@ export default async function StorePage({ params }: PageProps<'/stores/[id]'>) {
               </div>
             )}
             {store.url && (
-              <div className={`col-xl-${cols} col-md-6 mb-grid-gutter`}>
-                <div className="card h-100">
-                  <div className="card-body text-center">
-                    <i className="ci-dribbble h3 mt-2 mb-4 text-primary" />
-                    <h3 className="h6 mb-3">Сайт магазина</h3>
-                    <ul className="list-unstyled fs-sm mb-0">
-                      <li className="mb-0">
-                        <a className="nav-link-style" href={store.url}>{store.url}</a>
+              <div className="mb-7.5">
+                <div className={`${cardClass} h-full`}>
+                  <div className={infoBodyClass}>
+                    <IconWorld {...infoIcon} />
+                    <h3 className={infoTitleClass}>Сайт магазина</h3>
+                    <ul className="mb-0 text-sm">
+                      <li>
+                        <a className={navLinkClass()} href={store.url}>{store.url}</a>
                       </li>
                     </ul>
                   </div>
@@ -120,16 +129,14 @@ export default async function StorePage({ params }: PageProps<'/stores/[id]'>) {
           </div>
         </section>
         {store.description && (
-          <section className="container py-3 py-lg-5 mt-4 mb-3">
-            <div dangerouslySetInnerHTML={{ __html: store.description }}></div>
+          <section className="container mt-6 mb-4 py-4 lg:py-12">
+            <div className={contentClass()} dangerouslySetInnerHTML={{ __html: store.description }}></div>
           </section>
         )}
         {hasLocation && (
-          <div className="container-fluid px-0 pt-3 pt-lg-5" id="map">
-            <div className="row g-0">
-              <div className="col-lg-12 iframe-full-height-wrap" style={{ minHeight: '28rem' }}>
-                <StoreLocationMap store={store} coordinates={[store.longitude!, store.latitude!]} />
-              </div>
+          <div className="w-full pt-4 lg:pt-12" id="map">
+            <div className="relative min-h-[28rem] overflow-hidden">
+              <StoreLocationMap store={store} coordinates={[store.longitude!, store.latitude!]} />
             </div>
           </div>
         )}

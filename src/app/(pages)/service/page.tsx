@@ -6,6 +6,8 @@ import { MapMarker, MarkersMap } from '@/components/map'
 import { loadServiceCenters } from '@/lib/queries'
 import { parsePhones } from '@/lib/format'
 import { Country, ServiceCenter } from '@/lib/types'
+import { navLinkClass } from '@/components/ui/nav'
+import { IconMapPin, IconPhone } from '@tabler/icons-react'
 
 export const revalidate = 3600
 
@@ -18,21 +20,26 @@ type CountryGroup = {
   services: ServiceCenter[]
 }
 
+const balloonIcon = { size: 16, stroke: 1.5, className: 'me-2 inline-block align-top text-primary' }
+
 function ServiceBalloon({ service }: { service: ServiceCenter }) {
   return (
     <>
-      <h6 className="fs-sm mb-2">{service.city.name}</h6>
+      <h6 className="mb-2 text-sm leading-[1.2] font-medium">{service.city.name}</h6>
       <div>
-        <i className="ci-location text-primary d-inline-block me-2"></i>
-        <span className="d-inline-block align-top">{service.address}</span>
+        <IconMapPin {...balloonIcon} />
+        <span className="inline-block align-top">{service.address}</span>
       </div>
       <div className="mt-1">
-        <i className="ci-phone text-primary d-inline-block me-2"></i>
-        <span className="d-inline-block align-top">{service.phone}</span>
+        <IconPhone {...balloonIcon} />
+        <span className="inline-block align-top">{service.phone}</span>
       </div>
     </>
   )
 }
+
+// A line of a service center card, with its icon
+const storeIcon = { size: 18, stroke: 1.5, className: 'my-1 text-primary' }
 
 export default async function ServicePage() {
   const services = await loadServiceCenters()
@@ -58,17 +65,17 @@ export default async function ServicePage() {
     }))
 
   return pageContentWrapper({
-    title: <>Сервисное обслуживание и ремонт<span className="d-lg-none"> швейных машин, оверлоков, вышивальных и вязальных машин</span></>,
+    title: <>Сервисное обслуживание и ремонт<span className="lg:hidden"> швейных машин, оверлоков, вышивальных и вязальных машин</span></>,
     children: (
-      <div className="container-fluid px-0">
-        <section className="row g-0">
-          <div className="col-lg-6 iframe-full-height-wrap order-md-2" style={{ minHeight: '26rem' }}>
+      <div className="w-full">
+        <section className="grid md:grid-cols-2">
+          <div className="relative min-h-[26rem] overflow-hidden md:order-2 md:col-span-2 lg:col-span-1">
             <MarkersMap markers={markers} />
           </div>
-          <div className="col-md-6 px-3 px-md-5 py-5 order-md-1">
-            <div className="mx-auto py-lg-5" style={{ maxWidth: '35rem' }}>
-              <p className="lead">Наши сервисные центры предлагают следующие работы и услуги:</p>
-              <ul className="list-style pb-3 text-muted">
+          <div className="px-4 py-12 md:order-1 md:px-12">
+            <div className="mx-auto max-w-[35rem] lg:py-12">
+              <p className="mb-4 text-xl font-light">Наши сервисные центры предлагают следующие работы и услуги:</p>
+              <ul className="list-disc ps-8 pb-4 text-muted marker:text-accent *:mb-[.4rem]">
                 <li>
                   Гарантийный ремонт и обслуживание швейных машин, вышивальных машин, оверлоков,
                   вязальных машин и другого оборудования производства компаний
@@ -87,31 +94,31 @@ export default async function ServicePage() {
         </section>
         <hr />
 
-        <section className="container-fluid pt-grid-gutter mt-md-4 mb-5">
+        <section className="mb-12 w-full px-[.9375rem] pt-7.5 md:mt-6 xl:px-7.5">
           {countryGroups.map(({ country, services }) => (
             <div key={country.id}>
-              <h2 className="h3 mb-3">{country.name}</h2>
-              <div className="row">
+              <h2 className="mb-3 text-h3">{country.name}</h2>
+              <div className="grid gap-x-7.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {services.map((service) => (
-                  <div className="col-xl-3 col-lg-4 col-sm-6 mb-grid-gutter" key={service.id}>
-                    <div className="card border-0 shadow-sm">
-                      <div className="card-body" itemScope itemType="http://schema.org/Organization">
-                        <h6 className="card-title" itemProp="name">{service.city.name}</h6>
-                        <ul className="list-unstyled mb-0">
-                          <li className="d-flex">
-                            <i className="ci-location fs-lg my-1 text-primary" />
-                            <div className="ps-3 fs-sm" itemProp="address" itemScope itemType="http://schema.org/PostalAddress">
+                  <div className="mb-7.5" key={service.id}>
+                    <div className="relative flex min-w-0 flex-col rounded-lg bg-white shadow-sm">
+                      <div className="p-5" itemScope itemType="http://schema.org/Organization">
+                        <h6 className="mb-3 text-h6" itemProp="name">{service.city.name}</h6>
+                        <ul>
+                          <li className="flex">
+                            <IconMapPin {...storeIcon} />
+                            <div className="ps-4 text-sm" itemProp="address" itemScope itemType="http://schema.org/PostalAddress">
                               <span itemProp="streetAddress">{service.address}</span>
-                              <span className="d-none" itemProp="addressLocality">{service.city.name}</span>
-                              <span className="d-none" itemProp="addressCountry">{country.name}</span>
+                              <span className="hidden" itemProp="addressLocality">{service.city.name}</span>
+                              <span className="hidden" itemProp="addressCountry">{country.name}</span>
                             </div>
                           </li>
-                          <li className="d-flex pt-2 mt-2 mb-0 border-top">
-                            <i className="ci-phone fs-lg my-1 text-primary" />
-                            <div className="ps-3 fs-sm">
+                          <li className="mt-2 flex border-t pt-2">
+                            <IconPhone {...storeIcon} />
+                            <div className="ps-4 text-sm">
                               {parsePhones([service.phone]).map(({ label, number, note, href }, index) => (
                                 <a
-                                  className={'d-block nav-link-style' + (index > 0 ? ' mt-2' : '')}
+                                  className={`block ${navLinkClass()} ${index > 0 ? 'mt-2' : ''}`}
                                   href={href || undefined}
                                   key={index}>
                                   {label && <>{label} </>}

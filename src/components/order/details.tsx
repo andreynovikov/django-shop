@@ -16,6 +16,8 @@ import UserTopbar from '@/components/user/topbar'
 import OrderPaymentButton from '@/components/order/payment-button'
 import OrderStatusBadge from '@/components/order/status-badge'
 import Tooltip from '@/components/ui/tooltip'
+import { Alert } from '@/components/ui/alert'
+import { IconAlertCircle, IconBell, IconPaperclip } from '@tabler/icons-react'
 import {
   STATUS_NEW,
   STATUS_ACCEPTED,
@@ -37,6 +39,10 @@ import {
 } from '@/components/order/status-badge'
 
 import moment from 'moment'
+
+// The information blocks: delivery, payment and the recipient
+const infoTitleClass = 'mb-3 text-h6'
+const infoListClass = 'mb-4 text-sm *:mb-[.4rem]'
 
 export default function OrderDetails({ id }: { id: number }) {
   const { site } = useSite()
@@ -72,63 +78,61 @@ export default function OrderDetails({ id }: { id: number }) {
 
   if (!isSuccess)
     return (
-      <div className="container pb-5 mb-2 mb-md-4">
-        <div className="row">
-          <section className="col-lg-12">
-            <div className="pt-2 pb-4 pb-sm-5">
-              <div className="pb-3">
-                &nbsp;
-              </div>
+      <div className="container mb-2 pb-12 md:mb-6">
+        <section>
+          <div className="pt-2 pb-6 sm:pb-12">
+            <div className="pb-4">
+              &nbsp;
             </div>
-            <Loading className="my-3 py-3 text-center" mega />
-          </section>
-        </div>
+          </div>
+          <Loading className="my-4 py-4 text-center" mega />
+        </section>
       </div>
     )
 
   return (
     <>
       <UserTopbar>
-        <div className="d-flex w-100 text-light text-center me-3">
-          <div className="fs-ms px-3">
-            <div className="fw-medium">Дата оформления</div>
-            <div className="fs-lg opacity-60 sw-order-created">
+        <div className="me-4 flex w-full text-center text-white">
+          <div className="px-4 text-ms">
+            <div className="font-medium">Дата оформления</div>
+            <div className="text-lg opacity-60">
               <Tooltip side="bottom" content={moment(order.created).format('LLL')}>
                 <span>{created}</span>
               </Tooltip>
             </div>
           </div>
-          <div className="fs-ms px-3">
-            <div className="fw-medium">Статус</div>
-            <div className="fs-lg"><OrderStatusBadge status={order.status} text={order.status_text} /></div>
+          <div className="px-4 text-ms">
+            <div className="font-medium">Статус</div>
+            <div className="text-lg"><OrderStatusBadge status={order.status} text={order.status_text} /></div>
           </div>
-          <div className="fs-ms px-3">
-            <div className="fw-medium">{order.paid ? "Стоимость заказа" : "Всего к оплате"}</div>
-            <div className="fs-lg opacity-60">{order.total.toLocaleString('ru')}<small>&nbsp;руб</small></div>
+          <div className="px-4 text-ms">
+            <div className="font-medium">{order.paid ? "Стоимость заказа" : "Всего к оплате"}</div>
+            <div className="text-lg opacity-60">{order.total.toLocaleString('ru')}<small>&nbsp;руб</small></div>
           </div>
         </div>
       </UserTopbar>
       { /* Order details (visible on mobile) */}
-      <div className="d-flex d-lg-none flex-wrap bg-secondary text-center rounded-3 pt-4 px-4 pb-1 mb-4">
-        <div className="fs-sm px-3 pb-3">
-          <div className="fw-medium">Дата оформления</div>
-          <div className="fs-lg text-muted">{created}</div>
+      <div className="mb-6 flex flex-wrap rounded-lg bg-gray-100 px-6 pt-6 pb-1 text-center lg:hidden">
+        <div className="px-4 pb-4 text-sm">
+          <div className="font-medium">Дата оформления</div>
+          <div className="text-lg text-muted">{created}</div>
         </div>
-        <div className="fs-sm px-3 pb-3">
-          <div className="fw-medium">Статус</div>
-          <div className="fs-lg text-muted"><OrderStatusBadge status={order.status} text={order.status_text} /></div>
+        <div className="px-4 pb-4 text-sm">
+          <div className="font-medium">Статус</div>
+          <div className="text-lg text-muted"><OrderStatusBadge status={order.status} text={order.status_text} /></div>
         </div>
-        <div className="fs-sm px-3 pb-3">
-          <div className="fw-medium">Всего к оплате</div>
-          <div className="fs-lg text-muted">{order.total.toLocaleString('ru')}<small>&nbsp;руб</small></div>
+        <div className="px-4 pb-4 text-sm">
+          <div className="font-medium">Всего к оплате</div>
+          <div className="text-lg text-muted">{order.total.toLocaleString('ru')}<small>&nbsp;руб</small></div>
         </div>
       </div>
 
-      <div className="bg-secondary rounded-3 px-4 pt-4 pb-2 mb-4">
-        <div className="row">
-          <div className="col-sm-6">
-            <h4 className="h6">Информация о доставке:</h4>
-            <ul className="list-unstyled fs-sm">
+      <div className="mb-6 rounded-lg bg-gray-100 px-6 pt-6 pb-2">
+        <div className="grid gap-x-7.5 sm:grid-cols-2">
+          <div>
+            <h4 className={infoTitleClass}>Информация о доставке:</h4>
+            <ul className={infoListClass}>
               {order.delivery_price > 0 && (
                 <li>
                   <span className="text-muted">Стоимость доставки:</span>
@@ -186,7 +190,7 @@ export default function OrderDetails({ id }: { id: number }) {
                 </>
               )}
               {order.delivery_info && (
-                <li style={{ whiteSpace: "pre-line" }}>{order.delivery_info}</li>
+                <li className="whitespace-pre-line">{order.delivery_info}</li>
               )}
               {order.delivery_dispatch_date && (
                 <li>
@@ -217,9 +221,9 @@ export default function OrderDetails({ id }: { id: number }) {
               )}
             </ul>
           </div>
-          <div className="col-sm-6">
-            <h4 className="h6">Оплата заказа:</h4>
-            <ul className="list-unstyled fs-sm">
+          <div>
+            <h4 className={infoTitleClass}>Оплата заказа:</h4>
+            <ul className={infoListClass}>
               {order.payment === PAYMENT_UNKNOWN ? (
                 <li>Способ оплаты уточняется</li>
               ) : (
@@ -237,7 +241,7 @@ export default function OrderDetails({ id }: { id: number }) {
                         <li>
                           { /* TODO: external link */}
                           <a href="'shop:order_document' order.id 'bill'" target="_blank">
-                            <i className="ci-clip me-1" />Скачать счёт для оплаты в любом банке
+                            <IconPaperclip size={14} stroke={1.5} className="me-1" />Скачать счёт для оплаты в любом банке
                           </a>
                         </li>
                       ) : (
@@ -246,14 +250,11 @@ export default function OrderDetails({ id }: { id: number }) {
                     ) : (
                       (order.payment === PAYMENT_CARD || order.payment === PAYMENT_CREDIT || order.payment === PAYMENT_TRANSFER) && (
                         <li>
-                          <div className="alert alert-accent d-flex mt-3" role="alert">
-                            <div className="alert-icon"><i className="ci-announcement" /></div>
-                            <div>
-                              <div className="mb-2">Возможность оплатить заказ онлайн или распечатать счёт
-                                появится тут после согласования и завершения комплектования заказа.</div>
-                              <div>Вы получите сообщение об этом. Пожалуйста, посетите эту страницу позже.</div>
-                            </div>
-                          </div>
+                          <Alert variant="accent" icon={<IconAlertCircle size={18} stroke={1.5} />} className="mt-4 mb-4">
+                            <div className="mb-2">Возможность оплатить заказ онлайн или распечатать счёт
+                              появится тут после согласования и завершения комплектования заказа.</div>
+                            <div>Вы получите сообщение об этом. Пожалуйста, посетите эту страницу позже.</div>
+                          </Alert>
                         </li>
                       )
                     )
@@ -263,9 +264,9 @@ export default function OrderDetails({ id }: { id: number }) {
             </ul>
           </div>
           {order.is_firm && (
-            <div className="col-sm-6">
-              <h4 className="h6">Получатель:</h4>
-              <ul className="list-unstyled fs-sm">
+            <div>
+              <h4 className={infoTitleClass}>Получатель:</h4>
+              <ul className={infoListClass}>
                 <li><span className="text-muted">Название организации:</span> {order.firm_name}</li>
                 <li><span className="text-muted">Юридический адрес:</span> {order.firm_address}</li>
                 <li><span className="text-muted">Сведения об организации:</span> {order.firm_details}</li>
@@ -277,9 +278,9 @@ export default function OrderDetails({ id }: { id: number }) {
         </div>
       </div>
       {order.items.map((item, index) => (
-        <div className={"d-sm-flex justify-content-between pb-3 pb-sm-2 " + (index === 0 ? "mb-3" : "my-3") + (index < order.items.length - 1 ? " border-bottom" : "")} key={item.product.id}>
-          <div className="d-sm-flex text-center text-sm-start">
-            <Link className="d-inline-block flex-shrink-0 mx-auto position-relative" style={{ width: "10rem" }} href={`/products/${item.product.code}`}>
+        <div className={`pb-4 sm:flex sm:justify-between sm:pb-2 ${index === 0 ? "mb-4" : "my-4"} ${index < order.items.length - 1 ? "border-b" : ""}`} key={item.product.id}>
+          <div className="text-center sm:flex sm:text-start">
+            <Link className="relative mx-auto inline-block w-40 shrink-0" href={`/products/${item.product.code}`}>
               {item.product.image ? (
                 <Image
                   src={item.product.image}
@@ -291,47 +292,44 @@ export default function OrderDetails({ id }: { id: number }) {
                 <NoImage size={160} />
               )}
             </Link>
-            <div className="ps-sm-4 pt-2">
-              <h3 className="product-title fs-base mb-2">
-                <Link href={`/products/${item.product.code}`}>
+            <div className="pt-2 sm:ps-6">
+              <h3 className="mb-2 text-base leading-[1.2] font-medium">
+                <Link className="text-heading hover:text-primary" href={`/products/${item.product.code}`}>
                   {item.product.title}
                 </Link>
               </h3>
               {item.product.partnumber && (
-                <div className="fs-sm">
-                  <span className="text-muted me-2">Артикул:</span>{item.product.partnumber}
+                <div className="text-sm">
+                  <span className="me-2 text-muted">Артикул:</span>{item.product.partnumber}
                 </div>
               )}
               {item.product.article && (
-                <div className="fs-sm">
-                  <span className="text-muted me-2">Код товара:</span>{item.product.article}
+                <div className="text-sm">
+                  <span className="me-2 text-muted">Код товара:</span>{item.product.article}
                 </div>
               )}
-              <div className="fs-sm">
-                <span className="text-muted me-2">Цена:</span>{item.product_price.toLocaleString('ru')}<small>&nbsp;руб</small>
+              <div className="text-sm">
+                <span className="me-2 text-muted">Цена:</span>{item.product_price.toLocaleString('ru')}<small>&nbsp;руб</small>
               </div>
               {item.discount > 0 && (
-                <div className="fs-sm">
-                  <span className="text-muted me-2">Скидка:</span>{item.discount_text}
+                <div className="text-sm">
+                  <span className="me-2 text-muted">Скидка:</span>{item.discount_text}
                 </div>
               )}
-              <div className="fs-lg text-accent pt-2">{item.price.toLocaleString('ru')}<small>&nbsp;руб</small></div>
+              <div className="pt-2 text-lg text-accent">{item.price.toLocaleString('ru')}<small>&nbsp;руб</small></div>
             </div>
           </div>
-          <div className="pt-2 ps-sm-3 mx-auto mx-sm-0 text-center" style={{ maxWidth: "9rem" }}>
-            <div className="text-muted mb-2">Количество:</div>
+          <div className="mx-auto max-w-36 pt-2 text-center sm:mx-0 sm:ps-4">
+            <div className="mb-2 text-muted">Количество:</div>
             {item.quantity}
           </div>
         </div>
       ))}
       {site.phone && [STATUS_NEW, STATUS_ACCEPTED, STATUS_COLLECTING, STATUS_FROZEN, STATUS_COLLECTED].includes(order.status) && (
-        <div className="alert alert-info d-flex mt-5" role="alert">
-          <div className="alert-icon"><i className="ci-bell" /></div>
-          <div>
-            Если Вы хотите внести изменения в заказ, позвоните по телефону{" "}
-            <a className="alert-link" href={"tel:" + site.phone} style={{ whiteSpace: "nowrap" }}>{formatPhone(site.phone)}</a>
-          </div>
-        </div>
+        <Alert variant="info" icon={<IconBell size={18} stroke={1.5} />} className="mt-12 mb-4">
+          Если Вы хотите внести изменения в заказ, позвоните по телефону{" "}
+          <a className="whitespace-nowrap" href={"tel:" + site.phone}>{formatPhone(site.phone)}</a>
+        </Alert>
       )}
     </>
   )

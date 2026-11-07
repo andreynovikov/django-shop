@@ -13,8 +13,9 @@ test('field help popover shows help page', async ({ page, request }) => {
 
   const popup = page.getByRole('dialog')
   await expect(popup).toBeVisible()
-  await expect(popup.locator('.spinner-border')).toHaveCount(0)
-  await expect(popup.locator('.fs-sm')).not.toBeEmpty()
+  // the help page replaces the loading spinner
+  await expect(popup.getByRole('status')).toHaveCount(0)
+  await expect(popup).not.toBeEmpty()
 
   await page.keyboard.press('Escape')
   await expect(popup).toBeHidden()

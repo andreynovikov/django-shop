@@ -1,8 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { IconHeart, IconMenu2, IconRepeat } from '@tabler/icons-react'
 
 import { MobileCartNotice } from '@/components/cart/notice'
+import { handheldBadgeClass, handheldIconClass, handheldItemClass, handheldLabelClass, handheldToolbarClass } from '@/components/ui/handheld-toolbar'
 
 import useComparison from '@/lib/comparison'
 import useFavorites from '@/lib/favorites'
@@ -29,33 +31,31 @@ export default function HandheldBottomBar() {
     + (favorites.length > 0 ? 1 : 0)
 
   return (
-    <div className="handheld-toolbar">
-      <div className="d-table table-layout-fixed w-100">
-        {item}
-        <a className="d-table-cell handheld-toolbar-item" onClick={handleMenuOpen} style={{ cursor: 'pointer' }}>
-          <span className="handheld-toolbar-icon"><i className="ci-menu" /></span>
-          <span className="handheld-toolbar-label">Меню</span>
-        </a>
-        {comparisons.length > 0 && (
-          <Link className="d-table-cell handheld-toolbar-item" href="/compare" rel="nofollow">
-            <span className="handheld-toolbar-icon">
-              <i className="ci-compare" />
-              <span className="badge bg-primary rounded-pill ms-1">{comparisons.length}</span>
-            </span>
-            <span className="handheld-toolbar-label">Сравнение</span>
-          </Link>
-        )}
-        {status === 'authenticated' && (
-          <Link className="d-table-cell handheld-toolbar-item" href="/user/favorites">
-            <span className="handheld-toolbar-icon">
-              <i className="ci-heart" />
-              {favorites.length > 0 && <span className="badge bg-primary rounded-pill ms-1">{favorites.length}</span>}
-            </span>
-            <span className="handheld-toolbar-label">Избранное</span>
-          </Link>
-        )}
-        <MobileCartNotice extraItemsCount={extraItemsCount} />
-      </div>
+    <div className={handheldToolbarClass}>
+      {item}
+      <button type="button" className={handheldItemClass} onClick={handleMenuOpen}>
+        <span className={handheldIconClass}><IconMenu2 size={20} stroke={1.5} /></span>
+        <span className={handheldLabelClass}>Меню</span>
+      </button>
+      {comparisons.length > 0 && (
+        <Link className={handheldItemClass} href="/compare" rel="nofollow" aria-label="Сравнение">
+          <span className={handheldIconClass}>
+            <IconRepeat size={20} stroke={1.5} />
+            <span className={handheldBadgeClass}>{comparisons.length}</span>
+          </span>
+          <span className={handheldLabelClass}>Сравнение</span>
+        </Link>
+      )}
+      {status === 'authenticated' && (
+        <Link className={handheldItemClass} href="/user/favorites" aria-label="Избранное">
+          <span className={handheldIconClass}>
+            <IconHeart size={20} stroke={1.5} />
+            {favorites.length > 0 && <span className={handheldBadgeClass}>{favorites.length}</span>}
+          </span>
+          <span className={handheldLabelClass}>Избранное</span>
+        </Link>
+      )}
+      <MobileCartNotice extraItemsCount={extraItemsCount} />
     </div>
   )
 }

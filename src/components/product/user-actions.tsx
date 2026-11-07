@@ -1,6 +1,9 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { IconHeart, IconRepeat } from '@tabler/icons-react'
+
+import { buttonClass } from '@/components/ui/button'
 
 import useComparison from '@/lib/comparison'
 import useFavorites from '@/lib/favorites'
@@ -30,13 +33,14 @@ export default function ProductUserActions({ product }: { product: Product }) {
   }
 
   return (
-    <div className="d-flex mb-4">
+    <div className="mb-6 flex">
       {(status === 'authenticated' && product.enabled) && (
         <button
           type="button"
           onClick={handleFavoritesClick}
-          className={"btn btn-sm btn-" + (favorites.includes(product.id) ? "accent" : "secondary") + " d-block w-100"}>
-          <i className="ci-heart fs-lg me-2" />
+          aria-pressed={favorites.includes(product.id)}
+          className={buttonClass({ variant: favorites.includes(product.id) ? 'accent' : 'secondary', size: 'sm', block: true })}>
+          <IconHeart size={18} stroke={1.5} className="me-2" />
           <span>
             {favorites.includes(product.id) ? "В избранном" : "Отложить"}
           </span>
@@ -46,8 +50,8 @@ export default function ProductUserActions({ product }: { product: Product }) {
         <button
           type="button"
           onClick={handleComparisonClick}
-          className={"btn btn-sm btn-" + (comparisons.includes(product.id) ? "accent" : "secondary") + " d-block w-100" + (status === 'authenticated' ? " ms-3" : "")}>
-          <i className="ci-compare fs-lg me-2" />
+          className={`${buttonClass({ variant: comparisons.includes(product.id) ? 'accent' : 'secondary', size: 'sm', block: true })} ${status === 'authenticated' ? 'ms-4' : ''}`}>
+          <IconRepeat size={18} stroke={1.5} className="me-2" />
           <span>
             {comparisons.includes(product.id) ? "Сравнение" : "Сравнить"}
           </span>

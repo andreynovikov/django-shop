@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 
 import Tooltip from '@/components/ui/tooltip'
+import { badgeClass } from '@/components/ui/badge'
+import { Spinner } from '@/components/loading'
 
 import { useSession } from '@/lib/session'
 import { userKeys, getUserBonus } from '@/lib/queries'
@@ -22,9 +24,9 @@ export default function UserBonus() {
 
   return (
     <Tooltip content="Накопленные бонусы" side="right">
-      <div className={`d-flex align-items-center gap-2 badge ${bonus.is_fresh ? 'bg-warning' : bonus.is_undefined ? 'bg-danger' : 'bg-dark'} position-absolute end-0 mt-n2`}>
+      <div className={`${badgeClass()} absolute right-0 -mt-2 flex! items-center gap-2 text-white ${bonus.is_fresh ? 'bg-warning' : bonus.is_undefined ? 'bg-danger' : 'bg-dark'}`}>
         {bonus.value}
-        {(isFetching || bonus.is_updating) && <span className="spinner-border" style={{ width: "0.5rem", height: "0.5rem" }} role="status" aria-hidden="true" />}
+        {(isFetching || bonus.is_updating) && <Spinner size="xs" />}
       </div>
     </Tooltip>
   )

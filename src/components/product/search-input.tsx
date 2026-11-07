@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 
 import { Autocomplete } from '@base-ui/react/autocomplete'
+import { IconSearch } from '@tabler/icons-react'
 
+import { inputClass } from '@/components/ui/form'
 import { AutocompletePopup, AutocompleteStatus, AutocompleteGroup, AutocompleteItem, Highlighter } from '@/components/ui/autocomplete'
 
 import { productKeys } from '@/lib/queries'
@@ -71,24 +73,24 @@ export default function ProductSearchInput({ mobile = false }: { mobile?: boolea
     groups.length === 0 ? "Ничего не найдено" : null
 
   return (
-    <form className="w-100" action="/search/">
+    <form className="w-full" action="/search/">
       <Autocomplete.Root
         items={groups}
         mode="inline"
         itemToStringValue={(item) => item.label}
         onValueChange={handleValueChange}>
-        <div className="input-group">
-          {mobile && <i className="ci-search position-absolute top-50 start-0 translate-middle-y text-muted fs-base ms-3" />}
+        <div className="relative">
+          {mobile && <IconSearch size={16} stroke={1.5} className="absolute top-1/2 left-0 z-5 ms-4 -translate-y-1/2 text-muted" />}
           <Autocomplete.Input
-            className={"form-control pe-5 " + (mobile ? "rounded-start" : "rounded-end")}
+            className={`${inputClass()} ${mobile ? 'ps-10' : 'pe-12'}`}
             name="text"
             placeholder="Поиск товаров" />
           {mobile ? (
             // Base UI adds a hidden input, without a submit button a form with two inputs isn't submitted by Enter
-            <button className="visually-hidden" type="submit" tabIndex={-1} aria-hidden="true" />
+            <button className="sr-only" type="submit" tabIndex={-1} aria-hidden="true" />
           ) : (
-            <button className="btn btn-link position-absolute top-50 end-0 translate-middle-y p-0 me-3" type="submit">
-              <i className="ci-search text-muted fs-base" />
+            <button className="absolute top-1/2 right-0 me-4 -translate-y-1/2 p-0 text-muted" type="submit" aria-label="Найти">
+              <IconSearch size={16} stroke={1.5} className="block" />
             </button>
           )}
         </div>
@@ -102,13 +104,13 @@ export default function ProductSearchInput({ mobile = false }: { mobile?: boolea
                     key={`products:${item.product.id}`}
                     value={item}
                     onClick={() => router.push(item.product.link_url.replace('.html', '/'))}>
-                    <div className="d-flex align-items-center gap-2">
-                      <div style={{ width: "64px" }}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 shrink-0">
                         {/* Diginetica's image host isn't in images.remotePatterns, the name next to it describes the product */}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        {item.product.image_url ? <img src={item.product.image_url} className="img-fluid" alt="" /> : "no img"}
+                        {item.product.image_url ? <img src={item.product.image_url} className="h-auto max-w-full" alt="" /> : "no img"}
                       </div>
-                      <div className="d-flex flex-column">
+                      <div className="flex min-w-0 flex-col">
                         <div>
                           <Highlighter search={searchText}>{item.product.name}</Highlighter>
                         </div>
@@ -123,7 +125,7 @@ export default function ProductSearchInput({ mobile = false }: { mobile?: boolea
                     key={`${item.section}:${item.label}`}
                     value={item}
                     onClick={item.section === 'sts' ? () => router.push(`/search/?${new URLSearchParams({ text: item.label })}`) : undefined}>
-                    {item.section === 'sts' && <i className="ci-search text-muted fs-sm me-2" />}
+                    {item.section === 'sts' && <IconSearch size={14} stroke={1.5} className="me-2 align-[-2px] text-muted" />}
                     <Highlighter search={searchText}>{item.label}</Highlighter>
                   </AutocompleteItem>
                 )}

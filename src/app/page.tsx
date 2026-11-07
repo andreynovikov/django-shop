@@ -1,12 +1,16 @@
 import Link from 'next/link'
+import { IconChevronRight } from '@tabler/icons-react'
 
 import TopCategoriesCard from '@/components/top-categories-card'
 import CurrentCatalog from '@/components/current-catalog'
 import ProductCard from '@/components/product/card'
+import { buttonClass } from '@/components/ui/button'
+import { cardClass } from '@/components/ui/card'
 
 import { loadAdverts, loadProducts } from '@/lib/queries'
 import { recomendedProductsFilters, newProductsFilters } from '@/lib/catalog'
 import { Advert, ProductInfo } from '@/lib/types'
+import { advertClass } from '@/components/ui/content'
 
 export const revalidate = 3600
 
@@ -15,12 +19,12 @@ const sort = '-price'
 
 function Adverts({ adverts }: { adverts: Advert[] }) {
   return adverts.length > 0 && (
-    <section className="container pt-5">
-      <div className="row mx-n2">
+    <section className="container pt-12">
+      <div className="grid gap-x-4 sm:grid-cols-2 lg:grid-cols-4">
         {adverts.map((advert) => (
-          <div className="col-lg-3 col-sm-6 px-2 mb-4" key={advert.id}>
-            <div className="card overflow-hidden h-100" dangerouslySetInnerHTML={{ __html: advert.content }} />
-            <hr className="d-sm-none" />
+          <div className="mb-6" key={advert.id}>
+            <div className={`${cardClass} ${advertClass} h-full overflow-hidden`} dangerouslySetInnerHTML={{ __html: advert.content }} />
+            <hr className="sm:hidden" />
           </div>
         ))}
       </div>
@@ -38,21 +42,21 @@ interface ProductsSectionProps {
 
 function ProductsSection({ products, id, title, linkTitle, href }: ProductsSectionProps) {
   return (
-    <section id={id} className="container pt-5" itemScope itemType="http://schema.org/OfferCatalog">
-      <div className="d-flex flex-wrap justify-content-between align-items-center pt-1 border-bottom pb-4 mb-4">
-        <h2 className="h3 mb-0 pt-3 me-2" itemProp="name">{title}</h2>
-        <div className="pt-3">
-          <Link className="btn btn-accent btn-sm" href={href}>
+    <section id={id} className="container pt-12" itemScope itemType="http://schema.org/OfferCatalog">
+      <div className="mb-6 flex flex-wrap items-center justify-between border-b pt-1 pb-6">
+        <h2 className="me-2 mb-0 pt-4 text-h3" itemProp="name">{title}</h2>
+        <div className="pt-4">
+          <Link className={buttonClass({ variant: 'accent', size: 'sm' })} href={href}>
             {linkTitle}
-            <i className="ci-arrow-right ms-1 me-n1" />
+            <IconChevronRight size={14} stroke={1.5} className="-me-1 ms-1" />
           </Link>
         </div>
       </div>
-      <div className="row pt-2 mx-n2">
+      <div className="grid gap-x-4 pt-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {products.map((product, index) => (
-          <div className="col-lg-3 col-md-4 col-sm-6 px-2 mb-4" key={product.id}>
+          <div className="mb-6" key={product.id}>
             <ProductCard product={product} gtmList="Первая страница акции" gtmPosition={index} />
-            <hr className="d-sm-none" />
+            <hr className="sm:hidden" />
           </div>
         ))}
       </div>
@@ -72,21 +76,21 @@ export default async function HomePage() {
   const bottomAdverts = adverts.filter(advert => advert.place === 'index_bottom_new')
 
   return (
-    <div className="mb-3">
-      <section className="pb-5">
-        <div className="bg-dark py-5"></div>
-        <div className="py-3"></div>
+    <div className="mb-4">
+      <section className="pb-12">
+        <div className="bg-dark py-12"></div>
+        <div className="py-4"></div>
       </section>
 
-      <div className="d-flex flex-column position-relative pt-3 pt-lg-0 mt-n10" style={{ zIndex: 10 }}>
-        <section className="container order-2 order-sm-1">
+      <div className="relative z-10 -mt-40 flex flex-col pt-4 lg:pt-0">
+        <section className="container order-2 sm:order-1">
           <TopCategoriesCard />
           <CurrentCatalog />
         </section>
 
         {mainAdvert && (
-          <section className="container pt-0 pt-sm-5 order-1 order-sm-2">
-            <div className="row mx-n2" dangerouslySetInnerHTML={{ __html: mainAdvert.content }} />
+          <section className="container order-1 pt-0 sm:order-2 sm:pt-12">
+            <div className={`${advertClass} -mx-2`} dangerouslySetInnerHTML={{ __html: mainAdvert.content }} />
           </section>
         )}
       </div>

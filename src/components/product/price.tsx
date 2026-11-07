@@ -2,9 +2,15 @@ import { Product, ProductInfo } from "@/lib/types"
 
 import { SearchProduct } from "./card"
 
+const delSizes = {
+  xs: 'text-xs',
+  sm: 'text-sm',
+  lg: 'text-lg',
+}
+
 interface ProductPriceProps {
   product: Product | ProductInfo | SearchProduct
-  delFs?: string
+  delFs?: keyof typeof delSizes  // size of the crossed out full price
   microdata?: boolean  // price properties of the enclosing schema.org Offer
 }
 
@@ -23,7 +29,7 @@ export default function ProductPrice({ product, delFs, microdata = false, ...pro
         {product.cost != product.price && (
           <>
             {" "}
-            <del className={`fs-${delFs ? delFs : "sm"} text-muted`}>
+            <del className={`${delSizes[delFs ?? 'sm']} text-muted`}>
               {product.price.toLocaleString('ru')}
               <small>&nbsp;руб</small>
             </del>

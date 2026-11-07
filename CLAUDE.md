@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Next.js storefront for sewing-world.ru (package name `sworld`, branch `cartzilla`), built on the Cartzilla Bootstrap theme. It has no database of its own: all data comes from a separate Django backend (the `django-shop` repo) over REST at `${API_SERVER}/api/v0/`. The UI and content are in Russian.
+Next.js storefront for sewing-world.ru (package name `sworld`, branch `cartzilla`), styled with Tailwind CSS v4 after the look of the Cartzilla theme it was built on. It has no database of its own: all data comes from a separate Django backend (the `django-shop` repo) over REST at `${API_SERVER}/api/v0/`. The UI and content are in Russian.
 
 ## Commands
 
 - `npm run dev`: dev server at https://127.0.0.1:3004 (experimental HTTPS). It uses the certs in `certificates/`, which is gitignored. On a fresh clone, create them first with `mkcert -install -key-file certificates/localhost-key.pem -cert-file certificates/localhost.pem localhost 127.0.0.1 ::1`. The certs are passed explicitly because Next's own reuse check fails for an IP host and would regenerate them on every start.
 - `npm run test`: plain `next dev` at http://127.0.0.1:4004. Playwright uses this as its web server locally.
 - `npm run build` / `npm start`: production build (`output: 'standalone'`) and server on port 4004
-- `npm run lint`: ESLint over `src/` (next core-web-vitals, next typescript, and the tanstack-query recommended rules; `src/vendor/` is ignored)
+- `npm run lint`: ESLint over `src/` (next core-web-vitals, next typescript, and the tanstack-query recommended rules)
 - `npm run test:e2e`: Playwright tests in `tests/` (chromium, firefox, Mobile Chrome)
   - Run one file: `npx playwright test tests/checkout.spec.ts`
   - Run one test by name: `npx playwright test -g "anonymous buyer orders"`
@@ -49,7 +49,14 @@ Everything is in `src/app/`. The route groups `(auth)` (login, registration), `(
 `src/app/xml/[filename]/route.ts` serves product feeds such as `/xml/market.xml`. It renders the EJS templates in `templates/xml/`. `products` and `search` are global feeds. Any other filename is treated as an integration UTM, looked up on the backend, and rendered with that integration's `output_template`. In Docker, `templates/` is mounted as a volume.
 
 ### Styling
-`src/styles.scss` imports the vendored Cartzilla theme (`src/vendor/cartzilla/scss`, built on the vendored Bootstrap in `src/vendor/bootstrap`) and adds the site's own tweaks. Components use react-bootstrap plus the Cartzilla CSS classes. The Playwright selectors depend on those classes, e.g. `.navbar-tool-label` and `.ci-cart`. Don't edit files under `src/vendor/`.
+- Tailwind CSS v4 through `@tailwindcss/postcss`. `src/styles.css` holds the theme: Cartzilla's colors and grays, the `text-h1`–`text-h6` heading sizes, `text-ms`/`text-md`, radii, shadows and the `container`. It scans only `src/` (`source('.')`). The base layer adds link and heading colors, inline Tabler icons and `.sw-shown-md`/`.sw-shown-lg` for `keepMounted` Collapsible panels that stay shown from a breakpoint up, which preflight's `[hidden]` would hide.
+- Breakpoints are Tailwind's defaults; `lib/breakpoint.ts` has the same values.
+- Components use utilities inline. Repeated Cartzilla patterns are class helpers in `src/components/ui/`: `buttonClass`, the form classes, `Alert`, `badgeClass`, card, menu, nav, widget, navbar tool and handheld toolbar classes, `carouselNavClass`, slider classes, and the Base UI wrappers (modal, offcanvas, tooltip, autocomplete). There is no tailwind-merge: don't add a class that sets what a helper already sets (e.g. a second `px-*` or display), add a helper option instead.
+- Icons are Tabler (`@tabler/icons-react`), usually `stroke={1.5}`.
+- Swiper's CSS is unlayered, so display utilities on slides and on the Swiper root need `!`.
+- HTML from the backend (product texts, pages, blog, actions, stores) goes into `contentClass()` from `ui/content.ts`: the typography plugin's `prose`, tuned to Cartzilla's spacing. Adverts get `advertClass`.
+- The stored HTML still has Bootstrap classes. `src/backend-content.css` styles the ones it uses, scoped to `.backend-content`, until django-shop's `manage.py tailwindize_html --write` converts them; then delete it and remove `backend-content` from the content classes (see `shop/tailwind_html.py` in django-shop). `src/backend-safelist.css`, printed by that command and identical in every storefront, makes Tailwind generate the classes of the converted HTML.
+- The Playwright tests select by role, label and text.
 
 ## Release and deploy
 - The version in `package.json` uses the format `YYYY.MM.DD`. Release commits are named `vYYYY.MM.DD` and tagged with the same name.

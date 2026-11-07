@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { Modal, ModalBody, ModalFooter } from '@/components/ui/modal'
 import UpdateForm from '@/components/user/update-form'
+import { buttonClass } from '@/components/ui/button'
 
 interface UserUpdateModalProps {
   show: boolean
@@ -18,8 +19,8 @@ export default function UserUpdateModal({ show, onHide }: UserUpdateModalProps) 
       </ModalBody>
       {formReady && (
         <ModalFooter>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={onHide}>Закрыть</button>
-          <button type="submit" form="user-update-modal-form" className="btn btn-primary btn-sm">Сохранить</button>
+          <button type="button" className={buttonClass({ variant: 'secondary', size: 'sm' })} onClick={onHide}>Закрыть</button>
+          <button type="submit" form="user-update-modal-form" className={buttonClass({ size: 'sm' })}>Сохранить</button>
         </ModalFooter>
       )}
     </Modal>

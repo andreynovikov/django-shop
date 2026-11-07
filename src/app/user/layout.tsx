@@ -16,10 +16,10 @@ export default function UserLayout({ header, children }: LayoutProps<'/user'>) {
       <PageHeader dark overlapped>
         {header}
       </PageHeader>
-      <div className="container pb-5 mb-2 mb-md-4">
-        <div className="row">
+      <div className="container mb-2 pb-12 md:mb-6">
+        <div className="grid gap-x-7.5 lg:grid-cols-3">
           <UserSidebar />
-          <section className="col-lg-8">
+          <section className="min-w-0 lg:col-span-2">
             {children}
           </section>
         </div>

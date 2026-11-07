@@ -10,14 +10,15 @@ type PageHeaderProps = {
 }
 
 // The frame of the page header, children are the title. A layout renders it around a title from a slot.
+// An overlapped header is taller and the block after it is pulled up over its bottom.
 export function PageHeader({ secondaryTitle, dark = false, overlapped, children }: PageHeaderProps) {
   return (
-    <div className={`bg-${dark ? 'dark' : 'secondary'} ${overlapped ? 'page-title-overlap pt-4' : 'py-4'}`}>
-      <div className="container d-lg-flex justify-content-between py-2 py-lg-3">
-        <div className="order-lg-2 flex-shrink-1 mb-3 mb-lg-0 pt-lg-2">
+    <div className={`${dark ? 'bg-dark' : 'bg-gray-100'} ${overlapped ? 'pt-6 pb-22 md:pb-[6.375rem] [&+*]:-mt-[4.875rem]' : 'py-6'}`}>
+      <div className="container py-2 lg:flex lg:justify-between lg:py-4">
+        <div className="mb-4 shrink lg:order-2 lg:mb-0 lg:pt-2">
           {secondaryTitle}
         </div>
-        <div className="order-lg-1 flex-shrink-0 mw-100 pe-lg-4 text-center text-lg-start">
+        <div className="max-w-full shrink-0 text-center lg:order-1 lg:pe-6 lg:text-start">
           {children}
         </div>
       </div>
@@ -36,7 +37,7 @@ export function PageTitle({ title, titleAddon, dark = false, breadcrumbs }: Page
   return (
     <>
       {breadcrumbs && <Breadcrumbs items={breadcrumbs} dark={dark} />}
-      <h1 className={`h3 mb-0 text-${dark ? 'light' : 'dark'}`}>{title}</h1>
+      <h1 className={`mb-0 text-h3 ${dark ? 'text-white' : 'text-dark'}`}>{title}</h1>
       {titleAddon}
     </>
   )

@@ -5,6 +5,9 @@ import { Fragment, useState, useMemo, ReactNode } from 'react'
 import Link from 'next/link'
 
 import { Collapsible } from '@base-ui/react/collapsible'
+import { IconClock, IconMapPin, IconPhone, IconWorld } from '@tabler/icons-react'
+
+import { navLinkClass } from '@/components/ui/nav'
 
 import type { LngLat } from '@yandex/ymaps3-types'
 
@@ -31,15 +34,19 @@ function Collapsable({
 }) {
   return (
     <Collapsible.Root open={selected === id} onOpenChange={onSelect}>
-      <Collapsible.Trigger className={`d-block btn ${selected === id ? 'btn-info' : 'btn-light'} btn-link p-1 ${className}`}>
+      <Collapsible.Trigger className={`block rounded-md p-1 text-start transition-colors ${selected === id ? 'bg-info text-white' : 'text-gray-700 hover:text-primary'} ${className}`}>
         {name}
       </Collapsible.Trigger>
-      <Collapsible.Panel className="sw-collapse" keepMounted>
+      <Collapsible.Panel className="h-(--collapsible-panel-height) overflow-hidden transition-[height] duration-350 data-ending-style:h-0 data-starting-style:h-0" keepMounted>
         {children}
       </Collapsible.Panel>
     </Collapsible.Root>
   )
 }
+
+// A line of a store card, with its icon
+const itemClass = 'mt-2 flex border-t pt-2'
+const storeIcon = { size: 18, stroke: 1.5, className: 'my-1 text-primary' }
 
 type StoreGroup = {
   city: City
@@ -86,21 +93,21 @@ export function StoreList({ stores }: { stores: StoreInfo[] }) {
 
   return (
     <>
-      <div className="container-fluid px-0">
-        <div className="row g-0">
-          <div className="col-lg-6 iframe-full-height-wrap" style={{ minHeight: '26rem' }}>
+      <div className="w-full">
+        <div className="grid lg:grid-cols-2">
+          <div className="relative min-h-[26rem] overflow-hidden">
             <StoreMap stores={stores} focusPoints={mapFocusPoints} />
           </div>
-          <div className="col-lg-6 px-4 px-xl-5 py-4">
+          <div className="p-6 xl:px-12">
             <div>
               <Collapsable
                 id={2}
                 name="Москва"
                 selected={currentCity}
                 onSelect={() => handleCitySelect(2)}
-                className="fw-bold">
+                className="text-md font-bold">
                 {stores && stores.filter(({ city }) => city.id === 2).map((store) => (
-                  <div className="fs-xs pt-1 ps-2" key={store.id}>
+                  <div className="ps-2 pt-1 text-xs" key={store.id}>
                     <Link href={`/stores/${store.id}`}>
                       {store.address}
                     </Link>
@@ -120,9 +127,9 @@ export function StoreList({ stores }: { stores: StoreInfo[] }) {
                 name="Санкт-Петербург"
                 selected={currentCity}
                 onSelect={() => handleCitySelect(21)}
-                className="fw-bold">
+                className="text-md font-bold">
                 {stores && stores.filter(({ city }) => city.id === 21).map((store) => (
-                  <div className="fs-xs pt-1 ps-2" key={store.id}>
+                  <div className="ps-2 pt-1 text-xs" key={store.id}>
                     <Link href={`/stores/${store.id}`}>
                       {store.address}
                     </Link>
@@ -136,9 +143,9 @@ export function StoreList({ stores }: { stores: StoreInfo[] }) {
                 ))}
               </Collapsable>
             </div>
-            <div className="d-flex gap-1 mt-1">
+            <div className="mt-1 flex gap-1">
               {storeGroups.length > 0 && rows(storeGroups, cols).map((column, index) => (
-                <div key={index} style={{ flex: "1 1 0" }}>
+                <div key={index} className="flex-1">
                   {column.map(({ city, stores }) => (
                     <Collapsable
                       key={city.id}
@@ -146,9 +153,9 @@ export function StoreList({ stores }: { stores: StoreInfo[] }) {
                       name={city.name}
                       selected={currentCity}
                       onSelect={() => handleCitySelect(city.id)}
-                      className="btn-sm">
+                      className="text-ms">
                       {stores.map((store) => (
-                        <div className="fs-xs pt-1 ps-2" key={store.id}>
+                        <div className="ps-2 pt-1 text-xs" key={store.id}>
                           <Link href={`/stores/${store.id}`}>
                             {store.address}
                           </Link>
@@ -169,15 +176,15 @@ export function StoreList({ stores }: { stores: StoreInfo[] }) {
         </div>
       </div>
 
-      <section className="container-fluid pt-grid-gutter mt-md-4 mb-5">
-        <div className="row">
+      <section className="mb-12 w-full px-[.9375rem] pt-7.5 md:mt-6 xl:px-7.5">
+        <div className="grid gap-x-7.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {storeGroups.length > 0 && storeGroups.filter(({ city }) => currentCity === null || city.id === currentCity).map(({ city, stores }) => (
             <Fragment key={city.id}>
               {stores.map((store) => (
-                <div className="col-xl-3 col-lg-4 col-sm-6 mb-grid-gutter" key={store.id}>
-                  <div className="card border-0 shadow-sm">
-                    <div className="card-body" itemScope itemType="http://schema.org/Organization">
-                      <h6 className="card-title">
+                <div className="mb-7.5" key={store.id}>
+                  <div className="relative flex min-w-0 flex-col rounded-lg bg-white shadow-sm">
+                    <div className="p-5" itemScope itemType="http://schema.org/Organization">
+                      <h6 className="mb-3 text-h6">
                         {store.logo === 'sewingworld' ?
                           <Link href={`/stores/${store.id}`} itemProp="url">
                             <span itemProp="name">&quot;{store.name}&quot; - {city.name}</span>
@@ -186,25 +193,25 @@ export function StoreList({ stores }: { stores: StoreInfo[] }) {
                           <span itemProp="name">&quot;{store.name}&quot; ({city.name})</span>
                         }
                       </h6>
-                      <ul className="list-unstyled mb-0">
-                        <li className="d-flex">
-                          <i className="ci-location fs-lg my-1 text-primary" />
-                          <div className="ps-3 fs-sm" itemProp="address" itemScope itemType="http://schema.org/PostalAddress">
+                      <ul>
+                        <li className="flex">
+                          <IconMapPin {...storeIcon} />
+                          <div className="ps-4 text-sm" itemProp="address" itemScope itemType="http://schema.org/PostalAddress">
                             <span itemProp="streetAddress">
                               {store.address}
                               {store.address2 && <><br />{store.address2}</>}
                             </span>
-                            <span className="d-none" itemProp="addressLocality">{city.name}</span>
-                            <span className="d-none" itemProp="addressCountry">{city.country.name}</span>
+                            <span className="hidden" itemProp="addressLocality">{city.name}</span>
+                            <span className="hidden" itemProp="addressCountry">{city.country.name}</span>
                           </div>
                         </li>
                         {store.phones && (
-                          <li className="d-flex pt-2 mt-2 mb-0 border-top">
-                            <i className="ci-phone fs-lg my-1 text-primary" />
-                            <div className="ps-3 fs-sm">
+                          <li className={itemClass}>
+                            <IconPhone {...storeIcon} />
+                            <div className="ps-4 text-sm">
                               {parsePhones(store.phones).map(({ label, number, note, href }, index) => (
                                 <a
-                                  className={'d-block nav-link-style' + (index > 0 ? ' mt-2' : '')}
+                                  className={`block ${navLinkClass()} ${index > 0 ? 'mt-2' : ''}`}
                                   href={href || undefined}
                                   key={index}>
                                   {label && <>{label} </>}
@@ -216,9 +223,9 @@ export function StoreList({ stores }: { stores: StoreInfo[] }) {
                           </li>
                         )}
                         {store.hours && (
-                          <li className="d-flex pt-2 mt-2 mb-0 border-top">
-                            <i className="ci-time fs-lg my-1 text-primary" />
-                            <div className="ps-3 fs-sm">
+                          <li className={itemClass}>
+                            <IconClock {...storeIcon} />
+                            <div className="ps-4 text-sm">
                               {store.hours.split(',').map((hours, index) => (
                                 <div className={index > 0 ? 'mt-2' : ''} key={index}>
                                   {hours.trim()}
@@ -228,15 +235,15 @@ export function StoreList({ stores }: { stores: StoreInfo[] }) {
                           </li>
                         )}
                         {store.url && (
-                          <li className="d-flex pt-2 mt-2 mb-0 border-top">
-                            <i className="ci-dribbble fs-lg my-1 text-primary" />
-                            <div className="ps-3 fs-sm">
-                              <a className="nav-link-style" href={store.url}>{store.url}</a>
+                          <li className={itemClass}>
+                            <IconWorld {...storeIcon} />
+                            <div className="ps-4 text-sm">
+                              <a className={navLinkClass()} href={store.url}>{store.url}</a>
                             </div>
                           </li>
                         )}
                         {store.logo !== 'sewingworld' && (
-                          <li className="pt-2 mt-2 mb-0">
+                          <li className="mt-2 pt-2">
                             <small className="text-muted">
                               Магазин-партнер: рекламные акции Швейного Мира могут не действовать в этом магазине
                             </small>

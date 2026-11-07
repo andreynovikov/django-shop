@@ -49,7 +49,7 @@ export const test = base.extend<{ blockApiWrites: void, skipHeavyResources: void
 // Filters are in the sidebar from the lg breakpoint, below it they are in an offcanvas
 export async function openFilters(page: Page, isMobile: boolean) {
   if (isMobile)
-    await page.locator('.handheld-toolbar-label', { hasText: 'Фильтры' }).click()
+    await page.getByRole('button', { name: 'Фильтры' }).click()
 }
 
 // The session is requested only after hydration, so the page handles clicks once it is.
@@ -61,7 +61,7 @@ export async function gotoHydrated(page: Page, url: string) {
 }
 
 // The topbar account icon links to the orders only for a signed in user
-export const accountLink = (page: Page) => page.locator('a.navbar-tool-icon-box[href^="/user/orders"]')
+export const accountLink = (page: Page) => page.getByRole('link', { name: 'Личный кабинет', exact: true })
 
 // Prices are formatted for the ru locale, with no-break spaces between thousands
 export const rubles = (value: number) => new RegExp(value.toLocaleString('ru').replaceAll(/\s/g, '\\s') + '\\sруб')

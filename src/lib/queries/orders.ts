@@ -22,7 +22,7 @@ export async function createPreorder(product: number) {
   })
 }
 
-export async function loadOrders(page: number, filter: string, site = undefined) {
+export async function loadOrders(page: number, filter: string, site?: number) {
   const url = 'orders/' + orderSearchParamsSerializer({
     page,
     filter: filter === '' ? null : filter,

@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 
 import { Menu } from '@base-ui/react/menu'
+import { IconAlertCircle, IconGift, IconMapPin, IconMessageDots, IconShieldCheck, IconShieldExclamation, IconShieldX } from '@tabler/icons-react'
 
 import ProductImpression from '@/components/product/ecommerce'
 import FieldHelp from '@/components/product/field-help'
@@ -17,6 +18,10 @@ import RelatedProductsCarousel from '@/components/product/related'
 import ProductStockWrapper from '@/components/product/stock-wrapper'
 import ProductReviewsWrapper from '@/components/product/reviews-wrapper'
 import ImageCarousel from '@/components/product/image-carousel'
+import { badgeClass, badgeShadows } from '@/components/ui/badge'
+import { buttonClass } from '@/components/ui/button'
+import { cardBodyClass, cardClass } from '@/components/ui/card'
+import { contentClass } from '@/components/ui/content'
 
 import { baseFilters } from '@/lib/catalog'
 import { prettifyProductFieldValue } from '@/lib/format'
@@ -68,6 +73,30 @@ function renderTemplate(template: string, product: Product) {
 
 const getSite = cache(loadCurrentSite)
 
+// A section below the product's main block and its title
+const sectionClass = 'pb-4 md:mb-4 lg:pt-2'
+const sectionTitleClass = 'mb-3 pb-2 text-h3'
+// The specification: names above values below md, side by side from md up
+const specNameClass = 'text-muted first-letter:uppercase'
+const specValueClass = 'self-end ps-2 pt-1 sm:pt-0'
+const noteIcon = { size: 16, stroke: 1.5, className: 'me-2 -mt-0.5 align-middle text-danger' }
+
+// A tab sticking out of the right edge of the block, with a folded corner below it
+function AvailabilityBadge({ product }: { product: Product }) {
+  const available = product.instock >= 1
+  const Icon = product.instock > 1 ? IconShieldCheck : product.instock === 1 ? IconShieldExclamation : IconShieldX
+  return (
+    <div className={`absolute top-1/2 -right-3 ${product.enabled ? 'mt-1' : 'mt-4'} flex -translate-y-1/2 items-center rounded-s-md py-[.425rem] ps-2.5 pe-4 text-ms after:pointer-events-none after:absolute after:right-1 after:-bottom-[.475rem] after:size-0 after:-rotate-45 after:border-[.525rem] after:border-transparent lg:-right-7 ${available ? 'bg-success text-white after:border-b-[#449d44]' : 'bg-secondary text-gray-700 after:border-b-[#d8deeb]'}`}>
+      <Icon size="1.2em" stroke={1.5} className="me-1" />
+      {product.enabled ? (
+        product.instock > 1 ? "В наличии" : product.instock === 1 ? "Осталось мало" : "Закончились"
+      ) : (
+        "Товар снят с продажи"
+      )}
+    </div>
+  )
+}
+
 const getFields = cache(async () => {
   const fields = await getProductFields()
   const fieldNames = Object.entries(fields).reduce((names, [key, value]) => {
@@ -114,86 +143,79 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
         <meta itemProp="name" content={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
         {product.article && <meta itemProp="sku" content={product.article} />}
         {product.image && <meta itemProp="image" content={product.image} />}
-        <div className="bg-light shadow-lg rounded-3 px-4 py-3 mb-5">
-          <div className="px-lg-3">
-            <div className="row">
-              <div className="col-lg-7 pe-lg-0">
+        <div className="mb-12 rounded-lg bg-white px-6 py-4 shadow-lg">
+          <div className="lg:px-4">
+            <div className="grid lg:grid-cols-12 lg:gap-x-4">
+              <div className="min-w-0 lg:col-span-7">
                 {product.image ? (
-                  <div className="d-block text-center">
+                  <div className="block text-center">
                     <ImageCarousel
                       image={product.big_image ?? product.image}
                       images={product.images}
                       alt={`${product.whatis ? product.whatis + ' ' : ''}${product.title}`} />
                   </div>
                 ) : (
-                  <div className="d-none d-lg-block">
+                  <div className="hidden lg:block">
                     <NoImage size={300} block />
                   </div>
                 )}
               </div>
-              <div className="col-lg-5 pt-4 pt-lg-0">
-                <div className="product-details ms-auto pb-3" itemProp="offers" itemScope itemType="https://schema.org/Offer">
+              <div className="pt-6 lg:col-span-5 lg:pt-0">
+                <div className="ms-auto pb-4 lg:w-full lg:max-w-[26rem] lg:pt-1" itemProp="offers" itemScope itemType="https://schema.org/Offer">
                   <link itemProp="url" href={site.url_prefix + `/products/${code}/`} />
                   {product.enabled && product.cost > 0 && (
-                    <div className="d-flex flex-row xalign-items-baseline mb-3">
-                      <div className="h3 fw-normal text-accent flex-shrink-1">
+                    <div className="mb-4 flex">
+                      <div className="shrink text-h3 font-normal text-accent">
                         <ProductPrice product={product} delFs="lg" microdata />
                       </div>
-                      <div className="ms-3 text-end w-100">
+                      <div className="ms-4 w-full text-end">
                         {product.discount > 0 && (
-                          <span className="badge bg-primary badge-shadow ms-2 mb-2">Скидка</span>
+                          <span className={`${badgeClass()} ${badgeShadows.primary} ms-2 mb-2 bg-primary text-white`}>Скидка</span>
                         )}
                         {product.isnew && (
-                          <span className="badge bg-info badge-shadow ms-2 mb-2">Новинка</span>
+                          <span className={`${badgeClass()} ${badgeShadows.info} ms-2 mb-2 bg-info text-white`}>Новинка</span>
                         )}
                         {product.recomended && (
-                          <span className="badge bg-warning badge-shadow ms-2 mb-2">Рекомендуем</span>
+                          <span className={`${badgeClass()} ${badgeShadows.warning} ms-2 mb-2 bg-warning text-white`}>Рекомендуем</span>
                         )}
                         {product.sales && product.sales.filter((action) => !!action.notice && !!!action.brief).map((action) => (
-                          <span className="badge bg-danger badge-shadow ms-2 mb-2" key={action.id}>{action.notice}</span>
+                          <span className={`${badgeClass()} ${badgeShadows.danger} ms-2 mb-2 bg-danger text-white`} key={action.id}>{action.notice}</span>
                         ))}
                       </div>
                     </div>
                   )}
-                  <div className="position-relative me-n4">
+                  <div className="relative -me-6">
                     <link itemProp="availability" href={`https://schema.org/${product.enabled ? product.instock > 1 ? 'InStock' : 'OutOfStock' : 'Discontinued'}`} />
-                    <div className={`product-badge product-${product.instock < 1 ? "not-" : ""}available mt-${product.enabled ? "1" : "3"}`}>
-                      <i className={`ci-security-${product.instock > 1 ? "check" : product.instock === 1 ? "announcement" : "close"}`} />
-                      {product.enabled ? (
-                        product.instock > 1 ? "В наличии" : product.instock === 1 ? "Осталось мало" : "Закончились"
-                      ) : (
-                        "Товар снят с продажи"
-                      )}
-                    </div>
+                    <AvailabilityBadge product={product} />
                   </div>
                   {product.enabled && (
                     <>
                       <div className="me-2">
-                        <div className="me-5 pb-4 pe-5 fs-sm">
+                        <div className="me-12 pe-12 pb-6 text-sm">
                           {product.sales && (
                             product.sales.filter((action) => !!action.brief).map((action) => (
                               <div className="mb-2" key={action.id}>
-                                <i className="ci-gift text-danger pe-2" />
+                                <IconGift {...noteIcon} />
                                 <span dangerouslySetInnerHTML={{ __html: renderTemplate(action.brief, product) }}></span>
                               </div>
                             ))
                           )}
                           {product.state && (
                             <div className="mb-2">
-                              <i className="ci-message text-danger pe-2" />
+                              <IconMessageDots {...noteIcon} />
                               {product.state}
                             </div>
                           )}
                           {product.sales_notes && (
                             <div className="mb-2">
-                              <i className="ci-announcement text-danger pe-2" />
+                              <IconAlertCircle {...noteIcon} />
                               {product.sales_notes}
                             </div>
                           )}
                         </div>
                       </div>
                       {product.cost > 0 ? (
-                        <div className="pt-2 pb-4">
+                        <div className="pt-2 pb-6">
                           {product.instock > 0 ? (
                             <ProductShopping product={product} />
                           ) : (
@@ -201,22 +223,22 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
                           )}
                         </div>
                       ) : (
-                        <div className="py-5"></div>
+                        <div className="py-12"></div>
                       )}
                     </>
                   )}
                   {(product.enabled || product.kind) && <ProductUserActions product={product} />}
 
                   {product.enabled && product.cost > 0 && (
-                    <div className="mb-4">
+                    <div className="mb-6">
                       <Menu.Root modal={false}>
-                        <Menu.Trigger className="btn btn-outline-secondary btn-sm w-100">
-                          <i className="ci-location text-muted lead align-middle mt-n1 me-2" />Наличие в магазинах
+                        <Menu.Trigger className={buttonClass({ variant: 'outline-secondary', size: 'sm', block: true })}>
+                          <IconMapPin size={20} stroke={1.5} className="me-2 text-muted" />Наличие в магазинах
                         </Menu.Trigger>
                         <Menu.Portal>
-                          <Menu.Positioner sideOffset={3} align="end" collisionAvoidance={{ side: 'none' }}>
-                            <Menu.Popup className="card" style={{ width: "var(--anchor-width)" }}>
-                              <div className="card-body">
+                          <Menu.Positioner sideOffset={3} align="end" collisionAvoidance={{ side: 'none' }} className="z-1000">
+                            <Menu.Popup className={`${cardClass} w-(--anchor-width)`}>
+                              <div className={cardBodyClass}>
                                 <ProductStockWrapper id={product.id} />
                               </div>
                             </Menu.Popup>
@@ -229,7 +251,7 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
                   {product.enabled && product.gifts && (
                     <>
                       <div className="mb-1">Покупая {product.title} в интернет-магазине, Вы получите подарок:</div>
-                      <div className="mb-4 mx-auto w-75">
+                      <div className="mx-auto mb-6 w-3/4">
                         {product.gifts.map((gift) => (
                           <ProductMiniCard product={gift} key={gift.id} />
                         ))}
@@ -243,18 +265,18 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
         </div>
 
         {product.descr && (
-          <div className="pb-3 mb-md-3" itemProp="description" dangerouslySetInnerHTML={{ __html: product.descr }} />
+          <div className={`${contentClass()} pb-4 md:mb-4`} itemProp="description" dangerouslySetInnerHTML={{ __html: product.descr }} />
         )}
 
         {product.constituents && (
-          <div className="pt-lg-2 pb-3 mb-md-3">
-            <h2 className="h3 pb-2">Состав комплекта</h2>
-            <div className="container px-0 mx-n2 d-flex flex-wrap">
+          <div className={sectionClass}>
+            <h2 className={sectionTitleClass}>Состав комплекта</h2>
+            <div className="-mx-2 flex flex-wrap">
               {product.constituents.map((item) => (
-                <div className="card m-2" style={{ maxWidth: "230px" }} key={item.id}>
+                <div className={`${cardClass} m-2 max-w-[230px]`} key={item.id}>
                   {item.image ? (
-                    <div className=" card-img-top px-3">
-                      <div className="position-relative" style={{ aspectRatio: 1 }}>
+                    <div className="px-4">
+                      <div className="relative aspect-square">
                         <Image
                           src={item.image}
                           fill
@@ -269,7 +291,7 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
                       <NoImage size={200} />
                     </div>
                   )}
-                  <div className="card-body fs-sm">
+                  <div className={`${cardBodyClass} text-sm`}>
                     <strong>
                       <Link className="text-muted" href={`/products/${item.code}`}>
                         {item.title}
@@ -290,84 +312,84 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
         )}
 
         {product.spec && (
-          <div className="pb-3 mb-md-3" dangerouslySetInnerHTML={{ __html: product.spec }} />
+          <div className={`${contentClass()} pb-4 md:mb-4`} dangerouslySetInnerHTML={{ __html: product.spec }} />
         )}
 
         {Object.keys(fieldNames).length > 0 && productFields.length > 0 && (
-          <div className="pt-lg-2 pb-3 mb-md-3">
-            <div className="h3 d-flex align-items-end pb-2">
-              <h2 className="h3 m-0 p-0 flex-grow-1">Характеристики</h2>
+          <div className={sectionClass}>
+            <div className="mb-3 flex items-end pb-2 text-h3 text-heading">
+              <h2 className="m-0 grow p-0 text-h3">Характеристики</h2>
               {product.manufacturer?.logo && (
-                <div className="flex-shrink-1" itemProp="brand" itemScope itemType="https://schema.org/Brand">
+                <div className="shrink" itemProp="brand" itemScope itemType="https://schema.org/Brand">
                   <meta itemProp="name" content={product.manufacturer.name} />
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img alt={product.manufacturer.name} src={product.manufacturer.logo} className="sw-product-logo" />
+                  <img alt={product.manufacturer.name} src={product.manufacturer.logo} className="h-[30px] w-auto lg:h-[60px]" />
                 </div>
               )}
             </div>
-            <div className="product-spec container fs-sm">
+            <dl className="text-sm">
               {productFields.map((field) => (
-                <div className="row mb-2" key={field}>
+                <div className="mb-2 grid md:grid-cols-2" key={field}>
                   {field === 'fabric_verylite' ? (
                     <>
-                      <span className="col-md px-0 text-muted">
-                        <span className="d-block border-bottom">
+                      <dt className={specNameClass}>
+                        <span className="block border-b">
                           <span>
                             Диапазон прошиваемых материалов{" "}
-                            <Link href="/blog/H/">
-                              <i className="ci-message fs-ms text-muted" />
+                            <Link href="/blog/H/" aria-label="О диапазоне прошиваемых материалов">
+                              <IconMessageDots size={14} stroke={1.5} className="align-[-2px] text-muted" />
                             </Link>
                           </span>
                         </span>
-                      </span>
-                      <span className="col-md pt-1 pt-sm-0 pe-0 ps-2 align-self-end">
+                      </dt>
+                      <dd className={specValueClass}>
                         Очень легкие – {product.fabric_verylite}<br />
                         Легкие – {product.fabric_lite}<br />
                         Средние и умеренно тяжелые – {product.fabric_medium}<br />
                         Тяжелые – {product.fabric_hard}<br />
                         Трикотаж – {product.fabric_stretch}
-                      </span>
+                      </dd>
                     </>
                   ) : (
                     <>
-                      <span className="col-md px-0 text-muted">
-                        <span className="d-block border-bottom">
+                      <dt className={specNameClass}>
+                        <span className="block border-b">
                           {fieldNames[field][0]}
                           <FieldHelp field={field} />
                         </span>
-                      </span>
-                      <span className="col-md pt-1 pt-sm-0 pe-0 ps-2 align-self-end">
+                      </dt>
+                      <dd className={specValueClass}>
                         {prettifyProductFieldValue(field, product[field])}
                         {fieldNames[field][1]}
-                      </span>
+                      </dd>
                     </>
                   )}
                 </div>
               ))}
-            </div>
+            </dl>
           </div>
         )}
 
         {product.stitches && (
-          <div className="pt-lg-2 pb-3 mb-md-3">
-            <h2 className="h3 pb-2">Строчки {product.title}</h2>
-            <div dangerouslySetInnerHTML={{ __html: product.stitches }} />
+          <div className={sectionClass}>
+            <h2 className={sectionTitleClass}>Строчки {product.title}</h2>
+            <div className={contentClass()} dangerouslySetInnerHTML={{ __html: product.stitches }} />
           </div>
         )}
 
         {product.complect && (
-          <div className="pt-lg-2 pb-3 mb-md-3">
-            <h2 className="h3 pb-2">Комплектация</h2>
-            <div dangerouslySetInnerHTML={{ __html: product.complect }} />
+          <div className={sectionClass}>
+            <h2 className={sectionTitleClass}>Комплектация</h2>
+            <div className={contentClass()} dangerouslySetInnerHTML={{ __html: product.complect }} />
           </div>
         )}
 
         {product.certificate && (
-          <div className="pb-3 mb-md-3">
+          <div className="pb-4 md:mb-4">
             {product.certificate.startsWith('http') ? (
               <a href={product.certificate} target="_blank">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/i/fgis-icon.svg" alt="" width="20" className="mx-1 ratio-1x1 align-text-bottom" />
+                <img src="/i/fgis-icon.svg" alt="" width="20" className="mx-1 inline aspect-square align-text-bottom" />
                 Сертификат соответствия требованиям технического регламента
               </a>
             ) : (
@@ -377,22 +399,22 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
         )}
 
         {product.manuals && (
-          <div className="pt-lg-2 pb-3 mb-md-3">
-            <h2 className="h3 pb-2">Инструкции {product.title}</h2>
-            <div dangerouslySetInnerHTML={{ __html: product.manuals }} />
+          <div className={sectionClass}>
+            <h2 className={sectionTitleClass}>Инструкции {product.title}</h2>
+            <div className={contentClass()} dangerouslySetInnerHTML={{ __html: product.manuals }} />
           </div>
         )}
       </div>
 
       {(product.accessories || product.similar) && (
-        <div className="border-top pt-5">
+        <div className="border-t pt-12">
           {product.accessories && (
-            <div className="container pt-lg-2 pb-5 mb-md-3">
+            <div className="container pb-12 md:mb-4 lg:pt-2">
               <RelatedProductsCarousel product={product} related={product.accessories} title="Популярные аксессуары для" />
             </div>
           )}
           {product.similar && (
-            <div className="container pt-lg-2 pb-5 mb-md-3">
+            <div className="container pb-12 md:mb-4 lg:pt-2">
               <RelatedProductsCarousel product={product} related={product.similar} title="Товары похожие на" />
             </div>
           )}
@@ -400,10 +422,10 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
       )}
 
       {product.dealertxt && (
-        <div className="border-top pt-5">
-          <div className="container pt-lg-2 pb-5 mb-md-3">
-            <h2 className="h3 text-center pb-4">Обратите внимание!</h2>
-            <div dangerouslySetInnerHTML={{ __html: product.dealertxt }} />
+        <div className="border-t pt-12">
+          <div className="container pb-12 md:mb-4 lg:pt-2">
+            <h2 className="mb-3 pb-6 text-center text-h3">Обратите внимание!</h2>
+            <div className={contentClass()} dangerouslySetInnerHTML={{ __html: product.dealertxt }} />
           </div>
         </div>
       )}

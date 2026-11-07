@@ -41,7 +41,7 @@ export default async function BlogCategoryPage({ params }: PageProps<'/blog/cate
   return pageContentWrapper({
     title: `Архив категории ${category.title}`,
     children: (
-      <div className="container pb-5 mb-2 mb-md-4">
+      <div className="container mb-2 pb-12 md:mb-6">
         <BlogEntryList entries={entries} pathname={pathname} />
       </div>
     )

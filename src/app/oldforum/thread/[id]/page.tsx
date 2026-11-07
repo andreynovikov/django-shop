@@ -17,12 +17,12 @@ export default async function Thread({ params }: PageProps<'/oldforum/thread/[id
   const thread = await getThread(id)
 
   return (
-    <div className="container py-5 mb-2 mb-md-4">
-      <h2>{thread.title}</h2>
-      <div className="mt-5">
+    <div className="container mb-2 py-12 md:mb-6">
+      <h2 className="mb-3 text-h2">{thread.title}</h2>
+      <div className="mt-12">
         {thread.opinions.map(opinion => (
-          <div key={opinion.id} className="border-top py-2">
-            <div className="opacity-50 fs-xs text-end pb-1">
+          <div key={opinion.id} className="border-t py-2">
+            <div className="pb-1 text-end text-xs opacity-50">
               {opinion.post && (
                 new Date(opinion.post).toLocaleString('ru', { timeZone: 'Europe/Moscow' })
               )}

@@ -7,7 +7,7 @@ import { findSewingMachines } from './api'
 test('search price filter updates query', async ({ page, isMobile }) => {
   await page.goto('/search/?text=janome')
   await openFilters(page, isMobile)
-  const widget = page.locator('.widget', { has: page.getByRole('heading', { name: 'Цена' }) })
+  const widget = page.getByRole('heading', { name: 'Цена' }).locator('..')
   const thumbs = widget.getByRole('slider')
   await expect(thumbs).toHaveCount(2)
 

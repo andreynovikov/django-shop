@@ -18,7 +18,7 @@ export default async function CatalogPage() {
     title: 'Каталог',
     dark: true,
     children: (
-      <div className="container py-5 mb-2 mb-md-4">
+      <div className="container mb-2 py-12 md:mb-6">
         <Catalog categories={categories} />
       </div>
     )

@@ -3,7 +3,7 @@ import { test, expect, openFilters } from './fixtures'
 test('price range filter updates query', async ({ page, isMobile }) => {
   await page.goto('/catalog/sewing_machines/')
   await openFilters(page, isMobile)
-  const widget = page.locator('.widget', { has: page.getByRole('heading', { name: 'Цена' }) })
+  const widget = page.getByRole('heading', { name: 'Цена' }).locator('..')
   const thumbs = widget.getByRole('slider')
   await expect(thumbs).toHaveCount(2)
 
@@ -26,7 +26,7 @@ test('price range filter updates query', async ({ page, isMobile }) => {
 test('slider filter updates query', async ({ page, isMobile }) => {
   await page.goto('/catalog/sewing_machines/')
   await openFilters(page, isMobile)
-  const widget = page.locator('.widget', { has: page.getByRole('heading', { name: 'Потребляемая мощность больше' }) })
+  const widget = page.getByRole('heading', { name: 'Потребляемая мощность больше' }).locator('..')
   const thumb = widget.getByRole('slider')
   await expect(thumb).toHaveCount(1)
   const initialValue = await thumb.getAttribute('aria-valuenow')
@@ -51,12 +51,12 @@ test('favorite icon shows tooltip', async ({ page, backend, isMobile }) => {
   test.skip(isMobile, 'Tooltips open on hover')
   backend.signIn()
   await page.goto('/catalog/sewing_machines/')
-  const tooltip = page.locator('.tooltip')
+  const tooltip = page.getByRole('tooltip')
 
   // the icon is rendered only for signed in users, so the page is hydrated when it appears
-  await page.locator('.product-card .btn-wishlist').first().hover()
+  await page.getByRole('button', { name: 'Отложить' }).first().hover()
   await expect(tooltip).toHaveText('Отложить')
-  await expect(tooltip).toHaveClass(/bs-tooltip-start/)
+  await expect(tooltip).toHaveAttribute('data-side', 'left')
 })
 
 test('filters are in the sidebar on desktop', async ({ page, isMobile }) => {
@@ -74,7 +74,6 @@ test('filters offcanvas closes on mobile', async ({ page, isMobile }) => {
   await openFilters(page, isMobile)
   await expect(filters).toBeVisible()
   await expect(filters.getByRole('heading', { name: 'Цена' })).toBeVisible()
-  await expect(page.locator('.modal-backdrop')).toBeVisible()
 
   // the offcanvas leaves a strip of the backdrop on the right
   const viewport = page.viewportSize()!

@@ -6,9 +6,9 @@ export const metadata: Metadata = {
 
 export default function NotFound() {
   return (
-    <div className="m-5 text-center">
-      <div className="fs-2">К сожалению, запрашиваемая вами страница не найдена</div>
-      <div className="mt-5 text-secondary" style={{ fontSize: "10rem" }}>404</div>
+    <div className="m-12 text-center">
+      <div className="text-3xl">К сожалению, запрашиваемая вами страница не найдена</div>
+      <div className="mt-12 text-[10rem] text-gray-200">404</div>
     </div>
   )
 }

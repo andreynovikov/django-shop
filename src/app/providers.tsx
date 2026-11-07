@@ -37,7 +37,7 @@ export default function Providers({ children }: { children: ReactNode }) {
                 </ToolbarProvider>
               </TopbarProvider>
               <Toast.Portal>
-                <Toast.Viewport className="sw-toast-viewport">
+                <Toast.Viewport aria-label="Уведомления" className="fixed right-auto bottom-4 left-4 z-1 mx-auto w-[250px] min-[500px]:bottom-8 min-[500px]:left-8 min-[500px]:w-[300px]">
                   <ToastList />
                 </Toast.Viewport>
               </Toast.Portal>

@@ -56,7 +56,7 @@ test('category page has valid OfferCatalog microdata', async ({ page, request })
 
   // every product card is a named offer of the catalog
   const offers = ofType(catalogs[0].properties.itemListElement, 'Offer')
-  await expect(page.locator('.product-card')).toHaveCount(offers.length)
+  await expect(page.locator('[itemtype="http://schema.org/Offer"]')).toHaveCount(offers.length)
   expect(offers.filter((offer) => !text(offer, 'name'))).toEqual([])
 })
 

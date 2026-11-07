@@ -6,6 +6,9 @@ import Image from 'next/image'
 
 import { Swiper, SwiperSlide, SwiperClass } from 'swiper/react'
 import { FreeMode, Navigation, Pagination, Thumbs } from 'swiper/modules'
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
+
+import { carouselIconSizes, carouselNavClass } from '@/components/ui/carousel'
 
 import ImageGallery from './image-gallery'
 
@@ -54,7 +57,7 @@ export default function ImageCarousel({ image, images, alt }: ImageCarouselProps
           0: {
             navigation: false
           },
-          576: {
+          640: {
             pagination: false,
             navigation: {
               prevEl: '.nav-button-prev',
@@ -67,13 +70,14 @@ export default function ImageCarousel({ image, images, alt }: ImageCarouselProps
         observeParents
         onActiveIndexChange={(swiper) => setCurrentIndex(swiper.realIndex)}
       >
-        <span className="d-none d-sm-inline nav-button-prev nav-button-lg"><i className="ci-arrow-left"></i></span>
-        <SwiperSlide key={image} className="d-flex position-relative" style={{ aspectRatio: "4/3" }}>
+        <span className={carouselNavClass({ side: 'prev', size: 'lg', fromSm: true })}><IconChevronLeft size={carouselIconSizes.lg} stroke={2} /></span>
+        {/* Swiper's styles are unlayered, display utilities on slides need ! */}
+        <SwiperSlide key={image} className="relative flex! aspect-4/3">
           <Image
             src={image}
             fill
             style={{ objectFit: "contain", cursor: "pointer" }}
-            sizes="(max-width: 992px) 100vw, 800px"
+            sizes="(max-width: 1024px) 100vw, 800px"
             onClick={() => setGalleryOpen(true)}
             priority
             itemProp="image"
@@ -82,19 +86,19 @@ export default function ImageCarousel({ image, images, alt }: ImageCarouselProps
             role="button" />
         </SwiperSlide>
         {images && images.map((image, index) => (
-          <SwiperSlide key={image.src} className="d-flex position-relative" style={{ aspectRatio: "4/3" }}>
+          <SwiperSlide key={image.src} className="relative flex! aspect-4/3">
             <Image
               src={image.src}
               fill
               style={{ objectFit: "contain", cursor: "pointer" }}
-              sizes="(max-width: 992px) 100vw, 800px"
+              sizes="(max-width: 1024px) 100vw, 800px"
               onClick={() => setGalleryOpen(true)}
               loading="lazy"
               alt={`${alt} - №${index + 1}`}
               role="button" />
           </SwiperSlide>
         ))}
-        <span className="d-none d-sm-inline nav-button-next nav-button-lg"><i className="ci-arrow-right"></i></span>
+        <span className={carouselNavClass({ side: 'next', size: 'lg', fromSm: true })}><IconChevronRight size={carouselIconSizes.lg} stroke={2} /></span>
       </Swiper>
       {images && <Swiper
         slidesPerView={'auto'}
@@ -108,10 +112,10 @@ export default function ImageCarousel({ image, images, alt }: ImageCarouselProps
         modules={[FreeMode, Navigation, Thumbs]}
         watchSlidesProgress
         onSwiper={setThumbsSwiper}
-        className="d-none d-md-block my-2"
+        className="my-2 hidden! md:block!"
       >
-        <span className="nav-button-prev nav-button-sm"><i className="ci-arrow-left"></i></span>
-        <SwiperSlide className="d-inline-block position-relative rounded border" style={{ width: 80, height: 80 }}>
+        <span className={carouselNavClass({ side: 'prev', size: 'sm' })}><IconChevronLeft size={carouselIconSizes.sm} stroke={2} /></span>
+        <SwiperSlide className="relative inline-block! rounded-md border" style={{ width: 80, height: 80 }}>
           <Image
             src={image}
             fill
@@ -121,7 +125,7 @@ export default function ImageCarousel({ image, images, alt }: ImageCarouselProps
             alt="" />
         </SwiperSlide>
         {images.map(image => (
-          <SwiperSlide key={image.src} className="d-inline-block position-relative rounded border" style={{ width: 80, height: 80 }}>
+          <SwiperSlide key={image.src} className="relative inline-block! rounded-md border" style={{ width: 80, height: 80 }}>
             <Image
               src={image.src}
               fill
@@ -131,7 +135,7 @@ export default function ImageCarousel({ image, images, alt }: ImageCarouselProps
               alt="" />
           </SwiperSlide>
         ))}
-        <span className="nav-button-next nav-button-sm"><i className="ci-arrow-right"></i></span>
+        <span className={carouselNavClass({ side: 'next', size: 'sm' })}><IconChevronRight size={carouselIconSizes.sm} stroke={2} /></span>
       </Swiper>}
       <ImageGallery
         currentImage={currentIndex}

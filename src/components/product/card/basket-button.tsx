@@ -1,6 +1,9 @@
 'use client'
 
 import { useMemo } from 'react'
+import { IconShoppingCart } from '@tabler/icons-react'
+
+import { buttonClass } from '@/components/ui/button'
 
 import useBasket from '@/lib/basket'
 import { Product, ProductInfo } from '@/lib/types'
@@ -25,9 +28,9 @@ export default function BasketButton({ product }: { product: ProductInfo | Searc
   }
 
   return (
-    <button className="btn btn-success btn-sm d-block w-100 sw-button" type="button" onClick={handleCartClick}>
-      <i className="ci-cart fs-sm" />
-      {basketQuantity > 0 && <span className="sw-button-label">{basketQuantity}</span>}
+    <button className={`${buttonClass({ variant: 'success', size: 'sm', block: true })} relative`} type="button" onClick={handleCartClick} aria-label="В корзину">
+      <IconShoppingCart size={14} stroke={1.5} />
+      {basketQuantity > 0 && <span className="absolute -top-2.5 -right-2.5 size-5 rounded-full bg-primary text-center text-xs leading-5 font-medium text-white">{basketQuantity}</span>}
     </button>
   )
 }

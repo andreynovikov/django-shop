@@ -6,6 +6,7 @@ import { ReactNode, useMemo, useState } from 'react'
 import Script from 'next/script'
 
 import type { LngLat, YMapLocationRequest } from '@yandex/ymaps3-types'
+import CloseButton from '@/components/ui/close-button'
 
 const DEFAULT_LOCATION: YMapLocationRequest = { center: [37.64, 55.76], zoom: 10 }
 // Kept stable, a new default array on every render would move the map back to the default location
@@ -79,9 +80,9 @@ function MarkerIcon({ pin, title, clickable = false }: { pin: MarkerPin, title: 
 
 function MarkerBalloon({ children, onClose }: { children: ReactNode, onClose: () => void }) {
   return (
-    <div className="card shadow fs-xs" style={{ position: 'absolute', left: '-8rem', bottom: PIN_HEIGHT + 6, width: '16rem', cursor: 'auto' }}>
-      <div className="card-body p-2">
-        <button type="button" className="btn-close float-end" aria-label="Закрыть" onClick={onClose}></button>
+    <div className="absolute -left-32 flex w-64 min-w-0 cursor-auto flex-col rounded-lg border border-black/[.085] bg-white text-xs shadow-md" style={{ bottom: PIN_HEIGHT + 6 }}>
+      <div className="p-2">
+        <CloseButton className="float-right" onClick={onClose} />
         {children}
       </div>
     </div>
@@ -116,7 +117,7 @@ export function MarkersMap({ markers, focusPoints = NO_FOCUS_POINTS }: { markers
   }, [focusPoints])
 
   return (
-    <div className="iframe-full-height">
+    <div className="absolute inset-0">
       <YMaps>
         {(ymaps) => (
           <ymaps.YMap location={location} margin={[100, 100, 100, 100]}>
@@ -148,7 +149,7 @@ export function LocationMap({ coordinates, pin, title }: { coordinates: LngLat, 
   const location = useMemo<YMapLocationRequest>(() => ({ center: coordinates, zoom: 14 }), [coordinates])
 
   return (
-    <div className="iframe-full-height">
+    <div className="absolute inset-0">
       <YMaps>
         {(ymaps) => (
           <ymaps.YMap location={location}>

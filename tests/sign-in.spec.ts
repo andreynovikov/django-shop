@@ -4,7 +4,7 @@ import { test, expect, accountLink } from './fixtures'
 
 async function openSignIn(page: Page) {
   await page.goto('/cart/')
-  const profileLink = page.locator('a.navbar-tool-icon-box', { has: page.locator('.ci-user') }).filter({ visible: true })
+  const profileLink = page.getByRole('button', { name: 'Вход в личный кабинет', exact: true })
   const dialog = page.getByRole('dialog')
   // the topbar is server rendered, retry until hydrated
   await expect(async () => {
@@ -41,7 +41,7 @@ test('sign-in modal closes on Escape and outside click', async ({ page }) => {
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
 
-  await page.locator('a.navbar-tool-icon-box', { has: page.locator('.ci-user') }).filter({ visible: true }).click()
+  await page.getByRole('button', { name: 'Вход в личный кабинет', exact: true }).click()
   await expect(dialog).toBeVisible()
   await page.mouse.click(5, 5)
   await expect(dialog).toBeHidden()
@@ -57,7 +57,7 @@ test('registration in sign-in modal continues to login with the phone', async ({
   // login form gets the registered phone and asks for the code
   await expect(dialog.getByRole('tab', { name: 'Вход' })).toHaveAttribute('aria-selected', 'true')
   await expect(dialog.getByPlaceholder('Код из смс')).toBeVisible()
-  await expect(dialog.locator('.lead')).toContainText(/916.*123.*45.*67/)
+  await expect(dialog.getByText(/916.*123.*45.*67/)).toBeVisible()
   expect(backend.findUser('+79161234567')).toBeDefined()
   // the form checks the phone in an effect, which React runs twice in development
   expect(new Set(backend.requestsTo('POST', /\/check\/$/).map(({ path }) => path))).toEqual(new Set(['users/+79161234567/check/']))

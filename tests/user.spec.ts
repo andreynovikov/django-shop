@@ -10,7 +10,7 @@ let order: Order
 
 // The topbar offers to pay the order once it is loaded, which can move the page under the mouse
 async function waitForPayment(page: Page) {
-  await expect(page.locator('.topbar').getByRole('button', { name: 'Оплатить заказ' })).toBeVisible()
+  await expect(page.getByRole('banner').getByRole('button', { name: 'Оплатить заказ' })).toBeVisible()
 }
 
 test.beforeEach(({ backend }) => {
@@ -79,16 +79,16 @@ test('orders list shows tooltips', async ({ page, isMobile }) => {
   await page.goto('/user/orders/')
   await waitForPayment(page)
   const row = page.locator('tbody tr', { hasText: order.id.toString() })
-  const tooltip = page.locator('.tooltip')
+  const tooltip = page.getByRole('tooltip')
 
   await row.locator('td').nth(1).locator('span').hover()
   await expect(tooltip).toContainText('октября 2026')
-  await expect(tooltip).toHaveClass(/bs-tooltip-top/)
+  await expect(tooltip).toHaveAttribute('data-side', 'top')
 
   await page.mouse.move(0, 0)
   await expect(tooltip).toBeHidden()
 
-  await row.locator('.btn-outline-success').hover()
+  await row.getByRole('button', { name: 'Оплатить заказ' }).hover()
   await expect(tooltip).toHaveText('Оплатить заказ')
 })
 
@@ -96,11 +96,12 @@ test('order page shows creation date in tooltip', async ({ page, isMobile }) => 
   test.skip(isMobile, 'Tooltips open on hover')
   await page.goto(`/user/orders/${order.id}/`)
   await waitForPayment(page)
-  const tooltip = page.locator('.tooltip')
+  const tooltip = page.getByRole('tooltip')
 
-  await page.locator('.sw-order-created span').hover()
+  // the date under its caption in the page header
+  await page.getByText('Дата оформления').filter({ visible: true }).locator('xpath=following-sibling::div[1]').hover()
   await expect(tooltip).toContainText('октября 2026')
-  await expect(tooltip).toHaveClass(/bs-tooltip-bottom/)
+  await expect(tooltip).toHaveAttribute('data-side', 'bottom')
 })
 
 test('orders list opens order details', async ({ page, request, backend, isMobile }) => {
@@ -119,9 +120,8 @@ test('orders list opens order details', async ({ page, request, backend, isMobil
 
   await expect(page).toHaveURL(`/user/orders/${pickup.id}/`)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Заказ №${pickup.id}`)
-  await expect(page.locator('.breadcrumb').getByRole('link', { name: 'Заказы' })).toHaveAttribute('href', '/user/orders/')
-  const titles = page.locator('.product-title')
-  await expect(titles.getByText(first.title, { exact: true })).toBeVisible()
-  await expect(titles.getByText(second.title, { exact: true })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'breadcrumb' }).getByRole('link', { name: 'Заказы' })).toHaveAttribute('href', '/user/orders/')
+  await expect(page.getByRole('heading', { name: first.title, exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: second.title, exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: `${store.city.name}, ${store.address}` })).toHaveAttribute('href', `/stores/${store.id}/`)
 })

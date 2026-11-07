@@ -1,7 +1,12 @@
 import { Slider } from '@base-ui/react/slider'
-import styles from './slider-filter.module.scss'
+
+import { sliderControlClass, sliderIndicatorClass, sliderThumbClass, sliderTrackClass } from '@/components/ui/slider'
+
+import { groupedInputClass, inputClass, inputGroupClass } from '@/components/ui/form'
 
 import { FilterProps } from './types'
+
+const addonClass = '-ms-px flex items-center rounded-e-sm border border-gray-400 bg-white px-3 py-[.425rem] text-ms whitespace-nowrap'
 
 export default function PriceFilter({ filter, filterValue, onFilterChanged }: FilterProps<'name' | 'unit' | 'attrs', number[]>) {
   const minValue = filter.attrs?.min_value ?? 0
@@ -25,35 +30,35 @@ export default function PriceFilter({ filter, filterValue, onFilterChanged }: Fi
         max={maxValue /*Math.ceil(maxValue * 1.1 / 1000) * 1000*/}
         step={filter.attrs?.step || 10}
       >
-        <Slider.Control className={styles.Control}>
-          <Slider.Track className={styles.Track}>
-            <Slider.Indicator className={styles.Indicator} />
-            <Slider.Thumb index={0} className={styles.Thumb} />
-            <Slider.Thumb index={1} className={styles.Thumb} />
+        <Slider.Control className={sliderControlClass}>
+          <Slider.Track className={sliderTrackClass}>
+            <Slider.Indicator className={sliderIndicatorClass} />
+            <Slider.Thumb index={0} className={sliderThumbClass} />
+            <Slider.Thumb index={1} className={sliderThumbClass} />
           </Slider.Track>
         </Slider.Control>
       </Slider.Root>
-      <div className="d-flex pb-1">
-        <div className="w-50 pe-2 me-2">
-          <div className="input-group input-group-sm">
+      <div className="flex pb-1">
+        <div className="me-2 w-1/2 pe-2">
+          <div className={inputGroupClass}>
             <input
-              className="form-control"
+              className={`${inputClass({ size: 'sm' })} ${groupedInputClass} rounded-e-none`}
               type="text"
               name={`${filter.name}_min`}
               value={currentValue[0]}
               onChange={(e) => handleValueChange([Number(e.currentTarget.value), currentValue[1]])} />
-            <span className="input-group-text">{filter.unit}</span>
+            <span className={addonClass}>{filter.unit}</span>
           </div>
         </div>
-        <div className="w-50 ps-2">
-          <div className="input-group input-group-sm">
+        <div className="w-1/2 ps-2">
+          <div className={inputGroupClass}>
             <input
-              className="form-control"
+              className={`${inputClass({ size: 'sm' })} ${groupedInputClass} rounded-e-none`}
               type="text"
               name={`${filter.name}_max`}
               value={currentValue[1]}
               onChange={(e) => handleValueChange([currentValue[0], Number(e.currentTarget.value)])} />
-            <span className="input-group-text">{filter.unit}</span>
+            <span className={addonClass}>{filter.unit}</span>
           </div>
         </div>
       </div>

@@ -16,7 +16,7 @@ export default function CompareLayout({ children }: { children: ReactNode }) {
     title,
     dark: true,
     children: (
-      <div className="container py-5 mb-2">
+      <div className="container mb-2 py-12">
         {children}
       </div>
     ),

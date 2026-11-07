@@ -15,7 +15,7 @@ function getContentHeight(container: HTMLElement) {
 }
 
 function updateSidebarStyle(container: HTMLElement, sidebar: HTMLElement, scrollOffset: number) {
-  const navbar = document.querySelector<HTMLElement>('.sw-navbar')
+  const navbar = document.getElementById('navbar')
   if (navbar === null || sidebar.parentElement === null)
     return
 
@@ -120,8 +120,8 @@ export default function StickySidebar({ className, children }: { className?: str
   }, [])
 
   return (
-    <aside className={`position-relative ${className ?? ''}`} ref={containerRef}>
-      <div style={{ maxWidth: "22rem" }}>
+    <aside className={`relative ${className ?? ''}`} ref={containerRef}>
+      <div className="max-w-[22rem]">
         <div ref={sidebarRef}>
           {children}
         </div>

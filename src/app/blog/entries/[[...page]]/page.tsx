@@ -22,9 +22,9 @@ export default async function BlogEntriesPage({ params }: PageProps<'/blog/entri
   return pageContentWrapper({
     title: 'Блог',
     children: (
-      <div className="container pb-5 mb-2 mb-md-4">
+      <div className="container mb-2 pb-12 md:mb-6">
         { /* TODO: add featured posts carousel */}
-        <hr className="mt-5" />
+        <hr className="mt-12" />
         <BlogEntryList entries={entries} pathname={pathname} />
       </div>
     )

@@ -12,11 +12,6 @@ const eslintConfig = [
     },
   },
   {
-    ignores: [
-      "**/vendor/*",
-    ],
-  },
-  {
     settings: {
       react: { version: "19" },
     },
