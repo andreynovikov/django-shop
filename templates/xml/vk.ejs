@@ -47,7 +47,7 @@
           <vendorCode><%= product.partnumber %></vendorCode>
           <% } -%>
           <description>
-            <%= product.whatis %> <%= product.yandexdescr %> <% stripTags(product.descr) %>
+            <%= product.whatis %> <%= product.yandexdescr %> <%- stripTags(product.descr) %>
           </description>
           <% if(product.manufacturer_warranty) { -%>
           <manufacturer_warranty>true</manufacturer_warranty>

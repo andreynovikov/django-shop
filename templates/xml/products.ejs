@@ -43,7 +43,7 @@
           <vendorCode><%= product.partnumber %></vendorCode>
           <% } -%>
           <description>
-            <%= product.whatis %> <%= product.yandexdescr %> <% stripTags(product.descr) %>
+            <%= product.whatis %> <%= product.yandexdescr %> <%- stripTags(product.descr) %>
           </description>
           <% if(product.sales_notes) { -%>
           <sales_notes><%= product.sales_notes %></sales_notes>
@@ -51,7 +51,7 @@
           <sales_notes>Оплата при получении или картой на сайте</sales_notes>
           <% } -%>
           <% if(product.state) { -%>
-          <condition type="used"><reason><%= stripTags(product.state) %></reason></condition>
+          <condition type="used"><reason><%- stripTags(product.state) %></reason></condition>
           <% } -%>
           <% if(product.manufacturer_warranty) { -%>
           <manufacturer_warranty>true</manufacturer_warranty>

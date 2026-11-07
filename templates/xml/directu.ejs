@@ -42,7 +42,7 @@
           <% if(product.partnumber) { -%>
           <vendorCode><%= product.partnumber %></vendorCode>
           <% } -%>
-          <description><% if(product.state){ %><%= stripTags(product.state) %><% } %></description>
+          <description><% if(product.state){ %><%- stripTags(product.state) %><% } %></description>
         </offer>
       <% }) -%>
     </offers>
