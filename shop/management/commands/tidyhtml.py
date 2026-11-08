@@ -1,8 +1,9 @@
 from hashlib import md5
-from tidylib import tidy_fragment
 
+from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand
 from shop.models import Product
+from shop.tidy import tidy_html5
 
 
 class Command(BaseCommand):
@@ -16,8 +17,9 @@ class Command(BaseCommand):
                 value = product.__dict__[field]
                 if not value:
                     continue
-                fragment, errors = tidy_fragment(value, options={'indent':0})
-                if not fragment:
+                try:
+                    fragment = tidy_html5(value)
+                except ValidationError:
                     self.stdout.write('{}: {}'.format(str(product), field))
                     continue
                 if md5(value.encode('utf-8')).hexdigest() != md5(fragment.encode('utf-8')).hexdigest():

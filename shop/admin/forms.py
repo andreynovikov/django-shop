@@ -21,6 +21,7 @@ from sewingworld.widgets import AutosizedTextarea, JsonAutosizedTextarea
 
 from shop.models import Supplier, Product, Order, OrderItem, ShopUser, Box, ActOrder, Integration, Contractor
 from shop.tasks import import1c
+from shop.tidy import tidy_html5
 
 from .widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
     OrderItemProductLink, ListTextWidget, YandexDeliveryWidget, DeliveryTrackingNumberWidget
@@ -221,11 +222,10 @@ class ProductAdminForm(forms.ModelForm):
             value = cleaned_data.get(field)
             if not value:
                 continue
-            fragment, errors = tidy_fragment(value, options={'indent': 0})
-            if not fragment:
-                self.add_error(field, forms.ValidationError("Ошибка очистки HTML"))
-                continue
-            cleaned_data[field] = fragment
+            try:
+                cleaned_data[field] = tidy_html5(value)
+            except forms.ValidationError as error:
+                self.add_error(field, error)
 
         code = cleaned_data.get('code')
         reg = re.compile(r'[-\.\w]+')
@@ -424,6 +424,14 @@ class AdvertAdminForm(forms.ModelForm):
         widgets = {
             'content': AutosizedTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'}),
         }
+
+    def clean_content(self):
+        return tidy_html5(self.cleaned_data.get('content'))
+
+
+class StoreAdminForm(forms.ModelForm):
+    def clean_description(self):
+        return tidy_html5(self.cleaned_data.get('description'))
 
 
 class SalesActionAdminForm(forms.ModelForm):

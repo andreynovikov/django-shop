@@ -16,7 +16,7 @@ from shop.models import Category, Supplier, Contractor, PosTerminal, Currency, \
     Advert, SalesAction, Manager, Courier, News
 from .widgets import ImageWidget
 from .forms import CategoryAdminForm, PosTerminalAdminForm, NewsAdminForm, \
-    AdvertAdminForm, SalesActionAdminForm
+    AdvertAdminForm, SalesActionAdminForm, StoreAdminForm
 
 from .product import ProductAdmin  # NOQA
 from .order import OrderAdmin  # NOQA
@@ -99,6 +99,7 @@ class StoreAdmin(SortableAdminBase, admin.ModelAdmin):
     list_filter = [('city', RelatedDropdownFilter), ('site', RelatedDropdownFilter), 'enabled', 'publish', 'marketplace', 'lottery']
     search_fields = ['name', 'address', 'address2', 'city__name', 'site__domain']
     ordering = ['city', 'address']
+    form = StoreAdminForm
     inlines = [StoreImageInline]
 
     def view_on_site(self, obj):
