@@ -1,0 +1,26 @@
+/*
+ * Tailwind classes used by the HTML that the backend stores, printed by django-shop's
+ * `manage.py tailwindize_html --safelist`. Tailwind only generates the classes it finds in the sources, so the
+ * HTML from the database can use only these. Keep this file identical in every storefront.
+ */
+
+@source inline("-mx-2 absolute align-middle aspect-4/3 aspect-square aspect-video bg-gray-100 bg-gray-200 bg-success bg-white");
+@source inline("block border border-gray-200 border-gray-300 border-success bottom-5 col-span-1 col-span-10 col-span-11");
+@source inline("col-span-12 col-span-2 col-span-3 col-span-4 col-span-5 col-span-6 col-span-7 col-span-8 col-span-9 container");
+@source inline("flex flex-auto flex-col float-left float-right font-bold font-bold! font-medium font-medium! gap-x-6 gap-y-4");
+@source inline("grid grid-cols-1 grid-cols-12 grid-cols-2 grid-cols-3 grid-cols-4 grid-cols-6 h-full hidden hover:bg-success-hover");
+@source inline("inline-block inset-x-[15%] items-center justify-between leading-none! lg:block lg:col-span-1 lg:col-span-10");
+@source inline("lg:col-span-11 lg:col-span-12 lg:col-span-2 lg:col-span-3 lg:col-span-4 lg:col-span-5 lg:col-span-6 lg:col-span-7");
+@source inline("lg:col-span-8 lg:col-span-9 lg:flex lg:grid-cols-1 lg:grid-cols-12 lg:grid-cols-2 lg:grid-cols-3 lg:grid-cols-4");
+@source inline("lg:grid-cols-6 lg:hidden lg:inline-block m-4 max-w-full mb-0 mb-1 mb-1! mb-12 mb-2 mb-4 mb-6 md:block");
+@source inline("md:col-span-1 md:col-span-10 md:col-span-11 md:col-span-12 md:col-span-2 md:col-span-3 md:col-span-4 md:col-span-5");
+@source inline("md:col-span-6 md:col-span-7 md:col-span-8 md:col-span-9 md:flex md:grid-cols-1 md:grid-cols-12 md:grid-cols-2");
+@source inline("md:grid-cols-3 md:grid-cols-4 md:grid-cols-6 md:hidden md:inline-block me-2 min-w-0 ms-2 mt-0 mt-1 mt-12");
+@source inline("mt-2 mt-4 mt-4! mt-6 mt-auto mx-auto my-0 my-1 my-12 my-2 my-4 my-6 no-underline object-cover overflow-hidden");
+@source inline("p-0 p-1 p-12 p-2 p-4 p-5 p-6 pb-0 pb-1 pb-1! pb-12 pb-2 pb-4 pb-6 pt-0 pt-1 pt-12 pt-2 pt-4 pt-6 px-0");
+@source inline("px-1 px-12 px-2 px-4 px-5 px-6 py-0 py-1 py-1.5 py-12 py-2 py-2.5 py-3 py-4 py-5 py-6 relative rounded-lg");
+@source inline("rounded-md size-full sm:block sm:flex sm:grid-cols-1 sm:grid-cols-12 sm:grid-cols-2 sm:grid-cols-3 sm:grid-cols-4");
+@source inline("sm:grid-cols-6 sm:hidden sm:inline-block text-2xl text-5xl! text-accent text-base text-base! text-center");
+@source inline("text-danger text-dark! text-gray-700 text-info text-left text-lg text-muted text-primary text-right text-sm");
+@source inline("text-sm! text-success text-white text-xl text-xs text-xs! uppercase uppercase! w-full xl:block xl:flex");
+@source inline("xl:grid-cols-1 xl:grid-cols-12 xl:grid-cols-2 xl:grid-cols-3 xl:grid-cols-4 xl:grid-cols-6 xl:hidden xl:inline-block");

@@ -26,6 +26,8 @@ export async function apiFetch<TReturn, TData = JSONValue>(endpoint: string, opt
   const { body, ...customOptions } = options
 
   const headers = {
+    // the proxy refuses writes without it, see its route.ts
+    'x-requested-with': 'fetch',
     ...(body === undefined || body instanceof FormData ? {} : { 'content-type': 'application/json' }),
     ...(typeof window !== 'undefined' ? {} : { 'origin': process.env.ORIGIN }),
     ...customOptions.headers,
