@@ -124,6 +124,7 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
       value: 'specification',
       label: 'Технические характеристики',
       content: (
+        <>
         <div className="grid items-start gap-x-6 lg:grid-cols-2">
           {rows(productFields, 2).map((row, index) => (
             <table className="mb-4 w-full text-xs" key={index}>
@@ -144,6 +145,20 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
             </table>
           ))}
         </div>
+        {product.certificate && (
+          <div className="pb-3 mb-md-3">
+            {product.certificate.startsWith('http') ? (
+              <a href={product.certificate} target="_blank">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/i/fgis-icon.svg" alt="" width="20" className="mx-1 ratio-1x1 align-text-bottom" />
+                Сертификат соответствия требованиям технического регламента
+              </a>
+            ) : (
+              <>{product.certificate}</>
+            )}
+          </div>
+        )}
+        </>
       )
     })
   if (product.allow_reviews)
