@@ -154,6 +154,6 @@ export async function generateStaticParams() {
 
   const stores = await loadStores()
   return stores
-    .filter(store => store.logo === 'sewingworld')
+    .filter(store => store.logo === 'janome')
     .map(store => ({ id: store.id.toString() }))
 }

@@ -76,7 +76,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Stores
 
   const stores = await loadStores()
-  stores.filter(store => store.logo === 'sewingworld').forEach(store => {
+  stores.filter(store => store.logo === 'janome').forEach(store => {
     routes.push({
       url: `${site.url_prefix}/stores/${store.id}/`,
       lastModified: now,

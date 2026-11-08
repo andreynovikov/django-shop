@@ -58,7 +58,7 @@ function StoreBalloon({ store }: { store: StoreInfo }) {
       )}
       {store.logo !== 'janome' && (
         <small className="mt-2 block text-muted">
-          *магазин-партнер. Рекламные акции Швейного Мира могут не действовать в этом магазине
+          *магазин-партнер. Рекламные акции Janome могут не действовать в этом магазине
         </small>
       )}
     </>
