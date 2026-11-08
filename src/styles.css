@@ -175,9 +175,11 @@
   --swiper-navigation-sides-offset: 5px;
 }
 
+/* Swiper adds the dots when it initializes after hydration, their line is reserved so the content below doesn't shift */
 .swiper-pagination {
   position: relative !important;
   padding-top: 10px;
+  min-height: calc(10px + 1lh);
 }
 
 .swiper-pagination-bullet {

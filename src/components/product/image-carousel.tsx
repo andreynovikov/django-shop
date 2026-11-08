@@ -69,6 +69,8 @@ export default function ImageCarousel({ image, images, alt }: ImageCarouselProps
         observer
         observeParents
         onActiveIndexChange={(swiper) => setCurrentIndex(swiper.realIndex)}
+        // The server renders the pagination for every width, from sm up it stays hidden until Swiper disables it
+        className="sm:[&>.swiper-pagination]:hidden"
       >
         <span className={carouselNavClass({ side: 'prev', size: 'lg', fromSm: true })}><IconChevronLeft size={carouselIconSizes.lg} stroke={2} /></span>
         {/* Swiper's styles are unlayered, display utilities on slides need ! */}
