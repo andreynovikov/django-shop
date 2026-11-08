@@ -114,9 +114,9 @@ MANAGERS = ADMINS
 # Origins of the storefronts, whose proxies forward the browser's Origin. Browsers never call the API host
 # cross-origin, so there are no CORS settings.
 CSRF_TRUSTED_ORIGINS = env.list('ALLOWED_ORIGINS')
-CSRF_COOKIE_SAMESITE = env('CSRF_COOKIE_SAMESITE')
+CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SAMESITE = env('SESSION_COOKIE_SAMESITE')
+SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_AGE = 2419200  # 4 weeks
 # __Host-sessionid and __Host-csrftoken keep pages on other subdomains from setting these cookies. Switch to them
