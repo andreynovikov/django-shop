@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './backend-safelist.css'; /* classes of the backend HTML, shared with every storefront */
 @import './backend-content.css' layer(components);
 
 @theme {
