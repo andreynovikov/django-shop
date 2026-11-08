@@ -74,5 +74,5 @@ export async function loginUser(credentials: LoginCredentials) {
 }
 
 export async function logoutUser() {
-  return await apiFetch<void>('users/logout/')
+  return await apiFetch<void>('users/logout/', { method: 'POST' })
 }

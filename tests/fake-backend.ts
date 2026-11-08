@@ -311,7 +311,7 @@ export class FakeBackend {
   private respondUsers(method: string, [key, action]: string[], body: Body) {
     if (method === 'GET' && key === 'current')
       return ok(this.user ? this.userJson(this.user) : { id: null, is_anonymous: true } as AnonymousUser)
-    if (method === 'GET' && key === 'logout') {
+    if (method === 'POST' && key === 'logout') {
       // the backend keeps the basket of the session
       this.sessionUserId = null
       return noContent()
