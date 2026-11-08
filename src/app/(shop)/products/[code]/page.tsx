@@ -86,7 +86,7 @@ function AvailabilityBadge({ product }: { product: Product }) {
   const available = product.instock >= 1
   const Icon = product.instock > 1 ? IconShieldCheck : product.instock === 1 ? IconShieldExclamation : IconShieldX
   return (
-    <div className={`absolute top-1/2 -right-3 ${product.enabled ? 'mt-1' : 'mt-4'} flex -translate-y-1/2 items-center rounded-s-md py-[.425rem] ps-2.5 pe-4 text-ms after:pointer-events-none after:absolute after:right-1 after:-bottom-[.475rem] after:size-0 after:-rotate-45 after:border-[.525rem] after:border-transparent lg:-right-7 ${available ? 'bg-success text-white after:border-b-[#449d44]' : 'bg-secondary text-gray-700 after:border-b-[#d8deeb]'}`}>
+    <div className={`absolute top-1/2 -right-3 ${product.enabled ? 'mt-1' : 'mt-4'} flex -translate-y-1/2 items-center rounded-s-md py-[.425rem] ps-2.5 pe-4 text-ms after:pointer-events-none after:absolute after:right-1 after:-bottom-[.475rem] after:size-0 after:-rotate-45 after:border-[.525rem] after:border-transparent lg:-right-7 ${available ? 'bg-success text-white after:border-b-success-hover' : 'bg-secondary text-gray-700 after:border-b-[#d8deeb]'}`}>
       <Icon size="1.2em" stroke={1.5} className="me-1" />
       {product.enabled ? (
         product.instock > 1 ? "В наличии" : product.instock === 1 ? "Осталось мало" : "Закончились"

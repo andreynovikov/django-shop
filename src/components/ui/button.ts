@@ -19,12 +19,12 @@ const variants = {
   'link-danger': 'border-transparent text-danger hover:text-danger/80',
 }
 
-// Cartzilla's .btn-shadow: a glow in the button's color, gone on hover
+// Cartzilla's .btn-shadow: a glow in the button's color, gone on hover; the colors follow the theme
 const shadows: Partial<Record<ButtonVariant, string>> = {
-  'primary': 'shadow-[0_.5rem_1.125rem_-.5rem_rgb(239_127_26/.9)] hover:shadow-none',
-  'accent': 'shadow-[0_.5rem_1.125rem_-.5rem_rgb(49_99_173/.9)] hover:shadow-none',
-  'success': 'shadow-[0_.5rem_1.125rem_-.5rem_rgb(92_184_92/.9)] hover:shadow-none',
-  'secondary': 'shadow-[0_.5rem_1.125rem_-.5rem_rgb(243_245_249/.9)] hover:shadow-none',
+  'primary': 'shadow-[0_.5rem_1.125rem_-.5rem_--alpha(var(--color-primary)/90%)] hover:shadow-none',
+  'accent': 'shadow-[0_.5rem_1.125rem_-.5rem_--alpha(var(--color-accent)/90%)] hover:shadow-none',
+  'success': 'shadow-[0_.5rem_1.125rem_-.5rem_--alpha(var(--color-success)/90%)] hover:shadow-none',
+  'secondary': 'shadow-[0_.5rem_1.125rem_-.5rem_--alpha(var(--color-secondary)/90%)] hover:shadow-none',
 }
 
 const sizes = {

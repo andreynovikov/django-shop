@@ -1,12 +1,16 @@
 import { ReactNode } from 'react'
 
-// Cartzilla's alert colors: text, background, border and the icon box's tint
+// Cartzilla's alert colors, as Bootstrap derives them from a theme color: the background and the border are the color
+// tinted 90% and 65%, the text is the color shaded 10%
+const tinted = 'border-[color-mix(in_srgb,var(--alert-color)_35%,white)] bg-[color-mix(in_srgb,var(--alert-color)_10%,white)] text-[color-mix(in_srgb,var(--alert-color)_90%,black)]'
+
+// Text, background, border and the icon box's tint
 const variants = {
-  success: { box: 'border-[#c6e6c6] bg-[#eff8ef] text-[#53a653]', icon: 'bg-success/10' },
-  danger: { box: 'border-[#edb0b0] bg-[#fae8e8] text-[#b81a1a]', icon: 'bg-danger/10' },
-  info: { box: 'border-[#c6daf3] bg-[#eff5fc] text-[#5287c8]', icon: 'bg-info/10' },
-  accent: { box: 'border-[#b7c8e2] bg-[#eaeff7] text-[#2c599c]', icon: 'bg-accent/10' },
-  warning: { box: 'border-[#fae2c1] bg-[#fef7ed] text-[#d89c46]', icon: 'bg-warning/10' },
+  success: { box: `${tinted} [--alert-color:var(--color-success)]`, icon: 'bg-success/10' },
+  danger: { box: `${tinted} [--alert-color:var(--color-danger)]`, icon: 'bg-danger/10' },
+  info: { box: `${tinted} [--alert-color:var(--color-info)]`, icon: 'bg-info/10' },
+  accent: { box: `${tinted} [--alert-color:var(--color-accent)]`, icon: 'bg-accent/10' },
+  warning: { box: `${tinted} [--alert-color:var(--color-warning)]`, icon: 'bg-warning/10' },
   secondary: { box: 'border-gray-300 bg-gray-100 text-gray-700', icon: 'bg-gray-300' },
 }
 

@@ -82,7 +82,7 @@ export default function PageSelector({ pathname, query, pageInPath, totalPages, 
         {Array(totalPages).fill(undefined).map((_, i) => i + 1).map((page) => (
           page === currentPage ? (
             <li className={`${pageItemClass} relative z-5 hidden cursor-default sm:block`} aria-current="page" key={page}>
-              <span className="block rounded-md border border-transparent bg-primary px-3 py-[.3125rem] text-white shadow-[0_.5rem_1.125rem_-.425rem_rgb(239_127_26/.9)]">{page}<span className="sr-only">(текущая)</span></span>
+              <span className="block rounded-md border border-transparent bg-primary px-3 py-[.3125rem] text-white shadow-[0_.5rem_1.125rem_-.425rem_--alpha(var(--color-primary)/90%)]">{page}<span className="sr-only">(текущая)</span></span>
             </li>
           ) : (page >= minPage && page <= maxPage || page === 1 || page === totalPages) ? (
             <Fragment key={page}>

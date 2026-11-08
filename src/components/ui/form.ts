@@ -10,8 +10,8 @@ const control = 'border bg-white leading-normal text-body transition-[border-col
 
 function stateClass(invalid: boolean) {
   return invalid
-    ? 'border-danger focus:shadow-[0_.375rem_.625rem_-.3125rem_rgb(204_29_29/.15)]'
-    : 'border-gray-400 focus:border-[#f7bf8d] focus:shadow-[0_.375rem_.625rem_-.3125rem_rgb(239_127_26/.15)]'
+    ? 'border-danger focus:shadow-[0_.375rem_.625rem_-.3125rem_--alpha(var(--color-danger)/15%)]'
+    : 'border-gray-400 focus:border-[color-mix(in_srgb,var(--color-primary)_50%,white)] focus:shadow-[0_.375rem_.625rem_-.3125rem_--alpha(var(--color-primary)/15%)]'
 }
 
 type ControlOptions = {

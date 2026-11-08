@@ -18,6 +18,6 @@ export const widgetProductMetaClass = 'text-sm'
 // A tag link (Cartzilla's .btn-tag)
 export function tagClass({ active = false }: { active?: boolean } = {}) {
   return `inline-block rounded-sm border px-[.5625rem] py-1.5 text-xs whitespace-nowrap transition-colors ${active
-    ? 'border-primary bg-primary text-white shadow-[0_.5rem_1.125rem_-.5rem_rgb(239_127_26/.9)]'
+    ? 'border-primary bg-primary text-white shadow-[0_.5rem_1.125rem_-.5rem_--alpha(var(--color-primary)/90%)]'
     : 'border-gray-300 text-gray-700 hover:bg-gray-200 hover:text-gray-700'}`
 }

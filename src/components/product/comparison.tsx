@@ -199,7 +199,7 @@ export default function ProductComparison() {
           </thead>
           <tbody>
             {Object.keys(fieldNames).length > 0 && productFields.length > 0 && productFields.map(({ field, differ }) => (
-              <tr className={(differ && !different) ? "bg-[#fae8e8]" : ""} key={field}>
+              <tr className={(differ && !different) ? "bg-[color-mix(in_srgb,var(--color-danger)_10%,white)]" : ""} key={field}>
                 <th className={headerCellClass}>
                   {fieldNames[field][0]}
                   <FieldHelp field={field} />
