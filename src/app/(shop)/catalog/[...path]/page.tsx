@@ -18,7 +18,8 @@ import { Category, CategoryTreeItem } from '@/lib/types'
 
 export const revalidate = 3600
 
-const pageSize = 1000
+// following pages are loaded as the user scrolls, robots follow the page links
+const pageSize = 48
 const defaultOrder = 'title'
 
 const categoryPathname = (path: string[]) => `/catalog/${path.join('/')}/`
@@ -67,7 +68,7 @@ export async function generateMetadata({ params }: PageProps<'/catalog/[...path]
   const [category, site] = await Promise.all([getCategory(path.join('/')), getSite()])
 
   return {
-    title: categoryTitle(category),
+    title: currentPage > 1 ? `${categoryTitle(category)}, страница ${currentPage}` : categoryTitle(category),
     alternates: {
       canonical: site.url_prefix + categoryPathname(path) + (currentPage > 1 ? `${currentPage}/` : ''),
     },
@@ -130,7 +131,7 @@ export default async function CategoryPage({ params }: PageProps<'/catalog/[...p
     children: (
       <div className="container mb-2 py-12 md:mb-6">
         <CurrentCatalog />
-        <CategoryProductsProvider query={query} initialProducts={products} initialRecommended={recommended}>
+        <CategoryProductsProvider query={query} pathname={categoryPathname(path)} initialProducts={products} initialRecommended={recommended}>
           <div className={`grid gap-x-7.5 ${hasSidebar ? "lg:grid-cols-3" : ""}`}>
             {hasSidebar && (
               <StickySidebar>
@@ -163,7 +164,7 @@ export default async function CategoryPage({ params }: PageProps<'/catalog/[...p
                 </div>
               )}
 
-              <CategoryProducts categoryName={category.name} pathname={categoryPathname(path)} gridClassName={gridClassName}>
+              <CategoryProducts categoryName={category.name} gridClassName={gridClassName}>
                 {adverts.map(advert => (
                   <div className="mb-6" key={advert.id}>
                     <div className={`${cardClass} ${advertClass} h-full overflow-hidden`} dangerouslySetInnerHTML={{ __html: advert.content }} />

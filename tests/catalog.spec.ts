@@ -1,4 +1,23 @@
-import { test, expect, openFilters } from './fixtures'
+import { Page } from '@playwright/test'
+
+import { test, expect, gotoHydrated, openFilters } from './fixtures'
+
+// A category with several pages of products
+const largeCategory = '/catalog/accessories/threads/GutermannSewAll/'
+const nextPageRequest = /\/api\/v0\/products\/\?.*\bpage=2\b/
+
+const productTitles = (page: Page) => page.getByRole('main').getByRole('heading', { level: 3 })
+const pageLinks = (page: Page) => page.getByRole('navigation', { name: 'Переключение страниц' })
+
+// The link to the next page loads it in place, once the user scrolls to it
+async function loadNextPage(page: Page) {
+  const titles = productTitles(page)
+  const count = await titles.count()
+  await page.getByRole('link', { name: 'Показать ещё' }).scrollIntoViewIfNeeded()
+  await expect.poll(() => titles.count()).toBeGreaterThan(count)
+  return count
+}
+
 
 test('price range filter updates query', async ({ page, isMobile }) => {
   await page.goto('/catalog/sewing_machines/')
@@ -88,4 +107,59 @@ test('filters offcanvas closes on mobile', async ({ page, isMobile }) => {
   await openFilters(page, isMobile)
   await filters.getByRole('button', { name: 'Закрыть' }).click()
   await expect(filters).toBeHidden()
+})
+
+test('category loads the next page as the user scrolls', async ({ page }) => {
+  await gotoHydrated(page, largeCategory)
+  const more = page.getByRole('link', { name: 'Показать ещё' })
+  await expect(more).toHaveAttribute('href', `${largeCategory}2/`)
+  await expect(pageLinks(page).getByRole('link', { name: /^След/ })).toHaveAttribute('href', `${largeCategory}2/`)
+
+  await loadNextPage(page)
+  // both pages are shown, so the links go on from the third
+  await expect(more).toHaveAttribute('href', `${largeCategory}3/`)
+  await expect(pageLinks(page).getByRole('link', { name: /^След/ })).toHaveAttribute('href', `${largeCategory}3/`)
+})
+
+test('category loads no page for robots, they follow the links', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'The window is resized to a desktop one')
+  // robots render the page in a tall window and don't scroll
+  await page.setViewportSize({ width: 1280, height: 20000 })
+  const nextPages: string[] = []
+  page.on('request', (request) => {
+    if (nextPageRequest.test(request.url()))
+      nextPages.push(request.url())
+  })
+  await gotoHydrated(page, largeCategory)
+  await expect(page.getByRole('link', { name: 'Показать ещё' })).toBeInViewport()
+  // the link would be loaded at once, the network doesn't go idle in the PLAYWRIGHT_TEST build
+  await page.waitForTimeout(1000)
+  expect(nextPages).toEqual([])
+
+  // the whole page fits in the window, a user's window scrolls to the link
+  await page.setViewportSize({ width: 1280, height: 720 })
+  const nextPage = page.waitForRequest(nextPageRequest)
+  await page.getByRole('link', { name: 'Показать ещё' }).scrollIntoViewIfNeeded()
+  await nextPage
+})
+
+test('following category page links to the others', async ({ page }) => {
+  await page.goto(`${largeCategory}2/`)
+  await expect(page).toHaveTitle(/, страница 2 /)
+  await expect(pageLinks(page).getByRole('link', { name: /^Пред/ })).toHaveAttribute('href', largeCategory)
+  await expect(pageLinks(page).getByRole('link', { name: /^След/ })).toHaveAttribute('href', `${largeCategory}3/`)
+})
+
+test('back button returns to the category pages loaded on scroll', async ({ page }) => {
+  await gotoHydrated(page, largeCategory)
+  const firstPageCount = await loadNextPage(page)
+
+  // the first product of the second page
+  const title = productTitles(page).nth(firstPageCount)
+  const name = (await title.textContent())!
+  await title.getByRole('link').click()
+  await expect(page).not.toHaveURL(new RegExp(`${largeCategory}$`))
+
+  await page.goBack()
+  await expect(productTitles(page).filter({ hasText: name })).toBeInViewport()
 })

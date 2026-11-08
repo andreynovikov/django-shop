@@ -12,20 +12,24 @@ interface PageSelectorProps {
   query?: ParsedUrlQuery,               /* current query string params, page number is
                                            put in query string, e.g. "/search/?q=pfaff&page=2" */
   pageInPath?: boolean,                 /* put page number in path instead, e.g.:
-                                           "/blog/tags/sewing/2/", the first page is {pathname} */
+                                           "/blog/tags/sewing/2/", the first page is {pathname},
+                                           the query follows it */
   totalPages: number,
   currentPage: number,
 }
 
-const getHref = (page: number, pathname: string, query: ParsedUrlQuery | undefined, pageInPath: boolean | undefined) => {
-  if (pageInPath)
-    return page > 1 ? `${pathname}${page}/` : pathname
-
+export function getPageHref(page: number, pathname: string, query?: ParsedUrlQuery, pageInPath?: boolean) {
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries(query ?? {}))
     if (key !== 'page')
       for (const item of Array.isArray(value) ? value : value === undefined ? [] : [value])
         params.append(key, item)
+
+  if (pageInPath) {
+    const search = params.toString()
+    return (page > 1 ? `${pathname}${page}/` : pathname) + (search ? `?${search}` : '')
+  }
+
   params.set('page', String(page))
   return `${pathname}?${params}`
 }
@@ -39,13 +43,13 @@ export function SmallPageSelector({ pathname, query, pageInPath, totalPages, cur
   return (
     <div className="flex pb-4">
       {currentPage > 1 && (
-        <Link className={`${navLinkClass({ light: true })} me-4`} href={getHref(currentPage - 1, pathname, query, pageInPath)} aria-label="Предыдущая страница">
+        <Link className={`${navLinkClass({ light: true })} me-4`} href={getPageHref(currentPage - 1, pathname, query, pageInPath)} aria-label="Предыдущая страница">
           <IconChevronLeft {...arrowIcon} />
         </Link>
       )}
       <span className="text-md text-white">{currentPage} / {totalPages}</span>
       {currentPage < totalPages && (
-        <Link className={`${navLinkClass({ light: true })} ms-4`} href={getHref(currentPage + 1, pathname, query, pageInPath)} aria-label="Следующая страница">
+        <Link className={`${navLinkClass({ light: true })} ms-4`} href={getPageHref(currentPage + 1, pathname, query, pageInPath)} aria-label="Следующая страница">
           <IconChevronRight {...arrowIcon} />
         </Link>
       )}
@@ -53,13 +57,14 @@ export function SmallPageSelector({ pathname, query, pageInPath, totalPages, cur
   )
 }
 
-export default function PageSelector({ pathname, query, pageInPath, totalPages, currentPage }: PageSelectorProps) {
+// Pages from currentPage to lastCurrentPage are shown together, e.g. when following ones were loaded on scroll
+export default function PageSelector({ pathname, query, pageInPath, totalPages, currentPage, lastCurrentPage = currentPage }: PageSelectorProps & { lastCurrentPage?: number }) {
   // количество переключателей страниц лимитировано дизайном
-  const pageRange = currentPage > 1 && currentPage < totalPages ? 7 : 10
-  let minPage = currentPage - pageRange + Math.min(4, totalPages - currentPage)
+  const pageRange = currentPage > 1 && lastCurrentPage < totalPages ? 7 : 10
+  let minPage = currentPage - pageRange + Math.min(4, totalPages - lastCurrentPage)
   if (minPage < 4)
     minPage = 1
-  let maxPage = currentPage + pageRange - Math.min(4, currentPage - 1)
+  let maxPage = lastCurrentPage + pageRange - Math.min(4, currentPage - 1)
   if (maxPage > totalPages - 3)
     maxPage = totalPages
 
@@ -68,7 +73,7 @@ export default function PageSelector({ pathname, query, pageInPath, totalPages, 
       {currentPage > 1 && (
         <ul className="flex flex-wrap select-none">
           <li className={pageItemClass}>
-            <Link className={pageLinkClass} href={getHref(currentPage - 1, pathname, query, pageInPath)}>
+            <Link className={pageLinkClass} href={getPageHref(currentPage - 1, pathname, query, pageInPath)}>
               <IconChevronLeft {...arrowIcon} className="me-2" />
               Пред<span className="hidden sm:inline md:hidden xl:inline">ыдущая</span>
             </Link>
@@ -77,10 +82,10 @@ export default function PageSelector({ pathname, query, pageInPath, totalPages, 
       )}
       <ul className="flex flex-wrap items-center select-none">
         <li className={`${pageItemClass} sm:hidden`}>
-          <span className="block rounded-md border border-transparent px-3 py-[.3125rem] text-gray-700">{currentPage} / {totalPages}</span>
+          <span className="block rounded-md border border-transparent px-3 py-[.3125rem] text-gray-700">{currentPage === lastCurrentPage ? currentPage : `${currentPage}–${lastCurrentPage}`} / {totalPages}</span>
         </li>
         {Array(totalPages).fill(undefined).map((_, i) => i + 1).map((page) => (
-          page === currentPage ? (
+          page >= currentPage && page <= lastCurrentPage ? (
             <li className={`${pageItemClass} relative z-5 hidden cursor-default sm:block`} aria-current="page" key={page}>
               <span className="block rounded-md border border-transparent bg-primary px-3 py-[.3125rem] text-white shadow-[0_.5rem_1.125rem_-.425rem_--alpha(var(--color-primary)/90%)]">{page}<span className="sr-only">(текущая)</span></span>
             </li>
@@ -90,7 +95,7 @@ export default function PageSelector({ pathname, query, pageInPath, totalPages, 
                 <li className={`${pageItemClass} hidden md:block`}>&hellip;</li>
               )}
               <li className={`${pageItemClass} hidden sm:block`}>
-                <Link className={pageLinkClass} href={getHref(page, pathname, query, pageInPath)}>
+                <Link className={pageLinkClass} href={getPageHref(page, pathname, query, pageInPath)}>
                   {page}
                 </Link>
               </li>
@@ -101,10 +106,10 @@ export default function PageSelector({ pathname, query, pageInPath, totalPages, 
           ) : (null)
         ))}
       </ul>
-      {currentPage < totalPages && (
+      {lastCurrentPage < totalPages && (
         <ul className="flex flex-wrap select-none">
           <li className={pageItemClass}>
-            <Link className={pageLinkClass} href={getHref(currentPage + 1, pathname, query, pageInPath)}>
+            <Link className={pageLinkClass} href={getPageHref(lastCurrentPage + 1, pathname, query, pageInPath)}>
               След<span className="hidden sm:inline md:hidden xl:inline">ующая</span>
               <IconChevronRight {...arrowIcon} className="ms-2" />
             </Link>
