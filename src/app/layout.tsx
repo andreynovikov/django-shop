@@ -1,7 +1,6 @@
 import { ReactNode } from 'react'
 import { Metadata } from 'next/types'
 import Script from 'next/script'
-import localFont from 'next/font/local'
 
 import 'swiper/css'
 import 'swiper/css/free-mode'
@@ -21,20 +20,6 @@ import { YandexMetrika } from '@/lib/ymec'
 
 import Providers from './providers'
 
-const rubik = localFont({
-  src: [
-    {
-      path: '../assets/fonts/Rubik/Rubik-VariableFont_wght.ttf',
-      style: 'normal',
-    }, {
-      path: '../assets/fonts/Rubik/Rubik-Italic-VariableFont_wght.ttf',
-      style: 'italic',
-    }
-  ],
-  fallback: ['sans-serif'],
-  variable: '--font-rubik',
-})
-
 export const metadata: Metadata = {
   title: {
     template: '%s - Janome.Club',
@@ -52,7 +37,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const categories = await loadCategories()
 
   return (
-    <html lang="ru" className={`${rubik.variable} has-[.sw-no-body-scroll]:overflow-hidden`}>
+    <html lang="ru" className="has-[.sw-no-body-scroll]:overflow-hidden">
       <body>
         <Providers>
           <div className="isolate">
