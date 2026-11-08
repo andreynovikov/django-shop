@@ -1030,17 +1030,21 @@ class UserViewSet(viewsets.ModelViewSet):
         })
 
     @extend_schema(
+        request=None,
         responses={
             204: None
         },
-        methods=['GET']
+        methods=['GET', 'POST']
     )
-    @action(detail=False, methods=['get'])
+    # GET stays until every storefront logs out with POST; their proxies already refuse a GET from browsers
+    @action(detail=False, methods=['get', 'post'])
     def logout(self, request, *args, **kwargs):
-        try:
-            basket = Basket.objects.get(site=request.site, session_id=request.session.session_key)
-        except Basket.DoesNotExist:
-            basket = None
+        basket = None
+        if request.session.session_key:  # without it, the query would match every basket left without a session
+            try:
+                basket = Basket.objects.get(site=request.site, session_id=request.session.session_key)
+            except (Basket.DoesNotExist, Basket.MultipleObjectsReturned):
+                pass
 
         logout(request)
 

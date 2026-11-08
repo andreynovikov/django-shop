@@ -111,16 +111,6 @@ SERVER_EMAIL = env('SERVER_EMAIL')
 ADMINS = [x.split(':') for x in env.list('ADMINS')]
 MANAGERS = ADMINS
 
-from corsheaders.defaults import default_headers  # noqa F402
-
-CORS_ALLOW_HEADERS = [
-    *default_headers,
-    'x-session',
-]
-CORS_EXPOSE_HEADERS = [
-    'x-csrftoken',
-    'x-session'
-]
 CORS_ALLOWED_ORIGINS = env.list('ALLOWED_ORIGINS')
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
@@ -129,6 +119,10 @@ CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = env('SESSION_COOKIE_SAMESITE')
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_AGE = 2419200  # 4 weeks
+# __Host-sessionid and __Host-csrftoken keep pages on other subdomains from setting these cookies. Switch to them
+# only when every storefront proxy reads the new CSRF cookie name; CookieRenameMiddleware moves visitors over.
+SESSION_COOKIE_NAME = env('SESSION_COOKIE_NAME', default='sessionid')
+CSRF_COOKIE_NAME = env('CSRF_COOKIE_NAME', default='csrftoken')
 
 CELERY_BROKER_URL = env('CELERY_BROKER_URL')
 
