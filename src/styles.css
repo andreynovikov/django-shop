@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './backend-safelist.css'; /* classes of the backend HTML, shared with every storefront */
 @import './backend-content.css' layer(components);
 
 /* Dor Tak's look of its Bootstrap 5.3 days: its colors, the system font and Bootstrap's sizes on a 0.95rem base */
