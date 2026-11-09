@@ -4,9 +4,9 @@ Session and CSRF cookies: the move to __Host- names and logout with POST. See se
 from django.contrib.sites.models import Site
 from django.test import TestCase, override_settings
 
-from rest_framework.test import APIClient
-
 from shop.models import Basket, ShopUser
+
+from .clients import StorefrontClient, add_storefront_key
 
 OLD_NAMES = {'SESSION_COOKIE_NAME': 'sessionid', 'CSRF_COOKIE_NAME': 'csrftoken'}
 NEW_SESSION = '__Host-sessionid'
@@ -16,17 +16,18 @@ NEW_CSRF = '__Host-csrftoken'
 @override_settings(SESSION_COOKIE_NAME=NEW_SESSION, CSRF_COOKIE_NAME=NEW_CSRF)
 class CookieRenameTests(TestCase):
     def setUp(self):
+        add_storefront_key()
         self.user = ShopUser.objects.create(phone='+79161234567')
         # cookies of a visitor who signed in before the rename
         with self.settings(**OLD_NAMES):
-            before = APIClient()
+            before = StorefrontClient()
             before.force_login(self.user)
             before.get('/api/v0/csrf/')
         self.session_key = before.cookies['sessionid'].value
         self.csrf = before.cookies['csrftoken'].value
 
     def client_with_old_cookies(self, **kwargs):
-        client = APIClient(**kwargs)
+        client = StorefrontClient(**kwargs)
         client.cookies['sessionid'] = self.session_key
         client.cookies['csrftoken'] = self.csrf
         return client
@@ -49,7 +50,7 @@ class CookieRenameTests(TestCase):
         self.assertIsNone(client.get('/api/v0/users/current/').json()['id'])
 
     def test_new_cookies_are_left_alone(self):
-        client = APIClient()
+        client = StorefrontClient()
         client.force_login(self.user)
 
         response = client.get('/api/v0/users/current/')
@@ -60,8 +61,11 @@ class CookieRenameTests(TestCase):
 
 
 class LogoutTests(TestCase):
+    def setUp(self):
+        add_storefront_key()
+
     def test_logout_with_post(self):
-        client = APIClient()
+        client = StorefrontClient()
         client.force_login(ShopUser.objects.create(phone='+79161234567'))
 
         self.assertEqual(client.post('/api/v0/users/logout/').status_code, 204)
@@ -73,4 +77,4 @@ class LogoutTests(TestCase):
         Basket.objects.create(site=site)
         Basket.objects.create(site=site)
 
-        self.assertEqual(APIClient().post('/api/v0/users/logout/').status_code, 204)
+        self.assertEqual(StorefrontClient().post('/api/v0/users/logout/').status_code, 204)

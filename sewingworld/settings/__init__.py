@@ -111,9 +111,9 @@ SERVER_EMAIL = env('SERVER_EMAIL')
 ADMINS = [x.split(':') for x in env.list('ADMINS')]
 MANAGERS = ADMINS
 
-CORS_ALLOWED_ORIGINS = env.list('ALLOWED_ORIGINS')
-CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
+# Origins of the storefronts, whose proxies forward the browser's Origin. Browsers never call the API host
+# cross-origin, so there are no CORS settings.
+CSRF_TRUSTED_ORIGINS = env.list('ALLOWED_ORIGINS')
 CSRF_COOKIE_SAMESITE = env('CSRF_COOKIE_SAMESITE')
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SAMESITE = env('SESSION_COOKIE_SAMESITE')

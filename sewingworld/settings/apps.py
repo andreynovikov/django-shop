@@ -1,5 +1,4 @@
 INSTALLED_APPS = (
-    'corsheaders',
     'flags',
     'datetimewidget',
     'colorfield',

@@ -1,3 +1,4 @@
+import ipaddress
 import logging
 import sys
 import traceback
@@ -8,15 +9,59 @@ from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core.exceptions import MiddlewareNotUsed
 from django.db.models import Q
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
+
+from .models import SiteProfile
 
 
 logger = logging.getLogger("django")
 
 
+class FrontendKeyMiddleware:
+    """
+    Tells the storefronts from direct callers of the API. A storefront's server sends its site's key
+    (SiteProfile.frontend_key) in X-Frontend-Key, and the client address in X-Real-IP, which its nginx sets.
+    With a valid key the site comes from the key and REMOTE_ADDR from X-Real-IP, so per-IP throttles see each client.
+    Without one the session cookie is ignored, writes need a token and the site is the default one, whatever Origin
+    or Referer say. Anonymous reads, such as the video QR redirect, keep working. Comes before the middlewares that
+    use the site, the client address or the session.
+    """
+    SAFE_METHODS = ('GET', 'HEAD', 'OPTIONS')
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.path_info.startswith('/api/v0/'):
+            response = self.check_frontend(request)
+            if response is not None:
+                return response
+        return self.get_response(request)
+
+    def check_frontend(self, request):
+        key = request.META.get('HTTP_X_FRONTEND_KEY')
+        profile = SiteProfile.objects.select_related('site').filter(frontend_key=key).first() if key else None
+        if profile is not None:
+            request.site = profile.site
+            try:
+                request.META['REMOTE_ADDR'] = str(ipaddress.ip_address(request.META.get('HTTP_X_REAL_IP', '').strip()))
+            except ValueError:
+                pass  # missing or malformed: the server-side requests of the storefront itself
+            return None
+
+        # the old name is read until CookieRenameMiddleware is removed
+        for name in {settings.SESSION_COOKIE_NAME, 'sessionid'}:
+            request.COOKIES.pop(name, None)
+        # DRF rejects an invalid token, any other scheme would pass as anonymous
+        if request.method not in self.SAFE_METHODS and not request.META.get('HTTP_AUTHORIZATION', '').startswith('Token '):
+            return JsonResponse({'detail': 'Only storefronts and token holders can change data'}, status=403)
+        request.site = Site.objects.get_current()
+        return None
+
+
 class SiteDetectionMiddleware:
     """
-    This logic is used in Rest API
+    Takes the site from Origin or Referer, unless FrontendKeyMiddleware has set it, as it does for the API
     TODO: accommodate it to general use
     """
 
@@ -24,6 +69,8 @@ class SiteDetectionMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        if getattr(request, 'site', None) is not None:
+            return self.get_response(request)
         site = None
         # Prefer Origin header over Referer
         url = request.META.get('HTTP_ORIGIN', request.META.get('HTTP_REFERER', ''))

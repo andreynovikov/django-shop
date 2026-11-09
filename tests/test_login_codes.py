@@ -11,9 +11,9 @@ from django.db.models import F
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 
-from rest_framework.test import APIClient
-
 from shop.models import LoginCode, ShopUser
+
+from .clients import StorefrontClient, add_storefront_key
 
 PHONE = '+79161234567'
 OTHER = '+79167654321'
@@ -28,7 +28,8 @@ class Base(TestCase):
         patcher = mock.patch('sewingworld.api.send_password')
         self.sms = patcher.start()
         self.addCleanup(patcher.stop)
-        self.client = APIClient()
+        add_storefront_key()
+        self.client = StorefrontClient()
 
     def check(self, phone=PHONE, client=None, **body):
         return (client or self.client).post(f'/api/v0/users/{phone}/check/', body, format='json')
@@ -86,7 +87,7 @@ class CodeTests(Base):
         self.check()
         code = self.code()
         self.assertEqual(self.login(password=code).status_code, 200)
-        self.assertEqual(self.login(client=APIClient(), password=code).status_code, 403)
+        self.assertEqual(self.login(client=StorefrontClient(), password=code).status_code, 403)
 
     def test_expires_after_five_minutes(self):
         user = self.customer()
@@ -198,7 +199,7 @@ class ResendTests(Base):
         self.customer()
         self.check()
         self.login(password=self.code())
-        self.check(client=APIClient())
+        self.check(client=StorefrontClient())
         self.assertEqual(self.sms.delay.call_count, 2)
 
     def test_reset_keeps_recent_code(self):
@@ -271,7 +272,7 @@ class SeparationTests(Base):
         self.check()
         self.login(password=self.code())
         self.assertIsNotNone(self.current())
-        self.check(client=APIClient())
+        self.check(client=StorefrontClient())
         self.assertIsNotNone(self.current())
 
 
@@ -331,22 +332,22 @@ class PermanentPasswordTests(Base):
     def test_password_can_be_changed_with_password(self):
         self.permanent()
         self.assertEqual(self.login(password='old-secret', permanent_password='new-secret').status_code, 200)
-        self.assertEqual(self.login(client=APIClient(), password='new-secret').status_code, 200)
+        self.assertEqual(self.login(client=StorefrontClient(), password='new-secret').status_code, 200)
 
     def test_reset_keeps_password_and_sessions_until_code_is_proven(self):
         user = self.permanent()
         self.login(password='old-secret')
-        response = self.check(reset=True, client=APIClient())
+        response = self.check(reset=True, client=StorefrontClient())
         self.assertFalse(response.json()['permanent_password'])
         self.sms.delay.assert_called_once()
         user.refresh_from_db()
         self.assertTrue(user.permanent_password)
         self.assertEqual(self.current(), user.id)
-        self.assertEqual(self.login(client=APIClient(), password='old-secret').status_code, 200)
+        self.assertEqual(self.login(client=StorefrontClient(), password='old-secret').status_code, 200)
 
     def test_proven_reset_drops_password_and_other_sessions(self):
         user = self.permanent()
-        other = APIClient()
+        other = StorefrontClient()
         self.login(client=other, password='old-secret')
         self.check(reset=True)
         self.assertEqual(self.login(password=self.code()).status_code, 200)
@@ -355,7 +356,7 @@ class PermanentPasswordTests(Base):
         self.assertFalse(user.has_usable_password())
         self.assertIsNone(self.current(other))
         self.assertEqual(self.current(), user.id)
-        self.assertEqual(self.login(client=APIClient(), password='old-secret').status_code, 403)
+        self.assertEqual(self.login(client=StorefrontClient(), password='old-secret').status_code, 403)
 
     def test_reset_can_set_new_password_in_one_request(self):
         user = self.permanent()
@@ -364,8 +365,8 @@ class PermanentPasswordTests(Base):
         user.refresh_from_db()
         self.assertTrue(user.permanent_password)
         self.assertEqual(self.current(), user.id)
-        self.assertEqual(self.login(client=APIClient(), password='new-secret').status_code, 200)
-        self.assertEqual(self.login(client=APIClient(), password='old-secret').status_code, 403)
+        self.assertEqual(self.login(client=StorefrontClient(), password='new-secret').status_code, 200)
+        self.assertEqual(self.login(client=StorefrontClient(), password='old-secret').status_code, 403)
 
     def test_remembered_password_works_while_reset_code_is_pending(self):
         self.permanent()
@@ -377,7 +378,7 @@ class PermanentPasswordTests(Base):
         self.check()
         self.assertEqual(self.login(password=self.code(), permanent_password='my-secret').status_code, 200)
         self.assertEqual(self.current(), user.id)
-        self.assertEqual(self.login(client=APIClient(), password='my-secret').status_code, 200)
+        self.assertEqual(self.login(client=StorefrontClient(), password='my-secret').status_code, 200)
 
 
 class SilentRegistrationTests(Base):
@@ -393,7 +394,7 @@ class SilentRegistrationTests(Base):
 
     def test_all_contexts(self):
         for n, ctx in enumerate(('order', 'preorder', 'warranty')):
-            self.assertEqual(self.login(client=APIClient(), phone=f'+7916000000{n}', ctx=ctx).status_code, 200)
+            self.assertEqual(self.login(client=StorefrontClient(), phone=f'+7916000000{n}', ctx=ctx).status_code, 200)
 
     def test_other_context_does_not_register(self):
         self.assertEqual(self.login(ctx='reg').status_code, 403)
@@ -404,21 +405,21 @@ class SilentRegistrationTests(Base):
         user = ShopUser.objects.get(phone=PHONE)
         self.assertFalse(user.has_usable_password())
         self.assertFalse(user.permanent_password)
-        self.assertEqual(self.login(client=APIClient(), password='planted').status_code, 403)
+        self.assertEqual(self.login(client=StorefrontClient(), password='planted').status_code, 403)
 
     def test_existing_account_needs_proof_even_with_context(self):
         self.login(ctx='order')
-        self.assertEqual(self.login(client=APIClient(), ctx='order').status_code, 403)
+        self.assertEqual(self.login(client=StorefrontClient(), ctx='order').status_code, 403)
 
     def test_owner_gets_a_code_later(self):
         user = ShopUser.objects.get(pk=self.login(ctx='order').json()['id'])
-        client = APIClient()
+        client = StorefrontClient()
         self.assertFalse(self.check(client=client).json()['permanent_password'])
         response = self.login(client=client, password=self.code())
         self.assertEqual(response.json(), {'id': user.id, 'registered': False})
 
     def test_unproven_session_dies_when_owner_proves_the_phone(self):
-        unproven = APIClient()
+        unproven = StorefrontClient()
         user_id = self.login(client=unproven, ctx='order').json()['id']
         self.assertEqual(self.current(unproven), user_id)
         self.check()
@@ -481,6 +482,7 @@ class RaceTests(TransactionTestCase):
 
     @mock.patch('sewingworld.api.send_password')
     def test_parallel_requests_send_one_code(self, sms):
+        add_storefront_key()
         ShopUser.objects.create(phone=PHONE)
         for _ in range(5):
             cache.clear()
@@ -490,7 +492,7 @@ class RaceTests(TransactionTestCase):
 
             def request():
                 barrier.wait()
-                APIClient().post(f'/api/v0/users/{PHONE}/check/', {}, format='json')
+                StorefrontClient().post(f'/api/v0/users/{PHONE}/check/', {}, format='json')
                 connection.close()
 
             threads = [threading.Thread(target=request) for _ in range(6)]

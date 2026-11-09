@@ -1,6 +1,7 @@
 MIDDLEWARE = (
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    # before everything that uses the site, the client address or the session
+    'sewingworld.middleware.FrontendKeyMiddleware',
     'sewingworld.middleware.BlockedIpMiddleware',
     'sewingworld.middleware.SiteDetectionMiddleware',
     # 'sewingworld.middleware.ProcessExceptionMiddleware',
