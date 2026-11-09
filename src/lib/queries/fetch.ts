@@ -29,7 +29,9 @@ export async function apiFetch<TReturn, TData = JSONValue>(endpoint: string, opt
     // the proxy refuses writes without it, see its route.ts
     'x-requested-with': 'fetch',
     ...(body === undefined || body instanceof FormData ? {} : { 'content-type': 'application/json' }),
+    // server-side requests go straight to Django, the key tells it the site
     ...(typeof window !== 'undefined' ? {} : { 'origin': process.env.ORIGIN }),
+    ...(typeof window !== 'undefined' || !process.env.FRONTEND_KEY ? {} : { 'x-frontend-key': process.env.FRONTEND_KEY }),
     ...customOptions.headers,
   }
 
