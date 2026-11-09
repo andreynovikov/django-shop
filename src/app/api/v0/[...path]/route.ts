@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Only these reach the backend, so client-supplied X-Session, X-Real-IP and the like stay here
-const REQUEST_HEADERS = ['cookie', 'origin', 'referer', 'user-agent', 'content-type']
+// Only these reach the backend, so client-supplied X-Session, X-Frontend-Key and the like stay here.
+// X-Real-IP is set by nginx, which replaces any value the client sent; Django trusts it with the key below.
+const REQUEST_HEADERS = ['cookie', 'origin', 'referer', 'user-agent', 'content-type', 'x-real-ip']
 const RESPONSE_HEADERS = ['cache-control', 'vary', 'retry-after']
 
 // The old name is read until the backend's cookie rename has been out for SESSION_COOKIE_AGE (4 weeks)
@@ -33,6 +34,10 @@ async function proxyRequest(request: NextRequest, { params }: RouteContext<'/api
     const value = request.headers.get(key)
     return value === null ? [] : [[key, value] as [string, string]]
   })
+
+  // The site's key: without it Django takes the request for a direct caller, with no session and no writes
+  if (process.env.FRONTEND_KEY)
+    headers.push(['x-frontend-key', process.env.FRONTEND_KEY])
 
   // Django checks the header against the cookie for signed-in users. The checks above are what keep
   // other sites out; the copy only satisfies Django.
