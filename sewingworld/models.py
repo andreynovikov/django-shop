@@ -12,6 +12,9 @@ class SiteProfile(models.Model):
     wholesale = models.BooleanField('оптовый', default=False)
     root_category = models.ForeignKey(Category, verbose_name='корневая категория', related_name='profile', null=True, blank=True, on_delete=models.PROTECT)
     revalidation_token = models.CharField('Токен перегенерации', max_length=30, blank=True)
+    # NULL when empty, so that sites without a storefront don't collide on unique
+    frontend_key = models.CharField('ключ фронтенда', max_length=64, unique=True, null=True, blank=True,
+                                    help_text='Фронтенд сайта отправляет его в заголовке X-Frontend-Key, без ключа API не видит сессий и не принимает изменения без токена.')
     city = models.ForeignKey(City, verbose_name='город', blank=True, null=True, on_delete=models.PROTECT)
     phone = models.CharField('телефон', max_length=255, blank=True, help_text='Указывается на сайте для связи')
     manager_emails = models.CharField('адреса менеджеров', max_length=255, blank=True, help_text='Можно несколько через запятую')
