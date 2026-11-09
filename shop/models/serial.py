@@ -1,4 +1,5 @@
 from django.db import IntegrityError, models
+from django.utils import timezone
 
 from celery import current_app
 
@@ -37,7 +38,7 @@ class Serial(models.Model):
                     user=user,
                     product=item.product,
                     order=item.order,
-                    purchase_date=item.order.created,
+                    purchase_date=timezone.localdate(item.order.created),
                     approved=True
                 )
 
@@ -48,11 +49,13 @@ class Serial(models.Model):
                     user=user,
                     name=user.name,
                     phone=user.phone,
-                    created=item.order.created,
                     status=Order.STATUS_DONE,
                     manager_comment='Заказ сформирован при регистрации гарантийного талона из заказа №{}'.format(item.order.pk)
                 )
                 order.save()
+                # created has auto_now_add, so the original date can only be set after the insert
+                Order.objects.filter(pk=order.pk).update(created=item.order.created)
+                order.created = item.order.created
                 order.items.create(
                     product=item.product,
                     product_price=item.product_price,
@@ -73,6 +76,7 @@ class Serial(models.Model):
                     user=user,
                     product=item.product,
                     order=order,
+                    purchase_date=timezone.localdate(item.order.created),
                     approved=True
                 )
 
@@ -83,7 +87,7 @@ class Serial(models.Model):
                     user=user,
                     product=item.product,
                     order=item.order,
-                    purchase_date=item.order.created
+                    purchase_date=timezone.localdate(item.order.created)
                 )
 
         else:
