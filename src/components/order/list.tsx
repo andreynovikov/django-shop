@@ -16,6 +16,7 @@ import { selectClass } from '@/components/ui/form'
 import { navLinkClass } from '@/components/ui/nav'
 
 import { useSession } from '@/lib/session'
+import { useSite } from '@/lib/site'
 import { orderKeys, loadOrders, getLastOrder } from '@/lib/queries'
 import {
   STATUS_COLLECTED,
@@ -38,7 +39,7 @@ export function OrderListLoading() {
   return (
     <>
       <UserTopbar>
-        <div className="me-4 flex w-full text-center text-white">&nbsp;</div>
+        <div className="me-4 flex w-full text-center text-overlap">&nbsp;</div>
       </UserTopbar>
       <PageLoading />
     </>
@@ -51,6 +52,7 @@ export default function OrderList() {
   const [{ page, filter, track }, setParams] = useQueryStates(orderListParams)
   const router = useRouter()
   const { status } = useSession()
+  const { site } = useSite()
 
   const { data: lastOrder } = useQuery({
     queryKey: orderKeys.last(),
@@ -66,11 +68,13 @@ export default function OrderList() {
       router.push(orderPathname(lastOrder.id))
   }, [lastOrder, router, isTracking])
 
-  // pending until the session is loaded too, so the list doesn't say there are no orders meanwhile
+  // pending until the session and the site are loaded too, so the list doesn't say there are no orders meanwhile.
+  // Only the orders made on this site are listed, the site is the same for every query of the storefront.
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const { data: orders, isSuccess, isPending } = useQuery({
     queryKey: orderKeys.list(page, filter),
-    queryFn: () => loadOrders(page, filter),
-    enabled: status === 'authenticated'
+    queryFn: () => loadOrders(page, filter, site.id),
+    enabled: status === 'authenticated' && site.id !== undefined
   })
 
   // the filter is kept in the query, a new filter starts from the first page
@@ -82,7 +86,7 @@ export default function OrderList() {
         <div className="me-4 flex flex-nowrap items-center sm:me-6">
           {isSuccess && !isTracking && (orders.results.length > 0 || !!filter) ? (
             <>
-              <label className="me-2 hidden text-sm whitespace-nowrap text-white opacity-75 sm:block" htmlFor="sw-order-filter">Отображать:</label>
+              <label className="me-2 hidden text-sm whitespace-nowrap text-overlap opacity-75 sm:block" htmlFor="sw-order-filter">Отображать:</label>
               <select className={selectClass()} id="sw-order-filter" value={filter} onChange={(e) => onFilterChanged(e.target.value)}>
                 <option value="">Все</option>
                 <option value="active">Активные</option>
@@ -91,7 +95,7 @@ export default function OrderList() {
               </select>
             </>
           ) : (
-            <div className="me-4 flex w-full text-center text-white">&nbsp;</div>
+            <div className="me-4 flex w-full text-center text-overlap">&nbsp;</div>
           )}
         </div>
       </UserTopbar>

@@ -19,14 +19,6 @@ const tabIcon = { size: 18, stroke: 1.5, className: 'me-2' }
 
 export default function SignInModal({ ctx: modalCtx, show, onHide }: SignInModalProps) {
   const [key, setKey] = useState('signin')
-  const [ctx, setCtx] = useState('login')
-  const [phone, setPhone] = useState('')
-
-  const onRegistrationComplete = (phone: string) => {
-    setCtx('reg')
-    setPhone(phone)
-    setKey('signin')
-  }
 
   return (
     <Modal show={show} onHide={onHide}>
@@ -46,10 +38,11 @@ export default function SignInModal({ ctx: modalCtx, show, onHide }: SignInModal
         <ModalBody>
           {/* Base UI hides the previous panel only after its exit animation, so both forms would show for a frame */}
           <Tabs.Panel value="signin" keepMounted hidden={key !== 'signin'}>
-            <LoginForm key={phone} embedded={modalCtx} ctx={ctx} phone={phone} hideModal={onHide} />
+            <LoginForm embedded={modalCtx} ctx="login" hideModal={onHide} />
           </Tabs.Panel>
           <Tabs.Panel value="signup" keepMounted hidden={key !== 'signup'}>
-            <RegistrationForm embedded={modalCtx} onComplete={onRegistrationComplete} />
+            {/* the user is signed in when it completes */}
+            <RegistrationForm embedded={modalCtx} onComplete={onHide} />
           </Tabs.Panel>
         </ModalBody>
       </Tabs.Root>

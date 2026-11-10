@@ -15,8 +15,8 @@ import { useCreateOrder } from '@/lib/order'
 import { useSession } from '@/lib/session'
 import { useLastCatalog } from '@/lib/catalog/hooks'
 
-// The header row over the dark page header: a title on the left, a link back to the catalog on the right
-const headerClass = 'mt-1 flex items-center justify-between pt-4 pb-2 sm:pb-12'
+// The header row over the overlapped page header: a title on the left, a link back to the catalog on the right
+const headerClass = 'mt-1 flex items-center justify-between pt-4 pb-2 sm:pb-overlap'
 const backLinkClass = `${buttonClass({ variant: 'outline-primary', size: 'sm' })} ps-2`
 
 export default function CartContents() {
@@ -43,7 +43,7 @@ export default function CartContents() {
     return (
       <section className="min-w-0 lg:col-span-2">
         <div className={headerClass}>
-          <h2 className="mb-0 text-h6 text-white">
+          <h2 className="mb-0 text-h6 text-overlap">
             {isLoading ? "Загружается..." : isEmpty ? "Нет товаров" : ""}
           </h2>
           <Link className={backLinkClass} href={lastPage}>
@@ -67,7 +67,7 @@ export default function CartContents() {
     <>
       <section className="min-w-0 lg:col-span-2">
         <div className={headerClass}>
-          <h2 className="mb-0 text-h6 text-white">Товары</h2>
+          <h2 className="mb-0 text-h6 text-overlap">Товары</h2>
           <Link className={backLinkClass} href={lastPage}>
             <IconChevronLeft size={16} stroke={1.5} className="me-2" />Продолжить покупки
           </Link>

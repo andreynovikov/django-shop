@@ -68,6 +68,10 @@ test('anonymous buyer orders with a new phone', async ({ page, request, backend 
   expect(backend.requestsTo('POST', 'users/login/').map(({ body }) => body)).toEqual([{ phone: '+79161234567', ctx: 'order' }])
   expect(backend.smsLog).toEqual([])
   expect(backend.basketItems).toEqual([])
+  // the address typed for the order becomes the buyer's, and order mail waits until it is confirmed
+  expect(backend.user).toMatchObject({ email: 'anna@example.com', email_verified: false, phone_verified: false })
+  expect(backend.lastEmailLink('anna@example.com')).toBeDefined()
+  await expect(page.getByText('Мы отправили на anna@example.com письмо со ссылкой для подтверждения адреса.')).toBeVisible()
 })
 
 test('signed in buyer orders right away', async ({ page, request, backend }) => {
@@ -93,3 +97,25 @@ test('signed in buyer orders right away', async ({ page, request, backend }) => 
   expect(backend.requestsTo('POST', /\/check\/$/)).toEqual([])
   expect(backend.smsLog).toEqual([])
 })
+
+for (const wholesale of [false, true]) {
+  test(`${wholesale ? 'wholesale site orders products sold in packs in whole packs' : 'retail site ignores packs'}`, async ({ page, request, backend }) => {
+    const [product] = await findSewingMachines(request, { instock: '1' })
+    backend.addProducts({ ...product, ws_pack_only: true, pack_factor: 6 })
+    // the backend tells the storefront whether its site is wholesale
+    await page.route('**/api/v0/sites/current/', async route => {
+      const response = await route.fetch()
+      await route.fulfill({ response, json: { ...await response.json(), wholesale } })
+    })
+
+    await buy(page, product)
+    await page.goto('/cart/')
+    const quantity = cartItem(page, product).getByRole('spinbutton')
+    await quantity.fill('7')
+    await quantity.press('Enter')
+
+    await expect(quantity).toHaveValue(wholesale ? '12' : '7')
+    await expect(cartItem(page, product).getByText('кратно 6')).toHaveCount(wholesale ? 1 : 0)
+    await expect.poll(() => backend.basketItems).toEqual([{ product: product.id, quantity: wholesale ? 12 : 7 }])
+  })
+}

@@ -65,11 +65,25 @@ test('callback survives registration', async ({ page, backend }) => {
   await page.getByRole('checkbox').check()
   await page.getByRole('button', { name: 'Зарегистрироваться' }).click()
 
+  // the code is asked on the registration page, which then follows the callback
   const code = page.getByPlaceholder('Код из смс')
   await expect(code).toBeVisible()
   await code.fill(backend.lastSmsCode('+79161234567')!)
-  await page.getByRole('button', { name: 'Продолжить' }).click()
+  await page.getByRole('button', { name: 'Подтвердить' }).click()
   await expect(page).toHaveURL('/user/profile/')
+})
+
+test('registration does not follow off-site callback', async ({ page, backend }) => {
+  await page.route(/^https?:\/\/example\.com\//, route => route.fulfill({ body: 'Another site' }))
+  await page.goto(`/register/?callbackUrl=${encodeURIComponent('//example.com/')}`)
+  const phone = page.getByRole('textbox', { name: 'Укажите номер мобильного телефона:' })
+  await focusPhone(phone)
+  await typePhone(phone, '9161234567')
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Зарегистрироваться' }).click()
+  await page.getByPlaceholder('Код из смс').fill(backend.lastSmsCode('+79161234567')!)
+  await page.getByRole('button', { name: 'Подтвердить' }).click()
+  await expect(page).toHaveURL('/')
 })
 
 // Browsers drop tabs and newlines from URLs, so the last two turn into //example.com/

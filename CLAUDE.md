@@ -18,10 +18,10 @@ Next.js storefront for sewing-world.ru (package name `sworld`, branch `cartzilla
   - Run one browser: `npx playwright test --project=chromium`
   - The tests read from the real backend configured in `.env`. With `CI` set, they run against `node .next/standalone/server.js` instead of the dev server.
   - Tests must never write to that backend. The auto fixture `blockApiWrites` in `tests/fixtures.ts` aborts every non-GET `/api/v0/` request that no test mocked, and fails the test.
-  - User flows (login, registration, cart, orders, favorites, profile, warranty) use the `backend` fixture: `tests/fake-backend.ts`, an in-memory copy of django-shop's user endpoints with a session, a basket, favorites, orders, serial number registration and an SMS log. It answers browser requests only, which is enough because user state is never rendered on the server. Requests it does not handle fall through to the real backend (GET) or the guard. Seed state with `backend.addUser()`, `backend.signIn()`, `backend.addOrder()` and `backend.addFavorites()`, and read the code a login sent with `backend.lastSmsCode(phone)`.
+  - User flows (login, registration, cart, orders, favorites, profile, warranty) use the `backend` fixture: `tests/fake-backend.ts`, an in-memory copy of django-shop's user endpoints with a session, a basket, favorites, orders, serial number registration, an SMS log and a log of email confirmation links. It answers browser requests only, which is enough because user state is never rendered on the server. Requests it does not handle fall through to the real backend (GET) or the guard. Seed state with `backend.addUser()`, `backend.signIn()`, `backend.addOrder()` and `backend.addFavorites()`, read the code a login, registration or phone change sent with `backend.lastSmsCode(phone)`, and open a confirmation link with `backend.lastEmailLink(email)`.
   - Contract checks (`tests/contract.ts`) validate every request the fake answers, and every fake answer, against the backend's OpenAPI schema; a mismatch fails the test. Global setup downloads the schema from `${API_SERVER}/api/v0/schema/` with `API_TOKEN` into `tests/.cache/openapi.json` and reuses it for an hour (delete the file to refresh). Set `API_SCHEMA` to a local schema file, e.g. from django-shop's `manage.py spectacular --format openapi-json`, to check backend changes before deploying them.
 
-Required `.env` variables: `API_SERVER`, `API_TOKEN`, `ORIGIN`, `NEXT_PUBLIC_YMAPS_API_KEY`, the `NEXT_PUBLIC_*_VERIFICATION` variables, and `REVALIDATION_TOKEN` (used by `/api/revalidate`).
+Required `.env` variables: `API_SERVER`, `API_TOKEN`, `FRONTEND_KEY` (the site's key from its profile in Django), `ORIGIN`, `NEXT_PUBLIC_YMAPS_API_KEY`, the `NEXT_PUBLIC_*_VERIFICATION` variables, and `REVALIDATION_TOKEN` (used by `/api/revalidate`).
 
 ## Architecture
 
@@ -36,7 +36,8 @@ Everything is in `src/app/`. The route groups `(auth)` (login, registration), `(
 ### Data layer (`src/lib/queries/`)
 - Each resource module exports a query-key factory (`xxxKeys`) and plain `load*`/`retrieve*` functions built on `apiFetch` (`fetch.ts`). Everything is re-exported from `@/lib/queries`.
 - `apiFetch` sends requests with a body to the relative `/api/v0/...` path. That path is the proxy `src/app/api/v0/[...path]/route.ts`, which forwards cookies, sets Django's `X-CSRFToken` header from the `csrftoken` cookie, and passes `Set-Cookie` back. Requests without a body are prefixed with `API_SERVER`. `API_SERVER` isn't `NEXT_PUBLIC_`, so it is set only on the server. As a result, server-side GETs go straight to Django (with an `origin: ORIGIN` header), and every browser request goes through the proxy. The proxy exports only GET, POST and PUT.
-- `API_TOKEN` (`queries/tokenized.ts`) is used only in server code (the XML feeds).
+- Server-side requests and the proxy send `X-Frontend-Key: FRONTEND_KEY`, and the proxy passes on `X-Real-IP` from nginx. With the key, Django takes the site from it and the client address from `X-Real-IP`. Without one, Django ignores the session cookie, refuses writes that have no token, and uses the default site, so the build needs the key too.
+- `API_TOKEN` (`queries/tokenized.ts`, for the XML feeds) and `FRONTEND_KEY` are used only in server code.
 - `userReferences` and `userDependencies` in `queries/index.ts` list the queries that are reset or invalidated on login and logout. Update them when you add user-specific queries.
 - `src/lib/query-client.ts` sets the default `staleTime` to 60 s; categories and pages never go stale, products stay fresh for 10 minutes. Because of the default, `initialData` counts as fresh and the query is not fetched for a minute, even when it becomes enabled later. For a list that is empty until loaded, use a module-level empty constant as the destructuring default instead (see `useComparison` and `useFavorites`).
 - Shared types are in `src/lib/types.ts`. Cross-cutting hooks and contexts are in `src/lib/`: `useSite`, `useSession`, `useBasket`, favorites, comparison, topbar/toolbar.
@@ -57,6 +58,24 @@ Everything is in `src/app/`. The route groups `(auth)` (login, registration), `(
 - HTML from the backend (product texts, pages, blog, actions, stores) goes into `contentClass()` from `ui/content.ts`: the typography plugin's `prose`, tuned to Cartzilla's spacing. Adverts get `advertClass`.
 - The stored HTML still has Bootstrap classes. `src/backend-content.css` styles the ones it uses, scoped to `.backend-content`, until django-shop's `manage.py tailwindize_html --write` converts them; then delete it and remove `backend-content` from the content classes (see `shop/tailwind_html.py` in django-shop). `src/backend-safelist.css`, printed by that command and identical in every storefront, makes Tailwind generate the classes of the converted HTML.
 - The Playwright tests select by role, label and text.
+
+### Shared with the other storefronts
+janome.club, singer.ru and dor-tak.ru copy some files from here unchanged, so a change made here is copied to them:
+- `src/lib/`;
+- the user-flow components:
+  - `components/user/`: login, registration, update and confirm-email forms, `phone-code-input`, `profile`, `sidebar`, `topbar`, `avatar`;
+  - `components/order/`: `confirmation`, `details`, `list`, `payment-button`, `status-badge`;
+  - `components/cart/contents.tsx` and `item.tsx`, `components/countdown.tsx`, `components/product/product-link.tsx`.
+
+Each storefront keeps its own versions of the rest:
+- `src/storefront.ts`, which the shared components read: whether there is a favorites page, and whether products have pages (otherwise `ProductLink` renders no link). What the backend knows about the site comes from `useSite()` instead, such as `wholesale` (whole packs in the cart).
+- The `components/ui/` helpers the shared components use: `form`, `button`, `alert`, `badge`, `nav`, `widget`, `tooltip`. They have cartzilla's API with the storefront's own classes.
+- Theme tokens in `styles.css`:
+  - `text-h1`–`text-h6`, `text-ms`, `text-md`, `text-heading`, `text-link-hover`;
+  - `text-overlap` and `pb-overlap` for content pulled up over an overlapped page header: white and 3rem here, the body color and 1rem where the page header doesn't overlap.
+- The header cart (`cart/notice.tsx`) and the pages in `app/`.
+
+A shared component styles itself only through these helpers and tokens. When it needs a new helper option or token, add it to every storefront.
 
 ## Release and deploy
 - The version in `package.json` uses the format `YYYY.MM.DD`. Release commits are named `vYYYY.MM.DD` and tagged with the same name.

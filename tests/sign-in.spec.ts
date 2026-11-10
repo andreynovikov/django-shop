@@ -47,20 +47,23 @@ test('sign-in modal closes on Escape and outside click', async ({ page }) => {
   await expect(dialog).toBeHidden()
 })
 
-test('registration in sign-in modal continues to login with the phone', async ({ page, backend }) => {
+test('registration in sign-in modal signs in and closes it', async ({ page, backend }) => {
   const dialog = await openSignIn(page)
   await dialog.getByRole('tab', { name: 'Регистрация' }).click()
   await dialog.getByRole('textbox', { name: 'Укажите номер мобильного телефона:' }).fill('9161234567')
   await dialog.getByRole('checkbox').check()
   await dialog.getByRole('button', { name: 'Зарегистрироваться' }).click()
 
-  // login form gets the registered phone and asks for the code
-  await expect(dialog.getByRole('tab', { name: 'Вход' })).toHaveAttribute('aria-selected', 'true')
-  await expect(dialog.getByPlaceholder('Код из смс')).toBeVisible()
+  const code = dialog.getByPlaceholder('Код из смс')
+  await expect(code).toBeVisible()
   await expect(dialog.getByText(/916.*123.*45.*67/)).toBeVisible()
-  expect(backend.findUser('+79161234567')).toBeDefined()
-  // the form checks the phone in an effect, which React runs twice in development
-  expect(new Set(backend.requestsTo('POST', /\/check\/$/).map(({ path }) => path))).toEqual(new Set(['users/+79161234567/check/']))
+  await code.fill(backend.lastSmsCode('+79161234567')!)
+  await dialog.getByRole('button', { name: 'Подтвердить' }).click()
+
+  await expect(dialog).toBeHidden()
+  await expect(page).toHaveURL('/cart/')
+  await expect(accountLink(page)).toBeVisible()
+  expect(backend.user?.phone).toBe('+79161234567')
 })
 
 test('login in sign-in modal stays on the page', async ({ page, backend }) => {

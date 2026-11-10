@@ -24,6 +24,11 @@ const THROTTLED = 'Запрос был проигнорирован.'
 const PHONE_TAKEN = 'Пользователь с указанным номером уже зарегестрирован'
 const EMAIL_TAKEN = 'Пользователь с указанным адресом уже зарегестрирован'
 const USERNAME_TAKEN = 'Пользователь с указанным псевдонимом уже зарегестрирован'
+const INVALID_PHONE = 'Укажите мобильный номер в формате +7 (999) 111-22-33'
+const WRONG_CODE = 'Неверный или устаревший код'
+const PASSWORD_TOO_SHORT = 'Введённый пароль слишком короткий. Он должен состоять из как минимум 8 символов.'
+const NOTHING_TO_CONFIRM = 'Адрес не указан или уже подтверждён'
+const BAD_EMAIL_LINK = 'Ссылка недействительна или устарела'
 
 const STATUS_TEXTS: Record<number, string> = {
   [STATUS_NEW]: 'новый заказ',
@@ -39,7 +44,9 @@ const PAYMENT_TEXTS: Record<number, string> = {
 const PAGE_SIZE = 20
 const CODE_MAX_ATTEMPTS = 5
 const CODE_RESEND_DELAY = 240
-const CODES_PER_PHONE = 5 // check_phone throttle, smsLog holds what it counts
+const CODES_PER_PHONE = 5 // check_phone throttle, smsLog holds what it counts, login and phone codes alike
+const EMAIL_LINKS_PER_USER = 3 // email_link throttle
+const PASSWORD_MIN_LENGTH = 8 // AUTH_PASSWORD_VALIDATORS
 
 interface LoginCode {
   code: string
@@ -75,8 +82,18 @@ const throttled = (): FakeResponse => ({ status: 429, body: { detail: THROTTLED 
 
 const retryAfter = ({ issued }: LoginCode) => Math.max(0, Math.ceil((issued - Date.now()) / 1000) + CODE_RESEND_DELAY)
 
+const newCode = () => String(100000 + Math.floor(Math.random() * 900000))
+
+// PhoneValidator: +7 and ten digits
+const phoneErrors = (phone: string): Record<string, string[]> => /^\+7\d{10}$/.test(phone) ? {} : { phone: [INVALID_PHONE] }
+
+const passwordErrors = (field: string, password: string): Record<string, string[]> =>
+  password.length > 0 && password.length < PASSWORD_MIN_LENGTH ? { [field]: [PASSWORD_TOO_SHORT] } : {}
+
 export function normalizePhone(phone: string) {
   const digits = phone.replaceAll(/\D/g, '')
+  if (phone.trim().startsWith('+') && !digits.startsWith('7'))
+    return '+' + digits // another country, as ShopUserManager.normalize_phone keeps it
   return '+7' + (digits.length === 11 ? digits.slice(1) : digits)
 }
 
@@ -115,6 +132,8 @@ Requests it does not handle fall through, so GET requests still read the product
 export class FakeBackend {
   readonly requests: LoggedRequest[] = []
   readonly smsLog: { phone: string, code: string }[] = []
+  // confirmation links sent by email, see lastEmailLink()
+  readonly emailLog: { user: number, email: string, token: string }[] = []
   // requests and answers that differ from the API schema, see contract.ts
   readonly violations: string[] = []
 
@@ -125,6 +144,8 @@ export class FakeBackend {
   private orders: FakeOrder[] = []
   private products = new Map<number, BasketItemProduct>()
   private nextId = { user: 1, basket: 1, item: 1, order: 100001 }
+  // codes that prove a new phone, by phone and the user moving to it ('' when registering), see PhoneCode
+  private phoneCodes = new Map<string, LoginCode>()
 
   constructor(private request: APIRequestContext) { }
 
@@ -162,6 +183,8 @@ export class FakeBackend {
       permanent_password: false,
       last_login: new Date().toISOString(),
       date_joined: new Date().toISOString(),
+      email_verified: Boolean(user.email), // as the migration left existing users
+      phone_verified: true,
       ...user,
     }
     created.phone = normalizePhone(created.phone)
@@ -254,6 +277,12 @@ export class FakeBackend {
     return this.smsLog.findLast(sms => sms.phone === normalized)?.code
   }
 
+  // The storefront page that the last confirmation link sent to the address opens
+  lastEmailLink(email: string) {
+    const token = this.emailLog.findLast(link => link.email === email)?.token
+    return token === undefined ? undefined : `/confirm-email/?token=${token}`
+  }
+
   requestsTo(method: string, path: string | RegExp) {
     return this.requests.filter(request => request.method === method &&
       (typeof path === 'string' ? request.path === path : path.test(request.path)))
@@ -322,31 +351,100 @@ export class FakeBackend {
       return this.login(body)
     if (method === 'POST' && action === 'check')
       return this.check(key, body)
-    if (/^\d+$/.test(key ?? '') && action === undefined) {
+    if (method === 'POST' && key === 'confirm-email')
+      return this.confirmEmail(body)
+    if (/^\d+$/.test(key ?? '') && (action === undefined || action === 'email-link')) {
       if (this.user?.id !== +key)
         return { status: 403, body: { detail: PERMISSION_DENIED } }
-      if (method === 'GET')
+      if (method === 'GET' && action === undefined)
         return ok(this.userJson(this.user))
-      if (method === 'PUT')
+      if (method === 'PUT' && action === undefined)
         return this.updateUser(this.user, body)
+      if (method === 'POST' && action === 'email-link') {
+        if (!this.user.email || this.user.email_verified)
+          return { status: 400, body: { email: [NOTHING_TO_CONFIRM] } }
+        return this.sendEmailLink(this.user) ? noContent() : throttled()
+      }
     }
     // users/form/ and the like are the same for everybody, so they come from the backend
     return undefined
   }
 
+  // Follows UserViewSet.create: the data, then the same data with the code sent to the phone
   private register(body: Body) {
     const phone = normalizePhone(String(body.phone ?? ''))
     const email = String(body.email ?? '')
     const username = String(body.username ?? '')
-    const errors = this.uniqueErrors(undefined, phone, email, username)
+    const password = String(body.password ?? '')
+    const errors = {
+      ...this.uniqueErrors(undefined, phone, email, username),
+      ...phoneErrors(phone),
+      ...passwordErrors('password', password),
+    }
     if (Object.keys(errors).length > 0)
       return { status: 400, body: errors }
-    const user = this.addUser({ phone, email, username, name: String(body.name ?? '') })
+    if (!body.code)
+      return this.sendPhoneCode(phone)
+    if (!this.verifyPhoneCode(phone, undefined, String(body.code)))
+      return { status: 400, body: { code: [WRONG_CODE] } }
+    const user = this.addUser({
+      phone, email, username, name: String(body.name ?? ''),
+      email_verified: false, phone_verified: true,
+      permanent_password: password.length > 0, password: password || undefined,
+    })
+    this.sessionUserId = user.id
+    if (email)
+      this.sendEmailLink(user)
     return { status: 201, body: this.userJson(user) }
+  }
+
+  // Follows send_phone_code_once: a code sent recently is kept, and codes count against the phone's limit
+  private sendPhoneCode(phone: string, user?: FakeUser) {
+    const key = `${phone}:${user?.id ?? ''}`
+    let phoneCode = this.phoneCodes.get(key)
+    if (phoneCode === undefined || retryAfter(phoneCode) === 0) {
+      if (this.smsLog.filter(sms => sms.phone === phone).length >= CODES_PER_PHONE)
+        return throttled()
+      const code = newCode()
+      phoneCode = { code, attempts: 0, issued: Date.now() }
+      this.phoneCodes.set(key, phoneCode)
+      this.smsLog.push({ phone, code })
+    }
+    return { status: 202, body: { phone, retry_after: retryAfter(phoneCode), attempts_left: CODE_MAX_ATTEMPTS - phoneCode.attempts } }
+  }
+
+  private verifyPhoneCode(phone: string, user: FakeUser | undefined, code: string) {
+    const key = `${phone}:${user?.id ?? ''}`
+    const phoneCode = this.phoneCodes.get(key)
+    if (phoneCode === undefined)
+      return false
+    phoneCode.attempts++
+    if (code === phoneCode.code || phoneCode.attempts >= CODE_MAX_ATTEMPTS)
+      this.phoneCodes.delete(key)
+    return code === phoneCode.code
+  }
+
+  // Follows queue_email_confirmation, the link is in emailLog instead
+  private sendEmailLink(user: FakeUser) {
+    if (this.emailLog.filter(link => link.user === user.id).length >= EMAIL_LINKS_PER_USER)
+      return false
+    this.emailLog.push({ user: user.id, email: user.email, token: `${user.id}-${Math.random().toString(36).slice(2)}` })
+    return true
+  }
+
+  private confirmEmail(body: Body) {
+    const link = this.emailLog.find(link => link.token === body.token)
+    const user = this.users.find(user => user.id === link?.user && user.email === link.email)
+    if (user === undefined)
+      return { status: 400, body: { token: [BAD_EMAIL_LINK] } }
+    user.email_verified = true
+    return ok({ email: user.email })
   }
 
   // Starts an SMS login, the code is in smsLog instead. Follows UserViewSet.check
   private check(phone: string, body: Body) {
+    if (Object.keys(phoneErrors(normalizePhone(phone))).length > 0)
+      return { status: 400, body: phoneErrors(normalizePhone(phone)) }
     const user = this.findUser(phone)
     if (user === undefined)
       return notFound()
@@ -358,7 +456,7 @@ export class FakeBackend {
       if (loginCode === undefined || retryAfter(loginCode) === 0) {
         if (this.smsLog.filter(sms => sms.phone === user.phone).length >= CODES_PER_PHONE)
           return throttled()
-        const code = String(100000 + Math.floor(Math.random() * 900000))
+        const code = newCode()
         loginCode = user.loginCode = { code, attempts: 0, issued: Date.now() }
         this.smsLog.push({ phone: user.phone, code })
       }
@@ -373,10 +471,16 @@ export class FakeBackend {
 
   private login(body: Body) {
     const phone = normalizePhone(String(body.phone ?? ''))
+    // field errors come first, so a code sent with a short password is not used up
+    const tooShort = passwordErrors('permanent_password', String(body.permanent_password ?? ''))
+    if (Object.keys(tooShort).length > 0)
+      return { status: 400, body: tooShort }
+    if (Object.keys(phoneErrors(phone)).length > 0)
+      return notAuthenticated()
     let user = this.findUser(phone)
     if (user === undefined && ['order', 'preorder', 'warranty'].includes(String(body.ctx))) {
       // the backend silently registers a buyer, without sending a code or taking a permanent password
-      user = this.addUser({ phone, name: '', username: '' })
+      user = this.addUser({ phone, name: '', username: '', phone_verified: false })
       this.sessionUserId = user.id
       return ok({ id: user.id, registered: true })
     }
@@ -399,6 +503,11 @@ export class FakeBackend {
         user.loginCode = undefined
         user.password = undefined
         user.permanent_password = false
+        if (!user.phone_verified) {
+          // proven for the first time: an address confirmed before may be a stranger's
+          user.phone_verified = true
+          user.email_verified = false
+        }
         return true
       }
       if (loginCode.attempts >= CODE_MAX_ATTEMPTS)
@@ -407,15 +516,29 @@ export class FakeBackend {
     return user.permanent_password && password === user.password
   }
 
+  // Follows UserViewSet.update: a new phone is saved only with the code sent to it
   private updateUser(user: FakeUser, body: Body) {
     const phone = normalizePhone(String(body.phone ?? user.phone))
     const email = String(body.email ?? user.email)
     const username = String(body.username ?? user.username)
-    const errors = this.uniqueErrors(user, phone, email, username)
+    const errors = { ...this.uniqueErrors(user, phone, email, username), ...phoneErrors(phone) }
     if (Object.keys(errors).length > 0)
       return { status: 400, body: errors }
+    if (phone !== user.phone) {
+      if (!body.code)
+        return this.sendPhoneCode(phone, user)
+      if (!this.verifyPhoneCode(phone, user, String(body.code)))
+        return { status: 400, body: { code: [WRONG_CODE] } }
+      user.phone_verified = true
+    }
+    const emailChanged = email !== user.email
     const name = String(body.name ?? user.name)
     Object.assign(user, { name, full_name: name, phone, email, username, address: String(body.address ?? user.address) })
+    if (emailChanged) {
+      user.email_verified = false
+      if (email)
+        this.sendEmailLink(user)
+    }
     return ok(this.userJson(user))
   }
 
@@ -492,10 +615,17 @@ export class FakeBackend {
       const order = orders.find(order => order.id === +id)
       if (order === undefined)
         return notFound()
-      if (method === 'PUT')
+      if (method === 'PUT') {
         for (const field of ['name', 'email', 'address', 'comment'] as const)
           if (typeof body[field] === 'string')
             order[field] = body[field]
+        // adopt_order_email: a buyer without an address gets the order's one, to confirm
+        const email = order.email.toLowerCase()
+        if (email && !user.email && !this.users.some(other => other.email.toLowerCase() === email)) {
+          Object.assign(user, { email: order.email, email_verified: false })
+          this.sendEmailLink(user)
+        }
+      }
       return ok(this.orderJson(order))
     }
     // preorders and payments are not faked

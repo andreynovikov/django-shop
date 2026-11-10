@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, ChangeEvent, SubmitEvent, Suspense } from 'react'
+import { useState, ChangeEvent, SubmitEvent, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
@@ -21,13 +21,24 @@ type FieldErrors = Record<string, string>
 
 interface LoginFormProps {
   ctx: string
-  phone?: string
   hideModal?: () => void
   embedded?: string
 }
 
+// For new passwords only: older, shorter ones still log in
+export const PERMANENT_PASSWORD_LENGTH = 8
+
+export function validatePermanentPasswords(value1: string, value2: string) {
+  const err: FieldErrors = {}
+  if (value1 != value2)
+    err['permanent_password2'] = "Пароли не совпадают"
+  if (value1.length > 0 && value1.length < PERMANENT_PASSWORD_LENGTH)
+    err['permanent_password'] = `Постоянный пароль должен быть не менее ${PERMANENT_PASSWORD_LENGTH} символов`
+  return err
+}
+
 // signIn returns error response body as text
-function getError(field: string, error: unknown): FieldErrors {
+export function getError(field: string, error: unknown): FieldErrors {
   let data = error
   if (typeof error === 'string') {
     try {
@@ -52,7 +63,7 @@ function getError(field: string, error: unknown): FieldErrors {
 
 // Only paths on this site, so a link to the login page can't send the user to another site.
 // The origin is compared after parsing, because browsers drop tabs and newlines: '/\t/example.com' is //example.com
-function getCallbackUrl(callbackUrl: unknown) {
+export function getCallbackUrl(callbackUrl: unknown) {
   if (typeof callbackUrl === 'string') {
     try {
       const url = new URL(callbackUrl, window.location.origin)
@@ -71,7 +82,7 @@ function RegisterLink() {
   return <Link href={`/register/${query ? `?${query}` : ''}`}>зарегистрироваться</Link>
 }
 
-export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: LoginFormProps) {
+export default function LoginForm({ ctx, hideModal, embedded = '' }: LoginFormProps) {
   const [pdConsent, setPdConsent] = useState(false)
   const [ofConsent, setOfConsent] = useState(false)
   const [isSignInPending, setSignInPending] = useState(false)
@@ -80,7 +91,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
   const [delay, setDelay] = useState(-1)
   const [codeAttemptsLeft, setCodeAttemptsLeft] = useState(0)
 
-  const [showPermanentPassword, setShowPermanentPassword] = useState(ctx === 'reg')
+  const [showPermanentPassword, setShowPermanentPassword] = useState(false)
 
   const router = useRouter()
   const { signIn } = useSession()
@@ -89,7 +100,6 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
     mutate: performUserCheck,
     reset: resetUserCheck,
     data: shopUser,
-    isIdle,
     isPending: isUserCheckPending
   } = useMutation({
     mutationFn: ({ phone, reset }: { phone: string, reset: boolean }) => checkUser(phone, reset),
@@ -116,16 +126,12 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
         }
       } else if (error instanceof HttpError && error.status === 429) {
         setError({ phone: "Слишком много запросов, попробуйте позже" })
+      } else if (error instanceof HttpError && error.status === 400) {
+        // an old account with a phone of another country
+        setError({ phone: "Мы отправляем коды только на российские мобильные номера" })
       }
     }
   })
-
-  // The phone comes from a registration that has just finished, never from the URL:
-  // a link must not make the form send an SMS or create an account
-  useEffect(() => {
-    if (phone && isIdle)
-      performUserCheck({ phone, reset: false })
-  }, [phone, performUserCheck, isIdle])
 
   const phoneRef = usePhoneInput()
 
@@ -139,15 +145,6 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
       return { password: "Указан неверный " + (shopUser?.permanent_password ? "пароль" : "код") }
     else
       return {}
-  }
-
-  const validatePermanentPasswords = (value1: string, value2: string) => {
-    const err: FieldErrors = {}
-    if (value1 != value2)
-      err['permanent_password2'] = "Пароли не совпадают"
-    if (value1.length > 0 && value1.length < 5)
-      err['permanent_password'] = "Постоянный пароль должен быть не менее 5 символов"
-    return err
   }
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -207,6 +204,8 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
           } else {
             router.push(getCallbackUrl(new URLSearchParams(window.location.search).get('callbackUrl')))
           }
+        } else if ('status' in result && result.status === 400) {
+          setError(getError('permanent_password', result.error)) // too short, the code is not used up
         } else if ('status' in result && [401, 403].includes(result.status)) {
           if (shopUser.permanent_password) {
             setError({ password: "Вы ввели неправильный пароль" })
@@ -277,9 +276,6 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
                     name="permanent_password"
                     id="permanent-password-input" />
                   {'permanent_password' in error && <div className={feedbackClass}>{error.permanent_password}</div>}
-                  {ctx === 'reg' && (
-                    <span className={formTextClass}>Если Вы не укажете постоянный пароль, вход будет осуществляться с помощью смс</span>
-                  )}
                 </div>
                 <div className="mb-4">
                   <label className="inline-block" htmlFor="permanent-password-input2">ещё раз:</label>

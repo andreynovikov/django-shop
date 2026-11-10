@@ -74,6 +74,41 @@ test('forgotten password is replaced by a code only when the code is used', asyn
   expect(user.permanent_password).toBe(false)
 })
 
+test('new permanent password needs 8 characters, older ones still log in', async ({ page, backend }) => {
+  const user = backend.addUser()
+  await typePhone(phoneInput(page), '9161234567')
+  await page.getByRole('button', { name: 'Войти' }).click()
+  await page.getByPlaceholder('Код из смс').fill(backend.lastSmsCode(user.phone)!)
+  await page.getByText('указать постоянный пароль').click()
+
+  const password = page.getByLabel('Постоянный пароль:')
+  await password.fill('secret')
+  await page.getByLabel('ещё раз:').fill('secret')
+  await page.getByRole('button', { name: 'Продолжить' }).click()
+  await expect(page.getByText('Постоянный пароль должен быть не менее 8 символов')).toBeVisible()
+  expect(backend.requestsTo('POST', 'users/login/')).toEqual([])
+
+  await password.fill('long-secret')
+  await page.getByLabel('ещё раз:').fill('long-secret')
+  await page.getByRole('button', { name: 'Продолжить' }).click()
+  await expect(page).toHaveURL('/')
+  expect(user).toMatchObject({ permanent_password: true, password: 'long-secret' })
+})
+
+test('first code login of an account made at checkout drops its confirmed email', async ({ page, backend }) => {
+  // whoever ordered with this phone may have confirmed their own address in the account
+  const user = backend.addUser({ phone_verified: false, email: 'stranger@example.com', email_verified: true })
+  await typePhone(phoneInput(page), '9161234567')
+  await page.getByRole('button', { name: 'Войти' }).click()
+  await page.getByPlaceholder('Код из смс').fill(backend.lastSmsCode(user.phone)!)
+  await page.getByRole('button', { name: 'Продолжить' }).click()
+  await expect(page).toHaveURL('/')
+  expect(user).toMatchObject({ phone_verified: true, email_verified: false })
+
+  await page.goto('/user/profile/')
+  await expect(page.getByText('Адрес не подтверждён: перейдите по ссылке из письма.')).toBeVisible()
+})
+
 test('unknown phone is not logged in', async ({ page, backend }) => {
   await typePhone(phoneInput(page), '9161234567')
   await page.getByRole('button', { name: 'Войти' }).click()

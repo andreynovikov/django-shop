@@ -2,8 +2,8 @@ import { createContext, useContext, useState, useEffect, useEffectEvent, ReactNo
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { userKeys, userReferences, userDependencies, currentUser, registerUser, loginUser, logoutUser, LoginCredentials, LoginResult, HttpError } from '@/lib/queries'
-import { AnonymousUser, User } from '@/lib/types';
+import { userKeys, userReferences, userDependencies, currentUser, registerUser, loginUser, logoutUser, isPhoneCodeSent, LoginCredentials, LoginResult, RegistrationData, HttpError } from '@/lib/queries'
+import { AnonymousUser, PhoneCodeSent, User } from '@/lib/types';
 
 type LoginResultWithOk = LoginResult & { ok: boolean }
 type SignInResult = Promise<LoginResultWithOk | {
@@ -12,9 +12,8 @@ type SignInResult = Promise<LoginResultWithOk | {
   ok: boolean
 }>
 
-type RegisterResult = Promise<(User & { ok: boolean }) | {
-  error: unknown
-}>
+// The new user, signed in, or the code sent to the phone, which the data has to come back with
+type RegisterResult = Promise<{ user: User } | { codeSent: PhoneCodeSent } | { error: unknown }>
 
 type SessionStatusType = 'loading' | 'unauthenticated' | 'authenticated'
 interface SessionContextType {
@@ -23,7 +22,7 @@ interface SessionContextType {
   status: SessionStatusType
   signIn: (credentials: LoginCredentials) => SignInResult
   signOut: (options?: { callbackUrl?: string }) => Promise<void>
-  register: (data: FormData) => RegisterResult
+  register: (data: RegistrationData) => RegisterResult
   invalidate: () => void
 }
 
@@ -105,20 +104,16 @@ export function SessionProvider({ children }: SessionProviderProps) {
       router.push(callbackUrl)
   }, [refreshUser, router])
 
-  const register = useCallback(async (data: FormData) => {
+  const register = useCallback(async (data: RegistrationData) => {
     try {
       const result = await registerUser(data)
-      return {
-        ...result,
-        ok: +result.id > 0
-      }
+      if (isPhoneCodeSent(result))
+        return { codeSent: result }
+      await refreshUser()
+      return { user: result }
     } catch (error) {
       console.log(error)
-      return {
-        error
-      }
-    } finally {
-      await refreshUser()
+      return { error }
     }
   }, [refreshUser])
 
