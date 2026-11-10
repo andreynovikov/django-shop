@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo } from 'react'
-import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery } from '@tanstack/react-query'
 
@@ -12,6 +11,7 @@ import { formatPhone } from '@/lib/format'
 
 import { Loading } from '@/components/loading'
 import NoImage from '@/components/product/no-image'
+import ProductLink from '@/components/product/product-link'
 import UserTopbar from '@/components/user/topbar'
 import OrderPaymentButton from '@/components/order/payment-button'
 import OrderStatusBadge from '@/components/order/status-badge'
@@ -78,9 +78,9 @@ export default function OrderDetails({ id }: { id: number }) {
 
   if (!isSuccess)
     return (
-      <div className="container mb-2 pb-12 md:mb-6">
+      <div className="mb-2 pb-12 md:mb-6">
         <section>
-          <div className="pt-2 pb-6 sm:pb-12">
+          <div className="pt-2 pb-6 sm:pb-overlap">
             <div className="pb-4">
               &nbsp;
             </div>
@@ -93,7 +93,7 @@ export default function OrderDetails({ id }: { id: number }) {
   return (
     <>
       <UserTopbar>
-        <div className="me-4 flex w-full text-center text-white">
+        <div className="me-4 flex w-full text-center text-overlap">
           <div className="px-4 text-ms">
             <div className="font-medium">Дата оформления</div>
             <div className="text-lg opacity-60">
@@ -280,7 +280,7 @@ export default function OrderDetails({ id }: { id: number }) {
       {order.items.map((item, index) => (
         <div className={`pb-4 sm:flex sm:justify-between sm:pb-2 ${index === 0 ? "mb-4" : "my-4"} ${index < order.items.length - 1 ? "border-b" : ""}`} key={item.product.id}>
           <div className="text-center sm:flex sm:text-start">
-            <Link className="relative mx-auto inline-block w-40 shrink-0" href={`/products/${item.product.code}`}>
+            <ProductLink className="relative mx-auto inline-block w-40 shrink-0" code={item.product.code}>
               {item.product.image ? (
                 <Image
                   src={item.product.image}
@@ -291,12 +291,12 @@ export default function OrderDetails({ id }: { id: number }) {
               ) : (
                 <NoImage size={160} />
               )}
-            </Link>
+            </ProductLink>
             <div className="pt-2 sm:ps-6">
               <h3 className="mb-2 text-base leading-[1.2] font-medium">
-                <Link className="text-heading hover:text-primary" href={`/products/${item.product.code}`}>
+                <ProductLink className="text-heading hover:text-primary" code={item.product.code}>
                   {item.product.title}
-                </Link>
+                </ProductLink>
               </h3>
               {item.product.partnumber && (
                 <div className="text-sm">

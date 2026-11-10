@@ -1,5 +1,5 @@
-import { AnonymousUser, User, UserBonus, UserCheck, UserEdit, UserForm } from '../types'
-import { apiFetch, FormDataJson } from './fetch'
+import { AnonymousUser, PhoneCodeSent, User, UserBonus, UserCheck, UserEdit, UserForm } from '../types'
+import { apiFetch } from './fetch'
 
 export const userKeys = {
   all: ['users'],
@@ -14,6 +14,9 @@ export interface LoginResult {
   id: number
   registered: boolean
 }
+
+// Registration form fields, and with the code from SMS: code and an optional permanent password
+export type RegistrationData = Record<string, string>
 
 export interface LoginCredentials {
   phone: string
@@ -55,16 +58,33 @@ export async function loadUser(id: number) {
   return await apiFetch<User>(`users/${id}/`)
 }
 
+export function isPhoneCodeSent(result: User | PhoneCodeSent): result is PhoneCodeSent {
+  return !('id' in result)
+}
+
+// A new phone is saved only with the code sent to it: without one, nothing is saved and a code is sent
 export async function updateUser(id: number, body: UserEdit) {
-  return await apiFetch<User, UserEdit>(`users/${id}/`, {
+  return await apiFetch<User | PhoneCodeSent, UserEdit>(`users/${id}/`, {
     body,
     method: 'PUT',
   })
 }
 
-export async function registerUser(formData: FormData) {
-  const body = Object.fromEntries(formData)
-  return await apiFetch<User, FormDataJson>('users/', { body })
+// Without the code it checks the data and sends one to the phone, with it it creates the account and logs in
+export async function registerUser(body: RegistrationData) {
+  return await apiFetch<User | PhoneCodeSent, RegistrationData>('users/', { body })
+}
+
+// Sends the link that confirms the user's email again
+export async function sendEmailLink(id: number) {
+  return await apiFetch<void>(`users/${id}/email-link/`, { method: 'POST' })
+}
+
+// The token from the link, it needs no session: the link may be opened on another device
+export async function confirmEmail(token: string) {
+  return await apiFetch<{ email: string }, { token: string }>('users/confirm-email/', {
+    body: { token }
+  })
 }
 
 export async function loginUser(credentials: LoginCredentials) {

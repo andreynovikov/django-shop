@@ -42,6 +42,10 @@
   --color-dark-hover: #586d5d;
   --color-light: #fff;
   --color-topbar: #f3f5f9;
+  /* The content pulled up over an overlapped page header (PageHeader): its text on the header's dark part,
+     and the padding that takes the content after it down past the header */
+  --color-overlap: var(--color-white);
+  --spacing-overlap: 3rem;
 
   /* Tailwind's xs, sm, base and lg are Cartzilla's sizes; ms and md are Cartzilla's own sizes between them.
      They keep the line height of the text around them, as Bootstrap's font size classes did. */

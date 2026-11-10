@@ -1,18 +1,22 @@
 import { KeyboardEventHandler, useState, useEffect, FocusEventHandler } from 'react'
-import Link from 'next/link'
 import Image from 'next/image'
 
 import { IconCircleX } from '@tabler/icons-react'
 
 import { buttonClass } from '@/components/ui/button'
-import { inputClass, labelClass } from '@/components/ui/form'
+import { formTextClass, inputClass, labelClass } from '@/components/ui/form'
 import NoImage from '@/components/product/no-image'
+import ProductLink from '@/components/product/product-link'
 
 import { useDebounce } from '@/lib/debounce'
+import { useSite } from '@/lib/site'
 import { BasketItem, BasketItemProduct } from '@/lib/types'
 
-function getUpdatedQuantity(value: string, quantity: number) {
-    return value ? Math.min(10000, Math.max(1, +value)) : quantity
+// The quantity typed, in whole packs up to 10000, or the current one when nothing is typed
+function getUpdatedQuantity(value: string, quantity: number, pack: number) {
+  if (!value || isNaN(+value))
+    return quantity
+  return Math.min(Math.ceil(Math.max(1, +value) / pack), Math.floor(10000 / pack)) * pack
 }
 
 interface CartItemProps {
@@ -24,6 +28,9 @@ interface CartItemProps {
 }
 
 export default function CartItem({ item, first, last, removeItem, setQuantity }: CartItemProps) {
+  const { site } = useSite()
+  // a wholesale site sells the products sold in packs only in whole packs
+  const pack = site.wholesale && item.product.ws_pack_only ? Math.max(1, item.product.pack_factor) : 1
   const [inputValue, setInputValue] = useState(String(item.quantity))
   const debouncedInput = useDebounce(inputValue, 500)
 
@@ -35,7 +42,7 @@ export default function CartItem({ item, first, last, removeItem, setQuantity }:
   }
 
   const handleBlur: FocusEventHandler<HTMLInputElement> = () => {
-    const quantity = getUpdatedQuantity(inputValue, item.quantity)
+    const quantity = getUpdatedQuantity(inputValue, item.quantity, pack)
     setQuantity(item.product, quantity)
     if (String(quantity) !== inputValue)
       setInputValue(String(quantity))
@@ -44,14 +51,14 @@ export default function CartItem({ item, first, last, removeItem, setQuantity }:
   useEffect(() => {
     if (debouncedInput === '')
       return
-    const quantity = getUpdatedQuantity(debouncedInput, item.quantity)
+    const quantity = getUpdatedQuantity(debouncedInput, item.quantity, pack)
     setQuantity(item.product, quantity)
-  }, [debouncedInput, item.product, item.quantity, setQuantity])
+  }, [debouncedInput, item.product, item.quantity, pack, setQuantity])
 
   return (
     <div className={`my-2 items-center justify-between sm:flex ${first ? "pb-4" : "py-4"} ${last ? "" : "border-b"}`}>
       <div className="block items-center text-center sm:flex sm:text-start">
-        <Link className="mx-auto inline-block shrink-0 sm:me-6" href={`/products/${item.product.code}`}>
+        <ProductLink className="mx-auto inline-block shrink-0 sm:me-6" code={item.product.code}>
           {item.product.image ? (
             <div className="relative size-40">
               <Image
@@ -64,12 +71,12 @@ export default function CartItem({ item, first, last, removeItem, setQuantity }:
           ) : (
             <NoImage size={160} />
           )}
-        </Link>
+        </ProductLink>
         <div className="pt-2">
           <h3 className="mb-2 text-base leading-[1.2] font-medium">
-            <Link className="text-heading hover:text-primary" href={`/products/${item.product.code}`}>
+            <ProductLink className="text-heading hover:text-primary" code={item.product.code}>
               {item.product.title}
-            </Link>
+            </ProductLink>
           </h3>
           <div className="text-sm"><span className="me-2 text-muted">Цена:</span>{item.product.price.toLocaleString('ru')}<small>&nbsp;руб</small></div>
           {item.discount > 0 && <div className="text-sm"><span className="me-2 text-muted">Скидка:</span>{item.discount_text}</div>}
@@ -82,12 +89,14 @@ export default function CartItem({ item, first, last, removeItem, setQuantity }:
           className={inputClass()}
           id={`quantity-${item.product.id}`}
           type="number"
-          min="1"
+          min={pack}
           max="10000"
+          step={pack}
           value={inputValue}
           onChange={(e) => setInputValue(e.currentTarget.value)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown} />
+        {pack > 1 && <span className={formTextClass}>кратно {pack}</span>}
         <button className={buttonClass({ variant: 'link-danger', size: 'flush' })} type="button" onClick={() => removeItem(item.product)}>
           <IconCircleX size={16} stroke={1.5} className="me-2" />Удалить
         </button>

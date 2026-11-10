@@ -17,8 +17,10 @@ import UserAvatar from '@/components/user/avatar'
 import { formatPhone } from '@/lib/format'
 import useFavorites from '@/lib/favorites'
 import { useSession } from '@/lib/session'
+import { useSite } from '@/lib/site'
 import { orderKeys, loadOrders } from '@/lib/queries'
 import { User } from '@/lib/types'
+import { storefront } from '@/storefront'
 
 const menuLinkClass = 'flex items-center px-6 py-4'
 const menuIcon = { size: 18, stroke: 1.5, className: 'me-2 opacity-60' }
@@ -45,12 +47,15 @@ export default function UserSidebar() {
   }
   const user = status === 'authenticated' ? sessionUser as User : undefined
 
+  const { site } = useSite()
   const { favorites } = useFavorites()
 
+  // counts the orders made on this site only, the site is the same for every query of the storefront
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const { data: orders } = useQuery({
     queryKey: orderKeys.list(1, ''),
-    queryFn: () => loadOrders(1, ''),
-    enabled: status === 'authenticated'
+    queryFn: () => loadOrders(1, '', site.id),
+    enabled: status === 'authenticated' && site.id !== undefined
   })
 
   if (status === 'loading' || !!!user) {
@@ -93,12 +98,14 @@ export default function UserSidebar() {
                 {orders !== undefined && orders.count > 0 && <span className="ms-auto text-sm text-muted">{orders.count}</span>}
               </Link>
             </li>
-            <li className="border-b">
-              <Link className={`${navLinkClass({ active: pathname === '/user/favorites/' })} ${menuLinkClass}`} href="/user/favorites/" aria-current={pathname === '/user/favorites/' ? 'page' : undefined}>
-                <IconHeart {...menuIcon} />Избранное
-                {favorites.length > 0 && <span className="ms-auto text-sm text-muted">{favorites.length}</span>}
-              </Link>
-            </li>
+            {storefront.favorites && (
+              <li className="border-b">
+                <Link className={`${navLinkClass({ active: pathname === '/user/favorites/' })} ${menuLinkClass}`} href="/user/favorites/" aria-current={pathname === '/user/favorites/' ? 'page' : undefined}>
+                  <IconHeart {...menuIcon} />Избранное
+                  {favorites.length > 0 && <span className="ms-auto text-sm text-muted">{favorites.length}</span>}
+                </Link>
+              </li>
+            )}
             <li>
               <Link className={`${navLinkClass({ active: pathname === '/user/profile/' })} ${menuLinkClass}`} href="/user/profile/" aria-current={pathname === '/user/profile/' ? 'page' : undefined}>
                 <IconUser {...menuIcon} />Профиль
