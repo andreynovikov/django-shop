@@ -144,6 +144,7 @@ SERIALIZATION_MODULES = {
 
 from .apps import *  # noqa F401
 from .admin import *  # noqa F401
+from .backup import *  # noqa F401
 from .celery import *  # noqa F401
 from .constance import *  # noqa F401
 from .filters import *  # noqa F401

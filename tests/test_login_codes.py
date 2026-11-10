@@ -516,6 +516,8 @@ class StaffTests(Base):
 
 @override_settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}})
 class RaceTests(TransactionTestCase):
+    serialized_rollback = True  # the current Site from migrations, which an earlier TransactionTestCase flushes
+
     def test_parallel_verification_uses_code_once(self):
         user = ShopUser.objects.create(phone=PHONE)
         for _ in range(5):

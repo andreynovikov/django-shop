@@ -413,6 +413,212 @@ to switch **from** *master* **to** *slave*. Actions on **master** should be take
 #. ...
 #. Switch DNS IP records for all sites in order of importance.
 
+****************
+Database backups
+****************
+
+The database provider keeps its own backups, these are ours in case the provider is lost. Every hour the production
+server runs ``manage.py backup_db``, which streams ``pg_dump`` output into a `restic <https://restic.net>`_ repository
+on our backup host. restic encrypts, compresses and deduplicates it, so a daily full dump costs only what changed.
+The production server can only add snapshots to the repository. ``deploy/backup/maintain.sh`` on the backup host
+applies the retention policy, checks the repository, test-restores it weekly and raises alarms.
+
+The repository is encrypted with its password. Keep it in the password manager and on paper: without it the backups
+cannot be read.
+
+There are three kinds of snapshots, with settings in ``sewingworld/settings/backup.py``:
+
+* **full**: once a day at 03:00, or on the first run after it, and after migrations. It holds the whole database with
+  its schema, but not the rows of the ``errors`` and ``django_celery_results`` tables. Kept 14 days, 8 weeks and
+  12 months.
+* **hot**: every other hour. It holds only the rows of orders, order items, boxes, users, serials and favorites.
+  Kept 48 hours.
+* **config**: ``.env``, ``.env.admin`` and ``sewingworld/settings/integrations.py``, saved with each full snapshot.
+  Kept 14 days and 12 months.
+
+Backup host
+***********
+
+Any Debian machine of ours with enough disk for about twice the database. Besides the server it needs the tools for
+maintenance and restore tests, and a mail transport for ``mail``. ``postgresql`` must be at least the major version
+of the production server, take it from apt.postgresql.org if Debian's is older:
+
+::
+
+    apt install restic-rest-server restic jq apache2-utils bsd-mailx postgresql
+
+The packaged service runs as the ``restic-rest-server`` user. Maintenance runs as the same user, so that it can delete
+what the server writes. Create the repository, its password, and the login of the production server. With
+``--private-repos``, the login name is the repository directory:
+
+::
+
+    mkdir -p /srv/restic /etc/db-backup
+    chown restic-rest-server: /srv/restic
+    openssl rand -base64 30 > /etc/db-backup/restic-password  # save it in the password manager
+    chown restic-rest-server: /etc/db-backup/restic-password && chmod 400 /etc/db-backup/restic-password
+    sudo -u restic-rest-server restic init --no-cache --repo /srv/restic/sworld --password-file /etc/db-backup/restic-password
+    htpasswd -B /etc/restic-rest-server/users.htpasswd sworld
+    sudo -u postgres createuser --createdb restic-rest-server  # for restore tests
+
+Set ``/etc/default/restic-rest-server`` as follows and run ``systemctl restart restic-rest-server``. The TLS
+certificate is for the host name and must be readable by ``restic-rest-server``. Open the port only to the
+production server:
+
+::
+
+    LISTEN = :8000
+    BACKUP_DIR = /srv/restic/
+    ARGS = "\
+      --htpasswd-file /etc/restic-rest-server/users.htpasswd \
+      --append-only --private-repos \
+      --tls --tls-cert /etc/restic-rest-server/cert.pem --tls-key /etc/restic-rest-server/key.pem \
+    "
+
+Copy ``deploy/backup/*.sh`` into ``/usr/local/lib/db-backup/`` and create ``/etc/default/db-backup``. ``DB_HOSTS``
+lists the database names, ``CONFIG_HOSTS`` the project directory names of the deployments:
+
+::
+
+    RESTIC_REPOSITORY=/srv/restic/sworld
+    RESTIC_PASSWORD_FILE=/etc/db-backup/restic-password
+    DB_HOSTS="sworld"
+    CONFIG_HOSTS="www.sewing-world.ru"
+    ALERT_EMAIL=admin@sewing-world.ru
+    PGHOST=/var/run/postgresql
+    TMPDIR=/var/tmp  # restore tests unpack a full dump here, /tmp is in memory on Debian 13
+
+``/etc/systemd/system/db-backup@.service``:
+
+::
+
+    [Unit]
+    Description=Database backup maintenance: %i
+
+    [Service]
+    Type=oneshot
+    User=restic-rest-server
+    CacheDirectory=db-backup
+    Environment=RESTIC_CACHE_DIR=%C/db-backup
+    ExecStart=/usr/local/lib/db-backup/maintain.sh %i
+
+Three timers start it: ``db-backup@fresh.timer`` with ``OnCalendar=*:30``, ``db-backup@prune.timer`` with
+``OnCalendar=12:00`` and ``db-backup@verify.timer`` with ``OnCalendar=Sun 13:00``. Each one looks like this:
+
+::
+
+    [Unit]
+    Description=Database backup maintenance: %i
+
+    [Timer]
+    OnCalendar=*:30
+    Persistent=true
+
+    [Install]
+    WantedBy=timers.target
+
+Enable them with ``systemctl enable --now db-backup@fresh.timer db-backup@prune.timer db-backup@verify.timer``.
+
+Production server
+*****************
+
+#. ``apt install restic``. It must be 0.17 or later, and ``pg_dump --version`` must not be older than the database
+   server.
+
+#. Copy the password file from the backup host into ``/etc/db-backup/`` with owner ``nikolays`` and mode ``400``,
+   and add to ``.env`` of the deployment that owns the database:
+
+   ::
+
+       RESTIC_REPOSITORY=rest:https://sworld:<htpasswd password>@backup.example.ru:8000/sworld/
+       RESTIC_PASSWORD_FILE=/etc/db-backup/restic-password
+
+   With a self-signed certificate, copy it too and add ``RESTIC_CACERT=/etc/db-backup/cert.pem``.
+
+#. Check that the production server cannot delete. Save a test snapshot and try to forget it. restic exits with 0
+   even when the server refuses, so look at the output instead: ``forget`` must print ``403 Forbidden``, and the
+   snapshot must still be listed:
+
+   ::
+
+       export $(grep '^RESTIC_' .env)
+       echo test | restic backup --stdin --host append-test
+       restic forget --host append-test latest
+       restic snapshots --host append-test
+
+   If the snapshot is gone, check ``--append-only`` on the backup host. Remove the test snapshot there:
+   ``sudo -u restic-rest-server restic forget --prune --host append-test latest``, with the settings of
+   ``/etc/default/db-backup``.
+
+#. Check which tables are the largest, and add logs that need no backup to ``EXCLUDE_DATA_APPS`` or
+   ``EXCLUDE_DATA_TABLES``:
+
+   ::
+
+       SELECT relname, pg_size_pretty(pg_total_relation_size(oid)) FROM pg_class
+       WHERE relkind = 'r' ORDER BY pg_total_relation_size(oid) DESC LIMIT 20;
+
+#. Run ``python manage.py backup_db --dry-run``, then ``time python manage.py backup_db --kind full``.
+
+#. Create ``/etc/systemd/system/db_backup@.service``:
+
+   ::
+
+       [Unit]
+       Description=Database backup for %I
+       Wants=network-online.target
+       After=network-online.target
+
+       [Service]
+       Type=oneshot
+       User=nikolays
+       Group=www-data
+       WorkingDirectory=/www/%I
+       ExecStart=/www/%I/env/bin/python manage.py backup_db
+       Nice=10
+       IOSchedulingClass=idle
+
+   and ``/etc/systemd/system/db_backup@.timer``:
+
+   ::
+
+       [Unit]
+       Description=Hourly database backup for %I
+
+       [Timer]
+       OnCalendar=hourly
+       Persistent=true
+
+       [Install]
+       WantedBy=timers.target
+
+   Enable the timer for the deployment that owns the database: ``systemctl enable --now db_backup@www.sewing-world.ru.timer``.
+   Do this for only one deployment per database. Another deployment with its own ``.env`` saves its config daily with
+   copies of these units named ``db_backup_config@``, with ``backup_db --kind config`` and ``OnCalendar=daily``. Add
+   its directory name to ``CONFIG_HOSTS`` on the backup host.
+
+Failures are logged to ``logs/backup.log`` and mailed to ``ADMINS``. The backup host raises its own alarm when
+snapshots stop coming, even if the production server is down.
+
+Restore
+*******
+
+On the backup host, or any machine with restic, jq and the PostgreSQL client tools, take the password from the
+password manager. ``TMPDIR`` needs room for an uncompressed full dump:
+
+::
+
+    export RESTIC_REPOSITORY=/srv/restic/sworld RESTIC_PASSWORD_FILE=/etc/db-backup/restic-password TMPDIR=/var/tmp
+    restic snapshots
+    restic restore latest --tag config --host www.sewing-world.ru --target /var/tmp/config
+    PGHOST=<new server> PGUSER=<owner> /usr/local/lib/db-backup/restore.sh --host sworld --target sworld
+
+``--at '2026-11-10 14:00'`` restores an earlier state. The script restores the latest full snapshot and replaces the
+rows of the hot tables with the latest hot snapshot after it. A foreign key fails when a hot row points at a row
+missing from the full snapshot, such as a product made after it. The script prints such errors, and that constraint
+is not created until the rows are fixed. Then point ``DATABASE_URL`` of every deployment at the new database and
+restart uWSGI and Celery.
+
 ********************
 Periodic maintenance
 ********************
@@ -445,6 +651,7 @@ Create ``/etc/logrotate.d/sewing-world``:
 
     /www/*/logs/uwsgi*.log
     /www/*/logs/django*.log
+    /www/*/logs/backup.log
     {
       su nikolays www-data
       create 644 nikolays www-data

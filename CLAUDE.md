@@ -24,6 +24,7 @@ celery -A sewingworld worker -Q default,priority,integrations,import,revalidatio
 celery -A sewingworld beat              # schedules are stored in the DB (django_celery_beat)
 python manage.py rerun_task <task_id>   # re-run a stored Celery task result
 python manage.py cleanup_legacy_phones  # repair or remove accounts whose phone is not +7; reports only, --apply changes
+python manage.py backup_db --dry-run    # hourly pg_dump into restic; --kind full|hot|config forces a kind
 ```
 
 Running anything requires:
@@ -57,6 +58,9 @@ Uses `django.contrib.sites` plus `sewingworld.models.SiteProfile` (root category
 Order status changes are watched with `django-model-utils` `FieldTracker` (`order.tracker.has_changed('status')`), and the `post_save` receivers in `shop/signals.py` and each integration's `signals.py` dispatch SMS, email, manager notifications, POS sync and storefront revalidation as Celery tasks. Saving a model can therefore queue background work. Setting `product.num = -1` is the convention for "stock needs to be re-reported".
 
 Tasks are routed to named queues (`priority`, `integrations`, `import`, `revalidation`, `default`) and most use `autoretry_for`/`retry_backoff`. Results go to the DB (`django_celery_results`). The `PRIORITY_*` constants in `sewingworld/tasks.py` are currently `None`, so priorities are effectively disabled. Runtime-editable settings such as the default seller or SMS provider live in `django-constance` (`sewingworld/settings/constance.py`).
+
+### Backups
+`sewingworld/management/commands/backup_db.py` runs hourly from a systemd timer and streams `pg_dump` into a restic repository (`RESTIC_*` in `.env`) on an append-only rest-server. It makes a full dump daily and after migrations, and otherwise a hot dump of the `DB_BACKUP['HOT_MODELS']` rows only (`sewingworld/settings/backup.py`). Full runs also save `.env` and `integrations.py`. The backup host runs `deploy/backup/maintain.sh` (retention, alarms, weekly restore test), and `deploy/backup/restore.sh` lays the latest hot dump over its full dump. A new model whose rows change often belongs in `HOT_MODELS`. A table of logs belongs in `EXCLUDE_DATA_APPS`. DEPLOYMENT.rst has the setup and the restore runbook.
 
 ### Infrastructure
 PostgreSQL (the DB backend is wrapped by `django_prometheus`, and the code relies on Postgres features: `ArrayField`, JSON lookups, FTS), memcached, Redis as the Celery broker, and uWSGI behind nginx. `DEPLOYMENT.rst` describes the server setup (Debian, systemd units for uWSGI and Celery, master/slave failover, the per-site `/www/<domain>` layout). The 1C stock import reads from `SHOP_IMPORT_DIRECTORY` (`/www/www.sewing-world.ru/import`).

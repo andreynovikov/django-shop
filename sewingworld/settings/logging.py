@@ -56,6 +56,12 @@ LOGGING = {
             'filename': 'logs/rarus.log',
             'formatter': 'verbose',
         },
+        'backup_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.WatchedFileHandler',
+            'filename': 'logs/backup.log',
+            'formatter': 'verbose',
+        },
         'mail_admins': {
             'level': 'ERROR',
             'class': 'django.utils.log.AdminEmailHandler',
@@ -126,6 +132,11 @@ LOGGING = {
         'two_factor': {
             'handlers': ['file'],
             'level': 'INFO',
+        },
+        'backup': {
+            'handlers': ['backup_file'],
+            'level': 'INFO',
+            'propagate': False,
         },
     }
 }
