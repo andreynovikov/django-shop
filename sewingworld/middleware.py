@@ -10,6 +10,7 @@ from django.contrib.sites.models import Site
 from django.core.exceptions import MiddlewareNotUsed
 from django.db.models import Q
 from django.http import HttpResponseForbidden, JsonResponse
+from django.utils.cache import add_never_cache_headers
 
 from .models import SiteProfile
 
@@ -139,6 +140,24 @@ class CookieRenameMiddleware:
             if new in moved and new not in response.cookies:
                 response.set_cookie(new, request.COOKIES[new], **options)
             response.delete_cookie(old, path=options['path'], domain=options['domain'])
+        return response
+
+
+class PrivateApiCacheMiddleware:
+    """
+    Keeps API responses to a session out of caches, the browser's included, since they may hold the user's data.
+    The storefronts' server-side requests have no session, so their responses are left alone. Comes after
+    CookieRenameMiddleware, which gives the session cookie its current name, and before SessionMiddleware.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        session = settings.SESSION_COOKIE_NAME
+        if (request.path_info.startswith('/api/v0/') and not response.has_header('Cache-Control')
+                and (session in request.COOKIES or session in response.cookies)):
+            add_never_cache_headers(response)
         return response
 
 

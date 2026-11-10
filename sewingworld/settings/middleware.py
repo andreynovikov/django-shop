@@ -8,6 +8,7 @@ MIDDLEWARE = (
     'sewingworld.middleware.SiteDetectionMiddleware',
     # 'sewingworld.middleware.ProcessExceptionMiddleware',
     'sewingworld.middleware.CookieRenameMiddleware',
+    'sewingworld.middleware.PrivateApiCacheMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',

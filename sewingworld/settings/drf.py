@@ -13,10 +13,13 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'NUM_PROXIES': 0,  # nginx passes real client address in REMOTE_ADDR, do not trust X-Forwarded-For
     'DEFAULT_THROTTLE_RATES': {
-        # SMS code request, per IP and per phone
+        # SMS code request and the phone lookup, per IP; codes sent, per phone
         'check': '20/hour',
         'check_phone': '5/hour',
-        # login with SMS code or permanent password, per IP and per phone
+        'check_phone_day': '10/day',
+        # registration, per IP: it says which phones are taken, as check does
+        'register': '20/hour',
+        # login with SMS code or permanent password, per IP; wrong permanent passwords, per phone
         'login': '10/min',
         'login_phone': '10/hour',
         'login_phone_day': '20/day',

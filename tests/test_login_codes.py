@@ -409,6 +409,61 @@ class PermanentPasswordTests(Base):
         self.assertEqual(self.login(password='12345').status_code, 200)
 
 
+class LockoutTests(Base):
+    """ The limits per phone count wrong permanent passwords only, so that nobody can lock the owner out """
+
+    def login_from(self, n, **body):
+        # each from a client of its own, so that the limit per client doesn't apply
+        return self.login(client=StorefrontClient(headers={'X-Real-IP': f'203.0.113.{n}'}), **body)
+
+    def an_hour_passes(self, scope):
+        cache.delete(f'throttle_{scope}_{PHONE}')
+
+    def test_wrong_passwords_stop_the_password_but_not_a_code(self):
+        self.permanent()
+        for n in range(10):
+            self.assertEqual(self.login_from(n, password='wrong').status_code, 403)
+        response = self.login_from(10, password='old-secret')
+        self.assertEqual(response.status_code, 429)
+        self.assertEqual(response.json(), {'detail': 'Слишком много попыток входа с неверным паролем. Войдите с кодом из смс.'})
+        self.assertGreater(int(response.headers['Retry-After']), 0)
+        self.check(reset=True)
+        self.assertEqual(self.login(password=self.code()).status_code, 200)
+
+    def test_twenty_wrong_passwords_a_day(self):
+        self.permanent()
+        for n in range(20):
+            if n == 10:
+                self.an_hour_passes('login_phone')
+            self.assertEqual(self.login_from(n, password='wrong').status_code, 403)
+        self.an_hour_passes('login_phone')
+        self.assertEqual(self.login_from(20, password='old-secret').status_code, 429)
+
+    def test_right_passwords_are_not_counted(self):
+        self.permanent()
+        for n in range(12):
+            self.assertEqual(self.login_from(n, password='old-secret').status_code, 200)
+
+    def test_attempts_with_nothing_to_check_are_not_counted(self):
+        # No code was sent and there is no password: such requests used to lock the owner out for a day
+        self.customer()
+        for n in range(25):
+            self.assertEqual(self.login_from(n, password='123456').status_code, 403)
+        self.check()
+        self.assertEqual(self.login(password=self.code()).status_code, 200)
+
+    def test_ten_codes_a_day(self):
+        self.customer()
+        for n in range(10):
+            if n == 5:
+                self.an_hour_passes('check_phone')
+            self.assertEqual(self.check().status_code, 200)
+            self.resend_delay_passes()
+        self.an_hour_passes('check_phone')
+        self.assertEqual(self.check().status_code, 429)
+        self.assertEqual(self.sms.delay.call_count, 10)
+
+
 class SilentRegistrationTests(Base):
     def test_gets_unusable_password_and_no_sms(self):
         response = self.login(ctx='order')

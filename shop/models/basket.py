@@ -1,4 +1,5 @@
 import datetime
+import re
 
 from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
@@ -23,6 +24,23 @@ class Basket(models.Model):
     phone = models.CharField(max_length=30, blank=True)
     utm_source = models.CharField(max_length=20, blank=True)
     secondary = models.BooleanField(default=False)
+
+    def link_contents(self):
+        """ Products and quantities for the link in the abandoned basket notice, '<product id>*<quantity>,...' """
+        return ','.join('%s*%s' % (item.product_id, item.quantity) for item in self.items.all())
+
+    @staticmethod
+    def parse_link_contents(contents):
+        """ Parses link_contents() into {product id: quantity}, skipping malformed entries """
+        parsed = {}
+        for part in contents.split(','):
+            match = re.fullmatch(r'(\d{1,9})\*(\d{1,5})', part.strip())
+            if not match:
+                continue
+            product_id, quantity = map(int, match.groups())
+            if 0 < quantity <= 32767:  # PositiveSmallIntegerField range
+                parsed[product_id] = quantity
+        return parsed
 
     @classmethod
     def product_cost_for_user(cls, site, product, product_price, user):

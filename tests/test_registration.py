@@ -56,13 +56,29 @@ class SendTests(Base):
     def test_phone_is_normalized(self):
         self.assertEqual(self.register(phone='9161234567').json()['phone'], PHONE)
 
-    def test_taken_data_sends_nothing(self):
-        ShopUser.objects.create(phone=OTHER, email='taken@example.com', username='taken')
-        for body in ({'phone': OTHER}, {'email': 'taken@example.com'}, {'username': 'taken'}):
+    def test_taken_phone_or_username_sends_nothing(self):
+        # The phone lookup of the login form tells a taken phone anyway, and usernames are shown in reviews
+        ShopUser.objects.create(phone=OTHER, username='taken')
+        for body in ({'phone': OTHER}, {'username': 'taken'}):
             response = self.register(**body)
             self.assertEqual(response.status_code, 400, body)
             self.assertEqual(set(response.json()), set(body), body)
         self.send_phone_code.delay.assert_not_called()
+
+    def test_taken_email_is_not_told_without_the_code(self):
+        ShopUser.objects.create(phone=OTHER, email='taken@example.com')
+        self.assertEqual(self.register(email='taken@example.com').status_code, 202)
+        response = self.register(email='taken@example.com', code='wrong')
+        self.assertEqual(response.json(), {'code': ['Неверный или устаревший код']})
+        self.assertEqual(PhoneCode.objects.get().attempts, 1)
+
+    def test_registration_is_limited_per_client(self):
+        ShopUser.objects.create(phone=OTHER)
+        for _ in range(20):
+            self.assertEqual(self.register(phone=OTHER).status_code, 400)
+        self.assertEqual(self.register().status_code, 429)
+        other_client = StorefrontClient(headers={'X-Real-IP': '203.0.113.9'})
+        self.assertEqual(self.register(client=other_client).status_code, 202)
 
     def test_only_russian_phones(self):
         for phone in ('+375291234567', '+7916123', '12345'):
@@ -150,6 +166,30 @@ class CodeTests(Base):
         client = StorefrontClient()
         self.assertEqual(self.register(client=client, code=self.code()).status_code, 201)
         self.assertEqual(self.current(client), ShopUser.objects.get(phone=PHONE).id)
+
+    def test_taken_email_is_told_with_the_code_which_is_kept(self):
+        ShopUser.objects.create(phone=OTHER, email='taken@example.com')
+        self.register(email='taken@example.com')
+        code = self.code()
+        response = self.register(email='taken@example.com', code=code)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {'email': ['Пользователь с указанным адресом уже зарегестрирован']})
+        self.assertEqual(PhoneCode.objects.get().attempts, 1)  # counted, so that one code can't try many addresses
+        self.assertFalse(ShopUser.objects.filter(phone=PHONE).exists())
+
+        self.assertEqual(self.register(email='mine@example.com').json()['attempts_left'], PhoneCode.MAX_ATTEMPTS - 1)
+        self.send_phone_code.delay.assert_called_once()  # the code is kept, nothing new is sent
+        self.assertEqual(self.register(email='mine@example.com', code=code).status_code, 201)
+        self.assertEqual(ShopUser.objects.get(phone=PHONE).email, 'mine@example.com')
+
+    def test_taken_email_runs_out_of_attempts(self):
+        ShopUser.objects.create(phone=OTHER, email='taken@example.com')
+        self.register(email='taken@example.com')
+        code = self.code()
+        for _ in range(PhoneCode.MAX_ATTEMPTS):
+            self.assertIn('email', self.register(email='taken@example.com', code=code).json())
+        self.assertFalse(PhoneCode.objects.exists())
+        self.assertEqual(self.register(email='mine@example.com', code=code).json(), {'code': ['Неверный или устаревший код']})
 
     def test_phone_registered_meanwhile(self):
         self.register()

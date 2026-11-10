@@ -33,7 +33,6 @@ from django.db.models.fields.json import JSONField
 from django.db.models.fields.related import RelatedField
 from django.db.models.fields.reverse_related import ForeignObjectRel
 from django.template.loader import render_to_string
-from django.urls import reverse
 from django.utils import dateparse, timezone
 from django.utils.formats import date_format
 from django.contrib.sites.models import Site
@@ -764,14 +763,10 @@ def notify_abandoned_basket(self, basket_id, email, phone):
     signer = signing.Signer()
     default_site = get_default_site()
 
-    restore_url = 'https://{}{}'.format(
-        default_site.domain,
-        reverse('shop:restore', args=[','.join(map(lambda i: '%s*%s' % (i.product.id, i.quantity), basket.items.all()))])
-    )
-    clear_url = 'https://{}{}'.format(
-        default_site.domain,
-        reverse('shop:clear', args=[signer.sign(basket.id)])
-    )
+    # TODO: basket should be linked to site (or session?)
+    # Pages of the storefront, which send the link's data to BasketViewSet.restore and clear
+    restore_url = 'https://{}/shop/basket/restore/{}/'.format(default_site.domain, basket.link_contents())
+    clear_url = 'https://{}/shop/basket/clear/{}/'.format(default_site.domain, signer.sign(basket.id))
 
     unisender = Unisender(api_key=settings.UNISENDER_KEY)
     if email:

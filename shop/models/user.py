@@ -190,8 +190,11 @@ class OneTimeCode(models.Model):
         return code, record
 
     @classmethod
-    def verify_code(cls, code, **key):
-        """ Returns True if code is valid. It is used up then, as it is when it expires or attempts run out. """
+    def verify_code(cls, code, keep=False, **key):
+        """
+        Returns True if code is valid. It is used up then, unless kept, as it is when it expires or attempts run out.
+        A kept code has the attempt counted all the same.
+        """
         with transaction.atomic():
             record = cls.objects.select_for_update().filter(**key).first()
             if record is None:
@@ -199,7 +202,7 @@ class OneTimeCode(models.Model):
             expired = record.expires <= timezone.now()
             matched = not expired and constant_time_compare(record.code_hash, cls.hash_code(code, **key))
             record.attempts += 1
-            if matched or expired or record.attempts >= cls.MAX_ATTEMPTS:
+            if (matched and not keep) or expired or record.attempts >= cls.MAX_ATTEMPTS:
                 record.delete()
             else:
                 record.save(update_fields=['attempts'])
@@ -251,5 +254,5 @@ class PhoneCode(OneTimeCode):
         return cls.issue_code(phone=phone, user=user)
 
     @classmethod
-    def verify(cls, phone, code, user=None):
-        return cls.verify_code(code, phone=phone, user=user)
+    def verify(cls, phone, code, user=None, keep=False):
+        return cls.verify_code(code, keep=keep, phone=phone, user=user)

@@ -1,6 +1,7 @@
 import logging
 import re
 from collections import OrderedDict
+from math import ceil
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -8,7 +9,7 @@ from django.contrib.auth import authenticate, password_validation
 from django.core.files.storage import default_storage
 
 from rest_framework import serializers
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, Throttled
 
 from drf_spectacular.extensions import OpenApiSerializerExtension
 from drf_spectacular.types import OpenApiTypes
@@ -18,6 +19,7 @@ from django.contrib.flatpages.models import FlatPage
 
 from sewingworld.models import SiteProfile
 from sewingworld.templatetags.gravatar import get_gravatar_url
+from sewingworld.throttles import PasswordFailureHourlyThrottle, PasswordFailureDailyThrottle
 
 from shop.filters import get_product_filter
 from shop.models import Basket, BasketItem, Order, OrderItem, Favorites, Serial, \
@@ -27,6 +29,9 @@ from shop.models import Basket, BasketItem, Order, OrderItem, Favorites, Serial,
 
 
 logger = logging.getLogger("django")
+
+EMAIL_TAKEN = "Пользователь с указанным адресом уже зарегестрирован"
+TOO_MANY_PASSWORDS = "Слишком много попыток входа с неверным паролем. Войдите с кодом из смс."
 
 
 @extend_schema_field(OpenApiTypes.NUMBER)
@@ -666,10 +671,13 @@ class UserSerializer(serializers.ModelSerializer):
     def validate_email(self, value):
         if value == '':
             return value
-        another = ShopUser.objects.filter(email=value).first()
-        if another is not None and not (self.instance and another.id == self.instance.id):
-            raise serializers.ValidationError("Пользователь с указанным адресом уже зарегестрирован")
+        if self.email_taken(value):
+            raise serializers.ValidationError(EMAIL_TAKEN)
         return value
+
+    def email_taken(self, value):
+        another = ShopUser.objects.filter(email=value).first()
+        return another is not None and not (self.instance and another.id == self.instance.id)
 
     def validate_username(self, value):
         if value == '':
@@ -697,6 +705,10 @@ class RegistrationSerializer(UserSerializer):
     def validate_password(self, value):
         if value:
             password_validation.validate_password(value)
+        return value
+
+    def validate_email(self, value):
+        # A taken address is reported only with the phone's code, see UserViewSet.create
         return value
 
     def create(self, validated_data):
@@ -766,8 +778,26 @@ class LoginSerializer(serializers.Serializer):
             user.save()
             return user
         if user.permanent_password:  # otherwise it can only be a code left from when they were stored as passwords
-            return authenticate(phone=phone, password=password)
+            return self.check_password(phone, password)
         return None
+
+    def check_password(self, phone, password):
+        """
+        Wrong passwords of a phone are limited, codes are not: whoever guesses passwords can't lock the owner out,
+        a code from SMS logs in. The codes have limits of their own, attempts per code and codes per phone.
+        """
+        request, view = self.context.get('request'), self.context.get('view')
+        limits = [PasswordFailureHourlyThrottle(phone), PasswordFailureDailyThrottle(phone)]
+        for limit in limits:
+            if not limit.allow_request(request, view):
+                throttled = Throttled(detail=TOO_MANY_PASSWORDS)  # with the wait, the detail would add it in words
+                throttled.wait = ceil(limit.wait())  # for Retry-After
+                raise throttled
+        user = authenticate(phone=phone, password=password)
+        if user is None:
+            for limit in limits:
+                limit.failed()
+        return user
 
     def validate(self, data):
         norm_phone = ShopUserManager.normalize_phone(data['phone'])
