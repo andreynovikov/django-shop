@@ -36,6 +36,12 @@ class SiteTests(TestCase):
         self.assertEqual(self.site_id(StorefrontClient()), self.default_site.id)
         self.assertEqual(self.site_id(APIClient(headers={'X-Frontend-Key': OTHER_KEY})), self.other_site.id)
 
+    def test_storefront_learns_whether_it_is_wholesale(self):
+        # The cart orders products sold in packs only in whole packs on a wholesale site
+        self.assertIs(StorefrontClient().get('/api/v0/sites/current/').json()['wholesale'], False)
+        wholesale = APIClient(headers={'X-Frontend-Key': OTHER_KEY})
+        self.assertIs(wholesale.get('/api/v0/sites/current/').json()['wholesale'], True)
+
     def test_key_wins_over_origin(self):
         self.assertEqual(self.site_id(StorefrontClient(), HTTP_ORIGIN=OTHER_ORIGIN), self.default_site.id)
 

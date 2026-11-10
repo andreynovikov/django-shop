@@ -3,14 +3,16 @@ import logging
 from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.postgres.search import SearchQuery, SearchRank
+from django.core import signing
 from django.core.exceptions import FieldDoesNotExist
 from django.core.mail import mail_admins
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Sum, F, Q, OuterRef, Subquery
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.debug import sensitive_variables
 from django.utils.decorators import method_decorator
 
 from rest_framework import views, viewsets, filters, serializers, status
@@ -38,16 +40,17 @@ from yandex_kassa.views import payment as yandex_payment
 
 # from rarus.tasks import get_bonus_value
 from shop.filters import get_product_filter
+from shop import email_confirmation
 from shop.models import Category, ProductKind, Product, ProductSet, Stock, Basket, BasketItem, Order, OrderItem, \
-    Favorites, ShopUser, ShopUserManager, LoginCode, Bonus, News, SalesAction, Advert, Store, ServiceCenter, Serial, Integration, ProductIntegration
-from shop.tasks import send_password, notify_user_order_new_sms, notify_user_order_new_mail
+    Favorites, ShopUser, ShopUserManager, LoginCode, PhoneCode, Bonus, News, SalesAction, Advert, Store, ServiceCenter, Serial, Integration, ProductIntegration
+from shop.tasks import send_password, send_phone_code, send_email_confirmation, notify_user_order_new_sms, notify_user_order_new_mail
 
 from .models import SiteProfile
 from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSerializer, ProductListSerializer, \
     ProductKindSerializer, ProductImagesSerializer, StockSerializer, \
     BasketSerializer, BasketItemActionSerializer, OrderListSerializer, OrderSerializer, OrderActionSerializer, \
     FavoritesSerializer, ComparisonSerializer, SerialSerializer, \
-    UserListSerializer, UserSerializer, AnonymousUserSerializer, LoginSerializer, UserBonusSerializer, \
+    UserListSerializer, UserSerializer, RegistrationSerializer, AnonymousUserSerializer, LoginSerializer, PhoneValidator, UserBonusSerializer, \
     FlatPageListSerializer, FlatPageSerializer, NewsSerializer, SalesActionSerializer, AdvertSerializer, \
     StoreListSerializer, StoreSerializer, ServiceCenterSerializer, SiteProfileSerializer, IntegrationSerializer, IntegrationProductSerializer, \
     ErrorDetailSerializer, validation_error_serializer
@@ -67,6 +70,20 @@ COMPARISON_ERRORS = validation_error_serializer(ComparisonSerializer)
 FAVORITE_ERRORS = validation_error_serializer(FavoritesSerializer)
 ORDER_ERRORS = validation_error_serializer(OrderActionSerializer)
 USER_ERRORS = validation_error_serializer(UserSerializer)
+REGISTRATION_ERRORS = validation_error_serializer(RegistrationSerializer)
+
+# Answer to registration or a phone change without the code: nothing is saved until the code comes back
+PHONE_CODE_SENT = OpenApiResponse(
+    inline_serializer('PhoneCodeSent', fields={
+        'phone': serializers.CharField(),
+        'retry_after': serializers.IntegerField(help_text='Seconds until a new code can be requested'),
+        'attempts_left': serializers.IntegerField(help_text='Attempts left for the code'),
+    }),
+    description='Code sent to the phone, or the one sent recently is still valid. Send the data again with it.'
+)
+
+WRONG_CODE = 'Неверный или устаревший код'
+BAD_EMAIL_LINK = 'Ссылка недействительна или устарела'
 
 # users/current/ returns the anonymous user too
 CURRENT_USER = PolymorphicProxySerializer(
@@ -82,6 +99,67 @@ def ensure_session(request):
     if hasattr(request, 'session') and not request.session.session_key:
         request.session.save()
         request.session.modified = True
+
+
+def sign_in(request, user):
+    """ Logs the user in and keeps the basket, which is tied to the session key that login rotates """
+    basket = None
+    if request.session.session_key:  # without it, the query would match every basket left without a session
+        try:
+            basket = Basket.objects.get(site=request.site, session_id=request.session.session_key)
+        except (Basket.DoesNotExist, Basket.MultipleObjectsReturned):
+            pass
+
+    login(request, user)
+
+    if basket is not None:
+        ensure_session(request)
+        basket.update_session(request.session.session_key)
+
+
+@sensitive_variables()  # the code it issues
+def send_phone_code_once(request, view, phone, user=None):
+    """
+    Sends a code that proves the phone, for registration or for the user moving to it. As with login codes,
+    one sent recently is kept, so a resubmit or a reload sends nothing, and codes sent count against
+    the phone's limit for login codes.
+    """
+    with transaction.atomic():
+        phone_code = PhoneCode.objects.select_for_update().filter(phone=phone, user=user).first()
+        if phone_code is None or phone_code.retry_after == 0:
+            for throttle in (CheckIpThrottle(), CheckPhoneThrottle(phone)):
+                if not throttle.allow_request(request, view):
+                    view.throttled(request, throttle.wait())
+            code, phone_code = PhoneCode.issue(phone, user)
+            send_phone_code.delay(phone, code)  # if it fails, record is rolled back and user can retry
+    return {
+        'phone': phone,
+        'retry_after': phone_code.retry_after,
+        'attempts_left': phone_code.attempts_left,
+    }
+
+
+def queue_email_confirmation(request, view, user):
+    """ Sends the link that confirms the user's address. Returns the throttle that stopped it, if one did. """
+    for throttle in (EmailLinkUserThrottle(user), EmailLinkIpThrottle()):
+        if not throttle.allow_request(request, view):
+            return throttle
+    send_email_confirmation.delay(user.id, user.email, request.site.id)
+    return None
+
+
+def adopt_order_email(request, view, order):
+    """
+    A buyer without an address gets the one typed for the order, to confirm: order mail goes only to
+    the buyer's confirmed address, and is postponed until then.
+    """
+    user = order.user
+    if not order.email or user.email or ShopUser.objects.filter(email__iexact=order.email).exclude(pk=user.pk).exists():
+        return
+    user.email = order.email
+    user.email_verified = False
+    user.save(update_fields=['email', 'email_verified'])
+    queue_email_confirmation(request, view, user)
 
 
 class IsSuperUser(BasePermission):
@@ -101,9 +179,18 @@ class IsSelf(BasePermission):
 
 
 class PhoneRateThrottle(SimpleRateThrottle):
-    """ Limits attempts per target phone regardless of client IP, so that one-time codes cannot be brute forced """
+    """
+    Limits attempts per target phone regardless of client IP, so that one-time codes cannot be brute forced.
+    The phone comes from the URL or the body, unless it is given.
+    """
+    def __init__(self, phone=None):
+        super().__init__()
+        self.phone = phone
+
     def get_cache_key(self, request, view):
-        if view.detail:
+        if self.phone is not None:
+            ident = self.phone
+        elif view.detail:
             ident = str(view.kwargs.get(view.lookup_field, ''))
         else:
             data = request.data if isinstance(request.data, dict) else {}
@@ -136,6 +223,23 @@ class CheckIpThrottle(IpRateThrottle):
 class CheckPhoneThrottle(PhoneRateThrottle):
     """ Limits codes sent, not requests, so it is applied only when a code is about to be sent """
     scope = 'check_phone'
+
+
+class EmailLinkUserThrottle(SimpleRateThrottle):
+    """ Limits confirmation links sent for a user's address, it is applied when a link is about to be sent """
+    scope = 'email_link'
+
+    def __init__(self, user):
+        super().__init__()
+        self.user = user
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {'scope': self.scope, 'ident': self.user.pk}
+
+
+class EmailLinkIpThrottle(IpRateThrottle):
+    """ Accounts created at checkout need no SMS, so links are limited per client as well """
+    scope = 'email_link_ip'
 
 
 class StandardResultsSetPagination(PageNumberPagination):
@@ -558,7 +662,13 @@ class BasketViewSet(viewsets.ModelViewSet):
 
 
 @extend_schema_view(
-    list=extend_schema(responses={200: OrderListSerializer(many=True), 403: FORBIDDEN}),
+    list=extend_schema(
+        parameters=[
+            OpenApiParameter('filter', str, enum=['active', 'done', 'canceled'], description='Only active, done or canceled orders'),
+            OpenApiParameter('site', OpenApiTypes.INT, description='Only orders made on this site'),
+        ],
+        responses={200: OrderListSerializer(many=True), 403: FORBIDDEN}
+    ),
     retrieve=extend_schema(responses={200: OrderSerializer, 403: FORBIDDEN, 404: NOT_FOUND}),
     update=extend_schema(responses={200: OrderSerializer, 400: ORDER_ERRORS, 403: FORBIDDEN, 404: NOT_FOUND}),
 )
@@ -644,6 +754,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         super().update(request, *args, **kwargs)
         instance = self.get_object()
+        adopt_order_email(request, self, instance)
         return Response(OrderSerializer(instance, context=self.get_serializer_context()).data)
 
     def destroy(self, request):
@@ -881,9 +992,19 @@ class ComparisonsViewSet(viewsets.ViewSet):
 
 
 @extend_schema_view(
-    create=extend_schema(responses={201: UserSerializer, 400: USER_ERRORS}),
+    create=extend_schema(
+        description='Registration. Without `code` it checks the data and sends a code to the phone (202). '
+                    'With the code it creates the account and logs the user in (201).',
+        responses={201: UserSerializer, 202: PHONE_CODE_SENT, 400: REGISTRATION_ERRORS, 429: THROTTLED}
+    ),
     retrieve=extend_schema(responses={200: CURRENT_USER, 403: FORBIDDEN, 404: NOT_FOUND}),
-    update=extend_schema(responses={200: UserSerializer, 400: USER_ERRORS, 403: FORBIDDEN, 404: NOT_FOUND}),
+    update=extend_schema(
+        description='A new phone needs `code`: without it, nothing is saved and a code is sent to that phone (202).',
+        responses={200: UserSerializer, 202: PHONE_CODE_SENT, 400: USER_ERRORS, 403: FORBIDDEN, 404: NOT_FOUND, 429: THROTTLED}
+    ),
+    partial_update=extend_schema(
+        responses={200: UserSerializer, 202: PHONE_CODE_SENT, 400: USER_ERRORS, 403: FORBIDDEN, 404: NOT_FOUND, 429: THROTTLED}
+    ),
 )
 class UserViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
@@ -899,14 +1020,16 @@ class UserViewSet(viewsets.ModelViewSet):
             return LoginSerializer
         elif self.action == 'bonus':
             return UserBonusSerializer
+        elif self.action == 'create':
+            return RegistrationSerializer
         return UserSerializer
 
     def get_permissions(self):
-        if self.action in ('retrieve', 'update', 'partial_update'):
+        if self.action in ('retrieve', 'update', 'partial_update', 'email_link'):
             self.permission_classes = [IsSelf]
         elif self.action == 'bonus':
             self.permission_classes = [IsAuthenticated]
-        elif self.action in ('create', 'check', 'login', 'logout', 'form'):
+        elif self.action in ('create', 'check', 'login', 'logout', 'form', 'confirm_email'):
             self.permission_classes = []
         else:
             # Only superuser can destroy, list
@@ -926,8 +1049,98 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return super().get_object()
 
+    @sensitive_variables()  # the code and the password
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)  # all of it first, so that a code is sent only for data that will do
+        phone = serializer.validated_data['phone']
+        code = serializer.validated_data.get('code')
+        if not code:
+            return Response(send_phone_code_once(request, self, phone), status=status.HTTP_202_ACCEPTED)
+        if not PhoneCode.verify(phone, code):
+            raise serializers.ValidationError({'code': [WRONG_CODE]})
+        try:
+            user = serializer.save(phone_verified=True)
+        except IntegrityError:  # registered in between
+            raise serializers.ValidationError({'phone': ["Пользователь с указанным номером уже зарегестрирован"]})
+        sign_in(request, user)
+        if user.email:
+            queue_email_confirmation(request, self, user)
+        return Response(UserSerializer(user, context=self.get_serializer_context()).data, status=status.HTTP_201_CREATED)
+
+    @sensitive_variables()  # the code
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        verified = {}
+        phone = serializer.validated_data.get('phone', instance.phone)
+        if phone != instance.phone:
+            code = serializer.validated_data.get('code')
+            if not code:
+                return Response(send_phone_code_once(request, self, phone, instance), status=status.HTTP_202_ACCEPTED)
+            if not PhoneCode.verify(phone, code, instance):
+                raise serializers.ValidationError({'code': [WRONG_CODE]})
+            verified['phone_verified'] = True
+        email_changed = serializer.validated_data.get('email', instance.email) != instance.email
+        user = serializer.save(**verified)  # a new email is not verified, see UserSerializer.update
+        if email_changed and user.email:
+            queue_email_confirmation(request, self, user)
+        return Response(serializer.data)
+
     def destroy(self, request):
         raise MethodNotAllowed(request.method)
+
+    @extend_schema(
+        request=None,
+        responses={
+            204: None,
+            400: OpenApiResponse(inline_serializer('EmailLinkError', fields={
+                'email': serializers.ListField(child=serializers.CharField())
+            }), description='No address, or it is confirmed already'),
+            403: FORBIDDEN,
+            404: NOT_FOUND,
+            429: THROTTLED,
+        },
+        methods=['POST']
+    )
+    @action(detail=True, methods=['post'], url_path='email-link')
+    def email_link(self, request, pk=None):
+        """ Sends the link that confirms the user's address again """
+        user = self.get_object()
+        if not user.email or user.email_verified:
+            raise serializers.ValidationError({'email': ['Адрес не указан или уже подтверждён']})
+        throttle = queue_email_confirmation(request, self, user)
+        if throttle is not None:
+            self.throttled(request, throttle.wait())
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @extend_schema(
+        request=inline_serializer('EmailConfirmation', fields={'token': serializers.CharField()}),
+        responses={
+            200: inline_serializer('EmailConfirmed', fields={'email': serializers.CharField()}),
+            400: OpenApiResponse(inline_serializer('EmailConfirmationError', fields={
+                'token': serializers.ListField(child=serializers.CharField())
+            }), description='Bad or expired link, or the address has changed since it was sent'),
+        },
+        methods=['POST']
+    )
+    @action(detail=False, methods=['post'], url_path='confirm-email')
+    def confirm_email(self, request):
+        """ Confirms the address from the link, without a session: the link may be opened on another device """
+        token = request.data.get('token') if isinstance(request.data, dict) else None
+        try:
+            user_id, email = email_confirmation.read_token(str(token or ''))
+        except signing.BadSignature:
+            raise serializers.ValidationError({'token': [BAD_EMAIL_LINK]})
+        user = ShopUser.objects.filter(pk=user_id, email=email).first()
+        if user is None:
+            raise serializers.ValidationError({'token': [BAD_EMAIL_LINK]})
+        if not user.email_verified:
+            user.email_verified = True
+            user.save(update_fields=['email_verified'])
+        return Response({'email': user.email})
 
     @action(detail=False, methods=['get'])
     def bonus(self, request):
@@ -956,15 +1169,22 @@ class UserViewSet(viewsets.ModelViewSet):
                     'required': ['phone', 'permanent_password', 'retry_after', 'attempts_left'],
                 }
             ),
+            400: OpenApiResponse(inline_serializer('UserCheckError', fields={
+                'phone': serializers.ListField(child=serializers.CharField())
+            }), description='Not a +7 phone'),
             404: OpenApiResponse(ErrorDetailSerializer, description='Phone is not registered'),
             429: THROTTLED,
         },
         methods=['POST']
     )
     @action(detail=True, methods=['post'], throttle_classes=[CheckIpThrottle])
+    @sensitive_variables()  # the code it issues, also hidden in the frames it calls
     def check(self, request, pk=None):
+        phone = ShopUserManager.normalize_phone(pk)
+        if not PhoneValidator.pattern.match(phone):  # no SMS abroad, even to old accounts
+            raise serializers.ValidationError({'phone': [PhoneValidator.message]})
         # By phone only: anyone can call this, so accepting user id would reveal phones of all customers
-        user = get_object_or_404(self.get_queryset(), phone=ShopUserManager.normalize_phone(pk))
+        user = get_object_or_404(self.get_queryset(), phone=phone)
         reset = request.data.get('reset', False)
         login_code = None
         if not user.permanent_password or reset:
@@ -998,31 +1218,25 @@ class UserViewSet(viewsets.ModelViewSet):
                     }
                 }
             ),
+            400: OpenApiResponse(inline_serializer('LoginError', fields={
+                'permanent_password': serializers.ListField(child=serializers.CharField())
+            }), description='New permanent password is too short, the code is not used up'),
             403: OpenApiResponse(ErrorDetailSerializer, description='Wrong code or password'),
             429: THROTTLED,
         },
         methods=['POST']
     )
     @action(detail=False, methods=['post'], throttle_classes=[LoginIpThrottle, LoginPhoneThrottle, LoginPhoneDailyThrottle])
+    @sensitive_variables()  # the code or password, also hidden in the serializer and the frames below
     def login(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid():
+            if 'permanent_password' in serializer.errors:
+                raise serializers.ValidationError({'permanent_password': serializer.errors['permanent_password']})
             raise NotAuthenticated()
 
-        try:
-            basket = Basket.objects.get(site=request.site, session_id=request.session.session_key)
-        except Basket.MultipleObjectsReturned:
-            basket = None
-        except Basket.DoesNotExist:
-            basket = None
-
         user = serializer.validated_data
-        login(request, user)
-
-        # preserve user basket because django login rotates session id
-        if basket:
-            ensure_session(request)
-            basket.update_session(request.session.session_key)
+        sign_in(request, user)
 
         return Response({
             'id': user.id,

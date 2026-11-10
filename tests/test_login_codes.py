@@ -280,7 +280,7 @@ class LookupTests(Base):
     def test_user_id_does_not_reveal_phone(self):
         user = self.customer()
         response = self.check(user.id)
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 400)  # not a phone
         self.assertNotIn(PHONE, response.content.decode())
         self.assertNotIn(PHONE[1:], response.content.decode())
         self.sms.delay.assert_not_called()
@@ -288,15 +288,15 @@ class LookupTests(Base):
 
     def test_user_id_of_staff_does_not_reveal_phone(self):
         user = self.customer(is_staff=True, is_superuser=True)
-        self.assertEqual(self.check(user.id).status_code, 404)
+        self.assertEqual(self.check(user.id).status_code, 400)
         self.sms.delay.assert_not_called()
 
     def test_current_is_not_a_phone(self):
-        self.assertEqual(self.check('current').status_code, 404)
+        self.assertEqual(self.check('current').status_code, 400)
         self.customer()
         self.check()
         self.login(password=self.code())
-        self.assertEqual(self.check('current').status_code, 404)
+        self.assertEqual(self.check('current').status_code, 400)
 
     def test_any_form_of_phone_finds_user(self):
         self.customer()
@@ -306,6 +306,20 @@ class LookupTests(Base):
     def test_unregistered_phone(self):
         self.assertEqual(self.check().status_code, 404)
         self.sms.delay.assert_not_called()
+
+    def test_only_russian_phones(self):
+        # Old accounts with such phones exist, they get no SMS and can't log in
+        for phone in ('+375291234567', '+79161234', '+791612345678'):
+            ShopUser.objects.create(phone=phone)
+            response = self.check(phone)
+            self.assertEqual(response.status_code, 400, phone)
+            self.assertIn('phone', response.json())
+            self.assertEqual(self.login(phone=phone, ctx='order').status_code, 403, phone)
+        self.sms.delay.assert_not_called()
+
+    def test_silent_registration_needs_russian_phone(self):
+        self.assertEqual(self.login(phone='+375291234567', ctx='order').status_code, 403)
+        self.assertFalse(ShopUser.objects.filter(phone='+375291234567').exists())
 
     def test_forms_of_phone_share_rate_limit(self):
         self.customer()
@@ -380,6 +394,20 @@ class PermanentPasswordTests(Base):
         self.assertEqual(self.current(), user.id)
         self.assertEqual(self.login(client=StorefrontClient(), password='my-secret').status_code, 200)
 
+    def test_short_permanent_password_is_refused_and_code_survives(self):
+        user = self.customer()
+        self.check()
+        response = self.login(password=self.code(), permanent_password='short')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('permanent_password', response.json())
+        self.assertIsNone(self.current())
+        self.assertEqual(LoginCode.objects.get(user=user).attempts, 0)
+        self.assertEqual(self.login(password=self.code(), permanent_password='long-enough').status_code, 200)
+
+    def test_old_short_password_still_logs_in(self):
+        self.permanent(password='12345')
+        self.assertEqual(self.login(password='12345').status_code, 200)
+
 
 class SilentRegistrationTests(Base):
     def test_gets_unusable_password_and_no_sms(self):
@@ -401,11 +429,38 @@ class SilentRegistrationTests(Base):
         self.assertFalse(ShopUser.objects.filter(phone=PHONE).exists())
 
     def test_cannot_plant_permanent_password(self):
-        self.assertEqual(self.login(ctx='order', permanent_password='planted').status_code, 200)
+        self.assertEqual(self.login(ctx='order', permanent_password='planted-password').status_code, 200)
         user = ShopUser.objects.get(phone=PHONE)
         self.assertFalse(user.has_usable_password())
         self.assertFalse(user.permanent_password)
-        self.assertEqual(self.login(client=StorefrontClient(), password='planted').status_code, 403)
+        self.assertEqual(self.login(client=StorefrontClient(), password='planted-password').status_code, 403)
+
+    def test_phone_is_unproven_until_owner_logs_in_with_a_code(self):
+        user_id = self.login(ctx='order').json()['id']
+        self.assertFalse(ShopUser.objects.get(pk=user_id).phone_verified)
+        client = StorefrontClient()
+        self.check(client=client)
+        self.login(client=client, password=self.code())
+        self.assertTrue(ShopUser.objects.get(pk=user_id).phone_verified)
+
+    def test_first_proof_resets_email_confirmed_before_it(self):
+        # Whoever created the account at checkout could have confirmed their own address in it
+        user_id = self.login(ctx='order').json()['id']
+        ShopUser.objects.filter(pk=user_id).update(email='stranger@example.com', email_verified=True)
+        client = StorefrontClient()
+        self.check(client=client)
+        self.login(client=client, password=self.code())
+        user = ShopUser.objects.get(pk=user_id)
+        self.assertTrue(user.phone_verified)
+        self.assertFalse(user.email_verified)
+        self.assertEqual(user.email, 'stranger@example.com')  # the owner sees it in the profile and decides
+
+    def test_later_logins_keep_confirmed_email(self):
+        user = self.customer(phone_verified=True, email='owner@example.com', email_verified=True)
+        self.check()
+        self.login(password=self.code())
+        user.refresh_from_db()
+        self.assertTrue(user.email_verified)
 
     def test_existing_account_needs_proof_even_with_context(self):
         self.login(ctx='order')

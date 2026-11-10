@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib import admin
+from django.contrib.auth import password_validation
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.utils.translation import gettext_lazy as _
@@ -19,9 +20,11 @@ class UserCreationForm(forms.ModelForm):
         'password_mismatch': _("The two password fields didn't match."),
     }
     password1 = forms.CharField(label=_("Password"),
-                                widget=forms.PasswordInput)
+                                widget=forms.PasswordInput, required=False,
+                                help_text='Без пароля пользователь сможет войти только по коду из смс, '
+                                          'а технический пользователь не сможет войти совсем')
     password2 = forms.CharField(label=_("Password confirmation"),
-                                widget=forms.PasswordInput,
+                                widget=forms.PasswordInput, required=False,
                                 help_text=_("Enter the same password as above, for verification."))
 
     class Meta:
@@ -31,16 +34,22 @@ class UserCreationForm(forms.ModelForm):
     def clean_password2(self):
         password1 = self.cleaned_data.get("password1")
         password2 = self.cleaned_data.get("password2")
-        if password1 and password2 and password1 != password2:
+        if (password1 or password2) and password1 != password2:
             raise forms.ValidationError(
                 self.error_messages['password_mismatch'],
                 code='password_mismatch',
             )
+        if password1:
+            password_validation.validate_password(password1)
         return password2
 
     def save(self, commit=True):
         user = super(UserCreationForm, self).save(commit=False)
-        user.set_password(self.cleaned_data["password1"])
+        if self.cleaned_data["password1"]:
+            user.set_password(self.cleaned_data["password1"])
+        else:
+            user.set_unusable_password()
+        user.phone_verified = True  # entered by staff
         if commit:
             user.save()
         return user
@@ -63,6 +72,14 @@ class UserChangeForm(forms.ModelForm):
         # This is done here, rather than on the field, because the
         # field does not have access to the initial value
         return self.initial["password"]
+
+    def clean(self):
+        # Addresses and phones staff enter are taken as confirmed, unless staff change the flag themselves
+        cleaned_data = super().clean()
+        for field, flag in (('email', 'email_verified'), ('phone', 'phone_verified')):
+            if field in self.changed_data and flag not in self.changed_data and flag in cleaned_data:
+                cleaned_data[flag] = bool(cleaned_data.get(field))
+        return cleaned_data
 
 
 class TagListFilter(SimpleDropdownFilter):
@@ -100,7 +117,7 @@ class ShopUserAdmin(ExportMixin, UserAdmin):
     # These override the definitions on the base UserAdmin
     # that reference specific fields on auth.User.
     list_display = ('phone', 'name', 'email', 'discount', 'bonuses', 'tags', 'is_staff', 'is_superuser')
-    list_filter = (('discount', DropdownFilter), TagListFilter, 'groups', 'is_staff', 'is_superuser')
+    list_filter = (('discount', DropdownFilter), TagListFilter, 'groups', 'is_staff', 'is_superuser', 'phone_verified', 'email_verified')
     # add_fieldsets is not a standard ModelAdmin attribute. UserAdmin
     # overrides get_fieldsets to use this attribute when creating a user.
     add_fieldsets = (
@@ -120,8 +137,8 @@ class ShopUserAdmin(ExportMixin, UserAdmin):
         if not obj:
             return super().get_fieldsets(request, obj)
         fieldsets = [
-            (None, {'fields': ('phone', 'password', 'permanent_password')}),
-            ('Personal info', {'fields': ('name', 'username', 'email', 'postcode', 'city', 'address')}),
+            (None, {'fields': (('phone', 'phone_verified'), 'password', 'permanent_password')}),
+            ('Personal info', {'fields': ('name', 'username', ('email', 'email_verified'), 'postcode', 'city', 'address')}),
             ('Marketing', {'fields': ('discount', 'bonuses', 'tags')}),
             ('Important dates', {'fields': ('last_login',)}),
         ]

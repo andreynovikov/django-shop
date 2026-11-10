@@ -45,3 +45,7 @@ from sewingworld.settings import *  # noqa F401,F403,E402
 LOGGING = {'version': 1, 'disable_existing_loggers': False}  # file handlers need logs/
 
 SILENCED_SYSTEM_CHECKS = ['models.E034']  # shop_order_item_serial_number_idx is too long
+
+# Tasks queued by signals, such as on saving an order, must not reach the broker in .env. Celery reads
+# the environment before settings.
+os.environ['CELERY_BROKER_URL'] = CELERY_BROKER_URL = 'memory://'

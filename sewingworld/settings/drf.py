@@ -20,6 +20,9 @@ REST_FRAMEWORK = {
         'login': '10/min',
         'login_phone': '10/hour',
         'login_phone_day': '20/day',
+        # email confirmation links, per user and per IP: accounts created at checkout need no SMS
+        'email_link': '3/hour',
+        'email_link_ip': '10/hour',
     }
 }
 

@@ -101,6 +101,13 @@ AUTHENTICATION_BACKENDS = (
 )
 
 AUTH_USER_MODEL = 'shop.ShopUser'
+# Length only: no rules on what a password consists of. Login keeps accepting older, shorter passwords.
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 8},
+    },
+]
 LOGIN_REDIRECT_URL = env('LOGIN_REDIRECT_URL')
 LOGIN_URL = env('LOGIN_URL')
 LOGOUT_URL = env('LOGOUT_URL')

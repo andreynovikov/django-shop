@@ -633,6 +633,25 @@ class OrderAdmin(admin.ModelAdmin):
         if "_save" in request.POST:
             obj.owner = None
         super().save_model(request, obj, form, change)
+        if 'email' in form.changed_data and obj.email:
+            self.confirm_user_email(request, obj)
+
+    def confirm_user_email(self, request, order):
+        """ An address staff enter for the order becomes the buyer's confirmed one: order mail goes only to such """
+        user = order.user
+        if not user.phone.startswith('+'):  # service account of a marketplace, its orders get no mail
+            return
+        if user.email_verified and user.email.lower() == order.email.lower():
+            return
+        other = ShopUser.objects.filter(email__iexact=order.email).exclude(pk=user.pk).first()
+        if other is not None:
+            messages.warning(request, 'Адрес %s указан у другого пользователя (%s), письма по заказу на него не придут'
+                             % (order.email, other.related_label()))
+            return
+        user.email = order.email
+        user.email_verified = True
+        user.save(update_fields=['email', 'email_verified'])
+        messages.info(request, 'Адрес %s записан в профиль покупателя как подтверждённый' % order.email)
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)

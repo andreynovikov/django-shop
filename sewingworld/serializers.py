@@ -1,9 +1,10 @@
 import logging
+import re
 from collections import OrderedDict
 from urllib.parse import urlparse
 
 from django.conf import settings
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, password_validation
 from django.core.files.storage import default_storage
 
 from rest_framework import serializers
@@ -620,6 +621,17 @@ class UserListSerializer(serializers.ModelSerializer):
         return get_gravatar_url(obj, 90)
 
 
+class PhoneValidator:
+    """ Russian numbers only, +7 and ten digits: codes go by SMS, and other countries cost more and draw SMS fraud """
+    message = 'Укажите мобильный номер в формате +7 (999) 111-22-33'
+    code = 'invalid_phone'
+    pattern = re.compile(r'^\+7\d{10}$')
+
+    def __call__(self, value):
+        if not self.pattern.match(ShopUserManager.normalize_phone(value)):
+            raise serializers.ValidationError(self.message, code=self.code)
+
+
 class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField(read_only=True)
     gravatar = serializers.SerializerMethodField()
@@ -630,10 +642,12 @@ class UserSerializer(serializers.ModelSerializer):
     permanent_password = serializers.ReadOnlyField()
     last_login = serializers.ReadOnlyField()
     date_joined = serializers.ReadOnlyField()
+    code = serializers.CharField(write_only=True, required=False, help_text='Code from SMS sent to a new phone')
 
     class Meta:
         model = ShopUser
         exclude = ('groups', 'user_permissions', 'password', 'tags', 'is_superuser', 'is_active', 'is_staff', 'first_name', 'last_name')
+        read_only_fields = ('email_verified', 'phone_verified')
 
     def get_full_name(self, obj) -> str:
         return obj.get_full_name()
@@ -642,6 +656,7 @@ class UserSerializer(serializers.ModelSerializer):
         return get_gravatar_url(obj, 90)
 
     def validate_phone(self, value):
+        PhoneValidator()(value)
         norm_phone = ShopUserManager.normalize_phone(value)
         another = ShopUser.objects.filter(phone=norm_phone).first()
         if another is not None and not (self.instance and another.id == self.instance.id):
@@ -664,8 +679,35 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Пользователь с указанным псевдонимом уже зарегестрирован")
         return value
 
+    def update(self, instance, validated_data):
+        validated_data.pop('code', None)  # checked by the view
+        if validated_data.get('email', instance.email) != instance.email:
+            validated_data['email_verified'] = False
+        return super().update(instance, validated_data)
+
+
+class RegistrationSerializer(UserSerializer):
+    """ New account: the data, then the same data with the code sent to the phone, see UserViewSet.create """
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True, style={'input_type': 'password'},
+                                     help_text='Permanent password, without it the user logs in with codes from SMS')
+
+    class Meta(UserSerializer.Meta):
+        exclude = tuple(name for name in UserSerializer.Meta.exclude if name != 'password')
+
+    def validate_password(self, value):
+        if value:
+            password_validation.validate_password(value)
+        return value
+
     def create(self, validated_data):
+        validated_data.pop('code', None)  # checked by the view
+        password = validated_data.pop('password', '')
         user = ShopUser(**validated_data)
+        if password:
+            user.set_password(password)
+            user.permanent_password = True
+        else:
+            user.set_unusable_password()
         user.save()
         return user
 
@@ -693,21 +735,17 @@ class AnonymousUserSerializerExtension(OpenApiSerializerExtension):
         }
 
 
-class PhoneValidator:
-    message = 'Mobile phone required'
-    code = 'phone_required'
-
-    def __call__(self, value):
-        norm_phone = ShopUserManager.normalize_phone(value)
-        if not norm_phone:
-            raise serializers.ValidationError(self.message, code=self.code)
-
-
 class LoginSerializer(serializers.Serializer):
     phone = serializers.CharField(validators=[PhoneValidator()])
     password = serializers.CharField(required=False)
     permanent_password = serializers.CharField(required=False)
     ctx = serializers.CharField(required=False)
+
+    def validate_permanent_password(self, value):
+        # Field errors stop before validate(), so a code sent with a short password is not used up
+        if value:
+            password_validation.validate_password(value)
+        return value
 
     def check_credentials(self, phone, password):
         """ Password field holds either SMS code or permanent password """
@@ -720,7 +758,12 @@ class LoginSerializer(serializers.Serializer):
             if not user.is_staff:
                 user.set_unusable_password()
                 user.permanent_password = False
-                user.save()
+            if not user.phone_verified:
+                # Proven for the first time, so the account was created silently: whoever did it may have
+                # confirmed their own address in it. The owner confirms it again, or changes it.
+                user.phone_verified = True
+                user.email_verified = False
+            user.save()
             return user
         if user.permanent_password:  # otherwise it can only be a code left from when they were stored as passwords
             return authenticate(phone=phone, password=password)
@@ -785,7 +828,7 @@ class SiteProfileSerializer(NonNullModelSerializer):
 
     class Meta:
         model = SiteProfile
-        fields = ('id', 'url_prefix', 'title', 'description', 'city', 'phone')
+        fields = ('id', 'url_prefix', 'title', 'description', 'city', 'phone', 'wholesale')
 
     def get_id(self, obj) -> int:
         return obj.site.pk

@@ -13,7 +13,7 @@ from django.utils.crypto import constant_time_compare, salted_hmac
 # from tagging.fields import TagField
 
 __all__ = [
-    'ShopUserManager', 'ShopUser', 'LoginCode'
+    'ShopUserManager', 'ShopUser', 'LoginCode', 'PhoneCode'
 ]
 
 logger = logging.getLogger(__name__)
@@ -94,6 +94,11 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
     name = models.CharField('имя', max_length=100, blank=True)
     username = UsernameField('псевдоним', max_length=100)
     email = models.EmailField('эл.почта', blank=True)
+    # Set when the owner follows the link sent to the address, or when staff enter it. Mail goes only to such addresses.
+    email_verified = models.BooleanField('эл.почта подтверждена', default=False)
+    # Set when a code sent to the phone comes back, or when staff enter it. Accounts created silently at checkout
+    # have unproven phones.
+    phone_verified = models.BooleanField('телефон подтверждён', default=False)
     postcode = models.CharField('индекс', max_length=10, blank=True)
     city = models.CharField('город', max_length=255, blank=True)
     address = models.CharField('адрес', max_length=255, blank=True)
@@ -141,24 +146,27 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
             return self.phone
 
 
-class LoginCode(models.Model):
-    """ One-time code sent by SMS, a user has at most one: requesting a new code replaces the previous """
+class OneTimeCode(models.Model):
+    """ One-time code sent by SMS, only its hash is stored. Requesting a new code replaces the previous one. """
     LIFETIME = timedelta(minutes=5)
     RESEND_DELAY = timedelta(minutes=4)
     MAX_ATTEMPTS = 5
 
-    user = models.OneToOneField(ShopUser, verbose_name='пользователь', on_delete=models.CASCADE, related_name='login_code')
     code_hash = models.CharField('хэш кода', max_length=64)
     expires = models.DateTimeField('действует до')
     attempts = models.PositiveSmallIntegerField('попытки', default=0)
 
     class Meta:
-        verbose_name = 'код для входа'
-        verbose_name_plural = 'коды для входа'
+        abstract = True
 
-    @staticmethod
-    def hash_code(user, code):
-        return salted_hmac('shop.LoginCode', '%s:%s' % (user.pk, code), algorithm='sha256').hexdigest()
+    @classmethod
+    def hash_material(cls, **key):
+        """ What the code is bound to, from the fields that identify the record """
+        raise NotImplementedError
+
+    @classmethod
+    def hash_code(cls, code, **key):
+        return salted_hmac(cls._meta.label, '%s:%s' % (cls.hash_material(**key), code), algorithm='sha256').hexdigest()
 
     @property
     def retry_after(self):
@@ -171,28 +179,77 @@ class LoginCode(models.Model):
         return self.MAX_ATTEMPTS - self.attempts
 
     @classmethod
-    def issue(cls, user):
+    def issue_code(cls, **key):
         """ Returns the code and its record, which holds only a hash of it """
         code = '%06d' % secrets.randbelow(10 ** 6)
-        login_code, _ = cls.objects.update_or_create(user=user, defaults={
-            'code_hash': cls.hash_code(user, code),
+        record, _ = cls.objects.update_or_create(**key, defaults={
+            'code_hash': cls.hash_code(code, **key),
             'expires': timezone.now() + cls.LIFETIME,
             'attempts': 0,
         })
-        return code, login_code
+        return code, record
+
+    @classmethod
+    def verify_code(cls, code, **key):
+        """ Returns True if code is valid. It is used up then, as it is when it expires or attempts run out. """
+        with transaction.atomic():
+            record = cls.objects.select_for_update().filter(**key).first()
+            if record is None:
+                return False
+            expired = record.expires <= timezone.now()
+            matched = not expired and constant_time_compare(record.code_hash, cls.hash_code(code, **key))
+            record.attempts += 1
+            if matched or expired or record.attempts >= cls.MAX_ATTEMPTS:
+                record.delete()
+            else:
+                record.save(update_fields=['attempts'])
+            return matched
+
+
+class LoginCode(OneTimeCode):
+    """ Code to log in, a user has at most one """
+    user = models.OneToOneField(ShopUser, verbose_name='пользователь', on_delete=models.CASCADE, related_name='login_code')
+
+    class Meta:
+        verbose_name = 'код для входа'
+        verbose_name_plural = 'коды для входа'
+
+    @classmethod
+    def hash_material(cls, user):
+        return user.pk
+
+    @classmethod
+    def issue(cls, user):
+        return cls.issue_code(user=user)
 
     @classmethod
     def verify(cls, user, code):
-        """ Returns True if code is valid. It is used up then, as it is when it expires or attempts run out. """
-        with transaction.atomic():
-            login_code = cls.objects.select_for_update().filter(user=user).first()
-            if login_code is None:
-                return False
-            expired = login_code.expires <= timezone.now()
-            matched = not expired and constant_time_compare(login_code.code_hash, cls.hash_code(user, code))
-            login_code.attempts += 1
-            if matched or expired or login_code.attempts >= cls.MAX_ATTEMPTS:
-                login_code.delete()
-            else:
-                login_code.save(update_fields=['attempts'])
-            return matched
+        return cls.verify_code(code, user=user)
+
+
+class PhoneCode(OneTimeCode):
+    """ Code that proves a phone no account has yet: to register with it, or to move the user's account to it """
+    phone = models.CharField('телефон', max_length=30)
+    user = models.ForeignKey(ShopUser, verbose_name='пользователь', blank=True, null=True, on_delete=models.CASCADE,
+                             related_name='phone_codes', help_text='кто переходит на этот телефон, пусто при регистрации')
+
+    class Meta:
+        verbose_name = 'код подтверждения телефона'
+        verbose_name_plural = 'коды подтверждения телефона'
+        constraints = [
+            models.UniqueConstraint(fields=['phone'], condition=models.Q(user__isnull=True), name='phonecode_registration'),
+            models.UniqueConstraint(fields=['phone', 'user'], name='phonecode_change'),
+        ]
+
+    @classmethod
+    def hash_material(cls, phone, user):
+        # Bound to both, so a code can't prove another phone or move another account
+        return '%s:%s' % (phone, user.pk if user else '')
+
+    @classmethod
+    def issue(cls, phone, user=None):
+        return cls.issue_code(phone=phone, user=user)
+
+    @classmethod
+    def verify(cls, phone, code, user=None):
+        return cls.verify_code(code, phone=phone, user=user)
