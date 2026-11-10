@@ -65,6 +65,16 @@
 
   --shadow-lg: 0 1rem 3rem rgb(0 0 0 / 0.175);
 
+  /* What the components shared with cartzilla use, in Dor Tak's look */
+  --color-heading: var(--color-body);
+  --color-link-hover: var(--color-primary-hover);
+  --text-ms: 0.775rem;
+  --text-ms--line-height: 1.5;
+  /* Dor Tak's page headers aren't overlapped (see PageHeader): the text under them has the body color,
+     and the content after it needs no more padding than usual */
+  --color-overlap: var(--color-body);
+  --spacing-overlap: 1rem;
+
   /* Bootstrap's .spinner-grow: a dot that grows and fades */
   --animate-grow: grow 0.75s linear infinite;
 

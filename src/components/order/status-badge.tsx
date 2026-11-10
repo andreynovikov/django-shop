@@ -43,40 +43,52 @@ export const DELIVERY_BOXBERRY = 11
 export const DELIVERY_EXPRESS = 98
 export const DELIVERY_UNKNOWN = 99
 
-const getColor = (status: number) => {
+const getColor = (status: number): keyof typeof colorClasses => {
   // badge colors from https://demo.createx.studio/cartzilla/components/badge.html
   // 'danger' is currently unused
   switch (status) {
     case STATUS_NEW:
-      return 'bg-info text-white'
+      return 'info'
     case STATUS_ACCEPTED:
     case STATUS_COLLECTING:
     case STATUS_COLLECTED:
     case STATUS_OTHERSHOP:
     case STATUS_SENT:
     case STATUS_DELIVERED_STORE:
-      return 'bg-accent text-white'
+      return 'accent'
     case STATUS_DELIVERED:
     case STATUS_DELIVERED_SHOP:
-      return 'bg-primary text-white'
+      return 'primary'
     case STATUS_DONE:
     case STATUS_FINISHED:
-      return 'bg-success text-white'
+      return 'success'
     case STATUS_PROBLEM:
     case STATUS_UNCLAIMED:
     case STATUS_SERVICE:
-      return 'bg-warning text-white'
+      return 'warning'
     case STATUS_FROZEN:
     case STATUS_CONSULTATION:
     case STATUS_RETURNING:
-      return 'bg-dark text-white'
+      return 'dark'
     case STATUS_CANCELED:
-      return 'bg-secondary text-dark' // Dor Tak's secondary color is light gray
+      return 'secondary'
     default:
-      return 'bg-light text-dark'
+      return 'light'
   }
 }
 
+// Background and text of each color
+const colorClasses = {
+  info: 'bg-info text-white',
+  accent: 'bg-accent text-white',
+  primary: 'bg-primary text-white',
+  success: 'bg-success text-white',
+  warning: 'bg-warning text-white',
+  dark: 'bg-dark text-white',
+  secondary: 'bg-gray-100 text-heading',
+  light: 'bg-white text-heading',
+}
+
 export default function OrderStatusBadge({ status, text }: { status: number, text: string }) {
-  return <span className={`${badgeClass} ${getColor(status)} text-sm`}>{text}</span>
+  return <span className={`${badgeClass({ size: 'sm' })} ${colorClasses[getColor(status)]}`}>{text}</span>
 }

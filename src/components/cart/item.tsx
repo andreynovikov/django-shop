@@ -1,12 +1,23 @@
+import { KeyboardEventHandler, useState, useEffect, FocusEventHandler } from 'react'
 import Image from 'next/image'
 
-import { IconTrashX } from '@tabler/icons-react'
+import { IconCircleX } from '@tabler/icons-react'
 
+import { buttonClass } from '@/components/ui/button'
+import { formTextClass, inputClass, labelClass } from '@/components/ui/form'
 import NoImage from '@/components/product/no-image'
-import QuantityInput from '@/components/cart/quantity-input'
-import { labelClass } from '@/components/ui/form'
+import ProductLink from '@/components/product/product-link'
 
+import { useDebounce } from '@/lib/debounce'
+import { useSite } from '@/lib/site'
 import { BasketItem, BasketItemProduct } from '@/lib/types'
+
+// The quantity typed, in whole packs up to 10000, or the current one when nothing is typed
+function getUpdatedQuantity(value: string, quantity: number, pack: number) {
+  if (!value || isNaN(+value))
+    return quantity
+  return Math.min(Math.ceil(Math.max(1, +value) / pack), Math.floor(10000 / pack)) * pack
+}
 
 interface CartItemProps {
   item: BasketItem
@@ -16,42 +27,78 @@ interface CartItemProps {
   setQuantity: (product: BasketItemProduct, quantity: number) => void
 }
 
-// Dor Tak has no product pages, so the item isn't linked. The quantity is changed in packs where the product is sold in packs.
 export default function CartItem({ item, first, last, removeItem, setQuantity }: CartItemProps) {
+  const { site } = useSite()
+  // a wholesale site sells the products sold in packs only in whole packs
+  const pack = site.wholesale && item.product.ws_pack_only ? Math.max(1, item.product.pack_factor) : 1
+  const [inputValue, setInputValue] = useState(String(item.quantity))
+  const debouncedInput = useDebounce(inputValue, 500)
+
+  const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      e.currentTarget.blur()
+    }
+  }
+
+  const handleBlur: FocusEventHandler<HTMLInputElement> = () => {
+    const quantity = getUpdatedQuantity(inputValue, item.quantity, pack)
+    setQuantity(item.product, quantity)
+    if (String(quantity) !== inputValue)
+      setInputValue(String(quantity))
+  }
+
+  useEffect(() => {
+    if (debouncedInput === '')
+      return
+    const quantity = getUpdatedQuantity(debouncedInput, item.quantity, pack)
+    setQuantity(item.product, quantity)
+  }, [debouncedInput, item.product, item.quantity, pack, setQuantity])
+
   return (
-    <div className={"my-2 items-center justify-between sm:flex " + (first ? "pb-4" : "py-4") + (last ? "" : " border-b")}>
+    <div className={`my-2 items-center justify-between sm:flex ${first ? "pb-4" : "py-4"} ${last ? "" : "border-b"}`}>
       <div className="block items-center text-center sm:flex sm:text-start">
-        {item.product.image ? (
-          <div className="relative" style={{ width: 160, height: 160 }}>
-            <Image
-              src={item.product.image}
-              fill
-              style={{ objectFit: 'contain' }}
-              sizes="160px"
-              alt={`${item.product.whatis ? item.product.whatis + ' ' : ''}${item.product.title}`} />
-          </div>
-        ) : (
-          <NoImage size={160} />
-        )}
+        <ProductLink className="mx-auto inline-block shrink-0 sm:me-6" code={item.product.code}>
+          {item.product.image ? (
+            <div className="relative size-40">
+              <Image
+                src={item.product.image}
+                fill
+                style={{ objectFit: 'contain' }}
+                sizes="160px"
+                alt={`${item.product.whatis ? item.product.whatis + ' ' : ''}${item.product.title}`} />
+            </div>
+          ) : (
+            <NoImage size={160} />
+          )}
+        </ProductLink>
         <div className="pt-2">
-          <h3 className="mb-2 text-h6">
-            {item.product.title}
+          <h3 className="mb-2 text-base leading-[1.2] font-medium">
+            <ProductLink className="text-heading hover:text-primary" code={item.product.code}>
+              {item.product.title}
+            </ProductLink>
           </h3>
           <div className="text-sm"><span className="me-2 text-muted">Цена:</span>{item.product.price.toLocaleString('ru')}<small>&nbsp;руб</small></div>
           {item.discount > 0 && <div className="text-sm"><span className="me-2 text-muted">Скидка:</span>{item.discount_text}</div>}
           <div className="pt-2 text-lg text-accent"><span>{item.price.toLocaleString('ru')}</span><small>&nbsp;руб</small></div>
         </div>
       </div>
-      <div className="mx-auto pt-2 text-center sm:mx-0 sm:ps-4 sm:pt-0 sm:text-start" style={{ maxWidth: "9rem" }}>
-        <label className={labelClass}>Количество</label>
-        <QuantityInput
-          quantity={item.quantity}
-          setQuantity={(quantity) => setQuantity(item.product, quantity)}
-          packOnly={item.product.ws_pack_only}
-          packFactor={item.product.pack_factor} />
-        <button className="inline-flex items-center border border-transparent py-1.5 text-danger underline" type="button" onClick={() => removeItem(item.product)}>
-          <IconTrashX size={20} stroke={1.5} className="me-1" />
-          Удалить
+      <div className="mx-auto max-w-36 pt-2 text-center sm:mx-0 sm:pt-0 sm:ps-4 sm:text-start">
+        <label className={labelClass} htmlFor={`quantity-${item.product.id}`}>Количество</label>
+        <input
+          className={inputClass()}
+          id={`quantity-${item.product.id}`}
+          type="number"
+          min={pack}
+          max="10000"
+          step={pack}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.currentTarget.value)}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown} />
+        {pack > 1 && <span className={formTextClass}>кратно {pack}</span>}
+        <button className={buttonClass({ variant: 'link-danger', size: 'flush' })} type="button" onClick={() => removeItem(item.product)}>
+          <IconCircleX size={16} stroke={1.5} className="me-2" />Удалить
         </button>
       </div>
     </div>
