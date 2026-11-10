@@ -74,6 +74,30 @@ test('forgotten password is replaced by a code only when the code is used', asyn
   expect(user.permanent_password).toBe(false)
 })
 
+test('wrong passwords stop the password, but a code still logs in', async ({ page, backend }) => {
+  const user = backend.addUser({ permanent_password: true, password: 'permanent' })
+  await typePhone(phoneInput(page), '9161234567')
+  await page.getByRole('button', { name: 'Войти' }).click()
+
+  const password = page.getByPlaceholder('Пароль')
+  for (let attempt = 0; attempt < 10; attempt++) {
+    await password.fill(`wrong ${attempt}`)
+    await page.getByRole('button', { name: 'Продолжить' }).click()
+    await expect.poll(() => backend.requestsTo('POST', 'users/login/').length).toBe(attempt + 1)
+    await expect(page.getByText('Вы ввели неправильный пароль')).toBeVisible()
+  }
+  await password.fill('permanent')
+  await page.getByRole('button', { name: 'Продолжить' }).click()
+  await expect(page.getByText('Слишком много попыток входа с неверным паролем. Войдите с кодом из смс.')).toBeVisible()
+  expect(backend.user).toBeUndefined()
+
+  await page.getByText('Сбросить забытый пароль').click()
+  await page.getByPlaceholder('Код из смс').fill(backend.lastSmsCode(user.phone)!)
+  await page.getByRole('button', { name: 'Продолжить' }).click()
+  await expect(page).toHaveURL('/')
+  expect(backend.user?.id).toBe(user.id)
+})
+
 test('new permanent password needs 8 characters, older ones still log in', async ({ page, backend }) => {
   const user = backend.addUser()
   await typePhone(phoneInput(page), '9161234567')

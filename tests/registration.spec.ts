@@ -67,6 +67,29 @@ test('registered phone gets no code', async ({ page, backend }) => {
   expect(backend.smsLog).toEqual([])
 })
 
+test('taken email is told only with the code, which then registers the corrected one', async ({ page, backend }) => {
+  backend.addUser({ phone: '+79167654321', email: 'anna@example.com' })
+  await page.goto('/register/')
+  await register(page)
+
+  // the data step doesn't tell, so the form can't show whose address is a customer's
+  const code = page.getByPlaceholder('Код из смс')
+  await code.fill(backend.lastSmsCode('+79161234567')!)
+  await page.getByRole('button', { name: 'Подтвердить' }).click()
+
+  const email = page.getByRole('textbox', { name: 'Адрес электронной почты:' })
+  await expect(page.getByText('Пользователь с указанным адресом уже зарегестрирован')).toBeVisible()
+  await email.fill('anna.ivanova@example.com')
+  await page.getByRole('button', { name: 'Зарегистрироваться' }).click()
+
+  // the code wasn't used up, so no new one goes out
+  await code.fill(backend.lastSmsCode('+79161234567')!)
+  await page.getByRole('button', { name: 'Подтвердить' }).click()
+  await expect(accountLink(page)).toBeVisible()
+  expect(backend.user).toMatchObject({ phone: '+79161234567', email: 'anna.ivanova@example.com' })
+  expect(backend.smsLog).toHaveLength(1)
+})
+
 test('data can be changed before the code', async ({ page, backend }) => {
   await page.goto('/register/')
   await register(page)

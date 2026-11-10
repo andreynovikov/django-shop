@@ -16,7 +16,7 @@ import UserAvatar from '@/components/user/avatar'
 
 import { formatPhone } from '@/lib/format'
 import useFavorites from '@/lib/favorites'
-import { useSession } from '@/lib/session'
+import { useSession, SIGN_OUT_FAILED } from '@/lib/session'
 import { useSite } from '@/lib/site'
 import { orderKeys, loadOrders } from '@/lib/queries'
 import { User } from '@/lib/types'
@@ -27,6 +27,7 @@ const menuIcon = { size: 18, stroke: 1.5, className: 'me-2 opacity-60' }
 
 export default function UserSidebar() {
   const [signingOut, setSigningOut] = useState(false)
+  const [signOutFailed, setSignOutFailed] = useState(false)
 
   const router = useRouter()
   const pathname = usePathname()
@@ -41,9 +42,13 @@ export default function UserSidebar() {
     onUnauthenticated: signingOut ? undefined : () => router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname + window.location.search)}`)
   })
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     setSigningOut(true)
-    signOut({ callbackUrl: '/' })
+    setSignOutFailed(false)
+    if (!await signOut({ callbackUrl: '/' })) {
+      setSigningOut(false)
+      setSignOutFailed(true)
+    }
   }
   const user = status === 'authenticated' ? sessionUser as User : undefined
 
@@ -115,6 +120,7 @@ export default function UserSidebar() {
               <button type="button" className={`${navLinkClass()} ${menuLinkClass} w-full`} onClick={handleSignOut}>
                 <IconLogout2 {...menuIcon} />Выйти
               </button>
+              {signOutFailed && <p className="-mt-2 mb-0 px-6 pb-4 text-sm text-danger" role="alert">{SIGN_OUT_FAILED}</p>}
             </li>
           </ul>
         </Collapsible.Panel>

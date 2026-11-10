@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import Link from 'next/link'
+import { Toast } from '@base-ui/react/toast'
 import { IconUser } from '@tabler/icons-react'
 
 import { hoverMenuClass, menuDividerClass, menuItemClass } from '@/components/ui/menu'
 import { navbarToolCaptionClass, navbarToolClass, navbarToolIconClass, navbarToolTextClass } from '@/components/ui/navbar'
 
 import { formatPhone } from '@/lib/format'
-import { useSession } from '@/lib/session'
+import { useSession, SIGN_OUT_FAILED } from '@/lib/session'
 
 import SignInModal from '@/components/user/sign-in-modal'
 import { User } from '@/lib/types'
@@ -15,6 +16,13 @@ export default function UserProfileLink() {
   const [showSignIn, setShowSignIn] = useState(false)
   const { user: sessionUser, status, signOut } = useSession()
   const user = status === 'authenticated' ? sessionUser as User : undefined
+  const toastManager = Toast.useToastManager()
+
+  // The menu closes as the pointer leaves it, so the failure is told in a toast
+  const handleSignOut = async () => {
+    if (!await signOut())
+      toastManager.add({ description: SIGN_OUT_FAILED })
+  }
 
   if (status === 'authenticated') {
     return (
@@ -33,7 +41,7 @@ export default function UserProfileLink() {
             Профиль
           </Link>
           <div className={menuDividerClass}></div>
-          <button type="button" className={menuItemClass} onClick={() => signOut()}>Выйти</button>
+          <button type="button" className={menuItemClass} onClick={handleSignOut}>Выйти</button>
         </div>
       </div>
     )

@@ -125,3 +125,27 @@ test('orders list opens order details', async ({ page, request, backend, isMobil
   await expect(page.getByRole('heading', { name: second.title, exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: `${store.city.name}, ${store.address}` })).toHaveAttribute('href', `/stores/${store.id}/`)
 })
+
+test('order page shows date, status and total once on any screen', async ({ page }) => {
+  await page.goto(`/user/orders/${order.id}/`)
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Заказ №${order.id}`)
+  // in the page header from the lg breakpoint, in a box under it below
+  for (const caption of ['Дата оформления', 'Статус', 'Всего к оплате'])
+    await expect(page.getByText(caption, { exact: true }).filter({ visible: true }), caption).toHaveCount(1)
+})
+
+test('orders of a user who signed in in another tab replace those shown', async ({ page, backend }) => {
+  await page.goto('/user/orders/')
+  const rows = page.locator('tbody tr')
+  await expect(rows).toHaveCount(1)
+  await expect(rows).toContainText(String(order.id))
+
+  // the session is the browser's, so another tab can change the user
+  const other = backend.signIn({ phone: '+79167654321', name: 'Другой покупатель' })
+  const otherOrder = backend.addOrder({ total: 1000 }, other)
+  // the user is checked again when the page becomes visible
+  await page.evaluate(() => window.dispatchEvent(new Event('visibilitychange')))
+
+  await expect(rows).toHaveCount(1)
+  await expect(rows).toContainText(String(otherOrder.id))
+})

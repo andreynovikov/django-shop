@@ -92,8 +92,9 @@ export default function OrderDetails({ id }: { id: number }) {
 
   return (
     <>
+      { /* From lg up, the box below shows the same on smaller screens */}
       <UserTopbar>
-        <div className="me-4 flex w-full text-center text-overlap">
+        <div className="me-4 hidden w-full text-center text-overlap lg:flex">
           <div className="px-4 text-ms">
             <div className="font-medium">Дата оформления</div>
             <div className="text-lg opacity-60">
@@ -112,7 +113,7 @@ export default function OrderDetails({ id }: { id: number }) {
           </div>
         </div>
       </UserTopbar>
-      { /* Order details (visible on mobile) */}
+      { /* Below lg, in place of the topbar */}
       <div className="mb-6 flex flex-wrap rounded-lg bg-gray-100 px-6 pt-6 pb-1 text-center lg:hidden">
         <div className="px-4 pb-4 text-sm">
           <div className="font-medium">Дата оформления</div>
@@ -123,7 +124,7 @@ export default function OrderDetails({ id }: { id: number }) {
           <div className="text-lg text-muted"><OrderStatusBadge status={order.status} text={order.status_text} /></div>
         </div>
         <div className="px-4 pb-4 text-sm">
-          <div className="font-medium">Всего к оплате</div>
+          <div className="font-medium">{order.paid ? "Стоимость заказа" : "Всего к оплате"}</div>
           <div className="text-lg text-muted">{order.total.toLocaleString('ru')}<small>&nbsp;руб</small></div>
         </div>
       </div>

@@ -29,6 +29,8 @@ const WRONG_CODE = 'Неверный или устаревший код'
 const PASSWORD_TOO_SHORT = 'Введённый пароль слишком короткий. Он должен состоять из как минимум 8 символов.'
 const NOTHING_TO_CONFIRM = 'Адрес не указан или уже подтверждён'
 const BAD_EMAIL_LINK = 'Ссылка недействительна или устарела'
+const BAD_BASKET_LINK = 'Ссылка недействительна'
+const TOO_MANY_PASSWORDS = 'Слишком много попыток входа с неверным паролем. Войдите с кодом из смс.'
 
 const STATUS_TEXTS: Record<number, string> = {
   [STATUS_NEW]: 'новый заказ',
@@ -47,6 +49,7 @@ const CODE_RESEND_DELAY = 240
 const CODES_PER_PHONE = 5 // check_phone throttle, smsLog holds what it counts, login and phone codes alike
 const EMAIL_LINKS_PER_USER = 3 // email_link throttle
 const PASSWORD_MIN_LENGTH = 8 // AUTH_PASSWORD_VALIDATORS
+const PASSWORD_FAILURES_PER_PHONE = 10 // login_phone throttle, wrong permanent passwords only
 
 interface LoginCode {
   code: string
@@ -139,13 +142,17 @@ export class FakeBackend {
 
   private users: FakeUser[] = []
   private sessionUserId: number | null = null
-  private basket: { id: number, items: { id: number, product: BasketItemProduct, quantity: number }[] } | null = null
+  private basket: { id: number, items: { id: number, product: BasketItemProduct, quantity: number }[], utm_source: string } | null = null
   private favorites = new Map<number, number[]>()
   private orders: FakeOrder[] = []
   private products = new Map<number, BasketItemProduct>()
   private nextId = { user: 1, basket: 1, item: 1, order: 100001 }
   // codes that prove a new phone, by phone and the user moving to it ('' when registering), see PhoneCode
   private phoneCodes = new Map<string, LoginCode>()
+  // wrong permanent passwords by phone, see LoginSerializer.check_password
+  private passwordFailures = new Map<string, number>()
+  // baskets of other sessions that a link in the abandoned basket email can clear, by the signed id
+  private signedBaskets = new Map<string, number>()
 
   constructor(private request: APIRequestContext) { }
 
@@ -253,6 +260,27 @@ export class FakeBackend {
     if (user === undefined)
       throw new Error('addFavorites needs a user')
     this.favorites.set(user.id, [...this.favorites.get(user.id) ?? [], ...products.map(({ id }) => id)])
+  }
+
+  // Seeds the basket of the session
+  addBasket(...items: { product: ProductInfo | BasketItemProduct, quantity?: number }[]) {
+    this.basket = {
+      id: this.nextId.basket++,
+      items: items.map(({ product, quantity = 1 }) => ({ id: this.nextId.item++, product: toBasketProduct(product), quantity })),
+      utm_source: '',
+    }
+    return this.basket.id
+  }
+
+  // The signed id in the link that clears the basket, as the abandoned basket email has it
+  basketClearSign(id: number) {
+    const sign = `${id}:signature`
+    this.signedBaskets.set(sign, id)
+    return sign
+  }
+
+  get basketUtmSource() {
+    return this.basket?.utm_source
   }
 
   get basketItems() {
@@ -376,7 +404,8 @@ export class FakeBackend {
     const email = String(body.email ?? '')
     const username = String(body.username ?? '')
     const password = String(body.password ?? '')
-    const errors = {
+    // a taken address is told only with the code, which is kept for the corrected one
+    const { email: emailTaken, ...errors } = {
       ...this.uniqueErrors(undefined, phone, email, username),
       ...phoneErrors(phone),
       ...passwordErrors('password', password),
@@ -385,6 +414,11 @@ export class FakeBackend {
       return { status: 400, body: errors }
     if (!body.code)
       return this.sendPhoneCode(phone)
+    if (emailTaken !== undefined) {
+      if (!this.verifyPhoneCode(phone, undefined, String(body.code), true))
+        return { status: 400, body: { code: [WRONG_CODE] } }
+      return { status: 400, body: { email: emailTaken } }
+    }
     if (!this.verifyPhoneCode(phone, undefined, String(body.code)))
       return { status: 400, body: { code: [WRONG_CODE] } }
     const user = this.addUser({
@@ -413,13 +447,14 @@ export class FakeBackend {
     return { status: 202, body: { phone, retry_after: retryAfter(phoneCode), attempts_left: CODE_MAX_ATTEMPTS - phoneCode.attempts } }
   }
 
-  private verifyPhoneCode(phone: string, user: FakeUser | undefined, code: string) {
+  // A kept code has the attempt counted all the same
+  private verifyPhoneCode(phone: string, user: FakeUser | undefined, code: string, keep = false) {
     const key = `${phone}:${user?.id ?? ''}`
     const phoneCode = this.phoneCodes.get(key)
     if (phoneCode === undefined)
       return false
     phoneCode.attempts++
-    if (code === phoneCode.code || phoneCode.attempts >= CODE_MAX_ATTEMPTS)
+    if ((code === phoneCode.code && !keep) || phoneCode.attempts >= CODE_MAX_ATTEMPTS)
       this.phoneCodes.delete(key)
     return code === phoneCode.code
   }
@@ -484,7 +519,12 @@ export class FakeBackend {
       this.sessionUserId = user.id
       return ok({ id: user.id, registered: true })
     }
-    if (user === undefined || !body.password || !this.checkCredentials(user, String(body.password)))
+    if (user === undefined || !body.password)
+      return notAuthenticated()
+    const checked = this.checkCredentials(user, String(body.password))
+    if (checked === 'throttled')
+      return { status: 429, body: { detail: TOO_MANY_PASSWORDS } }
+    if (!checked)
       return notAuthenticated()
     if (typeof body.permanent_password === 'string' && body.permanent_password.length > 0) {
       user.password = body.permanent_password
@@ -494,8 +534,9 @@ export class FakeBackend {
     return ok({ id: user.id, registered: false })
   }
 
-  // Follows LoginSerializer.check_credentials and LoginCode.verify, except that codes don't expire here
-  private checkCredentials(user: FakeUser, password: string) {
+  // Follows LoginSerializer.check_credentials and LoginCode.verify, except that codes don't expire here.
+  // Wrong permanent passwords are limited per phone, codes are not.
+  private checkCredentials(user: FakeUser, password: string): boolean | 'throttled' {
     const loginCode = user.loginCode
     if (loginCode !== undefined) {
       loginCode.attempts++
@@ -513,7 +554,15 @@ export class FakeBackend {
       if (loginCode.attempts >= CODE_MAX_ATTEMPTS)
         user.loginCode = undefined
     }
-    return user.permanent_password && password === user.password
+    if (!user.permanent_password)
+      return false
+    const failures = this.passwordFailures.get(user.phone) ?? 0
+    if (failures >= PASSWORD_FAILURES_PER_PHONE)
+      return 'throttled'
+    if (password === user.password)
+      return true
+    this.passwordFailures.set(user.phone, failures + 1)
+    return false
   }
 
   // Follows UserViewSet.update: a new phone is saved only with the code sent to it
@@ -558,8 +607,20 @@ export class FakeBackend {
     if (method === 'GET' && id === undefined)
       return ok(this.basket ? [this.basketJson()] : [])
     if (method === 'POST' && id === undefined) {
-      this.basket ??= { id: this.nextId.basket++, items: [] }
+      this.basket ??= { id: this.nextId.basket++, items: [], utm_source: '' }
       return { status: 201, body: this.basketJson() }
+    }
+    if (method === 'POST' && id === 'restore')
+      return this.restoreBasket(body)
+    if (method === 'POST' && id === 'clear') {
+      // follows BasketViewSet.clear: whichever session has the basket
+      const basketId = this.signedBaskets.get(String(body.sign ?? ''))
+      if (basketId === undefined)
+        return { status: 400, body: { sign: [BAD_BASKET_LINK] } }
+      this.signedBaskets.delete(String(body.sign))
+      if (this.basket?.id === basketId)
+        this.basket = null
+      return noContent()
     }
     if (method !== 'POST' || !['add', 'update', 'remove'].includes(action))
       return undefined
@@ -591,6 +652,23 @@ export class FakeBackend {
     }
     if (action !== 'add' && basket.items.length === 0)
       this.basket = null
+    return noContent()
+  }
+
+  // Follows BasketViewSet.restore and Basket.parse_link_contents: a session that has a basket keeps it
+  private async restoreBasket(body: Body) {
+    if (this.basket !== null)
+      return noContent()
+    const items = []
+    for (const part of String(body.contents ?? '').split(',')) {
+      const match = /^(\d{1,9})\*(\d{1,5})$/.exec(part.trim())
+      const quantity = Number(match?.[2])
+      const product = match && quantity > 0 && quantity <= 32767 ? await this.product(Number(match[1])) : undefined
+      if (product !== undefined)
+        items.push({ id: this.nextId.item++, product, quantity })
+    }
+    if (items.length > 0)
+      this.basket = { id: this.nextId.basket++, items, utm_source: String(body.utm_source ?? '').replaceAll(/\W/g, '_').slice(0, 20) }
     return noContent()
   }
 
@@ -710,7 +788,7 @@ export class FakeBackend {
       total: items.reduce((total, item) => total + item.price, 0),
       quantity: items.reduce((quantity, item) => quantity + item.quantity, 0),
       phone: '',
-      utm_source: '',
+      utm_source: this.basket!.utm_source,
     }
   }
 
