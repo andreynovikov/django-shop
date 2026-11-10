@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
 import { IconBasket, IconChevronLeft, IconShoppingCart } from '@tabler/icons-react'
@@ -12,7 +12,7 @@ import { PageLoading, ButtonLoading } from '@/components/loading'
 
 import useBasket from '@/lib/basket'
 import { useCreateOrder } from '@/lib/order'
-import { useSession } from '@/lib/session'
+import { useSession, SIGN_OUT_FAILED } from '@/lib/session'
 import { useLastCatalog } from '@/lib/catalog/hooks'
 
 // The header row over the overlapped page header: a title on the left, a link back to the catalog on the right
@@ -21,6 +21,7 @@ const backLinkClass = `${buttonClass({ variant: 'outline-primary', size: 'sm' })
 
 export default function CartContents() {
   const { user, registered, status, invalidate, signOut } = useSession()
+  const [signOutFailed, setSignOutFailed] = useState(false)
   const { basket, isEmpty, isLoading, isSuccess, removeItem, setQuantity } = useBasket()
 
   const { mutate, isPending } = useCreateOrder()
@@ -99,7 +100,8 @@ export default function CartContents() {
 
             {status === 'authenticated' && (
               <div className="mt-4">
-                <a className="text-sm text-primary hover:text-link-hover" onClick={() => signOut()}>Оформить заказ от другого имени</a>
+                <a className="text-sm text-primary hover:text-link-hover" onClick={async () => setSignOutFailed(!await signOut())}>Оформить заказ от другого имени</a>
+                {signOutFailed && <p className="mt-1 mb-0 text-sm text-danger" role="alert">{SIGN_OUT_FAILED}</p>}
               </div>
             )}
           </div>
