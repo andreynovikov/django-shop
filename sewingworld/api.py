@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.core import signing
-from django.core.exceptions import FieldDoesNotExist
+from django.core.exceptions import FieldDoesNotExist, FieldError, ValidationError as DjangoValidationError
 from django.core.mail import mail_admins
 from django.db import IntegrityError, transaction
 from django.db.models import Sum, F, Q, OuterRef, Subquery
@@ -49,7 +49,7 @@ from .models import SiteProfile
 from .serializers import CategoryTreeSerializer, CategorySerializer, ProductSerializer, ProductListSerializer, \
     ProductKindSerializer, ProductImagesSerializer, StockSerializer, \
     BasketSerializer, BasketItemActionSerializer, OrderListSerializer, OrderSerializer, OrderActionSerializer, \
-    FavoritesSerializer, ComparisonSerializer, SerialSerializer, \
+    FavoritesSerializer, ComparisonSerializer, PreorderSerializer, SerialSerializer, \
     UserListSerializer, UserSerializer, RegistrationSerializer, AnonymousUserSerializer, LoginSerializer, PhoneValidator, UserBonusSerializer, \
     EMAIL_TAKEN, \
     FlatPageListSerializer, FlatPageSerializer, NewsSerializer, SalesActionSerializer, AdvertSerializer, \
@@ -72,6 +72,7 @@ BASKET_ITEM_ERRORS = validation_error_serializer(BasketItemActionSerializer)
 COMPARISON_ERRORS = validation_error_serializer(ComparisonSerializer)
 FAVORITE_ERRORS = validation_error_serializer(FavoritesSerializer)
 ORDER_ERRORS = validation_error_serializer(OrderActionSerializer)
+PREORDER_ERRORS = validation_error_serializer(PreorderSerializer)
 USER_ERRORS = validation_error_serializer(UserSerializer)
 REGISTRATION_ERRORS = validation_error_serializer(RegistrationSerializer)
 
@@ -88,6 +89,7 @@ PHONE_CODE_SENT = OpenApiResponse(
 WRONG_CODE = 'Неверный или устаревший код'
 BAD_EMAIL_LINK = 'Ссылка недействительна или устарела'
 BAD_BASKET_LINK = 'Ссылка недействительна'
+BAD_PARAMETER = 'Неверное значение'
 
 # users/current/ returns the anonymous user too
 CURRENT_USER = PolymorphicProxySerializer(
@@ -97,6 +99,14 @@ CURRENT_USER = PolymorphicProxySerializer(
 )
 
 PRODUCT_IDS = OpenApiResponse(response={'type': 'array', 'items': {'type': 'integer'}}, description='Product ids')
+
+
+def id_params(request, name):
+    """ Values of a query parameter that takes ids: anything else would fail the query with a server error """
+    values = request.query_params.getlist(name)
+    if not all(value.isascii() and value.isdigit() for value in values):
+        raise serializers.ValidationError({name: [BAD_PARAMETER]})
+    return values
 
 
 def ensure_session(request):
@@ -248,7 +258,7 @@ class ProductKindViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         queryset = ProductKind.objects.all()
-        products = self.request.query_params.getlist('product')
+        products = id_params(self.request, 'product')
         if len(products) > 0:
             queryset = queryset.filter(product__in=products)
         return queryset.distinct()
@@ -284,85 +294,88 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action == 'list':
             queryset = queryset.filter(sites=self.request.site)
 
-        for field, values in self.request.query_params.lists():
-            if field == 'in_category':
-                categories = []
-                for value in values:
-                    category = Category.objects.get(pk=value)
-                    categories.append(category)
-                    categories.extend(category.get_descendants().filter(active=True))
-                queryset = queryset.filter(categories__in=categories)
-                continue
-            base_field = field.split('__', 1)[0]
-            if base_field not in self.filtering_fields:
-                continue
-            try:
-                field_type = Product._meta.get_field(field).get_internal_type()
-            except FieldDoesNotExist:
-                field_type = None
-            if field == 'id':
-                queryset = queryset.filter(pk__in=values)
-            elif field == 'text':  # full text search
-                language = 'russian'
-                search_query = SearchQuery(values[0], config=language)
-                search_rank = SearchRank(F('fts_vector'), search_query, weights=[0.1, 0.2, 0.4, 1.0])
-                queryset = queryset.annotate(
-                    rank=search_rank
-                ).filter(
-                    fts_vector=search_query,
-                    rank__gte=0.001
-                ).order_by(
-                    '-enabled',
-                    '-rank'
-                )
-                filter_fields = ['manufacturer', 'price']
-                self.product_filter = get_product_filter(self.request.query_params, queryset=queryset, fields=filter_fields, request=self.request)
-                queryset = self.product_filter.qs
-            elif field_type == 'BooleanField':
-                key = '{}__exact'.format(field)
-                value = values[0].lower() in ('1', 'on', 't', 'true', 'y', 'yes')
-                queryset = queryset.filter(**{key: value})
-            elif field == 'title':
-                key = '{}__icontains'.format(field)
-                queryset = queryset.filter(**{key: values[0]})
-            elif field == 'instock':
-                if int(values[0]) > 0:
-                    queryset = queryset.filter(num__gt=0)
-                else:
-                    queryset = queryset.filter(num__exact=0)
-            elif field == 'price':
-                price = values[0].split('-')  # TODO Combine with filters after upgrade
-                if len(price) == 2:
-                    queryset = queryset.filter(price__gte=price[0], price__lte=price[1])
-            elif field == 'categories':
-                key = '{}__pk__exact'.format(field)
-                queryset = queryset.filter(**{key: values[0]})
-
-                category = Category.objects.get(pk=values[0])
-                if category.filters:
-                    fields = category.filters.split(',')
-                    self.product_filter = get_product_filter(self.request.query_params, queryset=queryset, fields=fields, request=self.request)
+        # A value of the wrong type, or a lookup the field lacks, fails while the filter is built
+        try:
+            for field, values in self.request.query_params.lists():
+                if field == 'in_category':
+                    categories = []
+                    for category in Category.objects.filter(pk__in=values):  # unknown ones find no products
+                        categories.append(category)
+                        categories.extend(category.get_descendants().filter(active=True))
+                    queryset = queryset.filter(categories__in=categories)
+                    continue
+                base_field = field.split('__', 1)[0]
+                if base_field not in self.filtering_fields:
+                    continue
+                try:
+                    field_type = Product._meta.get_field(field).get_internal_type()
+                except FieldDoesNotExist:
+                    field_type = None
+                if field == 'id':
+                    queryset = queryset.filter(pk__in=values)
+                elif field == 'text':  # full text search
+                    language = 'russian'
+                    search_query = SearchQuery(values[0], config=language)
+                    search_rank = SearchRank(F('fts_vector'), search_query, weights=[0.1, 0.2, 0.4, 1.0])
+                    queryset = queryset.annotate(
+                        rank=search_rank
+                    ).filter(
+                        fts_vector=search_query,
+                        rank__gte=0.001
+                    ).order_by(
+                        '-enabled',
+                        '-rank'
+                    )
+                    filter_fields = ['manufacturer', 'price']
+                    self.product_filter = get_product_filter(self.request.query_params, queryset=queryset, fields=filter_fields, request=self.request)
                     queryset = self.product_filter.qs
-            elif field in ('kind', 'manufacturer'):  # поиск по ключу
-                if len(values) > 1:
-                    key = '{}__pk__in'.format(field)
-                    queryset = queryset.filter(**{key: values})
-                else:
+                elif field_type == 'BooleanField':
+                    key = '{}__exact'.format(field)
+                    value = values[0].lower() in ('1', 'on', 't', 'true', 'y', 'yes')
+                    queryset = queryset.filter(**{key: value})
+                elif field == 'title':
+                    key = '{}__icontains'.format(field)
+                    queryset = queryset.filter(**{key: values[0]})
+                elif field == 'instock':
+                    if int(values[0]) > 0:
+                        queryset = queryset.filter(num__gt=0)
+                    else:
+                        queryset = queryset.filter(num__exact=0)
+                elif field == 'price':
+                    price = values[0].split('-')  # TODO Combine with filters after upgrade
+                    if len(price) == 2:
+                        queryset = queryset.filter(price__gte=price[0], price__lte=price[1])
+                elif field == 'categories':
                     key = '{}__pk__exact'.format(field)
                     queryset = queryset.filter(**{key: values[0]})
-            # elif field == 'inspection':
-            #     if len(values) > 1:
-            #         key = '{}__pk__in'.format(field)
-            #         queryset = queryset.filter(**{key: values})
-            #     else:
-            #         key = '{}__pk__istartswith'.format(field)
-            #         queryset = queryset.filter(**{key: values[0]})
-            # elif len(values) > 1:  # поиск в массиве
-            #     key = '{}__in'.format(field)
-            #     queryset = queryset.filter(**{key: values})
-            else:  # строковый поиск
-                key = '{}__exact'.format(field)
-                queryset = queryset.filter(**{key: values[0]})
+
+                    category = Category.objects.filter(pk=values[0]).first()
+                    if category is not None and category.filters:
+                        fields = category.filters.split(',')
+                        self.product_filter = get_product_filter(self.request.query_params, queryset=queryset, fields=fields, request=self.request)
+                        queryset = self.product_filter.qs
+                elif field in ('kind', 'manufacturer'):  # поиск по ключу
+                    if len(values) > 1:
+                        key = '{}__pk__in'.format(field)
+                        queryset = queryset.filter(**{key: values})
+                    else:
+                        key = '{}__pk__exact'.format(field)
+                        queryset = queryset.filter(**{key: values[0]})
+                # elif field == 'inspection':
+                #     if len(values) > 1:
+                #         key = '{}__pk__in'.format(field)
+                #         queryset = queryset.filter(**{key: values})
+                #     else:
+                #         key = '{}__pk__istartswith'.format(field)
+                #         queryset = queryset.filter(**{key: values[0]})
+                # elif len(values) > 1:  # поиск в массиве
+                #     key = '{}__in'.format(field)
+                #     queryset = queryset.filter(**{key: values})
+                else:  # строковый поиск
+                    key = '{}__exact'.format(field)
+                    queryset = queryset.filter(**{key: values[0]})
+        except (ValueError, FieldError, DjangoValidationError):
+            raise serializers.ValidationError({field: [BAD_PARAMETER]})
 
         return queryset.distinct()
 
@@ -445,8 +458,8 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                             q = int(q / item.quantity)
                     except Stock.DoesNotExist:
                         q = 0.0
-                        if q < quantity:
-                            quantity = q
+                    if q < quantity:
+                        quantity = q
             if quantity > 0.0:
                 results.append(store)
         return Response(StoreListSerializer(results, many=True, context=self.get_serializer_context()).data)
@@ -474,7 +487,7 @@ class StockViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [DjangoModelPermissions]
 
     def get_queryset(self):
-        queryset = Stock.objects.all()
+        queryset = Stock.objects.order_by('id')  # pages of an unordered query may repeat or skip rows
         suppliers = self.request.query_params.getlist('supplier')
         if len(suppliers) > 0:
             queryset = queryset.filter(supplier__code__in=suppliers)
@@ -506,7 +519,7 @@ class BasketViewSet(viewsets.ModelViewSet):
         queryset = Basket.objects.filter(site=self.request.site, session_id__isnull=False, session_id=self.request.session.session_key)
         return queryset
 
-    def destroy(self, request):
+    def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method)
 
     def update(self, request, *args, **kwargs):
@@ -684,9 +697,9 @@ class OrderViewSet(viewsets.ModelViewSet):
             'user': self.request.user
         }
         excludes = {}
-        order_site = self.request.query_params.get('site', None)
-        if order_site is not None:
-            filters['site'] = order_site
+        order_sites = id_params(self.request, 'site')
+        if order_sites:
+            filters['site'] = order_sites[-1]
         order_filter = self.request.query_params.get('filter', None)
         if order_filter == 'done':
             filters['status__in'] = [Order.STATUS_DONE, Order.STATUS_FINISHED]
@@ -706,6 +719,8 @@ class OrderViewSet(viewsets.ModelViewSet):
         },
     )
     def create(self, request):
+        if not request.session.session_key:  # without it, the query would match every basket left without a session
+            return Response("Basket does not exist", status=status.HTTP_400_BAD_REQUEST)
         try:
             basket = Basket.objects.get(site=request.site, session_id=request.session.session_key)
         except Basket.DoesNotExist:
@@ -751,23 +766,26 @@ class OrderViewSet(viewsets.ModelViewSet):
         adopt_order_email(request, self, instance)
         return Response(OrderSerializer(instance, context=self.get_serializer_context()).data)
 
-    def destroy(self, request):
+    def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method)
 
     @extend_schema(
-        request=inline_serializer('Preorder', fields={'product': serializers.IntegerField()}),
+        request=PreorderSerializer,
         responses={
             200: OrderSerializer,
+            400: PREORDER_ERRORS,
             403: FORBIDDEN,
         },
         methods=['POST']
     )
     @action(detail=False, methods=['post'])
     def preorder(self, request):
+        serializer = PreorderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        product = serializer.validated_data['product']
         request.session.save()  # ensure session is persisted
         request.session.modified = True
         basket = Basket.objects.create(site=request.site, session_id=request.session.session_key, secondary=True)
-        product = Product.objects.get(pk=request.data.get('product'))
         item = basket.items.create(product=product, quantity=1)
         item.save()
         basket.save()
@@ -878,7 +896,7 @@ class FavoritesViewSet(viewsets.ModelViewSet):
     def create(self, request):
         raise MethodNotAllowed(request.method)
 
-    def destroy(self, request):
+    def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method)
 
     def update(self, request, *args, **kwargs):
@@ -928,11 +946,11 @@ class ComparisonsViewSet(viewsets.ViewSet):
     )
     def list(self, request):
         comparison_list = request.session.get('comparison_list', None)
+        kinds = id_params(request, 'kind')
         if comparison_list:
             product_ids = list(map(int, comparison_list.split(',')))
-            kind = request.query_params.get('kind', None)
-            if kind:
-                product_ids = list(Product.objects.filter(pk__in=product_ids, kind=kind).values_list('id', flat=True))
+            if kinds:
+                product_ids = list(Product.objects.filter(pk__in=product_ids, kind=kinds[-1]).values_list('id', flat=True))
         else:
             product_ids = []
         return Response(product_ids)
@@ -1002,7 +1020,7 @@ class ComparisonsViewSet(viewsets.ViewSet):
 )
 class UserViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
-    queryset = ShopUser.objects.all()
+    queryset = ShopUser.objects.order_by('id')  # pages of an unordered query may repeat or skip rows
     lookup_value_regex = r'(:?\+?\d+|current)'
 
     def get_serializer_class(self):
@@ -1095,7 +1113,7 @@ class UserViewSet(viewsets.ModelViewSet):
             queue_email_confirmation(request, self, user)
         return Response(serializer.data)
 
-    def destroy(self, request):
+    def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method)
 
     @extend_schema(
@@ -1344,7 +1362,7 @@ class SerialViewSet(viewsets.ModelViewSet):
         queryset = Serial.objects.filter(user=self.request.user)
         return queryset
 
-    def destroy(self, request):
+    def destroy(self, request, *args, **kwargs):
         raise MethodNotAllowed(request.method)
 
     def update(self, request, *args, **kwargs):
@@ -1480,7 +1498,7 @@ class AdvertViewSet(viewsets.ReadOnlyModelViewSet):
         places = self.request.query_params.getlist('place')
         if len(places) > 0:
             queryset = queryset.filter(place__in=places)
-        category = self.request.query_params.getlist('category')
+        category = id_params(self.request, 'category')
         if len(category) > 0:
             queryset = queryset.filter(categories__pk__exact=category[0])
         return queryset

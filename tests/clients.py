@@ -19,3 +19,10 @@ class StorefrontClient(APIClient):
     """ A client whose requests come through the storefront of the default site """
     def __init__(self, *args, headers=None, **kwargs):
         super().__init__(*args, headers={'X-Frontend-Key': FRONTEND_KEY, **(headers or {})}, **kwargs)
+
+
+def signed_in(user):
+    """ A storefront client with the user logged in """
+    client = StorefrontClient()
+    client.force_login(user)
+    return client

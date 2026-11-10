@@ -498,7 +498,9 @@ class BasketSerializer(serializers.ModelSerializer):
         request.session.save()  # ensure session is persisted
         request.session.modified = True
         basket, created = Basket.objects.get_or_create(site=request.site, session_id=request.session.session_key)
-        basket.save(**validated_data)
+        for name, value in validated_data.items():
+            setattr(basket, name, value)
+        basket.save()
         return basket
 
 
@@ -609,6 +611,10 @@ class ComparisonSerializer(serializers.Serializer):
         if product is None:
             raise serializers.ValidationError("Product does not exist")
         return product
+
+
+class PreorderSerializer(ComparisonSerializer):
+    """ The product to ask about, see OrderViewSet.preorder """
 
 
 class UserListSerializer(serializers.ModelSerializer):
@@ -870,7 +876,7 @@ class SiteProfileSerializer(NonNullModelSerializer):
 class IntegrationSerializer(NonNullModelSerializer):
     class Meta:
         model = Integration
-        exclude = ('suppliers', 'products')
+        exclude = ('suppliers', 'products', 'settings')  # settings hold the marketplaces' API keys
 
 
 class IntegrationProductSerializer(serializers.ModelSerializer):

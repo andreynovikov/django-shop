@@ -10,17 +10,10 @@ from django.core import signing
 from django.test import TestCase, override_settings
 
 from shop import tasks
-from shop.models import Basket, Country, Currency, Manufacturer, Product
+from shop.models import Basket
 
 from .clients import StorefrontClient, add_storefront_key
-
-
-def add_products(*ids):
-    """ Without Product.save(), whose signals reach the marketplaces """
-    Currency.objects.get_or_create(code=643, defaults={'name': 'RUB'})
-    Manufacturer.objects.get_or_create(pk=49, defaults={'code': 'test', 'name': 'Test'})
-    Country.objects.get_or_create(pk=1, defaults={'name': 'Россия', 'ename': 'Russia'})
-    return Product.objects.bulk_create(Product(pk=pk, code=f'p{pk}', title=f'Товар {pk}') for pk in ids)
+from .fixtures import add_products
 
 
 class Base(TestCase):
