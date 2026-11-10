@@ -41,6 +41,7 @@ def get_favorites_count(context):
         return Favorites.objects.filter(user=context.request.user.id).count()
     return 0
 
+
 @register.simple_tag
 def barcode(number, fmt='code128', width=0.5, height=15):
     """

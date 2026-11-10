@@ -1,15 +1,15 @@
 from http.client import HTTPSConnection
-from urllib.error import URLError
 from urllib.parse import urlencode
 
 import json
+
 
 class Client(object):
     config = {}
 
     def __init__(self, login, password):
-      self.config['login'] = login
-      self.config['password'] = password
+        self.config['login'] = login
+        self.config['password'] = password
 
     def _call(self, args):
         """Calls a remote method."""

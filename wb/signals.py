@@ -25,7 +25,7 @@ def product_saved(sender, **kwargs):
                 product_integration = ProductIntegration.objects.get(product=product, integration=integration)
                 product_integration.notify_stock = True
                 product_integration.save()
-            except:
+            except Exception:
                 pass
 
 

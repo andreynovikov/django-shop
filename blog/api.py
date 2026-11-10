@@ -5,11 +5,8 @@ from django.db.models import Count
 from django.http import Http404
 from django.utils import timezone
 
-from rest_framework import views, viewsets, filters, status
-from rest_framework.decorators import action
-from rest_framework.exceptions import MethodNotAllowed
+from rest_framework import views, viewsets
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema
@@ -75,7 +72,7 @@ class EntryViewSet(viewsets.ReadOnlyModelViewSet):
         else:
             try:
                 year, month, day, slug = key.split('/')
-                date = datetime.datetime.strptime('{}__{}__{}'.format(year,month,day), '%Y__%m__%d').date()
+                date = datetime.datetime.strptime('{}__{}__{}'.format(year, month, day), '%Y__%m__%d').date()
                 since = self._make_date_lookup_arg(date)
                 until = self._make_date_lookup_arg(date + datetime.timedelta(days=1))
                 lookup_kwargs = {
@@ -88,7 +85,7 @@ class EntryViewSet(viewsets.ReadOnlyModelViewSet):
                     return obj
                 else:
                     raise Http404
-            except (IndexError, ValueError) as e:
+            except (IndexError, ValueError):
                 pass  # let DRF issue the error
 
     def _make_date_lookup_arg(self, value):

@@ -6,6 +6,8 @@ register = template.Library()
 
 # pluralize for russian language
 # {{someval|rupluralize:"товар,товара,товаров"}}
+
+
 @register.filter(is_safe=False)
 @stringfilter
 def rupluralize(value, endings):

@@ -4,7 +4,8 @@ import decimal
 from django import template
 
 
-register=template.Library()
+register = template.Library()
+
 
 @register.filter
 def percentage(value, percent=100):
@@ -12,6 +13,7 @@ def percentage(value, percent=100):
     Calculates percentage of a number and rounds it up.
     """
     return int(math.ceil(value * percent / 100))
+
 
 @register.filter
 def round_up(value, decimals=0):
@@ -30,6 +32,7 @@ def round_up(value, decimals=0):
     else:
         return int(math.ceil(value * multiplier) / multiplier)
 
+
 @register.filter
 def round_down(value, decimals=0):
     """
@@ -46,6 +49,7 @@ def round_down(value, decimals=0):
         return math.floor(value * multiplier) / multiplier
     else:
         return int(math.floor(value * multiplier) / multiplier)
+
 
 @register.filter
 def quantize(value, arg=None):
@@ -72,19 +76,28 @@ def quantize(value, arg=None):
     """
     if not isinstance(value, decimal.Decimal):
         value = decimal.Decimal(str(value))
-    options=["ru","rf","rd","rhd","rhe","rhu"]
-    precision=None;rounding=None
+    options = ["ru", "rf", "rd", "rhd", "rhe", "rhu"]
+    precision = None
+    rounding = None
     if arg:
-        args=arg.split(",")
-        precision=args[0]
+        args = arg.split(",")
+        precision = args[0]
         if len(args) > 1:
-            rounding=str(args[1])
-    if not precision: precision=".01"
-    if not rounding or rounding not in options: rounding=decimal.ROUND_UP
-    if rounding=="ru":rounding=decimal.ROUND_UP
-    elif rounding=="rf": rounding=decimal.ROUND_FLOOR
-    elif rounding=="rd": rounding=decimal.ROUND_DOWN
-    elif rounding=="rhd": rounding=decimal.ROUND_HALF_DOWN
-    elif rounding=="rhe": rounding=decimal.ROUND_HALF_EVEN
-    elif rounding=="rhu": rounding=decimal.ROUND_HALF_UP
-    return value.quantize(decimal.Decimal(precision),rounding=rounding)
+            rounding = str(args[1])
+    if not precision:
+        precision = ".01"
+    if not rounding or rounding not in options:
+        rounding = decimal.ROUND_UP
+    if rounding == "ru":
+        rounding = decimal.ROUND_UP
+    elif rounding == "rf":
+        rounding = decimal.ROUND_FLOOR
+    elif rounding == "rd":
+        rounding = decimal.ROUND_DOWN
+    elif rounding == "rhd":
+        rounding = decimal.ROUND_HALF_DOWN
+    elif rounding == "rhe":
+        rounding = decimal.ROUND_HALF_EVEN
+    elif rounding == "rhu":
+        rounding = decimal.ROUND_HALF_UP
+    return value.quantize(decimal.Decimal(precision), rounding=rounding)

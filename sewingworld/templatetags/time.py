@@ -31,7 +31,8 @@ from django.utils.timezone import is_aware
 from django import template
 
 
-register=template.Library()
+register = template.Library()
+
 
 @register.filter(expects_localtime=True)
 def shortnaturaltime(value):

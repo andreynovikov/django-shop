@@ -3,8 +3,8 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_BROKER_TRANSPORT_OPTIONS = {
-#     'sep': ':',
-#     'queue_order_strategy': 'priority',
+    # 'sep': ':',
+    # 'queue_order_strategy': 'priority',
     'visibility_timeout': 691200  # 8 days
 }
 # CELERY_SEND_EVENTS = True

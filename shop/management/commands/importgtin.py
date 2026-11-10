@@ -1,5 +1,6 @@
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from shop.models import Product
+
 
 class Command(BaseCommand):
     help = 'Imports gtin numbers'

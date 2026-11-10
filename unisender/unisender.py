@@ -34,9 +34,8 @@ class Unisender(object):
                 self.errorMessage = result['error']
                 self.errorCode = result['code']
         except TypeError:
-            pass # exception for non-iterable (boolean) types
+            pass  # exception for non-iterable (boolean) types
         return result
-
 
     def http_build_query(self, params, key=None):
         """

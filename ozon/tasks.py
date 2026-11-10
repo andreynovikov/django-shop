@@ -21,7 +21,6 @@ from shop.models import Integration, Basket, Order, Product, ProductIntegration,
 logger = logging.getLogger('ozon')
 
 
-
 class TaskFailure(Exception):
     pass
 

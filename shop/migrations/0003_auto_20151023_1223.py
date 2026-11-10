@@ -21,11 +21,11 @@ class Migration(migrations.Migration):
             name='pct_discount',
             field=models.PositiveSmallIntegerField(verbose_name='скидка, %', default=0),
         ),
-        #migrations.AddField(
+        # migrations.AddField(
         #    model_name='orderitem',
         #    name='val_discount',
         #    field=models.PositiveIntegerField(verbose_name='скидка, руб', default=0),
-        #),
+        # ),
         migrations.AlterField(
             model_name='product',
             name='cur_code',

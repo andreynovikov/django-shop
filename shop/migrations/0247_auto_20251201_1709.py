@@ -2,7 +2,6 @@
 
 from django.db import migrations, models
 import django.utils.timezone
-import mptt.fields
 
 
 class Migration(migrations.Migration):

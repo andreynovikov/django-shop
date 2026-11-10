@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
 from django.urls import NoReverseMatch
-from django.utils.html import conditional_escape, format_html, format_html_join
+from django.utils.html import conditional_escape, format_html
 
 from .models import Category, Entry
 

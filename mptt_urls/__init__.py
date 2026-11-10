@@ -1,8 +1,10 @@
 # coding: utf-8
 from django.utils.module_loading import import_string
 
+
 def _load(module):
     return import_string(module) if isinstance(module, str) else module
+
 
 class view():
     def __init__(self, model, view, slug_field, root=None):
@@ -19,7 +21,7 @@ class view():
 
         # define 'get_path' method for model
         self.model.get_path = get_path
-        #lambda instance, root='': '/'.join([getattr(item, slug_field) for item in instance.get_ancestors(include_self=True)]) + '/'
+        # lambda instance, root='': '/'.join([getattr(item, slug_field) for item in instance.get_ancestors(include_self=True)]) + '/'
 
     def __call__(self, *args, **kwargs):
         if 'path' not in kwargs:

@@ -4,7 +4,7 @@ from django.contrib.sites.models import Site
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from shop.models import Product, ProductIntegration, Integration
+from shop.models import Product, ProductIntegration
 
 
 logger = logging.getLogger('ozon')
@@ -21,5 +21,5 @@ def product_saved(sender, **kwargs):
             product_integration = ProductIntegration.objects.get(product=product, integration=integration)
             product_integration.notify_stock = True
             product_integration.save()
-        except:
+        except Exception:
             pass

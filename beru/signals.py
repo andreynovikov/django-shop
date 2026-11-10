@@ -3,8 +3,6 @@ import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from sewingworld.tasks import PRIORITY_IDLE
-
 from shop.models import Product, ProductIntegration, Order
 
 from .tasks import notify_beru_order_status
@@ -25,8 +23,9 @@ def product_saved(sender, **kwargs):
                 product_integration = ProductIntegration.objects.get(product=product, integration=integration)
                 product_integration.notify_stock = True
                 product_integration.save()
-            except:
+            except Exception:
                 pass
+
 
 @receiver(post_save, sender=Order, dispatch_uid='order_saved_beru_receiver')
 def order_saved(sender, **kwargs):

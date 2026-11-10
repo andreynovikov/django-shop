@@ -6,4 +6,4 @@ class BeruAppConfig(AppConfig):
     verbose_name = 'Беру!'
 
     def ready(self):
-        import beru.signals
+        import beru.signals  # noqa: F401

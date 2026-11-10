@@ -9,6 +9,7 @@ from shop.models import ShopUserManager
 
 register = template.Library()
 
+
 @register.filter
 @stringfilter
 def format_phone(value):
@@ -19,6 +20,7 @@ def format_phone(value):
 @register.filter
 def file_exists(filepath):
     return default_storage.exists(filepath)
+
 
 @register.filter
 def static_file_exists(filepath):

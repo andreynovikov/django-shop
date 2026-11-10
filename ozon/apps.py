@@ -6,4 +6,4 @@ class OzonAppConfig(AppConfig):
     verbose_name = 'Ozon'
 
     def ready(self):
-        import ozon.signals
+        import ozon.signals  # noqa: F401

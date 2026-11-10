@@ -1,6 +1,6 @@
 from urllib.request import urlopen
-from urllib.error import URLError
 from urllib.parse import urlencode
+
 
 class Client(object):
     SEND_STATUS = {
@@ -43,7 +43,7 @@ class Client(object):
     config = {}
 
     def __init__(self, key):
-      self.config['key'] = key
+        self.config['key'] = key
 
     def _call(self, method, args):
         """Calls a remote method."""

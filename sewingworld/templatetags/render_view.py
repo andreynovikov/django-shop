@@ -7,6 +7,7 @@ from django.urls.resolvers import RegexPattern
 
 register = Library()
 
+
 class ViewNode(Node):
     def __init__(self, url_or_view, args, kwargs):
         self.url_or_view = url_or_view
@@ -23,7 +24,7 @@ class ViewNode(Node):
             urlconf = getattr(request, "urlconf", settings.ROOT_URLCONF)
             resolver = URLResolver(RegexPattern(r'^/'), urlconf)
             view, args, kwargs = resolver.resolve(url_or_view)
-        except:
+        except Exception:
             view = get_callable(url_or_view)
             args = [Variable(arg).resolve(context) for arg in self.args]
             kwargs = {}
@@ -34,7 +35,7 @@ class ViewNode(Node):
             if callable(view):
                 return view(context['request'], *args, **kwargs).content.decode(settings.DEFAULT_CHARSET)
             raise "%r is not callable" % view
-        except:
+        except Exception:
             if getattr(settings, 'TEMPLATE_DEBUG', False):
                 raise
         return ""
@@ -87,10 +88,10 @@ def do_view(parser, token):
     args = []
     kwargs = {}
     tokens = token.split_contents()
-    if len(tokens)<2:
+    if len(tokens) < 2:
         raise TemplateSyntaxError("%r tag requires one or more arguments" %
-                                    token.contents.split()[0])
-    tag_name = tokens.pop(0)
+                                  token.contents.split()[0])
+    tokens.pop(0)  # the tag name
     url_or_view = tokens.pop(0)
     for token in tokens:
         equals = token.find("=")
@@ -99,5 +100,6 @@ def do_view(parser, token):
         else:
             kwargs[str(token[:equals])] = token[equals+1:]
     return ViewNode(url_or_view, args, kwargs)
+
 
 register.tag('view', do_view)

@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from django.contrib.flatpages.models import FlatPage
 
-from sewingworld.tasks import PRIORITY_HIGH, PRIORITY_NORMAL, PRIORITY_LOW, PRIORITY_IDLE
+from sewingworld.tasks import PRIORITY_HIGH, PRIORITY_IDLE
 
 from reviews import get_review_model
 from reviews.signals import review_was_posted
@@ -84,8 +84,8 @@ def order_saved(sender, **kwargs):
                 notify_user_order_delivered.delay(order.id)
 
         if order.status == Order.STATUS_DONE or order.status == Order.STATUS_FINISHED:
-            total = 0
             """ (by Sigalev request)
+            total = 0
             complete_orders = order.user.orders.filter(Q(status=Order.STATUS_DONE) | Q(status=Order.STATUS_FINISHED))
             for complete_order in complete_orders:
                 total += complete_order.total

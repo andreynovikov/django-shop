@@ -6,4 +6,4 @@ class WildberriesAppConfig(AppConfig):
     verbose_name = 'Wildberries'
 
     def ready(self):
-        import wb.signals
+        import wb.signals  # noqa: F401

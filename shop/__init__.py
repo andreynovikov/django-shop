@@ -1,5 +1,6 @@
 default_app_config = 'shop.apps.ShopAppConfig'
 
+
 def get_review_model():
     from .models import ProductReview
     return ProductReview

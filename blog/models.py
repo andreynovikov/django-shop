@@ -3,7 +3,6 @@ import string
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.db import models
-from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import linebreaks
 
@@ -14,6 +13,7 @@ from .preview import HTMLPreview
 # Taken from https://github.com/Fantomas42/django-blog-zinnia/blob/develop/zinnia/url_shortener/backends/default.py
 # for back compatibility
 BASE36_ALPHABET = string.digits + string.ascii_uppercase
+
 
 def base36(value):
     result = ''

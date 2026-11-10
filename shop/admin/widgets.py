@@ -5,14 +5,12 @@ import json
 from django import forms
 from django.conf import settings
 from django.contrib.admin import widgets
-from django.contrib.sites.models import Site
 from django.forms.utils import flatatt
 from django.forms.widgets import Widget, TextInput
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.encoding import force_str
 from django.utils.html import format_html, escape
-from django.conf import settings
 
 # from tagging.models import Tag
 
@@ -327,7 +325,7 @@ class OrderItemProductLink(Widget):
             '<p><a href="{}/products/{}.html" target="_blank" style="margin-right: 8px"><i class="ti ti-external-link"></i></a>'
             '<input{} /><a href="{}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">{}</a>'
             ' <a href="{}?_popup=1" class="related-widget-wrapper-link" data-popup="yes" title="Гарантийный талон"><i class="ti ti-ticket"></i></a>'
-            '&nbsp;<span class="tiny">{}</span>{}</p>', SHOP_INFO.get('url_prefix',''), self.object.product.code, flatatt(final_attrs),
+            '&nbsp;<span class="tiny">{}</span>{}</p>', SHOP_INFO.get('url_prefix', ''), self.object.product.code, flatatt(final_attrs),
             reverse('admin:shop_product_stock', args=[self.object.product.id]), str(self.object.product),
             reverse('admin:print-warranty-card', args=[self.object.order.id, self.object.pk]), self.object.serial_number, dimensions)
 
@@ -374,7 +372,7 @@ class ListTextWidget(forms.TextInput):
 
     def render(self, name, value, attrs=None, renderer=None):
         _id = attrs.get('id', uuid.uuid4().hex)
-        attrs.update({'list':'list__%s' % _id})
+        attrs.update({'list': 'list__%s' % _id})
         text_html = super(ListTextWidget, self).render(name, value, attrs=attrs)
         data_list = '<datalist id="list__%s">' % _id
         for item in self._list:

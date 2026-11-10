@@ -6,4 +6,4 @@ class SberAppConfig(AppConfig):
     verbose_name = 'СберМаркет'
 
     def ready(self):
-        import sber.signals
+        import sber.signals  # noqa: F401
