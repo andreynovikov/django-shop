@@ -10,11 +10,12 @@ The same codebase is deployed many times, once per site (sewing-world, janome, s
 
 ## Commands
 
-Project tests are in `tests/`, and the `errors` app has its own in `errors/tests/`. There is no CI for this branch (the only workflow builds a Docker image from the `cartzilla` branch).
+Project tests are in `tests/`, and the `errors` app has its own in `errors/tests/`. `.github/workflows/tests.yml` runs flake8 and both suites on every push, against a PostgreSQL 16 service container (production's major version). The other workflow builds a Docker image from the `cartzilla` branch.
+
+Dependencies are managed with uv. `pyproject.toml` lists only the packages the code uses directly, plus flake8 in the `dev` group, and `uv.lock` pins everything. Add packages with `uv add` and upgrade with `uv lock --upgrade-package <name>`. `override-dependencies` lifts the `Django<6.1` that django-celery-beat and django-prometheus declare. Servers keep their virtualenv in `env/`, see DEPLOYMENT.rst.
 
 ```bash
-python3 -m venv env && source env/bin/activate
-pip install -r requirements.txt
+uv sync && source .venv/bin/activate    # or prefix the commands below with `uv run`
 flake8                                  # lint; E501 (line length) is ignored, see .flake8
 python manage.py check
 python manage.py test tests errors --settings=tests.settings   # needs a Postgres role with CREATEDB, see tests/settings.py
@@ -31,7 +32,6 @@ Running anything requires:
 - A `.env` in the repo root (read by `django-environ`). Required keys include `SECRET_KEY`, `DATABASE_URL` (PostgreSQL), `CACHE_URL` (memcached), `ALLOWED_HOSTS`, `ALLOWED_ORIGINS`, `ROOT_URLCONF`, `CELERY_BROKER_URL` (Redis), `ADMINS` (`name:email,...`), `LOGIN_URL`/`LOGIN_REDIRECT_URL`/`LOGOUT_URL`, `DEFAULT_FROM_EMAIL`, `SERVER_EMAIL`, `CSRF_COOKIE_SAMESITE`, `SESSION_COOKIE_SAMESITE`.
 - `sewingworld/settings/integrations.py`. It is gitignored because it holds marketplace and payment credentials, but `settings/__init__.py` imports it unconditionally.
 - A `logs/` directory, which the file log handlers write to.
-- The `reviews` app, which is in `INSTALLED_APPS` and imported by `shop.signals` and `sewingworld.urls` but is **not in this repo or in requirements.txt**. It has to be installed separately.
 
 ## Architecture
 

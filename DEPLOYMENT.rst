@@ -10,7 +10,6 @@ The following packages are required:
     apt install exim4
     apt install rsync
     apt install python3
-    apt install python3-venv
     apt install postgresql-client
     apt install nginx
     apt install uwsgi
@@ -28,6 +27,10 @@ The following packages are required for building python packages:
     apt install libpq-dev
     apt install libjpeg-dev
     apt install tidy
+
+Python packages are installed with uv, which Debian does not package:
+::
+    curl -LsSf https://astral.sh/uv/install.sh | sudo env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh
 
 The following packages are optional:
 ::
@@ -313,17 +316,14 @@ Environment setup
 All sites are located in ``/www`` folder. Replication should be configured for this folder (see below). The following
 description is included for general reference.
 
-All sites are kept in git on GitHub. Each site is configured as separate Python virtualenv and has its own ``requirements.txt``
-file. So, general deployment scheme looks like this:
+All sites are kept in git on GitHub. Each site has its own Python virtualenv in ``env``, which uv fills
+from the ``uv.lock`` of its branch. So, general deployment scheme looks like this:
 ::
     cd /www
     git clone git@github.com:andreynovikov/django-shop.git janome.club
     cd janome.club
     git checkout janome
-    python3 -m venv env
-    source env/bin/activate
-    pip install -r requirements.txt
-    deactivate
+    UV_PROJECT_ENVIRONMENT=env uv sync --locked --no-dev
     mkdir media
     mkdir static
     mkdir logs

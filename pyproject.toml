@@ -1,0 +1,64 @@
+[project]
+name = "django-shop"
+version = "0"
+description = "Backend of the Швейный Мир e-commerce sites"
+requires-python = ">=3.13"
+dependencies = [
+    "beautifulsoup4>=4.15.0",
+    "celery>=5.6.3",
+    "django>=6.1.1",
+    "django-admin-sortable2>=2.3.1",
+    "django-better-admin-arrayfield>=1.4.2",
+    "django-celery-beat>=2.9.0",
+    "django-celery-results>=2.6.0",
+    "django-cleanup>=9.0.0",
+    "django-colorfield>=0.14.0",
+    "django-constance>=4.3.5",
+    "django-contrib-comments>=2.2.0",
+    "django-daterangefilter>=1.2",
+    "django-datetime-widget>=0.9.3",
+    "django-environ>=0.14.0",
+    "django-filter>=26.1",
+    "django-flags>=5.2.0",
+    "django-import-export[ods,xlsx]>=4.4.1",  # the file formats offered in the admin
+    "django-loginas>=0.3.14",
+    "django-mass-edit>=3.5.0",
+    "django-mflf>=0.1.0",
+    "django-model-utils>=5.0.0",
+    "django-more-admin-filters>=1.15",
+    "django-mptt>=0.18.0",
+    "django-otp>=1.7.3",
+    "django-prometheus>=2.5.0",
+    "django-rated-reviews[api]>=2.0.0",
+    "django-tagulous>=2.2.3",
+    "django-two-factor-auth>=1.18.1",
+    "django-widget-tweaks>=1.5.1",
+    "djangorestframework>=3.18.2",
+    "drf-spectacular>=0.30.0",
+    "phonenumbers>=9.0.40",  # for two_factor.plugins.phonenumber, the extra of django-two-factor-auth wants <8.99
+    "pillow>=13.0.0",  # ImageField
+    "psycopg2-binary>=2.9.13",
+    "pylibmc>=1.6.3",  # the cache backend in settings
+    "python-barcode>=0.16.1",
+    "pytidylib>=0.3.2",
+    "pyyaml>=6.0.3",  # the yaml format in SERIALIZATION_MODULES
+    "qrcode>=8.2",
+    "redis>=8.1.0",  # the Celery broker, the extra of celery wants <6.5
+    "requests>=2.34.2",
+    "xlsxwriter>=3.2.9",
+    "yookassa>=3.12.1",
+]
+
+[dependency-groups]
+dev = [
+    "flake8>=7.4.1",
+]
+
+[tool.uv]
+package = false
+# django-celery-beat 2.9.0 and django-prometheus 2.5.0 declare Django<6.1
+override-dependencies = ["django>=6.1.1"]
+
+[tool.uv.sources]
+# SimpleDropdownFilter is only in this branch of the fork
+django-more-admin-filters = { git = "https://github.com/andreynovikov/django-more-admin-filters", branch = "simple-list-filter" }
