@@ -1,0 +1,167 @@
+# Translations of the errors app.
+# This file is distributed under the same license as the errors package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: errors\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-09 12:23+0300\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
+"(n%100>=11 && n%100<=14)? 2 : 3);\n"
+
+#: admin.py:26 models.py:57
+msgid "context"
+msgstr "контекст"
+
+#: admin.py:30 models.py:56
+msgid "stack"
+msgstr "стек"
+
+#: admin.py:34 models.py:54
+msgid "traceback"
+msgstr "трассировка"
+
+#: admin.py:37
+msgid "as text"
+msgstr "текстом"
+
+#: admin.py:59 models.py:26 models.py:53
+msgid "message"
+msgstr "сообщение"
+
+#: admin.py:63
+msgid "frequency, per day"
+msgstr "частота, в день"
+
+#: apps.py:7
+msgid "Server errors"
+msgstr "Ошибки сервера"
+
+#: models.py:14
+msgid "Request"
+msgstr "Запрос"
+
+#: models.py:15
+msgid "Celery task"
+msgstr "Задача Celery"
+
+#: models.py:18
+msgid "Low"
+msgstr "Низкая"
+
+#: models.py:19
+msgid "Medium"
+msgstr "Средняя"
+
+#: models.py:20
+msgid "High"
+msgstr "Высокая"
+
+#: models.py:21
+msgid "Critical"
+msgstr "Критическая"
+
+#: models.py:23
+msgid "fingerprint"
+msgstr "отпечаток"
+
+#: models.py:24
+msgid "kind"
+msgstr "вид"
+
+#: models.py:25 models.py:35 models.py:51
+msgid "error"
+msgstr "ошибка"
+
+#: models.py:25
+msgid "Exception class or response status"
+msgstr "Класс исключения или код ответа"
+
+#: models.py:26
+msgid "The latest one"
+msgstr "Последнее"
+
+#: models.py:27
+msgid "source"
+msgstr "источник"
+
+#: models.py:27
+msgid "API route, Django view or Celery task"
+msgstr "Маршрут API, представление Django или задача Celery"
+
+#: models.py:28
+msgid "location in code"
+msgstr "место в коде"
+
+#: models.py:29
+msgid "first seen"
+msgstr "впервые"
+
+#: models.py:30
+msgid "last seen"
+msgstr "последний раз"
+
+#: models.py:31
+msgid "count"
+msgstr "количество"
+
+#: models.py:32
+msgid "severity"
+msgstr "важность"
+
+#: models.py:36
+msgid "errors"
+msgstr "ошибки"
+
+#: models.py:40
+#, python-format
+msgid "%(name)s in %(source)s"
+msgstr "%(name)s в %(source)s"
+
+#: models.py:52
+msgid "time"
+msgstr "время"
+
+#: models.py:60
+msgid "occurrence"
+msgstr "случай"
+
+#: models.py:61
+msgid "occurrences"
+msgstr "случаи"
+
+#: templates/admin/errors/frames.html:6
+#, python-format
+msgid ""
+"The above exception (%(cause)s) was the direct cause of the following "
+"exception:"
+msgstr "Исключение выше (%(cause)s) стало прямой причиной следующего:"
+
+#: templates/admin/errors/frames.html:8
+#, python-format
+msgid ""
+"During handling of the above exception (%(cause)s), another exception "
+"occurred:"
+msgstr "Во время обработки исключения выше (%(cause)s) возникло другое:"
+
+#: templates/admin/errors/frames.html:13
+#, python-format
+msgid "<code>%(file)s</code>, line %(line)s, in <code>%(function)s</code>"
+msgstr "<code>%(file)s</code>, строка %(line)s, в <code>%(function)s</code>"
+
+#: templates/admin/errors/frames.html:17
+msgid "Variable"
+msgstr "Переменная"
+
+#: templates/admin/errors/frames.html:17
+msgid "Value"
+msgstr "Значение"
+
+#: templates/admin/errors/frames.html:27
+msgid "None: the response came without an exception"
+msgstr "Нет: ответ без исключения"

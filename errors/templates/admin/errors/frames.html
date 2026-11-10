@@ -1,0 +1,28 @@
+{% load i18n %}{# Frames of ErrorTrace.frames, as on Django's debug page: the project ones are open, those of libraries closed #}
+{% for frame in frames %}
+  {% ifchanged frame.cause %}{% if frame.cause %}
+    <p style="margin: 12px 0 8px; font-weight: bold">
+      {% if frame.cause_explicit %}
+        {% blocktranslate trimmed with cause=frame.cause %}The above exception ({{ cause }}) was the direct cause of the following exception:{% endblocktranslate %}
+      {% else %}
+        {% blocktranslate trimmed with cause=frame.cause %}During handling of the above exception ({{ cause }}), another exception occurred:{% endblocktranslate %}
+      {% endif %}
+    </p>
+  {% endif %}{% endifchanged %}
+  <details{% if frame.in_app %} open{% endif %} style="margin: 0 0 6px">
+    <summary>{% blocktranslate trimmed with file=frame.file line=frame.lineno function=frame.function %}<code>{{ file }}</code>, line {{ line }}, in <code>{{ function }}</code>{% endblocktranslate %}</summary>
+    <pre style="margin: 4px 0; padding: 4px 0; background: var(--darkened-bg); overflow-x: auto">{% for number, line in frame.lines %}<span style="display: block{% if number == frame.lineno %}; background: var(--message-warning-bg); font-weight: bold{% endif %}">{{ number|stringformat:"5d" }}  {{ line }}</span>{% endfor %}</pre>
+    {% if frame.vars %}
+      <table style="width: 100%; margin-bottom: 8px">
+        <thead><tr><th style="width: 15%">{% translate "Variable" %}</th><th>{% translate "Value" %}</th></tr></thead>
+        <tbody>
+          {% for name, value in frame.vars %}
+            <tr><td><code>{{ name }}</code></td><td><pre style="margin: 0; white-space: pre-wrap; word-break: break-all">{{ value }}</pre></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+  </details>
+{% empty %}
+  <p>{% translate "None: the response came without an exception" %}</p>
+{% endfor %}

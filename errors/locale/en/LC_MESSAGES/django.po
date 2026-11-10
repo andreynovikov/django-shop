@@ -1,0 +1,165 @@
+# Translations of the errors app.
+# This file is distributed under the same license as the errors package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: errors\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-09 12:23+0300\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: admin.py:26 models.py:57
+msgid "context"
+msgstr ""
+
+#: admin.py:30 models.py:56
+msgid "stack"
+msgstr ""
+
+#: admin.py:34 models.py:54
+msgid "traceback"
+msgstr ""
+
+#: admin.py:37
+msgid "as text"
+msgstr ""
+
+#: admin.py:59 models.py:26 models.py:53
+msgid "message"
+msgstr ""
+
+#: admin.py:63
+msgid "frequency, per day"
+msgstr ""
+
+#: apps.py:7
+msgid "Server errors"
+msgstr ""
+
+#: models.py:14
+msgid "Request"
+msgstr ""
+
+#: models.py:15
+msgid "Celery task"
+msgstr ""
+
+#: models.py:18
+msgid "Low"
+msgstr ""
+
+#: models.py:19
+msgid "Medium"
+msgstr ""
+
+#: models.py:20
+msgid "High"
+msgstr ""
+
+#: models.py:21
+msgid "Critical"
+msgstr ""
+
+#: models.py:23
+msgid "fingerprint"
+msgstr ""
+
+#: models.py:24
+msgid "kind"
+msgstr ""
+
+#: models.py:25 models.py:35 models.py:51
+msgid "error"
+msgstr ""
+
+#: models.py:25
+msgid "Exception class or response status"
+msgstr ""
+
+#: models.py:26
+msgid "The latest one"
+msgstr ""
+
+#: models.py:27
+msgid "source"
+msgstr ""
+
+#: models.py:27
+msgid "API route, Django view or Celery task"
+msgstr ""
+
+#: models.py:28
+msgid "location in code"
+msgstr ""
+
+#: models.py:29
+msgid "first seen"
+msgstr ""
+
+#: models.py:30
+msgid "last seen"
+msgstr ""
+
+#: models.py:31
+msgid "count"
+msgstr ""
+
+#: models.py:32
+msgid "severity"
+msgstr ""
+
+#: models.py:36
+msgid "errors"
+msgstr ""
+
+#: models.py:40
+#, python-format
+msgid "%(name)s in %(source)s"
+msgstr ""
+
+#: models.py:52
+msgid "time"
+msgstr ""
+
+#: models.py:60
+msgid "occurrence"
+msgstr ""
+
+#: models.py:61
+msgid "occurrences"
+msgstr ""
+
+#: templates/admin/errors/frames.html:6
+#, python-format
+msgid ""
+"The above exception (%(cause)s) was the direct cause of the following "
+"exception:"
+msgstr ""
+
+#: templates/admin/errors/frames.html:8
+#, python-format
+msgid ""
+"During handling of the above exception (%(cause)s), another exception "
+"occurred:"
+msgstr ""
+
+#: templates/admin/errors/frames.html:13
+#, python-format
+msgid "<code>%(file)s</code>, line %(line)s, in <code>%(function)s</code>"
+msgstr ""
+
+#: templates/admin/errors/frames.html:17
+msgid "Variable"
+msgstr ""
+
+#: templates/admin/errors/frames.html:17
+msgid "Value"
+msgstr ""
+
+#: templates/admin/errors/frames.html:27
+msgid "None: the response came without an exception"
+msgstr ""

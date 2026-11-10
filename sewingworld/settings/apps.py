@@ -47,6 +47,7 @@ INSTALLED_APPS = (
     'reviews',
     'blog',
     'forum',
+    'errors',
     'constance',
     'django_cleanup',
     'drf_spectacular',

@@ -68,6 +68,11 @@ LOGGING = {
             'propagate': True,
             'level': 'INFO',
         },
+        'errors': {
+            'handlers': ['file'],
+            'propagate': True,
+            'level': 'INFO',
+        },
         'sewingworld': {
             'handlers': ['file'],
             'propagate': True,

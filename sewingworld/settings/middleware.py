@@ -1,5 +1,7 @@
 MIDDLEWARE = (
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
+    # first, to see the 500 made of an exception in any other middleware
+    'errors.middleware.ErrorCaptureMiddleware',
     # before everything that uses the site, the client address or the session
     'sewingworld.middleware.FrontendKeyMiddleware',
     'sewingworld.middleware.BlockedIpMiddleware',
