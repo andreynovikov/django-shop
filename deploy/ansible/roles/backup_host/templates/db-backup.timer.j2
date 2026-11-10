@@ -1,0 +1,9 @@
+[Unit]
+Description=Database backup maintenance: %i
+
+[Timer]
+OnCalendar={{ item.value }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

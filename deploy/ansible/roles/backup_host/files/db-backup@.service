@@ -1,0 +1,9 @@
+[Unit]
+Description=Database backup maintenance: %i
+
+[Service]
+Type=oneshot
+User=restic-rest-server
+CacheDirectory=db-backup
+Environment=RESTIC_CACHE_DIR=%C/db-backup
+ExecStart=/usr/local/lib/db-backup/maintain.sh %i

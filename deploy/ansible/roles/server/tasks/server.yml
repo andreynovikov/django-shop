@@ -1,0 +1,116 @@
+- name: Install packages
+  ansible.builtin.apt:
+    name: "{{ server_packages + server_build_packages + server_optional_packages }}"
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install uv
+  ansible.builtin.shell:
+    cmd: set -o pipefail && curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh
+    executable: /bin/bash
+    creates: /usr/local/bin/uv
+
+# https://docs.docker.com/engine/install/debian/#install-using-the-repository
+- name: Create the apt keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Add the Docker repository key
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/debian/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+- name: Add the Docker repository
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/docker.sources
+    content: |
+      Types: deb
+      URIs: https://download.docker.com/linux/debian
+      Suites: {{ ansible_facts['distribution_release'] }}
+      Components: stable
+      Signed-By: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+  register: docker_repository
+
+- name: Install Docker
+  ansible.builtin.apt:
+    name: "{{ server_docker_packages }}"
+    update_cache: "{{ docker_repository is changed }}"
+
+- name: Create users
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    groups: "{{ item.groups }}"
+    append: true
+    shell: /bin/bash
+    password: "{{ item.password | default(omit) }}"
+    update_password: on_create
+  loop: "{{ server_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Authorize ssh keys of users
+  ansible.posix.authorized_key:
+    user: "{{ item.0.name }}"
+    key: "{{ item.1 }}"
+  loop: "{{ server_users | subelements('ssh_keys', skip_missing=true) }}"
+  loop_control:
+    label: "{{ item.0.name }}"
+
+- name: Disable ssh root login and adjust keep-alives
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/server.conf
+    content: |
+      PermitRootLogin no
+      ClientAliveInterval 60
+      ClientAliveCountMax 8
+    mode: "0644"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Reload ssh
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ server_timezone }}"
+
+- name: Create the timesyncd drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/timesyncd.conf.d
+    state: directory
+    mode: "0755"
+
+# NTP= of /etc/systemd/timesyncd.conf
+- name: Set NTP server
+  ansible.builtin.copy:
+    dest: /etc/systemd/timesyncd.conf.d/ntp.conf
+    content: |
+      [Time]
+      NTP={{ server_ntp }}
+    mode: "0644"
+  notify: Restart timesyncd
+
+# timedatectl set-ntp true
+- name: Enable time synchronization
+  ansible.builtin.systemd_service:
+    name: systemd-timesyncd
+    enabled: true
+    state: started
+
+# dpkg-reconfigure exim4-config, "internet site"
+- name: Let Exim send mail to the internet
+  ansible.builtin.lineinfile:
+    path: /etc/exim4/update-exim4.conf.conf
+    regexp: '^dc_eximconfig_configtype='
+    line: "dc_eximconfig_configtype='internet'"
+  notify:
+    - Update exim4 config
+    - Restart exim4
+
+- name: Increase memcached limits
+  ansible.builtin.lineinfile:
+    path: /etc/memcached.conf
+    regexp: '^-m '
+    line: "-m {{ server_memcached_memory }}"
+  notify: Restart memcached

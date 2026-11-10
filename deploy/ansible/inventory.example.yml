@@ -1,0 +1,30 @@
+# Copy to inventory.yml and fill in, see README.rst.
+all:
+  children:
+    production:
+      hosts:
+        server.example.ru:
+      vars:
+        # Keys and password hashes (openssl passwd -6) of the users, the password is set only on creation.
+        server_users:
+          - name: andrey
+            groups: [adm, docker, sudo, www-data]
+            password: '$6$...'
+            ssh_keys:
+              - ssh-ed25519 AAAA... andrey
+          - name: nikolays
+            groups: [sudo, www-data]
+          - name: maria
+            groups: [www-data]
+          - name: egor
+            groups: [www-data]
+        # After their ini files are copied to /etc/uwsgi/apps-available:
+        # server_uwsgi_apps: [www.sewing-world.ru]
+        # After the deployment and its .env are in place:
+        # server_db_backup_deployments: [www.sewing-world.ru]
+    backup:
+      hosts:
+        backup.example.ru:
+      vars:
+        # The password of the production server's login, better kept with ansible-vault.
+        # backup_host_login_password: ...

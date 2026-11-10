@@ -1,0 +1,55 @@
+# "Production server" in "Database backups". RESTIC_* settings go into the .env of the deployment by hand.
+- name: Install restic
+  ansible.builtin.apt:
+    name: restic
+
+- name: Create /etc/db-backup
+  ansible.builtin.file:
+    path: /etc/db-backup
+    state: directory
+    mode: "0755"
+
+- name: Read the repository password on the backup host
+  ansible.builtin.slurp:
+    src: /etc/db-backup/restic-password
+  delegate_to: "{{ server_backup_password_host }}"
+  register: restic_password
+  no_log: true
+  when: server_backup_password_host | length > 0
+
+- name: Copy the repository password
+  ansible.builtin.copy:
+    dest: /etc/db-backup/restic-password
+    content: "{{ restic_password.content | b64decode }}"
+    owner: nikolays
+    mode: "0400"
+  no_log: true
+  when: server_backup_password_host | length > 0
+
+- name: Install backup units
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /etc/systemd/system/
+    mode: "0644"
+  loop:
+    - db_backup@.service
+    - db_backup@.timer
+    - db_backup_config@.service
+    - db_backup_config@.timer
+  notify: Reload systemd
+
+- name: Enable hourly database backups
+  ansible.builtin.systemd_service:
+    name: db_backup@{{ item }}.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: "{{ server_db_backup_deployments }}"
+
+- name: Enable daily config backups
+  ansible.builtin.systemd_service:
+    name: db_backup_config@{{ item }}.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: "{{ server_db_backup_config_deployments }}"

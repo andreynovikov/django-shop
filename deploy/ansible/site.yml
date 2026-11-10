@@ -1,0 +1,16 @@
+# Server setup from DEPLOYMENT.rst: packages, system configuration and the files whose contents it lists.
+# README.rst tells how to run it, the first run on a new server included, and what is left to do by hand.
+
+# The backup host goes first, the production server copies the repository password from it.
+- name: Backup host
+  hosts: backup
+  become: true
+  roles:
+    - role: backup_host
+      tags: backup_host
+
+- name: Production server
+  hosts: production
+  become: true
+  roles:
+    - server

@@ -1,0 +1,32 @@
+# Sections of DEPLOYMENT.rst. "PostgreSql setup" is skipped, the database runs on a separate server.
+- name: Server setup
+  ansible.builtin.import_tasks: server.yml
+  tags: server
+
+- name: Two factor authentication
+  ansible.builtin.import_tasks: two_factor.yml
+  tags: 2fa
+
+- name: Nginx setup
+  ansible.builtin.import_tasks: nginx.yml
+  tags: nginx
+
+- name: UWSGI setup
+  ansible.builtin.import_tasks: uwsgi.yml
+  tags: uwsgi
+
+- name: Celery setup
+  ansible.builtin.import_tasks: celery.yml
+  tags: celery
+
+- name: Node.js setup
+  ansible.builtin.import_tasks: node.yml
+  tags: node
+
+- name: Database backups
+  ansible.builtin.import_tasks: backup.yml
+  tags: backup
+
+- name: Log rotation
+  ansible.builtin.import_tasks: logrotate.yml
+  tags: logrotate

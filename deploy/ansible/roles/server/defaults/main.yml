@@ -1,0 +1,71 @@
+server_packages:
+  - sudo
+  - exim4
+  - rsync
+  - python3
+  - postgresql-client
+  - nginx
+  - uwsgi
+  - uwsgi-plugin-python3
+  - memcached
+  - redis-server
+  - certbot
+  - git
+  # not listed in DEPLOYMENT.rst: the uv and nvm installers download with curl, Ansible needs acl to become
+  # an unprivileged user, and timesyncd is not installed everywhere
+  - curl
+  - acl
+  - systemd-timesyncd
+
+# for building Python packages
+server_build_packages:
+  - build-essential
+  - python3-dev
+  - libmemcached-dev
+  - libpq-dev
+  - libjpeg-dev
+  - tidy
+
+server_optional_packages:
+  - less
+  - emacs-nox
+  - bind9-dnsutils
+  - htop
+
+server_docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+# Created in this order to preserve their uids. Each user may also have ssh_keys, a list of public keys, and
+# password, a crypt hash that is set only when the user is created.
+server_users:
+  - name: andrey
+    groups: [adm, docker, sudo, www-data]
+  - name: nikolays
+    groups: [sudo, www-data]
+  - name: maria
+    groups: [www-data]
+  - name: egor
+    groups: [www-data]
+
+server_timezone: Europe/Moscow
+server_ntp: ru.pool.ntp.org
+server_memcached_memory: 256
+
+# Owner of /www, where the sites and Node.js live
+server_www_owner: andrey
+server_nvm_version: v0.41.0
+
+# uWSGI apps to enable, the names of their ini files in /etc/uwsgi/apps-available
+server_uwsgi_apps: []
+
+# Deployments in /www that back up their database hourly, one per database, and deployments that only save their
+# config daily
+server_db_backup_deployments: []
+server_db_backup_config_deployments: []
+
+# The host that holds the backup repository password, the first one of the inventory group "backup"
+server_backup_password_host: "{{ (groups['backup'] | default([]) | first) | default('', true) }}"

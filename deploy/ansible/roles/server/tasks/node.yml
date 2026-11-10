@@ -1,0 +1,36 @@
+# The sites are cloned into /www by hand, see "Environment setup".
+- name: Create /www
+  ansible.builtin.file:
+    path: /www
+    state: directory
+    owner: "{{ server_www_owner }}"
+    group: www-data
+    mode: "2775"
+
+- name: Create /www/.nvm
+  ansible.builtin.file:
+    path: /www/.nvm
+    state: directory
+    owner: "{{ server_www_owner }}"
+    group: www-data
+    mode: "2775"
+
+- name: Install nvm
+  ansible.builtin.shell:
+    cmd: set -o pipefail && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/{{ server_nvm_version }}/install.sh | bash
+    executable: /bin/bash
+    creates: /www/.nvm/nvm.sh
+  environment:
+    NVM_DIR: /www/.nvm
+  become: true
+  become_user: "{{ server_www_owner }}"
+
+- name: Install Node
+  ansible.builtin.shell:
+    cmd: . /www/.nvm/nvm.sh && nvm install node
+    executable: /bin/bash
+    creates: /www/.nvm/alias/default
+  environment:
+    NVM_DIR: /www/.nvm
+  become: true
+  become_user: "{{ server_www_owner }}"

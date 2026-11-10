@@ -1,0 +1,17 @@
+[Unit]
+Description=Celery worker for %I
+Wants=redis-server.service
+After=network.target redis-server.service
+
+[Service]
+User=nikolays
+Group=www-data
+Type=forking
+EnvironmentFile=-/etc/celery/%I_worker
+PIDFile=/run/celery/%I_worker.pid
+ExecStart=/bin/sh -c "$$VIRTUALENV/bin/celery multi start $CELERYD_NODES --pidfile=/run/celery/%I_worker.pid $CELERYD_OPTS"
+ExecStop=/bin/sh -c "$$VIRTUALENV/bin/celery multi stopwait $CELERYD_NODES --pidfile=/run/celery/%I_worker.pid"
+ExecReload=/bin/sh -c "$$VIRTUALENV/bin/celery multi restart $CELERYD_NODES --pidfile=/run/celery/%I_worker.pid $CELERYD_OPTS"
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,9 @@
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Restart restic-rest-server
+  ansible.builtin.systemd_service:
+    name: restic-rest-server
+    state: restarted
+  when: rest_server_certificates.results | map(attribute='stat.exists') is all

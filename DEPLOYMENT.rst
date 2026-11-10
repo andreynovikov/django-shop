@@ -2,6 +2,11 @@
 Server setup
 ************
 
+The Ansible playbook ``deploy/ansible/site.yml`` does the steps of this guide that need neither files from the old
+server nor secrets: packages, users, system configuration and the files listed here, on the production server and on
+the backup host. It leaves out PostgreSQL, the sites in ``/www``, replication and failover.
+``deploy/ansible/README.rst`` tells how to run it and what is left to do by hand.
+
 Historically server is run under latest Debian Stable.
 
 The following packages are required:
@@ -169,7 +174,7 @@ Create ``/etc/systemd/system/uwsgi@.socket``:
     Description=Socket for uWSGI app %i
 
     [Socket]
-    ListenStream=/var/run/uwsgi/%i.socket
+    ListenStream=/run/uwsgi/%i.socket
     SocketUser=nikolays
     SocketGroup=www-data
     SocketMode=0660
@@ -186,7 +191,7 @@ Create ``/etc/systemd/system/uwsgi@.service``:
     [Service]
     ExecStart=/usr/bin/uwsgi \
             --ini /etc/uwsgi/apps-available/%i.ini \
-            --socket /var/run/uwsgi/%i.socket
+            --socket /run/uwsgi/%i.socket
     User=nikolays
     Group=www-data
     Restart=on-failure
@@ -294,20 +299,6 @@ Install Node (replace XX.X with actual version):
     export NVM_DIR="/www/.nvm"
     wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.XX.X/install.sh | bash
     nvm install node
-
-Install pm2 globally:
-::
-    npm install pm2 -g
-
-Add ``export PM2_HOME=/www/.pm2`` to ``/etc/profile``
-
-Create systemd service file:
-::
-    sudo mkdir /www/.pm2
-    sudo chown www-data:www-data /www/.pm2
-    sudo chmod g+w /www/.pm2
-    sudo pm2 startup systemd -u www-data -hp /www --service-name pm2
-    sudo systemctl enable pm2
 
 *****************
 Environment setup

@@ -1,0 +1,21 @@
+# Each interactive user still has to run `google-authenticator -t -d -f -r 3 -R 30 -W` to get OTP codes, until then
+# they can log in with an ssh key only.
+- name: Install Google Authenticator PAM module
+  ansible.builtin.apt:
+    name: libpam-google-authenticator
+
+- name: Ask for an OTP code on ssh login
+  ansible.builtin.lineinfile:
+    path: /etc/pam.d/sshd
+    line: auth required pam_google_authenticator.so
+  notify: Reload ssh
+
+# ChallengeResponseAuthentication is its old name
+- name: Enable challenge response
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/two_factor.conf
+    content: |
+      KbdInteractiveAuthentication yes
+    mode: "0644"
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Reload ssh

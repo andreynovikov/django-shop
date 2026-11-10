@@ -1,0 +1,159 @@
+# "Backup host" in "Database backups" of DEPLOYMENT.rst
+- name: Install packages
+  ansible.builtin.apt:
+    name:
+      - restic-rest-server
+      - restic
+      - jq
+      - apache2-utils
+      - bsd-mailx
+      - postgresql
+      # not listed in DEPLOYMENT.rst: Ansible needs acl to become an unprivileged user
+      - acl
+      - openssl
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create the repository directory
+  ansible.builtin.file:
+    path: /srv/restic
+    state: directory
+    owner: restic-rest-server
+    mode: "0755"
+
+- name: Create /etc/db-backup
+  ansible.builtin.file:
+    path: /etc/db-backup
+    state: directory
+    mode: "0755"
+
+# Save it in the password manager, without it the backups cannot be read.
+- name: Generate the repository password
+  ansible.builtin.shell:
+    cmd: umask 077 && openssl rand -base64 30 > /etc/db-backup/restic-password
+    creates: /etc/db-backup/restic-password
+
+- name: Let restic-rest-server read the repository password
+  ansible.builtin.file:
+    path: /etc/db-backup/restic-password
+    owner: restic-rest-server
+    mode: "0400"
+
+- name: Create the repository
+  ansible.builtin.command:
+    cmd: restic init --no-cache --repo /srv/restic/{{ backup_host_repository }} --password-file /etc/db-backup/restic-password
+    creates: /srv/restic/{{ backup_host_repository }}/config
+  become: true
+  become_user: restic-rest-server
+
+- name: Check the login of the production server
+  ansible.builtin.command:
+    cmd: htpasswd -iv /etc/restic-rest-server/users.htpasswd {{ backup_host_repository }}
+    stdin: "{{ backup_host_login_password }}"
+  register: backup_login
+  changed_when: false
+  failed_when: false
+  no_log: true
+  when: backup_host_login_password is defined
+
+- name: Create the login of the production server
+  ansible.builtin.command:
+    cmd: htpasswd -iB /etc/restic-rest-server/users.htpasswd {{ backup_host_repository }}
+    stdin: "{{ backup_host_login_password }}"
+  changed_when: true
+  no_log: true
+  when: backup_host_login_password is defined and backup_login.rc != 0
+
+- name: Start PostgreSQL
+  ansible.builtin.systemd_service:
+    name: postgresql
+    enabled: true
+    state: started
+
+- name: Check the PostgreSQL role for restore tests
+  ansible.builtin.command:
+    cmd: psql -tAc "SELECT 1 FROM pg_roles WHERE rolname = 'restic-rest-server'"
+  become: true
+  become_user: postgres
+  register: restore_role
+  changed_when: false
+
+- name: Create the PostgreSQL role for restore tests
+  ansible.builtin.command:
+    cmd: createuser --createdb restic-rest-server
+  become: true
+  become_user: postgres
+  changed_when: true
+  when: restore_role.stdout != '1'
+
+- name: Configure restic-rest-server
+  ansible.builtin.copy:
+    src: restic-rest-server
+    dest: /etc/default/restic-rest-server
+    mode: "0644"
+  notify: Restart restic-rest-server
+
+# The TLS certificate for the host name is put there by hand.
+- name: Check the TLS certificate
+  ansible.builtin.stat:
+    path: /etc/restic-rest-server/{{ item }}
+  loop:
+    - cert.pem
+    - key.pem
+  register: rest_server_certificates
+
+- name: Start restic-rest-server
+  ansible.builtin.systemd_service:
+    name: restic-rest-server
+    enabled: true
+    state: started
+  when: rest_server_certificates.results | map(attribute='stat.exists') is all
+
+- name: Warn about the missing TLS certificate
+  ansible.builtin.debug:
+    msg: restic-rest-server is not started, put cert.pem and key.pem into /etc/restic-rest-server
+  when: rest_server_certificates.results | map(attribute='stat.exists') is not all
+
+- name: Create /usr/local/lib/db-backup
+  ansible.builtin.file:
+    path: /usr/local/lib/db-backup
+    state: directory
+    mode: "0755"
+
+- name: Install maintenance scripts
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../backup/{{ item }}"
+    dest: /usr/local/lib/db-backup/
+    mode: "0755"
+  loop:
+    - maintain.sh
+    - restore.sh
+
+- name: Configure maintenance
+  ansible.builtin.template:
+    src: db-backup.j2
+    dest: /etc/default/db-backup
+    mode: "0644"
+
+- name: Install the maintenance unit
+  ansible.builtin.copy:
+    src: db-backup@.service
+    dest: /etc/systemd/system/
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Install maintenance timers
+  ansible.builtin.template:
+    src: db-backup.timer.j2
+    dest: /etc/systemd/system/db-backup@{{ item.key }}.timer
+    mode: "0644"
+  loop: "{{ backup_host_timers | dict2items }}"
+  notify: Reload systemd
+
+- name: Enable maintenance timers
+  ansible.builtin.systemd_service:
+    name: db-backup@{{ item }}.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: "{{ backup_host_timers.keys() | list }}"

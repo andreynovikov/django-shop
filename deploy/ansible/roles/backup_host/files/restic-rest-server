@@ -1,0 +1,7 @@
+LISTEN = :8000
+BACKUP_DIR = /srv/restic/
+ARGS = "\
+  --htpasswd-file /etc/restic-rest-server/users.htpasswd \
+  --append-only --private-repos \
+  --tls --tls-cert /etc/restic-rest-server/cert.pem --tls-key /etc/restic-rest-server/key.pem \
+"

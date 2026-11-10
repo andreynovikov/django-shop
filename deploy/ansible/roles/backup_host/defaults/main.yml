@@ -1,0 +1,14 @@
+# The repository directory in /srv/restic, also the login of the production server
+backup_host_repository: sworld
+# DB_HOSTS and CONFIG_HOSTS of /etc/default/db-backup
+backup_host_db_hosts: sworld
+backup_host_config_hosts: www.sewing-world.ru
+backup_host_alert_email: admin@sewing-world.ru
+
+# The password of the production server's login. The login is created only when it is set.
+# backup_host_login_password:
+
+backup_host_timers:
+  fresh: "*:30"
+  prune: "12:00"
+  verify: "Sun 13:00"

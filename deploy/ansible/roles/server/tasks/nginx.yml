@@ -1,0 +1,33 @@
+# Sites, basic_auth and htpasswd are copied from the old server by hand.
+- name: Adjust nginx.conf
+  ansible.builtin.blockinfile:
+    path: /etc/nginx/nginx.conf
+    insertafter: '^http \{'
+    block: |
+      tcp_nodelay on;
+      keepalive_timeout 65;
+      server_names_hash_bucket_size 64;
+
+      log_format upstream '$remote_addr - $remote_user [$time_local] '
+                          '"$request" $status $body_bytes_sent '
+                          'rt="$request_time" uct="$upstream_connect_time" uht="$upstream_header_time" urt="$upstream_response_time" '
+                          '"$http_referer" "$http_user_agent"';
+
+      log_format errored  '[$time_local] $status "$request" "$http_referer"';
+
+      map $status $moved {
+        ~^[3]   1;
+        default 0;
+      }
+
+      map $status $notfound {
+        ~^[4]   1;
+        default 0;
+      }
+
+      map $status $errored {
+        ~^[5]   1;
+        default 0;
+      }
+    validate: /usr/sbin/nginx -t -c %s
+  notify: Reload nginx

@@ -1,0 +1,24 @@
+# The units read their settings from /etc/celery/<name>_worker and _beat, which are copied from the old server by hand.
+- name: Install Celery units
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /etc/systemd/system/
+    mode: "0644"
+  loop:
+    - celery@.service
+    - celery_beat@.service
+  notify: Reload systemd
+
+- name: Create /run/celery on boot
+  ansible.builtin.copy:
+    src: celery.conf
+    dest: /etc/tmpfiles.d/celery.conf
+    mode: "0644"
+
+- name: Create /run/celery
+  ansible.builtin.file:
+    path: /run/celery
+    state: directory
+    owner: nikolays
+    group: www-data
+    mode: "0755"

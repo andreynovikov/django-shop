@@ -1,0 +1,16 @@
+[Unit]
+Description=Celery beat for %I
+Wants=redis-server.service
+After=network.target redis-server.service
+
+[Service]
+User=nikolays
+Group=www-data
+Type=forking
+EnvironmentFile=-/etc/celery/%I_beat
+PIDFile=/var/run/celery/%I_beat.pid
+ExecStart=/bin/sh -c "($$VIRTUALENV/bin/celery beat --pidfile=/run/celery/%I_beat.pid $CELERYD_OPTS)& echo $!"
+ExecStop=/bin/kill -s TERM /run/celery/%I_beat.pid
+
+[Install]
+WantedBy=multi-user.target

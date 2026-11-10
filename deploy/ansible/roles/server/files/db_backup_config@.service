@@ -1,0 +1,13 @@
+[Unit]
+Description=Config backup for %I
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=nikolays
+Group=www-data
+WorkingDirectory=/www/%I
+ExecStart=/www/%I/env/bin/python manage.py backup_db --kind config
+Nice=10
+IOSchedulingClass=idle

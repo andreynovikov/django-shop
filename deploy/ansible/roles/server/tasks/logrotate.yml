@@ -1,0 +1,5 @@
+- name: Rotate site logs
+  ansible.builtin.copy:
+    src: logrotate
+    dest: /etc/logrotate.d/sewing-world
+    mode: "0644"

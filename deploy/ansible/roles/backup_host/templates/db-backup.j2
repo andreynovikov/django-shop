@@ -1,0 +1,7 @@
+RESTIC_REPOSITORY=/srv/restic/{{ backup_host_repository }}
+RESTIC_PASSWORD_FILE=/etc/db-backup/restic-password
+DB_HOSTS="{{ backup_host_db_hosts }}"
+CONFIG_HOSTS="{{ backup_host_config_hosts }}"
+ALERT_EMAIL={{ backup_host_alert_email }}
+PGHOST=/var/run/postgresql
+TMPDIR=/var/tmp  # restore tests unpack a full dump here, /tmp is in memory on Debian 13
