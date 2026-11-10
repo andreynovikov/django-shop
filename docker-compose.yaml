@@ -7,9 +7,9 @@ services:
       context: ./
       target: runner
       args:
-        entity: janome
+        entity: ${NAME}
       tags:
-        - janome
+        - ${NAME}
     volumes:
       - ./.docker/:/app/.docker/
       - ./templates/:/app/templates/
