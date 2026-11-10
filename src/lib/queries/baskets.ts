@@ -37,3 +37,19 @@ export async function updateBasketItem(basketId: number, product: number, quanti
     }
   })
 }
+
+// The links in the abandoned basket email open storefront pages at their paths, which send the link's data here
+export async function restoreBasket(contents: string, utmSource: string | null) {
+  return await apiFetch<void>('baskets/restore/', {
+    body: {
+      contents,
+      ...(utmSource ? { utm_source: utmSource } : {})
+    }
+  })
+}
+
+export async function clearBasket(sign: string) {
+  return await apiFetch<void>('baskets/clear/', {
+    body: { sign }
+  })
+}
