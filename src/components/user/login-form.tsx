@@ -1,16 +1,16 @@
 'use client'
 
-import { useState, useEffect, ChangeEvent, SubmitEvent, Suspense } from 'react'
+import { useState, ChangeEvent, SubmitEvent, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
 
-import { IconBasket, IconLockOpen, IconLogin } from '@tabler/icons-react'
+import { IconBasket, IconLockOpen, IconLogin2 } from '@tabler/icons-react'
 
 import Countdown from '@/components/countdown'
 import { ButtonLoading } from '@/components/loading'
 import { buttonClass } from '@/components/ui/button'
-import { checkClass, checkInputClass, feedbackClass, formTextClass, inputClass } from '@/components/ui/form'
+import { checkClass, checkInputClass, checkLabelClass, feedbackClass, formTextClass, inputClass } from '@/components/ui/form'
 
 import { formatPhone } from '@/lib/format'
 import { usePhoneInput, isValidPhone } from '@/lib/phone-input'
@@ -21,13 +21,24 @@ type FieldErrors = Record<string, string>
 
 interface LoginFormProps {
   ctx: string
-  phone?: string
   hideModal?: () => void
   embedded?: string
 }
 
+// For new passwords only: older, shorter ones still log in
+export const PERMANENT_PASSWORD_LENGTH = 8
+
+export function validatePermanentPasswords(value1: string, value2: string) {
+  const err: FieldErrors = {}
+  if (value1 != value2)
+    err['permanent_password2'] = "Пароли не совпадают"
+  if (value1.length > 0 && value1.length < PERMANENT_PASSWORD_LENGTH)
+    err['permanent_password'] = `Постоянный пароль должен быть не менее ${PERMANENT_PASSWORD_LENGTH} символов`
+  return err
+}
+
 // signIn returns error response body as text
-function getError(field: string, error: unknown): FieldErrors {
+export function getError(field: string, error: unknown): FieldErrors {
   let data = error
   if (typeof error === 'string') {
     try {
@@ -52,7 +63,7 @@ function getError(field: string, error: unknown): FieldErrors {
 
 // Only paths on this site, so a link to the login page can't send the user to another site.
 // The origin is compared after parsing, because browsers drop tabs and newlines: '/\t/example.com' is //example.com
-function getCallbackUrl(callbackUrl: unknown) {
+export function getCallbackUrl(callbackUrl: unknown) {
   if (typeof callbackUrl === 'string') {
     try {
       const url = new URL(callbackUrl, window.location.origin)
@@ -71,7 +82,7 @@ function RegisterLink() {
   return <Link href={`/register/${query ? `?${query}` : ''}`}>зарегистрироваться</Link>
 }
 
-export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: LoginFormProps) {
+export default function LoginForm({ ctx, hideModal, embedded = '' }: LoginFormProps) {
   const [pdConsent, setPdConsent] = useState(false)
   const [ofConsent, setOfConsent] = useState(false)
   const [isSignInPending, setSignInPending] = useState(false)
@@ -80,7 +91,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
   const [delay, setDelay] = useState(-1)
   const [codeAttemptsLeft, setCodeAttemptsLeft] = useState(0)
 
-  const [showPermanentPassword, setShowPermanentPassword] = useState(ctx === 'reg')
+  const [showPermanentPassword, setShowPermanentPassword] = useState(false)
 
   const router = useRouter()
   const { signIn } = useSession()
@@ -89,7 +100,6 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
     mutate: performUserCheck,
     reset: resetUserCheck,
     data: shopUser,
-    isIdle,
     isPending: isUserCheckPending
   } = useMutation({
     mutationFn: ({ phone, reset }: { phone: string, reset: boolean }) => checkUser(phone, reset),
@@ -116,16 +126,12 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
         }
       } else if (error instanceof HttpError && error.status === 429) {
         setError({ phone: "Слишком много запросов, попробуйте позже" })
+      } else if (error instanceof HttpError && error.status === 400) {
+        // an old account with a phone of another country
+        setError({ phone: "Мы отправляем коды только на российские мобильные номера" })
       }
     }
   })
-
-  // The phone comes from a registration that has just finished, never from the URL:
-  // a link must not make the form send an SMS or create an account
-  useEffect(() => {
-    if (phone && isIdle)
-      performUserCheck({ phone, reset: false })
-  }, [phone, performUserCheck, isIdle])
 
   const phoneRef = usePhoneInput()
 
@@ -139,15 +145,6 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
       return { password: "Указан неверный " + (shopUser?.permanent_password ? "пароль" : "код") }
     else
       return {}
-  }
-
-  const validatePermanentPasswords = (value1: string, value2: string) => {
-    const err: FieldErrors = {}
-    if (value1 != value2)
-      err['permanent_password2'] = "Пароли не совпадают"
-    if (value1.length > 0 && value1.length < 5)
-      err['permanent_password'] = "Постоянный пароль должен быть не менее 5 символов"
-    return err
   }
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -207,6 +204,8 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
           } else {
             router.push(getCallbackUrl(new URLSearchParams(window.location.search).get('callbackUrl')))
           }
+        } else if ('status' in result && result.status === 400) {
+          setError(getError('permanent_password', result.error)) // too short, the code is not used up
         } else if ('status' in result && [401, 403].includes(result.status)) {
           if (shopUser.permanent_password) {
             setError({ password: "Вы ввели неправильный пароль" })
@@ -235,6 +234,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
   }
 
   const isPending = isSignInPending || isUserCheckPending
+  const buttonIcon = { size: 18, stroke: 1.5, className: 'me-2' }
 
   return (
     <form onSubmit={handleSubmit} noValidate>
@@ -244,15 +244,14 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
           <div className="mb-2 text-xl font-light">{formatPhone(shopUser.phone)}</div>
           {ctx === 'order' && (
             <div className="-mt-2 mb-4 text-xs text-muted">
-              <a onClick={resetPhone} style={{ cursor: 'pointer' }}>Указать другой телефон</a>
+              <a className="text-primary hover:text-link-hover" onClick={resetPhone}>Указать другой телефон</a>
             </div>
           )}
           <div className="mb-4">
             <input
               type={shopUser.permanent_password ? "password" : "text"}
               name="password"
-              className={inputClass({ invalid: 'password' in error })}
-              style={embedded ? {} : { maxWidth: "20rem" }}
+              className={`${inputClass({ invalid: 'password' in error })} ${embedded ? '' : 'max-w-80'}`}
               id={`${embedded}${ctx}-password-input`}
               placeholder={shopUser.permanent_password ? "Пароль" : "Код из смс"}
               onChange={handleChange}
@@ -268,21 +267,18 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
           </div>
           {!['order', 'preorder', 'warranty'].includes(ctx) && !shopUser.permanent_password && (
             showPermanentPassword ? (
-              <div className="md:flex md:gap-6">
-                <div className="mb-4 md:flex-1">
-                  <label htmlFor="permanent-password-input">Постоянный пароль:</label>
+              <div className="grid gap-x-7.5 md:grid-cols-2">
+                <div className="mb-4">
+                  <label className="inline-block" htmlFor="permanent-password-input">Постоянный пароль:</label>
                   <input
                     type="password"
                     className={inputClass({ size: 'sm', invalid: 'permanent_password' in error })}
                     name="permanent_password"
                     id="permanent-password-input" />
                   {'permanent_password' in error && <div className={feedbackClass}>{error.permanent_password}</div>}
-                  {ctx === 'reg' && (
-                    <span className={formTextClass}>Если Вы не укажете постоянный пароль, вход будет осуществляться с помощью смс</span>
-                  )}
                 </div>
-                <div className="mb-4 md:flex-1">
-                  <label htmlFor="permanent-password-input2">ещё раз:</label>
+                <div className="mb-4">
+                  <label className="inline-block" htmlFor="permanent-password-input2">ещё раз:</label>
                   <input
                     type="password"
                     className={inputClass({ size: 'sm', invalid: 'permanent_password2' in error })}
@@ -292,7 +288,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
                 </div>
               </div>
             ) : (
-              <div className="mb-4 text-base">
+              <div className="mb-4 text-md">
                 Вы можете <a onClick={() => setShowPermanentPassword(true)}>указать постоянный пароль</a>, чтобы не получать каждый раз смс
               </div>
             )
@@ -302,7 +298,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
         <>
           { /* Анонимный пользователь */}
           <div className="mb-4">
-            <label className="text-xl font-light" htmlFor={`${embedded}${ctx}-phone-input`}>
+            <label className="inline-block text-xl font-light" htmlFor={`${embedded}${ctx}-phone-input`}>
               {ctx === 'order' ? "Для продолжения у" : "У"}
               кажите номер мобильного телефона:
             </label>
@@ -323,7 +319,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
 
       {['order', 'preorder', 'warranty'].includes(ctx) && (
         <>
-          <div className={`${checkClass} mb-4`}>
+          <div className={`${checkClass()} mb-4`}>
             <input
               type="checkbox"
               className={checkInputClass({ invalid: 'pd-consent' in error })}
@@ -332,7 +328,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
               checked={pdConsent}
               onChange={handleChange} />
             {" "}
-            <label htmlFor="sw-pd-consent-check">
+            <label className={checkLabelClass} htmlFor="sw-pd-consent-check">
               Я даю{" "}
               <Link href="/pages/personaldata/">
                 согласие на обработку персональных данных
@@ -341,7 +337,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
             {'pd-consent' in error && <div className={feedbackClass}>{error['pd-consent']}</div>}
           </div>
           {ctx === 'order' && (
-            <div className={`${checkClass} mb-4`}>
+            <div className={`${checkClass()} mb-4`}>
               <input
                 type="checkbox"
                 className={checkInputClass({ invalid: 'of-consent' in error })}
@@ -350,7 +346,7 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
                 checked={ofConsent}
                 onChange={handleChange} />
               {" "}
-              <label htmlFor="sw-of-consent-check">
+              <label className={checkLabelClass} htmlFor="sw-of-consent-check">
                 Я подтверждаю согласие с{" "}
                 <Link href="/pages/oferta/">
                   условиями публичной оферты
@@ -362,31 +358,31 @@ export default function LoginForm({ ctx, phone, hideModal, embedded = '' }: Logi
         </>
       )}
       {ctx === 'order' ? (
-        <button className={`${buttonClass({ block: true })} mt-6`} disabled={isPending}>
-          {shopUser ? <IconLogin size={20} stroke={1.5} className="me-2" /> : <IconBasket size={20} stroke={1.5} className="me-2" />}Оформить заказ
+        <button className={`${buttonClass({ block: true, shadow: true })} mt-6`} disabled={isPending}>
+          {shopUser ? <IconLogin2 {...buttonIcon} /> : <IconBasket {...buttonIcon} />}Оформить заказ
           {isPending && <ButtonLoading />}
         </button>
       ) : ctx === 'preorder' ? (
-        <button className={`${buttonClass({ block: true })} mt-6`} disabled={isPending}>
-          {shopUser ? <IconLogin size={20} stroke={1.5} className="me-2" /> : <IconBasket size={20} stroke={1.5} className="me-2" />}Оформить запрос о поступлении
+        <button className={`${buttonClass({ block: true, shadow: true })} mt-6`} disabled={isPending}>
+          {shopUser ? <IconLogin2 {...buttonIcon} /> : <IconBasket {...buttonIcon} />}Оформить запрос о поступлении
           {isPending && <ButtonLoading />}
         </button>
       ) : ctx === 'warranty' ? (
-        <button className={`${buttonClass()} mt-6`} disabled={isPending}>
-          {shopUser ? <IconLogin size={20} stroke={1.5} className="me-2" /> : <IconLockOpen size={20} stroke={1.5} className="me-2" />}Продолжить
+        <button className={`${buttonClass({ shadow: true })} mt-6`} disabled={isPending}>
+          {shopUser ? <IconLogin2 {...buttonIcon} /> : <IconLockOpen {...buttonIcon} />}Продолжить
           {isPending && <ButtonLoading />}
         </button>
       ) : (
         <div className="text-end">
-          <button className={`${buttonClass()} ms-6`} type="submit" disabled={isPending}>
-            {!embedded && (shopUser ? <IconLogin size={20} stroke={1.5} className="me-2" /> : <IconLockOpen size={20} stroke={1.5} className="me-2" />)}
+          <button className={`${buttonClass({ shadow: !!embedded })} ms-6`} type="submit" disabled={isPending}>
+            {!embedded && (shopUser ? <IconLogin2 size={16} stroke={1.5} className="-ms-1 me-2" /> : <IconLockOpen size={16} stroke={1.5} className="-ms-1 me-2" />)}
             {!!shopUser ? "Продолжить" : "Войти"}
             {isPending && <ButtonLoading />}
           </button>
         </div>
       )}
       {!shopUser && !embedded && (
-        <div className="mt-6 text-base">
+        <div className="mt-6 text-md">
           Если Вы не совершали покупок в магазине, Вы можете{" "}
           <Suspense fallback={<Link href="/register/">зарегистрироваться</Link>}>
             <RegisterLink />

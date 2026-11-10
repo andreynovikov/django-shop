@@ -103,8 +103,8 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
         <h1 className="mt-2.5 mb-5 text-4xl leading-none font-light text-primary uppercase" itemProp="name">
           {product.title}
           <sup className="mt-6 block sm:mt-0 sm:inline">
-            {product.isnew && <span className={`${badgeClass} ms-1 bg-danger text-sm text-white`}>Новинка</span>}
-            {product.recomended && <span className={`${badgeClass} ms-1 bg-success text-sm text-white`}>Рекомендуем</span>}
+            {product.isnew && <span className={`${badgeClass({ size: 'sm' })} ms-1 bg-danger text-white`}>Новинка</span>}
+            {product.recomended && <span className={`${badgeClass({ size: 'sm' })} ms-1 bg-success text-white`}>Рекомендуем</span>}
           </sup>
         </h1>
 

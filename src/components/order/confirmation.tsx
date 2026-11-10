@@ -9,13 +9,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { IconBasket } from '@tabler/icons-react'
 
 import NoImage from '@/components/product/no-image'
-import { STATUS_NEW } from '@/components/order/status-badge'
-import { PageLoading } from '@/components/loading'
+import ProductLink from '@/components/product/product-link'
 import { buttonClass } from '@/components/ui/button'
 import { inputClass, labelClass } from '@/components/ui/form'
+import { widgetProductMetaClass, widgetProductTitleClass, widgetTitleClass } from '@/components/ui/widget'
+import { STATUS_NEW } from '@/components/order/status-badge'
+import { PageLoading } from '@/components/loading'
 
 import { useSession } from '@/lib/session'
-import { basketKeys, orderKeys, loadOrder, updateOrder, FormDataJson } from '@/lib/queries'
+import { basketKeys, orderKeys, userKeys, loadOrder, updateOrder, FormDataJson } from '@/lib/queries'
 import { User } from '@/lib/types'
 
 export default function OrderConfirmation() {
@@ -61,6 +63,8 @@ export default function OrderConfirmation() {
     mutationFn: ({ id, data }: { id: number, data: FormDataJson }) => updateOrder(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) })
+      // a buyer without an address gets the order's one, to confirm
+      queryClient.invalidateQueries({ queryKey: userKeys.details() })
     }
   })
 
@@ -81,9 +85,9 @@ export default function OrderConfirmation() {
 
   if (!isSuccess)
     return (
-      <section className="lg:col-span-2">
-        <div className="mt-1 flex items-center justify-between pt-4 pb-2">
-          <h2 className="leading-none font-light">&nbsp;</h2>
+      <section className="min-w-0 lg:col-span-2">
+        <div className="mt-1 flex items-center justify-between pt-4 pb-2 sm:pb-overlap">
+          <h2 className="mb-0 text-h6 text-overlap">&nbsp;</h2>
         </div>
         {isFetching ? (
           <PageLoading />
@@ -97,14 +101,14 @@ export default function OrderConfirmation() {
 
   return (
     <>
-      <section className="lg:col-span-2">
-        <div className="mt-1 flex items-center justify-center pt-0 pb-4 lg:justify-between lg:pt-4">
-          <h2 className="text-4xl leading-none font-light">№{order.id}</h2>
+      <section className="min-w-0 lg:col-span-2">
+        <div className="mt-1 mb-4 flex items-center justify-center pt-0 pb-overlap lg:mb-0 lg:justify-between lg:pt-4">
+          <h2 className="mb-0 text-h1 text-overlap">№{order.id}</h2>
         </div>
 
         {(updated || order.status !== STATUS_NEW) ? (
           <>
-            <h3 className="mt-2.5 mb-2 text-2xl leading-none font-light">Спасибо за заказ!</h3>
+            <h3 className="mb-3 text-h3">Спасибо за заказ!</h3>
             <p className="mb-4">
               Регистрационный номер Вашего заказа: <b>{order.id}</b>.
             </p>
@@ -112,6 +116,19 @@ export default function OrderConfirmation() {
               Наш менеджер свяжется с Вами, уточнит состав заказа, согласует способ оплаты,
               стоимость и способ доставки, и договорится об удобном времени доставки.
             </p>
+            {order.email && user && (
+              user.email.toLowerCase() !== order.email.toLowerCase() ? (
+                <p className="mb-4">
+                  Уведомления о заказе приходят только на подтверждённый адрес эл.почты
+                  из <Link href="/user/profile/">профиля</Link>.
+                </p>
+              ) : !user.email_verified && (
+                <p className="mb-4">
+                  Мы отправили на {order.email} письмо со ссылкой для подтверждения адреса.
+                  Уведомления о заказе придут на него, когда Вы его подтвердите.
+                </p>
+              )
+            )}
             <p className="mb-4">
               Узнать о состоянии заказа Вы можете по ссылке{" "}
               <Link href="/user/orders?track">
@@ -141,22 +158,19 @@ export default function OrderConfirmation() {
             </div>
             <hr className="mt-6 mb-4" />
             <div className="text-end">
-              <button type="submit" className={buttonClass({ size: 'lg' })}><IconBasket size={20} stroke={1.5} className="me-1" />Оформить заказ</button>
+              <button type="submit" className={buttonClass({ size: 'lg' })}><IconBasket size={18} stroke={1.5} className="me-2" />Оформить заказ</button>
             </div>
           </form>
         )}
       </section>
-      <aside className="pt-6 lg:pt-0 xl:ps-12">
+      <aside className="pt-6 lg:pt-0 xl:ps-8">
         <div className="rounded-lg bg-white p-6 shadow-lg lg:ms-auto">
           <div className="py-2 xl:px-2">
             <div className="mb-4">
-              <h2 className="mb-4 text-center text-xl leading-none font-light">Детали заказа</h2>
+              <h2 className={`${widgetTitleClass} text-center`}>Детали заказа</h2>
               {order.items.map((item, index) => (
-                <div className={"flex items-center border-b " + (index === 0 ? "pb-4" : "py-4")} key={item.product.id}>
-                  <Link
-                    className="relative block shrink-0"
-                    style={{ width: 64, height: 64 }}
-                    href={`/products/${item.product.code}`}>
+                <div className={`flex items-center border-b ${index === 0 ? "pb-4" : "py-4"}`} key={item.product.id}>
+                  <ProductLink className="relative block size-16 shrink-0" code={item.product.code}>
                     {item.product.image ? (
                       <Image
                         src={item.product.image}
@@ -168,14 +182,14 @@ export default function OrderConfirmation() {
                     ) : (
                       <NoImage size={64} />
                     )}
-                  </Link>
+                  </ProductLink>
                   <div className="ps-2">
-                    <h6 className="mb-2 leading-none font-light">
-                      <Link href={`/products/${item.product.code}`}>
+                    <h6 className={`mb-1 ${widgetProductTitleClass}`}>
+                      <ProductLink code={item.product.code}>
                         {item.product.title}
-                      </Link>
+                      </ProductLink>
                     </h6>
-                    <div>
+                    <div className={widgetProductMetaClass}>
                       <span className="me-2 text-accent">{item.cost.toLocaleString('ru')}<small>&nbsp;руб</small></span>
                       <span className="text-muted">x {item.quantity}</span>
                     </div>
@@ -183,7 +197,7 @@ export default function OrderConfirmation() {
                 </div>
               ))}
             </div>
-            <h3 className="my-6 text-center text-2xl leading-none">
+            <h3 className="my-6 text-center text-h3 font-normal">
               {order.total.toLocaleString('ru')}<small>&nbsp;руб</small>
             </h3>
           </div>

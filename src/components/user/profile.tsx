@@ -12,7 +12,7 @@ export default function UserProfile() {
   return (
     <>
       <UserTopbar>
-        <div className="me-4 flex w-full text-center">&nbsp;</div>
+        <div className="me-4 flex w-full text-center text-overlap">&nbsp;</div>
       </UserTopbar>
       <UpdateForm id="user-update-form" onReady={() => setFormReady(true)} />
       {formReady && (

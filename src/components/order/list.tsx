@@ -12,7 +12,8 @@ import OrderStatusBadge from '@/components/order/status-badge'
 import PageSelector from '@/components/page-selector'
 import { PageLoading } from '@/components/loading'
 import Tooltip from '@/components/ui/tooltip'
-import { inputClass } from '@/components/ui/form'
+import { selectClass } from '@/components/ui/form'
+import { navLinkClass } from '@/components/ui/nav'
 
 import { useSession } from '@/lib/session'
 import { useSite } from '@/lib/site'
@@ -38,12 +39,14 @@ export function OrderListLoading() {
   return (
     <>
       <UserTopbar>
-        <div className="me-4 flex w-full text-center">&nbsp;</div>
+        <div className="me-4 flex w-full text-center text-overlap">&nbsp;</div>
       </UserTopbar>
       <PageLoading />
     </>
   )
 }
+
+const thClass = 'p-3 text-start font-medium text-heading'
 
 export default function OrderList() {
   const [{ page, filter, track }, setParams] = useQueryStates(orderListParams)
@@ -83,8 +86,8 @@ export default function OrderList() {
         <div className="me-4 flex flex-nowrap items-center sm:me-6">
           {isSuccess && !isTracking && (orders.results.length > 0 || !!filter) ? (
             <>
-              <label className="me-2 hidden text-xs whitespace-nowrap text-muted sm:block" htmlFor="sw-order-filter">Отображать:</label>
-              <select className={inputClass()} id="sw-order-filter" value={filter} onChange={(e) => onFilterChanged(e.target.value)}>
+              <label className="me-2 hidden text-sm whitespace-nowrap text-overlap opacity-75 sm:block" htmlFor="sw-order-filter">Отображать:</label>
+              <select className={selectClass()} id="sw-order-filter" value={filter} onChange={(e) => onFilterChanged(e.target.value)}>
                 <option value="">Все</option>
                 <option value="active">Активные</option>
                 <option value="done">Выполненные</option>
@@ -92,38 +95,38 @@ export default function OrderList() {
               </select>
             </>
           ) : (
-            <div className="me-4 flex w-full text-center">&nbsp;</div>
+            <div className="me-4 flex w-full text-center text-overlap">&nbsp;</div>
           )}
         </div>
       </UserTopbar>
 
       {isSuccess && !isTracking && orders.results.length > 0 ? (
         <>
-          <div className="overflow-x-auto text-base">
-            <table className="w-full">
+          <div className="overflow-x-auto text-md">
+            <table className="w-full align-top">
               <thead>
-                <tr className="border-b">
-                  <th className="p-2 text-start"><span className="hidden sm:inline">Заказ </span>№</th>
-                  <th className="p-2 text-start">Дата<span className="hidden sm:inline"> оформления</span></th>
-                  <th className="p-2 text-start">Статус</th>
-                  <th className="hidden p-2 text-start sm:table-cell">Сумма</th>
+                <tr className="border-b border-[#bccad9] align-bottom">
+                  <th className={thClass}><span className="hidden sm:inline">Заказ </span>№</th>
+                  <th className={thClass}>Дата<span className="hidden sm:inline"> оформления</span></th>
+                  <th className={thClass}>Статус</th>
+                  <th className={`${thClass} hidden sm:table-cell`}>Сумма</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.results.map((order) => (
-                  <tr className="border-b hover:bg-black/5" key={order.id} onClick={() => router.push(orderPathname(order.id))} style={{ cursor: "pointer" }}>
-                    <td className="px-2 py-4">
-                      <Link className="text-xs font-medium hover:no-underline" href={orderPathname(order.id)}>
+                  <tr key={order.id} onClick={() => router.push(orderPathname(order.id))} className="cursor-pointer border-b hover:bg-black/5">
+                    <td className="px-3 py-4">
+                      <Link className={`${navLinkClass()} text-sm font-medium`} href={orderPathname(order.id)}>
                         {order.id}
                       </Link>
                     </td>
-                    <td className="px-2 py-4">
+                    <td className="px-3 py-4">
                       <Tooltip content={moment(order.created).format('LLL')}>
                         <span>{moment(order.created).calendar().toLowerCase()}</span>
                       </Tooltip>
                     </td>
-                    <td className="px-2 py-4"><OrderStatusBadge status={order.status} text={order.status_text} /></td>
-                    <td className="hidden px-2 py-4 sm:table-cell">
+                    <td className="px-3 py-4"><OrderStatusBadge status={order.status} text={order.status_text} /></td>
+                    <td className="hidden px-3 py-4 sm:table-cell">
                       {order.total.toLocaleString('ru')}<small>&nbsp;руб</small>
                       {(order.status === STATUS_COLLECTED && !order.paid && (order.payment === PAYMENT_CARD || order.payment === PAYMENT_CREDIT)) && (
                         <span className="ps-2">

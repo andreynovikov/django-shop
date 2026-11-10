@@ -1,11 +1,8 @@
 'use client'
 
 import { useMemo } from 'react'
-import Link from 'next/link'
 import Image from 'next/image'
 import { useQuery } from '@tanstack/react-query'
-
-import { IconBell, IconPaperclip, IconSpeakerphone } from '@tabler/icons-react'
 
 import { useSite } from '@/lib/site'
 import { useSession } from '@/lib/session'
@@ -14,11 +11,13 @@ import { formatPhone } from '@/lib/format'
 
 import { Loading } from '@/components/loading'
 import NoImage from '@/components/product/no-image'
+import ProductLink from '@/components/product/product-link'
 import UserTopbar from '@/components/user/topbar'
 import OrderPaymentButton from '@/components/order/payment-button'
 import OrderStatusBadge from '@/components/order/status-badge'
 import Tooltip from '@/components/ui/tooltip'
 import { Alert } from '@/components/ui/alert'
+import { IconAlertCircle, IconBell, IconPaperclip } from '@tabler/icons-react'
 import {
   STATUS_NEW,
   STATUS_ACCEPTED,
@@ -40,6 +39,10 @@ import {
 } from '@/components/order/status-badge'
 
 import moment from 'moment'
+
+// The information blocks: delivery, payment and the recipient
+const infoTitleClass = 'mb-3 text-h6'
+const infoListClass = 'mb-4 text-sm *:mb-[.4rem]'
 
 export default function OrderDetails({ id }: { id: number }) {
   const { site } = useSite()
@@ -75,9 +78,9 @@ export default function OrderDetails({ id }: { id: number }) {
 
   if (!isSuccess)
     return (
-      <div className="mb-2 px-3 pb-12 md:mb-6">
+      <div className="mb-2 pb-12 md:mb-6">
         <section>
-          <div className="pt-2 pb-6 sm:pb-12">
+          <div className="pt-2 pb-6 sm:pb-overlap">
             <div className="pb-4">
               &nbsp;
             </div>
@@ -90,46 +93,46 @@ export default function OrderDetails({ id }: { id: number }) {
   return (
     <>
       <UserTopbar>
-        <div className="me-4 flex w-full text-center">
-          <div className="px-4">
+        <div className="me-4 flex w-full text-center text-overlap">
+          <div className="px-4 text-ms">
             <div className="font-medium">Дата оформления</div>
-            <div className="text-lg text-muted">
+            <div className="text-lg opacity-60">
               <Tooltip side="bottom" content={moment(order.created).format('LLL')}>
                 <span>{created}</span>
               </Tooltip>
             </div>
           </div>
-          <div className="px-4">
+          <div className="px-4 text-ms">
             <div className="font-medium">Статус</div>
             <div className="text-lg"><OrderStatusBadge status={order.status} text={order.status_text} /></div>
           </div>
-          <div className="px-4">
+          <div className="px-4 text-ms">
             <div className="font-medium">{order.paid ? "Стоимость заказа" : "Всего к оплате"}</div>
-            <div className="text-lg text-muted">{order.total.toLocaleString('ru')}<small>&nbsp;руб</small></div>
+            <div className="text-lg opacity-60">{order.total.toLocaleString('ru')}<small>&nbsp;руб</small></div>
           </div>
         </div>
       </UserTopbar>
       { /* Order details (visible on mobile) */}
-      <div className="mb-6 flex flex-wrap rounded-lg bg-white px-6 pt-6 pb-1 text-center lg:hidden">
-        <div className="px-4 pb-4 text-xs">
+      <div className="mb-6 flex flex-wrap rounded-lg bg-gray-100 px-6 pt-6 pb-1 text-center lg:hidden">
+        <div className="px-4 pb-4 text-sm">
           <div className="font-medium">Дата оформления</div>
           <div className="text-lg text-muted">{created}</div>
         </div>
-        <div className="px-4 pb-4 text-xs">
+        <div className="px-4 pb-4 text-sm">
           <div className="font-medium">Статус</div>
           <div className="text-lg text-muted"><OrderStatusBadge status={order.status} text={order.status_text} /></div>
         </div>
-        <div className="px-4 pb-4 text-xs">
+        <div className="px-4 pb-4 text-sm">
           <div className="font-medium">Всего к оплате</div>
           <div className="text-lg text-muted">{order.total.toLocaleString('ru')}<small>&nbsp;руб</small></div>
         </div>
       </div>
 
-      <div className="mb-6 rounded-lg bg-white px-6 pt-6 pb-2">
-        <div className="grid gap-x-6 sm:grid-cols-2">
+      <div className="mb-6 rounded-lg bg-gray-100 px-6 pt-6 pb-2">
+        <div className="grid gap-x-7.5 sm:grid-cols-2">
           <div>
-            <h4 className="mb-2 leading-none font-light">Информация о доставке:</h4>
-            <ul className="mb-4 text-xs">
+            <h4 className={infoTitleClass}>Информация о доставке:</h4>
+            <ul className={infoListClass}>
               {order.delivery_price > 0 && (
                 <li>
                   <span className="text-muted">Стоимость доставки:</span>
@@ -145,7 +148,7 @@ export default function OrderDetails({ id }: { id: number }) {
                   {" "}
                   {order.store ? (
                     <>
-                      <a href={`/stores/${order.store.id}/`}><u>{order.store.city.name}, {order.store.address}</u></a>
+                      <a className="text-heading" href={`/stores/${order.store.id}/`}><u>{order.store.city.name}, {order.store.address}</u></a>
                       {order.store.hours && (
                         <> (часы работы: {order.store.hours})</>
                       )}
@@ -187,7 +190,7 @@ export default function OrderDetails({ id }: { id: number }) {
                 </>
               )}
               {order.delivery_info && (
-                <li style={{ whiteSpace: "pre-line" }}>{order.delivery_info}</li>
+                <li className="whitespace-pre-line">{order.delivery_info}</li>
               )}
               {order.delivery_dispatch_date && (
                 <li>
@@ -219,8 +222,8 @@ export default function OrderDetails({ id }: { id: number }) {
             </ul>
           </div>
           <div>
-            <h4 className="mb-2 leading-none font-light">Оплата заказа:</h4>
-            <ul className="mb-4 text-xs">
+            <h4 className={infoTitleClass}>Оплата заказа:</h4>
+            <ul className={infoListClass}>
               {order.payment === PAYMENT_UNKNOWN ? (
                 <li>Способ оплаты уточняется</li>
               ) : (
@@ -238,7 +241,7 @@ export default function OrderDetails({ id }: { id: number }) {
                         <li>
                           { /* TODO: external link */}
                           <a href="'shop:order_document' order.id 'bill'" target="_blank">
-                            <IconPaperclip size={16} stroke={1.5} className="me-1 inline align-text-bottom" />Скачать счёт для оплаты в любом банке
+                            <IconPaperclip size={14} stroke={1.5} className="me-1" />Скачать счёт для оплаты в любом банке
                           </a>
                         </li>
                       ) : (
@@ -247,7 +250,7 @@ export default function OrderDetails({ id }: { id: number }) {
                     ) : (
                       (order.payment === PAYMENT_CARD || order.payment === PAYMENT_CREDIT || order.payment === PAYMENT_TRANSFER) && (
                         <li>
-                          <Alert variant="accent" icon={<IconSpeakerphone stroke={1.5} className="shrink-0" />} className="mt-4">
+                          <Alert variant="accent" icon={<IconAlertCircle size={18} stroke={1.5} />} className="mt-4 mb-4">
                             <div className="mb-2">Возможность оплатить заказ онлайн или распечатать счёт
                               появится тут после согласования и завершения комплектования заказа.</div>
                             <div>Вы получите сообщение об этом. Пожалуйста, посетите эту страницу позже.</div>
@@ -262,8 +265,8 @@ export default function OrderDetails({ id }: { id: number }) {
           </div>
           {order.is_firm && (
             <div>
-              <h4 className="mb-2 leading-none font-light">Получатель:</h4>
-              <ul className="mb-4 text-xs">
+              <h4 className={infoTitleClass}>Получатель:</h4>
+              <ul className={infoListClass}>
                 <li><span className="text-muted">Название организации:</span> {order.firm_name}</li>
                 <li><span className="text-muted">Юридический адрес:</span> {order.firm_address}</li>
                 <li><span className="text-muted">Сведения об организации:</span> {order.firm_details}</li>
@@ -275,9 +278,9 @@ export default function OrderDetails({ id }: { id: number }) {
         </div>
       </div>
       {order.items.map((item, index) => (
-        <div className={"justify-between pb-4 sm:flex sm:pb-2 " + (index === 0 ? "mb-4" : "my-4") + (index < order.items.length - 1 ? " border-b" : "")} key={item.product.id}>
+        <div className={`pb-4 sm:flex sm:justify-between sm:pb-2 ${index === 0 ? "mb-4" : "my-4"} ${index < order.items.length - 1 ? "border-b" : ""}`} key={item.product.id}>
           <div className="text-center sm:flex sm:text-start">
-            <Link className="relative mx-auto inline-block shrink-0" style={{ width: "10rem" }} href={`/products/${item.product.code}`}>
+            <ProductLink className="relative mx-auto inline-block w-40 shrink-0" code={item.product.code}>
               {item.product.image ? (
                 <Image
                   src={item.product.image}
@@ -288,44 +291,44 @@ export default function OrderDetails({ id }: { id: number }) {
               ) : (
                 <NoImage size={160} />
               )}
-            </Link>
+            </ProductLink>
             <div className="pt-2 sm:ps-6">
-              <h3 className="mb-2 leading-none font-light">
-                <Link href={`/products/${item.product.code}`}>
+              <h3 className="mb-2 text-base leading-[1.2] font-medium">
+                <ProductLink className="text-heading hover:text-primary" code={item.product.code}>
                   {item.product.title}
-                </Link>
+                </ProductLink>
               </h3>
               {item.product.partnumber && (
-                <div className="text-xs">
+                <div className="text-sm">
                   <span className="me-2 text-muted">Артикул:</span>{item.product.partnumber}
                 </div>
               )}
               {item.product.article && (
-                <div className="text-xs">
+                <div className="text-sm">
                   <span className="me-2 text-muted">Код товара:</span>{item.product.article}
                 </div>
               )}
-              <div className="text-xs">
+              <div className="text-sm">
                 <span className="me-2 text-muted">Цена:</span>{item.product_price.toLocaleString('ru')}<small>&nbsp;руб</small>
               </div>
               {item.discount > 0 && (
-                <div className="text-xs">
+                <div className="text-sm">
                   <span className="me-2 text-muted">Скидка:</span>{item.discount_text}
                 </div>
               )}
               <div className="pt-2 text-lg text-accent">{item.price.toLocaleString('ru')}<small>&nbsp;руб</small></div>
             </div>
           </div>
-          <div className="mx-auto pt-2 text-center sm:mx-0 sm:ps-4" style={{ maxWidth: "9rem" }}>
+          <div className="mx-auto max-w-36 pt-2 text-center sm:mx-0 sm:ps-4">
             <div className="mb-2 text-muted">Количество:</div>
             {item.quantity}
           </div>
         </div>
       ))}
       {site.phone && [STATUS_NEW, STATUS_ACCEPTED, STATUS_COLLECTING, STATUS_FROZEN, STATUS_COLLECTED].includes(order.status) && (
-        <Alert variant="info" icon={<IconBell stroke={1.5} className="shrink-0" />} className="mt-12">
+        <Alert variant="info" icon={<IconBell size={18} stroke={1.5} />} className="mt-12 mb-4">
           Если Вы хотите внести изменения в заказ, позвоните по телефону{" "}
-          <a className="font-bold text-inherit" href={"tel:" + site.phone} style={{ whiteSpace: "nowrap" }}>{formatPhone(site.phone)}</a>
+          <a className="whitespace-nowrap" href={"tel:" + site.phone}>{formatPhone(site.phone)}</a>
         </Alert>
       )}
     </>
