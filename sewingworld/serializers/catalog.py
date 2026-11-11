@@ -11,8 +11,9 @@ from rest_framework.exceptions import NotFound
 from drf_spectacular.extensions import OpenApiSerializerExtension
 from drf_spectacular.utils import Direction, extend_schema_field, inline_serializer
 
-from shop.filters import get_product_filter
 from shop.models import Category, Product, ProductRelation, ProductKind, Manufacturer, SalesAction
+
+from sewingworld.filters import category_filters
 
 from .common import NumberReadOnlyField, NonNullModelSerializer, DynamicFieldsModelSerializer
 from .content import CountrySerializer, SalesActionSerializer
@@ -129,32 +130,9 @@ class CategorySerializer(NonNullModelSerializer):
         'label': serializers.CharField(),
         'widget': serializers.CharField(),
         'unit': serializers.CharField(required=False),
-        'help': serializers.CharField(required=False),
     }, many=True, allow_null=True))
     def get_filters(self, obj):
-        request = self.context.get('request')
-        if not obj.filters:
-            return None
-        fields = obj.filters.split(',')
-        product_filter = get_product_filter(request.query_params, queryset=Product.objects.none(), fields=fields, request=request)
-        filters = []
-        for field in product_filter.form.visible_fields():
-            if field.name == 'enabled':
-                continue
-            field_label = field.label.split(',')
-            filter = {
-                'name': field.name,
-                'id': field.id_for_label,
-                'class': field.field.__class__.__name__,
-                'label': field_label[0],
-                'widget': field.field.widget.__class__.__name__,
-            }
-            if len(field_label) > 1:
-                filter['unit'] = field_label[1].strip()
-            if field.help_text:
-                filter['help'] = field.help_text
-            filters.append(filter)
-        return filters
+        return category_filters(obj)
 
 
 class ProductKindSerializer(serializers.ModelSerializer):

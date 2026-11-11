@@ -147,7 +147,6 @@ from .admin import *  # noqa F401
 from .backup import *  # noqa F401
 from .celery import *  # noqa F401
 from .constance import *  # noqa F401
-from .filters import *  # noqa F401
 from .middleware import *  # noqa F401
 from .prometheus import *  # noqa F401
 from .drf import *  # noqa F401

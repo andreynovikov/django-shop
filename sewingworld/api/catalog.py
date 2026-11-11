@@ -1,30 +1,27 @@
-from django.contrib.admin.utils import lookup_spawns_duplicates
-from django.contrib.postgres.search import SearchQuery, SearchRank
-from django.core.exceptions import FieldDoesNotExist, FieldError, ValidationError as DjangoValidationError
-from django.db.models import F
 from django.http import HttpResponse
 from django.shortcuts import redirect
 
-from rest_framework import viewsets, filters, serializers
+from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from django_filters.fields import ChoiceIterator
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from qrcode import QRCode
 from qrcode.image.svg import SvgPathImage
 
-from shop.filters import get_product_filter
 from shop.models import Category, ProductKind, Product, ProductSet, Stock, Basket, Store
 
+from sewingworld.filters import ProductFilterSet
 from sewingworld.serializers.catalog import CategoryTreeSerializer, CategorySerializer, ProductSerializer, \
     ProductListSerializer, ProductKindSerializer, ProductImagesSerializer
 from sewingworld.serializers.content import StoreListSerializer
 from sewingworld.serializers.integrations import IntegrationProductSerializer
 
-from .common import BAD_PARAMETER, StandardResultsSetPagination, id_params
+from .common import FilterBackend, StandardResultsSetPagination, id_params
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -86,10 +83,10 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_value_regex = '[^/]+'
     queryset = Product.objects.all()
     pagination_class = StandardResultsSetPagination
-    filter_backends = [filters.OrderingFilter]
+    filter_backends = [FilterBackend, filters.OrderingFilter]
+    filterset_class = ProductFilterSet
+    filterset = None  # see FilterBackend
     ordering_fields = '__all__'
-    filtering_fields = [f.name for f in Product._meta.get_fields()] + ['text', 'instock']
-    product_filter = None
 
     def get_serializer_class(self):
         if self.action in ('list', 'info'):
@@ -111,132 +108,31 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = super().get_queryset()
         if self.action == 'list':
             queryset = queryset.filter(sites=self.request.site)
-
-        # DISTINCT compares all the columns of a product, it is costly: only for filters that may repeat products
-        distinct = False
-        # A value of the wrong type, or a lookup the field lacks, fails while the filter is built
-        try:
-            for field, values in self.request.query_params.lists():
-                if field == 'in_category':
-                    categories = []
-                    for category in Category.objects.filter(pk__in=values):  # unknown ones find no products
-                        categories.append(category)
-                        categories.extend(category.get_descendants().filter(active=True))
-                    # a subquery: a join repeats the products that are in several of the categories
-                    in_categories = Product.categories.through.objects.filter(category__in=categories)
-                    queryset = queryset.filter(pk__in=in_categories.values('product_id'))
-                    continue
-                base_field = field.split('__', 1)[0]
-                if base_field not in self.filtering_fields:
-                    continue
-                try:
-                    field_type = Product._meta.get_field(field).get_internal_type()
-                except FieldDoesNotExist:
-                    field_type = None
-                if field == 'id':
-                    queryset = queryset.filter(pk__in=values)
-                elif field == 'text':  # full text search
-                    language = 'russian'
-                    search_query = SearchQuery(values[0], config=language)
-                    search_rank = SearchRank(F('fts_vector'), search_query, weights=[0.1, 0.2, 0.4, 1.0])
-                    queryset = queryset.annotate(
-                        rank=search_rank
-                    ).filter(
-                        fts_vector=search_query,
-                        rank__gte=0.001
-                    ).order_by(
-                        '-enabled',
-                        '-rank'
-                    )
-                    filter_fields = ['manufacturer', 'price']
-                    self.product_filter = get_product_filter(self.request.query_params, queryset=queryset, fields=filter_fields, request=self.request)
-                    queryset = self.product_filter.qs
-                elif field_type == 'BooleanField':
-                    key = '{}__exact'.format(field)
-                    value = values[0].lower() in ('1', 'on', 't', 'true', 'y', 'yes')
-                    queryset = queryset.filter(**{key: value})
-                elif field == 'title':
-                    key = '{}__icontains'.format(field)
-                    queryset = queryset.filter(**{key: values[0]})
-                elif field == 'instock':
-                    if int(values[0]) > 0:
-                        queryset = queryset.filter(num__gt=0)
-                    else:
-                        queryset = queryset.filter(num__exact=0)
-                elif field == 'price':
-                    price = values[0].split('-')  # TODO Combine with filters after upgrade
-                    if len(price) == 2:
-                        queryset = queryset.filter(price__gte=price[0], price__lte=price[1])
-                elif field == 'categories':
-                    key = '{}__pk__exact'.format(field)
-                    queryset = queryset.filter(**{key: values[0]})
-
-                    category = Category.objects.filter(pk=values[0]).first()
-                    if category is not None and category.filters:
-                        fields = category.filters.split(',')
-                        self.product_filter = get_product_filter(self.request.query_params, queryset=queryset, fields=fields, request=self.request)
-                        queryset = self.product_filter.qs
-                elif field in ('kind', 'manufacturer'):  # поиск по ключу
-                    if len(values) > 1:
-                        key = '{}__pk__in'.format(field)
-                        queryset = queryset.filter(**{key: values})
-                        distinct = distinct or lookup_spawns_duplicates(Product._meta, key)
-                    else:
-                        key = '{}__pk__exact'.format(field)
-                        queryset = queryset.filter(**{key: values[0]})
-                # elif field == 'inspection':
-                #     if len(values) > 1:
-                #         key = '{}__pk__in'.format(field)
-                #         queryset = queryset.filter(**{key: values})
-                #     else:
-                #         key = '{}__pk__istartswith'.format(field)
-                #         queryset = queryset.filter(**{key: values[0]})
-                # elif len(values) > 1:  # поиск в массиве
-                #     key = '{}__in'.format(field)
-                #     queryset = queryset.filter(**{key: values})
-                else:  # строковый поиск
-                    key = '{}__exact'.format(field)
-                    queryset = queryset.filter(**{key: values[0]})
-                    distinct = distinct or lookup_spawns_duplicates(Product._meta, key)
-        except (ValueError, FieldError, DjangoValidationError):
-            raise serializers.ValidationError({field: [BAD_PARAMETER]})
-
-        if distinct:
-            queryset = queryset.distinct()
         if self.action in ('list', 'info', 'retrieve', 'bycode'):
             queryset = self.get_serializer_class().prefetch(queryset)
         return queryset
 
     def filter_queryset(self, queryset):
         queryset = super().filter_queryset(queryset)
-        # Products of the same price or title come by id, as they did when DISTINCT sorted them. Without an order
-        # of their own, pages of them may repeat or skip some.
+        # Products of the same price or title come by id: without an order of their own, pages of them may repeat
+        # or skip some.
         ordering = list(queryset.query.order_by) or (list(Product._meta.ordering) if queryset.query.default_ordering else [])
         if not {'pk', 'id', '-pk', '-id'} & {item for item in ordering if isinstance(item, str)}:
             queryset = queryset.order_by(*ordering, 'pk')
         return queryset
 
+    @extend_schema(parameters=[
+        OpenApiParameter('fields', str, description='Fields of the products to bring, separated by commas'),
+        OpenApiParameter('ta', OpenApiTypes.INT, description='With any value, titles of the products for typeahead'),
+        OpenApiParameter('for_xml', bool, description='Products as feeds of the integrations need them'),
+    ])
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
-        if response.status_code == 200 and self.product_filter is not None:
-            filters = {}
-            for field in self.product_filter.form.visible_fields():
-                if field.name == 'enabled':
-                    continue
-                filters[field.name] = {
-                    'id': field.id_for_label
-                }
-                if hasattr(field.field, 'choices'):
-                    choices = field.field.choices
-                    if isinstance(choices, dict):
-                        choices = list(choices.items())
-                    elif isinstance(choices, ChoiceIterator):
-                        choices = list(choices)
-                    filters[field.name]['choices'] = choices
-                if field.field.widget.attrs:
-                    filters[field.name]['attrs'] = field.field.widget.attrs
-            response.data['filters'] = filters
-            # response.data['data'] = self.product_filter.data
+        # titles for typeahead need no facets
+        if self.filterset is not None and request.query_params.get('ta') is None:
+            facets = self.filterset.facets()
+            if facets:
+                response.data['filters'] = facets
         return response
 
     @action(detail=False)

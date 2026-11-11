@@ -4,7 +4,7 @@ The catalog: categories, product kinds and products. See settings.py on how to r
 from django.contrib.sites.models import Site
 from django.test import TestCase
 
-from shop.models import Category, Manufacturer, Product, ProductImage, ProductKind, ProductPrice, ProductRelation, ProductSet, \
+from shop.models import Category, Favorites, Manufacturer, Product, ProductImage, ProductKind, ProductPrice, ProductRelation, ProductSet, \
     SalesAction, ShopUser, Stock, Store, Supplier
 
 from .clients import StorefrontClient, add_storefront_key, count_queries, signed_in
@@ -65,10 +65,22 @@ class CategoryTests(Base):
         self.assertEqual(self.get('categories/tables/').status_code, 404)
 
     def test_filters_of_the_category(self):
-        self.janome.filters = 'manufacturer'
+        """ Storefronts pick the control by the class, or by the widget for the sliders; a unit follows the comma """
+        self.janome.filters = 'manufacturer, price,sm_power,sm_shuttletype,sm_threader_bool,enabled,nonexistent'
         self.janome.save()
-        [manufacturer] = self.get(f'categories/{self.janome.id}/').json()['filters']
-        self.assertEqual((manufacturer['name'], manufacturer['class']), ('manufacturer', 'MultipleChoiceField'))
+        filters = self.get(f'categories/{self.janome.id}/').json()['filters']
+        self.assertEqual([(f['name'], f['id'], f['class'], f['widget'], f['label'], f.get('unit')) for f in filters], [
+            ('manufacturer', 'id_manufacturer', 'MultipleChoiceField', 'SelectMultiple', 'Производитель', None),
+            ('price', 'id_price', 'RangeField', 'ShopRangeWidget', 'Цена', 'руб'),
+            ('sm_power', 'id_sm_power', 'DecimalField', 'ShopSliderWidget', 'Потребляемая мощность больше', 'Вт'),
+            ('sm_shuttletype', 'id_sm_shuttletype', 'ChoiceField', 'Select', 'Тип челнока', None),
+            ('sm_threader_bool', 'id_sm_threader_bool', 'NullBooleanField', 'ShopBooleanWidget', 'Есть нитевдеватель', None),
+        ])
+
+    def test_category_with_no_filters_to_show(self):
+        self.janome.filters = 'enabled'  # storefronts pick enabled products themselves
+        self.janome.save()
+        self.assertIsNone(self.get(f'categories/{self.janome.id}/').json().get('filters'))
 
     def add_subtree(self, parent):
         """ Subcategories at every level, with hidden and inactive ones, whose subcategories stay out too """
@@ -167,8 +179,31 @@ class ProductListTests(Base):
         self.assertEqual(self.ids(kind=self.kind.id), [1])
         self.assertEqual(self.ids(manufacturer=self.brand.id), [1])
         self.assertEqual(self.ids(manufacturer=[self.brand.id, 49]), [1, 2])
-        self.assertEqual(self.ids(code='p2'), [2])
-        self.assertEqual(self.ids(unknown='x'), [1, 2])
+
+    def test_other_parameters_are_ignored(self):
+        """ Only the parameters of the list filter it, not lookups of any field, which reach as far as customers """
+        Favorites.objects.create(user=ShopUser.objects.create(phone='+79160000001'), site=self.site, product_id=1)
+        for params in ({'favorites__user__phone': '+79160000001'}, {'order': 'abc'}, {'title__nope': 'x'}, {'code': 'p2'}, {'unknown': 'x'}):
+            with self.subTest(params):
+                self.assertEqual(self.ids(**params), [1, 2])
+
+    def test_products_without_variations(self):
+        """ Feeds and the sitemap ask for them with an empty value """
+        Product.objects.filter(pk=2).update(variations='Цвет')
+        self.assertEqual(self.ids(variations=''), [1])
+        self.assertEqual(self.ids(variations='Цвет'), [2])
+
+    def test_filters_of_sewing_machines(self):
+        """ Each filter that a category shows finds products together with the category """
+        self.janome.filters = 'sm_power,sm_stitchquantity,sm_shuttletype,sm_threader_bool'
+        self.janome.save()
+        Product.objects.filter(pk=1).update(sm_power=40, sm_stitchquantity=15, sm_shuttletype='Вертикальный качающийся челнок')
+        add_product(5, sm_power=70, sm_stitchquantity=30, sm_shuttletype='Горизонтальный вращающийся челнок', sm_threader_bool=True,
+                    sites=[self.site], categories=[self.janome])
+        for params, found in (({'sm_power': 50}, [5]), ({'sm_stitchquantity': 20}, [5]), ({'sm_shuttletype': 'горизонтальный'}, [5]),
+                              ({'sm_shuttletype': 'качающийся'}, [1]), ({'sm_threader_bool': 'true'}, [5]), ({'sm_threader_bool': 'false'}, [1])):
+            with self.subTest(params):
+                self.assertEqual(self.ids(categories=self.janome.id, **params), found)
 
     def test_ordering(self):
         self.assertEqual([product['id'] for product in self.get('products/', ordering='-price').json()['results']], [1, 2])
@@ -200,7 +235,37 @@ class ProductListTests(Base):
         data = self.get('products/', text='janome').json()
         self.assertEqual([product['id'] for product in data['results']], [1])
         self.assertGreater(data['results'][0]['rank'], 0)
-        self.assertEqual(set(data['filters']), {'manufacturer', 'price'})
+        self.assertEqual(data['filters'], {
+            'manufacturer': {'id': 'id_manufacturer', 'choices': [[self.brand.id, 'Janome']]},
+            'price': {'id': 'id_price', 'attrs': {'step': 5000, 'min_value': 20000, 'max_value': 20000}},
+        })
+
+    def test_typeahead_by_full_text_search(self):
+        """ Titles of the best matches first, without the facets of the search """
+        add_product(7, title='Шпульки', shortdescr='Для Janome', enabled=True, sites=[self.site])
+        for product in self.site.products.all():
+            product.update_fts_vector()
+        data = self.get('products/', text='janome', ta=1).json()
+        self.assertEqual(data['results'], ['Janome 1225s', 'Шпульки'])
+        self.assertNotIn('filters', data)
+
+    def test_facets_of_what_the_other_parameters_find(self):
+        """ Choices and ranges in the category's products that the other parameters find, in any order of them """
+        self.machines.filters = 'manufacturer,price'
+        self.machines.save()
+        add_product(4, price=7300, enabled=True, sites=[self.site], categories=[self.machines])
+        add_product(5, price=12000, enabled=True, manufacturer=self.brand, sites=[self.site], categories=[self.machines])
+        add_product(6, price=60000, enabled=False, manufacturer=self.brand, sites=[self.site], categories=[self.machines])
+        expected = {
+            'manufacturer': {'id': 'id_manufacturer', 'choices': [[self.brand.id, 'Janome'], [49, 'Test']]},
+            'price': {'id': 'id_price', 'attrs': {'step': 5000, 'min_value': 5000, 'max_value': 15000}},
+        }
+        for params in ({'categories': self.machines.id, 'enabled': 'true', 'manufacturer': 49, 'price': '7000-8000'},
+                       {'price': '7000-8000', 'manufacturer': 49, 'enabled': 'true', 'categories': self.machines.id}):
+            with self.subTest(params):
+                data = self.get('products/', **params).json()
+                self.assertEqual([product['id'] for product in data['results']], [4])
+                self.assertEqual(data['filters'], expected)
 
     def test_category_filters_get_the_range_of_prices(self):
         self.machines.filters = 'manufacturer,price'
@@ -248,22 +313,28 @@ class ProductListTests(Base):
 
     def test_queries_do_not_grow_with_the_products(self):
         sale = SalesAction.objects.create(name='Скидки', slug='sale', order=0, notice='Скидка', active=True)
+        self.janome.filters = 'manufacturer,price,sm_power,sm_threader_bool'
+        self.janome.save()
 
         def queries():
+            for product in self.site.products.all():
+                product.update_fts_vector()
             return count_queries(*(lambda params=params: self.get('products/', **params) for params in (
                 {}, {'for_xml': 'true'}, {'in_category': self.machines.id}, {'categories': self.janome.id},
+                {'text': 'janome'}, {'text': 'janome', 'ta': 1},
             )))
 
         few = queries()
         for pk in range(10, 16):
-            product = add_product(pk, sites=[self.site], categories=[self.janome])
+            product = add_product(pk, title=f'Janome {pk}', manufacturer=Manufacturer.objects.create(code=f'm{pk}', name=f'M{pk}'),
+                                  sites=[self.site], categories=[self.janome])
             product.sales_actions.add(sale)
         ProductPrice.objects.bulk_create(ProductPrice(product_id=pk, site=self.site, price=900, cur_price=900) for pk in range(10, 13))
         self.assertEqual(queries(), few)
 
     def test_malformed_values(self):
         for name, value in (('instock', 'abc'), ('categories', 'abc'), ('in_category', 'abc'), ('id', 'abc'), ('kind', 'abc'),
-                            ('manufacturer', 'abc'), ('price', 'a-b'), ('order', 'abc'), ('title__nope', 'x')):
+                            ('manufacturer', 'abc'), ('price', 'a-b'), ('price', '1000'), ('sm_power', 'abc'), ('sm_shuttletype', 'x')):
             with self.subTest(name):
                 response = self.get('products/', **{name: value})
                 self.assertEqual((response.status_code, response.json()), (400, {name: BAD_PARAMETER}))
