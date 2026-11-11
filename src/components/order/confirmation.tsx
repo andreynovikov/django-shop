@@ -14,7 +14,7 @@ import { buttonClass } from '@/components/ui/button'
 import { inputClass, labelClass } from '@/components/ui/form'
 import { widgetProductMetaClass, widgetProductTitleClass, widgetTitleClass } from '@/components/ui/widget'
 import { STATUS_NEW } from '@/components/order/status-badge'
-import { PageLoading } from '@/components/loading'
+import { ButtonLoading, PageLoading } from '@/components/loading'
 
 import { useSession } from '@/lib/session'
 import { basketKeys, orderKeys, userKeys, loadOrder, updateOrder, FormDataJson } from '@/lib/queries'
@@ -158,7 +158,10 @@ export default function OrderConfirmation() {
             </div>
             <hr className="mt-6 mb-4" />
             <div className="text-end">
-              <button type="submit" className={buttonClass({ size: 'lg' })}><IconBasket size={18} stroke={1.5} className="me-2" />Оформить заказ</button>
+              <button type="submit" className={buttonClass({ size: 'lg' })} disabled={updateOrderMutation.isPending}>
+                <IconBasket size={18} stroke={1.5} className="me-2" />Оформить заказ
+                {updateOrderMutation.isPending && <ButtonLoading />}
+              </button>
             </div>
           </form>
         )}

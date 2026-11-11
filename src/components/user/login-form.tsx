@@ -196,15 +196,17 @@ export default function LoginForm({ ctx, hideModal, embedded = '' }: LoginFormPr
           credentials.permanent_password = permanentPassword
         setSignInPending(true)
         const result = await signIn(credentials)
-        setSignInPending(false)
-        if (result.ok) {
+        if (result.ok) { // signed in, stays pending while the page changes
           if (embedded) {
             if (hideModal)
               hideModal()
           } else {
             router.push(getCallbackUrl(new URLSearchParams(window.location.search).get('callbackUrl')))
           }
-        } else if ('status' in result && result.status === 400) {
+          return
+        }
+        setSignInPending(false)
+        if ('status' in result && result.status === 400) {
           setError(getError('permanent_password', result.error)) // too short, the code is not used up
         } else if ('status' in result && [401, 403].includes(result.status)) {
           if (shopUser.permanent_password) {

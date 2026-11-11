@@ -15,6 +15,9 @@ import { PhoneCodeSent, User, UserEdit, UserEditField } from '@/lib/types'
 
 type FieldErrors = Partial<Record<keyof UserEdit, string[]>>
 
+// The form's submit button is outside it, with the form's id; useIsMutating() with this key tells it the form is saving
+export const updateFormMutationKey = (id: string) => ['user-update-form', id]
+
 interface UpdateFormProps {
   id: string
   embedded?: boolean
@@ -80,6 +83,7 @@ export default function UpdateForm({ id, embedded = false, onReady, onUpdated }:
   }, [updated])
 
   const updateUserMutation = useMutation({
+    mutationKey: updateFormMutationKey(id),
     mutationFn: ({ id, body }: { id: number, body: UserEdit }) => updateUser(id, body),
     onSuccess: (result) => {
       if (!isPhoneCodeSent(result))
@@ -135,6 +139,8 @@ export default function UpdateForm({ id, embedded = false, onReady, onUpdated }:
 
   const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (updateUserMutation.isPending)
+      return
     if (!isValidPhone(fieldValue('phone'))) {
       setError({ phone: ["Введите корректный номер"] })
       return

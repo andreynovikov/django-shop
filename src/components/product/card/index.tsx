@@ -29,7 +29,9 @@ interface ProductCardProps {
 // The quantity in the basket is changed right in the card.
 export default function ProductCard({ product, gtmCategory = undefined, gtmList = '', gtmPosition = 0 }: ProductCardProps) {
   const [showImage, setShowImage] = useState(false)
-  const { basket, addItem, setQuantity, isEmpty, isSuccess, isLoading } = useBasket()
+  const { basket, addItem, setQuantity, addingProductId, isChanging, isEmpty, isSuccess, isLoading } = useBasket()
+  // this card's change is on its way to the basket, the input holds the next one until it is done
+  const isPending = addingProductId === product.id || isChanging
 
   // the extra images are loaded when the lightbox is opened
   const { data: images } = useQuery({
@@ -103,7 +105,8 @@ export default function ProductCard({ product, gtmCategory = undefined, gtmList 
                 setQuantity={updateQuantity}
                 packOnly={product.ws_pack_only}
                 packFactor={product.pack_factor}
-                isLoading={isLoading} />
+                isLoading={isLoading}
+                isPending={isPending} />
             ) : (
               <div className="font-bold text-[#aaa]">Закончились</div>
             )}

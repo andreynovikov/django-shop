@@ -33,7 +33,6 @@ export interface CategoryFilter {
   label: string
   widget: string
   unit?: string
-  help?: string
 }
 
 export interface CategoryTreeItem {
