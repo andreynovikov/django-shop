@@ -1,3 +1,7 @@
+from contextlib import contextmanager
+
+from django.db import connection
+
 from rest_framework import serializers
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import BasePermission
@@ -22,6 +26,26 @@ def id_params(request, name):
     if not all(value.isascii() and value.isdigit() for value in values):
         raise serializers.ValidationError({name: [BAD_PARAMETER]})
     return values
+
+
+# The first key of advisory_lock(), one per kind of the object locked
+ORDER_REGISTRATION_LOCK = 1
+
+
+@contextmanager
+def advisory_lock(kind, key):
+    """
+    Lets one request at a time through for the object, with a PostgreSQL session-level lock: the code inside
+    commits as usual, unlike under select_for_update(). The lock is released at the end even when the code raises,
+    as the connection outlives the request.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute('SELECT pg_advisory_lock(%s, %s)', [kind, key])
+    try:
+        yield
+    finally:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT pg_advisory_unlock(%s, %s)', [kind, key])
 
 
 def ensure_session(request):

@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from rest_framework import serializers
 
 from drf_spectacular.extensions import OpenApiSerializerExtension
@@ -55,10 +57,11 @@ class BasketSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         request.session.save()  # ensure session is persisted
         request.session.modified = True
-        basket, created = Basket.objects.get_or_create(site=request.site, session_id=request.session.session_key)
-        for name, value in validated_data.items():
-            setattr(basket, name, value)
-        basket.save()
+        with transaction.atomic():
+            basket, created = Basket.get_or_create_for_session(request.site, request.session.session_key)
+            for name, value in validated_data.items():
+                setattr(basket, name, value)
+            basket.save()
         return basket
 
 

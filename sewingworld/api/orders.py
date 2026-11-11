@@ -23,7 +23,7 @@ from sewingworld.serializers.common import validation_error_serializer
 from sewingworld.serializers.orders import OrderListSerializer, OrderSerializer, OrderActionSerializer, \
     PreorderSerializer, SerialSerializer
 
-from .common import FORBIDDEN, NOT_FOUND, StandardResultsSetPagination, id_params
+from .common import FORBIDDEN, NOT_FOUND, ORDER_REGISTRATION_LOCK, StandardResultsSetPagination, advisory_lock, id_params
 from .users import queue_email_confirmation
 
 logger = logging.getLogger("django")
@@ -103,6 +103,16 @@ class OrderViewSet(viewsets.ModelViewSet):
         try:
             basket = Basket.objects.get(site=request.site, session_id=request.session.session_key)
         except Basket.DoesNotExist:
+            return Response("Basket does not exist", status=status.HTTP_400_BAD_REQUEST)
+
+        # A request sent twice used to order the basket twice. Now the later one waits and finds it gone.
+        # Order.register() runs outside a transaction: the signals of the order queue tasks that read its rows.
+        with advisory_lock(ORDER_REGISTRATION_LOCK, basket.id):
+            return self._register_basket(request, basket.id)
+
+    def _register_basket(self, request, basket_id):
+        basket = Basket.objects.filter(pk=basket_id).first()
+        if basket is None:
             return Response("Basket does not exist", status=status.HTTP_400_BAD_REQUEST)
 
         if basket.quantity == 0:

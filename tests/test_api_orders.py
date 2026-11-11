@@ -1,12 +1,14 @@
 """
 Orders, serial numbers of the products bought and warranty cards. See settings.py on how to run.
 """
+import copy
+import threading
 from types import SimpleNamespace
 from unittest import mock
 
 from django.contrib.sites.models import Site
-from django.db import transaction
-from django.test import TestCase
+from django.db import connection, transaction
+from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
 from rest_framework.authtoken.models import Token
@@ -21,7 +23,7 @@ from .fixtures import add_marketplace_sites, add_product
 PHONE = '+79161234567'
 
 
-class Base(TestCase):
+class Shop:
     def setUp(self):
         add_storefront_key()
         add_marketplace_sites()
@@ -51,6 +53,10 @@ class Base(TestCase):
         response = self.client.get(path, params)
         self.assertEqual(response.status_code, 200, response.content)
         return [order['id'] for order in response.json()['results']]
+
+
+class Base(Shop, TestCase):
+    pass
 
 
 class ListTests(Base):
@@ -150,6 +156,43 @@ class CreateTests(Base):
 
     def test_anonymous(self):
         self.assertEqual(StorefrontClient().post('/api/v0/orders/').status_code, 403)
+
+
+class CreateRaceTests(Shop, TransactionTestCase):
+    """ The storefront has sent the request to order a basket several times at once """
+    serialized_rollback = True  # the current Site from migrations, which an earlier TransactionTestCase flushes
+
+    def setUp(self):
+        super().setUp()
+        patcher = mock.patch.multiple('sewingworld.api.orders', notify_user_order_new_mail=mock.DEFAULT, notify_user_order_new_sms=mock.DEFAULT)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_basket_ordered_once(self):
+        for _ in range(3):
+            basket = self.client.post('/api/v0/baskets/').json()['id']
+            self.client.post(f'/api/v0/baskets/{basket}/add/', {'product': 1}, format='json')
+            barrier = threading.Barrier(4)
+            statuses = []
+
+            def post():
+                client = StorefrontClient()
+                client.cookies = copy.deepcopy(self.client.cookies)
+                barrier.wait()
+                try:
+                    statuses.append(client.post('/api/v0/orders/').status_code)
+                finally:
+                    connection.close()
+
+            threads = [threading.Thread(target=post) for _ in range(4)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+            self.assertEqual(sorted(statuses), [200, 400, 400, 400])
+            self.assertEqual(Order.objects.count(), 1)
+            self.assertFalse(Basket.objects.exists())
+            Order.objects.all().delete()
 
 
 class PreorderTests(Base):

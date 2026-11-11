@@ -1,6 +1,7 @@
 import re
 
 from django.core import signing
+from django.db import transaction
 
 from rest_framework import viewsets, serializers, status
 from rest_framework.decorators import action
@@ -11,7 +12,7 @@ from rest_framework.response import Response
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer, OpenApiParameter, OpenApiResponse
 
-from shop.models import Product, Basket, BasketItem, Favorites
+from shop.models import Product, Basket, Favorites
 
 from sewingworld.serializers.common import validation_error_serializer
 from sewingworld.serializers.shopping import BasketSerializer, BasketItemActionSerializer, FavoritesSerializer, \
@@ -26,6 +27,9 @@ FAVORITE_ERRORS = validation_error_serializer(FavoritesSerializer)
 
 BAD_BASKET_LINK = 'Ссылка недействительна'
 
+BASKET_ITEM_ACTIONS = ('add_item', 'remove_item', 'update_item')
+MAX_QUANTITY = 32767  # the range of BasketItem.quantity, a PositiveSmallIntegerField
+
 PRODUCT_IDS = OpenApiResponse(response={'type': 'array', 'items': {'type': 'integer'}}, description='Product ids')
 
 
@@ -35,6 +39,9 @@ class BasketViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = Basket.objects.filter(site=self.request.site, session_id__isnull=False, session_id=self.request.session.session_key)
+        if self.action in BASKET_ITEM_ACTIONS:
+            # the item actions of a basket go one at a time: its row stays locked until their transaction ends
+            queryset = queryset.select_for_update()
         return queryset
 
     def destroy(self, request, *args, **kwargs):
@@ -63,13 +70,14 @@ class BasketViewSet(viewsets.ModelViewSet):
         products = list(Product.objects.filter(pk__in=contents))
         if products:
             ensure_session(request)
-            basket, created = Basket.objects.get_or_create(site=request.site, session_id=request.session.session_key)
-            if created:
-                for product in products:
-                    basket.items.create(product=product, quantity=contents[product.id])
-                basket.utm_source = re.sub(r'(?a)[^\w]', '_', str(data.get('utm_source', '')))[:20]  # ASCII only
-                basket.secondary = True
-                basket.save()
+            with transaction.atomic():
+                basket, created = Basket.get_or_create_for_session(request.site, request.session.session_key)
+                if created:
+                    for product in products:
+                        basket.items.create(product=product, quantity=contents[product.id])
+                    basket.utm_source = re.sub(r'(?a)[^\w]', '_', str(data.get('utm_source', '')))[:20]  # ASCII only
+                    basket.secondary = True
+                    basket.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(
@@ -108,24 +116,17 @@ class BasketViewSet(viewsets.ModelViewSet):
     )
     @action(detail=True, methods=['post'], url_path='add')
     def add_item(self, request, pk=None):
-        # TODO: check that basket belongs to current user
-        basket = self.get_object()
-        serializer = BasketItemActionSerializer(data=request.data)
-        if serializer.is_valid():
-            item, created = basket.items.get_or_create(product=serializer.validated_data['product'])
-            if 'quantity' in serializer.validated_data:
-                quantity = serializer.validated_data['quantity']
-            else:
-                quantity = 1
-            if created:
-                item.quantity = quantity
-            else:
-                item.quantity += quantity
-            item.save()
+        with transaction.atomic():
+            basket = self.get_object()
+            serializer = BasketItemActionSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            quantity = serializer.validated_data.get('quantity', 1)
+            item, created = basket.items.get_or_create(product=serializer.validated_data['product'], defaults={'quantity': quantity})
+            if not created:
+                item.quantity = min(item.quantity + quantity, MAX_QUANTITY)
+                item.save()
             basket.save()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(
         request=BasketItemActionSerializer,
@@ -138,20 +139,15 @@ class BasketViewSet(viewsets.ModelViewSet):
     )
     @action(detail=True, methods=['post'], url_path='remove')
     def remove_item(self, request, pk=None):
-        basket = self.get_object()
-        serializer = BasketItemActionSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                item = basket.items.get(product=serializer.validated_data['product'])
-                item.delete()
-            except BasketItem.DoesNotExist:
-                pass
+        with transaction.atomic():
+            basket = self.get_object()
+            serializer = BasketItemActionSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            basket.items.filter(product=serializer.validated_data['product']).delete()
             basket.save()
-            if basket.items.count() == 0:
+            if not basket.items.exists():
                 basket.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(
         request=BasketItemActionSerializer,
@@ -164,26 +160,21 @@ class BasketViewSet(viewsets.ModelViewSet):
     )
     @action(detail=True, methods=['post'], url_path='update')
     def update_item(self, request, pk=None):
-        basket = self.get_object()
-        serializer = BasketItemActionSerializer(data=request.data)
-        if serializer.is_valid():
-            item, created = basket.items.get_or_create(product=serializer.validated_data['product'])
-            if 'quantity' in serializer.validated_data:
-                quantity = serializer.validated_data['quantity']
-                if quantity <= 0:
-                    quantity = 0
+        with transaction.atomic():
+            basket = self.get_object()
+            serializer = BasketItemActionSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            product = serializer.validated_data['product']
+            quantity = serializer.validated_data.get('quantity')
+            if quantity is None:
+                basket.items.get_or_create(product=product)
+            elif quantity > 0:
+                basket.items.update_or_create(product=product, defaults={'quantity': quantity})
             else:
-                quantity = item.quantity
-            if quantity == 0:
-                item.delete()
-            else:
-                item.quantity = quantity
-                item.save()
-            if basket.items.count() == 0:
+                basket.items.filter(product=product).delete()
+            if not basket.items.exists():
                 basket.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @extend_schema_view(

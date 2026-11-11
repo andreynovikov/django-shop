@@ -1,10 +1,14 @@
 """
 Baskets, favorites and comparisons. See settings.py on how to run.
 """
-from django.contrib.sites.models import Site
-from django.test import TestCase
+import copy
+import threading
 
-from shop.models import Basket, Favorites, Product, ProductKind, ShopUser
+from django.contrib.sites.models import Site
+from django.db import connection
+from django.test import TestCase, TransactionTestCase
+
+from shop.models import Basket, BasketItem, Favorites, Product, ProductKind, ShopUser
 
 from .clients import StorefrontClient, add_storefront_key, signed_in
 from .fixtures import add_product
@@ -93,12 +97,76 @@ class BasketTests(Base):
         self.assertEqual(self.post('add', client=other, product=1).status_code, 404)
         self.assertEqual(self.items(), {})
 
+    def test_add_stops_at_the_largest_quantity(self):
+        self.post('add', product=1, quantity=32000)
+        self.assertEqual(self.post('add', product=1, quantity=32000).status_code, 204)
+        self.assertEqual(self.items(), {1: 32767})
+
+    def test_update_without_quantity_keeps_it(self):
+        self.post('add', product=1, quantity=3)
+        self.post('update', product=1)
+        self.post('update', product=2)
+        self.assertEqual(self.items(), {1: 3, 2: 1})
+
     def test_cannot_be_deleted_or_replaced(self):
         path = f'/api/v0/baskets/{self.basket}/'
         self.assertEqual(self.client.delete(path).status_code, 405)
         self.assertEqual(self.client.put(path, {}, format='json').status_code, 405)
         self.assertEqual(self.client.patch(path, {}, format='json').status_code, 405)
         self.assertTrue(Basket.objects.filter(pk=self.basket).exists())
+
+
+class BasketRaceTests(TransactionTestCase):
+    """ A storefront can send requests of one session at once, a double tap or a request sent twice on the way """
+    serialized_rollback = True  # the current Site from migrations, which an earlier TransactionTestCase flushes
+
+    def setUp(self):
+        add_storefront_key()
+        add_product(1)
+        self.client = StorefrontClient()
+        self.client.post('/api/v0/baskets/', format='json')  # starts the session
+
+    def at_once(self, path, body=None, times=6):
+        """ Posts the request from several threads at once, in the session of self.client """
+        barrier = threading.Barrier(times)
+        statuses = []
+
+        def post():
+            client = StorefrontClient()
+            client.cookies = copy.deepcopy(self.client.cookies)
+            barrier.wait()
+            try:
+                statuses.append(client.post(path, body, format='json').status_code)
+            finally:
+                connection.close()
+
+        threads = [threading.Thread(target=post) for _ in range(times)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        return statuses
+
+    def test_basket_created_once(self):
+        Basket.objects.all().delete()
+        for _ in range(5):
+            self.assertEqual(self.at_once('/api/v0/baskets/'), [201] * 6)
+            self.assertEqual(Basket.objects.count(), 1)
+            Basket.objects.all().delete()
+
+    def test_additions_counted_in_one_item(self):
+        basket = Basket.objects.get()
+        for _ in range(5):
+            self.assertEqual(self.at_once(f'/api/v0/baskets/{basket.id}/add/', {'product': 1}), [204] * 6)
+            self.assertEqual(list(BasketItem.objects.values_list('product', 'quantity')), [(1, 6)])
+            BasketItem.objects.all().delete()
+
+    def test_updates_make_one_item(self):
+        basket = Basket.objects.get()
+        for _ in range(5):
+            self.assertEqual(self.at_once(f'/api/v0/baskets/{basket.id}/update/', {'product': 1, 'quantity': 2}), [204] * 6)
+            self.assertEqual(list(BasketItem.objects.values_list('product', 'quantity')), [(1, 2)])
+            BasketItem.objects.all().delete()
 
 
 class FavoritesTests(Base):

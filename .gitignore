@@ -12,3 +12,4 @@ media/
 static/
 .cache/
 .touch_reload
+deploy/ansible/inventory.yml

@@ -25,6 +25,15 @@ class Basket(models.Model):
     utm_source = models.CharField(max_length=20, blank=True)
     secondary = models.BooleanField(default=False)
 
+    @classmethod
+    def get_or_create_for_session(cls, site, session_key):
+        """
+        The site's basket of the storefront session, created when missing. Call it inside transaction.atomic():
+        the session row stays locked until the transaction ends, so that concurrent requests get one basket.
+        """
+        Session.objects.select_for_update().filter(pk=session_key).first()
+        return cls.objects.get_or_create(site=site, session_id=session_key)
+
     def link_contents(self):
         """ Products and quantities for the link in the abandoned basket notice, '<product id>*<quantity>,...' """
         return ','.join('%s*%s' % (item.product_id, item.quantity) for item in self.items.all())
@@ -183,6 +192,10 @@ class BasketItem(models.Model):
 
     class Meta:
         ordering = ['id']
+        constraints = [
+            # one row per product, which the basket API looks up; concurrent additions used to make two
+            models.UniqueConstraint(fields=['basket', 'product'], name='basketitem_product'),
+        ]
 
     @property
     def price(self):
