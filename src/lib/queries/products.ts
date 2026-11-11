@@ -1,5 +1,5 @@
 import { PaginatedResult, Product, ProductInfo, ProductList, StoreInfo } from '@/lib/types'
-import { productSearchParamsSerializer, ProductSearchParamsType } from '@/lib/search-params'
+import { productFieldsSerializer, productSearchParamsSerializer, ProductSearchParamsType } from '@/lib/search-params'
 import { apiFetch } from './fetch'
 
 export const productKeys = {
@@ -18,13 +18,19 @@ export const productKeys = {
   info: (id: number) => [...productKeys.details(), id]
 }
 
-export async function loadProducts(page: number | null, page_size: number, filters: ProductSearchParamsType, ordering: string) {
-  const url = 'products/' + productSearchParamsSerializer({
+// With fields, only those fields of each product, e.g. the codes for the sitemap: a much smaller answer that the
+// backend makes faster. The plain signature is last, so Parameters<typeof loadProducts> is its own.
+export async function loadProducts<Field extends keyof ProductInfo>(page: number | null, page_size: number, filters: ProductSearchParamsType, ordering: string, fields: Field[]): Promise<PaginatedResult<Pick<ProductInfo, Field>>>
+export async function loadProducts(page: number | null, page_size: number, filters: ProductSearchParamsType, ordering: string): Promise<ProductList>
+export async function loadProducts(page: number | null, page_size: number, filters: ProductSearchParamsType, ordering: string, fields?: (keyof ProductInfo)[]) {
+  let url = 'products/' + productSearchParamsSerializer({
     ...filters,
     page,
     page_size,
     ordering,
   })
+  if (fields)
+    url = productFieldsSerializer(url, { fields })
   return await apiFetch<ProductList>(url)
 }
 

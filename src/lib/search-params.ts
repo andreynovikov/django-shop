@@ -2,6 +2,7 @@ import {
   createParser,
   createLoader,
   createSerializer,
+  parseAsArrayOf,
   parseAsBoolean,
   parseAsInteger,
   parseAsNativeArrayOf,
@@ -106,6 +107,12 @@ export const productSearchParams = {
 export type ProductSearchParamsType = Partial<inferParserType<typeof productSearchParams>>
 export const productSearchParamsSerializer = createSerializer(productSearchParams)
 export const productSearchParamsLoader = createLoader(productSearchParams)
+
+// Fields of each product that the list brings, fields=id,code. Not among productSearchParams, which the catalog
+// reads from its address: there it would leave the product cards without their fields.
+export const productFieldsSerializer = createSerializer({
+  fields: parseAsArrayOf(parseAsString),
+})
 
 export const orderSearchParams = {
   page: parseAsInteger.withDefault(1),
