@@ -157,6 +157,21 @@ class ProductListTests(Base):
 
     def test_chosen_fields(self):
         self.assertEqual(self.get('products/', id=1, fields='id,title').json()['results'], [{'id': 1, 'title': 'Janome 1225s'}])
+        self.assertEqual(self.get('products/', id=1, fields='code,descr,unknown').json()['results'], [{'code': 'p1'}])
+
+    def test_each_chosen_field_as_in_the_whole_entry(self):
+        Product.objects.filter(pk=1).update(val_discount=500)
+        ProductPrice.objects.bulk_create([ProductPrice(product_id=1, site=self.site, price=18000, cur_price=18000, pct_discount=10)])
+        Product.objects.get(pk=1).sales_actions.add(SalesAction.objects.create(name='Скидки', slug='sale', order=0, notice='Скидка', active=True))
+        [product] = self.get('products/', id=1).json()['results']
+        for name, value in product.items():
+            with self.subTest(name):
+                self.assertEqual(self.get('products/', id=1, fields=name).json()['results'], [{name: value}])
+
+    def test_chosen_fields_read_only_what_they_need(self):
+        # codes for the sitemap need neither the prices of the sites nor the notices of sales
+        everything = count_queries(lambda: self.get('products/'))
+        self.assertEqual(count_queries(lambda: self.get('products/', fields='code')), everything - 2)
 
     def test_typeahead_gets_titles(self):
         self.assertEqual(self.get('products/', id=1, ta='1').json()['results'], ['Janome 1225s'])
@@ -166,6 +181,8 @@ class ProductListTests(Base):
         self.assertEqual(product['categories'], [self.janome.id])
         self.assertEqual(product['manufacturer']['code'], 'janome')
         self.assertNotIn('stock', product)  # only feeds of integrations have it
+        # a feed has all its fields
+        self.assertEqual(self.get('products/', id=1, for_xml='true', fields='code').json()['results'], [product])
 
     def test_filters(self):
         self.assertEqual(self.ids(id=[1, 2]), [1, 2])
@@ -322,6 +339,8 @@ class ProductListTests(Base):
             return count_queries(*(lambda params=params: self.get('products/', **params) for params in (
                 {}, {'for_xml': 'true'}, {'in_category': self.machines.id}, {'categories': self.janome.id},
                 {'text': 'janome'}, {'text': 'janome', 'ta': 1},
+                # the columns and rows that chosen fields read come with the products
+                {'fields': 'code'}, {'fields': 'price'}, {'fields': 'cost,discount,instock,sales'},
             )))
 
         few = queries()

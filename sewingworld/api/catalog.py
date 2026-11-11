@@ -97,11 +97,20 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             return ProductImagesSerializer
         return ProductSerializer
 
+    def requested_fields(self):
+        """
+        The fields of the products that the list or a product's entry in it asks for, fields=id,code, or None for
+        all of them. Feeds for integrations always have all of theirs.
+        """
+        fields = self.request.query_params.get('fields')
+        if fields and self.action in ('list', 'info') and self.get_serializer_class() is ProductListSerializer:
+            return fields.split(',')
+        return None
+
     def get_serializer(self, *args, **kwargs):
-        if self.action in ('list', 'info'):
-            fields = self.request.query_params.get('fields')
-            if fields:
-                kwargs['fields'] = fields.split(',')
+        fields = self.requested_fields()
+        if fields is not None:
+            kwargs['fields'] = fields
         return super().get_serializer(*args, **kwargs)
 
     def get_queryset(self):
@@ -109,7 +118,11 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action == 'list':
             queryset = queryset.filter(sites=self.request.site)
         if self.action in ('list', 'info', 'retrieve', 'bycode'):
-            queryset = self.get_serializer_class().prefetch(queryset)
+            fields = self.requested_fields()
+            if fields is not None:
+                queryset = ProductListSerializer.prefetch(queryset, fields)
+            else:
+                queryset = self.get_serializer_class().prefetch(queryset)
         return queryset
 
     def filter_queryset(self, queryset):

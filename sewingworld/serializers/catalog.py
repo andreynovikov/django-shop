@@ -174,15 +174,28 @@ class ProductImagesSerializerExtension(OpenApiSerializerExtension):
         }
 
 
-def product_columns(serializer_class):
+# Columns that the fields computed by the product serializers read, see Product.site_price(), site_cost(), discount
+# and instock
+COMPUTED_FIELD_COLUMNS = {
+    'price': ('price', 'ws_price'),
+    'cost': ('price', 'ws_price', 'pct_discount', 'val_discount', 'ws_pct_discount'),
+    'discount': ('price', 'pct_discount', 'val_discount'),
+    'instock': ('num',),
+}
+
+
+def product_columns(serializer_class, fields=None):
     """
-    Columns of the products that the serializer needs: its fields and those that prices and stock come from.
-    A product has over a hundred columns, many of them long texts of its page.
+    Columns of the products that the serializer needs for its fields, or for those of them given: the fields that are
+    columns, and those that the computed ones read. A product has over a hundred columns, many of them long texts of
+    its page.
     """
     columns = {field.name for field in Product._meta.concrete_fields}
-    return [name for name in serializer_class.Meta.fields if name in columns] + [
-        'price', 'ws_price', 'pct_discount', 'val_discount', 'ws_pct_discount', 'num',
-    ]
+    names = [name for name in serializer_class.Meta.fields if fields is None or name in fields]
+    needed = {'id'} | {name for name in names if name in columns}
+    for name in names:
+        needed.update(COMPUTED_FIELD_COLUMNS.get(name, ()))
+    return sorted(needed)
 
 
 class ProductListSerializer(DynamicFieldsModelSerializer):
@@ -200,13 +213,20 @@ class ProductListSerializer(DynamicFieldsModelSerializer):
                   'wb_link', 'ozon_link')
 
     @classmethod
-    def prefetch(cls, queryset):
-        """ The products with what the list needs read in a few queries, instead of queries for each product """
-        return queryset.only(*product_columns(cls)).prefetch_related(
-            'site_prices',
-            Prefetch('sales_actions', to_attr='sales_with_notices',
-                     queryset=SalesAction.objects.filter(active=True).exclude(notice='').order_by('order')),
-        )
+    def prefetch(cls, queryset, fields=None):
+        """
+        The products with what the list needs read in a few queries, instead of queries for each product. With the
+        fields that a request asks for, only what those need: the sitemap's codes take no prices or sales.
+        """
+        queryset = queryset.only(*product_columns(cls, fields))
+        if fields is None or {'price', 'cost'} & set(fields):
+            queryset = queryset.prefetch_related('site_prices')
+        if fields is None or 'sales' in fields:
+            queryset = queryset.prefetch_related(
+                Prefetch('sales_actions', to_attr='sales_with_notices',
+                         queryset=SalesAction.objects.filter(active=True).exclude(notice='').order_by('order')),
+            )
+        return queryset
 
     def to_representation(self, instance):
         request = self.context.get('request')
