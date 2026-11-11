@@ -10,7 +10,7 @@ The same codebase is deployed many times, once per site (sewing-world, janome, s
 
 ## Commands
 
-Project tests are in `tests/`, and the `errors` app has its own in `errors/tests/`. `.github/workflows/tests.yml` runs flake8 and both suites on every push, against a PostgreSQL 16 service container (production's major version). The other workflow builds a Docker image from the `cartzilla` branch.
+Project tests are in `tests/`, and the `errors` app has its own in `errors/tests/`. `.github/workflows/tests.yml` runs flake8 and both suites on every push, against a PostgreSQL 16 service container (production's major version). The frontends are branches of this repository (`sworld`, `familysew`, `janome`, `singer`, `dortak`), each with its own `.github/workflows/frontend.yml`. The copy on `main` is a stub that only fails, kept so GitHub shows the "Run workflow" button that deploys a frontend. "Frontend deployment" in DEPLOYMENT.rst describes them.
 
 Dependencies are managed with uv. `pyproject.toml` lists only the packages the code uses directly, plus flake8 in the `dev` group, and `uv.lock` pins everything. Add packages with `uv add` and upgrade with `uv lock --upgrade-package <name>`. `override-dependencies` lifts the `Django<6.1` that django-celery-beat and django-prometheus declare. Servers keep their virtualenv in `env/`, see DEPLOYMENT.rst.
 

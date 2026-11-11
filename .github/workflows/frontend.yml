@@ -1,52 +1,21 @@
 name: Frontend CI
 
+# Each frontend branch (sworld, familysew, janome, singer, dortak) has its own version of this workflow:
+# pushes to the branch build its image, and "Run workflow" on the branch deploys it to production.
+# GitHub shows the "Run workflow" button only for workflows on the default branch, which is why this
+# copy exists. Run on the default branch itself, it only fails. See "Frontend deployment" in DEPLOYMENT.rst.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - "cartzilla"
+
+permissions: {}
 
 jobs:
 
-  build:
+  choose-branch:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Docker meta
-        uses: docker/metadata-action@v5
-        with:
-          # list of Docker images to use as base name for tags
-          images: |
-            sworld
-            ghcr.io/andreynovikov/sworld
-          # generate Docker tags based on the following events/attributes
-          tags: |
-            type=schedule
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=sha
-    
-      - name: Login to GHCR
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          build-args: |
-            entity=sworld
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+      - name: Not a frontend branch
+        run: |
+          echo "::error::Run this workflow on a frontend branch: sworld, familysew, janome, singer or dortak"
+          exit 1

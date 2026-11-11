@@ -322,9 +322,60 @@ from the ``uv.lock`` of its branch. So, general deployment scheme looks like thi
     mkdir st_search
     sudo chown nikolays:www-data st_search
 
-For React sites:
+The Next.js frontends run in Docker, see `Frontend deployment`_.
+
+*******************
+Frontend deployment
+*******************
+
+The Next.js frontends are branches of this repository, one per site. They run on the server as Docker containers,
+built by GitHub Actions:
+
+=========  ===========================  =========  ====
+Branch     Directory                    NAME       Port
+=========  ===========================  =========  ====
+sworld     /www/www.sewing-world.ru     sworld     4104
+sworld     /www/cartzilla.sigalev.ru    stage      4004
+familysew  /www/familysew.ru            familysew  4001
+janome     /www/janome.club             janome     4003
+singer     /www/singer.ru               singer     4002
+dortak     /www/dor-tak.ru              dortak     4005
+=========  ===========================  =========  ====
+
+The second sworld line is the stage site. Each directory holds the branch's ``docker-compose.yaml`` and its
+``templates/``, which is mounted into the container for the XML feeds. At start the container copies its static files
+into ``.docker/``, where nginx serves them from. nginx proxies everything else to ``127.0.0.1:<port>``.
+
+Each branch has its own ``.github/workflows/frontend.yml``. Every push to the branch runs lint and type checks, builds
+the image with the frontend's ``.env``, and pushes it to ``ghcr.io/andreynovikov/<branch>``. The image is tagged with
+the commit's date in Moscow time and its short hash, such as ``2026.11.11-7f57710``, and with ``latest``. sworld also
+runs the Playwright tests and deploys every push to stage.
+
+To deploy a frontend to production, open Actions → Frontend CI → Run workflow on GitHub and choose its branch. The run
+deploys the image of the branch's last commit, and fails if that commit's build has not finished or has failed. To roll
+back, re-run an earlier deploy run (GitHub allows re-runs for 30 days), or start an older image on the server.
+``docker images`` lists the ones it has; pulling another one needs ``docker login ghcr.io`` with a token that can read
+packages:
+
 ::
-    pm2 start npm --name "janome" -- start
+
+    cd /www/janome.club
+    NAME=janome PORT=4003 IMAGE=ghcr.io/andreynovikov/janome:2026.11.10-eb964ab docker compose up -d
+
+The ``frontend.yml`` on ``main`` only puts the Run workflow button on the Actions page: GitHub shows it only for workflows
+on the default branch. Run on ``main``, it fails.
+
+GitHub settings
+***************
+
+* Environments ``sworld``, ``familysew``, ``janome``, ``singer`` and ``dortak``, one per branch, each limited to its
+  branch. Each holds the secret ``ENV_FILE``, the frontend's ``.env``. Next.js builds it into the image, so the build
+  job reads it too, and sworld's stage runs the production image. Don't add required reviewers: they would also hold
+  up the build job, which reads the environment without deploying to it.
+* No repository secret ``ENV_FILE``: a job falls back to it when its environment has none, and would build a frontend
+  with another one's ``.env``.
+* Repository secrets ``DEPLOY_HOST``, ``DEPLOY_USER`` and ``SSH_PRIVATE_KEY``: the ssh login of the deploy jobs.
+* The ``Protected branches`` ruleset lists the frontend branches by name. Update it when a branch is added or renamed.
 
 ************************
 Master/slave replication
