@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { IconShoppingCart, IconTrash } from '@tabler/icons-react'
 
+import { ButtonLoading } from '@/components/loading'
 import NoImage from '@/components/product/no-image'
 import { buttonClass } from '@/components/ui/button'
 import ProductPrice from '@/components/product/price'
@@ -17,7 +18,7 @@ import { productKeys, loadProducts } from '@/lib/queries'
 import { ProductInfo } from '@/lib/types'
 
 export default function UserFavorites() {
-  const { addItem } = useBasket()
+  const { addItem, addingProductId } = useBasket()
   const { favorites, unfavoritize } = useFavorites()
 
   const { data: products, isSuccess } = useQuery({
@@ -67,9 +68,10 @@ export default function UserFavorites() {
             </div>
             <div className="mx-auto pt-2 text-center whitespace-nowrap sm:mx-0 sm:ps-4">
               {product.enabled && product.instock > 0 && (
-                <button className={`${buttonClass({ variant: 'success', size: 'sm' })} me-2`} type="button" onClick={() => handleClick(product)}>
+                <button className={`${buttonClass({ variant: 'success', size: 'sm' })} me-2`} type="button" onClick={() => handleClick(product)} disabled={addingProductId === product.id}>
                   <IconShoppingCart size={14} stroke={1.5} className="me-1" />
                   {product.variations ? "Выбрать" : "Купить"}
+                  {addingProductId === product.id && <ButtonLoading />}
                 </button>
               )}
               <button className={buttonClass({ variant: 'outline-danger', size: 'sm' })} type="button" onClick={() => unfavoritize(product.id)}>

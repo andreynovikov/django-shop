@@ -5,6 +5,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { IconShoppingCart } from '@tabler/icons-react'
 
+import { ButtonLoading } from '@/components/loading'
 import { buttonClass } from '@/components/ui/button'
 import { selectClass } from '@/components/ui/form'
 
@@ -13,7 +14,8 @@ import { Product } from '@/lib/types'
 
 export default function ProductShopping({ product }: { product: Product }) {
   const [quantity, setAddQuantity] = useState(1)
-  const { basket, addItem, removeItem, setQuantity, isEmpty, isSuccess } = useBasket()
+  const { basket, addItem, removeItem, setQuantity, addingProductId, isChanging, isEmpty, isSuccess } = useBasket()
+  const isAdding = addingProductId === product.id
 
   const basketQuantity = useMemo(() => {
     if (!isSuccess || isEmpty)
@@ -41,14 +43,15 @@ export default function ProductShopping({ product }: { product: Product }) {
   return basketQuantity > 0 ? (
     <>
       <div className="flex items-center justify-between">
-        <button className={buttonClass({ variant: 'success', size: 'wide', shadow: true })} type="button" onClick={() => handleSetQuantity(-1)} aria-label="Убрать одну штуку">
+        <button className={buttonClass({ variant: 'success', size: 'wide', shadow: true })} type="button" onClick={() => handleSetQuantity(-1)} disabled={isChanging} aria-label="Убрать одну штуку">
           -
         </button>
         <span className="px-2">
           <span className="hidden md:inline">В корзине: </span>
           {basketQuantity} шт
+          {isChanging && <ButtonLoading />}
         </span>
-        <button className={buttonClass({ variant: 'success', size: 'wide', shadow: true })} type="button" onClick={() => handleSetQuantity(+1)} aria-label="Добавить ещё одну">
+        <button className={buttonClass({ variant: 'success', size: 'wide', shadow: true })} type="button" onClick={() => handleSetQuantity(+1)} disabled={isChanging} aria-label="Добавить ещё одну">
           +
         </button>
       </div>
@@ -65,8 +68,9 @@ export default function ProductShopping({ product }: { product: Product }) {
           <option value="5">5</option>
         </select>
       )}
-      <button className={buttonClass({ variant: 'success', block: true, shadow: true })} type="button" onClick={handleCartClick}>
+      <button className={buttonClass({ variant: 'success', block: true, shadow: true })} type="button" onClick={handleCartClick} disabled={isAdding}>
         <IconShoppingCart size={18} stroke={1.5} className="me-2" />Купить
+        {isAdding && <ButtonLoading />}
       </button>
     </div>
   )

@@ -25,9 +25,12 @@ interface CartItemProps {
   last: boolean
   removeItem: (product: BasketItemProduct) => void
   setQuantity: (product: BasketItemProduct, quantity: number) => void
+  isChanging: boolean  // a change from the cart is on its way to the basket, until the basket is loaded again
 }
 
-export default function CartItem({ item, first, last, removeItem, setQuantity }: CartItemProps) {
+// The basket gets the typed quantity after a pause in typing, or right away when the field loses focus,
+// e.g. to a click on the order button: basket changes run one at a time, and the order waits for it
+export default function CartItem({ item, first, last, removeItem, setQuantity, isChanging }: CartItemProps) {
   const { site } = useSite()
   // a wholesale site sells the products sold in packs only in whole packs
   const pack = site.wholesale && item.product.ws_pack_only ? Math.max(1, item.product.pack_factor) : 1
@@ -48,12 +51,14 @@ export default function CartItem({ item, first, last, removeItem, setQuantity }:
       setInputValue(String(quantity))
   }
 
+  // After a pause in typing. It skips a value the field has moved on from, waits for the change on its way
+  // and runs again when that is done, with the basket up to date, so the same quantity isn't sent twice.
   useEffect(() => {
-    if (debouncedInput === '')
+    if (debouncedInput === '' || debouncedInput !== inputValue || isChanging)
       return
     const quantity = getUpdatedQuantity(debouncedInput, item.quantity, pack)
     setQuantity(item.product, quantity)
-  }, [debouncedInput, item.product, item.quantity, pack, setQuantity])
+  }, [debouncedInput, inputValue, isChanging, item.product, item.quantity, pack, setQuantity])
 
   return (
     <div className={`my-2 items-center justify-between sm:flex ${first ? "pb-4" : "py-4"} ${last ? "" : "border-b"}`}>
