@@ -13,6 +13,16 @@ import { Serial } from '@/lib/types'
 import { buttonClass } from '@/components/ui/button'
 import { inputClass } from '@/components/ui/form'
 
+// The backend rejects a number with a list of messages, e.g. when it was registered before,
+// and other requests with {"detail": "..."}
+function errorMessages(body: unknown): string[] {
+  if (Array.isArray(body) && body.length > 0)
+    return body.map(String)
+  if (typeof body === 'object' && body !== null && 'detail' in body)
+    return [String(body.detail)]
+  return ['Не удалось зарегистрировать серийный номер. Попробуйте ещё раз позже.']
+}
+
 export default function ExtendWarrantyForm() {
   const [sn, setSN] = useState<string>()
   const [serial, setSerial] = useState<Serial>()
@@ -29,8 +39,12 @@ export default function ExtendWarrantyForm() {
       queryClient.invalidateQueries({ queryKey: serialKeys.lists() })
       setSerial(data)
     },
-    // TODO: process errors
-    // onError: (error) => setErrors(error.response?.json())
+    onError: async (error) => {
+      let body: unknown
+      if (error instanceof HttpError && error.response.headers.get('content-type')?.toLowerCase().includes('application/json'))
+        body = await error.response.json().catch(() => undefined)
+      setErrors(errorMessages(body))
+    },
   })
 
   useEffect(() => {
