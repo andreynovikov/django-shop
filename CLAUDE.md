@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Next.js storefront for sewing-world.ru (package name `sworld`, branch `cartzilla`), styled with Tailwind CSS v4 after the look of the Cartzilla theme it was built on. It has no database of its own: all data comes from a separate Django backend (the `django-shop` repo) over REST at `${API_SERVER}/api/v0/`. The UI and content are in Russian.
+Next.js storefront for sewing-world.ru (package name `sworld`, branch `sworld`), styled with Tailwind CSS v4 after the look of the Cartzilla theme it was built on. It has no database of its own: all data comes from a separate Django backend (the `django-shop` repo) over REST at `${API_SERVER}/api/v0/`. The UI and content are in Russian.
 
 ## Commands
 
@@ -78,7 +78,12 @@ Each storefront keeps its own versions of the rest:
 A shared component styles itself only through these helpers and tokens. When it needs a new helper option or token, add it to every storefront.
 
 ## Release and deploy
-- The version in `package.json` uses the format `YYYY.MM.DD`. Release commits are named `vYYYY.MM.DD` and tagged with the same name.
-- `.github/workflows/frontend.yml`: every push to `cartzilla` builds a Docker image, pushes it to GHCR, and deploys it to stage on port 4004. A `v*` tag also deploys it to production on port 4104.
+- `.github/workflows/frontend.yml` runs on every push to `sworld`:
+  - lint and type checks, then the Playwright tests and the Docker build;
+  - the image goes to `ghcr.io/andreynovikov/sworld`, tagged `latest` and with the commit's Moscow date and short hash, e.g. `2026.11.11-7f57710`;
+  - then it is deployed to stage on port 4004.
+- Production (port 4104) is deployed by hand: Actions → Frontend CI → Run workflow on the `sworld` branch. That deploys the image of the branch's head commit without rebuilding it. Re-running an earlier deploy run rolls back. There are no version numbers or release tags.
+- The build and the tests take `ENV_FILE` from the `sworld` GitHub environment, because the `.env` is baked into the image; stage runs the production image. The deploy jobs use the repo secrets `DEPLOY_HOST`, `DEPLOY_USER` and `SSH_PRIVATE_KEY`.
+- The other storefronts' branches have the same workflow without the tests and stage. `main` holds a stub of it, which GitHub needs to show the Run workflow button.
 - At container start, `startup.sh` copies `.next/static` and `public/` into the `.docker/` volume so nginx can serve them.
-- `DEPLOYMENT.rst` documents the server setup: nginx, Postgres, the Django backend, and replication.
+- "Frontend deployment" in `DEPLOYMENT.rst` on the `main` branch documents the server side and the GitHub settings. That file also covers the rest of the server setup: nginx, Postgres, the Django backend, and replication.
