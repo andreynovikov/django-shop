@@ -19,7 +19,7 @@ from yookassa.domain.notification import WebhookNotification
 import uuid
 
 from shop.models import Order, ShopUser
-from shop.tasks import update_order
+from shop.tasks.workflow import update_order
 
 from . import configure_yookassa
 from .tasks import get_receipt

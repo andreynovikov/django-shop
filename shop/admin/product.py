@@ -27,7 +27,7 @@ from flags.state import flag_enabled
 
 from shop.models import Product, ProductImage, ProductPrice, ProductRelation, ProductSet, ProductKind, \
     ProductReview, Stock, Integration, Order
-from shop.tasks import post_update_product
+from shop.tasks.workflow import post_update_product
 from .forms import ProductImportForm, ProductConfirmImportForm, ProductExportForm, \
     ProductAdminForm, ProductListAdminForm, ProductKindForm, StockInlineForm, IntegrationInlineForm, \
     ProductCloneForm, OneSImportForm

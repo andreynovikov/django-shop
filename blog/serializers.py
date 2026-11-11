@@ -6,7 +6,7 @@ from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 
 from django_tagulous.contrib.drf import TagRelatedManagerField
 
-from sewingworld.serializers import UserListSerializer
+from sewingworld.serializers.users import UserListSerializer
 
 from .models import Entry, Category
 

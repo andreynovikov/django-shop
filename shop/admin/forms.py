@@ -20,7 +20,7 @@ from constance import config
 from sewingworld.widgets import AutosizedTextarea, JsonAutosizedTextarea
 
 from shop.models import Supplier, Product, Order, OrderItem, ShopUser, Box, ActOrder, Integration, Contractor
-from shop.tasks import import1c
+from shop.tasks.stocks import import1c
 from shop.tidy import tidy_html5
 
 from .widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \

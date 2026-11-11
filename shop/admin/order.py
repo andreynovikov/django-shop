@@ -1,18 +1,13 @@
 import logging
-import re
 import datetime
-from collections import defaultdict
-from decimal import Decimal, ROUND_UP
 from urllib.parse import quote
 
 from django import forms
-from django.db.models import F, Sum, TextField, PositiveSmallIntegerField, PositiveIntegerField, \
-    DateTimeField, DecimalField
+from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, DecimalField
 from django.core.exceptions import PermissionDenied
 from django.contrib import admin, messages
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template.loader import get_template
-from django.template.defaultfilters import floatformat
 from django.template.response import TemplateResponse
 from django.conf import settings
 from django.shortcuts import render
@@ -20,23 +15,28 @@ from django.urls import re_path, reverse
 from django.utils import timezone
 from django.utils.formats import date_format, number_format
 from django.utils.safestring import mark_safe
-from django.utils.translation import gettext_lazy as _
 
 from daterangefilter.filters import FutureDateRangeFilter, PastDateRangeFilter
-from more_admin_filters import ChoicesDropdownFilter, RelatedDropdownFilter, SimpleDropdownFilter
+from more_admin_filters import ChoicesDropdownFilter, RelatedDropdownFilter
 # from tagging.utils import parse_tag_input
 
 from constance import config
 
 from yandex_delivery.tasks import create_delivery_draft_order, get_delivery_options
 
-from shop.models import ShopUserManager, ShopUser, Supplier, Order, OrderItem, Box, \
-    Act, ActOrder, Contractor, Stock
-from shop.tasks import send_message
+from shop.models import ShopUserManager, ShopUser, Supplier, Order, OrderItem, Box, Contractor
+from shop.tasks.user_interaction import send_message
 
 from .forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
     OrderDiscountForm, SendSmsForm, SelectTagForm, SelectSupplierForm, \
     OrderItemInlineAdminForm, BoxInlineAdminForm, YandexDeliveryForm
+from .order_editing import apply_discount, combine_orders, confirm_buyer_email
+from .order_filters import OrderStatusListFilter, OrderDeliveryListFilter, BooleanDropdownFilter, OrderOwnerFilter, \
+    OrderIntegrationFilter
+from .order_shipping import measure_boxes, fill_box, split_name, delivery_options, beru_order_labels, act_problems, \
+    make_act, missing_1c_data
+from .order_supply import OWN_WAREHOUSE, DEFAULT_SUPPLIER, order_products, allocate_stock, stock_workbook, \
+    products_workbook
 from .views import product_stock_view
 
 
@@ -51,6 +51,13 @@ def parse_ids(values):
         if value.isascii() and value.isdigit():
             ids.append(int(value))
     return ids
+
+
+def close_popup(script='opener.dismissPopupAndReload(window);'):
+    """ Response that closes the popup with the script, by default the page that opened it reloads """
+    return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
+                        '<script type="text/javascript">%s</script>'
+                        '</body></html>' % script)
 
 
 class OrderItemInline(admin.TabularInline):
@@ -120,222 +127,6 @@ class BoxInline(admin.TabularInline):
     fields = ['title', 'weight', 'length', 'width', 'height']
     readonly_fields = ['title']
     ordering = ['id']
-
-
-class OrderStatusListFilter(SimpleDropdownFilter):
-    title = _('статус')
-
-    parameter_name = 'status'
-
-    def lookups(self, request, model_admin):
-        """
-        Returns a list of tuples. The first element in each
-        tuple is the coded value for the option that will
-        appear in the URL query. The second element is the
-        human-readable name for the option that will appear
-        in the right sidebar.
-        """
-        choices = (
-            ('all', _('All')),
-            (None, _('активный')),
-        )
-        choices += Order.STATUS_CHOICES
-        return choices
-
-    def choices(self, cl):
-        for lookup, title in self.lookup_choices:
-            yield {
-                'selected': str(self.value()) == str(lookup),
-                'query_string': cl.get_query_string({
-                    self.parameter_name: lookup,
-                }, []),
-                'display': title[0].upper() + title[1:],
-            }
-
-    def queryset(self, request, queryset):
-        """
-        Returns the filtered queryset based on the value
-        provided in the query string and retrievable via
-        `self.value()`.
-        """
-        if self.value() == 'all':
-            return None
-        if self.value():
-            return queryset.filter(status__exact=self.value())
-        if self.value() is None:
-            return queryset.filter(status__in=[Order.STATUS_NEW, Order.STATUS_ACCEPTED, Order.STATUS_COLLECTING, Order.STATUS_COLLECTED, Order.STATUS_SENT, Order.STATUS_DELIVERED_SHOP, Order.STATUS_CONSULTATION, Order.STATUS_PROBLEM, Order.STATUS_SERVICE])
-
-
-class OrderDeliveryListFilter(SimpleDropdownFilter):
-    title = _('доставка')
-
-    parameter_name = 'delivery'
-
-    def lookups(self, request, model_admin):
-        """
-        Returns a list of tuples. The first element in each
-        tuple is the coded value for the option that will
-        appear in the URL query. The second element is the
-        human-readable name for the option that will appear
-        in the right sidebar.
-        """
-        choices = (
-            ('all', _('All')),
-            (-Order.DELIVERY_YANDEX, _('кроме Яндекс.Доставки')),
-        )
-        choices += Order.DELIVERY_CHOICES
-        return choices
-
-    def choices(self, cl):
-        for lookup, title in self.lookup_choices:
-            yield {
-                'selected': str(self.value()) == str(lookup),
-                'query_string': cl.get_query_string({
-                    self.parameter_name: lookup,
-                }, []),
-                'display': title[0].upper() + title[1:],
-            }
-
-    def queryset(self, request, queryset):
-        """
-        Returns the filtered queryset based on the value
-        provided in the query string and retrievable via
-        `self.value()`.
-        """
-        if self.value() == 'all':
-            return None
-        if self.value():
-            value = int(self.value())
-            if value < 0:
-                return queryset.exclude(delivery__exact=(-value))
-            else:
-                return queryset.filter(delivery__exact=value)
-
-
-class BooleanDropdownFilter(admin.FieldListFilter):
-    template = 'more_admin_filters/dropdownfilter.html'
-
-    def __init__(self, field, request, params, model, model_admin, field_path):
-        self.lookup_kwarg = f"{field_path}__exact"
-        self.lookup_val = request.GET.get(self.lookup_kwarg)
-        super().__init__(field, request, params, model, model_admin, field_path)
-
-    def expected_parameters(self):
-        return [self.lookup_kwarg]
-
-    def choices(self, changelist):
-        return [
-            {
-                "selected": self.lookup_val is None,
-                "query_string": changelist.get_query_string({}, [self.lookup_kwarg]),
-                "display": _("All"),
-                "value": "",
-            },
-            {
-                "selected": self.lookup_val == "1",
-                "query_string": changelist.get_query_string({self.lookup_kwarg: "1"}),
-                "display": _("Yes"),
-                "value": "1",
-            },
-            {
-                "selected": self.lookup_val == "0",
-                "query_string": changelist.get_query_string({self.lookup_kwarg: "0"}),
-                "display": _("No"),
-                "value": "0",
-            },
-        ]
-
-
-class FutureDateFieldListFilter(SimpleDropdownFilter):
-    def __init__(self, field, request, params, model, model_admin, field_path):
-        self.field_generic = '%s__' % field_path
-        self.date_params = {k: v for k, v in params.items()
-                            if k.startswith(self.field_generic)}
-
-        now = timezone.now()
-        # When time zone support is enabled, convert "now" to the user's time
-        # zone so Django's definition of "Today" matches what the user expects.
-        if timezone.is_aware(now):
-            now = timezone.localtime(now)
-
-        if isinstance(field, DateTimeField):
-            today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        else:       # field is a models.DateField
-            today = now.date()
-        tomorrow = today + datetime.timedelta(days=1)
-        # if today.month == 12:
-        #     next_month = today.replace(year=today.year + 1, month=1, day=1)
-        # else:
-        #     next_month = today.replace(month=today.month + 1, day=1)
-        # next_year = today.replace(year=today.year + 1, month=1, day=1)
-        shop_epoch = datetime.date(2000, 1, 1)
-
-        self.lookup_kwarg_since = '%s__gte' % field_path
-        self.lookup_kwarg_until = '%s__lt' % field_path
-        self.links = (
-            (_('Any date'), {}),
-            (_('Просрочена'), {
-                self.lookup_kwarg_since: str(shop_epoch),
-                self.lookup_kwarg_until: str(today),
-            }),
-            (_('Today'), {
-                self.lookup_kwarg_since: str(today),
-                self.lookup_kwarg_until: str(tomorrow),
-            }),
-            (_('Завтра'), {
-                self.lookup_kwarg_since: str(tomorrow),
-                self.lookup_kwarg_until: str(tomorrow + datetime.timedelta(days=1)),
-            }),
-            (_('Следующие 2 дня'), {
-                self.lookup_kwarg_since: str(tomorrow),
-                self.lookup_kwarg_until: str(tomorrow + datetime.timedelta(days=2)),
-            }),
-            (_('Следующие 7 дней'), {
-                self.lookup_kwarg_since: str(tomorrow),
-                self.lookup_kwarg_until: str(tomorrow + datetime.timedelta(days=7)),
-            }),
-        )
-        if field.null:
-            self.lookup_kwarg_isnull = '%s__isnull' % field_path
-            self.links += (
-                (_('Без даты'), {self.field_generic + 'isnull': 'True'}),
-                (_('С датой'), {self.field_generic + 'isnull': 'False'}),
-            )
-        super(FutureDateFieldListFilter, self).__init__(
-            field, request, params, model, model_admin, field_path)
-
-    def expected_parameters(self):
-        params = [self.lookup_kwarg_since, self.lookup_kwarg_until]
-        if self.field.null:
-            params.append(self.lookup_kwarg_isnull)
-        return params
-
-    def choices(self, changelist):
-        for title, param_dict in self.links:
-            yield {
-                'selected': self.date_params == param_dict,
-                'query_string': changelist.get_query_string(param_dict, [self.field_generic]),
-                'display': title,
-            }
-
-
-class OrderOwnerFilter(SimpleDropdownFilter):
-    title = _('владелец')
-    parameter_name = 'owner'
-
-    def lookups(self, request, model_admin):
-        return [(i.id, i.name) for i in ShopUser.objects.filter(is_staff=True)]
-
-    def queryset(self, request, queryset):
-        if self.value():
-            return queryset.filter(owner__exact=self.value())
-        else:
-            return queryset
-
-
-class OrderIntegrationFilter(RelatedDropdownFilter):
-    def field_choices(self, field, request, model_admin):
-        return field.get_choices(include_blank=False, limit_choices_to={'enabled': True})
 
 
 @admin.register(Order)
@@ -637,55 +428,27 @@ class OrderAdmin(admin.ModelAdmin):
             self.confirm_user_email(request, obj)
 
     def confirm_user_email(self, request, order):
-        """ An address staff enter for the order becomes the buyer's confirmed one: order mail goes only to such """
-        user = order.user
-        if not user.phone.startswith('+'):  # service account of a marketplace, its orders get no mail
-            return
-        if user.email_verified and user.email.lower() == order.email.lower():
-            return
-        other = ShopUser.objects.filter(email__iexact=order.email).exclude(pk=user.pk).first()
-        if other is not None:
-            messages.warning(request, 'Адрес %s указан у другого пользователя (%s), письма по заказу на него не придут'
-                             % (order.email, other.related_label()))
-            return
-        user.email = order.email
-        user.email_verified = True
-        user.save(update_fields=['email', 'email_verified'])
-        messages.info(request, 'Адрес %s записан в профиль покупателя как подтверждённый' % order.email)
+        message = confirm_buyer_email(order)
+        if message is not None:
+            messages.add_message(request, *message)
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
         if not (form.instance.integration and form.instance.integration.uses_api) and not form.instance.delivery == Order.DELIVERY_YANDEX:
             return
-        boxes = defaultdict(dict)
+        packed = []
         for formset in filter(lambda f: isinstance(f.empty_form.instance, OrderItem), formsets):
             for inline in formset:
                 if inline.cleaned_data.get('box', None) is not None:
-                    product = inline.cleaned_data['product']
-                    quantity = inline.instance.quantity
-                    box = boxes[inline.cleaned_data['box']]
-                    box['count'] = box.get('count', 0) + quantity
-                    box['weight'] = box.get('weight', 0) + product.prom_weight * quantity
-                    box['length'] = product.length
-                    box['width'] = product.width
-                    box['height'] = product.height
+                    packed.append((inline.cleaned_data['box'], inline.cleaned_data['product'], inline.instance.quantity))
+        boxes = measure_boxes(packed)
         for formset in filter(lambda f: isinstance(f.empty_form.instance, Box), formsets):
             for inline in formset:
                 if inline.instance.pk is None:
                     continue
-                box = boxes.get(inline.instance)
-                if box is not None:
-                    changed = False
-                    if inline.cleaned_data['weight'] == 0:
-                        inline.instance.weight = box['weight']
-                        changed = True
-                    if box['count'] == 1:
-                        for dimension in ['length', 'width', 'height']:
-                            if inline.cleaned_data[dimension] == 0:
-                                setattr(inline.instance, dimension, box[dimension])
-                                changed = True
-                    if changed:
-                        inline.instance.save()
+                contents = boxes.get(inline.instance)
+                if contents is not None and fill_box(inline.instance, contents, inline.cleaned_data):
+                    inline.instance.save()
 
     def get_urls(self):
         urls = super(OrderAdmin, self).get_urls()
@@ -702,6 +465,43 @@ class OrderAdmin(admin.ModelAdmin):
             re_path(r'sms/(\+\d+)/$', self.admin_site.admin_view(self.send_sms_form), name='shop_order_send_sms'),
         ]
         return my_urls + urls
+
+    def action_form_page(self, request, form, title, action_title, **context):
+        """ Page with the form of a custom view or an action, see admin/shop/custom_action_form.html for more of its context """
+        return TemplateResponse(request, 'admin/shop/custom_action_form.html', {
+            **self.admin_site.each_context(request),
+            'cl': self,
+            'opts': self.model._meta,
+            'form': form,
+            'title': title,
+            'action_title': action_title,
+            **context,
+        })
+
+    def popup_form(self, request, form_class, apply, title, action_title, initial=None):
+        """
+        Custom view with a form in a popup. When the form is valid, apply(form) does the work and returns the response,
+        a message to show over an empty form, or None to show the form again with the errors it added. An exception
+        it raises becomes an error of the form.
+        """
+        notices = None  # instead of those queued for other pages
+        if request.method != 'POST':
+            form = form_class(initial=initial)
+            is_popup = request.GET.get('_popup', 0)
+        else:
+            form = form_class(request.POST)
+            is_popup = request.POST.get('_popup', 0)
+            if form.is_valid():
+                try:
+                    result = apply(form)
+                    if isinstance(result, str):
+                        notices = [result]
+                        form = form_class()
+                    elif result is not None:
+                        return result
+                except Exception as e:
+                    form.errors['__all__'] = form.error_class([str(e)])
+        return self.action_form_page(request, form, title, action_title, is_popup=is_popup, messages=notices)
 
     def document(self, request, id, template):
         if not request.user.is_staff:
@@ -724,56 +524,15 @@ class OrderAdmin(admin.ModelAdmin):
     def order_product_list(self, request):
         if not request.user.is_staff:
             raise PermissionDenied
-        suppliers = Supplier.objects.filter(show_in_order=True)
         ids = request.GET.get('orders', '0')
-        items = OrderItem.objects.all()
+        order_ids = None
         if ids != '0':
             order_ids = parse_ids(ids.split(','))
             ids = ','.join(map(str, order_ids))
-            items = items.filter(order__in=order_ids)
-        sort_columns = {
-            '1': 'product_id',
-            '2': 'article',
-            '3': 'partnumber',
-            '4': 'title',
-            '5': 'order_id',
-            '6': 'order_status',
-            '7': 'total_quantity',
-        }
         sort = request.GET.get('o')
-        items = items.values(
-            'product_id',
-            'order_id',
-            article=F('product__article'),
-            partnumber=F('product__partnumber'),
-            title=F('product__title'),
-            comment_packer=F('product__comment_packer'),
-            order_status=F('order__status'),
-        ).annotate(total_quantity=Sum('quantity')).order_by(sort_columns.get(sort, 'title'))
-        products = []
-        for product in items:
-            product['quantity'] = product.pop('total_quantity')
-            product['order_status_value'] = dict(Order.STATUS_CHOICES)[product['order_status']]
-            product['order_status_color'] = dict(Order.STATUS_COLORS)[product['order_status']]
-            stock = ''
-            stock_items = Stock.objects.filter(product_id=product['product_id'], supplier__in=suppliers) \
-                .select_related('supplier').order_by('supplier__order')
-            if stock_items:
-                for stock_item in stock_items:
-                    stock = stock + ('%s:&nbsp;' % stock_item.supplier.code)
-                    if stock_item.quantity == 0:
-                        stock = stock + '<span style="color: #c00">'
-                    stock = stock + ('%s' % floatformat(stock_item.quantity))
-                    if stock_item.quantity == 0:
-                        stock = stock + '</span>'
-                    stock = stock + '<br/>'
-            else:
-                stock = '<span style="color: #ff0000">отсутствует</span>'
-            product['stock'] = stock
-            products.append(product)
         return render(request, 'admin/shop/order/products.html', {
             'title': 'Товары для заказов',
-            'products': products,
+            'products': order_products(order_ids, sort),
             'orders': ids,
             'o': sort,
             'cl': self,
@@ -824,146 +583,44 @@ class OrderAdmin(admin.ModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied
         order = Order.objects.get(pk=id)
-        messages = None
-        if request.method != 'POST':
-            form = OrderCombineForm()
-            is_popup = request.GET.get('_popup', 0)
-        else:
-            form = OrderCombineForm(request.POST)
-            is_popup = request.POST.get('_popup', 0)
-            if form.is_valid():
-                try:
-                    order_number = form.cleaned_data['order_number']
-                    other_order = Order.objects.get(pk=order_number)
-                    if order.user != other_order.user:
-                        form.add_error('order_number', "Разные пользователи у заказов")
-                    else:
-                        for item in other_order.items.all():
-                            item.pk = None
-                            item.order = order
-                            item.save()
-                        return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
-                                            '<script type="text/javascript">opener.dismissPopupAndReload(window);</script>'
-                                            '</body></html>')
 
-                except Exception as e:
-                    form.errors['__all__'] = form.error_class([str(e)])
+        def combine(form):
+            other_order = Order.objects.get(pk=form.cleaned_data['order_number'])
+            if combine_orders(order, other_order):
+                return close_popup()
+            form.add_error('order_number', "Разные пользователи у заказов")
+            return None
 
-        context = self.admin_site.each_context(request)
-        context['cl'] = self
-        context['opts'] = self.model._meta
-        context['form'] = form
-        context['is_popup'] = is_popup
-        context['messages'] = messages
-        context['title'] = "Укажите заказ для объединения"
-        context['action_title'] = "Объеденить"
-
-        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+        return self.popup_form(request, OrderCombineForm, combine, "Укажите заказ для объединения", "Объеденить")
 
     def discount_form(self, request, id):
         if not request.user.is_staff:
             raise PermissionDenied
         order = Order.objects.get(pk=id)
-        messages = None
-        if request.method != 'POST':
-            form = OrderDiscountForm()
-            is_popup = request.GET.get('_popup', 0)
-        else:
-            form = OrderDiscountForm(request.POST)
-            is_popup = request.POST.get('_popup', 0)
-            if form.is_valid():
-                try:
-                    unit = form.cleaned_data['unit']
-                    for item in order.items.all():
-                        if unit == 'pct':
-                            discount = int(form.cleaned_data['discount'])
-                            if discount > item.pct_discount:
-                                if discount <= item.product.max_discount:
-                                    item.pct_discount = discount
-                                else:
-                                    item.pct_discount = item.product.max_discount
-                                item.save()
-                        elif unit == 'val':
-                            discount = float(form.cleaned_data['discount'])
-                            if discount > item.val_discount:
-                                item.val_discount = discount
-                                item.save()
 
-                    return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
-                                        '<script type="text/javascript">opener.dismissPopupAndReload(window);</script>'
-                                        '</body></html>')
+        def discount(form):
+            apply_discount(order, form.cleaned_data['discount'], form.cleaned_data['unit'])
+            return close_popup()
 
-                except Exception as e:
-                    form.errors['__all__'] = form.error_class([str(e)])
-
-        context = self.admin_site.each_context(request)
-        context['cl'] = self
-        context['opts'] = self.model._meta
-        context['form'] = form
-        context['is_popup'] = is_popup
-        context['messages'] = messages
-        context['title'] = "Укажите скидку"
-        context['action_title'] = "Применить"
-
-        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+        return self.popup_form(request, OrderDiscountForm, discount, "Укажите скидку", "Применить")
 
     def yandex_delivery_form(self, request, id):
         if not request.user.is_staff:
             raise PermissionDenied
         order = Order.objects.get(pk=id)
-        messages = None
-        if request.method != 'POST':
-            initial = {
-                'fio': order.name,
-            }
-            form = YandexDeliveryForm(initial=initial)
-            is_popup = request.GET.get('_popup', 0)
-        else:
-            form = YandexDeliveryForm(request.POST)
-            is_popup = request.POST.get('_popup', 0)
-            for item in order.items.all():
-                if item.box is None:
-                    form.add_error(None, "{} не упакован в коробку".format(item.product.code))
-            if form.is_valid():
-                try:
-                    fio_last = form.cleaned_data['fio_last']
-                    warehouse = form.cleaned_data['warehouse']
 
-                    fio = order.name.split()
-                    first_name = ''
-                    middle_name = ''
-                    last_name = ''
-                    if len(fio) == 1:  # looks like it's a name only
-                        first_name = fio[0]
-                    elif len(fio) == 2:  # looks like it's name with surname
-                        if fio_last:
-                            fio.reverse()
-                        last_name, first_name = fio
-                    else:
-                        if fio_last:
-                            first_name, middle_name, last_name = fio
-                        else:
-                            last_name, first_name, middle_name = fio
+        def create_draft(form):
+            unpacked = [item for item in order.items.all() if item.box is None]
+            for item in unpacked:
+                form.add_error(None, "{} не упакован в коробку".format(item.product.code))
+            if unpacked:
+                return None
+            first_name, middle_name, last_name = split_name(order.name, form.cleaned_data['fio_last'])
+            yd_order = create_delivery_draft_order(order.id, form.cleaned_data['warehouse'], first_name, middle_name, last_name)
+            return close_popup('opener.dismissYandexDeliveryPopup(window, "%s", "%s");' % (Order.DELIVERY_YANDEX, yd_order))
 
-                    yd_order = create_delivery_draft_order(order.id, warehouse, first_name, middle_name, last_name)
-
-                    return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
-                                        '<script type="text/javascript">opener.dismissYandexDeliveryPopup(window, "%s", "%s");</script>'
-                                        '</body></html>' % (Order.DELIVERY_YANDEX, yd_order))
-
-                except Exception as e:
-                    form.errors['__all__'] = form.error_class([str(e)])
-
-        context = self.admin_site.each_context(request)
-        context['cl'] = self
-        context['opts'] = self.model._meta
-        context['form'] = form
-        context['is_popup'] = is_popup
-        context['messages'] = messages
-        context['title'] = "Создать черновик заказа"
-        context['action_title'] = "Создать"
-
-        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+        return self.popup_form(request, YandexDeliveryForm, create_draft, "Создать черновик заказа", "Создать",
+                               initial={'fio': order.name})
 
     def yandex_delivery_estimate(self, request, id):
         if not request.user.is_staff:
@@ -985,81 +642,7 @@ class OrderAdmin(admin.ModelAdmin):
         try:
             results = get_delivery_options(order.total, order.paid, settings.YANDEX_DOSTAVKA['warehouses'][0]['id'], context['city'],
                                            context['weight'], context['width'], context['height'], context['length'])
-
-            colors = [
-                '#1E98FF',  # blue
-                '#1BAD03',  # darkGreen
-                '#ED4543',  # red
-                '#E6761B',  # darkOrange
-                '#B51EFF',  # violet
-                '#0E4779',  # night
-                '#FFD21E',  # yellow
-                '#177BC9',  # darkBlue
-                '#56DB40',  # green
-                '#F371D1',  # pink
-                '#FF931E',  # orange
-                '#B3B3B3',  # gray
-                '#82CDFF',  # lightBlue
-                '#793D0E',  # brown
-                '#97A100',  # olive
-            ]
-            deliveries = {}
-            i = 0
-            for result in results:
-                delivery = result['delivery']
-                delivery_type = deliveries.get(delivery['type'], None)
-                if delivery_type is None:
-                    delivery_type = []
-                    deliveries[delivery['type']] = delivery_type
-                # shop_cost = delivery['costWithRules']
-                required_services = []
-                optional_services = []
-                for service in result['services']:
-                    # if service['optional']:
-                    #     optional_services.append(service)
-                    # else:
-                    required_services.append(service)
-                    # shop_cost = shop_cost + service['cost']
-                delivery['required_services'] = required_services
-                delivery['optional_services'] = optional_services
-                delivery['cost'] = result['cost']
-                pickup_points = delivery.get('pickupPoints', [])
-                if len(pickup_points):
-                    delivery['color'] = colors[i]
-                    i = i + 1
-                else:
-                    delivery['color'] = '#FFFFFF'
-                dmf = datetime.time.max
-                dmt = datetime.time.min
-                for point in pickup_points:
-                    mf = datetime.time.max
-                    mt = datetime.time.min
-                    for schedule in point.get('schedules', []):
-                        fr = datetime.datetime.strptime(schedule['from'], '%H:%M:%S').time()
-                        tl = datetime.datetime.strptime(schedule['to'], '%H:%M:%S').time()
-                        if fr < mf:
-                            mf = fr
-                        if tl > mt:
-                            mt = tl
-                        if fr < dmf:
-                            dmf = fr
-                        if tl > dmt:
-                            dmt = tl
-                    if mf != datetime.time.max and mt != datetime.time.min:
-                        point['delivery_interval'] = mark_safe('{}&ndash;{}'.format(mf.strftime('%H:%M'), mt.strftime('%H:%M')))
-                if dmf == datetime.time.max or dmt == datetime.time.min:
-                    for delivery_interval in delivery.get('deliveryIntervals', []):
-                        fr = datetime.datetime.strptime(delivery_interval['from'], '%H:%M:%S').time()
-                        tl = datetime.datetime.strptime(delivery_interval['to'], '%H:%M:%S').time()
-                        if fr < dmf:
-                            dmf = fr
-                        if tl > dmt:
-                            dmt = tl
-                if dmf != datetime.time.max and dmt != datetime.time.min:
-                    delivery['delivery_interval'] = mark_safe('{}&ndash;{}'.format(dmf.strftime('%H:%M'), dmt.strftime('%H:%M')))
-                delivery_type.append(delivery)
-
-            context['deliveries'] = deliveries
+            context['deliveries'] = delivery_options(results)
             context['result'] = results
 
         except Exception as e:
@@ -1070,9 +653,6 @@ class OrderAdmin(admin.ModelAdmin):
     def beru_labels(self, request, arg):
         if not request.user.is_staff:
             raise PermissionDenied
-
-        from beru.tasks import get_beru_labels_data
-        import barcode
 
         context = self.admin_site.each_context(request)
         context['opts'] = self.model._meta
@@ -1086,44 +666,7 @@ class OrderAdmin(admin.ModelAdmin):
 
         context['orders'] = []
         try:
-            for order in orders:
-                beru_order = get_beru_labels_data(order.id)
-                beru_order_id = str(beru_order.get('orderId', 0))
-
-                CODE128 = barcode.get_barcode_class('code128')
-                order_barcode = CODE128(str(order.id)).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
-                order_barcode = re.sub(r'^.*(?=<svg)', '', order_barcode)
-                beru_order_barcode = CODE128(beru_order_id).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
-                beru_order_barcode = re.sub(r'^.*(?=<svg)', '', beru_order_barcode)
-
-                boxes = order.boxes.all()
-                count = 0
-                shipments = []
-                for label in beru_order.get('parcelBoxLabels', []):
-                    box = boxes[count]
-                    count += 1
-                    code = label.get('fulfilmentId', '')
-                    item_barcode = CODE128(code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
-                    item_barcode = re.sub(r'^.*(?=<svg)', '', item_barcode)
-                    shipments.append({
-                        'id': code,
-                        'code': box.code,
-                        'place': label.get('place', ''),
-                        'barcode': mark_safe(item_barcode),
-                        'products': box.products.all(),
-                        'weight': label.get('weight', ''),
-                        'delivery_service_name': label.get('deliveryServiceName', '').replace('INDIVIDUAL_ENTREPRENEURSHIP', 'ИП'),
-                        'delivery_service_id': label.get('deliveryServiceId', ''),
-                        'supplier_name': label.get('supplierName', '')
-                    })
-
-                context['orders'].append({
-                    'beru_order': beru_order,
-                    'order': order,
-                    'beru_barcode': mark_safe(beru_order_barcode),
-                    'barcode': mark_safe(order_barcode),
-                    'shipments': shipments
-                })
+            context['orders'] = beru_order_labels(orders)
         except Exception as e:
             context['error'] = getattr(e, 'message', str(e))
 
@@ -1133,33 +676,14 @@ class OrderAdmin(admin.ModelAdmin):
     def send_sms_form(self, request, phone):
         if not request.user.is_staff:
             raise PermissionDenied
-        messages = None
-        if request.method != 'POST':
-            form = SendSmsForm()
-            is_popup = request.GET.get('_popup', 0)
-        else:
-            form = SendSmsForm(request.POST)
-            is_popup = request.POST.get('_popup', 0)
-            if form.is_valid():
-                try:
-                    message = form.cleaned_data['message']
-                    if message:
-                        send_message.delay(phone, message)
-                    messages = ["Сообщение отправлено, закройте окно"]
-                    form = SendSmsForm()
-                except Exception as e:
-                    form.errors['__all__'] = form.error_class([str(e)])
 
-        context = self.admin_site.each_context(request)
-        context['cl'] = self
-        context['opts'] = self.model._meta
-        context['form'] = form
-        context['is_popup'] = is_popup
-        context['messages'] = messages
-        context['title'] = "Укажите текст сообщения для %s" % str(phone)
-        context['action_title'] = "Отправить"
+        def send(form):
+            message = form.cleaned_data['message']
+            if message:
+                send_message.delay(phone, message)
+            return "Сообщение отправлено, закройте окно"
 
-        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+        return self.popup_form(request, SendSmsForm, send, "Укажите текст сообщения для %s" % str(phone), "Отправить")
 
     def unlock(self, request, id):
         if not request.user.is_staff:
@@ -1173,16 +697,7 @@ class OrderAdmin(admin.ModelAdmin):
     def order_1c_action(self, request, queryset):
         if not request.user.is_staff:
             raise PermissionDenied
-        missing_contractors = set()
-        missing_wirehouse = set()
-        missing_wiring_date = set()
-        for order in queryset:
-            if not order.buyer or not order.seller:
-                missing_contractors.add(order.id)
-            if not order.wirehouse:
-                missing_wirehouse.add(order.id)
-            if not order.wiring_date:
-                missing_wiring_date.add(order.id)
+        missing_contractors, missing_wirehouse, missing_wiring_date = missing_1c_data(queryset)
         if missing_contractors:
             self.message_user(request, "В заказах не указан контрагент: %s" % ', '.join(map(str, missing_contractors)), level=messages.ERROR)
         if missing_wirehouse:
@@ -1216,142 +731,36 @@ class OrderAdmin(admin.ModelAdmin):
         if not request.user.is_staff:
             raise PermissionDenied
         if 'show_stock' in request.POST:
-            supplier_ur = Supplier.objects.get(code='Ур')
+            own = Supplier.objects.get(code=OWN_WAREHOUSE)
             supplier = Supplier.objects.get(pk=request.POST.get('supplier'))
             if request.POST.get('aux_supplier'):
                 aux_supplier = Supplier.objects.get(pk=request.POST.get('aux_supplier'))
             else:
                 aux_supplier = None
             selected = parse_ids(request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME))
-            items = OrderItem.objects.filter(order__in=selected).values(
-                'product_id',
-                article=F('product__article'),
-            ).annotate(total_quantity=Sum('quantity')).order_by('article')
-            products = []
-            suppliers = [supplier_ur.id, supplier.id]
-            if aux_supplier:
-                suppliers.append(aux_supplier.id)
-            has_missing = False
-            for product in items:
-                product['quantity'] = product.pop('total_quantity')
-                stock_items = Stock.objects.filter(
-                    product_id=product['product_id'],
-                    supplier__in=suppliers
-                ).values_list('supplier_id', 'quantity', 'correction')
-                quantity = float(product['quantity'])
-                available = 0
-                stock = 0
-                aux_stock = 0
-                for supplier_id, stock_quantity, correction in stock_items:
-                    if supplier_id == supplier_ur.id:
-                        available = stock_quantity + correction
-                    if supplier_id == supplier.id:
-                        stock = stock_quantity + correction
-                    if aux_supplier and supplier_id == aux_supplier.id:
-                        aux_stock = stock_quantity + correction
-                if available < quantity:
-                    product['own'] = Decimal(available).quantize(Decimal('1'), rounding=ROUND_UP)
-                    if stock > 0:
-                        taken = min(stock, quantity - available)
-                        available += taken
-                        product['stock'] = Decimal(taken).quantize(Decimal('1'), rounding=ROUND_UP)
-                    if aux_stock > 0 and available < quantity:
-                        taken = min(aux_stock, quantity - available)
-                        available += taken
-                        product['aux_stock'] = Decimal(taken).quantize(Decimal('1'), rounding=ROUND_UP)
-                    if available < quantity:
-                        has_missing = True
-                        product['missing'] = quantity - available
-                else:
-                    product['own'] = product['quantity']
-                products.append(product)
+            products = allocate_stock(selected, own, supplier, aux_supplier)
             if not products:
                 self.message_user(request, "Нет товаров для отгрузки у этого поставщика", level=messages.WARNING)
                 return
             else:
-                import io
-                import xlsxwriter
-
-                output = io.BytesIO()
-                workbook = xlsxwriter.Workbook(output)
-                sheet = workbook.add_worksheet(supplier.name)
-                idx = 0
-                for product in products:
-                    stock = product.get('stock', None)
-                    if stock:
-                        sheet.write(idx, 0, product['article'])
-                        sheet.write(idx, 1, product['stock'])
-                        idx += 1
-                if aux_supplier:
-                    sheet = workbook.add_worksheet(aux_supplier.name)
-                    idx = 0
-                    for product in products:
-                        aux_stock = product.get('aux_stock', None)
-                        if aux_stock:
-                            sheet.write(idx, 0, product['article'])
-                            sheet.write(idx, 1, aux_stock)
-                            idx += 1
-                sheet = workbook.add_worksheet(supplier_ur.name)
-                idx = 0
-                for product in products:
-                    own = product.get('own', None)
-                    if own and own > 0:
-                        sheet.write(idx, 0, product['article'])
-                        sheet.write(idx, 1, product['own'])
-                        idx += 1
-                if has_missing:
-                    sheet = workbook.add_worksheet('Нет на складах')
-                    idx = 0
-                    for product in products:
-                        missing = product.get('missing', None)
-                        if missing:
-                            sheet.write(idx, 0, product['article'])
-                            sheet.write(idx, 1, missing)
-                            idx += 1
-                workbook.close()
-
-                response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                response = HttpResponse(stock_workbook(products, own, supplier, aux_supplier),
+                                        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
                 response['Content-Disposition'] = 'attachment; filename={0}-{2}.xlsx; filename*=UTF-8\'\'{1}-{2}.xlsx'.format(
                     'stock',
                     quote(supplier.code),
                     datetime.date.today().isoformat())
                 return response
 
-        form = SelectSupplierForm(initial={'supplier': Supplier.objects.get(code='С3').pk})
-        context = self.admin_site.each_context(request)
-        context['cl'] = self
-        context['opts'] = self.model._meta
-        context['form'] = form
-        context['queryset'] = queryset
-        context['is_popup'] = 0
-        context['title'] = "Выберите поставщика"
-        context['action'] = 'order_stock_action'
-        context['action_name'] = 'show_stock'
-        context['action_title'] = "Сформировать выгрузку"
-
-        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+        form = SelectSupplierForm(initial={'supplier': Supplier.objects.get(code=DEFAULT_SUPPLIER).pk})
+        return self.action_form_page(request, form, "Выберите поставщика", "Сформировать выгрузку", queryset=queryset,
+                                     is_popup=0, action='order_stock_action', action_name='show_stock')
     order_stock_action.short_description = "Выгрузка поставщику"
 
     def order_products_action(self, request, queryset):
         if not request.user.is_staff:
             raise PermissionDenied
         selected = parse_ids(request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME))
-        products = OrderItem.objects.filter(order__in=selected).values(
-            'product_id',
-            article=F('product__article'),
-        ).annotate(total_quantity=Sum('quantity')).order_by()
-        import io
-        import xlsxwriter
-
-        output = io.BytesIO()
-        workbook = xlsxwriter.Workbook(output)
-        sheet = workbook.add_worksheet('Products')
-        for idx, product in enumerate(products):
-            sheet.write(idx, 0, product['article'])
-            sheet.write(idx, 1, product['total_quantity'])
-        workbook.close()
-
-        response = HttpResponse(output.getvalue(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response = HttpResponse(products_workbook(selected), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = 'attachment; filename=products-{}.xlsx'.format(datetime.date.today().isoformat())
         return response
     order_products_action.short_description = "Выгрузка товаров"
@@ -1372,56 +781,20 @@ class OrderAdmin(admin.ModelAdmin):
             self.message_user(request, "НЕ(!!!)добавлен тег {} пользователям".format(queryset.count()))
             return HttpResponseRedirect(request.get_full_path())
 
-        messages = None
         form = SelectTagForm(model=ShopUser)
-        """
-            if form.is_valid():
-                try:
-                    message = form.cleaned_data['message']
-                    if message:
-                        send_message.delay(phone, message)
-                    messages = ["Сообщение отправлено, закройте окно"]
-                    form = SendSmsForm()
-                except Exception as e:
-                    form.errors['__all__'] = form.error_class([str(e)])
-        """
-        context = self.admin_site.each_context(request)
-        context['cl'] = self
-        context['opts'] = self.model._meta
-        context['form'] = form
-        context['queryset'] = queryset
-        context['is_popup'] = 0
-        context['messages'] = messages
-        context['title'] = "Укажите один или несколько тегов"
-        context['action'] = 'order_set_user_tag_action'
-        context['action_name'] = 'set_user_tag'
-        context['action_title'] = "Добавить"
-
-        return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
+        return self.action_form_page(request, form, "Укажите один или несколько тегов", "Добавить", queryset=queryset,
+                                     is_popup=0, messages=None, action='order_set_user_tag_action', action_name='set_user_tag')
     order_set_user_tag_action.short_description = "Добавить тег покупателю"
 
     def order_act_action(self, request, queryset):
         if not request.user.is_staff:
             raise PermissionDenied
-        wrong_status = set()
-        already_acted = set()
-        for order in queryset:
-            if order.status != Order.STATUS_COLLECTED:
-                wrong_status.add(order.id)
-            if order.acts.exists():
-                already_acted.add(order.id)
+        wrong_status, already_acted = act_problems(queryset)
         if wrong_status:
             self.message_user(request, "Нельзя выписать акт по несобранным заказам: %s" % ', '.join(map(str, wrong_status)), level=messages.ERROR)
         elif already_acted:
             self.message_user(request, "Некоторые заказы уже описаны в других актах: %s" % ', '.join(map(str, already_acted)), level=messages.ERROR)
         else:
-            act = Act()
-            act.save()
-            # act.orders.add(*queryset) - will be available in Django 2.2
-            for order in queryset:
-                ActOrder.objects.create(act=act, order=order)
-            for order in queryset:  # we do it in separate loops to correctly handle errors
-                order.status = Order.STATUS_SENT
-                order.save()
+            act = make_act(queryset)
             return HttpResponseRedirect(reverse('admin:shop_act_change', args=[act.pk]))
     order_act_action.short_description = "Сформировать акт"

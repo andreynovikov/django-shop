@@ -14,10 +14,11 @@ from reviews import get_review_model
 from reviews.signals import review_was_posted
 
 from shop.models import Order, OrderItem, SalesAction, Store, News
-from shop.tasks import notify_user_order_collected, notify_user_order_delivered_shop, \
-    notify_user_order_delivered, notify_user_review_products, notify_review_posted, \
-    create_modulpos_order, delete_modulpos_order, notify_manager, notify_manager_sms, \
-    revalidate_nextjs, ym_upload_user, ym_upload_order
+from shop.tasks.user_interaction import notify_user_order_collected, notify_user_order_delivered_shop, \
+    notify_user_order_delivered, notify_user_review_products
+from shop.tasks.admin import notify_review_posted, notify_manager, notify_manager_sms
+from shop.tasks.workflow import revalidate_nextjs
+from shop.tasks.integrations import create_modulpos_order, delete_modulpos_order, ym_upload_user, ym_upload_order
 
 import logging
 

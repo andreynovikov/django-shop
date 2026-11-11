@@ -1,4 +1,4 @@
-from shop.tasks import send_message
+from shop.tasks.user_interaction import send_message
 
 
 class Gateway:

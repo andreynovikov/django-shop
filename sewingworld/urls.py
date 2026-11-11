@@ -10,7 +10,7 @@ from two_factor.urls import urlpatterns as tf_urls
 from reviews.api import ReviewViewSet
 from forum.api import TopicViewSet, ThreadViewSet
 
-from . import api
+from .api import catalog, content, integrations, orders, shopping, users
 from . import views
 
 
@@ -23,24 +23,24 @@ if settings.IS_ADMIN_SITE:
     ]
 else:
     router = DefaultRouter()
-    router.register(r'sites', api.SiteProfileViewSet, basename='site')
-    router.register(r'baskets', api.BasketViewSet, basename='basket')
-    router.register(r'orders', api.OrderViewSet, basename='order')
-    router.register(r'favorites', api.FavoritesViewSet, basename='favorite')
-    router.register(r'comparisons', api.ComparisonsViewSet, basename='comparison')
-    router.register(r'categories', api.CategoryViewSet, basename='category')
-    router.register(r'products', api.ProductViewSet, basename='product')
-    router.register(r'stocks', api.StockViewSet, basename='stock')
-    router.register(r'kinds', api.ProductKindViewSet, basename='kind')
-    router.register(r'serials', api.SerialViewSet, basename='serial')
-    router.register(r'users', api.UserViewSet, basename='user')
-    router.register(r'pages', api.FlatPageViewSet, basename='page')
-    router.register(r'news', api.NewsViewSet, basename='news')
-    router.register(r'salesactions', api.SalesActionViewSet, basename='salesaction')
-    router.register(r'adverts', api.AdvertViewSet, basename='advert')
-    router.register(r'stores', api.StoreViewSet, basename='store')
-    router.register(r'servicecenters', api.ServiceCenterViewSet, basename='servicecenter')
-    router.register(r'integrations', api.IntegrationViewSet, basename='integration')
+    router.register(r'sites', content.SiteProfileViewSet, basename='site')
+    router.register(r'baskets', shopping.BasketViewSet, basename='basket')
+    router.register(r'orders', orders.OrderViewSet, basename='order')
+    router.register(r'favorites', shopping.FavoritesViewSet, basename='favorite')
+    router.register(r'comparisons', shopping.ComparisonsViewSet, basename='comparison')
+    router.register(r'categories', catalog.CategoryViewSet, basename='category')
+    router.register(r'products', catalog.ProductViewSet, basename='product')
+    router.register(r'stocks', integrations.StockViewSet, basename='stock')
+    router.register(r'kinds', catalog.ProductKindViewSet, basename='kind')
+    router.register(r'serials', orders.SerialViewSet, basename='serial')
+    router.register(r'users', users.UserViewSet, basename='user')
+    router.register(r'pages', content.FlatPageViewSet, basename='page')
+    router.register(r'news', content.NewsViewSet, basename='news')
+    router.register(r'salesactions', content.SalesActionViewSet, basename='salesaction')
+    router.register(r'adverts', content.AdvertViewSet, basename='advert')
+    router.register(r'stores', content.StoreViewSet, basename='store')
+    router.register(r'servicecenters', content.ServiceCenterViewSet, basename='servicecenter')
+    router.register(r'integrations', integrations.IntegrationViewSet, basename='integration')
     router.register(r'reviews', ReviewViewSet, basename='review')
     router.register(r'reviews/(?P<model>[a-z]+.[a-z]+)/(?P<identifier>[^/.]+)', ReviewViewSet, basename='model-review')
     router.register(r'forum/topics', TopicViewSet, basename='topic')
@@ -51,8 +51,8 @@ else:
         path('api/v0/', include(router.urls)),
         path('api/v0/schema/', SpectacularAPIView.as_view(), name='schema'),
         path('api/v0/blog/', include('blog.urls')),
-        path('api/v0/csrf/', api.CsrfTokenView.as_view()),
-        path('api/v0/warrantycard/<str:code>/', api.WarrantyCardView.as_view()),
+        path('api/v0/csrf/', users.CsrfTokenView.as_view()),
+        path('api/v0/warrantycard/<str:code>/', orders.WarrantyCardView.as_view()),
         # ex: /stock_avito.csv
         path('stock_avito.csv', views.stock, name='stock'),
         # /shop/*

@@ -17,7 +17,8 @@ from celery import shared_task
 from sewingworld.tasks import PRIORITY_IDLE
 
 from shop.models import Integration, Basket, Order, Product, ProductIntegration, ShopUser
-from shop.tasks import send_message, update_order
+from shop.tasks.user_interaction import send_message
+from shop.tasks.workflow import update_order
 
 
 logger = logging.getLogger('wb')

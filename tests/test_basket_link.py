@@ -9,7 +9,7 @@ from django.contrib.sites.models import Site
 from django.core import signing
 from django.test import TestCase, override_settings
 
-from shop import tasks
+from shop.tasks import user_interaction
 from shop.models import Basket
 
 from .clients import StorefrontClient, add_storefront_key
@@ -103,12 +103,12 @@ class NoticeTests(Base):
         basket = Basket.objects.create(site=self.site, session_id=session.session_key)
         basket.items.create(product_id=1, quantity=2)
         basket.items.create(product_id=2, quantity=1)
-        with mock.patch('shop.tasks.Unisender') as unisender, \
-                mock.patch('shop.tasks.config', new=mock.Mock(sw_email_unisender='shop@example.com')), \
-                mock.patch('shop.tasks.get_default_site', return_value=Site(domain='www.example.com')):
+        with mock.patch('shop.tasks.user_interaction.Unisender') as unisender, \
+                mock.patch('shop.tasks.user_interaction.config', new=mock.Mock(sw_email_unisender='shop@example.com')), \
+                mock.patch('shop.tasks.user_interaction.get_default_site', return_value=Site(domain='www.example.com')):
             unisender.return_value.errorMessage = None
             unisender.return_value.sendEmail.return_value = {'result': [{'index': 0, 'id': 'sent'}]}
-            tasks.notify_abandoned_basket(basket.id, 'buyer@example.com', '')
+            user_interaction.notify_abandoned_basket(basket.id, 'buyer@example.com', '')
         html = unisender.return_value.sendEmail.call_args.args[4]
         self.assertIn('https://www.example.com/shop/basket/restore/1*2,2*1/?utm_source=email', html)
         sign = signing.Signer().sign(basket.id)

@@ -25,7 +25,7 @@ WRONG_CODE = 'wrong'
 class Base(TestCase):
     def setUp(self):
         cache.clear()
-        patcher = mock.patch('sewingworld.api.send_password')
+        patcher = mock.patch('sewingworld.api.users.send_password')
         self.sms = patcher.start()
         self.addCleanup(patcher.stop)
         add_storefront_key()
@@ -592,7 +592,7 @@ class RaceTests(TransactionTestCase):
                 thread.join()
             self.assertEqual(sorted(results), [False] * 5 + [True])
 
-    @mock.patch('sewingworld.api.send_password')
+    @mock.patch('sewingworld.api.users.send_password')
     def test_parallel_requests_send_one_code(self, sms):
         add_storefront_key()
         ShopUser.objects.create(phone=PHONE)

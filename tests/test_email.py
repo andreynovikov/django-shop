@@ -18,7 +18,8 @@ from django.forms.models import model_to_dict
 from django.test import RequestFactory, TestCase, override_settings
 from django.utils import timezone
 
-from shop import email_confirmation, tasks
+from shop import email_confirmation
+from shop.tasks import user_interaction
 from shop.models import Basket, Order, ShopUser
 
 from .clients import StorefrontClient, add_storefront_key
@@ -35,7 +36,7 @@ def token_for(user):
 def mock_constance(test):
     # Constance refuses the local-memory cache that the throttles need, and the senders are all the tasks read from it
     config = SimpleNamespace(sw_email_from='shop@example.com', sw_email_unisender='shop@example.com')
-    patcher = mock.patch('shop.tasks.config', new=config)  # given, so that mock does not look into the lazy original
+    patcher = mock.patch('shop.tasks.user_interaction.config', new=config)  # given, so that mock does not look into the lazy original
     patcher.start()
     test.addCleanup(patcher.stop)
 
@@ -44,7 +45,7 @@ def mock_constance(test):
 class ApiBase(TestCase):
     def setUp(self):
         cache.clear()
-        patcher = mock.patch('sewingworld.api.send_email_confirmation')
+        patcher = mock.patch('sewingworld.api.users.send_email_confirmation')
         self.link = patcher.start()
         self.addCleanup(patcher.stop)
         add_storefront_key()
@@ -225,7 +226,7 @@ class ConfirmationMailTests(TestCase):
         self.user = ShopUser.objects.create(phone=PHONE, email=EMAIL)
 
     def test_sends_the_link_to_the_storefront(self):
-        tasks.send_email_confirmation(self.user.id, EMAIL, self.site.id)
+        user_interaction.send_email_confirmation(self.user.id, EMAIL, self.site.id)
         self.assertEqual(len(mail.outbox), 1)
         message = mail.outbox[0]
         self.assertEqual(message.to, [EMAIL])
@@ -235,11 +236,11 @@ class ConfirmationMailTests(TestCase):
                                                  format='json').status_code, 200)
 
     def test_skips_changed_or_confirmed_address(self):
-        tasks.send_email_confirmation(self.user.id, 'old@example.com', self.site.id)
+        user_interaction.send_email_confirmation(self.user.id, 'old@example.com', self.site.id)
         self.user.email_verified = True
         self.user.save()
-        tasks.send_email_confirmation(self.user.id, EMAIL, self.site.id)
-        tasks.send_email_confirmation(0, EMAIL, self.site.id)
+        user_interaction.send_email_confirmation(self.user.id, EMAIL, self.site.id)
+        user_interaction.send_email_confirmation(0, EMAIL, self.site.id)
         self.assertEqual(len(mail.outbox), 0)
 
 
@@ -250,7 +251,7 @@ class OrderMailTests(TestCase):
         add_storefront_key()
         self.site = Site.objects.get_current()
         self.user = ShopUser.objects.create(phone=PHONE, email=EMAIL, email_verified=True)
-        patcher = mock.patch('shop.tasks.send_sms')
+        patcher = mock.patch('shop.tasks.user_interaction.send_sms')
         self.sms = patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -264,15 +265,15 @@ class OrderMailTests(TestCase):
 
     def test_confirmed_address_gets_mail(self):
         order = self.order(email=EMAIL.upper())  # the same address
-        tasks.notify_user_order_new_mail(order.id)
+        user_interaction.notify_user_order_new_mail(order.id)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, [EMAIL.upper()])
 
     def test_unconfirmed_address_postpones_mail(self):
         self.unconfirm()
         order = self.order()
-        with mock.patch.object(tasks.notify_user_order_new_mail, 'apply_async') as later:
-            self.assertEqual(tasks.notify_user_order_new_mail(order.id), 'postponed')
+        with mock.patch.object(user_interaction.notify_user_order_new_mail, 'apply_async') as later:
+            self.assertEqual(user_interaction.notify_user_order_new_mail(order.id), 'postponed')
         self.assertEqual(len(mail.outbox), 0)
         args, kwargs = later.call_args.args, later.call_args.kwargs
         self.assertEqual(args[0], (order.id,))
@@ -282,7 +283,7 @@ class OrderMailTests(TestCase):
         # confirmed meanwhile: the postponed run sends it
         self.user.email_verified = True
         self.user.save()
-        tasks.notify_user_order_new_mail(order.id, since=since)
+        user_interaction.notify_user_order_new_mail(order.id, since=since)
         self.assertEqual(len(mail.outbox), 1)
 
     def test_waiting_grows_up_to_six_hours(self):
@@ -290,8 +291,8 @@ class OrderMailTests(TestCase):
         order = self.order()
         for waited, delay in ((timedelta(0), 600), (timedelta(minutes=40), 2400), (timedelta(days=2), 6 * 3600)):
             since = (timezone.now() - waited).isoformat()
-            with mock.patch.object(tasks.notify_user_order_new_mail, 'apply_async') as later:
-                tasks.notify_user_order_new_mail(order.id, since=since)
+            with mock.patch.object(user_interaction.notify_user_order_new_mail, 'apply_async') as later:
+                user_interaction.notify_user_order_new_mail(order.id, since=since)
             self.assertAlmostEqual(later.call_args.kwargs['countdown'], delay, delta=5)
             self.assertEqual(later.call_args.args[1], {'since': since})
 
@@ -299,29 +300,29 @@ class OrderMailTests(TestCase):
         self.unconfirm()
         order = self.order()
         since = (timezone.now() - email_confirmation.LIFETIME).isoformat()
-        with mock.patch.object(tasks.notify_user_order_new_mail, 'apply_async') as later:
-            self.assertIsNone(tasks.notify_user_order_new_mail(order.id, since=since))
+        with mock.patch.object(user_interaction.notify_user_order_new_mail, 'apply_async') as later:
+            self.assertIsNone(user_interaction.notify_user_order_new_mail(order.id, since=since))
         later.assert_not_called()
         self.assertEqual(len(mail.outbox), 0)
 
     def test_no_address_nothing_to_wait_for(self):
         order = self.order(email='')
-        with mock.patch.object(tasks.notify_user_order_new_mail, 'apply_async') as later:
-            self.assertIsNone(tasks.notify_user_order_new_mail(order.id))
+        with mock.patch.object(user_interaction.notify_user_order_new_mail, 'apply_async') as later:
+            self.assertIsNone(user_interaction.notify_user_order_new_mail(order.id))
         later.assert_not_called()
 
     def test_address_other_than_the_buyers_waits(self):
         # It may still become the buyer's confirmed one, in the profile
         order = self.order(email='other@example.com')
-        with mock.patch.object(tasks.notify_user_order_new_mail, 'apply_async') as later:
-            tasks.notify_user_order_new_mail(order.id)
+        with mock.patch.object(user_interaction.notify_user_order_new_mail, 'apply_async') as later:
+            user_interaction.notify_user_order_new_mail(order.id)
         later.assert_called_once()
         self.assertEqual(len(mail.outbox), 0)
 
     def test_status_mail_sends_sms_once(self):
         self.unconfirm()
         order = self.order(delivery=Order.DELIVERY_TRANSPORT)
-        for task in (tasks.notify_user_order_collected, tasks.notify_user_order_delivered):
+        for task in (user_interaction.notify_user_order_collected, user_interaction.notify_user_order_delivered):
             self.sms.reset_mock()
             with mock.patch.object(task, 'apply_async') as later:
                 task(order.id)
@@ -333,22 +334,22 @@ class OrderMailTests(TestCase):
 
     def test_status_mail_to_confirmed_address(self):
         order = self.order(delivery=Order.DELIVERY_TRANSPORT)
-        tasks.notify_user_order_collected(order.id)
-        tasks.notify_user_order_delivered(order.id)
+        user_interaction.notify_user_order_collected(order.id)
+        user_interaction.notify_user_order_delivered(order.id)
         self.assertEqual([message.to for message in mail.outbox], [[EMAIL], [EMAIL]])
 
     def test_review_request(self):
         order = self.order()
-        with mock.patch('shop.tasks.Unisender') as unisender:
+        with mock.patch('shop.tasks.user_interaction.Unisender') as unisender:
             unisender.return_value.errorMessage = None
             unisender.return_value.sendEmail.return_value = {'result': [{'index': 0, 'id': 'sent'}]}
-            self.assertEqual(tasks.notify_user_review_products(order.id), 'sent')
+            self.assertEqual(user_interaction.notify_user_review_products(order.id), 'sent')
             self.assertEqual(unisender.return_value.sendEmail.call_args.args[0], EMAIL)
 
             self.unconfirm()
             unisender.reset_mock()
-            with mock.patch.object(tasks.notify_user_review_products, 'apply_async') as later:
-                self.assertEqual(tasks.notify_user_review_products(order.id), 'postponed')
+            with mock.patch.object(user_interaction.notify_user_review_products, 'apply_async') as later:
+                self.assertEqual(user_interaction.notify_user_review_products(order.id), 'postponed')
             later.assert_called_once()
             unisender.return_value.sendEmail.assert_not_called()
 
@@ -367,13 +368,13 @@ class OrderMailTests(TestCase):
 
     def test_abandoned_basket_only_to_confirmed_address(self):
         basket = self.abandoned_basket()
-        with mock.patch.object(tasks.notify_abandoned_basket, 'delay') as notify:
+        with mock.patch.object(user_interaction.notify_abandoned_basket, 'delay') as notify:
             self.unconfirm()
-            self.assertEqual(tasks.notify_abandoned_baskets(), 0)
+            self.assertEqual(user_interaction.notify_abandoned_baskets(), 0)
             notify.assert_not_called()
             self.user.email_verified = True
             self.user.save()
-            self.assertEqual(tasks.notify_abandoned_baskets(), 1)
+            self.assertEqual(user_interaction.notify_abandoned_baskets(), 1)
             notify.assert_called_once_with(basket.id, EMAIL, PHONE)
 
 

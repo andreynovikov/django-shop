@@ -16,7 +16,7 @@ def get_review_site_id(request):
 
 
 def get_review_api_user_serializer():
-    from sewingworld.serializers import UserListSerializer
+    from sewingworld.serializers.users import UserListSerializer
     return UserListSerializer
 
 

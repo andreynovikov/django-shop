@@ -8,7 +8,7 @@ from celery import shared_task
 from yookassa import Receipt
 
 from shop.models import Order
-from shop.tasks import update_order
+from shop.tasks.workflow import update_order
 
 from . import configure_yookassa
 

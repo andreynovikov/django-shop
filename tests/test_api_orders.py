@@ -100,7 +100,7 @@ class RetrieveTests(Base):
 class CreateTests(Base):
     def setUp(self):
         super().setUp()
-        patcher = mock.patch.multiple('sewingworld.api', notify_user_order_new_mail=mock.DEFAULT, notify_user_order_new_sms=mock.DEFAULT)
+        patcher = mock.patch.multiple('sewingworld.api.orders', notify_user_order_new_mail=mock.DEFAULT, notify_user_order_new_sms=mock.DEFAULT)
         self.notices = patcher.start()
         self.addCleanup(patcher.stop)
 

@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 
-from shop.tasks import update_1c_stocks
+from shop.tasks.stocks import update_1c_stocks
 
 
 class Command(BaseCommand):

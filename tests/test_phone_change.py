@@ -20,7 +20,7 @@ class Base(TestCase):
     def setUp(self):
         cache.clear()
         for name in ('send_phone_code', 'send_email_confirmation'):
-            patcher = mock.patch(f'sewingworld.api.{name}')
+            patcher = mock.patch(f'sewingworld.api.users.{name}')
             setattr(self, name, patcher.start())
             self.addCleanup(patcher.stop)
         add_storefront_key()
