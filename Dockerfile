@@ -36,4 +36,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV APP_MAIN_FILE=${entity}.js
 
-CMD /bin/sh startup.sh ${APP_MAIN_FILE}
+# startup.sh execs node, which then runs as PID 1 and gets the SIGTERM of docker stop
+CMD ["/bin/sh", "startup.sh"]
