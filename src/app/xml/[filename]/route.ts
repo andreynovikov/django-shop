@@ -4,7 +4,7 @@ import sanitizeHtml from 'sanitize-html'
 
 import { flattenCategoryTree, getCategoryDescendants } from '@/lib/categories'
 import { HttpError, loadCategories, loadCurrentSite, loadProducts } from '@/lib/queries'
-import { listIntegrations, retriveIntegrationByUtm, retriveIntegrationProducts } from '@/lib/queries'
+import { retriveIntegrationByUtm, retriveIntegrationProducts } from '@/lib/queries'
 import { CategoryTree, CategoryTreeItem, Integration, IntegrationProduct, ProductInfo } from '@/lib/types'
 
 export const revalidate = 3600
