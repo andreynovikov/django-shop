@@ -29,6 +29,8 @@ test('price range filter updates query', async ({ page, isMobile }) => {
   // moving the minimum thumb with keyboard, thumbs are server rendered so retry until hydrated
   const minInput = widget.locator('input[name="price_min"]')
   const initialMin = Number(await minInput.inputValue())
+  // the scale starts at the lowest price, where the minimum thumb rests
+  await expect(thumbs.first()).toHaveAttribute('min', String(initialMin))
   await expect(async () => {
     await thumbs.first().focus()
     await page.keyboard.press('PageUp')
@@ -37,8 +39,14 @@ test('price range filter updates query', async ({ page, isMobile }) => {
   await expect.poll(async () => Number(await minInput.inputValue())).toBeGreaterThan(initialMin)
 
   // typing the maximum moves the slider thumb
-  await widget.locator('input[name="price_max"]').fill('50000')
+  const maxInput = widget.locator('input[name="price_max"]')
+  await maxInput.fill('50000')
   await expect(thumbs.last()).toHaveAttribute('aria-valuenow', '50000')
+  await expect(page).toHaveURL(/[?&]price=\d+-50000/)
+
+  // the backend refuses a negative bound, so typing one changes nothing
+  await maxInput.fill('-5')
+  await expect(maxInput).toHaveValue('50000')
   await expect(page).toHaveURL(/[?&]price=\d+-50000/)
 })
 

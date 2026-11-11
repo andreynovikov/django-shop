@@ -2,7 +2,6 @@ import {
   createParser,
   createLoader,
   createSerializer,
-  parseAsArrayOf,
   parseAsBoolean,
   parseAsInteger,
   parseAsNativeArrayOf,
@@ -21,6 +20,17 @@ const parseAsBooleanExtended = createParser({
   serialize(value) {
     return value ? 'true' : 'false'
   }
+})
+
+// Lowest and highest price, price=1000-5000. The backend refuses a range without both bounds, so a query
+// that has only one, e.g. from a cut link, leaves the price unset.
+const parseAsPriceRange = createParser({
+  parse(value) {
+    const match = /^(\d+)-(\d+)$/.exec(value)
+    return match === null ? null : [Number(match[1]), Number(match[2])]
+  },
+  serialize: (value: number[]) => value.join('-'),
+  eq: (a, b) => a.length === b.length && a.every((bound, index) => bound === b[index]),
 })
 
 export const advertSearchParams = {
@@ -73,7 +83,7 @@ export const productSearchParams = {
   gift: parseAsBoolean,
   recomended: parseAsBoolean,
   firstpage: parseAsBoolean,
-  price: parseAsArrayOf(parseAsInteger, '-'),
+  price: parseAsPriceRange,
   kind: parseAsNativeArrayOf(parseAsInteger),
   manufacturer: parseAsNativeArrayOf(parseAsInteger),
 
