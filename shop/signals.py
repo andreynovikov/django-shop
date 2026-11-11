@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from django.db import transaction
+from django.db.models import Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -7,6 +9,7 @@ from django.utils import timezone
 # from tagging.utils import parse_tag_input
 
 from django.contrib.flatpages.models import FlatPage
+from django.contrib.sites.models import Site
 
 from sewingworld.tasks import PRIORITY_HIGH, PRIORITY_IDLE
 
@@ -36,25 +39,29 @@ def order_item_saved(sender, **kwargs):
 
 @receiver(post_save, sender=Order, dispatch_uid='order_saved_receiver')
 def order_saved(sender, **kwargs):
+    """
+    Tasks are queued once the transaction commits: the admin saves the items after the order, in save_related(),
+    and a status that is rolled back must not reach the customer
+    """
     order = kwargs['instance']
 
     if order.tracker.has_changed('status'):
         if not order.status:  # new order
             if order.delivery == Order.DELIVERY_EXPRESS and hasattr(order.site, 'profile') and order.site.profile.manager_phones:
                 for phone in order.site.profile.manager_phones.split(','):
-                    notify_manager_sms.s(order.id, phone).apply_async(priority=PRIORITY_HIGH)
+                    notify_manager_sms.apply_async_on_commit((order.id, phone), priority=PRIORITY_HIGH)
 
             """ wait 5 minutes to let user supply comments and other stuff """
-            notify_manager.apply_async((order.id,), countdown=300)
+            notify_manager.apply_async_on_commit((order.id,), countdown=300)
 
             if not order.integration and order.meta and 'clientID' in order.meta:
-                ym_upload_user.apply_async((order.user.id, order.id), countdown=300)
+                ym_upload_user.apply_async_on_commit((order.user.id, order.id), countdown=300)
 
         if order.integration and order.integration.uses_api:
             return
 
         if not order.integration and order.meta and 'clientID' in order.meta:
-            ym_upload_order.apply_async((order.id,), countdown=360)  # let user data be uploaded before order data for new order
+            ym_upload_order.apply_async_on_commit((order.id,), countdown=360)  # let user data be uploaded before order data for new order
 
         if order.status == Order.STATUS_ACCEPTED:
             for item in order.items.all():
@@ -67,22 +74,22 @@ def order_saved(sender, **kwargs):
 
         if order.status == Order.STATUS_SENT:
             if order.courier and order.courier.pos_terminal:
-                create_modulpos_order.delay(order.id)
+                create_modulpos_order.delay_on_commit(order.id)
 
         if order.tracker.previous('status') == Order.STATUS_SENT:
             if order.courier and order.courier.pos_terminal and order.hidden_tracking_number:
-                delete_modulpos_order.delay(order.id)
+                delete_modulpos_order.delay_on_commit(order.id)
 
         if order.status == Order.STATUS_COLLECTED:
             if order.payment == Order.PAYMENT_CARD or order.payment == Order.PAYMENT_TRANSFER:
-                notify_user_order_collected.delay(order.id)
+                notify_user_order_collected.delay_on_commit(order.id)
 
         if order.status == Order.STATUS_DELIVERED_SHOP and order.store:
-            notify_user_order_delivered_shop.delay(order.id)
+            notify_user_order_delivered_shop.delay_on_commit(order.id)
 
         if order.status == Order.STATUS_DELIVERED:
             if order.delivery in (Order.DELIVERY_TRANSPORT, Order.DELIVERY_POST, Order.DELIVERY_OZON, Order.DELIVERY_PICKPOINT):
-                notify_user_order_delivered.delay(order.id)
+                notify_user_order_delivered.delay_on_commit(order.id)
 
         if order.status == Order.STATUS_DONE or order.status == Order.STATUS_FINISHED:
             """ (by Sigalev request)
@@ -100,7 +107,7 @@ def order_saved(sender, **kwargs):
             if order.status == Order.STATUS_DONE:
                 if order.site.domain in ['www.sewing-world.ru', 'market.yandex.ru']:
                     next_week = timezone.now() + timedelta(days=7)
-                    notify_user_review_products.apply_async((order.id,), eta=next_week)
+                    notify_user_review_products.apply_async_on_commit((order.id,), eta=next_week)
 
 
 @receiver(review_was_posted, sender=get_review_model(), dispatch_uid='review_posted_receiver')
@@ -108,55 +115,42 @@ def review_posted(sender, review, request, **kwargs):
     notify_review_posted.s(review.id).apply_async(priority=PRIORITY_IDLE)
 
 
+def revalidate_on_commit(sites, *payloads):
+    """
+    Asks the storefronts of the sites to revalidate the payloads once the transaction commits, so that they read the
+    saved data back. The admin saves many-to-many sites after the object, in save_related(), so the sites are read
+    both now, those it had, and after the commit, those it has: a storefront that it leaves is revalidated too.
+    """
+    before = list(sites.values_list('pk', flat=True))
+
+    def revalidate():
+        changed = Site.objects.filter(Q(pk__in=before) | Q(pk__in=sites.values('pk')), profile__revalidation_token__gt='')
+        for site in changed.select_related('profile'):
+            for payload in payloads:
+                revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
+
+    transaction.on_commit(revalidate)
+
+
 @receiver(post_save, sender=FlatPage, dispatch_uid='flatpage_saved_receiver')
 def page_saved(sender, **kwargs):
     page = kwargs['instance']
-    payload = {
-        'model': 'page',
-        'pk': page.pk,
-        'uri': page.url
-    }
-    for site in page.sites.exclude(profile__revalidation_token__exact=''):
-        revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
+    revalidate_on_commit(page.sites, {'model': 'page', 'pk': page.pk, 'uri': page.url})
 
 
 @receiver(post_save, sender=SalesAction, dispatch_uid='sales_action_saved_receiver')
 def sales_action_saved(sender, **kwargs):
     action = kwargs['instance']
-    sites = action.sites.exclude(profile__revalidation_token__exact='')
-    payload = {
-        'model': 'action',
-        'pk': action.pk,
-    }
-    for site in sites:
-        revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
-    payload = {
-        'model': 'actions',
-    }
-    for site in sites:
-        revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
+    revalidate_on_commit(action.sites, {'model': 'action', 'pk': action.pk}, {'model': 'actions'})
 
 
 @receiver(post_save, sender=Store, dispatch_uid='store_saved_receiver')
 def store_saved(sender, **kwargs):
     store = kwargs['instance']
-    payload = {
-        'model': 'store',
-        'pk': store.pk,
-    }
-    revalidate_nextjs.s(store.site.domain, store.site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
-    payload = {
-        'model': 'stores',
-    }
-    revalidate_nextjs.s(store.site.domain, store.site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
+    revalidate_on_commit(Site.objects.filter(pk=store.site_id), {'model': 'store', 'pk': store.pk}, {'model': 'stores'})
 
 
 @receiver(post_save, sender=News, dispatch_uid='news_saved_receiver')
 def news_saved(sender, **kwargs):
     news = kwargs['instance']
-    payload = {
-        'model': 'news',
-        'pk': news.pk
-    }
-    for site in news.sites.exclude(profile__revalidation_token__exact=''):
-        revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
+    revalidate_on_commit(news.sites, {'model': 'news', 'pk': news.pk})

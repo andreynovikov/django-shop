@@ -466,8 +466,9 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
         # обновляем кеш наличия при сохранении
         obj.num = -1
         super().save_model(request, obj, form, change)
-        # чистим кеши и обновляем мета-данные фоновой задачей
-        post_update_product.delay(obj.pk, 'admin')
+        # чистим кеши и обновляем мета-данные фоновой задачей, когда сохранятся и связанные объекты (save_related
+        # задаёт сайты товара) и закончится транзакция админки: иначе задача видит старые данные
+        post_update_product.delay_on_commit(obj.pk, 'admin')
 
     def save_related(self, request, form, formsets, change):
         # this is a hack to avoid stock saving for duplicated products (gives error if stock correction is not zero)

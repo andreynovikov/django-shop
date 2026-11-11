@@ -32,6 +32,12 @@ DATABASES = {
         'CONN_MAX_AGE': 600,
     },
 }
+# The DBaaS server has lock_timeout = 1 ms, so that any wait for a row lock fails, and its settings are out of reach.
+# Each connection sets its own, after any options of DATABASE_URL. backup_db passes it to pg_dump as PGOPTIONS.
+_db_options = DATABASES['default'].setdefault('OPTIONS', {})
+_db_options['options'] = ' '.join(filter(None, [_db_options.get('options'), '-c lock_timeout=5s']))
+
+# python manage.py shell -c "from django.db import connection; c = connection.cursor(); c.execute('SHOW lock_timeout'); print(c.fetchone())"
 
 CACHES = {
     'default': {
