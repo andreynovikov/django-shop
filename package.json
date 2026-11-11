@@ -1,6 +1,6 @@
 {
     "name": "family",
-    "version": "2026.10.23",
+    "private": true,
     "scripts": {
         "dev": "next dev -H 127.0.0.1 -p 3001",
         "start": "next start -H 127.0.0.1 -p 4001",
