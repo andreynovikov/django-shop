@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { ParsedUrlQuery } from 'querystring'
 import { ReadonlyURLSearchParams, useSearchParams } from 'next/navigation'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import { useQueryStates, parseAsString, parseAsBoolean, parseAsInteger, parseAsArrayOf, parseAsNativeArrayOf } from 'nuqs'
+import { useQueryStates, parseAsString, parseAsInteger, parseAsNativeArrayOf } from 'nuqs'
 
 import { pageContentWrapper } from '@/components/layout/page-content-wrapper'
 import ProductCard from '@/components/product/card'
@@ -20,6 +20,7 @@ import { IconAdjustmentsHorizontal } from '@tabler/icons-react'
 
 import { productKeys, loadProducts } from '@/lib/queries'
 import { baseFilters } from '@/lib/catalog'
+import { productSearchParams } from '@/lib/search-params'
 import { useToolbar } from '@/lib/toolbar'
 import { useCatalog } from '@/lib/catalog/hooks'
 import rupluralize from '@/lib/rupluralize'
@@ -39,9 +40,9 @@ function convertSearchParams(searchParams: ReadonlyURLSearchParams): ParsedUrlQu
 
 const searchParams = {
   text: parseAsString,
-  price: parseAsArrayOf(parseAsInteger, '-'),
+  price: productSearchParams.price,
   manufacturer: parseAsNativeArrayOf(parseAsInteger),
-  available: parseAsBoolean.withDefault(false),
+  instock: productSearchParams.instock,
   page: parseAsInteger.withDefault(1),
 }
 
@@ -76,31 +77,26 @@ export default function SearchResults() {
 
   useToolbar(toolbarItem)
 
-  const productFilters = { ...filters, ...baseFilters }
+  // the checkbox asks for the products in stock only, the backend's instock=0 would find those out of stock
+  const inStock = (filters.instock ?? 0) > 0
+  const productFilters = { ...filters, ...baseFilters, instock: inStock ? 1 : null }
 
   const { data: result, isSuccess, isLoading, isError } = useQuery({
-    queryKey: productKeys.list(filters.page || 1, pageSize, productFilters, '-price'),
-    queryFn: () => loadProducts(filters.page || 1, pageSize, productFilters, '-price'),
+    // no ordering: the backend puts the best matches of the text first
+    queryKey: productKeys.list(filters.page || 1, pageSize, productFilters, ''),
+    queryFn: () => loadProducts(filters.page || 1, pageSize, productFilters, ''),
     placeholderData: keepPreviousData // required for filters not to loose choices and attributes
   })
 
-  const priceFilter = useMemo(() => {
-    /*
-    const priceFacet = result?.facets?.find((facet) => facet.name === 'price')
-    if (priceFacet !== undefined)
-      return Object.fromEntries(priceFacet.values.map((value) => [`${value.id}_value`, value.value]))
-    */
-    return undefined
-  }, [result])
-
-  const brandsFilter = useMemo(() => {
-    /*
-    const brandsFacet = result?.facets?.find((facet) => facet.name === 'brands')
-    if (brandsFacet !== undefined && brandsFacet.values.length > 1)
-      return brandsFacet.values.map((value): [string, string] => [value.id, value.name])
-    */
-    return undefined
-  }, [result])
+  // A text search brings the manufacturers and prices of the products it finds. Each is counted without its own
+  // filter, so picking one keeps the others offered.
+  const facets = result?.filters
+  const found = result !== undefined && result.count > 0
+  // the range of a search that finds nothing is a placeholder, it is shown only to change a price picked
+  const priceFilter = found || filters.price !== null ? facets?.price?.attrs : undefined
+  // a single manufacturer is no choice, but the list stays while one is picked, so it can be unpicked
+  const brandsFilter = (facets?.manufacturer?.choices?.length ?? 0) > 1 || filters.manufacturer.length > 0
+    ? facets?.manufacturer?.choices : undefined
 
   const handleFilterChanged = (field: string, value: unknown) => {
     setFilters({
@@ -139,10 +135,10 @@ export default function SearchResults() {
                     <input
                       className={checkInputClass()}
                       type="checkbox"
-                      id="sw-awailable-check"
-                      checked={filters.available}
-                      onChange={(e) => handleFilterChanged('available', e.currentTarget.checked)} />
-                    <label className={checkLabelClass} htmlFor="sw-awailable-check">Доступно к покупке</label>
+                      id="sw-instock-check"
+                      checked={inStock}
+                      onChange={(e) => handleFilterChanged('instock', e.currentTarget.checked ? 1 : null)} />
+                    <label className={checkLabelClass} htmlFor="sw-instock-check">Доступно к покупке</label>
                   </div>
                 </div>
               </OffcanvasBody>

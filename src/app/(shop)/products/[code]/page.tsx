@@ -24,7 +24,7 @@ import { contentClass } from '@/components/ui/content'
 import { baseFilters } from '@/lib/catalog'
 import { prettifyProductFieldValue } from '@/lib/format'
 import { loadProducts, getProductFields, loadCurrentSite, loadCategories } from '@/lib/queries'
-import { Product, PaginatedResult } from '@/lib/types'
+import { Product } from '@/lib/types'
 
 import { getProduct } from './load'
 
@@ -436,7 +436,7 @@ export async function generateStaticParams() {
   let currentPage = 1
 
   while (true) {
-    const productsPage = await loadProducts(currentPage, pageSize, filters, order) as PaginatedResult<Product>
+    const productsPage = await loadProducts(currentPage, pageSize, filters, order, ['code'])
     productsPage.results.forEach(product => products.add(product.code))
     if (productsPage.totalPages <= currentPage)
       break

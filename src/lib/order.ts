@@ -1,14 +1,20 @@
+import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
+import { basketScope } from '@/lib/basket'
 import { orderKeys, createOrder } from '@/lib/queries'
 import { eCommerce } from '@/lib/ymec'
 
+// The order waits for the basket changes made before it, such as a quantity sent when its field lost focus
+// to the click on the order button. isPending covers the wait too, and lasts until the confirmation page is shown:
+// the basket stays on screen until then, and a second click would order it again.
 export function useCreateOrder() {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const [isNavigating, startTransition] = useTransition()
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: () => createOrder(),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: orderKeys.lists() })
@@ -27,10 +33,13 @@ export function useCreateOrder() {
           }))
         }
       })
-      router.push('/confirmation')
+      startTransition(() => router.push('/confirmation'))
     },
     onError: (error) => {
       console.error(error)
-    }
+    },
+    scope: basketScope
   })
+
+  return { ...mutation, isPending: mutation.isPending || isNavigating }
 }

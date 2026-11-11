@@ -14,7 +14,7 @@ import { buttonClass } from '@/components/ui/button'
 import { checkClass, checkInputClass, checkLabelClass } from '@/components/ui/form'
 import NoImage from '@/components/product/no-image'
 import ProductPrice from '@/components/product/price'
-import { PageLoading } from '@/components/loading'
+import { ButtonLoading, PageLoading } from '@/components/loading'
 
 import useBasket from '@/lib/basket'
 import useComparison from '@/lib/comparison'
@@ -36,7 +36,7 @@ const headerCellClass = 'border p-3 text-start font-medium text-heading first-le
 
 export default function ProductComparison() {
   const [{ kind: kindId, product: productIds }, setParams] = useQueryStates(comparisonParams)
-  const { addItem } = useBasket()
+  const { addItem, addingProductId } = useBasket()
 
   const [different, setDifferent] = useState(false)
 
@@ -189,8 +189,9 @@ export default function ProductComparison() {
                     </Link>
                   </h3>
                   {product.enabled && product.instock > 0 && (
-                    <button type="button" className={buttonClass({ variant: 'success', size: 'sm' })} onClick={() => handleCartClick(product)}>
+                    <button type="button" className={buttonClass({ variant: 'success', size: 'sm' })} onClick={() => handleCartClick(product)} disabled={addingProductId === product.id}>
                       {product.variations ? "Выбрать" : "Купить"}
+                      {addingProductId === product.id && <ButtonLoading />}
                     </button>
                   )}
                 </td>
@@ -246,8 +247,9 @@ export default function ProductComparison() {
                 {products.map((product) => (
                   <td className={cellClass} key={product.id}>
                     {product.instock > 0 && (
-                      <button type="button" className={buttonClass({ variant: 'success', block: true })} onClick={() => handleCartClick(product)}>
+                      <button type="button" className={buttonClass({ variant: 'success', block: true })} onClick={() => handleCartClick(product)} disabled={addingProductId === product.id}>
                         {product.variations ? "Выбрать" : "Купить"}
+                        {addingProductId === product.id && <ButtonLoading />}
                       </button>
                     )}
                   </td>
