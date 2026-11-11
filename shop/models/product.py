@@ -5,11 +5,12 @@ from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
 from django.conf import settings
 from django.contrib.postgres.search import SearchVector, SearchVectorField
-from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.indexes import GinIndex, OpClass
 from django.contrib.sites.models import Site
 from django.db import models
+from django.db.models.functions import Upper
 from django.db.models.signals import post_save
-from django.db.utils import OperationalError
+from django.db.utils import DatabaseError
 from django.utils.functional import cached_property
 from django.urls import reverse
 
@@ -234,7 +235,9 @@ class Product(models.Model):
         verbose_name_plural = 'товары'
         ordering = ['title']
         indexes = [
-            GinIndex(fields=['fts_vector'])
+            GinIndex(fields=['fts_vector']),
+            # title__icontains, which storefronts send for suggestions as the customer types: a seq scan without it
+            GinIndex(OpClass(Upper('title'), name='gin_trgm_ops'), name='shop_product_title_trgm'),
         ]
 
     def get_absolute_url(self):
@@ -342,8 +345,17 @@ class Product(models.Model):
         else:
             return Decimal(0)
 
+    def site_price_record(self, site):
+        """
+        The product's ProductPrice for the site, or None. Lists prefetch site_prices, so that pricing each product
+        takes no queries of its own.
+        """
+        if 'site_prices' in getattr(self, '_prefetched_objects_cache', {}):
+            return next((site_price for site_price in self.site_prices.all() if site_price.site_id == site.pk), None)
+        return self.site_prices.filter(site=site).first()
+
     def site_price(self, site):
-        site_price = self.site_prices.filter(site=site).first()
+        site_price = self.site_price_record(site)
         if site_price is None or site_price.price == 0:
             if hasattr(site, 'profile') and site.profile.wholesale:
                 return self.ws_price
@@ -352,7 +364,7 @@ class Product(models.Model):
         return site_price.price
 
     def site_cost(self, site):
-        site_price = self.site_prices.filter(site=site).first()
+        site_price = self.site_price_record(site)
         if self.pk == 2382:
             logger.error(self.code)
             logger.error(site_price)
@@ -375,7 +387,7 @@ class Product(models.Model):
         return price - discount
 
     def site_val_discount(self, site):
-        site_price = self.site_prices.filter(site=site).first()
+        site_price = self.site_price_record(site)
         if site_price is not None:
             return site_price.val_discount
         else:
@@ -387,9 +399,11 @@ class Product(models.Model):
             return self.num
         self.num = self.get_stock()
         try:
-            super(Product, self).save()
-        except OperationalError:
-            pass  # ignore lock timeout, TODO: refactor 1C import?
+            # Only the stock: the whole row would put back what this copy holds over changes saved since it
+            # was read, such as prices from an import. The receivers of post_save still see the new stock.
+            super(Product, self).save(update_fields=['num'])
+        except DatabaseError:
+            pass  # ignore lock timeout, TODO: refactor 1C import? Or the product is gone, there is nothing to update.
         return self.num
 
     def get_stock(self, integration=None, express=False):
@@ -403,10 +417,11 @@ class Product(models.Model):
             if express:
                 suppliers = suppliers.filter(express_count_in_stock=Supplier.COUNT_STOCK)
 
-            if suppliers.exists():
-                for supplier in suppliers:
-                    stock = Stock.objects.get(product=self, supplier=supplier)
-                    num = num + stock.quantity + stock.correction
+            # one query for what was a query per supplier: the product has one Stock of each, see unique_together
+            stock = Stock.objects.filter(product=self, supplier__in=suppliers).aggregate(
+                quantity=models.Sum('quantity'), correction=models.Sum('correction'))
+            if stock['quantity'] is not None:
+                num = num + stock['quantity'] + stock['correction']
 
             if num > 0:
                 sites = [Site.objects.get(domain='www.sewing-world.ru').id]
@@ -425,7 +440,7 @@ class Product(models.Model):
                     num = 0
         else:
             num = 32767
-            for item in ProductSet.objects.filter(declaration=self):
+            for item in ProductSet.objects.filter(declaration=self).select_related('constituent'):
                 n = item.constituent.instock
                 if item.quantity > 1:
                     n = int(n / item.quantity)

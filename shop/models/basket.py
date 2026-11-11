@@ -58,7 +58,7 @@ class Basket(models.Model):
     @classmethod
     def product_pct_discount(cls, site, product, user_discount):
         """ Calculates maximum percent discount based on product, user discount and maximum allowed discount """
-        site_price = product.site_prices.filter(site=site).first()
+        site_price = product.site_price_record(site)
         if site_price is not None:
             pd = site_price.pct_discount
         elif site.profile.wholesale:
@@ -92,7 +92,7 @@ class Basket(models.Model):
                 qnt = Decimal('1')
             pd = (price.quantize(qnt, rounding=ROUND_UP) * Decimal(pct / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
         if not site.profile.wholesale:
-            site_price = product.site_prices.filter(site=site).first()
+            site_price = product.site_price_record(site)
             if site_price is not None:
                 pvd = site_price.val_discount
             else:

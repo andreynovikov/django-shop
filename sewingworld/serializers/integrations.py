@@ -1,9 +1,11 @@
+from django.db.models import Prefetch
+
 from rest_framework import serializers
 
-from shop.models import Product, Stock, Integration
+from shop.models import Category, Product, Stock, Integration
 
 from .common import NonNullModelSerializer
-from .catalog import ManufacturerSerializer
+from .catalog import ManufacturerSerializer, product_columns
 
 
 class StockSerializer(serializers.ModelSerializer):
@@ -48,7 +50,17 @@ class IntegrationProductSerializer(serializers.ModelSerializer):
         if integration is None or not integration.output_stock:
             self.fields.pop('stock')
 
+    @classmethod
+    def prefetch(cls, queryset):
+        """ The products with what the feed needs read in a few queries, instead of queries for each product """
+        return queryset.only(*product_columns(cls)).select_related('manufacturer').prefetch_related(
+            'site_prices',
+            Prefetch('categories', to_attr='active_categories', queryset=Category.objects.filter(active=True).only('id')),
+        )
+
     def get_categories(self, obj):
+        if hasattr(obj, 'active_categories'):  # see prefetch()
+            return [category.pk for category in obj.active_categories]
         return list(obj.categories.filter(active=True).values_list('pk', flat=True))
 
     def get_price(self, obj):

@@ -2,6 +2,7 @@ import re
 
 from django.core import signing
 from django.db import transaction
+from django.db.models import Prefetch
 
 from rest_framework import viewsets, serializers, status
 from rest_framework.decorators import action
@@ -12,7 +13,7 @@ from rest_framework.response import Response
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer, OpenApiParameter, OpenApiResponse
 
-from shop.models import Product, Basket, Favorites
+from shop.models import Product, Basket, BasketItem, Favorites
 
 from sewingworld.serializers.common import validation_error_serializer
 from sewingworld.serializers.shopping import BasketSerializer, BasketItemActionSerializer, FavoritesSerializer, \
@@ -42,6 +43,11 @@ class BasketViewSet(viewsets.ModelViewSet):
         if self.action in BASKET_ITEM_ACTIONS:
             # the item actions of a basket go one at a time: its row stays locked until their transaction ends
             queryset = queryset.select_for_update()
+        elif self.action in ('list', 'retrieve'):
+            # the products and their prices at once, the price of each item looks them up several times
+            queryset = queryset.select_related('site__profile', 'session').prefetch_related(
+                Prefetch('items', queryset=BasketItem.objects.select_related('product').prefetch_related('product__site_prices'))
+            )
         return queryset
 
     def destroy(self, request, *args, **kwargs):

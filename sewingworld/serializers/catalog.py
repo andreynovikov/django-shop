@@ -1,7 +1,9 @@
+from collections import defaultdict
 from urllib.parse import urlparse
 
 from django.conf import settings
 from django.core.files.storage import default_storage
+from django.db.models import Prefetch
 
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound
@@ -10,20 +12,51 @@ from drf_spectacular.extensions import OpenApiSerializerExtension
 from drf_spectacular.utils import Direction, extend_schema_field, inline_serializer
 
 from shop.filters import get_product_filter
-from shop.models import Category, Product, ProductRelation, ProductKind, Manufacturer
+from shop.models import Category, Product, ProductRelation, ProductKind, Manufacturer, SalesAction
 
 from .common import NumberReadOnlyField, NonNullModelSerializer, DynamicFieldsModelSerializer
 from .content import CountrySerializer, SalesActionSerializer
 
 
+class ActiveSubcategories:
+    """
+    get_active_children() of categories, with a query for the whole subtree of the first one asked about,
+    instead of a query for each category.
+    """
+    def __init__(self):
+        self.children = defaultdict(list)
+        self.loaded = set()  # categories whose children are known
+
+    def __call__(self, category):
+        if category.pk not in self.loaded:
+            self.loaded.add(category.pk)
+            # by lft, the order of get_children(); those under an inactive category are never asked about
+            for descendant in category.get_descendants().filter(active=True, hidden=False):
+                self.children[descendant.parent_id].append(descendant)
+                self.loaded.add(descendant.pk)
+        return self.children.get(category.pk, [])
+
+
 class RecursiveField(serializers.Serializer):
-    def to_representation(self, value):
-        serializer = CategoryTreeSerializer(value, context=self.context)
-        return serializer.data
+    """
+    Active subcategories of the category, made by one CategoryTreeSerializer for the whole tree: making a serializer
+    for each category took most of the time. Defined as a serializer without fields, the field stays out of the schema.
+    """
+    def __init__(self, **kwargs):
+        super().__init__(source='*', read_only=True, **kwargs)
+
+    def to_representation(self, category):
+        tree = self.parent
+        if not isinstance(tree, CategoryTreeSerializer):  # subcategories of a category page are a tree too
+            if getattr(self, '_tree', None) is None:
+                self._tree = CategoryTreeSerializer(context=self.context)
+            tree = self._tree
+        subcategories = self.context.setdefault('subcategories', ActiveSubcategories())
+        return [tree.to_representation(child) for child in subcategories(category)]
 
 
 class CategoryTreeSerializer(NonNullModelSerializer):
-    children = RecursiveField(many=True, source='get_active_children')
+    children = RecursiveField()
 
     class Meta:
         model = Category
@@ -67,7 +100,7 @@ class CategoryBriefSerializer(NonNullModelSerializer):
 
 class CategorySerializer(NonNullModelSerializer):
     path = serializers.SerializerMethodField()
-    children = RecursiveField(many=True, source='get_active_children')
+    children = RecursiveField()
     filters = serializers.SerializerMethodField()
 
     class Meta:
@@ -163,6 +196,17 @@ class ProductImagesSerializerExtension(OpenApiSerializerExtension):
         }
 
 
+def product_columns(serializer_class):
+    """
+    Columns of the products that the serializer needs: its fields and those that prices and stock come from.
+    A product has over a hundred columns, many of them long texts of its page.
+    """
+    columns = {field.name for field in Product._meta.concrete_fields}
+    return [name for name in serializer_class.Meta.fields if name in columns] + [
+        'price', 'ws_price', 'pct_discount', 'val_discount', 'ws_pct_discount', 'num',
+    ]
+
+
 class ProductListSerializer(DynamicFieldsModelSerializer):
     price = serializers.SerializerMethodField()
     cost = serializers.SerializerMethodField()
@@ -176,6 +220,15 @@ class ProductListSerializer(DynamicFieldsModelSerializer):
                   'price', 'cost', 'discount', 'instock', 'image', 'enabled', 'isnew', 'recomended',
                   'ws_pack_only', 'pack_factor', 'sales', 'sales_notes', 'shortdescr', 'rank',
                   'wb_link', 'ozon_link')
+
+    @classmethod
+    def prefetch(cls, queryset):
+        """ The products with what the list needs read in a few queries, instead of queries for each product """
+        return queryset.only(*product_columns(cls)).prefetch_related(
+            'site_prices',
+            Prefetch('sales_actions', to_attr='sales_with_notices',
+                     queryset=SalesAction.objects.filter(active=True).exclude(notice='').order_by('order')),
+        )
 
     def to_representation(self, instance):
         request = self.context.get('request')
@@ -203,6 +256,8 @@ class ProductListSerializer(DynamicFieldsModelSerializer):
             domain = urlparse(request.META.get('HTTP_REFERER', '')).hostname
             if domain == 'cartzilla.sigalev.ru':  # TODO: put this in Sites config
                 domain = 'www.sewing-world.ru'
+            if hasattr(obj, 'sales_with_notices'):  # see prefetch()
+                return [sales_action.notice for sales_action in obj.sales_with_notices]
             return list(obj.sales_actions.filter(active=True).exclude(notice='').order_by('order').values_list('notice', flat=True))  # , sites__domain=domain).order_by('order')
         return None
 
@@ -235,12 +290,22 @@ class ProductSerializer(NonNullModelSerializer):
         super().__init__(*args, **kwargs)
         self.fields['constituents'].context.update(self.context)
 
+    @classmethod
+    def prefetch(cls, queryset):
+        """ The products with the related rows that the page needs, in a few queries """
+        return queryset.select_related('manufacturer', 'country', 'developer_country').prefetch_related(
+            'site_prices',
+            Prefetch('constituents', queryset=ProductListSerializer.prefetch(Product.objects.all())),
+        )
+
     @extend_schema_field(CategoryBriefSerializer(many=True))
     def get_categories(self, obj):
         request = self.context.get('request')
         root_category = request.site.profile.root_category
+        # the categories under the root, as c.get_root() == root_category tells, without a query for each category
+        in_catalog = root_category is not None and root_category.is_root_node()
         categories = [
-            c for c in obj.categories.all() if c.get_root() == root_category
+            c for c in obj.categories.all() if in_catalog and c.tree_id == root_category.tree_id
         ]
         return CategoryBriefSerializer(categories, many=True).data
 
@@ -263,7 +328,7 @@ class ProductSerializer(NonNullModelSerializer):
             child_products__child_product__sites=request.site,
             child_products__kind=ProductRelation.KIND_ACCESSORY
         )
-        return ProductListSerializer(accessories, many=True, context=self.context).data
+        return ProductListSerializer(ProductListSerializer.prefetch(accessories), many=True, context=self.context).data
 
     @extend_schema_field(ProductListSerializer(many=True))
     def get_similar(self, obj):
@@ -273,7 +338,7 @@ class ProductSerializer(NonNullModelSerializer):
             child_products__child_product__sites=request.site,
             child_products__kind=ProductRelation.KIND_SIMILAR
         )
-        return ProductListSerializer(similar, many=True, context=self.context).data
+        return ProductListSerializer(ProductListSerializer.prefetch(similar), many=True, context=self.context).data
 
     @extend_schema_field(ProductListSerializer(many=True))
     def get_gifts(self, obj):
@@ -283,7 +348,7 @@ class ProductSerializer(NonNullModelSerializer):
             child_products__child_product__sites=request.site,
             child_products__kind=ProductRelation.KIND_GIFT
         )
-        return ProductListSerializer(gifts, many=True, context=self.context).data
+        return ProductListSerializer(ProductListSerializer.prefetch(gifts), many=True, context=self.context).data
 
     @extend_schema_field(SalesActionSerializer(many=True))
     def get_sales(self, obj):

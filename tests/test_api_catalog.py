@@ -4,9 +4,10 @@ The catalog: categories, product kinds and products. See settings.py on how to r
 from django.contrib.sites.models import Site
 from django.test import TestCase
 
-from shop.models import Category, Manufacturer, ProductImage, ProductKind, ProductSet, ShopUser, Stock, Store, Supplier
+from shop.models import Category, Manufacturer, Product, ProductImage, ProductKind, ProductPrice, ProductRelation, ProductSet, \
+    SalesAction, ShopUser, Stock, Store, Supplier
 
-from .clients import StorefrontClient, add_storefront_key, signed_in
+from .clients import StorefrontClient, add_storefront_key, count_queries, signed_in
 from .fixtures import add_catalog, add_city, add_product
 
 BAD_PARAMETER = ['Неверное значение']
@@ -68,6 +69,37 @@ class CategoryTests(Base):
         self.janome.save()
         [manufacturer] = self.get(f'categories/{self.janome.id}/').json()['filters']
         self.assertEqual((manufacturer['name'], manufacturer['class']), ('manufacturer', 'MultipleChoiceField'))
+
+    def add_subtree(self, parent):
+        """ Subcategories at every level, with hidden and inactive ones, whose subcategories stay out too """
+        memory_craft = Category.objects.create(name='Memory Craft', slug='memory-craft', parent=parent)
+        Category.objects.create(name='MC 9450', slug='mc9450', parent=memory_craft)
+        for flags in ({'hidden': True}, {'active': False}):
+            left_out = Category.objects.create(name='Скрытая', slug='left-out', parent=memory_craft, **flags)
+            Category.objects.create(name='Под скрытой', slug='under-left-out', parent=left_out)
+        return memory_craft
+
+    def test_subcategories_at_every_level(self):
+        self.add_subtree(self.janome)
+
+        def tree(categories):
+            return {category['slug']: tree(category.get('children', [])) for category in categories}
+
+        expected = {'janome': {'memory-craft': {'mc9450': {}}}}
+        self.assertEqual(tree(self.get('categories/').json()), {'machines': expected, 'fabrics': {}})
+        self.assertEqual(tree(self.get('categories/machines/').json()['children']), expected)
+
+    def test_queries_do_not_grow_with_the_categories(self):
+        def queries():
+            return count_queries(lambda: self.get('categories/'), lambda: self.get('categories/machines/'))
+
+        # a query for the subcategories of each top category that has them
+        fabrics = Category.objects.get(slug='fabrics')
+        Category.objects.create(name='Хлопок', slug='cotton', parent=fabrics)
+        few = queries()
+        for parent in (self.janome, self.add_subtree(self.janome), fabrics):
+            self.add_subtree(parent)
+        self.assertEqual(queries(), few)
 
 
 class KindTests(Base):
@@ -170,6 +202,65 @@ class ProductListTests(Base):
         self.assertGreater(data['results'][0]['rank'], 0)
         self.assertEqual(set(data['filters']), {'manufacturer', 'price'})
 
+    def test_category_filters_get_the_range_of_prices(self):
+        self.machines.filters = 'manufacturer,price'
+        self.machines.save()
+        add_product(4, price=7300, sites=[self.site], categories=[self.machines])
+        data = self.get('products/', categories=self.machines.id).json()
+        self.assertEqual(data['filters']['price']['attrs'], {'step': 5000, 'min_value': 0, 'max_value': 10000})
+        self.assertEqual(data['filters']['manufacturer']['choices'], [[49, 'Test']])
+
+    def test_prices_of_the_site(self):
+        ProductPrice.objects.bulk_create([ProductPrice(product_id=1, site=self.site, price=18000, cur_price=18000, pct_discount=10)])
+        [product] = self.get('products/', id=1).json()['results']
+        self.assertEqual((product['price'], product['cost']), (18000, 16200))
+        self.assertEqual(self.get('products/1/info/', fields='price,cost').json(), {'price': 18000, 'cost': 16200})
+        self.assertEqual((self.get('products/1/').json()['price'], self.get('products/1/').json()['cost']), (18000, 16200))
+
+    def test_notices_of_sales(self):
+        product = Product.objects.get(pk=1)
+        for order, notice, active in ((2, 'Вторая', True), (0, '', True), (1, 'Закончилась', False), (1, 'Первая', True)):
+            product.sales_actions.add(SalesAction.objects.create(name=notice, slug=f'sale{order}', order=order, notice=notice, active=active))
+        [listed] = self.get('products/', id=1).json()['results']
+        self.assertEqual(listed['sales'], ['Первая', 'Вторая'])
+        self.assertEqual(self.get('products/1/info/').json()['sales'], ['Первая', 'Вторая'])
+
+    def test_products_come_once(self):
+        product = Product.objects.get(pk=1)
+        product.categories.add(self.machines)
+        other_kind = ProductKind.objects.create(name='Вышивальная машина', comparison=[])
+        product.kind.add(other_kind)
+        for params in ({'in_category': self.machines.id}, {'in_category': [self.machines.id, self.janome.id]},
+                       {'kind': [self.kind.id, other_kind.id]}):
+            with self.subTest(params):
+                data = self.get('products/', **params).json()
+                self.assertEqual(data['count'], len(data['results']))
+                self.assertEqual(len({product['id'] for product in data['results']}), data['count'])
+
+    def test_pages_of_products_that_sort_the_same(self):
+        for pk in (12, 11, 13):
+            add_product(pk, title='Лапка', price=500, sites=[self.site])
+        for ordering in ('title', '-price', None):
+            with self.subTest(ordering):
+                params = {'title': 'Лапка', 'page_size': 1} | ({'ordering': ordering} if ordering else {})
+                pages = [self.get('products/', page=page, **params).json()['results'][0]['id'] for page in (1, 2, 3)]
+                self.assertEqual(pages, [11, 12, 13])
+
+    def test_queries_do_not_grow_with_the_products(self):
+        sale = SalesAction.objects.create(name='Скидки', slug='sale', order=0, notice='Скидка', active=True)
+
+        def queries():
+            return count_queries(*(lambda params=params: self.get('products/', **params) for params in (
+                {}, {'for_xml': 'true'}, {'in_category': self.machines.id}, {'categories': self.janome.id},
+            )))
+
+        few = queries()
+        for pk in range(10, 16):
+            product = add_product(pk, sites=[self.site], categories=[self.janome])
+            product.sales_actions.add(sale)
+        ProductPrice.objects.bulk_create(ProductPrice(product_id=pk, site=self.site, price=900, cur_price=900) for pk in range(10, 13))
+        self.assertEqual(queries(), few)
+
     def test_malformed_values(self):
         for name, value in (('instock', 'abc'), ('categories', 'abc'), ('in_category', 'abc'), ('id', 'abc'), ('kind', 'abc'),
                             ('manufacturer', 'abc'), ('price', 'a-b'), ('order', 'abc'), ('title__nope', 'x')):
@@ -222,6 +313,20 @@ class ProductTests(Base):
         data = signed_in(user).get('/api/v0/products/1/price/').json()
         self.assertEqual(data, {'user': user.id, 'user_discount': 5, 'price': 20000, 'cost': 19000})
 
+    def test_queries_do_not_grow_with_the_related_products(self):
+        def relate(*pks):
+            for pk in pks:
+                add_product(pk, enabled=True, sites=[self.site])
+                ProductRelation.objects.create(parent_product=self.product, child_product_id=pk, kind=ProductRelation.KIND_ACCESSORY)
+                ProductSet.objects.create(declaration=self.product, constituent_id=pk)
+
+        relate(10)
+        few = count_queries(lambda: self.get('products/1/'), lambda: self.get('products/p1/bycode/'))
+        relate(11, 12, 13)
+        data = self.get('products/1/').json()
+        self.assertEqual(([p['id'] for p in data['accessories']], [p['id'] for p in data['constituents']]), ([10, 11, 12, 13],) * 2)
+        self.assertEqual(count_queries(lambda: self.get('products/1/'), lambda: self.get('products/p1/bycode/')), few)
+
     def test_video(self):
         self.assertRedirects(self.get('products/p1/video/'), 'https://video.test/1', fetch_redirect_response=False)
         self.assertEqual(self.get('products/p2/video/').status_code, 404)
@@ -269,3 +374,23 @@ class StoreStockTests(Base):
         ProductSet.objects.create(declaration=self.bundle, constituent=self.table)
         self.stock(self.machine, 0, 1)
         self.assertEqual(self.stores_with(self.bundle), [])
+
+    def test_queries_do_not_grow_with_the_stores(self):
+        ProductSet.objects.create(declaration=self.bundle, constituent=self.machine)
+        ProductSet.objects.create(declaration=self.bundle, constituent=self.table)
+
+        def queries():
+            return count_queries(lambda: self.get(f'products/{self.bundle.id}/stock/'), lambda: self.get(f'products/{self.machine.id}/stock/'))
+
+        for store in (0, 1):
+            self.stock(self.machine, store, 1)
+            self.stock(self.table, store, 1)
+        few = queries()
+        city = add_city('Тула')
+        for n in (3, 4, 5):
+            supplier = Supplier.objects.create(code=f's{n}', code1c=f's{n}', name=f'Склад {n}', order=n)
+            Store.objects.bulk_create([Store(city=city, site=self.site, supplier=supplier, address=f'Адрес {n}', name=f'Магазин {n}')])
+            Stock.objects.create(product=self.machine, supplier=supplier, quantity=1)
+            Stock.objects.create(product=self.table, supplier=supplier, quantity=1)
+        self.assertEqual(len(self.stores_with(self.bundle)), 5)
+        self.assertEqual(queries(), few)

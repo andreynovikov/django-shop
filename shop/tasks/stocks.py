@@ -113,6 +113,17 @@ class fragile(object):
         return error
 
 
+@shared_task(name='shop.tasks.count_stocks', queue='import')
+def count_stocks():
+    """
+    Counts the stock of the products whose stock is reset, as import1c() resets it for all of them. Otherwise
+    the API counts it in the first requests that show the products, and writes them, which made these requests slow.
+    A task of its own, as it takes a minute or so, and import1c() runs under a lock that expires.
+    """
+    for product in Product.objects.filter(num__lt=0).only('num'):
+        product.instock  # counts and saves it
+
+
 @shared_task(name='shop.tasks.import1c', time_limit=7200, retry_backoff=True)
 @single_instance_task(1200)
 def import1c(file):
@@ -316,6 +327,7 @@ def import1c(file):
     log.info('Frozen orders %s' % str(orders))
 
     disable_flag('1C_IMPORT_RUNNING')
+    count_stocks.delay()
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
                                  {'file': file, 'date': date, 'imported': imported, 'updated': updated, 'errors': errors,
                                   'orders': orders, 'opts': Order._meta})

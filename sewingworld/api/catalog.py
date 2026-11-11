@@ -1,3 +1,4 @@
+from django.contrib.admin.utils import lookup_spawns_duplicates
 from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.core.exceptions import FieldDoesNotExist, FieldError, ValidationError as DjangoValidationError
 from django.db.models import F
@@ -111,6 +112,8 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action == 'list':
             queryset = queryset.filter(sites=self.request.site)
 
+        # DISTINCT compares all the columns of a product, it is costly: only for filters that may repeat products
+        distinct = False
         # A value of the wrong type, or a lookup the field lacks, fails while the filter is built
         try:
             for field, values in self.request.query_params.lists():
@@ -119,7 +122,9 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                     for category in Category.objects.filter(pk__in=values):  # unknown ones find no products
                         categories.append(category)
                         categories.extend(category.get_descendants().filter(active=True))
-                    queryset = queryset.filter(categories__in=categories)
+                    # a subquery: a join repeats the products that are in several of the categories
+                    in_categories = Product.categories.through.objects.filter(category__in=categories)
+                    queryset = queryset.filter(pk__in=in_categories.values('product_id'))
                     continue
                 base_field = field.split('__', 1)[0]
                 if base_field not in self.filtering_fields:
@@ -175,6 +180,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                     if len(values) > 1:
                         key = '{}__pk__in'.format(field)
                         queryset = queryset.filter(**{key: values})
+                        distinct = distinct or lookup_spawns_duplicates(Product._meta, key)
                     else:
                         key = '{}__pk__exact'.format(field)
                         queryset = queryset.filter(**{key: values[0]})
@@ -191,10 +197,24 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                 else:  # строковый поиск
                     key = '{}__exact'.format(field)
                     queryset = queryset.filter(**{key: values[0]})
+                    distinct = distinct or lookup_spawns_duplicates(Product._meta, key)
         except (ValueError, FieldError, DjangoValidationError):
             raise serializers.ValidationError({field: [BAD_PARAMETER]})
 
-        return queryset.distinct()
+        if distinct:
+            queryset = queryset.distinct()
+        if self.action in ('list', 'info', 'retrieve', 'bycode'):
+            queryset = self.get_serializer_class().prefetch(queryset)
+        return queryset
+
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset)
+        # Products of the same price or title come by id, as they did when DISTINCT sorted them. Without an order
+        # of their own, pages of them may repeat or skip some.
+        ordering = list(queryset.query.order_by) or (list(Product._meta.ordering) if queryset.query.default_ordering else [])
+        if not {'pk', 'id', '-pk', '-id'} & {item for item in ordering if isinstance(item, str)}:
+            queryset = queryset.order_by(*ordering, 'pk')
+        return queryset
 
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
@@ -255,26 +275,27 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True)
     def stock(self, request, pk=None):
         product = self.get_object()
-        if product.constituents.count() == 0:
-            suppliers = product.stock.all()
-            stores = Store.objects.filter(enabled=True, supplier__in=suppliers).order_by('city__country__ename', 'city__name')
-        else:
-            stores = Store.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+        parts = list(ProductSet.objects.filter(declaration=product))
+        stores = Store.objects.filter(enabled=True).select_related('city__country').order_by('city__country__ename', 'city__name')
+        # what each supplier has of the product, or of each part of a set, read at once
+        stocks = {
+            (stock.product_id, stock.supplier_id): stock.quantity + stock.correction
+            for stock in Stock.objects.filter(product__in=[item.constituent_id for item in parts] if parts else [product.pk])
+        }
+        if not parts:  # stores of the suppliers that have it
+            stores = stores.filter(supplier__in=[supplier for _, supplier in stocks])
         results = []
         for store in stores:
-            if product.constituents.count() == 0:
-                stock = Stock.objects.get(product=product, supplier=store.supplier)
-                quantity = stock.quantity + stock.correction
+            if not parts:
+                quantity = stocks[product.pk, store.supplier_id]
             else:
                 quantity = 32767
-                for item in ProductSet.objects.filter(declaration=product):
-                    try:
-                        stock = Stock.objects.get(product=item.constituent, supplier=store.supplier)
-                        q = stock.quantity + stock.correction
-                        if item.quantity > 1:
-                            q = int(q / item.quantity)
-                    except Stock.DoesNotExist:
+                for item in parts:
+                    q = stocks.get((item.constituent_id, store.supplier_id))
+                    if q is None:
                         q = 0.0
+                    elif item.quantity > 1:
+                        q = int(q / item.quantity)
                     if q < quantity:
                         quantity = q
             if quantity > 0.0:

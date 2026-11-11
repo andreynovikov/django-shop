@@ -15,9 +15,9 @@ from rest_framework.authtoken.models import Token
 from yookassa import Configuration
 
 from sewingworld.models import SiteProfile
-from shop.models import Basket, Contractor, Order, Serial, ShopUser
+from shop.models import Basket, Contractor, Order, Product, Serial, ShopUser
 
-from .clients import StorefrontClient, add_storefront_key, signed_in
+from .clients import StorefrontClient, add_storefront_key, count_queries, signed_in
 from .fixtures import add_marketplace_sites, add_product
 
 PHONE = '+79161234567'
@@ -83,6 +83,25 @@ class ListTests(Base):
 
     def test_anonymous(self):
         self.assertEqual(StorefrontClient().get('/api/v0/orders/').status_code, 403)
+
+    def test_queries_do_not_grow_with_the_orders(self):
+        def add_order():
+            order = self.order()
+            order.items.create(product=self.machine, product_price=20000)
+            order.items.create(product=self.needles, product_price=300, quantity=2)
+            return order
+
+        def queries():
+            Product.objects.update(num=5)  # adding to an order resets the stock, the order page would count it
+            return count_queries(lambda: self.client.get('/api/v0/orders/'), lambda: self.client.get(f'/api/v0/orders/{order.id}/'))
+
+        order = add_order()
+        few = queries()
+        for _ in range(3):
+            add_order()
+        order.items.create(product=add_product(3), product_price=100)
+        self.assertEqual(queries(), few)
+        self.assertEqual(self.client.get('/api/v0/orders/').json()['results'][-1]['total'], 20700)
 
 
 class RetrieveTests(Base):
@@ -290,6 +309,10 @@ class WarrantyCardTests(Base):
         html = response.json()['html']
         for text in ('SN123', 'Janome 1225s', 'ООО Продавец'):
             self.assertIn(text, html)
+
+    def test_serial_number_in_any_case(self):
+        self.order().items.create(product=self.machine, product_price=20000, serial_number='SN123ab')
+        self.assertEqual(StorefrontClient().get('/api/v0/warrantycard/sn123AB/').status_code, 200)
 
     def test_unknown_serial_number(self):
         response = StorefrontClient().get('/api/v0/warrantycard/SN404/')

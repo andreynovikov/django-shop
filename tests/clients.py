@@ -2,6 +2,8 @@
 Storefronts send their site's key, see FrontendKeyMiddleware. API tests act as one, unless they test direct callers.
 """
 from django.contrib.sites.models import Site
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from rest_framework.test import APIClient
 
@@ -26,3 +28,15 @@ def signed_in(user):
     client = StorefrontClient()
     client.force_login(user)
     return client
+
+
+def count_queries(*requests):
+    """
+    Queries that the requests make, each a function without arguments. Tests compare the counts for a few and
+    for more objects shown: a count that grows with them means a query or more for each object.
+    """
+    with CaptureQueriesContext(connection) as context:
+        for request in requests:
+            response = request()
+            assert response.status_code == 200, (response.status_code, response.content)
+    return len(context.captured_queries)

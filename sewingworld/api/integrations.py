@@ -88,4 +88,4 @@ class IntegrationViewSet(viewsets.ReadOnlyModelViewSet):
 
         context = self.get_serializer_context()
         context['integration'] = integration
-        return Response(IntegrationProductSerializer(products, many=True, context=context).data)
+        return Response(IntegrationProductSerializer(IntegrationProductSerializer.prefetch(products), many=True, context=context).data)

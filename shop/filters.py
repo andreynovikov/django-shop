@@ -107,8 +107,9 @@ def manufacturers(request):
         for manufacturer in Manufacturer.objects.all().iterator():
             manufacturers[manufacturer.pk] = str(manufacturer)
     else:
-        for product in request.qs.iterator():
-            manufacturers[product.manufacturer.pk] = str(product.manufacturer)
+        # order_by(): the ordering of a product search would add its columns to the subquery
+        for manufacturer in Manufacturer.objects.filter(pk__in=request.qs.order_by().values('manufacturer_id')).order_by('pk'):
+            manufacturers[manufacturer.pk] = str(manufacturer)
 
     manufacturers = [(k, manufacturers[k]) for k in sorted(manufacturers, key=manufacturers.get)]
     return manufacturers
@@ -207,6 +208,14 @@ class BaseProductMetaclass:
     }
 
 
+def price_range(queryset, price_min, price_max):
+    """ Whole rubles of the lowest and highest price of the products, or the given values when there are none """
+    prices = queryset.aggregate(low=models.Min('price'), high=models.Max('price'))
+    if prices['low'] is None:
+        return price_min, price_max
+    return int(prices['low']), int(prices['high'])
+
+
 def get_product_filter(data=None, *args, **kwargs):
     # if '_div_' in kwargs['fields']:
     #     kwargs['fields'] = tuple(x for x in kwargs['fields'] if x != '_div_')
@@ -217,11 +226,7 @@ def get_product_filter(data=None, *args, **kwargs):
     if 'price' in kwargs['fields']:
         if not data.get('price_max'):
             data['_initial'] = True
-        for product in kwargs['queryset'].iterator():
-            if product.price < price_min:
-                price_min = int(product.price)
-            if product.price > price_max:
-                price_max = int(product.price)
+        price_min, price_max = price_range(kwargs['queryset'], price_min, price_max)
 
     if kwargs['request']:
         request = kwargs['request']
@@ -239,13 +244,7 @@ def get_product_filter(data=None, *args, **kwargs):
             product_filter.form.fields['price'].widget.setRange(0, 1000000)  # todo: find proper max price
 
         if not data.get('price_max'):
-            price_min = 1000000000
-            price_max = 0
-            for product in product_filter.qs.iterator():
-                if product.price < price_min:
-                    price_min = int(product.price)
-                if product.price > price_max:
-                    price_max = int(product.price)
+            price_min, price_max = price_range(product_filter.qs, 1000000000, 0)
             if price_min <= price_max:
                 data['price_min'] = price_min
                 data['price_max'] = price_max

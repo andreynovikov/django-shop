@@ -58,7 +58,7 @@ class SalesActionViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True)
     def products(self, request, slug=None):
         action = self.get_object()
-        queryset = action.products.filter(enabled=True).order_by('-price')
+        queryset = ProductListSerializer.prefetch(action.products.filter(enabled=True).order_by('-price'))
         paginator = StandardResultsSetPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
 
@@ -94,7 +94,7 @@ class StoreViewSet(viewsets.ReadOnlyModelViewSet):
         return StoreSerializer
 
     def get_queryset(self):
-        stores = Store.objects.filter(site=self.request.site, enabled=True).order_by('city__country__ename', 'city__name')
+        stores = Store.objects.filter(site=self.request.site, enabled=True).select_related('city__country').order_by('city__country__ename', 'city__name')
         if self.request.query_params.get('marketplace', None) is not None:
             stores = stores.filter(marketplace=True)
         if self.request.query_params.get('lottery', None) is not None:
@@ -106,7 +106,7 @@ class ServiceCenterViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ServiceCenterSerializer
 
     def get_queryset(self):
-        return ServiceCenter.objects.filter(enabled=True).order_by('city__country__ename', 'city__name')
+        return ServiceCenter.objects.filter(enabled=True).select_related('city__country').order_by('city__country__ename', 'city__name')
 
 
 class SiteProfileViewSet(viewsets.ReadOnlyModelViewSet):

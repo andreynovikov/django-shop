@@ -8,9 +8,9 @@ from django.contrib.sites.models import Site
 from django.db import connection
 from django.test import TestCase, TransactionTestCase
 
-from shop.models import Basket, BasketItem, Favorites, Product, ProductKind, ShopUser
+from shop.models import Basket, BasketItem, Favorites, Product, ProductKind, ProductPrice, ShopUser
 
-from .clients import StorefrontClient, add_storefront_key, signed_in
+from .clients import StorefrontClient, add_storefront_key, count_queries, signed_in
 from .fixtures import add_product
 
 
@@ -63,6 +63,26 @@ class BasketTests(Base):
         data = self.client.get(f'/api/v0/baskets/{self.basket}/').json()
         self.assertEqual((data['total'], data['quantity']), (2300, 3))
         self.assertEqual([(item['cost'], item['price']) for item in data['items']], [(1000, 2000), (300, 300)])
+
+    def test_prices_of_the_site(self):
+        ProductPrice.objects.bulk_create([ProductPrice(product_id=1, site=self.site, price=900, cur_price=900, pct_discount=10)])
+        self.post('add', product=1, quantity=2)
+        data = self.client.get(f'/api/v0/baskets/{self.basket}/').json()
+        [item] = data['items']
+        self.assertEqual((item['product']['price'], item['product']['cost'], item['cost'], item['price']), (900, 810, 810, 1620))
+        self.assertEqual((item['discount'], item['discount_text'], data['total']), (90, '10%', 1620))
+
+    def test_queries_do_not_grow_with_the_items(self):
+        def queries():
+            return count_queries(lambda: self.client.get('/api/v0/baskets/'), lambda: self.client.get(f'/api/v0/baskets/{self.basket}/'))
+
+        self.post('add', product=1)
+        few = queries()
+        for pk in range(10, 15):
+            add_product(pk)
+            self.post('add', product=pk)
+        ProductPrice.objects.bulk_create(ProductPrice(product_id=pk, site=self.site, price=900, cur_price=900) for pk in (1, 10))
+        self.assertEqual(queries(), few)
 
     def test_update(self):
         self.post('add', product=1)

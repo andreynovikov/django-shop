@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.core.mail import mail_admins
+from django.db.models import Prefetch
 from django.http import HttpResponseRedirect
 from django.template.loader import render_to_string
 
@@ -87,6 +88,13 @@ class OrderViewSet(viewsets.ModelViewSet):
         elif order_filter == 'active':
             excludes['status__in'] = [Order.STATUS_DONE, Order.STATUS_FINISHED, Order.STATUS_CANCELED]
         queryset = Order.objects.order_by('-id').filter(**filters).exclude(**excludes)
+        # the totals and prices of items look up the order's site profile, and the prices of the products
+        if self.action == 'list':
+            queryset = queryset.select_related('site__profile').prefetch_related('items')
+        elif self.action == 'retrieve':
+            queryset = queryset.select_related('site__profile', 'store__city__country').prefetch_related(
+                Prefetch('items', queryset=OrderItem.objects.select_related('product').prefetch_related('product__site_prices'))
+            )
         return queryset
 
     @extend_schema(
@@ -311,7 +319,8 @@ class WarrantyCardView(views.APIView):
         },
     )
     def get(self, request, code):
-        item = OrderItem.objects.filter(serial_number=code.strip()).order_by('-order__created').first()
+        # in any case, as Serial.register() matches them, which also lets the lookup use the index of the serial numbers
+        item = OrderItem.objects.filter(serial_number__iexact=code.strip()).order_by('-order__created').first()
         if item is None:
             return Response({'code': ['Изделие с таким серийным номером не покупалось в нашем интернет-магазине']}, status=status.HTTP_400_BAD_REQUEST)
 
