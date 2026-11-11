@@ -33,7 +33,6 @@ export interface CategoryFilter {
   label: string
   widget: string
   unit?: string
-  help?: string
 }
 
 export interface CategoryTreeItem {
@@ -551,6 +550,8 @@ export interface User {
   gravatar: string
   username: string
   email: string
+  email_verified: boolean  // mail goes only to a confirmed address
+  phone_verified: boolean  // false for an account created at checkout until a code sent to the phone comes back
   postcode: string
   city: string
   address: string
@@ -569,10 +570,20 @@ export interface UserEdit {
   email: string
   address: string
   username: string
+  code?: string  // from SMS, a new phone is saved only with it
+}
+
+export type UserEditField = Exclude<keyof UserEdit, 'code'>
+
+// Answer to registration or a phone change without the code: nothing is saved, a code is sent to the phone
+export interface PhoneCodeSent {
+  phone: string
+  retry_after: number
+  attempts_left: number
 }
 
 export interface UserFormField {
-  name: keyof UserEdit
+  name: UserEditField
   label: string
   id: string
   required: boolean
@@ -617,6 +628,7 @@ export interface Site {
   description: string
   phone: string
   city?: City
+  wholesale?: boolean // products sold in packs only are ordered in whole packs; missing from older backends
 }
 
 export interface Advert {
