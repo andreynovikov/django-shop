@@ -1,6 +1,6 @@
 {
     "name": "singer",
-    "version": "2026.11.10",
+    "private": true,
     "scripts": {
         "dev": "next dev -H 127.0.0.1 -p 3002",
         "start": "next start -H 127.0.0.1 -p 4002",
