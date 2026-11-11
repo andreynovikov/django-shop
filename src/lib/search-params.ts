@@ -23,6 +23,17 @@ const parseAsBooleanExtended = createParser({
   }
 })
 
+// Lowest and highest price, price=1000-5000. The backend refuses a range without both bounds, so a query
+// that has only one, e.g. from a cut link, leaves the price unset.
+const parseAsPriceRange = createParser({
+  parse(value) {
+    const match = /^(\d+)-(\d+)$/.exec(value)
+    return match === null ? null : [Number(match[1]), Number(match[2])]
+  },
+  serialize: (value: number[]) => value.join('-'),
+  eq: (a, b) => a.length === b.length && a.every((bound, index) => bound === b[index]),
+})
+
 export const advertSearchParams = {
   category: parseAsInteger,
   places: parseAsNativeArrayOf(parseAsString),
@@ -73,7 +84,7 @@ export const productSearchParams = {
   gift: parseAsBoolean,
   recomended: parseAsBoolean,
   firstpage: parseAsBoolean,
-  price: parseAsArrayOf(parseAsInteger, '-'),
+  price: parseAsPriceRange,
   kind: parseAsNativeArrayOf(parseAsInteger),
   manufacturer: parseAsNativeArrayOf(parseAsInteger),
 
@@ -96,6 +107,12 @@ export const productSearchParams = {
 export type ProductSearchParamsType = Partial<inferParserType<typeof productSearchParams>>
 export const productSearchParamsSerializer = createSerializer(productSearchParams)
 export const productSearchParamsLoader = createLoader(productSearchParams)
+
+// Fields of each product that the list brings, fields=id,code. Not among productSearchParams, which the catalog
+// reads from its address: there it would leave the product cards without their fields.
+export const productFieldsSerializer = createSerializer({
+  fields: parseAsArrayOf(parseAsString),
+})
 
 export const orderSearchParams = {
   page: parseAsInteger.withDefault(1),

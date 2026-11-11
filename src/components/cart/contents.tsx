@@ -22,7 +22,7 @@ const backLinkClass = `${buttonClass({ variant: 'outline-primary', size: 'sm' })
 export default function CartContents() {
   const { user, registered, status, invalidate, signOut } = useSession()
   const [signOutFailed, setSignOutFailed] = useState(false)
-  const { basket, isEmpty, isLoading, isSuccess, removeItem, setQuantity } = useBasket()
+  const { basket, isEmpty, isLoading, isSuccess, removeItem, setQuantity, isChanging } = useBasket()
 
   const { mutate, isPending } = useCreateOrder()
 
@@ -74,7 +74,7 @@ export default function CartContents() {
           </Link>
         </div>
         {basket.items.map((item, index) => (
-          <CartItem key={item.product.id} item={item} first={index === 0} last={index === basket.items.length - 1} removeItem={removeItem} setQuantity={setQuantity} />
+          <CartItem key={item.product.id} item={item} first={index === 0} last={index === basket.items.length - 1} removeItem={removeItem} setQuantity={setQuantity} isChanging={isChanging} />
         ))}
       </section>
       <aside className="pt-6 lg:pt-0 xl:ps-8">

@@ -270,6 +270,6 @@ export async function generateStaticParams() {
   if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
     return []
 
-  const products = await loadProducts(null, 1000, { kind: [1, 2] }, '')
+  const products = await loadProducts(null, 1000, { kind: [1, 2] }, '', ['code'])
   return products.results.map((product) => ({ code: product.code }))
 }

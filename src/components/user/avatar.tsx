@@ -56,7 +56,7 @@ async function loadAvatar(gravatar: string, name: string, size: number) {
     const buffer = new Uint8Array(await response.arrayBuffer()).toBase64()
     const contentType = (response.headers.get('content-type') ?? '').toLowerCase()
     return `data:${contentType};base64,${buffer}`
-  } catch(error) {
+  } catch {
     return generateAvatar(name, size)
   }
 }
