@@ -35,7 +35,11 @@ export default function CartItem({ item, first, last, removeItem, setQuantity, i
   // a wholesale site sells the products sold in packs only in whole packs
   const pack = site.wholesale && item.product.ws_pack_only ? Math.max(1, item.product.pack_factor) : 1
   const [inputValue, setInputValue] = useState(String(item.quantity))
+  const [isEditing, setIsEditing] = useState(false)
   const debouncedInput = useDebounce(inputValue, 500)
+  // Out of the field it shows the quantity the basket gets, in whole packs. The site loads after the basket,
+  // so the pack can become known after the quantity was typed, or with a basket quantity that isn't whole packs.
+  const fieldValue = isEditing ? inputValue : String(getUpdatedQuantity(inputValue, item.quantity, pack))
 
   const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (e.key === 'Enter') {
@@ -44,7 +48,13 @@ export default function CartItem({ item, first, last, removeItem, setQuantity, i
     }
   }
 
+  const handleFocus: FocusEventHandler<HTMLInputElement> = () => {
+    setIsEditing(true)
+    setInputValue(fieldValue)
+  }
+
   const handleBlur: FocusEventHandler<HTMLInputElement> = () => {
+    setIsEditing(false)
     const quantity = getUpdatedQuantity(inputValue, item.quantity, pack)
     setQuantity(item.product, quantity)
     if (String(quantity) !== inputValue)
@@ -97,8 +107,9 @@ export default function CartItem({ item, first, last, removeItem, setQuantity, i
           min={pack}
           max="10000"
           step={pack}
-          value={inputValue}
+          value={fieldValue}
           onChange={(e) => setInputValue(e.currentTarget.value)}
+          onFocus={handleFocus}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown} />
         {pack > 1 && <span className={formTextClass}>кратно {pack}</span>}
