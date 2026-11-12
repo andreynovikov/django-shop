@@ -55,6 +55,8 @@ def get_integration_unfulfilled_orders(self, account):
             "since": week_ago.isoformat(),
             "to": now.isoformat(),
             "statuses": [
+                "awaiting_registration",
+                "awaiting_approve",
                 "awaiting_packaging",
                 "awaiting_deliver",
                 "delivering",

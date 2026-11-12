@@ -14,6 +14,11 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.NullHandler',
         },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stdout',
+        },
         'file': {
             'level': 'INFO',
             'class': 'logging.handlers.WatchedFileHandler',
