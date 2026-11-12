@@ -140,4 +140,4 @@ jobs:
               exit 1
             fi
             cd /www/dor-tak.ru
-            NAME=dortak PORT=4005 IMAGE="$REF" docker compose up -d
+            NAME=dortak PORT=4105 IMAGE="$REF" docker compose up -d
