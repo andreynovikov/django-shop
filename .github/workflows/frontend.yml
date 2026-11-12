@@ -140,4 +140,4 @@ jobs:
               exit 1
             fi
             cd /www/janome.club
-            NAME=janome PORT=4003 IMAGE="$REF" docker compose up -d
+            NAME=janome PORT=4103 IMAGE="$REF" docker compose up -d
