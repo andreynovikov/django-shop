@@ -1,0 +1,3 @@
+User-Agent: *
+Allow: /
+Host: https://familysew.ru
