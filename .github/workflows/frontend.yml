@@ -6,14 +6,14 @@ name: Frontend CI
 on:
   push:
     branches:
-      - "familysew"
+      - "family"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 env:
-  IMAGE: ghcr.io/${{ github.repository_owner }}/familysew
+  IMAGE: ghcr.io/${{ github.repository_owner }}/family
 
 jobs:
 
@@ -48,7 +48,7 @@ jobs:
     runs-on: ubuntu-24.04
     # The .env is baked into the image, so the build takes the production environment's ENV_FILE
     environment:
-      name: familysew
+      name: family
       deployment: false
     permissions:
       contents: read
@@ -71,7 +71,7 @@ jobs:
           ENV_FILE: ${{ secrets.ENV_FILE }}
         run: |
           if [ -z "$ENV_FILE" ]; then
-            echo "::error::The familysew environment has no ENV_FILE secret"
+            echo "::error::The family environment has no ENV_FILE secret"
             exit 1
           fi
           printf '%s\n' "$ENV_FILE" > .env
@@ -101,7 +101,7 @@ jobs:
         with:
           context: .
           build-args: |
-            entity=familysew
+            entity=family
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -109,8 +109,8 @@ jobs:
   deploy:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
-    environment: familysew
-    concurrency: deploy-familysew
+    environment: family
+    concurrency: deploy-family
     permissions:
       contents: read
       packages: read
@@ -140,4 +140,4 @@ jobs:
               exit 1
             fi
             cd /www/familysew.ru
-            NAME=familysew PORT=4001 IMAGE="$REF" docker compose up -d
+            NAME=family PORT=4101 IMAGE="$REF" docker compose up -d
