@@ -9,8 +9,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "build": "next build",
-    "docker-build": "NAME=stage IMAGE=sworld:$npm_package_version PORT=4004 docker compose build && docker tag sworld sworld:$npm_package_version",
-    "docker-deploy": "NAME=stage IMAGE=sworld:$npm_package_version PORT=4004 docker compose up -d",
+    "docker-build": "NAME=stage IMAGE=sworld PORT=4004 docker compose build",
+    "docker-deploy": "NAME=stage IMAGE=sworld PORT=4004 docker compose up -d",
     "vars": "printenv | grep npm"
   },
   "dependencies": {
