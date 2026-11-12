@@ -336,10 +336,10 @@ Branch     Directory                    NAME       Port
 =========  ===========================  =========  ====
 sworld     /www/www.sewing-world.ru     sworld     4104
 sworld     /www/cartzilla.sigalev.ru    stage      4004
-familysew  /www/familysew.ru            familysew  4001
-janome     /www/janome.club             janome     4003
-singer     /www/singer.ru               singer     4002
-dortak     /www/dor-tak.ru              dortak     4005
+family     /www/familysew.ru            family     4101
+janome     /www/janome.club             janome     4103
+singer     /www/singer.ru               singer     4102
+dortak     /www/dor-tak.ru              dortak     4105
 =========  ===========================  =========  ====
 
 The second sworld line is the stage site. Each directory holds the branch's ``docker-compose.yaml`` and its
@@ -360,7 +360,7 @@ packages:
 ::
 
     cd /www/janome.club
-    NAME=janome PORT=4003 IMAGE=ghcr.io/andreynovikov/janome:2026.11.10-eb964ab docker compose up -d
+    NAME=janome PORT=4103 IMAGE=ghcr.io/andreynovikov/janome:2026.11.10-eb964ab docker compose up -d
 
 The ``frontend.yml`` on ``main`` only puts the Run workflow button on the Actions page: GitHub shows it only for workflows
 on the default branch. Run on ``main``, it fails.
@@ -368,7 +368,7 @@ on the default branch. Run on ``main``, it fails.
 GitHub settings
 ***************
 
-* Environments ``sworld``, ``familysew``, ``janome``, ``singer`` and ``dortak``, one per branch, each limited to its
+* Environments ``sworld``, ``family``, ``janome``, ``singer`` and ``dortak``, one per branch, each limited to its
   branch. Each holds the secret ``ENV_FILE``, the frontend's ``.env``. Next.js builds it into the image, so the build
   job reads it too, and sworld's stage runs the production image. Don't add required reviewers: they would also hold
   up the build job, which reads the environment without deploying to it.

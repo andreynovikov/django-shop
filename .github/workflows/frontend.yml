@@ -1,6 +1,6 @@
 name: Frontend CI
 
-# Each frontend branch (sworld, familysew, janome, singer, dortak) has its own version of this workflow:
+# Each frontend branch (sworld, family, janome, singer, dortak) has its own version of this workflow:
 # pushes to the branch build its image, and "Run workflow" on the branch deploys it to production.
 # GitHub shows the "Run workflow" button only for workflows on the default branch, which is why this
 # copy exists. Run on the default branch itself, it only fails. See "Frontend deployment" in DEPLOYMENT.rst.
@@ -17,5 +17,5 @@ jobs:
     steps:
       - name: Not a frontend branch
         run: |
-          echo "::error::Run this workflow on a frontend branch: sworld, familysew, janome, singer or dortak"
+          echo "::error::Run this workflow on a frontend branch: sworld, family, janome, singer or dortak"
           exit 1
