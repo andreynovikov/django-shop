@@ -6,8 +6,8 @@
         "start": "next start -H 127.0.0.1 -p 4002",
         "lint": "eslint src/",
         "build": "next build",
-        "docker-build": "NAME=singer IMAGE=singer:$npm_package_version PORT=4102 docker compose build && docker tag singer singer:$npm_package_version",
-        "docker-deploy": "NAME=singer IMAGE=singer:$npm_package_version PORT=4102 docker compose up -d"
+        "docker-build": "NAME=singer IMAGE=singer PORT=4102 docker compose build",
+        "docker-deploy": "NAME=singer IMAGE=singer PORT=4102 docker compose up -d"
     },
     "dependencies": {
         "@base-ui/react": "^1.9.0",
