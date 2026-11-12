@@ -109,8 +109,13 @@ for (const wholesale of [false, true]) {
     })
 
     await buy(page, product)
+    // the fake backend answers the basket at once, the site comes later from the real one: type once the cart
+    // knows the packs (the next test types before it)
+    const siteLoaded = page.waitForResponse('**/api/v0/sites/current/')
     await page.goto('/cart/')
+    await siteLoaded
     const quantity = cartItem(page, product).getByRole('spinbutton')
+    await expect(quantity).toHaveAttribute('step', wholesale ? '6' : '1')
     await quantity.fill('7')
     await quantity.press('Enter')
 
@@ -119,3 +124,32 @@ for (const wholesale of [false, true]) {
     await expect.poll(() => backend.basketItems).toEqual([{ product: product.id, quantity: wholesale ? 12 : 7 }])
   })
 }
+
+test('wholesale site rounds a quantity typed before it loaded up to whole packs', async ({ page, request, backend }) => {
+  const [product] = await findSewingMachines(request, { instock: '1' })
+  backend.addProducts({ ...product, ws_pack_only: true, pack_factor: 6 })
+  // on the cart page the site answers once the quantity is typed
+  const typed = Promise.withResolvers<void>()
+  let holdSite = false
+  await page.route('**/api/v0/sites/current/', async route => {
+    const response = await route.fetch()
+    const json = { ...await response.json(), wholesale: true }
+    if (holdSite)
+      await typed.promise
+    await route.fulfill({ response, json })
+  })
+
+  await buy(page, product)
+  holdSite = true
+  await page.goto('/cart/')
+  const quantity = cartItem(page, product).getByRole('spinbutton')
+  await quantity.fill('7')
+  await quantity.press('Enter')
+  // without the site the cart knows no packs
+  await expect.poll(() => backend.basketItems).toEqual([{ product: product.id, quantity: 7 }])
+  typed.resolve()
+
+  await expect(cartItem(page, product).getByText('кратно 6')).toBeVisible()
+  await expect(quantity).toHaveValue('12')
+  await expect.poll(() => backend.basketItems).toEqual([{ product: product.id, quantity: 12 }])
+})
