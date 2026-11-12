@@ -140,4 +140,4 @@ jobs:
               exit 1
             fi
             cd /www/singer.ru
-            NAME=singer PORT=4002 IMAGE="$REF" docker compose up -d
+            NAME=singer PORT=4102 IMAGE="$REF" docker compose up -d
