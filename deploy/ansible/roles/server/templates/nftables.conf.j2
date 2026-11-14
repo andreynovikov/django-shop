@@ -1,0 +1,24 @@
+#!/usr/sbin/nft -f
+# {{ ansible_managed }}
+# Only the table "host" is replaced on reload. Docker keeps its own tables, which "flush ruleset" would delete.
+table inet host
+delete table inet host
+
+table inet host {
+	chain input {
+		type filter hook input priority filter; policy drop;
+		ct state established,related accept
+		ct state invalid drop
+		iif lo accept
+		iifname "docker0" accept
+		meta l4proto { icmp, ipv6-icmp } accept
+		udp dport { 68, 546 } accept
+		tcp dport { {{ server_firewall_tcp_ports | join(', ') }} } accept
+{% if server_firewall_udp_ports %}
+		udp dport { {{ server_firewall_udp_ports | join(', ') }} } accept
+{% endif %}
+{% for rule in server_firewall_rules %}
+		{{ rule }}
+{% endfor %}
+	}
+}

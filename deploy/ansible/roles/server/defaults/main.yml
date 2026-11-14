@@ -45,11 +45,25 @@ server_users:
   - name: andrey
     groups: [adm, docker, sudo, www-data]
   - name: nikolays
-    groups: [sudo, www-data]
+    groups: [adm, sudo, www-data]
   - name: maria
     groups: [www-data]
   - name: egor
     groups: [www-data]
+
+# The system user that runs uWSGI, Celery and the backups, see "Service user" in DEPLOYMENT.rst
+server_app_user: sworld
+
+# AllowUsers of sshd lists server_users and these. Add the user GitHub Actions deploys with if it is not one of them.
+server_ssh_extra_users: []
+
+# Open to everyone, besides the loopback, docker0, ICMP and DHCP
+server_firewall_tcp_ports: [22, 80, 443]
+server_firewall_udp_ports: [443]  # HTTP/3
+# More nftables rules for the input chain
+server_firewall_rules:
+  # The hosting's Zabbix servers, from /etc/zabbix/zabbix_agentd.conf
+  - ip saddr { 92.53.116.12, 92.53.116.111, 92.53.116.119 } tcp dport 10050 accept
 
 server_timezone: Europe/Moscow
 server_ntp: ru.pool.ntp.org
@@ -59,8 +73,54 @@ server_memcached_memory: 256
 server_www_owner: andrey
 server_nvm_version: v0.41.0
 
-# uWSGI apps to enable, the names of their ini files in /etc/uwsgi/apps-available
-server_uwsgi_apps: []
+# uWSGI apps, an ini file in /etc/uwsgi/apps-available each. Their units start once /www/<site>/.venv exists.
+# processes and threads default to 3 and 8, options adds more lines to the ini file.
+server_uwsgi_apps:
+  - name: prod
+    site: www.sewing-world.ru
+    request_log: true
+    stats: 127.0.0.1:9191
+  - name: admin
+    site: www.sewing-world.ru
+    admin: true
+  - name: dev
+    site: dev.sigalev.ru
+    processes: 1
+    threads: 2
+    options:
+      py-autoreload: 3
+
+# Celery workers and beat, /etc/celery/<name>_worker and <name>_beat each. Their units start once
+# /www/<site>/.venv exists. nodes maps each node of celery multi to its queues.
+server_celery_apps:
+  - name: prod
+    site: www.sewing-world.ru
+    nodes:
+      priority: priority
+      import: import
+      integrations: integrations
+      revalidation: revalidation
+      default: default,celery
+    options: >-
+      --loglevel=INFO --verbose --events --time-limit=300
+      --concurrency=2 --concurrency:priority,integrations=4 --concurrency:import=1
+
+# What the service user writes in a deployed site, with the mode of each directory. logs is the service user's
+# alone: nginx writes its logs to /var/log/nginx, see "Nginx setup" in DEPLOYMENT.rst.
+server_app_directories:
+  logs: "2755"
+  media: "2775"
+  static: "2775"
+  .cache: "2775"
+  import: "2775"
+# The secrets only the service user and root may read, with the backups that Emacs leaves next to them
+server_app_secrets:
+  - .env
+  - .env~
+  - .env.admin
+  - .env.admin~
+  - sewingworld/settings/integrations.py
+  - sewingworld/settings/integrations.py~
 
 # Deployments in /www that back up their database hourly, one per database, and deployments that only save their
 # config daily

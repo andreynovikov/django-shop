@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+VIRTUALENV=/www/{{ item.site }}/.venv
+CELERYD_NODES={{ item.nodes.keys() | join(' ') }}
+CELERYD_OPTS={% for node, queues in item.nodes.items() %}-Q:{{ node }} {{ queues }} {% endfor %}--workdir=/www/{{ item.site }} --app=sewingworld --logfile=/www/{{ item.site }}/logs/celery_%n.log {{ item.options }}

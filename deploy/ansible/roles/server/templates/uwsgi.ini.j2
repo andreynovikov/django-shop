@@ -1,0 +1,34 @@
+; {{ ansible_managed }}
+[uwsgi]
+master = true
+plugins = python3,logfile
+chdir = /www/{{ item.site }}
+virtualenv = /www/{{ item.site }}/.venv
+module = sewingworld.wsgi:application
+lazy-apps = true
+processes = {{ item.processes | default(3) }}
+threads = {{ item.threads | default(8) }}
+buffer-size = 8192
+uid = {{ server_app_user }}
+gid = {{ server_app_user }}
+chmod-socket = 660
+env = PYTHONIOENCODING=UTF-8
+{% if item.admin | default(false) %}
+env = ADMIN=True
+{% endif %}
+harakiri = 120
+vacuum = true
+max-requests = 5000
+touch-chain-reload = /www/{{ item.site }}/.touch_reload
+logger = file:/www/{{ item.site }}/logs/{{ 'admin_' if item.admin | default(false) else '' }}uwsgi_error.log
+log-date = true
+{% if item.request_log | default(false) %}
+req-logger = file:/www/{{ item.site }}/logs/uwsgi_access.log
+{% endif %}
+{% if item.stats is defined %}
+stats = {{ item.stats }}
+stats-http = true
+{% endif %}
+{% for key, value in (item.options | default({})).items() %}
+{{ key }} = {{ value }}
+{% endfor %}

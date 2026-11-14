@@ -1,17 +1,18 @@
-# The units read their settings from /etc/celery/<name>_worker and _beat, which are copied from the old server by hand.
+# "Celery setup". The units of an app start once its site is deployed, see sites.yml.
 - name: Install Celery units
-  ansible.builtin.copy:
-    src: "{{ item }}"
-    dest: /etc/systemd/system/
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: /etc/systemd/system/{{ item }}
     mode: "0644"
   loop:
     - celery@.service
     - celery_beat@.service
+  register: celery_units
   notify: Reload systemd
 
 - name: Create /run/celery on boot
-  ansible.builtin.copy:
-    src: celery.conf
+  ansible.builtin.template:
+    src: celery.tmpfiles.j2
     dest: /etc/tmpfiles.d/celery.conf
     mode: "0644"
 
@@ -19,6 +20,56 @@
   ansible.builtin.file:
     path: /run/celery
     state: directory
-    owner: nikolays
+    owner: "{{ server_app_user }}"
     group: www-data
     mode: "0755"
+
+- name: Create /etc/celery
+  ansible.builtin.file:
+    path: /etc/celery
+    state: directory
+    mode: "0755"
+
+- name: Configure Celery workers
+  ansible.builtin.template:
+    src: celery_worker.j2
+    dest: /etc/celery/{{ item.name }}_worker
+    mode: "0644"
+  loop: "{{ server_celery_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: celery_worker_configs
+
+- name: Configure Celery beat
+  ansible.builtin.template:
+    src: celery_beat.j2
+    dest: /etc/celery/{{ item.name }}_beat
+    mode: "0644"
+  loop: "{{ server_celery_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: celery_beat_configs
+
+- name: Start Celery workers
+  ansible.builtin.systemd_service:
+    name: celery@{{ item.name }}.service
+    enabled: true
+    state: "{{ 'restarted' if celery_units is changed or item.name in changed_configs else 'started' }}"
+    daemon_reload: true
+  loop: "{{ server_celery_apps | selectattr('site', 'in', server_deployed_sites) | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    changed_configs: "{{ celery_worker_configs.results | select('changed') | map(attribute='item.name') | list }}"
+
+- name: Start Celery beat
+  ansible.builtin.systemd_service:
+    name: celery_beat@{{ item.name }}.service
+    enabled: true
+    state: "{{ 'restarted' if celery_units is changed or item.name in changed_configs else 'started' }}"
+    daemon_reload: true
+  loop: "{{ server_celery_apps | selectattr('site', 'in', server_deployed_sites) | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    changed_configs: "{{ celery_beat_configs.results | select('changed') | map(attribute='item.name') | list }}"

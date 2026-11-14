@@ -1,0 +1,18 @@
+# "TLS certificates". The certificates themselves are obtained, or copied from the old server, by hand.
+- name: Create the certbot hook directory
+  ansible.builtin.file:
+    path: /etc/letsencrypt/renewal-hooks/deploy
+    state: directory
+    mode: "0755"
+
+- name: Reload nginx after certbot renews a certificate
+  ansible.builtin.copy:
+    src: reload-nginx.sh
+    dest: /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+    mode: "0755"
+
+- name: Renew certificates
+  ansible.builtin.systemd_service:
+    name: certbot.timer
+    enabled: true
+    state: started

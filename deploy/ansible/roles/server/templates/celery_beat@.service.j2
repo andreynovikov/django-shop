@@ -1,0 +1,16 @@
+[Unit]
+Description=Celery beat for %I
+Wants=redis-server.service
+After=network.target redis-server.service
+
+[Service]
+User={{ server_app_user }}
+# Not www-data: the app must not write what people share through that group
+Group={{ server_app_user }}
+Type=forking
+EnvironmentFile=-/etc/celery/%I_beat
+PIDFile=/run/celery/%I_beat.pid
+ExecStart=/bin/sh -c "$$VIRTUALENV/bin/celery $CELERYD_OPTS beat --detach --pidfile=/run/celery/%I_beat.pid $CELERYD_BEAT_OPTS"
+
+[Install]
+WantedBy=multi-user.target

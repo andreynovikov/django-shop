@@ -1,0 +1,17 @@
+[Unit]
+Description=Database backup for %I
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User={{ server_app_user }}
+# Not www-data: the app must not write what people share through that group
+Group={{ server_app_user }}
+WorkingDirectory=/www/%I
+# restic keeps its cache here, the user has no home
+CacheDirectory=db_backup
+Environment=RESTIC_CACHE_DIR=%C/db_backup
+ExecStart=/www/%I/.venv/bin/python manage.py backup_db
+Nice=10
+IOSchedulingClass=idle

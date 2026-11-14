@@ -1,22 +1,65 @@
-# The apps' ini files are copied from the old server into /etc/uwsgi/apps-available by hand, without links in
-# apps-enabled.
+# "UWSGI setup". The units of an app start once its site is deployed, see sites.yml.
 #
 # The units need /run/uwsgi, not /var/run/uwsgi. systemd rewrites the path of the socket unit to /run, then uWSGI does
 # not recognize the socket it is given as its --socket and fails to bind that a second time.
 - name: Install uWSGI units
-  ansible.builtin.copy:
-    src: "{{ item }}"
-    dest: /etc/systemd/system/
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: /etc/systemd/system/{{ item }}
     mode: "0644"
   loop:
     - uwsgi@.socket
     - uwsgi@.service
+  register: uwsgi_units
   notify: Reload systemd
 
-- name: Enable uWSGI apps
+# For an app started without its socket unit, which binds the socket itself. nginx cannot connect to such a socket,
+# which belongs to the group of the service user, so the apps are started through their socket units below.
+- name: Create /run/uwsgi on boot
+  ansible.builtin.template:
+    src: uwsgi.tmpfiles.j2
+    dest: /etc/tmpfiles.d/uwsgi.conf
+    mode: "0644"
+
+- name: Create /run/uwsgi
+  ansible.builtin.file:
+    path: /run/uwsgi
+    state: directory
+    owner: "{{ server_app_user }}"
+    group: www-data
+    mode: "0755"
+
+- name: Configure uWSGI apps
+  ansible.builtin.template:
+    src: uwsgi.ini.j2
+    dest: /etc/uwsgi/apps-available/{{ item.name }}.ini
+    mode: "0644"
+  loop: "{{ server_uwsgi_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: uwsgi_configs
+
+- name: Enable uWSGI sockets
   ansible.builtin.systemd_service:
-    name: uwsgi@{{ item.0 }}.{{ item.1 }}
+    name: uwsgi@{{ item.name }}.socket
     enabled: true
     state: started
     daemon_reload: true
-  loop: "{{ server_uwsgi_apps | product(['socket', 'service']) | list }}"
+  loop: "{{ server_uwsgi_apps | selectattr('site', 'in', server_deployed_sites) | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: uwsgi_sockets
+
+# A running app is restarted when its configuration changed, or when it has just got its socket unit: until then it
+# accepts on a socket it bound itself.
+- name: Start uWSGI apps
+  ansible.builtin.systemd_service:
+    name: uwsgi@{{ item.item.name }}.service
+    enabled: true
+    state: "{{ 'restarted' if item is changed or uwsgi_units is changed or item.item.name in changed_configs else 'started' }}"
+    daemon_reload: true
+  loop: "{{ uwsgi_sockets.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  vars:
+    changed_configs: "{{ uwsgi_configs.results | select('changed') | map(attribute='item.name') | list }}"

@@ -1,0 +1,70 @@
+# "Environment setup": which sites of the uWSGI and Celery apps are deployed, what the service user may write in them
+# and who may read their secrets. The sites themselves are cloned into /www by hand.
+- name: Check which sites are deployed
+  ansible.builtin.stat:
+    path: /www/{{ item }}/.venv
+  loop: "{{ (server_uwsgi_apps + server_celery_apps) | map(attribute='site') | unique }}"
+  register: site_venvs
+
+- name: Remember the deployed sites
+  ansible.builtin.set_fact:
+    server_deployed_sites: "{{ site_venvs.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+
+# nginx opens its logs as root. Where the service user can write, it could point a log at any file with a symbolic
+# link, so the logs directories are handed over only once nginx writes to /var/log/nginx.
+- name: Look for nginx logs in /www
+  ansible.builtin.command:
+    # -R follows the links in sites-enabled
+    argv: [grep, -RlE, '^[[:space:]]*(access|error)_log[[:space:]]+/www/', /etc/nginx/nginx.conf, /etc/nginx/conf.d/, /etc/nginx/sites-enabled/]
+  register: nginx_www_logs
+  changed_when: false
+  failed_when: nginx_www_logs.rc > 1
+  check_mode: false
+
+- name: Stop if nginx still writes its logs into /www
+  ansible.builtin.fail:
+    msg: >-
+      nginx writes its logs into /www in {{ nginx_www_logs.stdout_lines | join(', ') }}. Move them to /var/log/nginx
+      first, see "Nginx setup" in DEPLOYMENT.rst.
+  when: nginx_www_logs.rc == 0
+
+- name: Check the directories of the service user
+  ansible.builtin.stat:
+    path: /www/{{ item.0 }}/{{ item.1 }}
+  loop: "{{ server_deployed_sites | product(server_app_directories.keys()) | list }}"
+  register: app_directories
+
+# Once per directory, when it still belongs to someone else. Without it the service user could not write the existing
+# logs and uploads.
+- name: Hand the directories over to the service user
+  ansible.builtin.command:
+    cmd: chown -R {{ server_app_user }}:www-data {{ item.stat.path }}
+  loop: "{{ app_directories.results | selectattr('stat.exists') | rejectattr('stat.pw_name', 'eq', server_app_user) | list }}"
+  loop_control:
+    label: "{{ item.stat.path }}"
+  changed_when: true
+
+- name: Let the service user write its directories
+  ansible.builtin.file:
+    path: /www/{{ item.0 }}/{{ item.1 }}
+    state: directory
+    owner: "{{ server_app_user }}"
+    group: www-data
+    mode: "{{ server_app_directories[item.1] }}"
+  loop: "{{ server_deployed_sites | product(server_app_directories.keys()) | list }}"
+
+- name: Find the secrets
+  ansible.builtin.stat:
+    path: /www/{{ item.0 }}/{{ item.1 }}
+  loop: "{{ server_deployed_sites | product(server_app_secrets) | list }}"
+  register: app_secrets
+
+- name: Let only root and the service user read the secrets
+  ansible.builtin.file:
+    path: "{{ item.stat.path }}"
+    owner: root
+    group: "{{ server_app_user }}"
+    mode: "0640"
+  loop: "{{ app_secrets.results | selectattr('stat.exists') | list }}"
+  loop_control:
+    label: "{{ item.stat.path }}"

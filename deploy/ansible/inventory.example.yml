@@ -13,13 +13,13 @@ all:
             ssh_keys:
               - ssh-ed25519 AAAA... andrey
           - name: nikolays
-            groups: [sudo, www-data]
+            groups: [adm, sudo, www-data]
           - name: maria
             groups: [www-data]
           - name: egor
             groups: [www-data]
-        # After their ini files are copied to /etc/uwsgi/apps-available:
-        # server_uwsgi_apps: [www.sewing-world.ru]
+        # sshd lets in only the users above and these. Add the user of the DEPLOY_USER secret if it is another one.
+        # server_ssh_extra_users: [deploy]
         # After the deployment and its .env are in place:
         # server_db_backup_deployments: [www.sewing-world.ru]
     backup:

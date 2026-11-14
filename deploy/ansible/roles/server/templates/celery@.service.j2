@@ -1,0 +1,17 @@
+[Unit]
+Description=Celery worker for %I
+Wants=redis-server.service
+After=network.target redis-server.service
+
+[Service]
+User={{ server_app_user }}
+# Not www-data: the app must not write what people share through that group
+Group={{ server_app_user }}
+Type=forking
+EnvironmentFile=-/etc/celery/%i_worker
+ExecStart=/bin/sh -c "$$VIRTUALENV/bin/celery multi start $CELERYD_NODES $CELERYD_OPTS"
+ExecStop=/bin/sh -c "$$VIRTUALENV/bin/celery multi stopwait $CELERYD_NODES"
+ExecReload=/bin/sh -c "$$VIRTUALENV/bin/celery multi restart $CELERYD_NODES $CELERYD_OPTS"
+
+[Install]
+WantedBy=multi-user.target

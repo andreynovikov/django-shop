@@ -12,13 +12,26 @@ What is left to do by hand
 
 These steps stay manual, as DEPLOYMENT.rst describes them:
 
-* files from the old server: nginx sites, ``basic_auth`` and ``htpasswd``, uWSGI ini files, Celery environment files;
+* files from the old server: nginx sites, ``basic_auth`` and ``htpasswd``;
 * users' OTP codes (``google-authenticator``);
 * TLS certificates of the sites and of the backup host;
 * the sites in ``/www`` with their ``.env``;
 * saving the backup repository password in the password manager.
 
-PostgreSQL runs on a separate server, and replication and failover are not used anymore.
+PostgreSQL runs on a separate server.
+
+The uWSGI and Celery apps are listed in ``roles/server/defaults/main.yml``. The playbook writes their configuration
+on every run, but starts their units only once the site is cloned into ``/www`` and has its ``.venv``. Run it again
+after you deploy a site. That run also hands the site's ``logs``, ``media``, ``static``, ``.cache`` and ``import`` to
+the service user, and makes ``.env`` and ``integrations.py`` readable by root and the service user only. It stops before
+that if an nginx site still writes its logs into ``/www``: they belong in ``/var/log/nginx``, see "Nginx setup" in
+DEPLOYMENT.rst.
+
+sshd lets in only the users of ``server_users`` and ``server_ssh_extra_users``. If GitHub Actions deploys as another
+user (the ``DEPLOY_USER`` secret), add it to ``server_ssh_extra_users`` before the run, or the deploys stop working.
+
+The ``firewall`` tag turns on nftables. Keep an ssh session open on the first run of it. If something else connects
+to the server, for example over the private network, add a rule for it to ``server_firewall_rules``.
 
 Preparation
 ***********

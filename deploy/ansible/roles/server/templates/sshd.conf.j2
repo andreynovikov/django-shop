@@ -1,0 +1,10 @@
+# {{ ansible_managed }}
+# sshd keeps the first value of an option. This file comes before 50-cloud-init.conf, which sets
+# PasswordAuthentication yes on cloud images.
+PermitRootLogin no
+# Only the "password" method: passwords keep working through keyboard-interactive, which also asks for the OTP code
+PasswordAuthentication no
+X11Forwarding no
+AllowUsers {{ (server_users | map(attribute='name') | list + server_ssh_extra_users) | join(' ') }}
+ClientAliveInterval 60
+ClientAliveCountMax 8

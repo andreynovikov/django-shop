@@ -4,7 +4,7 @@ Server setup
 
 The Ansible playbook ``deploy/ansible/site.yml`` does the steps of this guide that need neither files from the old
 server nor secrets: packages, users, system configuration and the files listed here, on the production server and on
-the backup host. It leaves out PostgreSQL, the sites in ``/www``, replication and failover.
+the backup host. It leaves out PostgreSQL and the sites in ``/www``.
 ``deploy/ansible/README.rst`` tells how to run it and what is left to do by hand.
 
 Historically server is run under latest Debian Stable.
@@ -46,9 +46,6 @@ The following packages are optional:
 
 Install Docker (https://docs.docker.com/engine/install/debian/#install-using-the-repository)
 
-Master/slave cold redundancy server scheme is used for High Availability. It means that two servers are kept identical
-but if one server fails manual actions should be performed to switch to another server (described below).
-
 Create users in this particular order (to preserve uids):
 ::
     adduser andrey
@@ -56,18 +53,10 @@ Create users in this particular order (to preserve uids):
     adduser maria
     adduser egor
 
-Add user ``andrey`` to ``adm`` and ``docker`` groups.
-Add users ``andrey`` and ``nikolays`` to ``sudu`` and ``www-data`` groups.
+Add users ``andrey`` and ``nikolays`` to ``adm`` group, which reads the logs in ``/var/log``, nginx's among them.
+Add user ``andrey`` to ``docker`` group.
+Add users ``andrey`` and ``nikolays`` to ``sudo`` and ``www-data`` groups.
 Add users ``maria`` and ``egor`` to ``www-data`` group.
-
-Disable ssh root login:
-::
-    PermitRootLogin no
-
-Optionaly adjust ssh keep-alives:
-::
-    ClientAliveInterval 60
-    ClientAliveCountMax 8
 
 Setup correct timezone:
 ::
@@ -90,6 +79,39 @@ Increase memcached limits in ``/etc/memcached.conf`` file:
 ::
    -m 256
 
+Service user
+************
+
+uWSGI, Celery and the backups run as the system user ``sworld``. It has no password, shell, home or sudo, and the
+code of the sites is read-only for it, so a hole in the app gives nobody a login or the code:
+::
+    adduser --system --group --home /nonexistent --no-create-home sworld
+
+The services run with the group ``sworld`` as well, which alone can read the secrets. They are kept out of
+``www-data``, because people share directories through that group, and some of them hold what the deploys run, such as
+the ``docker-compose.yaml`` of a frontend. nginx reaches the uWSGI sockets through the group ``www-data`` of the socket
+units, and reads the uploads and static files, which everyone may read. `Environment setup`_ lists the directories the
+user writes.
+
+ssh
+***
+
+Create ``/etc/ssh/sshd_config.d/10-server.conf``. sshd keeps the first value it reads of each option, and the files
+of ``sshd_config.d`` come first, in the order of their names. Cloud images have ``50-cloud-init.conf`` with
+``PasswordAuthentication yes``, so this file must sort before it:
+::
+    PermitRootLogin no
+    PasswordAuthentication no
+    X11Forwarding no
+    AllowUsers andrey nikolays maria egor
+    ClientAliveInterval 60
+    ClientAliveCountMax 8
+
+``PasswordAuthentication`` covers only the ``password`` method of ssh, which cannot ask for an OTP code. Logins with a
+password go through ``keyboard-interactive``, which asks for the password and the OTP code, see
+`Two factor authentication`_. Add a user to ``AllowUsers`` when you create one, including the user that GitHub Actions
+deploys with (the ``DEPLOY_USER`` secret).
+
 Two factor authentication
 *************************
 
@@ -103,9 +125,57 @@ Add the following line to the bottom of the ``/etc/pam.d/sshd``:
 ::
     auth required pam_google_authenticator.so
 
-Enable challenge response:
+Enable keyboard-interactive logins, formerly called challenge response, in ``/etc/ssh/sshd_config.d/two_factor.conf``:
 ::
-    ChallengeResponseAuthentication    yes
+    KbdInteractiveAuthentication yes
+
+``journalctl -u ssh | grep Accepted`` shows how users log in: ``publickey``, or ``keyboard-interactive/pam`` for a
+password with an OTP code.
+
+Firewall
+********
+
+Only ssh, HTTP, HTTPS and HTTP/3 are open, and the hosting's Zabbix servers may reach the agent. Everything else, such
+as Prometheus and node-exporter, is reachable from the server itself only. ``/etc/nftables.conf``:
+::
+    #!/usr/sbin/nft -f
+    # Only the table "host" is replaced on reload. Docker keeps its own tables, which "flush ruleset" would delete.
+    table inet host
+    delete table inet host
+
+    table inet host {
+        chain input {
+            type filter hook input priority filter; policy drop;
+            ct state established,related accept
+            ct state invalid drop
+            iif lo accept
+            iifname "docker0" accept
+            meta l4proto { icmp, ipv6-icmp } accept
+            udp dport { 68, 546 } accept
+            tcp dport { 22, 80, 443 } accept
+            udp dport { 443 } accept
+            ip saddr { 92.53.116.12, 92.53.116.111, 92.53.116.119 } tcp dport 10050 accept
+        }
+    }
+
+Debian's ``nftables.service`` runs ``nft flush ruleset`` when it stops or restarts, which deletes Docker's rules too and
+cuts the containers off the network. Make it remove only this table, in
+``/etc/systemd/system/nftables.service.d/docker.conf``:
+::
+    [Service]
+    ExecStop=
+    ExecStop=-/usr/sbin/nft delete table inet host
+
+Keep an ssh session open, then:
+::
+    systemctl daemon-reload
+    systemctl enable --now nftables
+
+After changing the rules, apply them with ``systemctl reload nftables``.
+
+This firewall does not cover the ports Docker publishes. Docker forwards them to the container before the ``input``
+chain sees them, so a container published as ``-p 9324:8080`` is open to everyone. Publish on the loopback only, as
+the frontends do: ``127.0.0.1:9324:8080``.
 
 ***********
 Nginx setup
@@ -113,6 +183,17 @@ Nginx setup
 
 Copy ``/etc/nginx/basic_auth`` and ``/etc/nginx/htpasswd`` from old server to new.
 Copy ``/etc/nginx/sites-available/*`` from old server to new. Set links to all configs in ``sites-enabled``.
+
+Each site writes its logs to ``/var/log/nginx``, named after the site, never into ``/www``:
+::
+    access_log   /var/log/nginx/www.sewing-world.ru-access.log upstream;
+    access_log   /var/log/nginx/www.sewing-world.ru-5xx.log errored if=$errored;
+    error_log    /var/log/nginx/www.sewing-world.ru-error.log;
+
+nginx opens its logs as root, and on reopen gives them to ``www-data``. Whoever can write the directory of a log can
+replace the log with a symbolic link, and nginx then writes to the file it points to as root (CVE-2016-1247). Only
+root can write ``/var/log/nginx``, while ``/www/<site>/logs`` belongs to the `service user`_. Debian's
+``/etc/logrotate.d/nginx`` rotates ``/var/log/nginx/*.log`` and keeps 14 days. The files belong to the group ``adm``.
 
 Adjust ``/etc/nginx/nginx.conf``:
 ::
@@ -140,6 +221,37 @@ Adjust ``/etc/nginx/nginx.conf``:
     map $status $errored {
       ~^[5]   1;
       default 0;
+    }
+
+****************
+TLS certificates
+****************
+
+certbot gets the certificates of the sites from Let's Encrypt and renews them. It proves a domain through the site
+directory: it puts the challenge into ``.well-known/acme-challenge/`` there, and the ``location /.well-known/`` of the
+site's nginx server serves it. ``certbot.timer`` checks the certificates twice a day and renews those that expire
+within 30 days. Create ``/etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh`` with mode ``755``, so that nginx
+serves a renewed certificate:
+::
+    #!/bin/bash
+    systemctl try-reload-or-restart nginx
+
+Moving to a new server, copy all of ``/etc/letsencrypt``. ``tar`` keeps the links from ``live/`` to ``archive/``, and the
+settings in ``renewal/`` keep working while the sites stay in the same directories:
+::
+    sudo tar -C /etc -czf letsencrypt.tgz letsencrypt    # on the old server
+    sudo tar -C /etc -xzf letsencrypt.tgz                # on the new one
+
+A certificate for a new site:
+::
+    certbot certonly --webroot -w /www/janome.club -d janome.club -d www.janome.club
+
+Let's Encrypt asks over HTTP and follows the redirect to HTTPS, so on renewal the site's HTTPS server answers. A new
+site has no HTTPS server yet. Until it gets its certificate, let its port 80 server answer, with ``return 301`` moved
+into ``location /``:
+::
+    location /.well-known/acme-challenge/ {
+      root /www/janome.club;
     }
 
 ****************
@@ -175,7 +287,7 @@ Create ``/etc/systemd/system/uwsgi@.socket``:
 
     [Socket]
     ListenStream=/run/uwsgi/%i.socket
-    SocketUser=nikolays
+    SocketUser=sworld
     SocketGroup=www-data
     SocketMode=0660
 
@@ -192,8 +304,8 @@ Create ``/etc/systemd/system/uwsgi@.service``:
     ExecStart=/usr/bin/uwsgi \
             --ini /etc/uwsgi/apps-available/%i.ini \
             --socket /run/uwsgi/%i.socket
-    User=nikolays
-    Group=www-data
+    User=sworld
+    Group=sworld
     Restart=on-failure
     KillSignal=SIGQUIT
     Type=notify
@@ -203,30 +315,45 @@ Create ``/etc/systemd/system/uwsgi@.service``:
     [Install]
     WantedBy=multi-user.target
 
-Copy ``/etc/uwsgi/apps-available/*`` from old server to new. **Do not** set any links in ``apps-enabled``.
+``/etc/tmpfiles.d/uwsgi.conf`` creates ``/run/uwsgi`` for an app that is started without its socket unit and binds
+the socket itself. Such a socket belongs to the group ``sworld``, and nginx cannot connect to it, so start every app
+through its socket unit:
+::
+    d /run/uwsgi 0755 sworld www-data -
 
-Typical application setup looks as follows:
+Create an ini file in ``/etc/uwsgi/apps-available`` for each app: ``prod`` and ``admin`` of ``www.sewing-world.ru``,
+and ``dev`` of ``dev.sigalev.ru``. **Do not** set any links in ``apps-enabled``.
+
+Typical application setup (``prod.ini``) looks as follows:
 ::
     [uwsgi]
     master = true
     plugins = python3,logfile
     chdir = /www/www.sewing-world.ru
-    virtualenv = /www/www.sewing-world.ru/env
+    virtualenv = /www/www.sewing-world.ru/.venv
     module = sewingworld.wsgi:application
-    processes = 2
-    threads = 4
+    lazy-apps = true
+    processes = 3
+    threads = 8
     buffer-size = 8192
-    uid = nikolays
-    gid = www-data
+    uid = sworld
+    gid = sworld
     chmod-socket = 660
     env = PYTHONIOENCODING=UTF-8
-    env = DJANGO_SETTINGS_MODULE=sewingworld.settings.production
     harakiri = 120
     vacuum = true
     max-requests = 5000
-    req-logger = file:/www/www.sewing-world.ru/logs/uwsgi_access.log
+    touch-chain-reload = /www/www.sewing-world.ru/.touch_reload
     logger = file:/www/www.sewing-world.ru/logs/uwsgi_error.log
     log-date = true
+    req-logger = file:/www/www.sewing-world.ru/logs/uwsgi_access.log
+    stats = 127.0.0.1:9191
+    stats-http = true
+
+``touch .touch_reload`` in the site directory reloads the workers one by one, which needs ``lazy-apps``. The admin site
+(``admin.ini``) is the same with ``env = ADMIN=True``, without ``req-logger`` and ``stats``, and it logs to
+``admin_uwsgi_error.log``. ``dev.ini`` has ``processes = 1``, ``threads = 2`` and ``py-autoreload = 3``, which reloads
+it when a file of its code changes.
 
 Each application should be:
 ::
@@ -235,7 +362,8 @@ Each application should be:
     systemctl enable uwsgi@app
     systemctl start uwsgi@app
 
-where ``app`` is the name of the uwsgi configuration file.
+where ``app`` is the name of the uwsgi configuration file. Start it once its site is deployed, see
+`Environment setup`_.
 
 ************
 Celery setup
@@ -249,17 +377,19 @@ Celery setup
     After=network.target redis-server.service
 
     [Service]
-    User=nikolays
-    Group=www-data
+    User=sworld
+    Group=sworld
     Type=forking
-    EnvironmentFile=-/etc/celery/%I_worker
-    PIDFile=/run/celery/%I_worker.pid
-    ExecStart=/bin/sh -c "$$VIRTUALENV/bin/celery multi start $CELERYD_NODES --pidfile=/run/celery/%I_worker.pid $CELERYD_OPTS"
-    ExecStop=/bin/sh -c "$$VIRTUALENV/bin/celery multi stopwait $CELERYD_NODES --pidfile=/run/celery/%I_worker.pid"
-    ExecReload=/bin/sh -c "$$VIRTUALENV/bin/celery multi restart $CELERYD_NODES --pidfile=/run/celery/%I_worker.pid $CELERYD_OPTS"
+    EnvironmentFile=-/etc/celery/%i_worker
+    ExecStart=/bin/sh -c "$$VIRTUALENV/bin/celery multi start $CELERYD_NODES $CELERYD_OPTS"
+    ExecStop=/bin/sh -c "$$VIRTUALENV/bin/celery multi stopwait $CELERYD_NODES"
+    ExecReload=/bin/sh -c "$$VIRTUALENV/bin/celery multi restart $CELERYD_NODES $CELERYD_OPTS"
 
     [Install]
     WantedBy=multi-user.target
+
+Each node of ``celery multi`` keeps its own pid file, by default ``/run/celery/<node>.pid``. A ``--pidfile`` without
+``%n`` would give all the nodes one file, and only the first of them would start.
 
 ``/etc/systemd/system/celery_beat@.service``:
 ::
@@ -269,25 +399,42 @@ Celery setup
     After=network.target redis-server.service
 
     [Service]
-    User=nikolays
-    Group=www-data
+    User=sworld
+    Group=sworld
     Type=forking
     EnvironmentFile=-/etc/celery/%I_beat
-    PIDFile=/var/run/celery/%I_beat.pid
-    ExecStart=/bin/sh -c "($$VIRTUALENV/bin/celery beat --pidfile=/run/celery/%I_beat.pid $CELERYD_OPTS)& echo $!"
-    ExecStop=/bin/kill -s TERM /run/celery/%I_beat.pid
+    PIDFile=/run/celery/%I_beat.pid
+    ExecStart=/bin/sh -c "$$VIRTUALENV/bin/celery $CELERYD_OPTS beat --detach --pidfile=/run/celery/%I_beat.pid $CELERYD_BEAT_OPTS"
 
     [Install]
     WantedBy=multi-user.target
 
+systemd stops beat with SIGTERM to the process in ``PIDFile``, so the unit needs no ``ExecStop``.
+
+The units read their settings from ``/etc/celery``. ``prod_worker`` starts a node for each queue:
+::
+    VIRTUALENV=/www/www.sewing-world.ru/.venv
+    CELERYD_NODES=priority import integrations revalidation default
+    CELERYD_OPTS=-Q:priority priority -Q:import import -Q:integrations integrations -Q:revalidation revalidation -Q:default default,celery --workdir=/www/www.sewing-world.ru --app=sewingworld --logfile=/www/www.sewing-world.ru/logs/celery_%n.log --loglevel=INFO --verbose --events --time-limit=300 --concurrency=2 --concurrency:priority,integrations=4 --concurrency:import=1
+
+``prod_beat``:
+::
+    VIRTUALENV=/www/www.sewing-world.ru/.venv
+    CELERYD_OPTS=--workdir=/www/www.sewing-world.ru/ --app=sewingworld
+    CELERYD_BEAT_OPTS=--logfile=/www/www.sewing-world.ru/logs/celery_beat.log --loglevel=INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
 ``/etc/tmpfiles.d/celery.conf``:
 ::
-    d /run/celery 0755 nikolays www-data -
+    d /run/celery 0755 sworld www-data -
 
 Set proper permissions, otherwise services will fail to start:
 ::
     mkdir /run/celery
-    chown nikolays:www-data /run/celery
+    chown sworld:www-data /run/celery
+
+Once the site is deployed, see `Environment setup`_:
+::
+    systemctl enable --now celery@prod celery_beat@prod
 
 *************
 Node.js setup
@@ -304,23 +451,34 @@ Install Node (replace XX.X with actual version):
 Environment setup
 *****************
 
-All sites are located in ``/www`` folder. Replication should be configured for this folder (see below). The following
-description is included for general reference.
+All sites are located in ``/www`` folder. The following description is included for general reference.
 
-All sites are kept in git on GitHub. Each site has its own Python virtualenv in ``env``, which uv fills
+All sites are kept in git on GitHub. Each site has its own Python virtualenv in ``.venv``, which uv fills
 from the ``uv.lock`` of its branch. So, general deployment scheme looks like this:
 ::
     cd /www
     git clone git@github.com:andreynovikov/django-shop.git janome.club
     cd janome.club
     git checkout janome
-    UV_PROJECT_ENVIRONMENT=env uv sync --locked --no-dev
-    mkdir media
-    mkdir static
-    mkdir logs
-    sudo chown nikolays:www-data logs
-    mkdir st_search
-    sudo chown nikolays:www-data st_search
+    uv sync --locked --no-dev --compile-bytecode
+    mkdir media static logs .cache import
+    sudo chown -R sworld:www-data media static logs .cache import
+    sudo chmod 2775 media static .cache import
+    sudo chmod 2755 logs
+    sudo chown root:sworld .env* sewingworld/settings/integrations.py*
+    sudo chmod 640 .env* sewingworld/settings/integrations.py*
+
+The `service user`_ writes only those directories: the uploads, the collected static files, the logs, the file cache of
+the sitemap and the files of the 1C import. The code belongs to whoever deploys it and is read-only for the service.
+Only root and the service user can read the secrets, so run ``manage.py`` as that user:
+::
+    sudo -u sworld .venv/bin/python manage.py migrate
+
+The service user cannot write ``__pycache__`` into the code either, and without compiled files Python compiles each
+module again at every start. ``--compile-bytecode`` above compiles the packages, and after each ``git pull`` compile
+the code as yourself:
+::
+    .venv/bin/python -m compileall -q -x '/\.venv/' .
 
 The Next.js frontends run in Docker, see `Frontend deployment`_.
 
@@ -376,84 +534,6 @@ GitHub settings
   with another one's ``.env``.
 * Repository secrets ``DEPLOY_HOST``, ``DEPLOY_USER`` and ``SSH_PRIVATE_KEY``: the ssh login of the deploy jobs.
 * The ``Protected branches`` ruleset lists the frontend branches by name. Update it when a branch is added or renamed.
-
-************************
-Master/slave replication
-************************
-
-There are two separate replication processes: file replication and database replication. Only site files (``/www``)
-are replicated automatically. All server configuration and maintenance should be replicated manually. Servers distinguish
-who is master by presence of the ``/primary_server`` file.
-
-File replication
-****************
-
-Files are replicated by ``rsync`` executed by ``cron`` on hourly basis. Create ``/etc/cron.hourly/rsync``:
-::
-    #!/bin/sh
-    test -f /primary_server && rsync -a -s -S -u --exclude "*.pyc" --exclude "logs/" --exclude "__pycache__/" -e "ssh -i /home/andrey/.ssh/id_rsa" --rsync-path="sudo rsync" --numeric-ids /www/ andrey@duo.sigalev.ru:/www/
-
-Disable sudo password for rsync - create file ``/etc/sudoers.d/rsync`` on slave:
-::
-    andrey  ALL=NOPASSWD:/usr/bin/rsync
-
-Set proper permissions:
-::
-    chmod 440 /etc/sudoers.d/rsync
-
-Database replication
-********************
-
-Configure PostgreSql on master:
-::
-    listen_addresses = '*'
-    wal_level = replica
-    max_wal_senders = 3
-    wal_keep_size = 256
-
-Permit replication connection in ``/etc/postgresql/X.X/main/pg_hba.conf`` on master:
-::
-    host     replication     replicator      217.25.88.165/32        md5
-and on slave:
-::
-    host     replication     replicator      92.53.104.6/32          md5
-
-Create ``replicator`` user on master:
-::
-    CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD '***';
-    SELECT pg_reload_conf();
-
-Configure PostgreSql on slave:
-::
-    listen_addresses = '*'
-    wal_level = replica
-    max_wal_senders = 3
-    wal_keep_size = 256
-    hot_standby = on
-    promote_trigger_file = '/primary_server'
-
-Stop postgresql on slave, copy current database state from master to slave (should be executer on slave):
-::
-    systemctl stop postgresql
-    rm -rf /var/lib/postgresql/X.X/main/*
-    pg_basebackup -h 92.53.104.6 -U replicator -p 5432 -D /var/lib/postgresql/X.X/main -P -Xs -R
-
-This will also create required configuration files. Start postgresql to begin replication.
-
-****************
-Failover actions
-****************
-
-Terms *master* and *slave* apply to **current** server status. It means that these actions should be taken
-to switch **from** *master* **to** *slave*. Actions on **master** should be taken if the server is accessible
-**preserving** original order.
-
-#. On **master**: ``sudo systemctl stop postgresql``
-#. On **master**: ``sudo rm /primary_server``
-#. On **slave**: ``sudo touch /primary_server``
-#. On **slave**: ``sudo systemctl start nginx``
-#. ...
-#. Switch DNS IP records for all sites in order of importance.
 
 ****************
 Database backups
@@ -567,7 +647,7 @@ Production server
 #. ``apt install restic``. It must be 0.17 or later, and ``pg_dump --version`` must not be older than the database
    server.
 
-#. Copy the password file from the backup host into ``/etc/db-backup/`` with owner ``nikolays`` and mode ``400``,
+#. Copy the password file from the backup host into ``/etc/db-backup/`` with owner ``sworld`` and mode ``400``,
    and add to ``.env`` of the deployment that owns the database:
 
    ::
@@ -583,10 +663,10 @@ Production server
 
    ::
 
-       export $(grep '^RESTIC_' .env)
-       echo test | restic backup --stdin --host append-test
-       restic forget --host append-test latest
-       restic snapshots --host append-test
+       sudo -u sworld sh -c 'export $(grep "^RESTIC_" .env)
+         echo test | restic --no-cache backup --stdin --host append-test
+         restic --no-cache forget --host append-test latest
+         restic --no-cache snapshots --host append-test'
 
    If the snapshot is gone, check ``--append-only`` on the backup host. Remove the test snapshot there:
    ``sudo -u restic-rest-server restic forget --prune --host append-test latest``, with the settings of
@@ -600,7 +680,8 @@ Production server
        SELECT relname, pg_size_pretty(pg_total_relation_size(oid)) FROM pg_class
        WHERE relkind = 'r' ORDER BY pg_total_relation_size(oid) DESC LIMIT 20;
 
-#. Run ``python manage.py backup_db --dry-run``, then ``time python manage.py backup_db --kind full``.
+#. Run ``sudo -u sworld .venv/bin/python manage.py backup_db --dry-run``, then the same with ``--kind full`` instead
+   of ``--dry-run``. restic warns that it cannot open its cache, the user has no home. The units below give it one.
 
 #. Create ``/etc/systemd/system/db_backup@.service``:
 
@@ -613,10 +694,12 @@ Production server
 
        [Service]
        Type=oneshot
-       User=nikolays
-       Group=www-data
+       User=sworld
+       Group=sworld
        WorkingDirectory=/www/%I
-       ExecStart=/www/%I/env/bin/python manage.py backup_db
+       CacheDirectory=db_backup
+       Environment=RESTIC_CACHE_DIR=%C/db_backup
+       ExecStart=/www/%I/.venv/bin/python manage.py backup_db
        Nice=10
        IOSchedulingClass=idle
 
@@ -668,35 +751,23 @@ Periodic maintenance
 Log rotation
 ************
 
-Create ``/etc/logrotate.d/sewing-world``:
+Create ``/etc/logrotate.d/sewing-world``. The patterns cover the logs that the uWSGI apps, Celery nodes and Django
+handlers of ``sewingworld/settings/logging.py`` write. Add a line here when one of them gets a new log file. The nginx
+logs are in ``/var/log/nginx``, which Debian's ``/etc/logrotate.d/nginx`` rotates, see `Nginx setup`_:
 ::
-    /www/*/logs/nginx*.log
-    {
-      daily
-      missingok
-      rotate 7
-      compress
-      delaycompress
-      notifempty
-      su www-data www-data
-      create 0640 www-data www-data
-      sharedscripts
-      prerotate
-        if [ -d /etc/logrotate.d/httpd-prerotate ]; then \
-          run-parts /etc/logrotate.d/httpd-prerotate; \
-        fi \
-      endscript
-      postrotate
-        invoke-rc.d nginx rotate >/dev/null 2>&1
-      endscript
-    }
-
-    /www/*/logs/uwsgi*.log
+    /www/*/logs/*uwsgi*.log
+    /www/*/logs/celery*.log
     /www/*/logs/django*.log
     /www/*/logs/backup.log
+    /www/*/logs/beru.log
+    /www/*/logs/kassa.log
+    /www/*/logs/ozon.log
+    /www/*/logs/rarus.log
+    /www/*/logs/sber.log
+    /www/*/logs/wb.log
     {
-      su nikolays www-data
-      create 644 nikolays www-data
+      su sworld www-data
+      create 644 sworld www-data
       copytruncate
       daily
       rotate 7
@@ -721,8 +792,41 @@ Then:
 ::
     pg_dump sworld | psql sworld_dev
 
-****
-TODO
-****
+**********
+Monitoring
+**********
 
-#. SSL certificates syncronization.
+cAdvisor (Container Advisor)
+****************************
+
+Provides container usage metrics to Prometheus.
+
+::
+    docker run \
+      --volume=/:/rootfs:ro \
+      --volume=/var/run:/var/run:ro \
+      --volume=/sys:/sys:ro \
+      --volume=/var/lib/docker/:/var/lib/docker:ro \
+      --volume=/dev/disk/:/dev/disk:ro \
+      --publish=127.0.0.1:9324:8080 \
+      --detach=true \
+      --name=cadvisor \
+      --privileged \
+      --device=/dev/kmsg \
+      ghcr.io/google/cadvisor:0.60.6
+
+celery-exporter
+***************
+
+Provides celery usage metrics to Prometheus.
+
+::
+    docker run \
+      --publish=127.0.0.1:9808:9808 \
+      --detach=true \
+      --name=celery-exporter \
+      --network="host" \
+      danihodovic/celery-exporter:0.12.2 \
+      --broker-url=redis://127.0.0.1:6379/0 \
+      --broker-transport-option visibility_timeout=691200 \
+      --retry-interval=5

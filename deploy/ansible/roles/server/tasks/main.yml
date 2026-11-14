@@ -7,9 +7,22 @@
   ansible.builtin.import_tasks: two_factor.yml
   tags: 2fa
 
+- name: Firewall
+  ansible.builtin.import_tasks: firewall.yml
+  tags: firewall
+
 - name: Nginx setup
   ansible.builtin.import_tasks: nginx.yml
   tags: nginx
+
+- name: TLS certificates
+  ansible.builtin.import_tasks: certbot.yml
+  tags: certbot
+
+# uwsgi.yml and celery.yml need to know which sites are deployed
+- name: Environment setup
+  ansible.builtin.import_tasks: sites.yml
+  tags: [sites, uwsgi, celery]
 
 - name: UWSGI setup
   ansible.builtin.import_tasks: uwsgi.yml

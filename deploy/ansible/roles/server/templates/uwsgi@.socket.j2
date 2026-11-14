@@ -3,7 +3,7 @@ Description=Socket for uWSGI app %i
 
 [Socket]
 ListenStream=/run/uwsgi/%i.socket
-SocketUser=nikolays
+SocketUser={{ server_app_user }}
 SocketGroup=www-data
 SocketMode=0660
 
