@@ -1,5 +1,5 @@
 """
-Back up the database into a restic repository. A systemd timer runs it hourly, see "Database backups" in DEPLOYMENT.rst.
+Back up the database into a restic repository. A systemd timer runs it hourly, see "Database backups" in deploy/README.md.
 
 Each run saves one snapshot of pg_dump output in the custom format:
 
@@ -140,7 +140,7 @@ def check_environment(env):
     if not any(env.get(name) for name in RESTIC_PASSWORD_VARS):
         missing.append('RESTIC_PASSWORD_FILE')
     if missing:
-        raise CommandError('Set %s in .env, see "Database backups" in DEPLOYMENT.rst' % ' and '.join(missing))
+        raise CommandError('Set %s in .env, see "Database backups" in deploy/README.md' % ' and '.join(missing))
 
 
 @contextmanager
@@ -170,7 +170,7 @@ def size(count):
 
 
 class Command(BaseCommand):
-    help = 'Back up the database into the restic repository, see "Database backups" in DEPLOYMENT.rst'
+    help = 'Back up the database into the restic repository, see "Database backups" in deploy/README.md'
 
     def add_arguments(self, parser):
         parser.add_argument('--kind', choices=('auto', 'full', 'hot', 'config'), default='auto',

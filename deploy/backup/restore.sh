@@ -1,5 +1,5 @@
 #!/bin/bash
-# Restore a database from the restic repository that `manage.py backup_db` fills, see DEPLOYMENT.rst.
+# Restore a database from the restic repository that `manage.py backup_db` fills, see deploy/README.md.
 #
 #   restore.sh --host HOST --target DBNAME [--at 'YYYY-MM-DD HH:MM'] [--jobs N] [--verify]
 #

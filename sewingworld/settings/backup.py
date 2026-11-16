@@ -1,4 +1,4 @@
-# Database backups made by `manage.py backup_db` into a restic repository, see "Database backups" in DEPLOYMENT.rst.
+# Database backups made by `manage.py backup_db` into a restic repository, see "Database backups" in deploy/README.md.
 # The repository and its password come from restic's own variables in .env (RESTIC_REPOSITORY, RESTIC_PASSWORD_FILE),
 # which settings/__init__.py loads into the environment that restic inherits.
 DB_BACKUP = {

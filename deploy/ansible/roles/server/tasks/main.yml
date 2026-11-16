@@ -1,4 +1,4 @@
-# Sections of DEPLOYMENT.rst. "PostgreSql setup" is skipped, the database runs on a separate server.
+# Sections of deploy/README.md. "PostgreSql setup" is skipped, the database runs on a separate server.
 - name: Server setup
   ansible.builtin.import_tasks: server.yml
   tags: server

@@ -2,7 +2,8 @@
 # sshd keeps the first value of an option. This file comes before 50-cloud-init.conf, which sets
 # PasswordAuthentication yes on cloud images.
 PermitRootLogin no
-# Only the "password" method: passwords keep working through keyboard-interactive, which also asks for the OTP code
+# Turns off only the "password" method. Passwords keep working through keyboard-interactive, which also asks for the
+# OTP code. two_factor.conf of two_factor.yml turns that on.
 PasswordAuthentication no
 X11Forwarding no
 AllowUsers {{ (server_users | map(attribute='name') | list + server_ssh_extra_users) | join(' ') }}

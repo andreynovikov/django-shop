@@ -1,4 +1,4 @@
-# "Backup host" in "Database backups" of DEPLOYMENT.rst
+# "Backup host" in "Database backups" of deploy/README.md
 - name: Install packages
   ansible.builtin.apt:
     name:
@@ -8,7 +8,7 @@
       - apache2-utils
       - bsd-mailx
       - postgresql
-      # not listed in DEPLOYMENT.rst: Ansible needs acl to become an unprivileged user
+      # not listed in deploy/README.md: Ansible needs acl to become an unprivileged user
       - acl
       - openssl
     update_cache: true

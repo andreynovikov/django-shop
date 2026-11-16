@@ -25,7 +25,7 @@
   ansible.builtin.fail:
     msg: >-
       nginx writes its logs into /www in {{ nginx_www_logs.stdout_lines | join(', ') }}. Move them to /var/log/nginx
-      first, see "Nginx setup" in DEPLOYMENT.rst.
+      first, see "Nginx setup" in deploy/README.md.
   when: nginx_www_logs.rc == 0
 
 - name: Check the directories of the service user

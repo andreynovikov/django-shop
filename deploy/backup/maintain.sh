@@ -1,5 +1,5 @@
 #!/bin/bash
-# Alarms, retention and restore tests for the restic repository that `manage.py backup_db` fills, see DEPLOYMENT.rst.
+# Alarms, retention and restore tests for the restic repository that `manage.py backup_db` fills, see deploy/README.md.
 # It runs on the backup host with full access to the repository, which is append-only for the production server.
 #
 #   maintain.sh fresh    hourly: alarm when snapshots stop coming

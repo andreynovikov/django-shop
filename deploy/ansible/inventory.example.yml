@@ -1,4 +1,4 @@
-# Copy to inventory.yml and fill in, see README.rst.
+# Copy to inventory.yml and fill in, see README.md.
 all:
   children:
     production:

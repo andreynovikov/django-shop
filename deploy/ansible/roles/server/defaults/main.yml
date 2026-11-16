@@ -11,7 +11,7 @@ server_packages:
   - redis-server
   - certbot
   - git
-  # not listed in DEPLOYMENT.rst: the uv and nvm installers download with curl, Ansible needs acl to become
+  # not listed in deploy/README.md: the uv and nvm installers download with curl, Ansible needs acl to become
   # an unprivileged user, and timesyncd is not installed everywhere
   - curl
   - acl
@@ -51,7 +51,7 @@ server_users:
   - name: egor
     groups: [www-data]
 
-# The system user that runs uWSGI, Celery and the backups, see "Service user" in DEPLOYMENT.rst
+# The system user that runs uWSGI, Celery and the backups, see "Service user" in deploy/README.md
 server_app_user: sworld
 
 # AllowUsers of sshd lists server_users and these. Add the user GitHub Actions deploys with if it is not one of them.
@@ -106,7 +106,7 @@ server_celery_apps:
       --concurrency=2 --concurrency:priority,integrations=4 --concurrency:import=1
 
 # What the service user writes in a deployed site, with the mode of each directory. logs is the service user's
-# alone: nginx writes its logs to /var/log/nginx, see "Nginx setup" in DEPLOYMENT.rst.
+# alone: nginx writes its logs to /var/log/nginx, see "Nginx setup" in deploy/README.md.
 server_app_directories:
   logs: "2755"
   media: "2775"
