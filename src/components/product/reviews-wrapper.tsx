@@ -1,14 +1,15 @@
 'use client'
 
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 
 import { useInView } from 'react-intersection-observer'
 
 import { Loading } from '@/components/loading'
 
+import { lazyWithReload } from '@/lib/lazy'
 import { Product } from '@/lib/types'
 
-const ProductReviews = lazy(() => import('@/components/product/reviews'))
+const ProductReviews = lazyWithReload(() => import('@/components/product/reviews'))
 
 export default function ProductReviewsWrapper({ product }: { product: Product }) {
   const { ref: reviewsRef, inView: reviewsVisible } = useInView({
