@@ -1,13 +1,6 @@
-export const baseFilters = {
-  enabled: true,
-  show_on_sw: true,
-}
+import { storefront } from '@/storefront'
 
-export const recomendedProductsFilters = {
-  ...baseFilters,
-  categories: 473,
-  firstpage: true,
-}
+export const baseFilters = storefront.productFilters
 
 export const giftProductsFilters = {
   ...baseFilters,

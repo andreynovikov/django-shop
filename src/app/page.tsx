@@ -8,7 +8,7 @@ import { buttonClass } from '@/components/ui/button'
 import { cardClass } from '@/components/ui/card'
 
 import { loadAdverts, loadProducts } from '@/lib/queries'
-import { recomendedProductsFilters, newProductsFilters } from '@/lib/catalog'
+import { baseFilters, newProductsFilters } from '@/lib/catalog'
 import { Advert, ProductInfo } from '@/lib/types'
 import { advertClass } from '@/components/ui/content'
 
@@ -16,6 +16,12 @@ export const revalidate = 3600
 
 const itemsPerSection = 16
 const sort = '-price'
+
+const recomendedProductsFilters = {
+  ...baseFilters,
+  categories: 473,
+  firstpage: true,
+}
 
 function Adverts({ adverts }: { adverts: Advert[] }) {
   return adverts.length > 0 && (

@@ -68,7 +68,7 @@ janome.club, singer.ru and dor-tak.ru copy some files from here unchanged, so a 
   - `components/cart/contents.tsx` and `item.tsx`, `components/countdown.tsx`, `components/product/product-link.tsx`.
 
 Each storefront keeps its own versions of the rest:
-- `src/storefront.ts`, which the shared components read: whether there is a favorites page, and whether products have pages (otherwise `ProductLink` renders no link). What the backend knows about the site comes from `useSite()` instead, such as `wholesale` (whole packs in the cart).
+- `src/storefront.ts`, which the shared code reads: whether there is a favorites page, whether products have pages (otherwise `ProductLink` renders no link), and the backend filters of the products the site lists (`baseFilters` in `lib/catalog`, e.g. `show_on_sw` here). What the backend knows about the site comes from `useSite()` instead, such as `wholesale` (whole packs in the cart).
 - The `components/ui/` helpers the shared components use: `form`, `button`, `alert`, `badge`, `nav`, `widget`, `tooltip`. They have cartzilla's API with the storefront's own classes.
 - Theme tokens in `styles.css`:
   - `text-h1`–`text-h6`, `text-ms`, `text-md`, `text-heading`, `text-link-hover`;
