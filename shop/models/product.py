@@ -8,7 +8,8 @@ from django.contrib.postgres.search import SearchVector, SearchVectorField
 from django.contrib.postgres.indexes import GinIndex, OpClass
 from django.contrib.sites.models import Site
 from django.db import models
-from django.db.models.functions import Upper
+from django.db.models import Case, DecimalField, F, FilteredRelation, Q, When
+from django.db.models.functions import Ceil, Greatest, Round, Upper
 from django.db.models.signals import post_save
 from django.db.utils import DatabaseError
 from django.utils.functional import cached_property
@@ -364,6 +365,7 @@ class Product(models.Model):
         return site_price.price
 
     def site_cost(self, site):
+        """ The price that the site shows, its discounts taken off; with_site_cost() does the same in SQL, keep them in step """
         site_price = self.site_price_record(site)
         if self.pk == 2382:
             logger.error(self.code)
@@ -385,6 +387,31 @@ class Product(models.Model):
             discount = site_price.val_discount
 
         return price - discount
+
+    @staticmethod
+    def with_site_cost(queryset, site):
+        """
+        The products with the alias `cost`: site_cost() in SQL, for the list to filter and sort by the price that
+        the site shows. An alias and not an annotation, as Product.cost is a property; annotate(x=F('cost')) reads it.
+        PostgreSQL rounds halves away from zero and site_cost() to even, so the two may differ by a rouble at a half.
+        """
+        if 'cost' in queryset.query.annotations:  # the filter, a facet and the ordering may each ask for it
+            return queryset
+        if hasattr(site, 'profile') and site.profile.wholesale:
+            own = F('ws_price') - Round(F('ws_price') * F('ws_pct_discount') / 100, 2)
+        else:
+            own = F('price') - Greatest(Round(Ceil('price') * F('pct_discount') / 100), F('val_discount'))
+        # the site's own price, the product's when it has none; a wholesale site too takes the retail one then
+        price = Case(When(site_price_row__price__gt=0, then=F('site_price_row__price')), default=F('price'),
+                     output_field=DecimalField(max_digits=10, decimal_places=2))
+        of_site = price - Greatest(Round(Ceil(price) * F('site_price_row__pct_discount') / 100), F('site_price_row__val_discount'))
+        # a join and not a subquery: a product has one price of the site at most, see ProductPrice.Meta
+        return queryset.alias(
+            site_price_row=FilteredRelation('site_price', condition=Q(site_price__site=site)),
+        ).alias(
+            cost=Case(When(site_price_row__id__isnull=True, then=own), default=of_site,
+                      output_field=DecimalField(max_digits=10, decimal_places=2)),
+        )
 
     def site_val_discount(self, site):
         site_price = self.site_price_record(site)

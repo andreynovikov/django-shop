@@ -2,10 +2,12 @@
 The catalog: categories, product kinds and products. See settings.py on how to run.
 """
 from django.contrib.sites.models import Site
+from django.db.models import F
 from django.test import TestCase
 
 from shop.models import Category, Favorites, Manufacturer, Product, ProductImage, ProductKind, ProductPrice, ProductRelation, ProductSet, \
     SalesAction, ShopUser, Stock, Store, Supplier
+from sewingworld.models import SiteProfile
 
 from .clients import StorefrontClient, add_storefront_key, count_queries, signed_in
 from .fixtures import add_catalog, add_city, add_product
@@ -66,12 +68,13 @@ class CategoryTests(Base):
 
     def test_filters_of_the_category(self):
         """ Storefronts pick the control by the class, or by the widget for the sliders; a unit follows the comma """
-        self.janome.filters = 'manufacturer, price,sm_power,sm_shuttletype,sm_threader_bool,enabled,nonexistent'
+        self.janome.filters = 'manufacturer, price,cost,sm_power,sm_shuttletype,sm_threader_bool,enabled,nonexistent'
         self.janome.save()
         filters = self.get(f'categories/{self.janome.id}/').json()['filters']
         self.assertEqual([(f['name'], f['id'], f['class'], f['widget'], f['label'], f.get('unit')) for f in filters], [
             ('manufacturer', 'id_manufacturer', 'MultipleChoiceField', 'SelectMultiple', 'Производитель', None),
             ('price', 'id_price', 'RangeField', 'ShopRangeWidget', 'Цена', 'руб'),
+            ('cost', 'id_cost', 'RangeField', 'ShopRangeWidget', 'Цена', 'руб'),
             ('sm_power', 'id_sm_power', 'DecimalField', 'ShopSliderWidget', 'Потребляемая мощность больше', 'Вт'),
             ('sm_shuttletype', 'id_sm_shuttletype', 'ChoiceField', 'Select', 'Тип челнока', None),
             ('sm_threader_bool', 'id_sm_threader_bool', 'NullBooleanField', 'ShopBooleanWidget', 'Есть нитевдеватель', None),
@@ -226,6 +229,13 @@ class ProductListTests(Base):
         self.assertEqual([product['id'] for product in self.get('products/', ordering='-price').json()['results']], [1, 2])
         self.assertEqual([product['id'] for product in self.get('products/', ordering='price').json()['results']], [2, 1])
 
+    def test_ordering_by_cost(self):
+        """ By the price that the site shows, while price keeps the order of the list prices """
+        Product.objects.filter(pk=1).update(val_discount=19900)
+        self.assertEqual([product['id'] for product in self.get('products/', ordering='cost').json()['results']], [1, 2])
+        self.assertEqual([product['id'] for product in self.get('products/', ordering='-cost').json()['results']], [2, 1])
+        self.assertEqual([product['id'] for product in self.get('products/', ordering='-price').json()['results']], [1, 2])
+
     def test_category_brings_its_filters(self):
         self.janome.filters = 'manufacturer'
         self.janome.save()
@@ -255,6 +265,7 @@ class ProductListTests(Base):
         self.assertEqual(data['filters'], {
             'manufacturer': {'id': 'id_manufacturer', 'choices': [[self.brand.id, 'Janome']]},
             'price': {'id': 'id_price', 'attrs': {'step': 5000, 'min_value': 20000, 'max_value': 20000}},
+            'cost': {'id': 'id_cost', 'attrs': {'step': 5000, 'min_value': 20000, 'max_value': 20000}},
         })
 
     def test_typeahead_by_full_text_search(self):
@@ -284,6 +295,16 @@ class ProductListTests(Base):
                 self.assertEqual([product['id'] for product in data['results']], [4])
                 self.assertEqual(data['filters'], expected)
 
+    def test_category_filters_get_the_range_of_costs(self):
+        """ Of the costs that the other parameters find """
+        self.machines.filters = 'cost'
+        self.machines.save()
+        add_product(4, price=10400, pct_discount=10, sites=[self.site], categories=[self.machines])
+        add_product(5, price=5200, val_discount=300, sites=[self.site], categories=[self.machines])
+        data = self.get('products/', categories=self.machines.id, cost='0-5000').json()
+        self.assertEqual(sorted(product['id'] for product in data['results']), [2, 5])
+        self.assertEqual(data['filters'], {'cost': {'id': 'id_cost', 'attrs': {'step': 5000, 'min_value': 0, 'max_value': 10000}}})
+
     def test_category_filters_get_the_range_of_prices(self):
         self.machines.filters = 'manufacturer,price'
         self.machines.save()
@@ -298,6 +319,70 @@ class ProductListTests(Base):
         self.assertEqual((product['price'], product['cost']), (18000, 16200))
         self.assertEqual(self.get('products/1/info/', fields='price,cost').json(), {'price': 18000, 'cost': 16200})
         self.assertEqual((self.get('products/1/').json()['price'], self.get('products/1/').json()['cost']), (18000, 16200))
+
+    def costs(self, **params):
+        return {product['id']: product['cost'] for product in self.get('products/', **params).json()['results']}
+
+    def test_cost_takes_the_discounts_off(self):
+        """ cost finds the products by the price that the site shows, price by the list price """
+        Product.objects.filter(pk=1).update(pct_discount=10)
+        add_product(4, price=19000, val_discount=1500, sites=[self.site])
+        add_product(5, price=19000, pct_discount=5, val_discount=500, sites=[self.site])
+        self.assertEqual(self.costs(id=[1, 4, 5]), {1: 18000, 4: 17500, 5: 18050})
+        self.assertEqual(self.ids(cost='17000-18000'), [1, 4])
+        self.assertEqual(self.ids(cost='18001-19000'), [5])
+        self.assertEqual(self.ids(price='17000-18000'), [])
+        self.assertEqual(self.ids(price='18001-19000'), [4, 5])
+
+    def test_cost_with_the_prices_of_the_site(self):
+        """ Its own price and discounts, or the list price less its discounts when it has no price of its own """
+        Product.objects.filter(pk=1).update(pct_discount=50)
+        add_product(4, price=12000, pct_discount=50, sites=[self.site])
+        ProductPrice.objects.bulk_create([
+            ProductPrice(product_id=1, site=self.site, price=18000, cur_price=18000, pct_discount=10),
+            ProductPrice(product_id=4, site=self.site, val_discount=700),
+            ProductPrice(product_id=2, site=Site.objects.get(domain='other.test'), price=100000, cur_price=100000),
+        ])
+        self.assertEqual(self.costs(id=[1, 2, 4]), {1: 16200, 2: 300, 4: 11300})
+        self.assertEqual(self.ids(cost='16000-16500'), [1])
+        self.assertEqual(self.ids(cost='11000-11500'), [4])
+        self.assertEqual(self.ids(cost='0-1000'), [2])
+
+    def test_cost_on_a_wholesale_site(self):
+        SiteProfile.objects.filter(site=self.site).update(wholesale=True)
+        Product.objects.filter(pk=1).update(ws_price=15000, ws_pct_discount=10, pct_discount=50)
+        Product.objects.filter(pk=2).update(ws_price=250)
+        self.assertEqual(self.costs(), {1: 13500, 2: 250})
+        self.assertEqual(self.ids(cost='13000-14000'), [1])
+        self.assertEqual(self.ids(cost='0-260'), [2])
+
+    def test_cost_in_sql_as_in_python(self):
+        """ Product.with_site_cost() counts what Product.site_cost() does, with none of the products at an exact half """
+        other = Site.objects.get(domain='other.test')
+        cases = {  # the product's fields, and the price of the site when it has one
+            20: ({'price': '12345.67', 'pct_discount': 7, 'ws_price': '3333.33', 'ws_pct_discount': 12}, None),
+            21: ({'price': '8000', 'ws_price': '1234.56'}, None),
+            22: ({'price': '5000', 'pct_discount': 10, 'val_discount': '700', 'ws_price': '999.99', 'ws_pct_discount': 7}, None),
+            23: ({'price': '5000', 'pct_discount': 20, 'val_discount': '700'}, None),
+            24: ({'price': '7777', 'pct_discount': 3}, None),
+            25: ({'price': '9000', 'pct_discount': 40, 'ws_price': '5000'}, {'price': '6000', 'pct_discount': 15}),
+            26: ({'price': '4321', 'pct_discount': 30, 'ws_price': '3000'}, {'price': '0', 'val_discount': '300'}),
+            27: ({'price': '3000'}, {'price': '2500.40', 'pct_discount': 9, 'val_discount': '250'}),
+        }
+        for pk, (fields, _) in cases.items():
+            add_product(pk, sites=[self.site], **fields)
+        ProductPrice.objects.bulk_create(
+            [ProductPrice(product_id=pk, site=self.site, cur_price=site_price['price'], **site_price)
+             for pk, (_, site_price) in cases.items() if site_price is not None]
+            # prices of another site change nothing
+            + [ProductPrice(product_id=pk, site=other, price=1, cur_price=1, val_discount=1) for pk in cases]
+        )
+        for wholesale in (False, True):
+            SiteProfile.objects.filter(site=self.site).update(wholesale=wholesale)
+            site = Site.objects.select_related('profile').get(pk=self.site.pk)
+            products = Product.with_site_cost(Product.objects.filter(pk__in=list(cases)), site).annotate(sql_cost=F('cost'))
+            with self.subTest(wholesale=wholesale):
+                self.assertEqual({p.pk: p.sql_cost for p in products}, {p.pk: p.site_cost(site) for p in products})
 
     def test_notices_of_sales(self):
         product = Product.objects.get(pk=1)
@@ -322,7 +407,7 @@ class ProductListTests(Base):
     def test_pages_of_products_that_sort_the_same(self):
         for pk in (12, 11, 13):
             add_product(pk, title='Лапка', price=500, sites=[self.site])
-        for ordering in ('title', '-price', None):
+        for ordering in ('title', '-price', '-cost', None):
             with self.subTest(ordering):
                 params = {'title': 'Лапка', 'page_size': 1} | ({'ordering': ordering} if ordering else {})
                 pages = [self.get('products/', page=page, **params).json()['results'][0]['id'] for page in (1, 2, 3)]
@@ -330,7 +415,7 @@ class ProductListTests(Base):
 
     def test_queries_do_not_grow_with_the_products(self):
         sale = SalesAction.objects.create(name='Скидки', slug='sale', order=0, notice='Скидка', active=True)
-        self.janome.filters = 'manufacturer,price,sm_power,sm_threader_bool'
+        self.janome.filters = 'manufacturer,price,cost,sm_power,sm_threader_bool'
         self.janome.save()
 
         def queries():
@@ -339,6 +424,7 @@ class ProductListTests(Base):
             return count_queries(*(lambda params=params: self.get('products/', **params) for params in (
                 {}, {'for_xml': 'true'}, {'in_category': self.machines.id}, {'categories': self.janome.id},
                 {'text': 'janome'}, {'text': 'janome', 'ta': 1},
+                {'categories': self.janome.id, 'cost': '0-100000', 'ordering': '-cost'},
                 # the columns and rows that chosen fields read come with the products
                 {'fields': 'code'}, {'fields': 'price'}, {'fields': 'cost,discount,instock,sales'},
             )))
@@ -353,7 +439,7 @@ class ProductListTests(Base):
 
     def test_malformed_values(self):
         for name, value in (('instock', 'abc'), ('categories', 'abc'), ('in_category', 'abc'), ('id', 'abc'), ('kind', 'abc'),
-                            ('manufacturer', 'abc'), ('price', 'a-b'), ('price', '1000'), ('sm_power', 'abc'), ('sm_shuttletype', 'x')):
+                            ('manufacturer', 'abc'), ('price', 'a-b'), ('price', '1000'), ('cost', '1000-'), ('sm_power', 'abc'), ('sm_shuttletype', 'x')):
             with self.subTest(name):
                 response = self.get('products/', **{name: value})
                 self.assertEqual((response.status_code, response.json()), (400, {name: BAD_PARAMETER}))

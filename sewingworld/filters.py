@@ -114,7 +114,8 @@ class ProductFilterSet(filters.FilterSet):
     kind = NumberListFilter(method='filter_kinds')
     manufacturer = NumberListFilter()
     variations = ExactCharFilter(label='Variations of the product, empty for products without them')
-    price = RangeFilter(label='Lowest and highest price')
+    price = RangeFilter(label='Lowest and highest list price')
+    cost = RangeFilter(method='filter_cost', label='Lowest and highest cost: the price that the site shows, its discounts taken off')
     sm_power = django_filters.NumberFilter(lookup_expr='gt')
     sm_stitchquantity = IntegerFilter(lookup_expr='gt')
     sm_shuttletype = django_filters.ChoiceFilter(choices=SHUTTLE_TYPES, lookup_expr='icontains')
@@ -143,6 +144,9 @@ class ProductFilterSet(filters.FilterSet):
         of_kinds = Product.kind.through.objects.filter(productkind__in=value)
         return queryset.filter(pk__in=of_kinds.values('product_id'))
 
+    def filter_cost(self, queryset, name, value):
+        return Product.with_site_cost(queryset, self.request.site).filter(cost__range=value)
+
     def facets(self):
         """
         Choices and ranges of the filters that the category asked for shows, or of those of a search, in the products
@@ -163,7 +167,11 @@ class ProductFilterSet(filters.FilterSet):
         for name, value in data.items():
             if name not in names:
                 products = self.filters[name].filter(products, value)
-        return {name: FACETS.get(name, BOOLEAN_FACET).values(name, products) for name in names}
+        return {name: FACETS.get(name, BOOLEAN_FACET).values(name, self.facet_products(name, products)) for name in names}
+
+    def facet_products(self, name, products):
+        """ The range of costs takes them from the alias, which only it should join """
+        return Product.with_site_cost(products, self.request.site) if name == 'cost' else products
 
 
 def manufacturer_choices(products):
@@ -175,15 +183,21 @@ def manufacturer_choices(products):
 PRICE_STEP = 5000
 
 
-def price_range(products):
-    """ Lowest and highest price of the products in whole steps of the slider, as wide as it gets when there are none """
-    prices = products.aggregate(low=Min('price'), high=Max('price'))
-    low, high = (0, 1000000) if prices['low'] is None else (prices['low'], prices['high'])
-    return {
-        'step': PRICE_STEP,
-        'min_value': PRICE_STEP * math.floor(low / PRICE_STEP),
-        'max_value': PRICE_STEP * math.ceil(high / PRICE_STEP),
-    }
+def price_range(column):
+    """
+    Lowest and highest of the products' prices in the column, list prices or the alias `cost`, in whole steps
+    of the slider, as wide as it gets when there are none
+    """
+    def bounds(products):
+        # annotated: aggregates do not take aliases
+        prices = products.annotate(range_price=F(column)).aggregate(low=Min('range_price'), high=Max('range_price'))
+        low, high = (0, 1000000) if prices['low'] is None else (prices['low'], prices['high'])
+        return {
+            'step': PRICE_STEP,
+            'min_value': PRICE_STEP * math.floor(low / PRICE_STEP),
+            'max_value': PRICE_STEP * math.ceil(high / PRICE_STEP),
+        }
+    return bounds
 
 
 @dataclass(frozen=True)
@@ -223,12 +237,13 @@ def slider(step, min_value, max_value):
 FACETS = {
     'manufacturer': Facet('MultipleChoiceField', 'SelectMultiple', choices=manufacturer_choices),
     'sm_shuttletype': Facet('ChoiceField', 'Select', choices=lambda products: [('', '- - не важно - -'), *SHUTTLE_TYPES]),
-    'price': Facet('RangeField', 'ShopRangeWidget', attrs=price_range),
+    'price': Facet('RangeField', 'ShopRangeWidget', attrs=price_range('price')),
+    'cost': Facet('RangeField', 'ShopRangeWidget', 'Цена, руб', attrs=price_range('cost')),  # see facets()
     'sm_power': Facet('DecimalField', 'ShopSliderWidget', 'Потребляемая мощность больше, Вт', attrs=slider(10, 20, 100)),
     'sm_stitchquantity': Facet('DecimalField', 'ShopSliderWidget', 'Количество строчек больше', attrs=slider(10, 0, 250)),
 }
 BOOLEAN_FACET = Facet('NullBooleanField', 'ShopBooleanWidget')
-SEARCH_FACETS = ['manufacturer', 'price']
+SEARCH_FACETS = ['manufacturer', 'price', 'cost']  # TODO: drop price once the storefronts take cost
 
 
 def category_filter_names(category):

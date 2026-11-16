@@ -79,11 +79,21 @@ class ProductKindViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset.distinct()
 
 
+class ProductOrderingFilter(filters.OrderingFilter):
+    """ Orders by any column, or by cost: the price that the site shows, its discounts taken off """
+    def filter_queryset(self, request, queryset, view):
+        terms = request.query_params.get(self.ordering_param, '').split(',')
+        if 'cost' in {term.strip().lstrip('-') for term in terms}:
+            # an alias, which the ordering of any field takes as one of the columns
+            queryset = Product.with_site_cost(queryset, request.site)
+        return super().filter_queryset(request, queryset, view)
+
+
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_value_regex = '[^/]+'
     queryset = Product.objects.all()
     pagination_class = StandardResultsSetPagination
-    filter_backends = [FilterBackend, filters.OrderingFilter]
+    filter_backends = [FilterBackend, ProductOrderingFilter]
     filterset_class = ProductFilterSet
     filterset = None  # see FilterBackend
     ordering_fields = '__all__'
