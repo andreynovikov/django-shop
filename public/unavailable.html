@@ -1,0 +1,145 @@
+<!doctype html>
+<!--
+  Shown by nginx when the frontend container doesn't answer (502/503/504).
+  startup.sh copies public/ into the .docker/ volume, so the file stays there while the container is stopped.
+  Everything is inline: nginx serves this page for any URL, and nothing else may be reachable.
+-->
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Сайт скоро вернётся - Швейный Мир</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --navy: #21426b;
+    --blue: #3163ad;
+    --thread: #ef7f1a;
+    --text: #2b3445;
+    --muted: #7d879c;
+    --bg: #fff;
+    --stitch: 22px; /* 14px stitch + 8px gap */
+    --stitches: 13;
+    --beat: .4s;    /* one needle stroke = one stitch */
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    text-align: center;
+  }
+  main { width: 100%; max-width: 480px; }
+  .logo { display: block; width: min(340px, 100%); height: auto; margin: 0 auto; }
+  .logo .navy { fill: var(--navy); }
+  .logo .blue { fill: var(--blue); }
+
+  /* The seam: stitches appear one by one behind a bobbing needle */
+  .seam {
+    position: relative;
+    width: calc(var(--stitch) * var(--stitches));
+    height: 3px;
+    margin: 72px auto 40px;
+    animation: fade calc(var(--beat) * (var(--stitches) + 2)) linear infinite;
+  }
+  .seam::before { /* faint chalk line where the seam will go */
+    content: "";
+    position: absolute;
+    inset: 1px 0 auto;
+    border-top: 1px dashed #e3e9ef;
+  }
+  .stitches {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 3px;
+    width: 0;
+    border-radius: 2px;
+    background: repeating-linear-gradient(90deg, var(--thread) 0 14px, transparent 14px var(--stitch));
+    animation: sew calc(var(--beat) * (var(--stitches) + 2)) linear infinite;
+  }
+  .needle {
+    position: absolute;
+    left: 100%;
+    bottom: -3px;
+    width: 10px;
+    height: 56px;
+    margin-left: -5px;
+    overflow: visible;
+    animation: bob var(--beat) ease-in-out infinite;
+  }
+  @keyframes sew {
+    0% { width: 0; animation-timing-function: steps(13, end); }
+    86.667% { width: calc(var(--stitch) * var(--stitches)); }
+    100% { width: calc(var(--stitch) * var(--stitches)); }
+  }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-16px); }
+  }
+  @keyframes fade {
+    0%, 88% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  h1 { margin: 0 0 12px; font-size: 1.75rem; line-height: 1.25; font-weight: 600; color: var(--navy); }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); font-size: .9375rem; }
+  a { color: var(--blue); text-decoration: none; white-space: nowrap; }
+  a:hover { color: var(--thread); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .seam, .stitches, .needle { animation: none; }
+    .stitches { width: 100%; }
+    .needle { display: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <svg class="logo" viewBox="0 0 10200 1400" role="img" aria-label="Швейный Мир">
+    <path class="navy" d="M2609 989l-1037 0 0 -580 275 0 0 424 108 0 0 -424 273 0 0 424 108 0 0 -424 273 0 0 580zm738 -148c0,50 -16,88 -49,112 -33,24 -80,36 -141,36l-451 0 0 -580 442 0c51,0 93,12 126,37 33,25 49,63 49,113 0,75 -37,122 -111,141 43,5 76,20 100,45 24,26 35,57 35,96zm-327 2c35,0 53,-15 53,-44 0,-31 -17,-46 -52,-46l-65 0 0 90 64 0zm-64 -210l65 0c32,0 48,-13 48,-41 0,-26 -15,-39 -44,-39l-69 0 0 80zm851 -13c-2,-22 -9,-38 -21,-50 -12,-12 -27,-18 -46,-18 -15,0 -29,7 -42,19 -13,13 -21,29 -24,49l133 0zm247 195c-22,63 -62,111 -118,145 -57,34 -125,51 -205,51 -93,0 -173,-30 -240,-91 -67,-61 -100,-134 -100,-220 0,-87 33,-160 99,-221 66,-60 146,-91 241,-91 61,0 118,14 170,42 53,28 94,66 125,113 30,48 46,100 46,157l0 47 -401 0c0,28 7,52 20,70 13,18 30,27 49,27 23,0 42,-15 57,-47l257 18zm351 -406l0 298 109 -298 273 0 0 580 -273 0 0 -242 0 -64 -109 306 -274 0 0 -580 274 0zm53 -92c-55,0 -106,-15 -154,-44 -47,-30 -71,-76 -71,-139l150 0c0,53 25,79 76,79 50,0 75,-26 75,-79l150 0c0,64 -24,110 -71,139 -47,30 -99,44 -155,44zm664 672l-274 0 0 -580 274 0 0 209 108 0 0 -209 274 0 0 580 -274 0 0 -242 -108 0 0 242zm1408 0l-273 0 0 -580 273 0 0 580zm-537 0l-413 0 0 -580 276 0 0 223 116 0c77,0 136,15 178,45 43,30 64,72 64,125 0,60 -19,106 -58,138 -38,33 -93,49 -163,49zm-137 -146l69 0c33,0 49,-16 49,-49 0,-14 -5,-25 -14,-33 -8,-8 -20,-12 -33,-12l-71 0 0 94zm1019 -434l0 298 109 -298 273 0 0 580 -273 0 0 -242 0 -64 -109 306 -274 0 0 -580 274 0zm53 -92c-55,0 -106,-15 -154,-44 -47,-30 -71,-76 -71,-139l150 0c0,53 25,79 76,79 50,0 75,-26 75,-79l150 0c0,64 -24,110 -71,139 -47,30 -99,44 -155,44zm1303 672l-161 0 -112 -340 -35 340 -265 0 128 -580 261 0 104 316 103 -316 260 0 129 580 -266 0 -34 -340 -112 340zm842 -580l274 0 0 580 -274 0 0 -242 0 -64 -109 306 -273 0 0 -580 273 0 0 298 109 -298zm622 510l0 347 -277 0 0 -857 268 0 0 77c35,-37 64,-62 86,-75 22,-14 59,-20 112,-20 64,0 115,29 156,89 40,59 60,131 60,217 0,87 -20,161 -61,221 -41,60 -98,90 -173,90 -68,0 -125,-29 -171,-89zm62 -302c-20,0 -38,8 -52,25 -15,17 -22,38 -22,61 0,24 8,44 22,61 15,17 32,26 52,26 20,0 38,-8 52,-25 14,-17 22,-37 22,-62 0,-24 -7,-45 -21,-61 -13,-17 -31,-25 -53,-25z"/>
+    <path class="blue" d="M473 562c139,-197 570,-150 595,165 25,316 -184,422 -369,452 -184,30 -447,-61 -525,-302 12,0 8,0 45,0l0 11c0,22 18,41 40,41l0 0c22,0 40,-19 40,-41l0 -12c137,0 333,-2 390,-2 89,-1 136,-78 135,-160 0,-83 -57,-150 -141,-151 -84,0 -133,-2 -210,-1z"/>
+    <path class="navy" d="M100 703c0,-324 264,-591 588,-591 324,0 588,264 588,588 0,324 -264,588 -588,588 -199,0 -375,-99 -481,-250 138,148 333,206 492,181 207,-33 444,-150 416,-498 -27,-340 -497,-397 -663,-197 -46,65 -56,117 -56,178l-115 0 -25 188 -31 -187 -125 0z"/>
+  </svg>
+
+  <div class="seam" aria-hidden="true">
+    <div class="stitches">
+      <svg class="needle" viewBox="0 0 10 56">
+        <path d="M5 13 C5 4 12 -2 22 -6" fill="none" stroke="#ef7f1a" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M3.5 0 H6.5 V44 L5 56 L3.5 44 Z" fill="#9aa5b8"/>
+        <rect x="4.4" y="8" width="1.2" height="8" rx=".6" fill="#fff"/>
+      </svg>
+    </div>
+  </div>
+
+  <h1>Сайт скоро вернётся</h1>
+  <p>Мы обновляем магазин, обычно это занимает пару минут. Страница откроется сама, как только всё будет готово.</p>
+  <p class="muted">Если нужна помощь прямо сейчас, позвоните нам: <a href="tel:+74957665675">+7 (495) 766-56-75</a></p>
+</main>
+<script>
+  // Reload once the site answers again. Not on this file's own URL, which the running site serves with 200.
+  (function () {
+    if (!window.fetch || /\/unavailable\.html$/.test(location.pathname)) return;
+    var delay = 10000;
+    function check() {
+      fetch(location.href, { method: 'HEAD', cache: 'no-store' }).then(function (r) {
+        if (r.status < 500) location.reload(); else later();
+      }, later);
+    }
+    function later() {
+      delay = Math.min(delay * 1.5, 60000);
+      setTimeout(check, delay);
+    }
+    setTimeout(check, delay);
+  })();
+</script>
+</body>
+</html>
