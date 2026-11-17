@@ -7,7 +7,7 @@ import { pageContentWrapper } from '@/components/layout/page-content-wrapper'
 
 import { loadSalesActions } from '@/lib/queries'
 
-export const revalidate = 3600
+export const revalidate = 86400
 
 export const metadata: Metadata = {
   title: 'Все акции',

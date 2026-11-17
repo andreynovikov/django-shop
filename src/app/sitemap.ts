@@ -4,6 +4,8 @@ import { getCategoryDescendants } from '@/lib/categories'
 import { loadCategories, loadCurrentSite, loadPages, loadProducts, loadSalesActions, loadStores, loadTopics } from '@/lib/queries'
 import { FlatPageInfo, ForumTopic, SalesAction } from '@/lib/types'
 
+export const revalidate = 86400
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const site = await loadCurrentSite()
   const now = new Date();

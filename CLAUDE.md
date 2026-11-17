@@ -34,7 +34,7 @@ Everything is in `src/app/`. The route groups `(auth)` (login, registration), `(
 - Client components use `next/navigation` directly: `useRouter()` to navigate and `usePathname()` for the path. `useSearchParams()` (and nuqs) needs a Suspense boundary in static routes. Keep each boundary around just the part that renders from the query, with a fallback that renders it without the query, so the rest of the page stays in the static HTML (see `RegisterLink` in `login-form.tsx` and `CurrentCatalog`). Event handlers read the URL from `window.location` instead of a hook.
 
 ### Data layer (`src/lib/queries/`)
-- Each resource module exports a query-key factory (`xxxKeys`) and plain `load*`/`retrieve*` functions built on `apiFetch` (`fetch.ts`). Everything is re-exported from `@/lib/queries`.
+- Each resource module exports a query-key factory (`xxxKeys`) and plain `load*`/`retrieve*` functions built on `apiFetch` (`fetch.ts`). Loaders that static pages use pass the request's cache tags with `tagged(...)`, see "Static generation and revalidation". Everything is re-exported from `@/lib/queries`.
 - `apiFetch` sends requests with a body to the relative `/api/v0/...` path. That path is the proxy `src/app/api/v0/[...path]/route.ts`, which forwards cookies, sets Django's `X-CSRFToken` header from the `csrftoken` cookie, and passes `Set-Cookie` back. Requests without a body are prefixed with `API_SERVER`. `API_SERVER` isn't `NEXT_PUBLIC_`, so it is set only on the server. As a result, server-side GETs go straight to Django, and every browser request goes through the proxy. The proxy exports only GET, POST and PUT.
 - Server-side requests and the proxy send `X-Frontend-Key: FRONTEND_KEY`, and the proxy passes on `X-Real-IP` from nginx. With the key, Django takes the site from it and the client address from `X-Real-IP`. Without one, Django ignores the session cookie, refuses writes that have no token, and uses the default site, so the build needs the key too.
 - `API_TOKEN` (`queries/tokenized.ts`, for the XML feeds) and `FRONTEND_KEY` are used only in server code.
@@ -43,8 +43,10 @@ Everything is in `src/app/`. The route groups `(auth)` (login, registration), `(
 - Shared types are in `src/lib/types.ts`. Cross-cutting hooks and contexts are in `src/lib/`: `useSite`, `useSession`, `useBasket`, favorites, comparison, topbar/toolbar.
 
 ### Static generation and revalidation
-- `generateStaticParams` pre-renders every entity only when `NODE_ENV === 'production'` and `PLAYWRIGHT_TEST !== 'true'`; otherwise it returns `[]`, and each page is rendered on its first request and cached (most set `export const revalidate = 3600`). CI sets `PLAYWRIGHT_TEST=true` so the build stays fast. Follow the same guard in new static routes.
-- The Django backend POSTs saved model items to `/api/revalidate` (`src/app/api/revalidate/route.ts`) with `REVALIDATION_TOKEN`. The handler calls `revalidatePath()` for each item's page, which is then rendered again on its next visit. When you add a model whose pages need revalidating, map it to its path in `getPathForModelItem`.
+- `generateStaticParams` pre-renders every entity only when `NODE_ENV === 'production'` and `PLAYWRIGHT_TEST !== 'true'`; otherwise it returns `[]`, and each page is rendered on its first request and cached. CI sets `PLAYWRIGHT_TEST=true` so the build stays fast. Follow the same guard in new static routes.
+- Pages are revalidated by tag. Each loader in `lib/queries` tags its request with the data it asks for (`lib/queries/cache-tags.ts`: `catalog`, `category:<id>`, `product:<code>`, `action:<slug>`, …), and a static page gets the tags of every request it makes, even though the requests themselves aren't cached. When data changes, django-shop (`shop/revalidation.py`) works out the tags the change touches and POSTs them to `/api/revalidate` (`src/app/api/revalidate/route.ts`) with `REVALIDATION_TOKEN`; the handler calls `revalidateTag()`, at once (`{ expire: 0 }`, the next visit waits for the render) or with `background: true` as stale-while-revalidate. The two lists of tags must match: a new loader used by a static page needs a tag here and the change that touches it a tag there. Lists of the whole catalog (sitemap, feeds) are not tagged by product, see `productListTags()`. The route still accepts the old `{ model, pk }` payload until django-shop sends tags.
+- The time-based `revalidate` catches what the signals miss: an hour for the home page, the catalog and products, a day for the rest (actions, stores, service centers, content pages, sitemap); the feeds stay hourly. `/pages/[...uri]` renders pages added after the build on their first visit.
+- Staff open `/api/revalidate/?path=/catalog/sewing/` (or `?all` for every page) while signed in on the storefront: the route asks Django for the session's user (`is_staff`), revalidates the page and redirects to it, and answers 403 to anyone else. Next keeps pages by their route files, so only one page or the whole site can be asked for.
 
 ### XML feeds
 `src/app/xml/[filename]/route.ts` serves product feeds such as `/xml/market.xml`. It renders the EJS templates in `templates/xml/`. `products` and `search` are global feeds. Any other filename is treated as an integration UTM, looked up on the backend, and rendered with that integration's `output_template`. In Docker, `templates/` is mounted as a volume.
@@ -61,7 +63,8 @@ Everything is in `src/app/`. The route groups `(auth)` (login, registration), `(
 
 ### Shared with the other storefronts
 janome.club, singer.ru and dor-tak.ru copy some files from here unchanged, so a change made here is copied to them:
-- `src/lib/`;
+- `src/lib/` (familysew.ru copies it too);
+- `app/api/revalidate/route.ts` (familysew.ru too);
 - the user-flow components:
   - `components/user/`: login, registration, update and confirm-email forms, `phone-code-input`, `profile`, `sidebar`, `topbar`, `avatar`;
   - `components/order/`: `confirmation`, `details`, `list`, `payment-button`, `status-badge`;

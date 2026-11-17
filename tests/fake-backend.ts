@@ -192,6 +192,7 @@ export class FakeBackend {
       date_joined: new Date().toISOString(),
       email_verified: Boolean(user.email), // as the migration left existing users
       phone_verified: true,
+      is_staff: false,
       ...user,
     }
     created.phone = normalizePhone(created.phone)

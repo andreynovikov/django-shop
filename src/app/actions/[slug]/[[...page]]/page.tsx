@@ -11,7 +11,7 @@ import { HttpError, loadSalesAction, loadSalesActionProducts, loadSalesActions }
 import { parsePageParam } from '@/lib/pagination'
 import { contentClass } from '@/components/ui/content'
 
-export const revalidate = 3600
+export const revalidate = 86400
 
 // Shared by generateMetadata and the page, so the action is fetched once per render
 const getAction = cache(async (slug: string) => {

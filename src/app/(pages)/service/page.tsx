@@ -9,7 +9,7 @@ import { Country, ServiceCenter } from '@/lib/types'
 import { navLinkClass } from '@/components/ui/nav'
 import { IconMapPin, IconPhone } from '@tabler/icons-react'
 
-export const revalidate = 3600
+export const revalidate = 86400
 
 export const metadata: Metadata = {
   title: 'Сервисные центры',

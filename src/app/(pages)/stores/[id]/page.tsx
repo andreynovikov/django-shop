@@ -18,6 +18,8 @@ const infoIcon = { size: 28, stroke: 1.5, className: 'mt-2 mb-6 text-primary' }
 import { HttpError, loadStore, loadStores } from '@/lib/queries'
 import { parsePhones } from '@/lib/format'
 
+export const revalidate = 86400
+
 // Shared by generateMetadata and the page, so the store is fetched once per render
 const getStore = cache(async (id: string) => {
   const storeId = Number(id)
