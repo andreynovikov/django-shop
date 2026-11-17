@@ -19,6 +19,14 @@ test('revalidation rejects a wrong token', async ({ request }) => {
   expect(await response.json()).toEqual({ revalidated: false, message: 'Invalid token' })
 })
 
+test('revalidation takes tags only', async ({ request }) => {
+  test.skip(!secret, 'REVALIDATION_TOKEN is not set')
+  // the paths of a model item, which the backend posted before tags
+  const response = await request.post('/api/revalidate/', { data: { secret, model: 'product', pk: 1, code: 'x' } })
+  expect(response.status()).toBe(400)
+  expect(await response.json()).toEqual({ revalidated: false, message: 'Parameters missing' })
+})
+
 test.describe('cached pages', () => {
   test.skip(!secret, 'REVALIDATION_TOKEN is not set')
   test.skip(!process.env.CI, 'Only the production server caches pages')
@@ -50,12 +58,6 @@ test.describe('cached pages', () => {
     expect(await revalidate(request, { tags: [`product:${code}`], background: true })).toEqual({ revalidated: true })
     expect(await cacheState(request, path)).toBe('STALE')
     await expect.poll(() => cacheState(request, path)).toBe('HIT')
-  })
-
-  // TODO: remove once django-shop sends tags
-  test('page is revalidated by the model item that the backend sent before tags', async ({ request }) => {
-    expect(await revalidate(request, { model: 'product', pk: 1, code })).toEqual({ revalidated: true })
-    expect(await cacheState(request, path)).toBe('MISS')
   })
 })
 
