@@ -1,0 +1,130 @@
+<!doctype html>
+<!--
+  Shown by nginx when the frontend container doesn't answer (502/503/504).
+  startup.sh copies public/ into the .docker/ volume, so the file stays there while the container is stopped.
+  Everything is inline: nginx serves this page for any URL, and nothing else may be reachable.
+-->
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Сайт скоро вернётся - Janome.Club</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --red: #df0623;
+    --red-dark: #ad051b;
+    --text: #2b3445;
+    --muted: #7d879c;
+    --bg: #fff;
+    --embroider: 6s;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    text-align: center;
+  }
+  main { width: 100%; max-width: 480px; }
+  .logo { display: block; width: min(260px, 100%); height: auto; margin: 0 auto; fill: var(--red); }
+
+  /* A heart is embroidered in a hoop, stitch by stitch, then filled in */
+  .hoop { display: block; width: 160px; height: 160px; margin: 36px auto 28px; }
+  .reveal {
+    fill: none;
+    stroke: #fff;
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: reveal var(--embroider) linear infinite;
+  }
+  .satin { fill: var(--red); opacity: 0; animation: satin var(--embroider) ease-out infinite; }
+  .heart { transform-origin: 80px 80px; animation: heart var(--embroider) ease-in-out infinite; }
+  @keyframes reveal {
+    0%, 4% { stroke-dashoffset: 100; }
+    62%, 100% { stroke-dashoffset: 0; }
+  }
+  @keyframes satin {
+    0%, 64% { opacity: 0; }
+    74%, 90% { opacity: .2; }
+    100% { opacity: 0; }
+  }
+  @keyframes heart {
+    0%, 66% { transform: scale(1); opacity: 1; }
+    71% { transform: scale(1.08); }
+    76%, 90% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1); opacity: 0; }
+  }
+
+  h1 { margin: 0 0 12px; font-size: 1.75rem; line-height: 1.25; font-weight: 600; }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); font-size: .9375rem; }
+  a { color: var(--red); text-decoration: none; white-space: nowrap; }
+  a:hover { color: var(--red-dark); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .satin, .heart { animation: none; }
+    .reveal { stroke-dashoffset: 0; }
+    .satin { opacity: .2; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <svg class="logo" viewBox="0 0 275 48" role="img" aria-label="Janome">
+    <path d="M6.43156839,34.5465984 L5.75423089,33.440649 L0,37.7880767 L0.308340867,38.520795 C1.76723961,41.5061228 3.97843684,43.8380735 7.03185034,45.5261562 C10.1538014,47.2068842 13.7125242,48 17.6830255,48 C22.7185736,47.9381168 26.4486038,46.5120535 29.021636,43.5761283 C31.714576,40.5871604 33,36.5562065 33,31.4833408 L33,0 L16.8950699,0 L16.8950699,30.3097136 C16.8358076,32.7785058 16.5253721,34.6098931 15.9172419,35.7616791 C15.2484662,36.945484 14.2613193,37.6025012 12.8545314,37.8477312 C12.3670371,37.9932646 11.9966113,37.9932646 11.7497336,37.9932646 C10.2315558,37.9932646 8.81479373,37.2641864 7.46937938,35.8380488 L6.43156839,34.5465984 Z M63.2796736,1 L51.4483633,1 L33,48 L45.6978994,48 L47.8342712,41.5253192 L63.1688172,41.5253192 L65.3153199,48 L81,48 L63.2796736,1 Z M56.0580147,20 L60,33 L52,33 L56.0580147,20 Z M91.7682195,1 L82,1 L82,48 L93.5142504,48 L93.5142504,24.1350158 L114.72899,48 L123,48 L123,1 L111.483611,1 L111.427287,23.2794319 L91.7682195,1 Z M168.471463,6.39340426 C164.113352,2.12423464 158.367261,0 151.218808,0 C143.966796,0 138.283273,2.3880659 134.048857,7.16087113 C129.999266,11.834093 128,17.7751484 128,25.1181186 C128.05178,31.9768608 130.117208,37.4696989 134.28618,41.6724182 C138.522753,45.9510701 143.966796,48 150.735533,48 C158.121309,47.9385306 163.998286,45.7465166 168.344891,41.2748965 C172.820944,36.7650518 175,30.8183144 175,23.4585932 C175,16.3447495 172.820944,10.6525971 168.471463,6.39340426 Z M157.243905,34.5373646 C156.020699,36.8682727 154.192158,38 151.729028,38 C149.38989,38 147.694397,36.8071273 146.634192,34.4180129 C145.517564,32.0344896 145,28.0839815 145,22.5593917 C145.05712,17.9782187 145.64086,14.7179437 146.817395,12.7134072 C147.919395,10.8768951 149.564036,10 151.785451,10 C154.192158,10.0715394 155.954523,11.0039886 157.131058,12.9571286 C158.414867,14.9628837 159,18.2253808 159,22.8710683 C159,28.3204629 158.414867,32.2240188 157.243905,34.5373646 Z M196.403879,1 L182.557039,1 L176,48 L187.980817,48 L190.46242,23.8761736 L199.011565,47.9371016 L208.748853,47.9371016 L217.606529,23.8097263 L220.275773,48 L235,48 L228.144071,1 L214.610212,1 L205.305314,25.9890452 L196.403879,1 Z M273.398615,1 L241,1 L241,48 L275,48 L275,37.6205614 L256.565633,37.6205614 L256.565633,28.6293419 L270.472435,28.6293419 L270.472435,19.0448541 L256.565633,19.0448541 L256.565633,11.5147946 L273.398615,11.5147946 L273.398615,1 Z"/>
+  </svg>
+
+  <svg class="hoop" viewBox="0 0 160 160" aria-hidden="true">
+    <defs>
+      <path id="heart" d="M80 114 C 70 106, 38 90, 38 66 C 38 52, 48 44, 59 44 C 69 44, 77 50, 80 58 C 83 50, 91 44, 101 44 C 112 44, 122 52, 122 66 C 122 90, 90 106, 80 114 Z"/>
+      <mask id="sewn" maskUnits="userSpaceOnUse">
+        <!-- a copy, not a <use>: pathLength works only on the path itself, and would also stretch the stitches' dashes -->
+        <path class="reveal" pathLength="100" d="M80 114 C 70 106, 38 90, 38 66 C 38 52, 48 44, 59 44 C 69 44, 77 50, 80 58 C 83 50, 91 44, 101 44 C 112 44, 122 52, 122 66 C 122 90, 90 106, 80 114 Z"/>
+      </mask>
+    </defs>
+    <rect x="73" y="2" width="14" height="12" rx="2" fill="#b8915c"/>
+    <circle cx="80" cy="82" r="66" fill="#faf6ef"/>
+    <path d="M30 60 Q80 70 130 58 M26 100 Q80 92 134 104" fill="none" stroke="#efe7da" stroke-width="1"/>
+    <circle cx="80" cy="82" r="66" fill="none" stroke="#c9a26b" stroke-width="7"/>
+    <circle cx="80" cy="82" r="70.5" fill="none" stroke="#e2c596" stroke-width="2"/>
+    <g transform="translate(0 14)">
+      <g class="heart">
+        <use href="#heart" class="satin"/>
+        <use href="#heart" mask="url(#sewn)" fill="none" stroke="#df0623" stroke-width="3" stroke-dasharray="5 3" stroke-linecap="round"/>
+      </g>
+    </g>
+  </svg>
+
+  <h1>Сайт скоро вернётся</h1>
+  <p>Мы обновляем магазин, обычно это занимает пару минут. Страница откроется сама, как только всё будет готово.</p>
+  <p class="muted">Если нужна помощь прямо сейчас, позвоните нам: <a href="tel:+74957665675">+7 (495) 766-56-75</a></p>
+</main>
+<script>
+  // Reload once the site answers again. Not on this file's own URL, which the running site serves with 200.
+  (function () {
+    if (!window.fetch || /\/unavailable\.html$/.test(location.pathname)) return;
+    var delay = 10000;
+    function check() {
+      fetch(location.href, { method: 'HEAD', cache: 'no-store' }).then(function (r) {
+        if (r.status < 500) location.reload(); else later();
+      }, later);
+    }
+    function later() {
+      delay = Math.min(delay * 1.5, 60000);
+      setTimeout(check, delay);
+    }
+    setTimeout(check, delay);
+  })();
+</script>
+</body>
+</html>
