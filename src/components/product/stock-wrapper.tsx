@@ -1,10 +1,12 @@
 'use client'
 
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 
 import { Loading } from '@/components/loading'
 
-const ProductStock = lazy(() => import('@/components/product/stock'))
+import { lazyWithReload } from '@/lib/lazy'
+
+const ProductStock = lazyWithReload(() => import('@/components/product/stock'))
 
 export default function ProductStockWrapper({ id }: { id: number }) {
   return (

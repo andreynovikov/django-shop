@@ -1,8 +1,25 @@
 #!/bin/sh
 set -e
 
-find ./.docker/ -mindepth 1 -delete
-cp -a ./.next/static ./.docker/
-cp -a ./public ./.docker/
+# Copy a build's files into .docker/, where nginx serves them from, over the previous build's instead of emptying
+# the folder first: a file both builds have, such as unavailable.html (nginx's page for when this container is
+# down), never disappears. Then delete what this build doesn't have.
+# If the copy fails, e.g. because a file became a folder, fall back to replacing the folder as a whole.
+sync() { # $1: the source, $2: its copy in .docker/
+  if mkdir -p "$2" && cp -a "$1/." "$2/"; then
+    (cd "$2" && find . ! -type d) | while IFS= read -r f; do
+      [ -e "$1/$f" ] || [ -L "$1/$f" ] || rm -f "$2/$f"
+    done
+    find "$2" -mindepth 1 -type d -empty -delete
+  else
+    rm -rf "$2"
+    cp -a "$1" "$2"
+  fi
+}
+
+sync ./.next/static ./.docker/static
+sync ./public ./.docker/public
+find ./.docker/ -mindepth 1 -maxdepth 1 ! -name static ! -name public -exec rm -rf {} +
+
 # exec replaces the shell, so the signals of docker stop reach node and Next shuts down cleanly
 exec node "$APP_MAIN_FILE"
