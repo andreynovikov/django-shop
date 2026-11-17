@@ -1,5 +1,6 @@
 import { PaginatedResult, Product, ProductInfo, ProductList, StoreInfo } from '@/lib/types'
 import { productFieldsSerializer, productSearchParamsSerializer, ProductSearchParamsType } from '@/lib/search-params'
+import { cacheTags, productListTags, tagged } from './cache-tags'
 import { apiFetch } from './fetch'
 
 export const productKeys = {
@@ -31,7 +32,7 @@ export async function loadProducts(page: number | null, page_size: number, filte
   })
   if (fields)
     url = productFieldsSerializer(url, { fields })
-  return await apiFetch<ProductList>(url)
+  return await apiFetch<ProductList>(url, tagged(...productListTags(filters)))
 }
 
 /**
@@ -61,7 +62,7 @@ export async function loadProduct(id: number) {
 }
 
 export async function loadProductByCode(code: string) {
-  return await apiFetch<Product>(`products/${code}/bycode/`)
+  return await apiFetch<Product>(`products/${code}/bycode/`, tagged(cacheTags.product(code)))
 }
 
 export async function loadProductInfo(id: number) {

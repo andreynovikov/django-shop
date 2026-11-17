@@ -1,5 +1,6 @@
 import { advertSearchParamsSerializer } from '@/lib/search-params'
 import { Advert, News, Site } from '@/lib/types'
+import { cacheTags, tagged } from './cache-tags'
 import { apiFetch } from './fetch'
 
 export const newsKeys = {
@@ -19,7 +20,7 @@ export const siteKeys = {
 }
 
 export async function loadNews() {
-  return await apiFetch<News[]>('news/')
+  return await apiFetch<News[]>('news/', tagged(cacheTags.news))
 }
 
 export async function loadAdverts(places: string[], categoryId?: number) {
@@ -27,11 +28,11 @@ export async function loadAdverts(places: string[], categoryId?: number) {
     category: categoryId,
     places,
   })
-  return await apiFetch<Advert[]>(url)
+  return await apiFetch<Advert[]>(url, tagged(...places.map(cacheTags.adverts)))
 }
 
 export async function loadCurrentSite() {
-  return await apiFetch<Site>('sites/current/')
+  return await apiFetch<Site>('sites/current/', tagged(cacheTags.site))
 }
 
 export async function getWarrantyCard(code: string) {

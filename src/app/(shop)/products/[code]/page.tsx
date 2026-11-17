@@ -17,7 +17,7 @@ import { Product } from '@/lib/types'
 
 import { getProduct } from './load'
 
-export const revalidate = 86400 // once a day
+export const revalidate = 3600
 
 const sectionTitleClass = 'mt-2.5 mb-2 text-3xl leading-none font-light'
 
