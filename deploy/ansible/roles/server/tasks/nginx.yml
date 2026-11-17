@@ -1,4 +1,31 @@
 # Sites, basic_auth and htpasswd are copied from the old server by hand.
+# nginx creates only the last directory of a proxy_cache_path, and nginx -t fails without its parent
+- name: Create the nginx cache directory
+  ansible.builtin.file:
+    path: /var/cache/nginx
+    state: directory
+    mode: "0755"
+
+# Each proxied request takes two connections, a client's and an upstream's
+- name: Raise the open file limit of nginx workers
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/nginx.conf
+    regexp: '^worker_rlimit_nofile '
+    insertafter: '^worker_processes '
+    line: "worker_rlimit_nofile 16384;"
+    validate: /usr/sbin/nginx -t -c %s
+  notify: Reload nginx
+
+- name: Raise the connection limit of nginx workers
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/nginx.conf
+    regexp: '^(\s*)worker_connections '
+    line: '\1worker_connections 4096;'
+    backrefs: true
+    validate: /usr/sbin/nginx -t -c %s
+  notify: Reload nginx
+
+# Debian's nginx.conf already has gzip on, and brotli needs libnginx-mod-http-brotli-filter
 - name: Adjust nginx.conf
   ansible.builtin.blockinfile:
     path: /etc/nginx/nginx.conf
@@ -7,6 +34,14 @@
       tcp_nodelay on;
       keepalive_timeout 65;
       server_names_hash_bucket_size 64;
+
+      map $http_upgrade $connection_upgrade {
+        default upgrade;
+        ''      '';
+      }
+
+      ssl_session_cache shared:SSL:20m;
+      ssl_session_timeout 1d;
 
       log_format upstream '$remote_addr - $remote_user [$time_local] '
                           '"$request" $status $body_bytes_sent '
@@ -28,6 +63,26 @@
       map $status $errored {
         ~^[5]   1;
         default 0;
+      }
+
+      gzip_vary on;
+      gzip_proxied any;
+      gzip_comp_level 5;
+      gzip_min_length 1024;
+      gzip_types text/plain text/css text/xml text/javascript application/javascript application/json
+                 application/xml application/rss+xml application/atom+xml application/manifest+json
+                 image/svg+xml font/ttf font/otf application/vnd.ms-fontobject;
+
+      brotli on;
+      brotli_types text/plain text/css text/xml text/javascript application/javascript application/json
+                   application/xml application/rss+xml application/atom+xml application/manifest+json
+                   image/svg+xml font/ttf font/otf application/vnd.ms-fontobject;
+
+      proxy_cache_path /var/cache/nginx/next_image levels=1:2 keys_zone=next_image:10m max_size=2g inactive=30d use_temp_path=off;
+      map $http_accept $image_format {
+        ~image/avif avif;
+        ~image/webp webp;
+        default     orig;
       }
     validate: /usr/sbin/nginx -t -c %s
   notify: Reload nginx

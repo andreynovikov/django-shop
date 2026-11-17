@@ -5,6 +5,7 @@ server_packages:
   - python3
   - postgresql-client
   - nginx
+  - libnginx-mod-http-brotli-filter
   - uwsgi
   - uwsgi-plugin-python3
   - memcached

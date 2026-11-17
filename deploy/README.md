@@ -16,6 +16,7 @@ apt install rsync
 apt install python3
 apt install postgresql-client
 apt install nginx
+apt install libnginx-mod-http-brotli-filter
 apt install uwsgi
 apt install uwsgi-plugin-python3
 apt install memcached
@@ -225,12 +226,32 @@ replace the log with a symbolic link, and nginx then writes to the file it point
 root can write `/var/log/nginx`, while `/www/<site>/logs` belongs to the [service user](#service-user). Debian's
 `/etc/logrotate.d/nginx` rotates `/var/log/nginx/*.log` and keeps 14 days. The files belong to the group `adm`.
 
-Adjust `/etc/nginx/nginx.conf`:
+Adjust `/etc/nginx/nginx.conf`. Add `worker_rlimit_nofile` after `worker_processes`, and raise `worker_connections`
+in `events`:
+
+```nginx
+worker_rlimit_nofile 16384;
+
+events {
+  worker_connections 4096;
+}
+```
+
+Add to `http`, where Debian's file already has `gzip on`. `brotli` needs `libnginx-mod-http-brotli-filter`, and
+`proxy_cache_path` needs its parent directory, `mkdir /var/cache/nginx`:
 
 ```nginx
 tcp_nodelay on;
 keepalive_timeout 65;
 server_names_hash_bucket_size 64;
+
+map $http_upgrade $connection_upgrade {
+  default upgrade;
+  ''      '';
+}
+
+ssl_session_cache shared:SSL:20m;
+ssl_session_timeout 1d;
 
 log_format upstream '$remote_addr - $remote_user [$time_local] '
                     '"$request" $status $body_bytes_sent '
@@ -252,6 +273,26 @@ map $status $notfound {
 map $status $errored {
   ~^[5]   1;
   default 0;
+}
+
+gzip_vary on;
+gzip_proxied any;
+gzip_comp_level 5;
+gzip_min_length 1024;
+gzip_types text/plain text/css text/xml text/javascript application/javascript application/json
+           application/xml application/rss+xml application/atom+xml application/manifest+json
+           image/svg+xml font/ttf font/otf application/vnd.ms-fontobject;
+
+brotli on;
+brotli_types text/plain text/css text/xml text/javascript application/javascript application/json
+             application/xml application/rss+xml application/atom+xml application/manifest+json
+             image/svg+xml font/ttf font/otf application/vnd.ms-fontobject;
+
+proxy_cache_path /var/cache/nginx/next_image levels=1:2 keys_zone=next_image:10m max_size=2g inactive=30d use_temp_path=off;
+map $http_accept $image_format {
+  ~image/avif avif;
+  ~image/webp webp;
+  default     orig;
 }
 ```
 
