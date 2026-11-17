@@ -23,7 +23,7 @@ const parseAsBooleanExtended = createParser({
   }
 })
 
-// Lowest and highest price, price=1000-5000. The backend refuses a range without both bounds, so a query
+// Lowest and highest price, cost=1000-5000. The backend refuses a range without both bounds, so a query
 // that has only one, e.g. from a cut link, leaves the price unset.
 const parseAsPriceRange = createParser({
   parse(value) {
@@ -84,7 +84,8 @@ export const productSearchParams = {
   gift: parseAsBoolean,
   recomended: parseAsBoolean,
   firstpage: parseAsBoolean,
-  price: parseAsPriceRange,
+  price: parseAsPriceRange,  // list price; the storefronts filter by cost
+  cost: parseAsPriceRange,  // the price that the site shows, discounts taken off
   kind: parseAsNativeArrayOf(parseAsInteger),
   manufacturer: parseAsNativeArrayOf(parseAsInteger),
 
