@@ -1,0 +1,146 @@
+<!doctype html>
+<!--
+  Shown by nginx when the frontend container doesn't answer (502/503/504).
+  startup.sh copies public/ into the .docker/ volume, so the file stays there while the container is stopped.
+  Everything is inline: nginx serves this page for any URL, and nothing else may be reachable.
+-->
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Сайт скоро вернётся - Family</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --red: #e63946;
+    --red-dark: #c62835;
+    --text: #212529;
+    --heading: #343a40;
+    --muted: #868e96;
+    --bg: #fff;
+    --sew: 5s;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    text-align: center;
+  }
+  main { width: 100%; max-width: 480px; }
+  .logo { display: block; width: min(300px, 100%); height: auto; margin: 0 auto; fill: #ef1111; }
+
+  /* A needle sews a button on with a cross stitch: hole 1 to 3 on top, under to 4, then 4 to 2 */
+  .button { display: block; width: 120px; height: 120px; margin: 36px auto 28px; overflow: visible; }
+  .stitch {
+    fill: none;
+    stroke: #fff8ec;
+    stroke-width: 3.5;
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  .stitch.a { animation: stitch-a var(--sew) linear infinite; }
+  .stitch.b { animation: stitch-b var(--sew) linear infinite; }
+  .needle { animation: needle var(--sew) linear infinite; }
+  @keyframes stitch-a {
+    0%, 6% { stroke-dashoffset: 1; opacity: 1; }
+    36%, 92% { stroke-dashoffset: 0; opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  @keyframes stitch-b {
+    0%, 54% { stroke-dashoffset: 1; opacity: 1; }
+    84%, 92% { stroke-dashoffset: 0; opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  /* The needle's tip is at its origin; it comes up through a hole, crosses the button and goes down the next one */
+  @keyframes needle {
+    0% { transform: translate(49px, 49px) rotate(0); opacity: 0; }
+    6% { transform: translate(49px, 49px) rotate(0); opacity: 1; }
+    36% { transform: translate(71px, 71px) rotate(0); opacity: 1; }
+    42% { transform: translate(71px, 71px) rotate(0); opacity: 0; }
+    48% { transform: translate(49px, 71px) rotate(-90deg); opacity: 0; }
+    54% { transform: translate(49px, 71px) rotate(-90deg); opacity: 1; }
+    84% { transform: translate(71px, 49px) rotate(-90deg); opacity: 1; }
+    90%, 100% { transform: translate(71px, 49px) rotate(-90deg); opacity: 0; }
+  }
+  .wobble { transform-origin: 60px 60px; animation: wobble var(--sew) ease-in-out infinite; }
+  @keyframes wobble {
+    0%, 86%, 100% { transform: rotate(0); }
+    89% { transform: rotate(-6deg); }
+    92% { transform: rotate(4deg); }
+    95% { transform: rotate(-2deg); }
+  }
+
+  h1 { margin: 0 0 12px; font-size: 1.75rem; line-height: 1.25; font-weight: 600; color: var(--heading); }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); font-size: .9375rem; }
+  a { color: var(--red); text-decoration: none; white-space: nowrap; }
+  a:hover { color: var(--red-dark); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stitch.a, .stitch.b, .needle, .wobble { animation: none; }
+    .stitch { stroke-dashoffset: 0; }
+    .needle { display: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <svg class="logo" viewBox="0 0 11000 1500" role="img" aria-label="Family">
+    <path d="M499.47 173l1602.7 0 127.94 383.84 -154.88 40.4c0,0 -40.4,-168.35 -228.96,-208.75 -74.07,0 -289.56,0 -289.56,0l0 296.3 94.28 0c0,0 87.54,-26.94 87.54,-74.08 0,-47.14 0,-107.74 0,-107.74l154.88 0 0 531.98 -148.15 0 -13.46 -121.21c0,0 -26.94,-60.61 -80.81,-60.61 -60.61,0 -101.01,0 -101.01,0l0 276.1c0,0 6.73,67.34 60.6,67.34 53.88,0 94.28,0 94.28,0l0 168.34 -1205.39 0 0 -168.34 87.54 0c0,0 67.34,-6.74 67.34,-67.34 0,-60.61 0,-720.54 0,-720.54 0,0 0,-60.6 -60.6,-60.6 -60.61,0 -94.28,0 -94.28,0l0 -175.09z"/>
+    <path d="M3671.19 1189.83c-33.67,0 -47.14,-47.14 -47.14,-47.14l-377.1 -976.42 -754.21 0 -424.24 1030.3 -80.81 0 0 168.34 471.38 0 0 -168.34c0,0 -20.2,6.73 -60.61,0 -67.34,0 -67.34,-67.34 -67.34,-67.34l60.61 -148.15c0,0 262.63,0 329.97,0 60.6,0 53.87,40.4 53.87,40.4 0,0 26.93,60.61 40.4,121.21 20.2,60.61 -53.87,53.88 -53.87,53.88l-87.54 0 0 168.34 1063.97 0 0 -168.34c0,-6.74 -33.67,-6.74 -67.34,-6.74zm-1016.83 -356.9c-53.88,0 -188.56,0 -188.56,0 0,0 -20.2,-13.47 0,-67.34 20.21,-53.87 101.01,-296.29 101.01,-296.29l114.48 296.29c6.74,0 26.94,67.34 -26.93,67.34z"/>
+    <path d="M3826.07 1358.18l0 -175.08 94.28 0c0,0 40.4,6.73 40.4,-40.41 0,-47.13 0,-740.73 0,-740.73 0,0 0,-40.4 -40.4,-40.4 -40.4,0 -94.28,0 -94.28,0l0 -188.56 531.99 0 202.02 707.07 202.02 -707.07 1144.78 0 0 181.82 -80.8 0c0,0 -60.61,-6.73 -60.61,26.94 0,33.67 0,754.2 0,754.2 0,0 -6.73,53.87 40.4,53.87 47.14,0 107.75,0 107.75,0l0 168.35 -1178.45 0 0 -175.08 114.47 0c0,0 47.14,6.73 47.14,-47.14 0,-47.14 0,-727.27 0,-727.27l-276.09 949.49 -188.56 0 -262.62 -922.55 0 686.86c0,0 -6.74,60.61 40.4,67.34 47.14,6.74 101.01,0 101.01,0l0 168.35 -484.85 0z"/>
+    <path d="M6021.36 354.82l0 -181.82 1185.19 0 0 181.82 -101.01 0c0,0 -33.67,0 -33.67,33.67 0,33.67 0,767.67 0,767.67 0,0 -6.74,33.67 33.67,33.67 40.4,0 101.01,0 101.01,0l0 175.08 -1185.19 0 0 -175.08 101.01 0c0,0 33.67,0 33.67,-33.67 0,-33.67 0,-760.94 0,-760.94 0,0 0,-40.4 -33.67,-40.4 -33.67,0 -101.01,0 -101.01,0z"/>
+    <path d="M7307.56 1358.18l0 -175.08 94.27 0c0,0 40.41,0 40.41,-40.41 0,-40.4 0,-747.47 0,-747.47 0,0 13.47,-40.4 -40.41,-40.4 -53.87,0 -94.27,0 -94.27,0l0 -181.82 1171.72 0 0 188.56 -94.28 0c0,0 -53.87,-6.74 -53.87,33.66 0,40.41 0,781.14 0,781.14l148.15 0c0,0 208.75,-13.46 323.23,-303.02 60.6,13.46 154.88,47.13 154.88,47.13l-154.88 444.44 -1494.95 0 0 -6.73z"/>
+    <path d="M8957.39 1364.91l0 -181.81 94.28 0c0,0 47.14,6.73 47.14,-40.41 0,-47.13 0,-262.62 0,-262.62l-350.17 -531.98 -101.01 0 0 -181.82 1232.32 0 0 181.82 -121.21 0c0,0 -6.74,20.2 20.2,67.34 26.94,47.13 161.62,276.09 161.62,276.09l188.55 -303.03c0,0 40.4,-40.4 0,-40.4 -40.4,0 -114.48,0 -114.48,0l0 -175.09 484.85 0 0 181.82 -107.74 0 -350.17 511.78 0 276.09c0,0 -6.74,40.41 40.4,40.41 47.14,0 94.28,0 94.28,0l0 175.08 -1218.86 6.73z"/>
+  </svg>
+
+  <svg class="button" viewBox="0 0 120 120" aria-hidden="true">
+    <g class="wobble">
+      <circle cx="60" cy="62" r="40" fill="#000" opacity=".06"/>
+      <circle cx="60" cy="60" r="40" fill="#e63946"/>
+      <circle cx="60" cy="60" r="32" fill="none" stroke="#c62835" stroke-width="3"/>
+      <path d="M33 44 A32 32 0 0 1 52 29" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".35"/>
+      <circle cx="49" cy="49" r="4.5" fill="#fff"/>
+      <circle cx="71" cy="49" r="4.5" fill="#fff"/>
+      <circle cx="71" cy="71" r="4.5" fill="#fff"/>
+      <circle cx="49" cy="71" r="4.5" fill="#fff"/>
+      <line class="stitch a" x1="49" y1="49" x2="71" y2="71" pathLength="1"/>
+      <line class="stitch b" x1="49" y1="71" x2="71" y2="49" pathLength="1"/>
+    </g>
+    <g class="needle">
+      <path d="M0 0 L-17.4 -19.4 A1.4 1.4 0 0 0 -19.4 -17.4 Z" fill="#9aa5b8"/>
+      <line x1="-14.6" y1="-14.6" x2="-16.6" y2="-16.6" stroke="#fff" stroke-width=".9" stroke-linecap="round"/>
+    </g>
+  </svg>
+
+  <h1>Сайт скоро вернётся</h1>
+  <p>Мы обновляем магазин, обычно это занимает пару минут. Страница откроется сама, как только всё будет готово.</p>
+  <p class="muted">Если нужна помощь прямо сейчас, позвоните нам: <a href="tel:+74957665675">+7 (495) 766-56-75</a></p>
+</main>
+<script>
+  // Reload once the site answers again. Not on this file's own URL, which the running site serves with 200.
+  (function () {
+    if (!window.fetch || /\/unavailable\.html$/.test(location.pathname)) return;
+    var delay = 10000;
+    function check() {
+      fetch(location.href, { method: 'HEAD', cache: 'no-store' }).then(function (r) {
+        if (r.status < 500) location.reload(); else later();
+      }, later);
+    }
+    function later() {
+      delay = Math.min(delay * 1.5, 60000);
+      setTimeout(check, delay);
+    }
+    setTimeout(check, delay);
+  })();
+</script>
+</body>
+</html>
