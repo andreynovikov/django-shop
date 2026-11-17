@@ -71,6 +71,15 @@ class LogoutTests(TestCase):
         self.assertEqual(client.post('/api/v0/users/logout/').status_code, 204)
         self.assertIsNone(client.get('/api/v0/users/current/').json()['id'])
 
+    def test_logout_with_get_is_refused(self):
+        user = ShopUser.objects.create(phone='+79161234567')
+        client = StorefrontClient()
+        client.force_login(user)
+
+        # an unmapped method has no action, so it gets the viewset's superuser-only permission: 403 before 405
+        self.assertIn(client.get('/api/v0/users/logout/').status_code, (403, 405))
+        self.assertEqual(client.get('/api/v0/users/current/').json()['id'], user.id)
+
     def test_anonymous_logout_with_post(self):
         # baskets whose session expired keep no session, a visitor without one must not match them
         site = Site.objects.get_current()

@@ -382,10 +382,10 @@ class UserViewSet(viewsets.ModelViewSet):
         responses={
             204: None
         },
-        methods=['GET', 'POST']
+        methods=['POST']
     )
-    # GET stays until every storefront logs out with POST; their proxies already refuse a GET from browsers
-    @action(detail=False, methods=['get', 'post'])
+    # POST only, so that a link or an image on another page can't sign the visitor out
+    @action(detail=False, methods=['post'])
     def logout(self, request, *args, **kwargs):
         basket = None
         if request.session.session_key:  # without it, the query would match every basket left without a session
