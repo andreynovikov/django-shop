@@ -11,7 +11,7 @@ import { baseFilters } from '@/lib/catalog'
 import { HttpError, loadCategories, loadCategory, loadProducts } from '@/lib/queries'
 import { CategoryTreeItem } from '@/lib/types'
 
-export const revalidate = 86400 // once a day
+export const revalidate = 3600
 
 // all products of the category are on one page
 const pageSize = 1000

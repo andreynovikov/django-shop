@@ -9,11 +9,13 @@ import { HttpError, loadPage, loadPages } from '@/lib/queries'
 // help pages are not shown on their own
 const isEmbedded = (uri: string[]) => uri[0] === 'help'
 
-// Only prerendered pages are served, unknown uris get 404 before rendering
-export const dynamicParams = false
+// Pages added after the build are rendered on their first visit
+export const revalidate = 86400
 
 // Shared by generateMetadata and the page, so the page is fetched once per render
 const getPage = cache(async (uri: string[]) => {
+  if (isEmbedded(uri))
+    notFound()
   try {
     return await loadPage(uri)
   } catch (err) {
