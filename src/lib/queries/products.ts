@@ -11,6 +11,8 @@ export const productKeys = {
   stock: (id: number) => [...productKeys.all, id, 'stock'],
   lists: () => [...productKeys.all, 'list'],
   list: (page: number, size: number, filters: ProductSearchParamsType, ordering: string) => [...productKeys.lists(), { page, size, filters, ordering }],
+  // pages loaded one after another from firstPage on, for useInfiniteQuery
+  listPages: (firstPage: number, size: number, filters: ProductSearchParamsType, ordering: string) => [...productKeys.lists(), 'pages', { firstPage, size, filters, ordering }],
   details: () => [...productKeys.all, 'detail'],
   detail: (id: number) => [...productKeys.details(), id],
   info: (id: number) => [...productKeys.details(), id]

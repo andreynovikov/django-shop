@@ -3,4 +3,8 @@
 export const storefront = {
   favorites: false, // the account has a favorites page
   productPages: true, // products have their own pages, so carts and orders link to them
+  // the backend filters of the products this storefront lists, `baseFilters` in lib/catalog
+  productFilters: {
+    enabled: true,
+  },
 }

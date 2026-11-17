@@ -7,6 +7,7 @@ import { pageContentWrapper } from '@/components/layout/page-content-wrapper'
 import CurrentCatalog from '@/components/current-catalog'
 import CategoryProducts, { type CategoryProductsQuery } from '@/components/category/products'
 
+import { baseFilters } from '@/lib/catalog'
 import { HttpError, loadCategories, loadCategory, loadProducts } from '@/lib/queries'
 import { Category, CategoryTreeItem } from '@/lib/types'
 
@@ -14,9 +15,6 @@ export const revalidate = 86400 // once a day
 
 const pageSize = 1000
 const defaultOrder = 'title'
-const baseFilters = {
-  enabled: true,
-}
 
 const categoryPathname = (path: string[]) => `/catalog/${path.join('/')}/`
 

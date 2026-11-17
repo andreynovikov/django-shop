@@ -10,6 +10,7 @@ import { ProductImageGallery, GalleryLink } from '@/components/product/image-gal
 import { badgeClass } from '@/components/ui/badge'
 import { buttonClass } from '@/components/ui/button'
 
+import { baseFilters } from '@/lib/catalog'
 import { prettifyProductFieldValue } from '@/lib/format'
 import { loadProducts, getProductFields } from '@/lib/queries'
 import { Product } from '@/lib/types'
@@ -270,6 +271,6 @@ export async function generateStaticParams() {
   if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
     return []
 
-  const products = await loadProducts(null, 1000, { kind: [1, 2] }, '', ['code'])
+  const products = await loadProducts(null, 1000, { ...baseFilters, kind: [1, 2] }, '', ['code'])
   return products.results.map((product) => ({ code: product.code }))
 }
