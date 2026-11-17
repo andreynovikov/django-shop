@@ -15,7 +15,7 @@ import { advertClass } from '@/components/ui/content'
 export const revalidate = 3600
 
 const itemsPerSection = 16
-const sort = '-price'
+const sort = '-cost'
 
 const recomendedProductsFilters = {
   ...baseFilters,

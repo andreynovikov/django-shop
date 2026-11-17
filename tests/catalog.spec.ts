@@ -26,28 +26,33 @@ test('price range filter updates query', async ({ page, isMobile }) => {
   const thumbs = widget.getByRole('slider')
   await expect(thumbs).toHaveCount(2)
 
+  // the category names the parameter, cost or the list price
+  const minInput = widget.locator('input[name$="_min"]')
+  const name = (await minInput.getAttribute('name'))?.replace(/_min$/, '')
+  expect(name).toMatch(/^(cost|price)$/)
+  const query = (max: string) => new RegExp(`[?&]${name}=\\d+-${max}`)
+
   // moving the minimum thumb with keyboard, thumbs are server rendered so retry until hydrated
-  const minInput = widget.locator('input[name="price_min"]')
   const initialMin = Number(await minInput.inputValue())
   // the scale starts at the lowest price, where the minimum thumb rests
   await expect(thumbs.first()).toHaveAttribute('min', String(initialMin))
   await expect(async () => {
     await thumbs.first().focus()
     await page.keyboard.press('PageUp')
-    await expect(page).toHaveURL(/[?&]price=\d+-\d+/, { timeout: 1000 })
+    await expect(page).toHaveURL(query('\\d+'), { timeout: 1000 })
   }).toPass()
   await expect.poll(async () => Number(await minInput.inputValue())).toBeGreaterThan(initialMin)
 
   // typing the maximum moves the slider thumb
-  const maxInput = widget.locator('input[name="price_max"]')
+  const maxInput = widget.locator(`input[name="${name}_max"]`)
   await maxInput.fill('50000')
   await expect(thumbs.last()).toHaveAttribute('aria-valuenow', '50000')
-  await expect(page).toHaveURL(/[?&]price=\d+-50000/)
+  await expect(page).toHaveURL(query('50000'))
 
   // the backend refuses a negative bound, so typing one changes nothing
   await maxInput.fill('-5')
   await expect(maxInput).toHaveValue('50000')
-  await expect(page).toHaveURL(/[?&]price=\d+-50000/)
+  await expect(page).toHaveURL(query('50000'))
 })
 
 test('slider filter updates query', async ({ page, isMobile }) => {
