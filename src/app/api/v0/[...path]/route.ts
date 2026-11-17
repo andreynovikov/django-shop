@@ -4,6 +4,10 @@ import { NextRequest, NextResponse } from 'next/server'
 // X-Real-IP is set by nginx, which replaces any value the client sent; Django trusts it with the key below.
 const REQUEST_HEADERS = ['cookie', 'origin', 'referer', 'user-agent', 'content-type', 'x-real-ip']
 const RESPONSE_HEADERS = ['cache-control', 'vary', 'retry-after']
+// fetch() decodes a compressed body but keeps these headers, which describe the compressed one. Passed on, they make
+// the browser decode plain JSON, cut to the compressed length ("Decoding failed"). nginx compresses the response again.
+// Next 16.4.5 drops them itself, 16.4.3 doesn't.
+const DECODED_HEADERS = ['content-encoding', 'content-length']
 
 // The old name is read until the backend's cookie rename has been out for SESSION_COOKIE_AGE (4 weeks)
 const CSRF_COOKIES = ['__Host-csrftoken', 'csrftoken']
@@ -61,7 +65,7 @@ async function proxyRequest(request: NextRequest, { params }: RouteContext<'/api
     })
 
     const responseHeaders = Array.from(response.headers.entries()).filter(
-      ([key]) => key.startsWith('content-') || RESPONSE_HEADERS.includes(key)
+      ([key]) => (key.startsWith('content-') && !DECODED_HEADERS.includes(key)) || RESPONSE_HEADERS.includes(key)
     )
 
     // Pass cookies to browser
