@@ -562,6 +562,7 @@ export interface User {
   permanent_password: boolean
   last_login: string | null
   date_joined: string
+  is_staff: boolean  // staff may have any page rendered again, see /api/revalidate
 }
 
 export interface UserEdit {

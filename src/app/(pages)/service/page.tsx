@@ -9,7 +9,7 @@ import { MapMarker, MarkerPin, MarkersMap } from '@/components/map'
 import { loadServiceCenters } from '@/lib/queries'
 import { ServiceCenter } from '@/lib/types'
 
-export const revalidate = 3600
+export const revalidate = 86400
 
 export const metadata: Metadata = {
   title: 'Ремонт швейных машин и оверлоков Family',

@@ -8,6 +8,7 @@ import { userKeys } from './users'
 
 export * from './baskets'
 export * from './blog'
+export * from './cache-tags'
 export * from './categories'
 export * from './comparisons'
 export * from './favorites'

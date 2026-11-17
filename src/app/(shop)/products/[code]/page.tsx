@@ -18,7 +18,7 @@ import { Product } from '@/lib/types'
 
 import { getProduct } from './load'
 
-export const revalidate = 86400 // once a day
+export const revalidate = 3600
 
 const fieldList: (keyof Product)[] = [
   'km_class', 'km_font', 'km_needles', 'km_prog', 'km_rapport',
