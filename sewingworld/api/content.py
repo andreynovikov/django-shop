@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from django.contrib.flatpages.models import FlatPage
 
-from shop.models import News, SalesAction, Advert, Store, ServiceCenter
+from shop.models import News, Product, SalesAction, Advert, Store, ServiceCenter
 
 from sewingworld.models import SiteProfile
 from sewingworld.serializers.catalog import ProductListSerializer
@@ -58,7 +58,9 @@ class SalesActionViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=True)
     def products(self, request, slug=None):
         action = self.get_object()
-        queryset = ProductListSerializer.prefetch(action.products.filter(enabled=True).order_by('-price'))
+        # sort by product cost; pk keeps products of one cost on their pages
+        products = Product.with_site_cost(action.products.filter(enabled=True), request.site).order_by('-cost', 'pk')
+        queryset = ProductListSerializer.prefetch(products)
         paginator = StandardResultsSetPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
 

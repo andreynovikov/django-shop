@@ -25,7 +25,7 @@ class Category(MPTTModel):
                                     width_field='promo_image_width', height_field='promo_image_height')
     promo_image_width = models.IntegerField(null=True, blank=True)
     promo_image_height = models.IntegerField(null=True, blank=True)
-    product_order = models.CharField('поле сортировки товаров', max_length=50, default='-price')
+    product_order = models.CharField('поле сортировки товаров', max_length=50, default='-cost')
 
     def get_api_path(self):
         # TODO: refactor: remove mptt_urls get_path injection, use this instead

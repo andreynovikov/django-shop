@@ -72,12 +72,13 @@ class SalesActionTests(Base):
         self.assertEqual(self.get('salesactions/elsewhere/').status_code, 404)
 
     def test_enabled_products_dearest_first(self):
+        """ By the price that the site shows: the discount puts the dearest list price second """
         action = self.action('sale')
-        for pk, price, enabled in ((1, 300, True), (2, 20000, True), (3, 5000, False)):
-            add_product(pk, price=price, enabled=enabled).sales_actions.add(action)
+        for pk, price, val_discount, enabled in ((1, 300, 0, True), (2, 20000, 16000, True), (3, 50000, 0, False), (4, 5000, 0, True)):
+            add_product(pk, price=price, val_discount=val_discount, enabled=enabled).sales_actions.add(action)
         data = self.get('salesactions/sale/products/').json()
-        self.assertEqual([product['id'] for product in data['results']], [2, 1])
-        self.assertEqual(data['count'], 2)
+        self.assertEqual([product['id'] for product in data['results']], [4, 2, 1])
+        self.assertEqual(data['count'], 3)
 
 
 class AdvertTests(Base):
