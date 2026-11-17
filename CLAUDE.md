@@ -89,4 +89,4 @@ A shared component styles itself only through these helpers and tokens. When it 
 - The build and the tests take `ENV_FILE` from the `sworld` GitHub environment, because the `.env` is baked into the image; stage runs the production image. The deploy jobs use the repo secrets `DEPLOY_HOST`, `DEPLOY_USER` and `SSH_PRIVATE_KEY`.
 - The other storefronts' branches have the same workflow without the tests and stage. `main` holds a stub of it, which GitHub needs to show the Run workflow button.
 - At container start, `startup.sh` copies `.next/static` and `public/` into the `.docker/` volume so nginx can serve them.
-- "Frontend deployment" in `DEPLOYMENT.rst` on the `main` branch documents the server side and the GitHub settings. That file also covers the rest of the server setup: nginx, Postgres, the Django backend, and replication.
+- "Frontend deployment" in `deploy/README.md` on the `main` branch documents the server side and the GitHub settings. That file also covers the rest of the server setup: nginx, Postgres, the Django backend (uWSGI, Celery), backups and monitoring. Part of it is automated by the Ansible playbook in `deploy/ansible/`.
