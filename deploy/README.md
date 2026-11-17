@@ -162,7 +162,8 @@ password with an OTP code.
 ## Firewall
 
 Only ssh, HTTP, HTTPS and HTTP/3 are open, and the hosting's Zabbix servers may reach the agent. Everything else, such
-as Prometheus and node-exporter, is reachable from the server itself only. `/etc/nftables.conf`:
+as Prometheus and node-exporter, is reachable from the server itself only. Skip this section where the hosting's
+firewall allows the same and nothing else. `/etc/nftables.conf`:
 
 ```
 #!/usr/sbin/nft -f
@@ -421,29 +422,40 @@ plugins = python3,logfile
 chdir = /www/www.sewing-world.ru
 virtualenv = /www/www.sewing-world.ru/.venv
 module = sewingworld.wsgi:application
+need-app = true
+single-interpreter = true
 lazy-apps = true
-processes = 3
-threads = 8
+processes = 6
+threads = 4
+thunder-lock = true
 buffer-size = 8192
 uid = sworld
 gid = sworld
 chmod-socket = 660
 env = PYTHONIOENCODING=UTF-8
-harakiri = 120
+harakiri = 60
 vacuum = true
 max-requests = 5000
+reload-on-rss = 600
 touch-chain-reload = /www/www.sewing-world.ru/.touch_reload
 logger = file:/www/www.sewing-world.ru/logs/uwsgi_error.log
 log-date = true
-req-logger = file:/www/www.sewing-world.ru/logs/uwsgi_access.log
+disable-logging = true
+log-5xx = true
+log-slow = 2000
 stats = 127.0.0.1:9191
 stats-http = true
 ```
 
-`touch .touch_reload` in the site directory reloads the workers one by one, which needs `lazy-apps`. The admin site
-(`admin.ini`) is the same with `env = ADMIN=True`, without `req-logger` and `stats`, and it logs to
-`admin_uwsgi_error.log`. `dev.ini` has `processes = 1`, `threads = 2` and `py-autoreload = 3`, which reloads
-it when a file of its code changes.
+`touch .touch_reload` in the site directory reloads the workers one by one, which needs `lazy-apps`. With
+`need-app`, uWSGI stops when Django cannot be loaded, also on such a reload, and systemd starts it again until the
+code loads. The API runs mostly Python, which a process runs on one core at a time, so `prod` has 6 processes of 4
+threads rather than 3 of 8. uWSGI logs only failed requests and those slower than 2 seconds, nginx logs them all.
+Keep `harakiri` a little shorter than nginx's `uwsgi_read_timeout` for the app, which is 60 s by default.
+
+The admin site (`admin.ini`) is the same with `env = ADMIN=True`, `processes = 2`, `harakiri = 300` for exports and
+labels, and without `stats`, and it logs to `admin_uwsgi_error.log`. `dev.ini` has `processes = 1` and
+`threads = 2`. Reload it after a pull with `touch /www/dev.sigalev.ru/.touch_reload`.
 
 Each application should be:
 
@@ -538,17 +550,6 @@ Once the site is deployed, see [Environment setup](#environment-setup):
 
 ```sh
 systemctl enable --now celery@prod celery_beat@prod
-```
-
-# Node.js setup
-
-Install Node (replace XX.X with actual version):
-
-```sh
-mkdir /www/.nvm
-export NVM_DIR="/www/.nvm"
-wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.XX.X/install.sh | bash
-nvm install node
 ```
 
 # Environment setup

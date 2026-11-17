@@ -29,7 +29,10 @@ sshd lets in only the users of `server_users` and `server_ssh_extra_users`. If G
 user (the `DEPLOY_USER` secret), add it to `server_ssh_extra_users` before the run, or the deploys stop working.
 
 The `firewall` tag turns on nftables. Keep an ssh session open on the first run of it. If something else connects
-to the server, for example over the private network, add a rule for it to `server_firewall_rules`.
+to the server, for example over the private network, add a rule for it to `server_firewall_rules`. Where the
+hosting's firewall filters the traffic instead, set `server_firewall: false` in `inventory.yml`, and let that firewall
+allow the same: tcp 22, 80 and 443, udp 443, and tcp 10050 from the hosting's Zabbix servers. The playbook then
+skips the section, but it does not turn off nftables that an earlier run turned on.
 
 ## Preparation
 
@@ -128,7 +131,8 @@ user and use sudo once root is locked out, so give yourself an ssh key and a pas
    because ssh logins with a password also ask for an OTP code now.
 
 The production server copies the backup repository password from the backup host, so set up that one first if it is
-new. `-K` gives the same sudo password to both servers.
+new. `-K` gives the same sudo password to both servers. Until there is a backup host, leave the `backup` group of
+`inventory.yml` empty: the production server then skips its "Database backups" section.
 
 ## New backup host
 

@@ -10,24 +10,6 @@
   ansible.builtin.set_fact:
     server_deployed_sites: "{{ site_venvs.results | selectattr('stat.exists') | map(attribute='item') | list }}"
 
-# nginx opens its logs as root. Where the service user can write, it could point a log at any file with a symbolic
-# link, so the logs directories are handed over only once nginx writes to /var/log/nginx.
-- name: Look for nginx logs in /www
-  ansible.builtin.command:
-    # -R follows the links in sites-enabled
-    argv: [grep, -RlE, '^[[:space:]]*(access|error)_log[[:space:]]+/www/', /etc/nginx/nginx.conf, /etc/nginx/conf.d/, /etc/nginx/sites-enabled/]
-  register: nginx_www_logs
-  changed_when: false
-  failed_when: nginx_www_logs.rc > 1
-  check_mode: false
-
-- name: Stop if nginx still writes its logs into /www
-  ansible.builtin.fail:
-    msg: >-
-      nginx writes its logs into /www in {{ nginx_www_logs.stdout_lines | join(', ') }}. Move them to /var/log/nginx
-      first, see "Nginx setup" in deploy/README.md.
-  when: nginx_www_logs.rc == 0
-
 - name: Check the directories of the service user
   ansible.builtin.stat:
     path: /www/{{ item.0 }}/{{ item.1 }}

@@ -1,0 +1,8 @@
+# The sites are cloned into /www by hand, see "Environment setup".
+- name: Create /www
+  ansible.builtin.file:
+    path: /www
+    state: directory
+    owner: "{{ server_www_owner }}"
+    group: www-data
+    mode: "0755"

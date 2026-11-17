@@ -1,4 +1,5 @@
 # "Production server" in "Database backups". RESTIC_* settings go into the .env of the deployment by hand.
+# main.yml skips this file without a backup host in the inventory.
 - name: Install restic
   ansible.builtin.apt:
     name: restic
@@ -15,7 +16,6 @@
   delegate_to: "{{ server_backup_password_host }}"
   register: restic_password
   no_log: true
-  when: server_backup_password_host | length > 0
 
 - name: Copy the repository password
   ansible.builtin.copy:
@@ -24,7 +24,6 @@
     owner: "{{ server_app_user }}"
     mode: "0400"
   no_log: true
-  when: server_backup_password_host | length > 0
 
 - name: Install backup units
   ansible.builtin.template:

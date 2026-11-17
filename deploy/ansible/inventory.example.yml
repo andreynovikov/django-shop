@@ -22,6 +22,10 @@ all:
         # server_ssh_extra_users: [deploy]
         # After the deployment and its .env are in place:
         # server_db_backup_deployments: [www.sewing-world.ru]
+        # Where the hosting's firewall filters the traffic. It must allow what server_firewall_* of
+        # roles/server/defaults/main.yml allow.
+        # server_firewall: false
+    # Leave it empty until the backup host is ready, the production server skips its backup section then
     backup:
       hosts:
         backup.example.ru:

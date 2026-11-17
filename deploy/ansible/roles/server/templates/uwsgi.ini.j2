@@ -5,9 +5,14 @@ plugins = python3,logfile
 chdir = /www/{{ item.site }}
 virtualenv = /www/{{ item.site }}/.venv
 module = sewingworld.wsgi:application
+; Stop when Django does not load, instead of answering every request with an error
+need-app = true
+single-interpreter = true
 lazy-apps = true
-processes = {{ item.processes | default(3) }}
-threads = {{ item.threads | default(8) }}
+processes = {{ item.processes | default(2) }}
+threads = {{ item.threads | default(4) }}
+; The workers take turns to accept from the socket, instead of all waking up for each connection
+thunder-lock = true
 buffer-size = 8192
 uid = {{ server_app_user }}
 gid = {{ server_app_user }}
@@ -16,15 +21,18 @@ env = PYTHONIOENCODING=UTF-8
 {% if item.admin | default(false) %}
 env = ADMIN=True
 {% endif %}
-harakiri = 120
+harakiri = {{ item.harakiri | default(60) }}
 vacuum = true
 max-requests = 5000
+; Megabytes. Restarts a worker that leaks before the OOM killer stops it.
+reload-on-rss = 600
 touch-chain-reload = /www/{{ item.site }}/.touch_reload
 logger = file:/www/{{ item.site }}/logs/{{ 'admin_' if item.admin | default(false) else '' }}uwsgi_error.log
 log-date = true
-{% if item.request_log | default(false) %}
-req-logger = file:/www/{{ item.site }}/logs/uwsgi_access.log
-{% endif %}
+; nginx logs every request with its time, uWSGI only the failed ones and those slower than 2 s
+disable-logging = true
+log-5xx = true
+log-slow = 2000
 {% if item.stats is defined %}
 stats = {{ item.stats }}
 stats-http = true

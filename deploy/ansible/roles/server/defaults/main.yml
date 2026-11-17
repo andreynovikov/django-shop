@@ -12,7 +12,7 @@ server_packages:
   - redis-server
   - certbot
   - git
-  # not listed in deploy/README.md: the uv and nvm installers download with curl, Ansible needs acl to become
+  # not listed in deploy/README.md: the uv installer download with curl, Ansible needs acl to become
   # an unprivileged user, and timesyncd is not installed everywhere
   - curl
   - acl
@@ -59,6 +59,9 @@ server_app_user: sworld
 # AllowUsers of sshd lists server_users and these. Add the user GitHub Actions deploys with if it is not one of them.
 server_ssh_extra_users: []
 
+# false skips the "Firewall" section, where the hosting's firewall filters the traffic instead. It must then allow
+# what the variables below allow. The section does not undo nftables when it is turned off.
+server_firewall: true
 # Open to everyone, besides the loopback, docker0, ICMP and DHCP
 server_firewall_tcp_ports: [22, 80, 443]
 server_firewall_udp_ports: [443]  # HTTP/3
@@ -71,26 +74,28 @@ server_timezone: Europe/Moscow
 server_ntp: ru.pool.ntp.org
 server_memcached_memory: 256
 
-# Owner of /www, where the sites and Node.js live
+# Owner of /www, where the sites live
 server_www_owner: andrey
-server_nvm_version: v0.41.0
 
 # uWSGI apps, an ini file in /etc/uwsgi/apps-available each. Their units start once /www/<site>/.venv exists.
-# processes and threads default to 3 and 8, options adds more lines to the ini file.
+# processes and threads default to 2 and 4, harakiri to 60 seconds, options adds more lines to the ini file.
+# The API runs mostly Python, which one process runs on one core at a time, so prod has more processes rather than
+# more threads. Keep harakiri a little shorter than nginx's uwsgi_read_timeout for the app.
 server_uwsgi_apps:
   - name: prod
     site: www.sewing-world.ru
-    request_log: true
+    processes: 6
     stats: 127.0.0.1:9191
+  # Exports, labels and 1C files take longer
   - name: admin
     site: www.sewing-world.ru
     admin: true
+    harakiri: 300
+  # Reload it after a pull with touch /www/dev.sigalev.ru/.touch_reload
   - name: dev
     site: dev.sigalev.ru
     processes: 1
     threads: 2
-    options:
-      py-autoreload: 3
 
 # Celery workers and beat, /etc/celery/<name>_worker and <name>_beat each. Their units start once
 # /www/<site>/.venv exists. nodes maps each node of celery multi to its queues.
@@ -118,16 +123,14 @@ server_app_directories:
 # The secrets only the service user and root may read, with the backups that Emacs leaves next to them
 server_app_secrets:
   - .env
-  - .env~
   - .env.admin
-  - .env.admin~
   - sewingworld/settings/integrations.py
-  - sewingworld/settings/integrations.py~
 
 # Deployments in /www that back up their database hourly, one per database, and deployments that only save their
 # config daily
 server_db_backup_deployments: []
 server_db_backup_config_deployments: []
 
-# The host that holds the backup repository password, the first one of the inventory group "backup"
+# The host that holds the backup repository password, the first one of the inventory group "backup". Without it the
+# "Database backups" section is skipped, so leave the group empty until the backup host is ready.
 server_backup_password_host: "{{ (groups['backup'] | default([]) | first) | default('', true) }}"
