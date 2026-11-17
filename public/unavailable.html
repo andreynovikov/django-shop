@@ -1,0 +1,148 @@
+<!doctype html>
+<!--
+  Shown by nginx when the frontend container doesn't answer (502/503/504).
+  startup.sh copies public/ into the .docker/ volume, so the file stays there while the container is stopped.
+  Everything is inline: nginx serves this page for any URL, and nothing else may be reachable.
+-->
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Сайт скоро вернётся - Дор Так</title>
+<link rel="icon" href="/images/favicon.png" type="image/png">
+<style>
+  :root {
+    --green: #10a04e;
+    --link: #337ab7;
+    --text: #212529;
+    --muted: #6c757d;
+    --bg: #fff;
+    --wood: #d9b48a;
+    --track: 286px;
+    --spool: 48px;
+    --roll: 3.2s;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    text-align: center;
+  }
+  main { width: 100%; max-width: 480px; }
+  .logo { display: block; width: min(280px, 100%); height: auto; margin: 0 auto; }
+  .logo .fill { fill: var(--green); }
+  .logo .line { fill: none; stroke: var(--green); stroke-linecap: round; stroke-linejoin: round; }
+
+  /* A spool rolls across and lays its thread, then rolls back and winds it up */
+  .track {
+    position: relative;
+    width: var(--track);
+    height: var(--spool);
+    margin: 48px auto 40px;
+  }
+  .track::before { /* the table edge */
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    border-top: 1px dashed #e3e6ea;
+  }
+  .thread {
+    position: absolute;
+    left: calc(var(--spool) / 2);
+    bottom: 0;
+    width: 0;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--green);
+    animation: lay var(--roll) infinite alternate;
+  }
+  .spool {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--spool);
+    height: var(--spool);
+    animation: roll var(--roll) infinite alternate;
+  }
+  /* distance = track - spool = 238px; turn = 238 / (π · 48) · 360° ≈ 568° */
+  @keyframes roll {
+    0%, 8% { transform: translateX(0) rotate(0); animation-timing-function: ease-in-out; }
+    92%, 100% { transform: translateX(238px) rotate(568deg); }
+  }
+  @keyframes lay {
+    0%, 8% { width: 0; animation-timing-function: ease-in-out; }
+    92%, 100% { width: 238px; }
+  }
+
+  h1 { margin: 0 0 12px; font-size: 1.75rem; line-height: 1.25; font-weight: 600; }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); font-size: .9375rem; }
+  a { color: var(--link); text-decoration: none; white-space: nowrap; }
+  a:hover { color: var(--green); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .thread, .spool { animation: none; }
+    .thread { width: 238px; }
+    .spool { transform: translateX(238px); }
+  }
+</style>
+</head>
+<body>
+<main>
+  <svg class="logo" viewBox="0 10 182 46" role="img" aria-label="Дор Так">
+    <path class="fill" d="M13.6,23.5H1v17.2l12.8,0c0,0,7.8,0.1,7.8-8.8S13.6,23.5,13.6,23.5z M14.6,34.3c0,0-0.4,2.2-2.4,2.2s-4.2,0-4.2,0V28h4c0,0,2.5,0.2,2.6,2.2C14.7,32.2,14.6,34.3,14.6,34.3z"/>
+    <path class="fill" d="M34.7,23.1c0,0-11.3,0.1-11.3,9.1c0,9.1,11.3,8.6,11.3,8.6s10.9,0.8,10.9-8.6C45.6,22.9,34.7,23.1,34.7,23.1z M38.3,34.6c0,0,0.2,2.5-3.8,2.5c-3.8,0-3.8-2.5-3.8-2.5v-4.2c0,0,0-2.9,3.8-2.9c0,0,3.3-0.5,3.8,2.6C38.7,32.5,38.3,34.6,38.3,34.6z"/>
+    <path class="fill" d="M67.9,39.2c0,0,0-1.8,0-3.6c0-1.9-2.6-2.8-2.6-2.8s2.6-0.6,2.6-4.9s-6.5-4.4-6.5-4.4H48.8v17.2h6.7v-6c0,0,1.8,0,3.7,0c1.9,0,2,2.3,2,2.3v3.7h7.6v-0.6C68.1,40.1,67.9,39.2,67.9,39.2z M59.8,31.2h-4.3v-3.4h4.3c0,0,1.9,0.3,1.9,1.7C61.6,30.8,59.8,31.2,59.8,31.2z"/>
+    <polygon class="fill" points="107.7,23.5 127,23.5 127,28.5 121.1,28.5 121.1,40.8 113.6,40.8 113.6,28.6 107.7,28.6"/>
+    <path class="fill" d="M142.9,23.5h-7.3l-7.6,17.2h7.1l1-2.2h6.3l0.9,2.2h7.3L142.9,23.5z M137.3,34.8l2.1-4.9l1.9,4.9H137.3z"/>
+    <polygon class="fill" points="152.8,23.5 159.9,23.5 159.9,29.2 165.8,23.5 173.8,23.5 166.7,30.6 175.2,40.8 166.4,40.8 161.5,34.3 160.1,35.4 160.1,40.8 152.8,40.8"/>
+    <path class="fill" d="M177.2,21.2c0,0-3.6-0.3-3.6,4c0,3.7,3.6,3.6,3.6,3.6s3.8,0,3.8-3.8C181,20.7,177.2,21.2,177.2,21.2z M177.2,28.1c0,0-2.9,0-2.9-2.9c0-3.4,2.9-3.2,2.9-3.2s3-0.4,3,3.1C180.3,28.1,177.2,28.1,177.2,28.1z"/>
+    <path class="line" stroke-width=".636" d="M176.1,26.9v-3.3c0-0.4,0.3-0.7,0.7-0.7h0.9c0.1,0,0.2,0,0.4,0.1c0.3,0.2,0.8,0.6,0.8,1.2c0,0.8-0.9,1.2-0.9,1.2l-1.4,0l2.6,1.6"/>
+    <path class="line" stroke-width=".9784" d="M101.8,46l-19.6,5.2l24.5-12.7l-31.3,9.5l31.3-16.3L70.9,41.9L104.1,26l-31.4,8.6l26.8-13.9l-23,6.2L96,16.6l-16.1,2.5l11.4-6.1 M91.1,15.8L79.5,22l16.2-2.6L76.3,29.7l22.9-6.2L72.4,37.6l31.2-8.8L70.9,44.7l35.9-10.2L75.2,50.9l31.1-9.8L81.9,54l19.3-5.1"/>
+  </svg>
+
+  <div class="track" aria-hidden="true">
+    <div class="thread"></div>
+    <svg class="spool" viewBox="0 0 48 48">
+      <circle cx="24" cy="24" r="23" fill="#d9b48a" stroke="#b58c5c" stroke-width="1.5"/>
+      <circle cx="24" cy="24" r="16.5" fill="#10a04e"/>
+      <path d="M24 11.5 A12.5 12.5 0 0 1 36.5 24 M24 36.5 A12.5 12.5 0 0 1 11.5 24" fill="none" stroke="#6fd49a" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M24 15 A9 9 0 0 1 33 24 M24 33 A9 9 0 0 1 15 24" fill="none" stroke="#0b7a3b" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="24" cy="24" r="5" fill="#8a6237"/>
+      <circle cx="24" cy="4.5" r="1.4" fill="#b58c5c"/>
+      <circle cx="24" cy="43.5" r="1.4" fill="#b58c5c"/>
+    </svg>
+  </div>
+
+  <h1>Сайт скоро вернётся</h1>
+  <p>Мы обновляем магазин, обычно это занимает пару минут. Страница откроется сама, как только всё будет готово.</p>
+  <p class="muted">Если нужна помощь прямо сейчас, позвоните нам: <a href="tel:+74957665675">+7 (495) 766-56-75</a></p>
+</main>
+<script>
+  // Reload once the site answers again. Not on this file's own URL, which the running site serves with 200.
+  (function () {
+    if (!window.fetch || /\/unavailable\.html$/.test(location.pathname)) return;
+    var delay = 10000;
+    function check() {
+      fetch(location.href, { method: 'HEAD', cache: 'no-store' }).then(function (r) {
+        if (r.status < 500) location.reload(); else later();
+      }, later);
+    }
+    function later() {
+      delay = Math.min(delay * 1.5, 60000);
+      setTimeout(check, delay);
+    }
+    setTimeout(check, delay);
+  })();
+</script>
+</body>
+</html>
