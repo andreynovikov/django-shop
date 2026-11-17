@@ -1,4 +1,5 @@
 from django.db.models import Prefetch
+from django.db.models.manager import BaseManager
 
 from rest_framework import serializers
 
@@ -23,6 +24,15 @@ class IntegrationSerializer(NonNullModelSerializer):
         exclude = ('suppliers', 'products', 'settings')  # settings hold the marketplaces' API keys
 
 
+class IntegrationProductListSerializer(serializers.ListSerializer):
+    def to_representation(self, data):
+        products = list(data.all() if isinstance(data, BaseManager) else data)
+        if 'stock' in self.child.fields:
+            # the stock of the whole feed at once, instead of queries for each product
+            self.child.stocks = Product.get_stocks([product.pk for product in products], integration=self.context.get('integration'))
+        return super().to_representation(products)
+
+
 class IntegrationProductSerializer(serializers.ModelSerializer):
     categories = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
@@ -31,11 +41,14 @@ class IntegrationProductSerializer(serializers.ModelSerializer):
     instock = serializers.SerializerMethodField()
     stock = serializers.SerializerMethodField()
 
+    stocks = None  # {product id: stock} of a list, see IntegrationProductListSerializer
+
     class Meta:
         model = Product
         fields = ('id', 'code', 'article', 'partnumber', 'gtin', 'isnew', 'whatis', 'whatisit', 'type_prefix', 'title', 'descr', 'yandexdescr',
                   'image', 'price', 'cost', 'enabled', 'categories', 'instock', 'stock', 'manufacturer', 'manufacturer_warranty',
                   'prom_weight', 'length', 'width', 'height', 'sales_notes', 'state')
+        list_serializer_class = IntegrationProductListSerializer
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -73,4 +86,6 @@ class IntegrationProductSerializer(serializers.ModelSerializer):
         return max(min(obj.instock, 10), 0)
 
     def get_stock(self, obj):
+        if self.stocks is not None:
+            return self.stocks[obj.pk]
         return obj.get_stock(integration=self.context.get('integration'))

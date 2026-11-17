@@ -1,6 +1,7 @@
 import logging
 import os
 
+from collections import defaultdict
 from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
 from django.conf import settings
@@ -367,9 +368,6 @@ class Product(models.Model):
     def site_cost(self, site):
         """ The price that the site shows, its discounts taken off; with_site_cost() does the same in SQL, keep them in step """
         site_price = self.site_price_record(site)
-        if self.pk == 2382:
-            logger.error(self.code)
-            logger.error(site_price)
         if site_price is None:
             if hasattr(site, 'profile') and site.profile.wholesale:
                 return self.ws_cost
@@ -422,58 +420,104 @@ class Product(models.Model):
 
     @property
     def instock(self) -> int:
-        if self.num >= 0:
-            return self.num
-        self.num = self.get_stock()
-        try:
-            # Only the stock: the whole row would put back what this copy holds over changes saved since it
-            # was read, such as prices from an import. The receivers of post_save still see the new stock.
-            super(Product, self).save(update_fields=['num'])
-        except DatabaseError:
-            pass  # ignore lock timeout, TODO: refactor 1C import? Or the product is gone, there is nothing to update.
+        if self.num < 0:
+            self.save_stock(self.get_stock())
         return self.num
 
+    def save_stock(self, num):
+        """
+        Saves the stock counted, and only it: the whole row would put back what this copy holds over changes saved
+        since it was read, such as prices from an import. The receivers of post_save still see the new stock.
+        """
+        self.num = num
+        try:
+            super().save(update_fields=['num'])
+        except DatabaseError:
+            pass  # ignore lock timeout, TODO: refactor 1C import? Or the product is gone, there is nothing to update.
+
     def get_stock(self, integration=None, express=False):
-        num = 0
-        if self.constituents.count() == 0:
-            if integration is not None:
-                suppliers = self.stock.filter(pk__in=integration.suppliers.all())
-            else:
-                suppliers = self.stock.filter(count_in_stock=Supplier.COUNT_STOCK)
+        """ The product's stock, see get_stocks() """
+        return Product.get_stocks([self.pk], integration=integration, express=express)[self.pk]
 
-            if express:
-                suppliers = suppliers.filter(express_count_in_stock=Supplier.COUNT_STOCK)
+    @classmethod
+    def get_stocks(cls, ids, integration=None, express=False):
+        """
+        Stock of the products, {id: stock}, counted in a few queries however many products there are. A product
+        has what its suppliers hold, less the items of orders in progress on the sites that sell from them, and
+        none when corrections or orders take more than they hold. The
+        suppliers are the integration's or, without one, those that count in stock; with express, only those of them
+        that count in express stock. A set has as many as its parts make whole, each part counted the same way.
+        """
+        ids = set(ids)
+        parts = defaultdict(list)
+        for declaration, part, quantity in ProductSet.objects.filter(declaration__in=ids).values_list('declaration', 'constituent', 'quantity'):
+            parts[declaration].append((part, quantity))
+        stocks = cls._held_stocks(ids - parts.keys(), integration, express)
+        if parts:
+            part_stocks = cls.get_stocks({part for items in parts.values() for part, _ in items}, integration, express)
+            for declaration, items in parts.items():
+                num = 32767
+                for part, quantity in items:
+                    n = int(part_stocks[part])  # whole parts, as the stock that a product saves (num) has
+                    if quantity > 1:
+                        n = int(n / quantity)
+                    num = min(num, n)
+                stocks[declaration] = num
+        return stocks
 
-            # one query for what was a query per supplier: the product has one Stock of each, see unique_together
-            stock = Stock.objects.filter(product=self, supplier__in=suppliers).aggregate(
-                quantity=models.Sum('quantity'), correction=models.Sum('correction'))
-            if stock['quantity'] is not None:
-                num = num + stock['quantity'] + stock['correction']
+    @staticmethod
+    def _held_stocks(ids, integration, express):
+        """ get_stocks() of products that are not sets """
+        from .order import Order, OrderItem
 
-            if num > 0:
-                sites = [Site.objects.get(domain='www.sewing-world.ru').id]
-                sites.extend(Site.objects.filter(integration__suppliers__in=suppliers).distinct().values_list('id', flat=True))
-                if Supplier.objects.filter(count_in_stock=Supplier.COUNT_STOCK, pk__in=suppliers).count():
-                    sites.extend(Site.objects.filter(integration__isnull=True).values_list('id', flat=True))
-                from .order import Order, OrderItem
-                ordered = OrderItem.objects.filter(
-                    product=self,
-                    order__site__in=sites,
-                    order__status__in=[Order.STATUS_NEW, Order.STATUS_ACCEPTED, Order.STATUS_COLLECTING, Order.STATUS_COLLECTED, Order.STATUS_DELIVERED_SHOP, Order.STATUS_SENT]
-                ).aggregate(quantity=models.Sum('quantity'))['quantity']
-                if ordered:
-                    num = num - float(ordered)
-                if num < 0:
-                    num = 0
+        stocks = dict.fromkeys(ids, 0)
+        if not stocks:
+            return stocks
+        if integration is not None:
+            suppliers = Supplier.objects.filter(integration=integration)
         else:
-            num = 32767
-            for item in ProductSet.objects.filter(declaration=self).select_related('constituent'):
-                n = item.constituent.instock
-                if item.quantity > 1:
-                    n = int(n / item.quantity)
-                if n < num:
-                    num = n
-        return num
+            suppliers = Supplier.objects.filter(count_in_stock=Supplier.COUNT_STOCK)
+        if express:
+            suppliers = suppliers.filter(express_count_in_stock=Supplier.COUNT_STOCK)
+        count_in_stock = dict(suppliers.values_list('pk', 'count_in_stock'))
+
+        held_by = defaultdict(set)  # of the suppliers that count, those with a stock row of the product
+        sums = {}
+        for product, supplier, quantity, correction in Stock.objects.filter(product__in=ids, supplier__in=list(count_in_stock)).values_list(
+                'product', 'supplier', 'quantity', 'correction'):
+            held_by[product].add(supplier)
+            quantities, corrections = sums.get(product, (0, 0))
+            sums[product] = (quantities + quantity, corrections + correction)
+        for product, (quantities, corrections) in sums.items():
+            # none rather than less: a negative stock would be saved as reset (num < 0), and counted again on each read
+            stocks[product] = max(quantities + corrections, 0)
+
+        available = [product for product, num in stocks.items() if num > 0]
+        if not available:
+            return stocks
+        # Orders hold stock on the sites that sell from its suppliers: the sites of integrations with those
+        # suppliers, the sites without integrations if a supplier counts in stock, and always the main site, which
+        # has integrations of its own.
+        sites_of = defaultdict(set)
+        for supplier, site in Supplier.objects.filter(pk__in=list(count_in_stock), integration__isnull=False).values_list('pk', 'integration__site'):
+            sites_of[supplier].add(site)
+        without_integrations = set(Site.objects.filter(integration__isnull=True).values_list('pk', flat=True))
+        ordered = defaultdict(dict)
+        for product, site, quantity in OrderItem.objects.filter(
+            product__in=available,
+            order__status__in=[Order.STATUS_NEW, Order.STATUS_ACCEPTED, Order.STATUS_COLLECTING, Order.STATUS_COLLECTED, Order.STATUS_DELIVERED_SHOP, Order.STATUS_SENT],
+        ).order_by().values('product', 'order__site').annotate(quantity=models.Sum('quantity')).values_list('product', 'order__site', 'quantity'):
+            ordered[product][site] = quantity
+        for product in available:
+            sites = {settings.SITE_ID}
+            for supplier in held_by[product]:
+                sites |= sites_of[supplier]
+            if any(count_in_stock[supplier] == Supplier.COUNT_STOCK for supplier in held_by[product]):
+                sites |= without_integrations
+            quantity = sum(ordered[product].get(site, 0) for site in sites)
+            if quantity:
+                stocks[product] = max(stocks[product] - float(quantity), 0)
+        return stocks
 
     @staticmethod
     def autocomplete_search_fields():

@@ -10,7 +10,7 @@ from rest_framework.authtoken.models import Token
 
 from shop.models import Category, Integration, ProductIntegration, ShopUser, Stock, Supplier
 
-from .clients import StorefrontClient, add_storefront_key, signed_in
+from .clients import StorefrontClient, add_storefront_key, count_queries, signed_in
 from .fixtures import add_catalog, add_product
 
 
@@ -27,7 +27,7 @@ class IntegrationTests(Base):
     def setUp(self):
         super().setUp()
         root = add_catalog()
-        machines = Category.objects.create(name='Швейные машины', slug='machines', parent=root)
+        self.machines = machines = Category.objects.create(name='Швейные машины', slug='machines', parent=root)
         fabrics = Category.objects.create(name='Ткани', slug='fabrics', parent=root, feed=False)
         marketplace = Site.objects.create(domain='ozon.ru', name='Ozon')  # without a profile, the feed takes the catalog of the request's site
         self.ozon = Integration.objects.create(name='Ozon', utm_source='ozon', site=marketplace, output_template='ozon',
@@ -94,11 +94,25 @@ class IntegrationTests(Base):
         self.assertEqual(sorted(self.feed(output_available=True)), [1])
 
     def test_feed_with_stock_of_the_integrations_suppliers(self):
-        Site.objects.create(domain='www.sewing-world.ru', name='Швейный Мир')  # Product.get_stock() counts its orders
         Stock.objects.create(product_id=1, supplier=self.suppliers[0], quantity=2)
         Stock.objects.create(product_id=1, supplier=self.suppliers[1], quantity=10)
         products = self.feed(output_stock=True)
         self.assertEqual((products[1]['stock'], products[2]['stock']), (2, 0))
+
+    def test_feed_counts_the_stock_of_all_its_products_at_once(self):
+        Integration.objects.filter(pk=self.ozon.pk).update(output_stock=True)
+        Stock.objects.create(product_id=1, supplier=self.suppliers[0], quantity=2)
+
+        def feed():
+            return self.client.get(f'/api/v0/integrations/{self.ozon.id}/products/')
+
+        few = count_queries(feed)
+        for pk in range(10, 15):
+            product = add_product(pk, enabled=True, categories=[self.machines])
+            ProductIntegration.objects.create(product=product, integration=self.ozon, price=900)
+            Stock.objects.create(product=product, supplier=self.suppliers[0], quantity=3)
+        self.assertEqual(count_queries(feed), few)
+        self.assertEqual(len(feed().json()), 7)
 
 
 class StockTests(Base):

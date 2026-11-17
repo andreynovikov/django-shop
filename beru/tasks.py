@@ -198,13 +198,14 @@ def notify_beru_product_stocks(self, products, account):
     updatedAt = datetime.utcnow().replace(microsecond=0).isoformat() + '+00:00'
     skus = []
 
-    products = Product.objects.filter(pk__in=products)
+    products = list(Product.objects.filter(pk__in=products))
+    counted = Product.get_stocks([product.pk for product in products], integration=integration)
     for product in products:
         skus.append({
             'sku': product.article,
             'items': [
                 {
-                    'count': max(0, min(20, int(product.get_stock(integration=integration)))),
+                    'count': max(0, min(20, int(counted[product.pk]))),
                     'updatedAt': updatedAt
                 }
             ]

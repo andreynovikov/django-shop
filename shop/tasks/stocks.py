@@ -11,6 +11,7 @@ import tempfile
 
 from collections import defaultdict
 from datetime import datetime
+from itertools import batched
 from decimal import Decimal, ROUND_HALF_EVEN, ROUND_HALF_UP
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -115,18 +116,26 @@ class fragile(object):
         return error
 
 
+STOCK_BATCH = 500  # products that count_stocks() counts at once
+
+
 @shared_task(name='shop.tasks.count_stocks', queue='import')
 def count_stocks(stock=None):
     """
     Counts the stock of the products whose stock is reset, as import1c() resets it for all of them. Otherwise
     the API counts it in the first requests that show the products, and writes them, which made these requests slow.
-    A task of its own, as it takes a minute or so, and import1c() runs under a lock that expires.
+    A task of its own, as import1c() runs under a lock that expires.
+
+    A batch of products is counted in a few queries and then saved one by one, for the receivers of post_save; small
+    batches keep the time short between counting a product and saving it, when an order may reset its stock again.
 
     stock is [product id, stock] of the products before the import: the storefronts render again the pages of those
     whose stock shows otherwise now, in the background, as few do on each import.
     """
-    for product in Product.objects.filter(num__lt=0).only('num'):
-        product.instock  # counts and saves it
+    for products in batched(Product.objects.filter(num__lt=0).only('num'), STOCK_BATCH):
+        stocks = Product.get_stocks(product.pk for product in products)
+        for product in products:
+            product.save_stock(stocks[product.pk])
     if stock:
         revalidate_stock(dict(stock))
 

@@ -184,10 +184,12 @@ def notify_product_stocks(self, products, account):
 
     stocks = []
 
-    products = Product.objects.filter(pk__in=products)
+    products = list(Product.objects.filter(pk__in=products))
+    counted = Product.get_stocks([product.pk for product in products], integration=integration)
+    counted_express = Product.get_stocks([product.pk for product in products], integration=integration, express=True)
     for product in products:
-        stock = max(0, min(20, int(product.get_stock(integration=integration))))
-        express_stock = max(0, min(20, int(product.get_stock(integration=integration, express=True))))
+        stock = max(0, min(20, int(counted[product.pk])))
+        express_stock = max(0, min(20, int(counted_express[product.pk])))
         for warehouse in integration.settings.get('warehouses', []):
             if warehouse.get('is_express', False):
                 warehouse_stock = express_stock

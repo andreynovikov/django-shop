@@ -251,7 +251,6 @@ class StockTests(RevalidationTestCase):
     def setUp(self):
         super().setUp()
         add_marketplace_sites()
-        Site.objects.create(domain='www.sewing-world.ru', name='Швейный Мир')  # get_stock() counts its orders
         self.supplier = Supplier.objects.create(code='s1', code1c='s1', name='Склад', order=1, count_in_stock=Supplier.COUNT_STOCK)
         self.plenty = add_product(1, sites=[self.main], num=-1)
         self.last = add_product(2, sites=[self.main], num=-1)

@@ -399,13 +399,13 @@ def notify_product_stocks(self, products, account, zero_out=False):
     stocks = []
     notified_products = []
 
+    products = [product for product in products if product.gtin in chrtIDs]
+    counted = {} if zero_out else Product.get_stocks([product.pk for product in products], integration=integration)
     for product in products:
-        if product.gtin not in chrtIDs:
-            continue
         if zero_out:
             amount = 0
         else:
-            amount = max(0, min(20, int(product.get_stock(integration=integration))))
+            amount = max(0, min(20, int(counted[product.pk])))
         stocks.append({
             'chrtId': chrtIDs[product.gtin],
             'amount': amount

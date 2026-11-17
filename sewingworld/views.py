@@ -18,8 +18,9 @@ def stock(request):
         'avito': True
     }
     integration = Integration.objects.filter(utm_source='avito').first()
-    products = Product.objects.filter(**filters).distinct()
-    products = map(lambda p: (p, max(int(p.get_stock(integration=integration)), 0)), products)
+    products = list(Product.objects.filter(**filters).distinct())
+    counted = Product.get_stocks([product.pk for product in products], integration=integration)
+    products = [(product, max(int(counted[product.pk]), 0)) for product in products]
     context = {
         'products': products
     }
