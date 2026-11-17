@@ -10,6 +10,7 @@ import ProductReviews from '@/components/product/reviews'
 import ProductRibbons from '@/components/product/ribbons'
 import { ProductTab, ProductTabs, ProductTabsProvider } from '@/components/product/tabs'
 
+import { baseFilters } from '@/lib/catalog'
 import { prettifyProductFieldValue } from '@/lib/format'
 import { rows } from '@/lib/partition'
 import { getProductFields, loadProducts } from '@/lib/queries'
@@ -213,6 +214,6 @@ export async function generateStaticParams() {
   if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
     return []
 
-  const products = await loadProducts(null, 1000, {}, '', ['code'])
+  const products = await loadProducts(null, 1000, baseFilters, '', ['code'])
   return products.results.map((product) => ({ code: product.code }))
 }

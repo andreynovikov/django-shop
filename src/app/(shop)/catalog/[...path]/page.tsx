@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { pageContentWrapper } from '@/components/layout/page-content-wrapper'
 import ProductCard from '@/components/product/card'
 
+import { baseFilters } from '@/lib/catalog'
 import { HttpError, loadCategories, loadCategory, loadProducts } from '@/lib/queries'
 import { CategoryTreeItem } from '@/lib/types'
 
@@ -12,9 +13,6 @@ export const revalidate = 86400 // once a day
 
 const pageSize = 1000
 const defaultOrder = 'title'
-const baseFilters = {
-  enabled: true,
-}
 
 // Shared by generateMetadata and the page, so the category is fetched once per render.
 // The path is joined because cache() compares arguments by identity.
