@@ -1,6 +1,6 @@
 """
-Tasks that saving an order, a page or news queues, they wait for the transaction to commit. The admin saves related
-objects after the object itself, in save_related(): the items and boxes of an order, the sites of news. A task queued
+Tasks that saving an order queues, they wait for the transaction to commit. The admin saves related
+objects after the object itself, in save_related(): the items and boxes of an order. A task queued
 at once could read them before they are saved, or act on a change that is rolled back. See settings.py on how to run.
 """
 from unittest import mock
@@ -10,8 +10,7 @@ from django.db import transaction
 from django.test import TestCase
 
 from beru.tasks import notify_beru_order_status
-from sewingworld.models import SiteProfile
-from shop.models import Box, Integration, News, Order, ShopUser
+from shop.models import Box, Integration, Order, ShopUser
 from shop.tasks.user_interaction import notify_user_order_collected
 
 from .fixtures import add_marketplace_sites, add_product
@@ -68,36 +67,3 @@ class OrderStatusTests(TestCase):
                     order.save()
                     raise Rollback
             delay.assert_not_called()
-
-
-class RevalidationTests(TestCase):
-    def setUp(self):
-        self.main = Site.objects.get_current()
-        self.other = Site.objects.create(domain='other.test', name='Другой')
-        self.untokened = Site.objects.create(domain='untokened.test', name='Без токена')
-        SiteProfile.objects.create(site=self.main, revalidation_token='main-token')
-        SiteProfile.objects.create(site=self.other, revalidation_token='other-token')
-        SiteProfile.objects.create(site=self.untokened)
-        patcher = mock.patch('shop.signals.revalidate_nextjs')
-        self.revalidate = patcher.start()
-        self.addCleanup(patcher.stop)
-
-    def revalidated(self):
-        return sorted((call.args[0], call.args[2]['model']) for call in self.revalidate.s.call_args_list)
-
-    def test_new_news_revalidates_the_sites_saved_after_it(self):
-        with self.captureOnCommitCallbacks(execute=True):
-            news = News.objects.create(title='Новость', content='Текст', active=True)
-            news.sites.set([self.main, self.untokened])  # as save_related() saves them
-            self.revalidate.s.assert_not_called()
-        self.assertEqual(self.revalidated(), [(self.main.domain, 'news')])
-        self.assertEqual(self.revalidate.s.call_args.args[1:], ('main-token', {'model': 'news', 'pk': news.pk}))
-
-    def test_news_moved_to_another_site_revalidates_both(self):
-        news = News.objects.create(title='Новость', content='Текст', active=True)
-        news.sites.set([self.main])
-        with self.captureOnCommitCallbacks(execute=True):
-            news.title = 'Новость о другом'
-            news.save()
-            news.sites.set([self.other])
-        self.assertEqual(self.revalidated(), [(self.main.domain, 'news'), (self.other.domain, 'news')])

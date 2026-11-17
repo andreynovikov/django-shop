@@ -2,7 +2,6 @@ import logging
 
 import requests
 
-from collections import defaultdict
 from datetime import timedelta
 from importlib import import_module
 
@@ -16,9 +15,8 @@ from django.utils import timezone
 
 from celery import shared_task
 
-from sewingworld.tasks import PRIORITY_IDLE
-
 from shop.models import ShopUser, Product, Basket, Order
+from shop.revalidation import revalidate_products
 
 
 log = logging.getLogger('shop')
@@ -67,59 +65,42 @@ def update_order(self, order_id, data):
     return change_message
 
 
-@shared_task(name='shop.tasks.revalidate_nextjs', queue="revalidation")  # , rate_limit='2/s')
+class StorefrontUnavailable(Exception):
+    pass
+
+
+@shared_task(name='shop.tasks.revalidate_nextjs', queue="revalidation", autoretry_for=(requests.RequestException, StorefrontUnavailable),
+             max_retries=6, retry_backoff=60, retry_jitter=True)
 def revalidate_nextjs(domain, token, payload):
+    """
+    Asks the storefront of the domain to render again the pages with the payload's tags, see shop/revalidation.py.
+    It is retried while the storefront can't be reached or fails, as during its deploy.
+    """
     url = 'https://{}/api/revalidate'.format(domain)
-    request_data = {
-        'secret': token,
-        **payload
-    }
-    response = requests.post(url, json=request_data)
+    response = requests.post(url, json={'secret': token, **payload}, timeout=30)
+    if response.status_code >= 500:
+        raise StorefrontUnavailable('{} answered {}'.format(url, response.status_code))
     try:
-        response_data = response.json()
-        return response_data
-    except:  # noqa E722
-        return False
+        result = response.json()
+    except ValueError:
+        result = {'status': response.status_code, 'text': response.text[:200]}
+    if not response.ok:
+        log.error('Revalidation by %s failed: %s', url, result)
+    return result
 
 
 @shared_task(name='shop.tasks.post_update_product', queue="revalidation")
 def post_update_product(product_id, origin):
-    product = Product.objects.get(pk=product_id)
-
+    """ Saved in the admin: the search vector. The admin revalidates the product's pages itself, see save_model() """
     if origin == 'admin':
-        product.update_fts_vector()
-
-    payload = {
-        'model': 'product',
-        'pk': product.pk,
-        'code': product.code
-    }
-    for site in product.sites.exclude(profile__revalidation_token__exact=''):
-        revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
-
-    return None
+        Product.objects.get(pk=product_id).update_fts_vector()
 
 
 @shared_task(name='shop.tasks.post_update_products', queue="priority")
 def post_update_products(product_ids):
-    nextjs_sites = defaultdict(list)
-
-    for product_id in product_ids:
-        product = Product.objects.get(pk=product_id)
-        for site in product.sites.exclude(profile__revalidation_token__exact=''):
-            nextjs_sites[site].append({'pk': product.pk, 'code': product.code})
-
-    num = 0
-    for site in nextjs_sites:
-        num += len(nextjs_sites[site])
-        for i in range(0, len(nextjs_sites[site]), 1000):
-            payload = {
-                'model': 'product',
-                'items': nextjs_sites[site][i:i + 1000]
-            }
-            revalidate_nextjs.s(site.domain, site.profile.revalidation_token, payload).apply_async(priority=PRIORITY_IDLE)
-
-    return num
+    """ Products whose prices an import changed: their pages and lists show the new prices at once """
+    revalidate_products(product_ids)
+    return len(product_ids)
 
 
 @shared_task(name='shop.tasks.remove_outdated_baskets', autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)

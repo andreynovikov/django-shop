@@ -11,7 +11,7 @@ import tempfile
 
 from collections import defaultdict
 from datetime import datetime
-from decimal import Decimal, ROUND_HALF_EVEN
+from decimal import Decimal, ROUND_HALF_EVEN, ROUND_HALF_UP
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
@@ -34,6 +34,8 @@ from sewingworld.tasks import single_instance_task
 from shop.models import Supplier, Currency, Product, Stock, Order
 
 from .common import get_default_site
+from shop.revalidation import revalidate_stock
+
 from .workflow import post_update_products
 
 
@@ -114,14 +116,24 @@ class fragile(object):
 
 
 @shared_task(name='shop.tasks.count_stocks', queue='import')
-def count_stocks():
+def count_stocks(stock=None):
     """
     Counts the stock of the products whose stock is reset, as import1c() resets it for all of them. Otherwise
     the API counts it in the first requests that show the products, and writes them, which made these requests slow.
     A task of its own, as it takes a minute or so, and import1c() runs under a lock that expires.
+
+    stock is [product id, stock] of the products before the import: the storefronts render again the pages of those
+    whose stock shows otherwise now, in the background, as few do on each import.
     """
     for product in Product.objects.filter(num__lt=0).only('num'):
         product.instock  # counts and saves it
+    if stock:
+        revalidate_stock(dict(stock))
+
+
+def stored_prices(product):
+    """ The prices that the storefronts show, as the database stores them: save() leaves them unrounded """
+    return tuple(price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP) for price in (product.price, product.ws_price))
 
 
 @shared_task(name='shop.tasks.import1c', time_limit=7200, retry_backoff=True)
@@ -231,8 +243,11 @@ def import1c(file):
                     'forbid_ws_price_import',
                     'forbid_price_import',
                     'cur_code',
-                    'cur_price'
+                    'cur_price',
+                    'price',
+                    'ws_price'
                 ).get(article=line['article'])
+                prices = stored_prices(product)
                 if line['sp_cur_code'] != '0':
                     try:
                         sp_cur_price = float(line['sp_cur_price'].replace('\xA0', ''))
@@ -253,12 +268,12 @@ def import1c(file):
                         cur_price = float(line['cur_price'].replace('\xA0', ''))
                         if cur_price > 0 and product.cur_code.code == 643:
                             cur_price = Decimal(cur_price).quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)
-                            if product.cur_price != cur_price:
-                                updated_products.append(product.id)
                             product.cur_price = cur_price
                     except ValueError:
                         errors.append("%s: розничная цена" % line['article'])
-                product.save()
+                product.save()  # converts the prices at the rates of their currencies
+                if stored_prices(product) != prices:
+                    updated_products.append(product.id)
                 products.add(product.id)
                 quantities = preprocess_quantities(line['suppliers'], pi_pos, n1_pos)
                 for idx, quantity in enumerate(quantities):
@@ -315,6 +330,10 @@ def import1c(file):
     table_copy.close()
     tmp_file.close()
 
+    # the stock the products show, sets made of them included, to tell those whose stock shows otherwise once counted
+    stock = list(Product.objects.filter(Q(pk__in=products) | Q(set_constituents__constituent__in=products), num__gte=0)
+                 .values_list('pk', 'num').distinct())
+
     for product_id in products:
         product = Product.objects.only('num').get(pk=product_id)
         product.num = -1
@@ -327,7 +346,7 @@ def import1c(file):
     log.info('Frozen orders %s' % str(orders))
 
     disable_flag('1C_IMPORT_RUNNING')
-    count_stocks.delay()
+    count_stocks.delay(stock)
     msg_plain = render_to_string('mail/shop/import1c_result.txt',
                                  {'file': file, 'date': date, 'imported': imported, 'updated': updated, 'errors': errors,
                                   'orders': orders, 'opts': Order._meta})

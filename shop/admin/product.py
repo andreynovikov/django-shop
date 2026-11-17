@@ -27,6 +27,7 @@ from flags.state import flag_enabled
 
 from shop.models import Product, ProductImage, ProductPrice, ProductRelation, ProductSet, ProductKind, \
     ProductReview, Stock, Integration, Order
+from shop.revalidation import product_tag, revalidate_products
 from shop.tasks.workflow import post_update_product
 from .forms import ProductImportForm, ProductConfirmImportForm, ProductExportForm, \
     ProductAdminForm, ProductListAdminForm, ProductKindForm, StockInlineForm, IntegrationInlineForm, \
@@ -145,6 +146,11 @@ class ProductResource(resources.ModelResource):
     def export(self, queryset=None, **kwargs):
         kwargs.update(export_fields=self.product_fields)
         return super().export(queryset, **kwargs)
+
+    def after_save_instance(self, instance, row, **kwargs):
+        super().after_save_instance(instance, row, **kwargs)
+        # sent once the import commits, a dry run rolls it back
+        revalidate_products([instance.pk])
 
     class Meta:
         model = Product
@@ -463,12 +469,20 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
         return kwargs
 
     def save_model(self, request, obj, form, change):
+        before = Product.objects.filter(pk=obj.pk).values('code', 'firstpage').first() if change else None
         # обновляем кеш наличия при сохранении
         obj.num = -1
         super().save_model(request, obj, form, change)
-        # чистим кеши и обновляем мета-данные фоновой задачей, когда сохранятся и связанные объекты (save_related
-        # задаёт сайты товара) и закончится транзакция админки: иначе задача видит старые данные
+        # обновляем мета-данные фоновой задачей, когда сохранятся и связанные объекты (save_related задаёт сайты
+        # товара) и закончится транзакция админки: иначе задача видит старые данные
         post_update_product.delay_on_commit(obj.pk, 'admin')
+        # страницы с товаром перегенерируются после транзакции, и те, где он был: под старым кодом, на главной
+        tags = set()
+        if before is not None and before['code'] != obj.code:
+            tags.add(product_tag(before['code']))
+        if before is not None and before['firstpage']:
+            tags.add('firstpage')
+        revalidate_products([obj.pk], tags=tags)
 
     def save_related(self, request, form, formsets, change):
         # this is a hack to avoid stock saving for duplicated products (gives error if stock correction is not zero)

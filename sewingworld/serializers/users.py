@@ -58,8 +58,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ShopUser
-        exclude = ('groups', 'user_permissions', 'password', 'tags', 'is_superuser', 'is_active', 'is_staff', 'first_name', 'last_name')
-        read_only_fields = ('email_verified', 'phone_verified')
+        exclude = ('groups', 'user_permissions', 'password', 'tags', 'is_superuser', 'is_active', 'first_name', 'last_name')
+        # is_staff lets the storefront revalidate a page for staff, see its /api/revalidate
+        read_only_fields = ('email_verified', 'phone_verified', 'is_staff')
 
     def get_full_name(self, obj) -> str:
         return obj.get_full_name()
