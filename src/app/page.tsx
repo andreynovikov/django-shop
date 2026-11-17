@@ -7,7 +7,7 @@ import ProductCard from '@/components/product/card'
 import { cardClass } from '@/components/ui/card'
 
 import { loadAdverts, loadProducts } from '@/lib/queries'
-import { recomendedProductsFilters, newProductsFilters } from '@/lib/catalog'
+import { baseFilters, newProductsFilters } from '@/lib/catalog'
 import { Advert, ProductInfo } from '@/lib/types'
 import { advertClass } from '@/components/ui/content'
 
@@ -15,6 +15,12 @@ export const revalidate = 3600
 
 const itemsPerSection = 16
 const sort = '-price'
+
+const recomendedProductsFilters = {
+  ...baseFilters,
+  categories: 743,
+  firstpage: true,
+}
 
 // A banner in a row of its own, its HTML holds the column
 function MainAdvert({ advert }: { advert: Advert }) {
