@@ -40,7 +40,7 @@ function convertSearchParams(searchParams: ReadonlyURLSearchParams): ParsedUrlQu
 
 const searchParams = {
   text: parseAsString,
-  price: productSearchParams.price,
+  cost: productSearchParams.cost,
   manufacturer: parseAsNativeArrayOf(parseAsInteger),
   instock: productSearchParams.instock,
   page: parseAsInteger.withDefault(1),
@@ -93,7 +93,7 @@ export default function SearchResults() {
   const facets = result?.filters
   const found = result !== undefined && result.count > 0
   // the range of a search that finds nothing is a placeholder, it is shown only to change a price picked
-  const priceFilter = found || filters.price !== null ? facets?.price?.attrs : undefined
+  const priceFilter = found || filters.cost !== null ? facets?.cost?.attrs : undefined
   // a single manufacturer is no choice, but the list stays while one is picked, so it can be unpicked
   const brandsFilter = (facets?.manufacturer?.choices?.length ?? 0) > 1 || filters.manufacturer.length > 0
     ? facets?.manufacturer?.choices : undefined
@@ -126,8 +126,8 @@ export default function SearchResults() {
                 {priceFilter && <div className="mb-6 border-b pb-6">
                   <h3 className={widgetTitleClass}>Цена</h3>
                   <PriceFilter
-                    filter={{ name: 'price', unit: 'руб', attrs: priceFilter }}
-                    filterValue={filters.price}
+                    filter={{ name: 'cost', unit: 'руб', attrs: priceFilter }}
+                    filterValue={filters.cost}
                     onFilterChanged={handleFilterChanged} />
                 </div>}
                 <div>
