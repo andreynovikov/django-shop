@@ -1,4 +1,5 @@
 import { FlatPage, FlatPageInfo } from '@/lib/types'
+import { cacheTags, tagged } from './cache-tags'
 import { apiFetch } from './fetch'
 
 export const pageKeys = {
@@ -9,9 +10,9 @@ export const pageKeys = {
 }
 
 export async function loadPages() {
-  return await apiFetch<FlatPageInfo[]>('pages/')
+  return await apiFetch<FlatPageInfo[]>('pages/', tagged(cacheTags.pages))
 }
 
 export async function loadPage(uri: string[]) {
-  return await apiFetch<FlatPage>(`pages/${uri.join('/')}/`)
+  return await apiFetch<FlatPage>(`pages/${uri.join('/')}/`, tagged(cacheTags.page(`/${uri.join('/')}/`)))
 }

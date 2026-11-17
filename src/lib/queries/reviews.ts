@@ -1,4 +1,5 @@
 import { PaginatedResult, ProductReview, ProductReviewForm } from '@/lib/types'
+import { cacheTags, tagged } from './cache-tags'
 import { apiFetch, FormDataJson } from './fetch'
 
 export const reviewKeys = {
@@ -59,5 +60,5 @@ export async function updateProductReview(id: number, reviewId: number, formData
 }
 
 export async function loadPromoReviews() {
-  return await apiFetch<ProductReviewList>("reviews/?model=shop.product&user=1&site=10&page_size=10")
+  return await apiFetch<ProductReviewList>("reviews/?model=shop.product&user=1&site=10&page_size=10", tagged(cacheTags.reviews))
 }
