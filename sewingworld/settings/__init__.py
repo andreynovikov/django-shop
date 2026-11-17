@@ -30,6 +30,7 @@ DATABASES = {
     'default': {
         **env.db(engine='django_prometheus.db.backends.postgresql'),
         'CONN_MAX_AGE': 600,
+        'CONN_HEALTH_CHECKS': True,
     },
 }
 # The DBaaS server has lock_timeout = 1 ms, so that any wait for a row lock fails, and its settings are out of reach.
