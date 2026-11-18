@@ -49,6 +49,7 @@ apt install less
 apt install emacs-nox
 apt install bind9-dnsutils
 apt install htop
+apt install apache2-utils
 ```
 
 Install Docker (<https://docs.docker.com/engine/install/debian/#install-using-the-repository>)

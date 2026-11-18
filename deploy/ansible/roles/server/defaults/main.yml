@@ -32,6 +32,7 @@ server_optional_packages:
   - emacs-nox
   - bind9-dnsutils
   - htop
+  - apache2-utils
 
 server_docker_packages:
   - docker-ce
