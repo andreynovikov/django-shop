@@ -26,6 +26,7 @@ celery -A sewingworld beat              # schedules are stored in the DB (django
 python manage.py rerun_task <task_id>   # re-run a stored Celery task result
 python manage.py cleanup_legacy_phones  # repair or remove accounts whose phone is not +7; reports only, --apply changes
 python manage.py backup_db --dry-run    # hourly pg_dump into restic; --kind full|hot|config forces a kind
+python manage.py postman_spec /tmp/spec.json  # OpenAPI spec of the Postman collection, see postman/README.md
 ```
 
 Running anything requires:
