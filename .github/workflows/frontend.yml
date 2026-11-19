@@ -182,7 +182,7 @@ jobs:
           install -m 600 /dev/null ~/key && echo "$SSH_PRIVATE_KEY" > ~/key
           echo "$DEPLOY_HOST $DEPLOY_HOST_KEY" > ~/known_hosts
           ssh -i ~/key -o UserKnownHostsFile=~/known_hosts -o StrictHostKeyChecking=yes \
-            "$DEPLOY_USER$@$DEPLOY_HOST" stage "$VERSION"
+            "$DEPLOY_USER@$DEPLOY_HOST" stage "$VERSION"
 
   deploy:
     if: github.event_name == 'workflow_dispatch'
