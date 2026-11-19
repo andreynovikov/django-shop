@@ -20,6 +20,10 @@
   ansible.builtin.import_tasks: certbot.yml
   tags: certbot
 
+- name: Docker setup
+  ansible.builtin.import_tasks: docker.yml
+  tags: docker
+
 # uwsgi.yml and celery.yml need to know which sites are deployed
 - name: Environment setup
   ansible.builtin.import_tasks: sites.yml
