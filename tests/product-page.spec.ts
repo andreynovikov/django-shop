@@ -2,6 +2,13 @@ import { test, expect, gotoHydrated } from './fixtures'
 
 import { findSewingMachines, findProductInStores, findReviewableProduct } from './api'
 
+test('in-stock product title includes availability', async ({ page, request }) => {
+  const [product] = await findSewingMachines(request, { instock: '1' })
+
+  await page.goto(`/products/${product.code}/`)
+  await expect(page).toHaveTitle(`${product.title} в наличии - Швейный Мир`)
+})
+
 test('product page has canonical link', async ({ page }) => {
   await page.goto('/')
   await page.locator('[itemtype="http://schema.org/Offer"]').first().getByRole('link').first().click()

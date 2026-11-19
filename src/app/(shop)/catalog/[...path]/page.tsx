@@ -69,6 +69,7 @@ export async function generateMetadata({ params }: PageProps<'/catalog/[...path]
 
   return {
     title: currentPage > 1 ? `${categoryTitle(category)}, страница ${currentPage}` : categoryTitle(category),
+    description: [...category.path.breadcrumbs].reverse().map(({ name }) => name).concat(site.title).join(' - '),
     alternates: {
       canonical: site.url_prefix + categoryPathname(path) + (currentPage > 1 ? `${currentPage}/` : ''),
     },

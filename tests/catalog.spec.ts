@@ -1,5 +1,7 @@
 import { Page } from '@playwright/test'
 
+import type { Category } from '@/lib/types'
+
 import { test, expect, gotoHydrated, openFilters } from './fixtures'
 
 // A category with several pages of products
@@ -154,6 +156,16 @@ test('category loads no page for robots, they follow the links', async ({ page, 
   const nextPage = page.waitForRequest(nextPageRequest)
   await page.getByRole('link', { name: 'Показать ещё' }).scrollIntoViewIfNeeded()
   await nextPage
+})
+
+test('category description lists reverse breadcrumbs', async ({ page, request }) => {
+  const response = await request.get(largeCategory.replace('/catalog/', '/api/v0/categories/'))
+  expect(response.ok()).toBeTruthy()
+  const category = await response.json() as Category
+  const description = [...category.path.breadcrumbs].reverse().map(({ name }) => name).concat('Швейный Мир').join(' - ')
+
+  await page.goto(largeCategory)
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', description)
 })
 
 test('following category page links to the others', async ({ page }) => {

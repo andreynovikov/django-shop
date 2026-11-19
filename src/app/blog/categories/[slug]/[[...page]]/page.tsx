@@ -24,9 +24,11 @@ const getCategory = cache(async (slug: string) => {
 })
 
 export async function generateMetadata({ params }: PageProps<'/blog/categories/[slug]/[[...page]]'>): Promise<Metadata> {
-  const { slug } = await params
+  const { slug, page } = await params
+  const currentPage = parsePageParam(page, `/blog/categories/${encodeURIComponent(slug)}/`)
   const category = await getCategory(slug)
-  return { title: `Архив категории ${category.title}` }
+  const title = `Архив категории ${category.title}`
+  return { title: currentPage > 1 ? `${title}, страница ${currentPage}` : title }
 }
 
 export default async function BlogCategoryPage({ params }: PageProps<'/blog/categories/[slug]/[[...page]]'>) {

@@ -10,8 +10,10 @@ import { getBlogEntries } from '@/app/blog/load'
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: PageProps<'/blog/tags/[tag]/[[...page]]'>): Promise<Metadata> {
-  const { tag } = await params
-  return { title: `Архив по тэгу '${tag}'` }
+  const { tag, page } = await params
+  const currentPage = parsePageParam(page, `/blog/tags/${encodeURIComponent(tag)}/`)
+  const title = `Архив по тэгу '${tag}'`
+  return { title: currentPage > 1 ? `${title}, страница ${currentPage}` : title }
 }
 
 export default async function BlogTagPage({ params }: PageProps<'/blog/tags/[tag]/[[...page]]'>) {

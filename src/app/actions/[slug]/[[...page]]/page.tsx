@@ -36,9 +36,10 @@ async function getProducts(slug: string, page: number) {
 }
 
 export async function generateMetadata({ params }: PageProps<'/actions/[slug]/[[...page]]'>): Promise<Metadata> {
-  const { slug } = await params
+  const { slug, page } = await params
+  const currentPage = parsePageParam(page, `/actions/${slug}/`)
   const action = await getAction(slug)
-  return { title: action.name }
+  return { title: currentPage > 1 ? `${action.name}, страница ${currentPage}` : action.name }
 }
 
 export default async function SalesActionPage({ params }: PageProps<'/actions/[slug]/[[...page]]'>) {
