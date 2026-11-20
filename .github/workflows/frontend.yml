@@ -125,19 +125,15 @@ jobs:
         run: echo "version=$(TZ=Europe/Moscow git log -1 --format=%cd --date=format-local:%Y.%m.%d)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Deploy to production
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -e
-            REF=${{ env.IMAGE }}:${{ steps.version.outputs.version }}
-            trap 'docker logout ghcr.io' EXIT
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
-            if ! docker pull "$REF"; then
-              echo "No image $REF: wait for the push build of this commit to finish, or check whether it failed"
-              exit 1
-            fi
-            cd /www/janome.club
-            NAME=janome PORT=4103 IMAGE="$REF" docker compose up -d
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_HOST_KEY: ${{ secrets.DEPLOY_HOST_KEY }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          install -m 600 /dev/null ~/key && echo "$SSH_PRIVATE_KEY" > ~/key
+          echo "$DEPLOY_HOST $DEPLOY_HOST_KEY" > ~/known_hosts
+          ssh -i ~/key -o UserKnownHostsFile=~/known_hosts -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=60 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            "$DEPLOY_USER@$DEPLOY_HOST" janome "$VERSION"
