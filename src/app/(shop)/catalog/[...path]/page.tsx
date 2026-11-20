@@ -8,7 +8,7 @@ import CurrentCatalog from '@/components/current-catalog'
 import CategoryProducts, { type CategoryProductsQuery } from '@/components/category/products'
 
 import { baseFilters } from '@/lib/catalog'
-import { HttpError, loadCategories, loadCategory, loadProducts } from '@/lib/queries'
+import { HttpError, loadCategories, loadCategory, loadCurrentSite, loadProducts } from '@/lib/queries'
 import { CategoryTreeItem } from '@/lib/types'
 
 export const revalidate = 3600
@@ -31,6 +31,8 @@ const getCategory = cache(async (uri: string) => {
   }
 })
 
+const getSite = cache(loadCurrentSite)
+
 // The load time goes to the browser, which loads the list again once it is stale
 async function loadCategoryProducts({ filters, order, pageSize }: CategoryProductsQuery) {
   const products = await loadProducts(1, pageSize, filters, order)
@@ -39,10 +41,11 @@ async function loadCategoryProducts({ filters, order, pageSize }: CategoryProduc
 
 export async function generateMetadata({ params }: PageProps<'/catalog/[...path]'>): Promise<Metadata> {
   const { path } = await params
-  const category = await getCategory(path.join('/'))
+  const [category, site] = await Promise.all([getCategory(path.join('/')), getSite()])
 
   return {
     title: category.name,
+    description: [...category.path.breadcrumbs].reverse().map(({ name }) => name).concat(site.title).join(' - '),
   }
 }
 
