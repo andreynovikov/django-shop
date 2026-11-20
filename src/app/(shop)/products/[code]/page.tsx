@@ -80,7 +80,7 @@ export async function generateMetadata({ params }: PageProps<'/products/[code]'>
   const product = await getProduct(code)
 
   return {
-    title: product.title,
+    title: `${product.title}${product.instock > 0 ? ' в наличии' : ''}`,
   }
 }
 
