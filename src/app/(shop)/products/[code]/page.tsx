@@ -119,7 +119,7 @@ export async function generateMetadata({ params }: PageProps<'/products/[code]'>
     `${product.title} ${product.partnumber ? product.partnumber + ' ' : ''}${product.manufacturer ? product.manufacturer.name + ' ' : ''}купите в Janome`
 
   return {
-    title: product.title,
+    title: `${product.title}${product.instock > 0 ? ' в наличии' : ''}`,
     description,
     alternates: {
       canonical: site.url_prefix + `/products/${code}/`,

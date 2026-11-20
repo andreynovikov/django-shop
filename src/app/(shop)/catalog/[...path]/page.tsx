@@ -67,7 +67,8 @@ export async function generateMetadata({ params }: PageProps<'/catalog/[...path]
   const [category, site] = await Promise.all([getCategory(path.join('/')), getSite()])
 
   return {
-    title: categoryTitle(category),
+    title: currentPage > 1 ? `${categoryTitle(category)}, страница ${currentPage}` : categoryTitle(category),
+    description: [...category.path.breadcrumbs].reverse().map(({ name }) => name).concat(site.title).join(' - '),
     alternates: {
       canonical: site.url_prefix + categoryPathname(path) + (currentPage > 1 ? `${currentPage}/` : ''),
     },
