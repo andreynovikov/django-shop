@@ -182,6 +182,7 @@ jobs:
           install -m 600 /dev/null ~/key && echo "$SSH_PRIVATE_KEY" > ~/key
           echo "$DEPLOY_HOST $DEPLOY_HOST_KEY" > ~/known_hosts
           ssh -i ~/key -o UserKnownHostsFile=~/known_hosts -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=60 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
             "$DEPLOY_USER@$DEPLOY_HOST" stage "$VERSION"
 
   deploy:
@@ -213,4 +214,5 @@ jobs:
           install -m 600 /dev/null ~/key && echo "$SSH_PRIVATE_KEY" > ~/key
           echo "$DEPLOY_HOST $DEPLOY_HOST_KEY" > ~/known_hosts
           ssh -i ~/key -o UserKnownHostsFile=~/known_hosts -o StrictHostKeyChecking=yes \
-            "$DEPLOY_USER$@$DEPLOY_HOST" sworld "$VERSION"
+            -o ConnectTimeout=60 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            "$DEPLOY_USER@$DEPLOY_HOST" sworld "$VERSION"
