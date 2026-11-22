@@ -301,7 +301,7 @@ map $http_accept $image_format {
 ## Media files
 
 Content admins upload the files that HTML text links to (images, videos, documents) in the admin's file manager,
-"Швейный Мир › Файлы" (`filemanager/README.md`), and not over FTP. The files go into the site's `media/`, which the
+"Швейный Мир › Файлы" ([django-admin-filemanager](https://github.com/andreynovikov/django-admin-filemanager)), and not over FTP. The files go into the site's `media/`, which the
 [service user](#service-user) writes, so FTP can be turned off once nobody uses it.
 
 - The admin's server takes uploads as large as the largest video, in its `server` or the `location` that passes

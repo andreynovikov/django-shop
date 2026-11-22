@@ -320,6 +320,18 @@ wheels = [
 ]
 
 [[package]]
+name = "django-admin-filemanager"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ec/72/5aef3eba25d9be58e542cc35d2b40a03752101519bf20bc03f605e6008c6/django_admin_filemanager-1.0.0.tar.gz", hash = "sha256:ea6817fa7ae96c82068778e28c4a5394e86463b571e13efad2f1af1f27026864", size = 30080, upload-time = "2026-11-22T17:39:29.157Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1f/05/b5faab2bad32e6fbcccf576ec1d5fd332e38a9698ce512de85453f0d7243/django_admin_filemanager-1.0.0-py3-none-any.whl", hash = "sha256:a8223c3e2936e8609dcbb7231ad3180214e57b890e6d01d230ce3b005bc89a04", size = 40039, upload-time = "2026-11-22T17:39:28.181Z" },
+]
+
+[[package]]
 name = "django-admin-sortable2"
 version = "2.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -639,6 +651,18 @@ api = [
 ]
 
 [[package]]
+name = "django-server-errors"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1e/16/5731a04b80f77c1126ee06d2cf9b0647288d02bc1d85fd73954a58bdd643/django_server_errors-1.0.0.tar.gz", hash = "sha256:2ef7d50873f516ec43577629e225139ae8e00e0c6dba19fc1ff611712d76f30c", size = 21046, upload-time = "2026-11-22T17:39:43.478Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5b/50/76f083a6eede1dcae6fc06c0b1b7061725874497ebb26cf74aee1afd206a/django_server_errors-1.0.0-py3-none-any.whl", hash = "sha256:4120a8bab9027d1297ed54b0da66558877519db8c36d07fc8c2814caa7729038", size = 26013, upload-time = "2026-11-22T17:39:42.426Z" },
+]
+
+[[package]]
 name = "django-shop"
 version = "0"
 source = { virtual = "." }
@@ -646,6 +670,7 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "celery" },
     { name = "django" },
+    { name = "django-admin-filemanager" },
     { name = "django-admin-sortable2" },
     { name = "django-better-admin-arrayfield" },
     { name = "django-celery-beat" },
@@ -669,6 +694,7 @@ dependencies = [
     { name = "django-otp" },
     { name = "django-prometheus" },
     { name = "django-rated-reviews", extra = ["api"] },
+    { name = "django-server-errors" },
     { name = "django-tagulous" },
     { name = "django-two-factor-auth" },
     { name = "django-widget-tweaks" },
@@ -698,6 +724,7 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.15.0" },
     { name = "celery", specifier = ">=5.6.3" },
     { name = "django", specifier = ">=6.1.1" },
+    { name = "django-admin-filemanager", specifier = ">=1.0.0" },
     { name = "django-admin-sortable2", specifier = ">=2.3.1" },
     { name = "django-better-admin-arrayfield", specifier = ">=1.4.2" },
     { name = "django-celery-beat", specifier = ">=2.9.0" },
@@ -721,6 +748,7 @@ requires-dist = [
     { name = "django-otp", specifier = ">=1.7.3" },
     { name = "django-prometheus", specifier = ">=2.5.0" },
     { name = "django-rated-reviews", extras = ["api"], specifier = ">=2.0.0" },
+    { name = "django-server-errors", specifier = ">=1.0.0" },
     { name = "django-tagulous", specifier = ">=2.2.3" },
     { name = "django-two-factor-auth", specifier = ">=1.18.1" },
     { name = "django-widget-tweaks", specifier = ">=1.5.1" },
