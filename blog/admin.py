@@ -4,6 +4,8 @@ from django.contrib.sites.models import Site
 from django.urls import NoReverseMatch
 from django.utils.html import conditional_escape, format_html
 
+from filemanager.widgets import HTMLTextarea
+
 from .models import Category, Entry
 
 
@@ -36,6 +38,11 @@ class EntryAdmin(admin.ModelAdmin):
     filter_horizontal = ('categories', 'related')
     prepopulated_fields = {'slug': ('title',)}
     search_fields = ('title', 'content', 'tags')
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == 'content':
+            kwargs['widget'] = HTMLTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'})
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
     def get_categories(self, entry):
         return ', '.join([conditional_escape(category.title) for category in entry.categories.all()])

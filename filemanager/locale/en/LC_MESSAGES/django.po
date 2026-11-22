@@ -1,0 +1,262 @@
+msgid ""
+msgstr ""
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-22 09:55-0600\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: admin.py:100 apps.py:7 templates/admin/filemanager/path.html:1
+msgid "Files"
+msgstr "Files"
+
+#: admin.py:128
+#, python-format
+msgid "%(error)s Upload it again and allow replacing."
+msgstr "%(error)s Upload it again and allow replacing."
+
+#: admin.py:132
+#, python-format
+msgid "%d file uploaded."
+msgid_plural "%d files uploaded."
+msgstr[0] "%d file uploaded."
+msgstr[1] "%d files uploaded."
+
+#: admin.py:161
+#, python-format
+msgid "“%(path)s” is now “%(target)s”."
+msgstr "“%(path)s” is now “%(target)s”."
+
+#: admin.py:167
+#, python-format
+msgid "Rename or move “%(name)s”"
+msgstr "Rename or move “%(name)s”"
+
+#: admin.py:185
+#, python-format
+msgid "“%(path)s” deleted."
+msgstr "“%(path)s” deleted."
+
+#: admin.py:190
+#, python-format
+msgid "Delete “%(name)s”"
+msgstr "Delete “%(name)s”"
+
+#: admin.py:206
+#, python-format
+msgid "Where “%(name)s” is used"
+msgstr "Where “%(name)s” is used"
+
+#: models.py:12
+msgid "file"
+msgstr "file"
+
+#: models.py:13
+msgid "files"
+msgstr "files"
+
+#: storage.py:40
+#, python-format
+msgid "“%(name)s” is not a valid name."
+msgstr "“%(name)s” is not a valid name."
+
+#: storage.py:108
+msgid "The root folder can’t be changed."
+msgstr "The root folder can’t be changed."
+
+#: storage.py:111
+#, python-format
+msgid ""
+"“%(path)s” holds the files of the site’s records and can’t be changed here."
+msgstr ""
+"“%(path)s” holds the files of the site’s records and can’t be changed here."
+
+#: storage.py:161 storage.py:177
+#, python-format
+msgid "Folder “%(path)s” doesn’t exist."
+msgstr "Folder “%(path)s” doesn’t exist."
+
+#: storage.py:163 storage.py:182 storage.py:202
+#, python-format
+msgid "“%(path)s” already exists."
+msgstr "“%(path)s” already exists."
+
+#: storage.py:180
+#, python-format
+msgid "There is a folder named “%(path)s”."
+msgstr "There is a folder named “%(path)s”."
+
+#: storage.py:196 storage.py:220
+#, python-format
+msgid "“%(path)s” doesn’t exist."
+msgstr "“%(path)s” doesn’t exist."
+
+#: storage.py:200
+msgid "A folder can’t be moved into itself."
+msgstr "A folder can’t be moved into itself."
+
+#: storage.py:206
+#, python-format
+msgid "“%(path)s” is a file."
+msgstr "“%(path)s” is a file."
+
+#: templates/admin/filemanager/base.html:33
+msgid "Home"
+msgstr "Home"
+
+#: templates/admin/filemanager/browse.html:13
+msgid ""
+"This folder holds the files of the site’s records, such as product images. "
+"Its files can be linked, but not changed here."
+msgstr ""
+"This folder holds the files of the site’s records, such as product images. "
+"Its files can be linked, but not changed here."
+
+#: templates/admin/filemanager/browse.html:19
+msgid "These files already exist and will be replaced:"
+msgstr "These files already exist and will be replaced:"
+
+#: templates/admin/filemanager/browse.html:20
+msgid "These files already exist, and you aren’t allowed to replace files:"
+msgstr "These files already exist, and you aren’t allowed to replace files:"
+
+#: templates/admin/filemanager/browse.html:27
+msgid "Drop files here or click to choose them"
+msgstr "Drop files here or click to choose them"
+
+#: templates/admin/filemanager/browse.html:35
+msgid "New folder"
+msgstr "New folder"
+
+#: templates/admin/filemanager/browse.html:36
+msgid "Create"
+msgstr "Create"
+
+#: templates/admin/filemanager/browse.html:46
+msgid "Name"
+msgstr "Name"
+
+#: templates/admin/filemanager/browse.html:47
+msgid "Size"
+msgstr "Size"
+
+#: templates/admin/filemanager/browse.html:48
+msgid "Modified"
+msgstr "Modified"
+
+#: templates/admin/filemanager/browse.html:49
+msgid "Actions"
+msgstr "Actions"
+
+#: templates/admin/filemanager/browse.html:54
+msgid "Up"
+msgstr "Up"
+
+#: templates/admin/filemanager/browse.html:63
+#: templates/admin/filemanager/browse.html:79
+#: templates/admin/filemanager/rename.html:20
+msgid "Rename"
+msgstr "Rename"
+
+#: templates/admin/filemanager/browse.html:64
+#: templates/admin/filemanager/browse.html:80
+msgid "Delete"
+msgstr "Delete"
+
+#: templates/admin/filemanager/browse.html:75
+msgid "Insert"
+msgstr "Insert"
+
+#: templates/admin/filemanager/browse.html:76
+msgid "Copied"
+msgstr "Copied"
+
+#: templates/admin/filemanager/browse.html:76
+msgid "Copy URL"
+msgstr "Copy URL"
+
+#: templates/admin/filemanager/browse.html:77
+msgid "Where used"
+msgstr "Where used"
+
+#: templates/admin/filemanager/browse.html:85
+msgid "This folder is empty."
+msgstr "This folder is empty."
+
+#: templates/admin/filemanager/delete.html:10
+msgid ""
+"This path holds the files of the site’s records and can’t be changed here."
+msgstr ""
+"This path holds the files of the site’s records and can’t be changed here."
+
+#: templates/admin/filemanager/delete.html:14
+#, python-format
+msgid "Delete folder “%(path)s” with %(counter)s file in it?"
+msgid_plural "Delete folder “%(path)s” with %(counter)s files in it?"
+msgstr[0] "Delete folder “%(path)s” with %(counter)s file in it?"
+msgstr[1] "Delete folder “%(path)s” with %(counter)s files in it?"
+
+#: templates/admin/filemanager/delete.html:20
+#, python-format
+msgid "Delete file “%(path)s”?"
+msgstr "Delete file “%(path)s”?"
+
+#: templates/admin/filemanager/delete.html:29
+msgid "Yes, I’m sure"
+msgstr "Yes, I’m sure"
+
+#: templates/admin/filemanager/delete.html:30
+msgid "No, take me back"
+msgstr "No, take me back"
+
+#: templates/admin/filemanager/rename.html:13
+msgid "New path"
+msgstr "New path"
+
+#: templates/admin/filemanager/rename.html:16
+msgid ""
+"The path from the root folder. Change the folders in it to move. Missing "
+"folders are made."
+msgstr ""
+"The path from the root folder. Change the folders in it to move. Missing "
+"folders are made."
+
+#: templates/admin/filemanager/rename.html:17
+msgid ""
+"Links to the old path stop working: the records below have to be changed by "
+"hand."
+msgstr ""
+"Links to the old path stop working: the records below have to be changed by "
+"hand."
+
+#: templates/admin/filemanager/rename.html:21
+msgid "Cancel"
+msgstr "Cancel"
+
+#: templates/admin/filemanager/usage.html:9
+msgid "Back to the folder"
+msgstr "Back to the folder"
+
+#: templates/admin/filemanager/usage_list.html:3
+msgid "These records link to files in this folder:"
+msgstr "These records link to files in this folder:"
+
+#: templates/admin/filemanager/usage_list.html:3
+msgid "These records link to this file:"
+msgstr "These records link to this file:"
+
+#: templates/admin/filemanager/usage_list.html:10
+msgid "and more"
+msgstr "and more"
+
+#: templates/admin/filemanager/usage_list.html:14
+msgid "No record links to files in this folder."
+msgstr "No record links to files in this folder."
+
+#: templates/admin/filemanager/usage_list.html:14
+msgid "No record links to this file."
+msgstr "No record links to this file."
+
+#: templates/filemanager/widgets/html_textarea.html:3
+msgid "Insert file"
+msgstr "Insert file"

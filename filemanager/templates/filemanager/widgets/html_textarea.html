@@ -1,0 +1,3 @@
+{% load i18n %}<div class="filemanager-html" style="align-self: stretch; min-width: 0"><textarea name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %} data-autosize>
+{% if widget.value %}{{ widget.value }}{% endif %}</textarea>{% if widget.browse_url %}
+<div><button type="button" class="button filemanager-insert-file" data-url="{{ widget.browse_url }}">{% translate "Insert file" %}</button></div>{% endif %}</div>

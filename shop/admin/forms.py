@@ -17,6 +17,8 @@ from model_field_list import ModelFieldListFormField
 
 from constance import config
 
+from filemanager.widgets import HTMLTextarea
+
 from sewingworld.widgets import AutosizedTextarea, JsonAutosizedTextarea
 
 from shop.models import Supplier, Product, Order, OrderItem, ShopUser, Box, ActOrder, Integration, Contractor
@@ -31,7 +33,7 @@ class CategoryAdminForm(forms.ModelForm):
     class Meta:
         widgets = {
             'brief': AutosizedTextarea(attrs={'rows': 3}),
-            'description': AutosizedTextarea(attrs={'rows': 3}),
+            'description': HTMLTextarea(attrs={'rows': 3}),
         }
 
 
@@ -197,15 +199,16 @@ class ProductAdminForm(forms.ModelForm):
             'certificate': forms.TextInput(attrs={'size': 80}),
             'gtin': forms.TextInput(attrs={'size': 10}),
             'whatis': AutosizedTextarea(attrs={'rows': 1}),
-            'spec': AutosizedTextarea(attrs={'rows': 3}),
-            'shortdescr': AutosizedTextarea(attrs={'rows': 3}),
+            'spec': HTMLTextarea(attrs={'rows': 3}),
+            'shortdescr': HTMLTextarea(attrs={'rows': 3}),
             'seodescr': AutosizedTextarea(attrs={'rows': 3}),
             'yandexdescr': AutosizedTextarea(attrs={'rows': 3}),
-            'descr': AutosizedTextarea(attrs={'rows': 3}),
-            'manuals': AutosizedTextarea(attrs={'rows': 2}),
+            'descr': HTMLTextarea(attrs={'rows': 3}),
+            'manuals': HTMLTextarea(attrs={'rows': 2}),
             'state': AutosizedTextarea(attrs={'rows': 1}),
-            'complect': AutosizedTextarea(attrs={'rows': 3}),
-            'dealertxt': AutosizedTextarea(attrs={'rows': 2}),
+            'complect': HTMLTextarea(attrs={'rows': 3}),
+            'dealertxt': HTMLTextarea(attrs={'rows': 2}),
+            'stitches': HTMLTextarea(attrs={'rows': 3}),
             'tags': TagAutoComplete(model=ShopUser)
         }
 
@@ -401,7 +404,7 @@ class ActOrderInlineAdminForm(forms.ModelForm):
 class NewsAdminForm(forms.ModelForm):
     class Meta:
         widgets = {
-            'content': AutosizedTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'}),
+            'content': HTMLTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'}),
         }
 
     def clean_content(self):
@@ -422,7 +425,7 @@ class AdvertAdminForm(forms.ModelForm):
             'categories': SWTreeNodeMultipleChoiceField,
         }
         widgets = {
-            'content': AutosizedTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'}),
+            'content': HTMLTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'}),
         }
 
     def clean_content(self):
@@ -430,6 +433,11 @@ class AdvertAdminForm(forms.ModelForm):
 
 
 class StoreAdminForm(forms.ModelForm):
+    class Meta:
+        widgets = {
+            'description': HTMLTextarea(attrs={'rows': 10, 'style': 'width: 95%; max-height: 500px'}),
+        }
+
     def clean_description(self):
         return tidy_html5(self.cleaned_data.get('description'))
 
@@ -437,6 +445,6 @@ class StoreAdminForm(forms.ModelForm):
 class SalesActionAdminForm(forms.ModelForm):
     class Meta:
         widgets = {
-            'brief': AutosizedTextarea(attrs={'rows': 3, 'style': 'width: 95%; max-height: 500px'}),
-            'description': AutosizedTextarea(attrs={'rows': 10, 'style': 'width: 95%; max-height: 500px'}),
+            'brief': HTMLTextarea(attrs={'rows': 3, 'style': 'width: 95%; max-height: 500px'}),
+            'description': HTMLTextarea(attrs={'rows': 10, 'style': 'width: 95%; max-height: 500px'}),
         }

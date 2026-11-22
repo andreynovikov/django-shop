@@ -1,10 +1,13 @@
 from django import forms
 from django.contrib import admin
+from django.db import models
 from django.urls import path
 from django.utils.translation import gettext_lazy as _
 
 from two_factor.admin import AdminSiteOTPRequired
 from mptt.forms import TreeNodeChoiceField
+
+from filemanager.widgets import HTMLTextarea
 
 from shop.models import Category
 from .models import SiteProfile
@@ -42,6 +45,7 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
         auth = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'auth'), None)
         constance = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'constance'), None)
         flatpages = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'flatpages'), None)
+        filemanager = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'filemanager'), None)
         sites = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'sites'), None)
         phonenumber = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'phonenumber'), None)
         otp_static = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'otp_static'), None)
@@ -71,6 +75,9 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
             if flatpages is not None:
                 apps[sewingworld]['models'].extend(apps[flatpages]['models'])
                 indexes.append(flatpages)
+            if filemanager is not None:
+                apps[sewingworld]['models'].extend(apps[filemanager]['models'])
+                indexes.append(filemanager)
             if sites is not None:
                 apps[sewingworld]['models'].extend(apps[sites]['models'])
                 indexes.append(sites)
@@ -171,7 +178,9 @@ def configure_admin():
                 ),
             }),
         ),
-        # form = SWFlatPageForm
+        'formfield_overrides': {  # content is its only text field
+            models.TextField: {'widget': HTMLTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'})},
+        },
     })
     admin.site.unregister(FlatPage)
     admin.site.register(FlatPage, SWFlatPageAdmin)

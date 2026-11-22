@@ -1,0 +1,263 @@
+msgid ""
+msgstr ""
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-22 09:55-0600\n"
+"Language: ru\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: admin.py:100 apps.py:7 templates/admin/filemanager/path.html:1
+msgid "Files"
+msgstr "Файлы"
+
+#: admin.py:128
+#, python-format
+msgid "%(error)s Upload it again and allow replacing."
+msgstr "%(error)s Загрузите его снова и разрешите замену."
+
+#: admin.py:132
+#, python-format
+msgid "%d file uploaded."
+msgid_plural "%d files uploaded."
+msgstr[0] "Загружен %d файл."
+msgstr[1] "Загружено %d файла."
+msgstr[2] "Загружено %d файлов."
+
+#: admin.py:161
+#, python-format
+msgid "“%(path)s” is now “%(target)s”."
+msgstr "«%(path)s» теперь «%(target)s»."
+
+#: admin.py:167
+#, python-format
+msgid "Rename or move “%(name)s”"
+msgstr "Переименовать или перенести «%(name)s»"
+
+#: admin.py:185
+#, python-format
+msgid "“%(path)s” deleted."
+msgstr "«%(path)s» удалён."
+
+#: admin.py:190
+#, python-format
+msgid "Delete “%(name)s”"
+msgstr "Удалить «%(name)s»"
+
+#: admin.py:206
+#, python-format
+msgid "Where “%(name)s” is used"
+msgstr "Где используется «%(name)s»"
+
+#: models.py:12
+msgid "file"
+msgstr "файл"
+
+#: models.py:13
+msgid "files"
+msgstr "файлы"
+
+#: storage.py:40
+#, python-format
+msgid "“%(name)s” is not a valid name."
+msgstr "«%(name)s» не годится в имена."
+
+#: storage.py:108
+msgid "The root folder can’t be changed."
+msgstr "Корневую папку менять нельзя."
+
+#: storage.py:111
+#, python-format
+msgid ""
+"“%(path)s” holds the files of the site’s records and can’t be changed here."
+msgstr "В «%(path)s» лежат файлы записей сайта, здесь их менять нельзя."
+
+#: storage.py:161 storage.py:177
+#, python-format
+msgid "Folder “%(path)s” doesn’t exist."
+msgstr "Папки «%(path)s» нет."
+
+#: storage.py:163 storage.py:182 storage.py:202
+#, python-format
+msgid "“%(path)s” already exists."
+msgstr "«%(path)s» уже есть."
+
+#: storage.py:180
+#, python-format
+msgid "There is a folder named “%(path)s”."
+msgstr "Есть папка с именем «%(path)s»."
+
+#: storage.py:196 storage.py:220
+#, python-format
+msgid "“%(path)s” doesn’t exist."
+msgstr "«%(path)s» нет."
+
+#: storage.py:200
+msgid "A folder can’t be moved into itself."
+msgstr "Папку нельзя перенести в неё саму."
+
+#: storage.py:206
+#, python-format
+msgid "“%(path)s” is a file."
+msgstr "«%(path)s» — это файл."
+
+#: templates/admin/filemanager/base.html:33
+msgid "Home"
+msgstr "Начало"
+
+#: templates/admin/filemanager/browse.html:13
+msgid ""
+"This folder holds the files of the site’s records, such as product images. "
+"Its files can be linked, but not changed here."
+msgstr ""
+"В этой папке лежат файлы записей сайта, например изображения товаров. На них "
+"можно ссылаться, но менять их здесь нельзя."
+
+#: templates/admin/filemanager/browse.html:19
+msgid "These files already exist and will be replaced:"
+msgstr "Эти файлы уже есть и будут заменены:"
+
+#: templates/admin/filemanager/browse.html:20
+msgid "These files already exist, and you aren’t allowed to replace files:"
+msgstr "Эти файлы уже есть, а заменять файлы вам не разрешено:"
+
+#: templates/admin/filemanager/browse.html:27
+msgid "Drop files here or click to choose them"
+msgstr "Перетащите файлы сюда или нажмите, чтобы выбрать их"
+
+#: templates/admin/filemanager/browse.html:35
+msgid "New folder"
+msgstr "Новая папка"
+
+#: templates/admin/filemanager/browse.html:36
+msgid "Create"
+msgstr "Создать"
+
+#: templates/admin/filemanager/browse.html:46
+msgid "Name"
+msgstr "Имя"
+
+#: templates/admin/filemanager/browse.html:47
+msgid "Size"
+msgstr "Размер"
+
+#: templates/admin/filemanager/browse.html:48
+msgid "Modified"
+msgstr "Изменён"
+
+#: templates/admin/filemanager/browse.html:49
+msgid "Actions"
+msgstr "Действия"
+
+#: templates/admin/filemanager/browse.html:54
+msgid "Up"
+msgstr "Вверх"
+
+#: templates/admin/filemanager/browse.html:63
+#: templates/admin/filemanager/browse.html:79
+#: templates/admin/filemanager/rename.html:20
+msgid "Rename"
+msgstr "Переименовать"
+
+#: templates/admin/filemanager/browse.html:64
+#: templates/admin/filemanager/browse.html:80
+msgid "Delete"
+msgstr "Удалить"
+
+#: templates/admin/filemanager/browse.html:75
+msgid "Insert"
+msgstr "Вставить"
+
+#: templates/admin/filemanager/browse.html:76
+msgid "Copied"
+msgstr "Скопировано"
+
+#: templates/admin/filemanager/browse.html:76
+msgid "Copy URL"
+msgstr "Копировать адрес"
+
+#: templates/admin/filemanager/browse.html:77
+msgid "Where used"
+msgstr "Где используется"
+
+#: templates/admin/filemanager/browse.html:85
+msgid "This folder is empty."
+msgstr "Папка пуста."
+
+#: templates/admin/filemanager/delete.html:10
+msgid ""
+"This path holds the files of the site’s records and can’t be changed here."
+msgstr "Здесь лежат файлы записей сайта, менять их здесь нельзя."
+
+#: templates/admin/filemanager/delete.html:14
+#, python-format
+msgid "Delete folder “%(path)s” with %(counter)s file in it?"
+msgid_plural "Delete folder “%(path)s” with %(counter)s files in it?"
+msgstr[0] "Удалить папку «%(path)s» и %(counter)s файл в ней?"
+msgstr[1] "Удалить папку «%(path)s» и %(counter)s файла в ней?"
+msgstr[2] "Удалить папку «%(path)s» и %(counter)s файлов в ней?"
+
+#: templates/admin/filemanager/delete.html:20
+#, python-format
+msgid "Delete file “%(path)s”?"
+msgstr "Удалить файл «%(path)s»?"
+
+#: templates/admin/filemanager/delete.html:29
+msgid "Yes, I’m sure"
+msgstr "Да, я уверен"
+
+#: templates/admin/filemanager/delete.html:30
+msgid "No, take me back"
+msgstr "Нет, отменить и вернуться к выбору"
+
+#: templates/admin/filemanager/rename.html:13
+msgid "New path"
+msgstr "Новый путь"
+
+#: templates/admin/filemanager/rename.html:16
+msgid ""
+"The path from the root folder. Change the folders in it to move. Missing "
+"folders are made."
+msgstr ""
+"Путь от корневой папки. Чтобы перенести, измените папки в нём. Недостающие "
+"папки будут созданы."
+
+#: templates/admin/filemanager/rename.html:17
+msgid ""
+"Links to the old path stop working: the records below have to be changed by "
+"hand."
+msgstr ""
+"Ссылки на старый путь перестанут работать: записи ниже придётся исправить "
+"вручную."
+
+#: templates/admin/filemanager/rename.html:21
+msgid "Cancel"
+msgstr "Отмена"
+
+#: templates/admin/filemanager/usage.html:9
+msgid "Back to the folder"
+msgstr "Назад к папке"
+
+#: templates/admin/filemanager/usage_list.html:3
+msgid "These records link to files in this folder:"
+msgstr "Эти записи ссылаются на файлы в этой папке:"
+
+#: templates/admin/filemanager/usage_list.html:3
+msgid "These records link to this file:"
+msgstr "Эти записи ссылаются на этот файл:"
+
+#: templates/admin/filemanager/usage_list.html:10
+msgid "and more"
+msgstr "и другие"
+
+#: templates/admin/filemanager/usage_list.html:14
+msgid "No record links to files in this folder."
+msgstr "Ни одна запись не ссылается на файлы в этой папке."
+
+#: templates/admin/filemanager/usage_list.html:14
+msgid "No record links to this file."
+msgstr "Ни одна запись не ссылается на этот файл."
+
+#: templates/filemanager/widgets/html_textarea.html:3
+msgid "Insert file"
+msgstr "Вставить файл"

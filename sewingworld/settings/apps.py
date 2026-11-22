@@ -48,6 +48,7 @@ INSTALLED_APPS = (
     'blog',
     'forum',
     'errors',
+    'filemanager',
     'constance',
     'django_cleanup',
     'drf_spectacular',

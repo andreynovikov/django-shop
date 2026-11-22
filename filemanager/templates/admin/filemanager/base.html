@@ -1,0 +1,39 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+  .filemanager-path { font-size: 1rem; margin: 0 0 1rem; overflow-wrap: anywhere }
+  .filemanager-tools { display: flex; flex-wrap: wrap; gap: 1rem; align-items: stretch; margin-bottom: 1rem }
+  .filemanager-tools form { margin: 0 }
+  #filemanager-upload { flex: 1 1 20rem }
+  .filemanager-drop {
+    display: flex; flex-direction: column; justify-content: center; gap: .5rem; height: 100%; box-sizing: border-box;
+    padding: .75rem 1rem; border: 2px dashed var(--border-color); border-radius: 4px; cursor: pointer;
+    color: var(--body-quiet-color);
+  }
+  .filemanager-drop.dragover { border-color: var(--link-fg); color: var(--link-fg); background: var(--darkened-bg) }
+  .filemanager-mkdir { display: flex; gap: .5rem; align-items: center }
+  .filemanager-list { width: 100% }
+  .filemanager-list td { vertical-align: middle; overflow-wrap: anywhere }
+  .filemanager-number { text-align: right; white-space: nowrap }
+  .filemanager-actions { white-space: nowrap }
+  .filemanager-actions > * + * { margin-left: .5rem }
+  .filemanager-actions .button { padding: 4px 8px }
+  .filemanager-folder { font-weight: bold }
+  .filemanager-usage ul { margin-left: 1.5rem }
+  .filemanager-form input[type=text] { width: min(40rem, 100%); box-sizing: border-box }
+</style>
+{% endblock %}
+
+{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} filemanager{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; <a href="{{ root_url }}">{{ opts.verbose_name_plural|capfirst }}</a>
+  {% for name, url in crumbs %}&rsaquo; <a href="{{ url }}">{{ name }}</a> {% endfor %}
+</div>
+{% endblock %}
+
+{% block content_title %}{% if title %}<h1>{{ title }}</h1>{% endif %}{% endblock %}

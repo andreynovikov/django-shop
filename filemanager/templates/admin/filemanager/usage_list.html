@@ -1,0 +1,16 @@
+{% load i18n %}<div class="filemanager-usage">
+{% if usage %}
+  <p>{% if is_dir %}{% translate "These records link to files in this folder:" %}{% else %}{% translate "These records link to this file:" %}{% endif %}</p>
+  {% for group in usage %}
+  <h3>{{ group.name|capfirst }}</h3>
+  <ul>
+    {% for text, url, fields in group.records %}
+    <li>{% if url %}<a href="{{ url }}" target="_blank" rel="noopener">{{ text }}</a>{% else %}{{ text }}{% endif %} <span class="help">({{ fields|join:", " }})</span></li>
+    {% endfor %}
+    {% if group.more %}<li>{% translate "and more" %}</li>{% endif %}
+  </ul>
+  {% endfor %}
+{% else %}
+  <p>{% if is_dir %}{% translate "No record links to files in this folder." %}{% else %}{% translate "No record links to this file." %}{% endif %}</p>
+{% endif %}
+</div>

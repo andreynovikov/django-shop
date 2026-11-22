@@ -1,0 +1,11 @@
+{% extends "admin/filemanager/base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div id="content-main">
+  {% include "admin/filemanager/path.html" %}
+  <p><code>{{ url }}</code></p>
+  {% include "admin/filemanager/usage_list.html" %}
+  <p><a href="{{ folder_url }}">{% translate "Back to the folder" %}</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "admin/filemanager/base.html" %}
+{% load i18n admin_urls %}
+
+{% block bodyclass %}{{ block.super }} delete-confirmation{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  {% include "admin/filemanager/path.html" %}
+  {% if protected %}
+  <p class="errornote">{% translate "This path holds the files of the site’s records and can’t be changed here." %}</p>
+  {% else %}
+  <p>
+    {% if is_dir %}
+    {% blocktranslate count counter=file_count with path=path trimmed %}
+      Delete folder “{{ path }}” with {{ counter }} file in it?
+    {% plural %}
+      Delete folder “{{ path }}” with {{ counter }} files in it?
+    {% endblocktranslate %}
+    {% else %}
+    {% blocktranslate trimmed %}Delete file “{{ path }}”?{% endblocktranslate %}
+    {% endif %}
+  </p>
+  {% include "admin/filemanager/usage_list.html" %}
+  <form method="post" action="{% url opts|admin_urlname:'delete' %}">
+    {% csrf_token %}
+    <input type="hidden" name="path" value="{{ path }}">
+    {% for name, value in popup_params.items %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+    <div>
+      <input type="submit" value="{% translate 'Yes, I’m sure' %}">
+      <a href="{{ folder_url }}" class="button cancel-link">{% translate "No, take me back" %}</a>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

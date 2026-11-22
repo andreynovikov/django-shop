@@ -298,6 +298,26 @@ map $http_accept $image_format {
 }
 ```
 
+## Media files
+
+Content admins upload the files that HTML text links to (images, videos, documents) in the admin's file manager,
+"Швейный Мир › Файлы" (`filemanager/README.md`), and not over FTP. The files go into the site's `media/`, which the
+[service user](#service-user) writes, so FTP can be turned off once nobody uses it.
+
+- The admin's server takes uploads as large as the largest video, in its `server` or the `location` that passes
+  to uWSGI: `client_max_body_size 500m;`. Django and uWSGI set no limit of their own.
+- A replaced file keeps its URL, so `location /media/` caches the files for minutes only. nginx sends `ETag` and
+  `Last-Modified` for files, and browsers then revalidate:
+
+  ```nginx
+  location /media/ {
+    expires 10m;
+  }
+  ```
+
+  The storefronts' optimized images in `next_image` above follow their own cache time. A replaced image shows on a
+  storefront once that copy expires.
+
 # TLS certificates
 
 certbot gets the certificates of the sites from Let's Encrypt and renews them. It proves a domain through the site

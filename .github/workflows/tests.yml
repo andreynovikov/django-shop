@@ -73,4 +73,4 @@ jobs:
         run: uv sync --locked
 
       - name: Run tests
-        run: uv run --no-sync python manage.py test tests errors --settings=tests.settings
+        run: uv run --no-sync python manage.py test tests errors filemanager --settings=tests.settings

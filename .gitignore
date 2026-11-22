@@ -10,7 +10,7 @@ sewingworld/settings/integrations.py
 import/
 media
 media/
-static/
+/static/
 .cache/
 .touch_reload
 deploy/ansible/inventory.yml

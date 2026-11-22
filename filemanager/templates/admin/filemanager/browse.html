@@ -1,0 +1,91 @@
+{% extends "admin/filemanager/base.html" %}
+{% load i18n admin_urls static %}
+
+{% block extrahead %}{{ block.super }}
+<script src="{% static 'filemanager/browse.js' %}" defer></script>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="filemanager">
+  {% include "admin/filemanager/path.html" %}
+
+  {% if protected %}
+  <p class="help">{% translate "This folder holds the files of the site’s records, such as product images. Its files can be linked, but not changed here." %}</p>
+  {% endif %}
+
+  {% if can_add %}
+  <div class="filemanager-tools">
+    <form id="filemanager-upload" method="post" enctype="multipart/form-data" action="{% url opts|admin_urlname:'upload' %}"
+          data-exists="{% translate 'These files already exist and will be replaced:' %}"
+          data-cannot-replace="{% translate 'These files already exist, and you aren’t allowed to replace files:' %}"
+          data-can-replace="{% if can_change %}1{% endif %}">
+      {% csrf_token %}
+      <input type="hidden" name="dir" value="{{ folder }}">
+      <input type="hidden" name="overwrite" value="">
+      {% for name, value in popup_params.items %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+      <label class="filemanager-drop">
+        <span>{% translate "Drop files here or click to choose them" %}</span>
+        <input type="file" name="files" multiple>
+      </label>
+    </form>
+    <form method="post" action="{% url opts|admin_urlname:'mkdir' %}" class="filemanager-mkdir">
+      {% csrf_token %}
+      <input type="hidden" name="dir" value="{{ folder }}">
+      {% for name, value in popup_params.items %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+      <input type="text" name="name" required placeholder="{% translate 'New folder' %}" aria-label="{% translate 'New folder' %}">
+      <input type="submit" class="button" value="{% translate 'Create' %}">
+    </form>
+  </div>
+  {% endif %}
+  {{ names|json_script:"filemanager-names" }}
+
+  <div class="results">
+    <table id="result_list" class="filemanager-list">
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Name" %}</th>
+          <th scope="col" class="filemanager-number">{% translate "Size" %}</th>
+          <th scope="col">{% translate "Modified" %}</th>
+          <th scope="col">{% translate "Actions" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if parent_url %}
+        <tr><td colspan="4"><a href="{{ parent_url }}">↑ {% translate "Up" %}</a></td></tr>
+        {% endif %}
+        {% for entry, entry_protected in folders %}
+        <tr>
+          <td><a href="?dir={{ entry.path|urlencode }}{% if popup_query %}&amp;{{ popup_query }}{% endif %}" class="filemanager-folder">{{ entry.name }}/</a></td>
+          <td></td>
+          <td></td>
+          <td class="filemanager-actions">
+            {% if not entry_protected %}
+            {% if can_change %}<a href="{% url opts|admin_urlname:'rename' %}?path={{ entry.path|urlencode }}{% if popup_query %}&amp;{{ popup_query }}{% endif %}">{% translate "Rename" %}</a>{% endif %}
+            {% if can_delete %}<a href="{% url opts|admin_urlname:'delete' %}?path={{ entry.path|urlencode }}{% if popup_query %}&amp;{{ popup_query }}{% endif %}" class="deletelink">{% translate "Delete" %}</a>{% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% for entry in files %}
+        <tr>
+          <td><a href="{{ entry.url }}" target="_blank" rel="noopener" class="filemanager-{{ entry.kind }}">{{ entry.name }}</a></td>
+          <td class="filemanager-number">{{ entry.size|filesizeformat }}</td>
+          <td>{{ entry.modified|date:"SHORT_DATETIME_FORMAT" }}</td>
+          <td class="filemanager-actions">
+            {% if is_popup %}<button type="button" class="button default filemanager-insert" data-url="{{ entry.url }}" data-name="{{ entry.name }}" data-kind="{{ entry.kind }}">{% translate "Insert" %}</button>{% endif %}
+            <button type="button" class="button filemanager-copy" data-url="{{ entry.url }}" data-copied="{% translate 'Copied' %}">{% translate "Copy URL" %}</button>
+            <a href="{% url opts|admin_urlname:'usage' %}?path={{ entry.path|urlencode }}{% if popup_query %}&amp;{{ popup_query }}{% endif %}">{% translate "Where used" %}</a>
+            {% if not protected %}
+            {% if can_change %}<a href="{% url opts|admin_urlname:'rename' %}?path={{ entry.path|urlencode }}{% if popup_query %}&amp;{{ popup_query }}{% endif %}">{% translate "Rename" %}</a>{% endif %}
+            {% if can_delete %}<a href="{% url opts|admin_urlname:'delete' %}?path={{ entry.path|urlencode }}{% if popup_query %}&amp;{{ popup_query }}{% endif %}" class="deletelink">{% translate "Delete" %}</a>{% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        {% if not folders %}<tr><td colspan="4">{% translate "This folder is empty." %}</td></tr>{% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

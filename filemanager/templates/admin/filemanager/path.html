@@ -1,0 +1,1 @@
+{% load i18n %}<p class="filemanager-path" data-dir="{{ folder }}"><a href="{{ root_url }}">{% translate "Files" %}</a>{% for name, url in crumbs %} / <a href="{{ url }}">{{ name }}</a>{% endfor %}</p>
