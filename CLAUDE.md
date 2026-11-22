@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Django 6.1 backend for the "Швейный Мир" (sewing-world.ru) family of e-commerce sites. Code, comments, verbose names and UI strings are mostly in Russian. This repository is the **backend only**: storefronts are separate Next.js apps that talk to the REST API here and get cache-revalidated through `shop/revalidation.py` (see below).
+Django 6.1 backend for the "Швейный Мир" (sewing-world.ru) family of e-commerce sites. Code, comments, verbose names and UI strings are mostly in Russian. The backend is on `main` only. The storefronts are Next.js apps that talk to the REST API here and get cache-revalidated through `shop/revalidation.py` (see below).
 
-The same codebase is deployed many times, once per site (sewing-world, janome, singer, wholesale, etc.), each from its own long-lived git branch (see `git branch -a`) with its own virtualenv and `.env`. `main` is the shared base; changes are usually merged into site branches afterward.
+Every other branch of this repository is a storefront (see Commands), never a copy of the backend, so backend changes are not merged into them. The backend is deployed from `main` by hand, see deploy/README.md.
 
 ## Commands
 
