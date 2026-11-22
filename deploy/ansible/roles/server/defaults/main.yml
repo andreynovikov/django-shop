@@ -57,7 +57,7 @@ server_users:
 server_app_user: sworld
 
 # AllowUsers of sshd lists server_users and these. Add the user GitHub Actions deploys with if it is not one of them.
-server_ssh_extra_users: []
+server_ssh_extra_users: [deploy]
 
 # false skips the "Firewall" section, where the hosting's firewall filters the traffic instead. It must then allow
 # what the variables below allow. The section does not undo nftables when it is turned off.

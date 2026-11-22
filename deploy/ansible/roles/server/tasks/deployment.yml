@@ -1,0 +1,25 @@
+- name: Create deployment user
+  ansible.builtin.user:
+    name: deploy
+    groups: [docker]
+    shell: /usr/bin/false
+    generate_ssh_key: true
+    ssh_key_type: ed25519
+  register: created_user
+
+- name: Add deployment user public key to authorized_keys
+  ansible.posix.authorized_key:
+    user: deploy
+    state: present
+    key: "{{ created_user.ssh_public_key }}"
+    key_options: 'restrict,command="/usr/local/bin/deploy-frontend"'
+    comment: github-deploy
+    exclusive: true
+  when: created_user.ssh_public_key is defined
+
+- name: Install frontend deployment script
+  ansible.builtin.copy:
+    src: deploy-frontend
+    dest: /usr/local/bin/
+    group: docker
+    mode: "0750"

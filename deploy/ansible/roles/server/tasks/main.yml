@@ -37,6 +37,10 @@
   ansible.builtin.import_tasks: celery.yml
   tags: celery
 
+- name: Deployment setup
+  ansible.builtin.import_tasks: deployment.yml
+  tags: deployment
+
 # Only with a backup host in the inventory, which the repository password is copied from
 - name: Database backups
   ansible.builtin.import_tasks: backup.yml

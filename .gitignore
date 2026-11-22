@@ -1,6 +1,7 @@
 .env*
 .venv/
 env/
+etc/
 logs/
 __pycache__/
 *~
@@ -13,3 +14,7 @@ static/
 .cache/
 .touch_reload
 deploy/ansible/inventory.yml
+# server inspection notes, they list unfixed weaknesses of production
+/SERVER.md
+/PROBLEMS.md
+/server_inspection.txt
