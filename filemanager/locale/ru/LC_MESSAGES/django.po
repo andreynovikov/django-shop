@@ -1,22 +1,37 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-22 09:55-0600\n"
+"POT-Creation-Date: 2026-11-22 10:27-0600\n"
 "Language: ru\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: admin.py:100 apps.py:7 templates/admin/filemanager/path.html:1
+#: admin.py:82
+msgctxt "file manager"
+msgid "Name"
+msgstr "Имя"
+
+#: admin.py:83
+msgctxt "file manager"
+msgid "Size"
+msgstr "Размер"
+
+#: admin.py:84
+msgctxt "file manager"
+msgid "Modified"
+msgstr "Изменён"
+
+#: admin.py:143 apps.py:7
 msgid "Files"
 msgstr "Файлы"
 
-#: admin.py:128
+#: admin.py:172
 #, python-format
 msgid "%(error)s Upload it again and allow replacing."
 msgstr "%(error)s Загрузите его снова и разрешите замену."
 
-#: admin.py:132
+#: admin.py:176
 #, python-format
 msgid "%d file uploaded."
 msgid_plural "%d files uploaded."
@@ -24,27 +39,27 @@ msgstr[0] "Загружен %d файл."
 msgstr[1] "Загружено %d файла."
 msgstr[2] "Загружено %d файлов."
 
-#: admin.py:161
+#: admin.py:205
 #, python-format
 msgid "“%(path)s” is now “%(target)s”."
 msgstr "«%(path)s» теперь «%(target)s»."
 
-#: admin.py:167
+#: admin.py:211
 #, python-format
 msgid "Rename or move “%(name)s”"
 msgstr "Переименовать или перенести «%(name)s»"
 
-#: admin.py:185
+#: admin.py:229
 #, python-format
 msgid "“%(path)s” deleted."
 msgstr "«%(path)s» удалён."
 
-#: admin.py:190
+#: admin.py:234
 #, python-format
 msgid "Delete “%(name)s”"
 msgstr "Удалить «%(name)s»"
 
-#: admin.py:206
+#: admin.py:250
 #, python-format
 msgid "Where “%(name)s” is used"
 msgstr "Где используется «%(name)s»"
@@ -105,7 +120,7 @@ msgstr "«%(path)s» — это файл."
 msgid "Home"
 msgstr "Начало"
 
-#: templates/admin/filemanager/browse.html:13
+#: templates/admin/filemanager/browse.html:22
 msgid ""
 "This folder holds the files of the site’s records, such as product images. "
 "Its files can be linked, but not changed here."
@@ -113,74 +128,76 @@ msgstr ""
 "В этой папке лежат файлы записей сайта, например изображения товаров. На них "
 "можно ссылаться, но менять их здесь нельзя."
 
-#: templates/admin/filemanager/browse.html:19
+#: templates/admin/filemanager/browse.html:28
 msgid "These files already exist and will be replaced:"
 msgstr "Эти файлы уже есть и будут заменены:"
 
-#: templates/admin/filemanager/browse.html:20
+#: templates/admin/filemanager/browse.html:29
 msgid "These files already exist, and you aren’t allowed to replace files:"
 msgstr "Эти файлы уже есть, а заменять файлы вам не разрешено:"
 
-#: templates/admin/filemanager/browse.html:27
+#: templates/admin/filemanager/browse.html:36
 msgid "Drop files here or click to choose them"
 msgstr "Перетащите файлы сюда или нажмите, чтобы выбрать их"
 
-#: templates/admin/filemanager/browse.html:35
+#: templates/admin/filemanager/browse.html:44
+msgctxt "file manager"
 msgid "New folder"
 msgstr "Новая папка"
 
-#: templates/admin/filemanager/browse.html:36
+#: templates/admin/filemanager/browse.html:45
+msgctxt "file manager"
 msgid "Create"
 msgstr "Создать"
 
-#: templates/admin/filemanager/browse.html:46
-msgid "Name"
-msgstr "Имя"
+#: templates/admin/filemanager/browse.html:59
+msgid "Toggle sorting"
+msgstr "Переключить сортировку"
 
-#: templates/admin/filemanager/browse.html:47
-msgid "Size"
-msgstr "Размер"
-
-#: templates/admin/filemanager/browse.html:48
-msgid "Modified"
-msgstr "Изменён"
-
-#: templates/admin/filemanager/browse.html:49
+#: templates/admin/filemanager/browse.html:66
+msgctxt "file manager"
 msgid "Actions"
 msgstr "Действия"
 
-#: templates/admin/filemanager/browse.html:54
+#: templates/admin/filemanager/browse.html:71
+msgctxt "file manager"
 msgid "Up"
 msgstr "Вверх"
 
-#: templates/admin/filemanager/browse.html:63
-#: templates/admin/filemanager/browse.html:79
+#: templates/admin/filemanager/browse.html:80
+#: templates/admin/filemanager/browse.html:96
 #: templates/admin/filemanager/rename.html:20
+msgctxt "file manager"
 msgid "Rename"
 msgstr "Переименовать"
 
-#: templates/admin/filemanager/browse.html:64
-#: templates/admin/filemanager/browse.html:80
+#: templates/admin/filemanager/browse.html:81
+#: templates/admin/filemanager/browse.html:97
+msgctxt "file manager"
 msgid "Delete"
 msgstr "Удалить"
 
-#: templates/admin/filemanager/browse.html:75
+#: templates/admin/filemanager/browse.html:92
+msgctxt "file manager"
 msgid "Insert"
 msgstr "Вставить"
 
-#: templates/admin/filemanager/browse.html:76
+#: templates/admin/filemanager/browse.html:93
+msgctxt "file manager"
 msgid "Copied"
 msgstr "Скопировано"
 
-#: templates/admin/filemanager/browse.html:76
+#: templates/admin/filemanager/browse.html:93
+msgctxt "file manager"
 msgid "Copy URL"
 msgstr "Копировать адрес"
 
-#: templates/admin/filemanager/browse.html:77
+#: templates/admin/filemanager/browse.html:94
+msgctxt "file manager"
 msgid "Where used"
 msgstr "Где используется"
 
-#: templates/admin/filemanager/browse.html:85
+#: templates/admin/filemanager/browse.html:102
 msgid "This folder is empty."
 msgstr "Папка пуста."
 
@@ -210,7 +227,13 @@ msgstr "Да, я уверен"
 msgid "No, take me back"
 msgstr "Нет, отменить и вернуться к выбору"
 
+#: templates/admin/filemanager/path.html:1
+msgctxt "file manager"
+msgid "Files"
+msgstr "Файлы"
+
 #: templates/admin/filemanager/rename.html:13
+msgctxt "file manager"
 msgid "New path"
 msgstr "Новый путь"
 
@@ -231,6 +254,7 @@ msgstr ""
 "вручную."
 
 #: templates/admin/filemanager/rename.html:21
+msgctxt "file manager"
 msgid "Cancel"
 msgstr "Отмена"
 
@@ -247,6 +271,7 @@ msgid "These records link to this file:"
 msgstr "Эти записи ссылаются на этот файл:"
 
 #: templates/admin/filemanager/usage_list.html:10
+msgctxt "file manager"
 msgid "and more"
 msgstr "и другие"
 
@@ -259,5 +284,6 @@ msgid "No record links to this file."
 msgstr "Ни одна запись не ссылается на этот файл."
 
 #: templates/filemanager/widgets/html_textarea.html:3
+msgctxt "file manager"
 msgid "Insert file"
 msgstr "Вставить файл"

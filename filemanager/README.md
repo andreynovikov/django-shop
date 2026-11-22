@@ -4,7 +4,8 @@ A file browser in the Django admin for the files that pages link to by URL: imag
 
 ## Features
 
-- **Browsing.** A folder at a time, with its folders and files, sizes and modification times. Hidden names (with a leading dot) and names that aren't UTF-8 are not shown.
+- **Browsing.** A folder at a time, with its folders and files, sizes and modification times. Hidden names (with a leading dot) and names that aren't UTF-8 are not shown. Files can be sorted by name, size or modification time, and the order stays while you move between folders.
+- **Translations of labels.** Short labels such as "Delete" have the context `file manager`, so that the catalogs of apps installed earlier, which take precedence, don't replace them.
 - **Uploading.** Several files at a time, by dropping them on the page or choosing them. A file whose name exists is replaced only after the browser asks. The new content is written beside the old file and renamed over it, so its URL never serves a partial file.
 - **Folders.** Making, renaming, moving and deleting folders. Deleting a folder deletes everything in it, after a confirmation that says how many files it holds.
 - **Renaming and moving** files and folders. The new path is typed from the root, and missing folders are made.

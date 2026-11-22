@@ -7,7 +7,7 @@
     {% for text, url, fields in group.records %}
     <li>{% if url %}<a href="{{ url }}" target="_blank" rel="noopener">{{ text }}</a>{% else %}{{ text }}{% endif %} <span class="help">({{ fields|join:", " }})</span></li>
     {% endfor %}
-    {% if group.more %}<li>{% translate "and more" %}</li>{% endif %}
+    {% if group.more %}<li>{% translate "and more" context "file manager" %}</li>{% endif %}
   </ul>
   {% endfor %}
 {% else %}

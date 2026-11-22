@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import tempfile
 
@@ -162,8 +163,65 @@ class AdminTests(TestCase):
         self.assertNotContains(response, 'Raw')
 
     def test_translations(self):
-        for language, texts in (('en', ['Drop files here', 'Where used', 'New folder']), ('ru', ['Где используется', 'Новая папка'])):
+        # Labels have a context, so that other apps' catalogs don't replace them: django-import-export
+        # translates "Delete" as "Удалено".
+        for language, texts in (
+            ('en', ['Drop files here', 'Where used', 'New folder', '>Delete<', '>Name<']),
+            ('ru', ['Где используется', 'Новая папка', '>Удалить<', '>Имя<']),
+        ):
             with translation.override(language):
                 response = self.call(self.model_admin.browse_view, data={'dir': 'images/janome'})
             for text in texts:
                 self.assertContains(response, text, msg_prefix=language)
+        self.assertNotContains(response, 'Удалено')
+
+    def test_breadcrumbs(self):
+        response = self.call(self.model_admin.browse_view, data={'dir': 'images/janome'})
+        self.assertInHTML(
+            '<ol class="breadcrumbs"><li><a href="/admin/">Home</a></li>'
+            '<li><a href="/admin/filemanager/file/">Files</a></li>'
+            '<li><a href="/admin/filemanager/file/?dir=images">images</a></li>'
+            '<li aria-current="page">janome</li></ol>',
+            response.content.decode(),
+        )
+        response = self.call(self.model_admin.rename_view, data={'path': 'images/janome/a.jpg'})
+        self.assertContains(response, '<li><a href="/admin/filemanager/file/?dir=images%2Fjanome">janome</a></li>', html=True)
+        self.assertContains(response, '<li aria-current="page">Rename or move “a.jpg”</li>', html=True)
+        popup = self.call(self.model_admin.browse_view, data={'_popup': '1', '_target': 'id_content'})
+        self.assertNotContains(popup, 'class="breadcrumbs"')
+
+    def test_order(self):
+        self.write('images/janome/b.jpg', b'bigger')
+        self.write('images/janome/C.jpg', b'c')
+        os.utime(os.path.join(self.root, 'images/janome/b.jpg'), (1, 1))  # the oldest
+        os.makedirs(os.path.join(self.root, 'images', 'janome', 'x'))
+        os.makedirs(os.path.join(self.root, 'images', 'janome', 'y'))
+
+        def names(order):
+            data = {'dir': 'images/janome'}
+            if order:
+                data['o'] = order
+            response = self.call(self.model_admin.browse_view, data=data)
+            return response, re.findall(r'class="filemanager-(?:folder|image)">([^<]+)<', response.content.decode())
+
+        for order, expected in (
+            (None, ['x/', 'y/', 'a.jpg', 'b.jpg', 'C.jpg']),
+            ('-name', ['y/', 'x/', 'C.jpg', 'b.jpg', 'a.jpg']),
+            ('-size', ['x/', 'y/', 'b.jpg', 'a.jpg', 'C.jpg']),
+            ('modified', ['x/', 'y/', 'b.jpg', 'a.jpg', 'C.jpg']),
+            ('bogus', ['x/', 'y/', 'a.jpg', 'b.jpg', 'C.jpg']),
+        ):
+            with self.subTest(order=order):
+                self.assertEqual(names(order)[1], expected)
+
+        response, _ = names('-size')
+        self.assertContains(response, 'class="sortable column-size sorted descending')
+        self.assertContains(response, 'href="/admin/filemanager/file/?dir=images%2Fjanome&amp;o=size" class="toggle descending"')
+        self.assertContains(response, '<a href="/admin/filemanager/file/?dir=images%2Fjanome">Name</a>', html=True)  # name is the default
+        self.assertContains(response, '<a href="/admin/filemanager/file/?dir=images%2Fjanome&amp;o=-modified">Modified</a>', html=True)
+        self.assertContains(response, '?dir=images/janome/x&amp;o=-size"')  # folders keep the order
+        self.assertContains(response, '<input type="hidden" name="o" value="-size">', html=True)  # so do the forms
+        upload = self.call(self.model_admin.upload_view, 'post', {
+            'dir': 'images/janome', 'o': '-size', 'files': SimpleUploadedFile('d.jpg', b'd'),
+        })
+        self.assertEqual(upload['Location'], '/admin/filemanager/file/?dir=images%2Fjanome&o=-size')

@@ -7,7 +7,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponseNotAllowed, HttpResponseRedirect
 from django.template.response import TemplateResponse
 from django.urls import path as url_path, reverse
-from django.utils.translation import gettext as _, ngettext
+from django.utils.translation import gettext as _, ngettext, pgettext
 
 from .models import File
 from .storage import FileExists, FileManagerError, clean_path, get_store, join
@@ -16,6 +16,13 @@ from .usage import find_usage
 POPUP_VAR = '_popup'
 TARGET_VAR = '_target'
 TARGET_RE = re.compile(r'^[\w-]{1,200}$')
+ORDER_VAR = 'o'
+# Columns the files can be ordered by: the key, and whether the first click orders them descending
+ORDERINGS = {
+    'name': (lambda entry: entry.name.casefold(), False),
+    'size': (lambda entry: entry.size, True),
+    'modified': (lambda entry: entry.modified, True),
+}
 
 
 @admin.register(File)
@@ -42,19 +49,51 @@ class FileAdmin(admin.ModelAdmin):
 
     # Requests
 
-    def popup_params(self, request):
-        """The popup of the file picker keeps these on every page."""
+    def keep_params(self, request):
+        """Parameters that every page of the browser keeps: the file picker's popup and the order of files."""
         data = request.POST if request.method == 'POST' else request.GET
+        params = {}
         target = data.get(TARGET_VAR, '')
         if data.get(POPUP_VAR) and TARGET_RE.match(target):
-            return {POPUP_VAR: '1', TARGET_VAR: target}
-        return {}
+            params.update({POPUP_VAR: '1', TARGET_VAR: target})
+        order = data.get(ORDER_VAR, '')
+        if order.lstrip('-') in ORDERINGS and order != 'name':
+            params[ORDER_VAR] = order
+        return params
 
-    def browse_url(self, request, folder=''):
-        params = {'dir': folder} if folder else {}
-        params.update(self.popup_params(request))
+    def get_order(self, request):
+        """(column, descending)"""
+        order = self.keep_params(request).get(ORDER_VAR, 'name')
+        return order.lstrip('-'), order.startswith('-')
+
+    def browse_url(self, request, folder='', **params):
+        query = {'dir': folder} if folder else {}
+        query.update(self.keep_params(request))
+        query.update(params)
+        query = {name: value for name, value in query.items() if value}
         url = reverse('%s:%s_%s_changelist' % (self.admin_site.name, self.opts.app_label, self.opts.model_name))
-        return url + ('?' + urlencode(params) if params else '')
+        return url + ('?' + urlencode(query) if query else '')
+
+    def columns(self, request, folder):
+        """The sortable columns of the file list, as the admin's change list shows them"""
+        column, descending = self.get_order(request)
+        result = []
+        for name, label in (
+            ('name', pgettext('file manager', 'Name')),
+            ('size', pgettext('file manager', 'Size')),
+            ('modified', pgettext('file manager', 'Modified')),
+        ):
+            sorted_ = name == column
+            first_descending = ORDERINGS[name][1]
+            toggle = ('' if descending else '-') + name if sorted_ else ('-' if first_descending else '') + name
+            result.append({
+                'name': name,
+                'label': label,
+                'sorted': sorted_,
+                'ascending': sorted_ and not descending,
+                'url': self.browse_url(request, folder, **{ORDER_VAR: '' if toggle == 'name' else toggle}),
+            })
+        return result
 
     def get_path(self, request, name='path'):
         data = request.POST if request.method == 'POST' else request.GET
@@ -67,7 +106,7 @@ class FileAdmin(admin.ModelAdmin):
         crumbs, parts = [], folder.split('/') if folder else []
         for index, name in enumerate(parts):
             crumbs.append((name, self.browse_url(request, '/'.join(parts[:index + 1]))))
-        popup = self.popup_params(request)
+        keep = self.keep_params(request)
         return {
             **self.admin_site.each_context(request),
             'opts': self.opts,
@@ -76,9 +115,9 @@ class FileAdmin(admin.ModelAdmin):
             'root_url': self.browse_url(request),
             'folder_url': self.browse_url(request, folder),
             'crumbs': crumbs,
-            'is_popup': bool(popup),
-            'popup_params': popup,
-            'popup_query': urlencode(popup),
+            'is_popup': POPUP_VAR in keep,
+            'keep_params': keep,
+            'keep_query': urlencode(keep),
             **extra,
         }
 
@@ -96,6 +135,10 @@ class FileAdmin(admin.ModelAdmin):
         if folder and store.kind(folder) != 'dir':
             raise Http404()
         folders, files = store.list(folder)
+        column, descending = self.get_order(request)
+        files.sort(key=ORDERINGS[column][0], reverse=descending)
+        if column == 'name' and descending:
+            folders.reverse()  # folders have no size or time, and stay ordered by name otherwise
         context = self.context(
             request, folder or _('Files'), folder,
             folders=[(entry, store.is_protected(entry.path)) for entry in folders],
@@ -106,6 +149,7 @@ class FileAdmin(admin.ModelAdmin):
             can_change=self.has_change_permission(request),
             can_delete=self.has_delete_permission(request),
             names=[entry.name for entry in folders + files],
+            columns=self.columns(request, folder),
         )
         return self.render(request, 'browse', context)
 

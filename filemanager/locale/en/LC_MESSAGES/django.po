@@ -1,48 +1,63 @@
 msgid ""
 msgstr ""
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-22 09:55-0600\n"
+"POT-Creation-Date: 2026-11-22 10:27-0600\n"
 "Language: en\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: admin.py:100 apps.py:7 templates/admin/filemanager/path.html:1
+#: admin.py:82
+msgctxt "file manager"
+msgid "Name"
+msgstr "Name"
+
+#: admin.py:83
+msgctxt "file manager"
+msgid "Size"
+msgstr "Size"
+
+#: admin.py:84
+msgctxt "file manager"
+msgid "Modified"
+msgstr "Modified"
+
+#: admin.py:143 apps.py:7
 msgid "Files"
 msgstr "Files"
 
-#: admin.py:128
+#: admin.py:172
 #, python-format
 msgid "%(error)s Upload it again and allow replacing."
 msgstr "%(error)s Upload it again and allow replacing."
 
-#: admin.py:132
+#: admin.py:176
 #, python-format
 msgid "%d file uploaded."
 msgid_plural "%d files uploaded."
 msgstr[0] "%d file uploaded."
 msgstr[1] "%d files uploaded."
 
-#: admin.py:161
+#: admin.py:205
 #, python-format
 msgid "“%(path)s” is now “%(target)s”."
 msgstr "“%(path)s” is now “%(target)s”."
 
-#: admin.py:167
+#: admin.py:211
 #, python-format
 msgid "Rename or move “%(name)s”"
 msgstr "Rename or move “%(name)s”"
 
-#: admin.py:185
+#: admin.py:229
 #, python-format
 msgid "“%(path)s” deleted."
 msgstr "“%(path)s” deleted."
 
-#: admin.py:190
+#: admin.py:234
 #, python-format
 msgid "Delete “%(name)s”"
 msgstr "Delete “%(name)s”"
 
-#: admin.py:206
+#: admin.py:250
 #, python-format
 msgid "Where “%(name)s” is used"
 msgstr "Where “%(name)s” is used"
@@ -104,7 +119,7 @@ msgstr "“%(path)s” is a file."
 msgid "Home"
 msgstr "Home"
 
-#: templates/admin/filemanager/browse.html:13
+#: templates/admin/filemanager/browse.html:22
 msgid ""
 "This folder holds the files of the site’s records, such as product images. "
 "Its files can be linked, but not changed here."
@@ -112,74 +127,76 @@ msgstr ""
 "This folder holds the files of the site’s records, such as product images. "
 "Its files can be linked, but not changed here."
 
-#: templates/admin/filemanager/browse.html:19
+#: templates/admin/filemanager/browse.html:28
 msgid "These files already exist and will be replaced:"
 msgstr "These files already exist and will be replaced:"
 
-#: templates/admin/filemanager/browse.html:20
+#: templates/admin/filemanager/browse.html:29
 msgid "These files already exist, and you aren’t allowed to replace files:"
 msgstr "These files already exist, and you aren’t allowed to replace files:"
 
-#: templates/admin/filemanager/browse.html:27
+#: templates/admin/filemanager/browse.html:36
 msgid "Drop files here or click to choose them"
 msgstr "Drop files here or click to choose them"
 
-#: templates/admin/filemanager/browse.html:35
+#: templates/admin/filemanager/browse.html:44
+msgctxt "file manager"
 msgid "New folder"
 msgstr "New folder"
 
-#: templates/admin/filemanager/browse.html:36
+#: templates/admin/filemanager/browse.html:45
+msgctxt "file manager"
 msgid "Create"
 msgstr "Create"
 
-#: templates/admin/filemanager/browse.html:46
-msgid "Name"
-msgstr "Name"
+#: templates/admin/filemanager/browse.html:59
+msgid "Toggle sorting"
+msgstr "Toggle sorting"
 
-#: templates/admin/filemanager/browse.html:47
-msgid "Size"
-msgstr "Size"
-
-#: templates/admin/filemanager/browse.html:48
-msgid "Modified"
-msgstr "Modified"
-
-#: templates/admin/filemanager/browse.html:49
+#: templates/admin/filemanager/browse.html:66
+msgctxt "file manager"
 msgid "Actions"
 msgstr "Actions"
 
-#: templates/admin/filemanager/browse.html:54
+#: templates/admin/filemanager/browse.html:71
+msgctxt "file manager"
 msgid "Up"
 msgstr "Up"
 
-#: templates/admin/filemanager/browse.html:63
-#: templates/admin/filemanager/browse.html:79
+#: templates/admin/filemanager/browse.html:80
+#: templates/admin/filemanager/browse.html:96
 #: templates/admin/filemanager/rename.html:20
+msgctxt "file manager"
 msgid "Rename"
 msgstr "Rename"
 
-#: templates/admin/filemanager/browse.html:64
-#: templates/admin/filemanager/browse.html:80
+#: templates/admin/filemanager/browse.html:81
+#: templates/admin/filemanager/browse.html:97
+msgctxt "file manager"
 msgid "Delete"
 msgstr "Delete"
 
-#: templates/admin/filemanager/browse.html:75
+#: templates/admin/filemanager/browse.html:92
+msgctxt "file manager"
 msgid "Insert"
 msgstr "Insert"
 
-#: templates/admin/filemanager/browse.html:76
+#: templates/admin/filemanager/browse.html:93
+msgctxt "file manager"
 msgid "Copied"
 msgstr "Copied"
 
-#: templates/admin/filemanager/browse.html:76
+#: templates/admin/filemanager/browse.html:93
+msgctxt "file manager"
 msgid "Copy URL"
 msgstr "Copy URL"
 
-#: templates/admin/filemanager/browse.html:77
+#: templates/admin/filemanager/browse.html:94
+msgctxt "file manager"
 msgid "Where used"
 msgstr "Where used"
 
-#: templates/admin/filemanager/browse.html:85
+#: templates/admin/filemanager/browse.html:102
 msgid "This folder is empty."
 msgstr "This folder is empty."
 
@@ -209,7 +226,13 @@ msgstr "Yes, I’m sure"
 msgid "No, take me back"
 msgstr "No, take me back"
 
+#: templates/admin/filemanager/path.html:1
+msgctxt "file manager"
+msgid "Files"
+msgstr "Files"
+
 #: templates/admin/filemanager/rename.html:13
+msgctxt "file manager"
 msgid "New path"
 msgstr "New path"
 
@@ -230,6 +253,7 @@ msgstr ""
 "hand."
 
 #: templates/admin/filemanager/rename.html:21
+msgctxt "file manager"
 msgid "Cancel"
 msgstr "Cancel"
 
@@ -246,6 +270,7 @@ msgid "These records link to this file:"
 msgstr "These records link to this file:"
 
 #: templates/admin/filemanager/usage_list.html:10
+msgctxt "file manager"
 msgid "and more"
 msgstr "and more"
 
@@ -258,5 +283,6 @@ msgid "No record links to this file."
 msgstr "No record links to this file."
 
 #: templates/filemanager/widgets/html_textarea.html:3
+msgctxt "file manager"
 msgid "Insert file"
 msgstr "Insert file"

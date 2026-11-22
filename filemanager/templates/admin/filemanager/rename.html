@@ -8,17 +8,17 @@
   <form method="post" action="{% url opts|admin_urlname:'rename' %}" class="filemanager-form">
     {% csrf_token %}
     <input type="hidden" name="path" value="{{ path }}">
-    {% for name, value in popup_params.items %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+    {% for name, value in keep_params.items %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
     <p>
-      <label for="id_target">{% translate "New path" %}:</label><br>
+      <label for="id_target">{% translate "New path" context "file manager" %}:</label><br>
       <input type="text" name="target" id="id_target" value="{{ target }}" required autofocus>
     </p>
     <p class="help">{% translate "The path from the root folder. Change the folders in it to move. Missing folders are made." %}</p>
     <p class="help">{% translate "Links to the old path stop working: the records below have to be changed by hand." %}</p>
     {% include "admin/filemanager/usage_list.html" %}
     <div class="submit-row">
-      <input type="submit" class="default" value="{% translate 'Rename' %}">
-      <a href="{{ folder_url }}" class="closelink">{% translate "Cancel" %}</a>
+      <input type="submit" class="default" value="{% translate "Rename" context "file manager" %}">
+      <a href="{{ folder_url }}" class="closelink">{% translate "Cancel" context "file manager" %}</a>
     </div>
   </form>
 </div>

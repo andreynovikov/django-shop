@@ -28,12 +28,17 @@
 
 {% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} filemanager{% endblock %}
 
-{% block breadcrumbs %}
-<div class="breadcrumbs">
-  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
-  &rsaquo; <a href="{{ root_url }}">{{ opts.verbose_name_plural|capfirst }}</a>
-  {% for name, url in crumbs %}&rsaquo; <a href="{{ url }}">{{ name }}</a> {% endfor %}
-</div>
-{% endblock %}
+{% block breadcrumbs %}{% if not is_popup %}
+<ol class="breadcrumbs">
+  <li><a href="{% url 'admin:index' %}">{% translate 'Home' %}</a></li>
+  {% block crumbs %}
+  <li><a href="{{ root_url }}">{{ opts.verbose_name_plural|capfirst }}</a></li>
+  {% for name, url in crumbs %}
+  <li><a href="{{ url }}">{{ name }}</a></li>
+  {% endfor %}
+  <li aria-current="page">{{ title }}</li>
+  {% endblock %}
+</ol>
+{% endif %}{% endblock %}
 
 {% block content_title %}{% if title %}<h1>{{ title }}</h1>{% endif %}{% endblock %}
