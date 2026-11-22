@@ -426,14 +426,14 @@ wheels = [
 
 [[package]]
 name = "django-daterangefilter"
-version = "1.3"
+version = "1.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/07/c2/509d84e7d5087758059104039cf692d1f207ad7bdcb9ae310d1a44008547/django_daterangefilter-1.3.tar.gz", hash = "sha256:7ac68d5b8b20f5d13c42fd9e25e1c4ba7a54c41ed03b16b48e32d92b601f959f", size = 109052, upload-time = "2026-11-22T18:25:31.706Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f3/7e/705eafb57464002344d211acda10d7a1232f4e3661d9c8cfe4da4c99d47e/django_daterangefilter-1.4.tar.gz", hash = "sha256:6c18f5852ed58c53c22607db85fe36f2d34466c2d93dbe3e956c138db5779e58", size = 109976, upload-time = "2026-11-22T18:57:12.826Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/10/41/6ac9c328552682931e4d31e412a92e5d59d2f16b65e41b7dbfcbdd99e354/django_daterangefilter-1.3-py3-none-any.whl", hash = "sha256:91ab33e3fe49b01f0cf889f09a8a95b94549bbdaa3422b86f2d2db0589611998", size = 111616, upload-time = "2026-11-22T18:25:30.496Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/af/f6b63941282d081e876d5fd3f6bf653bb8e6945b19ff2ce028b6e4f4650a/django_daterangefilter-1.4-py3-none-any.whl", hash = "sha256:5dfee8f652a3c92d1bcdc3bc8455be3ae1d26c5ea7451d8244a25e4b6e4424c3", size = 112560, upload-time = "2026-11-22T18:57:11.649Z" },
 ]
 
 [[package]]
@@ -739,7 +739,7 @@ requires-dist = [
     { name = "django-colorfield", specifier = ">=0.14.0" },
     { name = "django-constance", specifier = ">=4.3.5" },
     { name = "django-contrib-comments", specifier = ">=2.2.0" },
-    { name = "django-daterangefilter", specifier = ">=1.3" },
+    { name = "django-daterangefilter", specifier = ">=1.4" },
     { name = "django-datetime-widget", specifier = ">=0.9.3" },
     { name = "django-environ", specifier = ">=0.14.0" },
     { name = "django-filter", specifier = ">=26.1" },
