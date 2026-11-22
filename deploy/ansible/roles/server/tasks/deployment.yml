@@ -2,7 +2,7 @@
   ansible.builtin.user:
     name: deploy
     groups: [docker]
-    shell: /usr/bin/false
+    shell: /bin/sh  # sshd runs the forced command of the key through the login shell
     generate_ssh_key: true
     ssh_key_type: ed25519
   register: created_user
