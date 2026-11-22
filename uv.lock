@@ -641,14 +641,14 @@ wheels = [
 
 [[package]]
 name = "django-rated-reviews"
-version = "2.0.0"
+version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "django" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/24/88/475857c193ecc61c3f4a3e3e47b376cbd1248b4e7b0d511eda2cadb94bde/django_rated_reviews-2.0.0.tar.gz", hash = "sha256:6503745a1c635811dbea8c5b1d37c8ad1a8642fa49bc27ef3642d76cb3b00d4b", size = 49890, upload-time = "2026-11-09T11:42:46.578Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/71/e1/bfebb8743091d66d0800810ea5c533c2f4e66aced6df2958e186f842eaec/django_rated_reviews-2.1.0.tar.gz", hash = "sha256:485c009bd471b6f825d64ecc25a2a2b792617a465351cefdbb2f7fda199fd288", size = 51521, upload-time = "2026-11-22T20:38:43.269Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/a3/77d0864de0d21c35d3c29addb8ef2a8b6c343f361851d91c57c61653efb5/django_rated_reviews-2.0.0-py3-none-any.whl", hash = "sha256:ced0a999e67dde06a2bbe14d7ff80081a5c870959984b6f538c0dd3bbbd3aa74", size = 47449, upload-time = "2026-11-09T11:42:45.352Z" },
+    { url = "https://files.pythonhosted.org/packages/39/95/7c38f7945883e2b6aecd06d338a01e85fb7830298e43fb56f50813cdd293/django_rated_reviews-2.1.0-py3-none-any.whl", hash = "sha256:8ad4c18b3d3cd20db365fcb7a8214f421f9d805c8a473ea90a965c96647803a5", size = 48514, upload-time = "2026-11-22T20:38:42.096Z" },
 ]
 
 [package.optional-dependencies]
@@ -753,7 +753,7 @@ requires-dist = [
     { name = "django-mptt", specifier = ">=0.18.0" },
     { name = "django-otp", specifier = ">=1.7.3" },
     { name = "django-prometheus", specifier = ">=2.5.0" },
-    { name = "django-rated-reviews", extras = ["api"], specifier = ">=2.0.0" },
+    { name = "django-rated-reviews", extras = ["api"], specifier = ">=2.1.0" },
     { name = "django-server-errors", specifier = ">=1.0.0" },
     { name = "django-tagulous", specifier = ">=2.2.3" },
     { name = "django-two-factor-auth", specifier = ">=1.18.1" },
