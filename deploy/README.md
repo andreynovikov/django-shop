@@ -576,14 +576,17 @@ systemctl enable --now celery@prod celery_beat@prod
 
 All sites are located in `/www` folder. The following description is included for general reference.
 
-All sites are kept in git on GitHub. Each site has its own Python virtualenv in `.venv`, which uv fills
-from the `uv.lock` of its branch. So, general deployment scheme looks like this:
+The backend is on the `main` branch only, and is deployed by hand. Its production checkout is
+`/www/www.sewing-world.ru`, which runs the API, the admin site and Celery for all the sites (see
+[UWSGI setup](#uwsgi-setup) and [Celery setup](#celery-setup)), and `/www/dev.sigalev.ru` is the development one.
+Every other branch of this repository is a storefront, never a copy of the backend: see
+[Frontend deployment](#frontend-deployment). A backend checkout has its Python virtualenv in `.venv`, which uv fills
+from `uv.lock`:
 
 ```sh
 cd /www
-git clone git@github.com:andreynovikov/django-shop.git janome.club
-cd janome.club
-git checkout janome
+git clone git@github.com:andreynovikov/django-shop.git www.sewing-world.ru
+cd www.sewing-world.ru
 uv sync --locked --no-dev --compile-bytecode
 mkdir media static logs .cache import
 sudo chown -R sworld:www-data media static logs .cache import
@@ -608,8 +611,6 @@ the code as yourself:
 ```sh
 .venv/bin/python -m compileall -q -x '/\.venv/' .
 ```
-
-The Next.js frontends run in Docker, see [Frontend deployment](#frontend-deployment).
 
 # Frontend deployment
 
