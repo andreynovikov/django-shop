@@ -1,0 +1,49 @@
+- name: Check nginx site names
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
+      - "'..' not in item"
+      - item not in server_nginx_sites_enabled or item not in server_nginx_sites_disabled
+    quiet: true
+  loop: "{{ server_nginx_sites_enabled + server_nginx_sites_disabled }}"
+
+- name: Install the bundled nginx configuration
+  ansible.builtin.copy:
+    src: nginx/
+    dest: "{{ server_nginx_directory }}/"
+    owner: root
+    group: root
+    mode: "0644"
+    directory_mode: "0755"
+    backup: true
+  notify: Reload nginx
+
+- name: Disable explicitly retired nginx sites
+  ansible.builtin.file:
+    path: "{{ server_nginx_directory }}/sites-enabled/{{ item }}"
+    state: absent
+  loop: "{{ server_nginx_sites_disabled }}"
+  notify: Reload nginx
+
+- name: Enable nginx sites
+  ansible.builtin.file:
+    src: "{{ server_nginx_directory }}/sites-available/{{ item }}"
+    dest: "{{ server_nginx_directory }}/sites-enabled/{{ item }}"
+    state: link
+    # In check mode the preceding copy only predicts creation of a new source file.
+    force: "{{ ansible_check_mode }}"
+    owner: root
+    group: root
+  loop: "{{ server_nginx_sites_enabled }}"
+  notify: Reload nginx
+
+# Site fragments cannot be checked alone: upstreams, maps and snippets are shared.
+- name: Validate the complete nginx configuration
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/nginx
+      - -t
+      - -c
+      - "{{ server_nginx_directory }}/nginx.conf"
+  changed_when: false
+  when: not ansible_check_mode

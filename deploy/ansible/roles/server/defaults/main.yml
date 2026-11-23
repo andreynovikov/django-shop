@@ -74,6 +74,22 @@ server_timezone: Europe/Moscow
 server_ntp: ru.pool.ntp.org
 server_memcached_memory: 256
 
+# Bundled sites to enable. The Debian package ships a different default server.
+server_nginx_directory: /etc/nginx
+server_nginx_sites_enabled:
+  - admin.sewing-world.ru.conf
+  - api.sewing-world.ru.conf
+  - default.conf
+  - dev.sigalev.ru.conf
+  - dor-tak.ru.conf
+  - familysew.ru.conf
+  - janome.club.conf
+  - singer.ru.conf
+  - stage.sewing-world.ru.conf
+  - stats.sewing-world.ru.conf
+  - www.sewing-world.ru.conf
+server_nginx_sites_disabled: [default]
+
 # Owner of /www, where the sites live
 server_www_owner: andrey
 

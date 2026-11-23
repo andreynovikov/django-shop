@@ -10,13 +10,37 @@ the same command again.
 
 These steps stay manual, as [deploy/README.md](../README.md) describes them:
 
-- files from the old server: nginx sites, `basic_auth` and `htpasswd`;
+- the nginx `htpasswd` file (copy privately or provision separately with ansible-vault);
 - users' OTP codes (`google-authenticator`);
 - TLS certificates of the sites and of the backup host;
 - the sites in `/www` with their `.env`;
 - saving the backup repository password in the password manager.
 
 PostgreSQL runs on a separate server.
+
+## Nginx sites
+
+The `nginx` tag installs [the bundled configuration](roles/server/files/nginx/) with the main `nginx.conf`,
+the production sites, and their custom includes. Debian supplies the standard files and the Brotli module.
+The role enables the sites listed in `server_nginx_sites_enabled` and removes the Debian default link via
+`server_nginx_sites_disabled`. It leaves other site links alone. To retire a site, remove it from the enabled
+list and add it to the disabled list so the playbook removes its existing link.
+
+Provision the TLS certificates and their keys at the paths referenced in the site files. Also install
+`/etc/nginx/htpasswd` with `root:www-data` ownership and `0640` permissions. Provision these files before
+applying the `nginx` tag. Keep the password hashes and keys outside git.
+
+Review and apply from this directory:
+
+```sh
+ansible-playbook -i inventory.yml site.yml --limit server.example.ru -K --tags nginx --check --diff
+ansible-playbook -i inventory.yml site.yml --limit server.example.ru -K --tags nginx,logrotate
+```
+
+The playbook runs `nginx -t` on the assembled configuration before reloading nginx. If validation fails,
+Ansible stops before reload. Correct the on-disk files or restore their timestamped backups before retrying.
+Check mode previews file and link changes. Validation runs on an apply because nginx needs the installed files.
+The `logrotate` tag installs the rule for the legacy redirect log alongside the application log rotation rules.
 
 The uWSGI and Celery apps are listed in `roles/server/defaults/main.yml`. The playbook writes their configuration
 on every run, but starts their units only once the site is cloned into `/www` and has its `.venv`. Run it again
@@ -119,7 +143,10 @@ user and use sudo once root is locked out, so give yourself an ssh key and a pas
    ssh -t andrey@server.example.ru sudo -v
    ```
 
-6. Run the whole playbook as your user. `-K` asks for your sudo password, the one hashed in step 1:
+6. Provision the TLS files and nginx `htpasswd` as described in [Nginx sites](#nginx-sites), then run the whole
+   playbook as your user. `-K` asks for your sudo password, the one hashed in step 1. If you need to bootstrap
+   the rest of the server before the TLS files are ready, use `--skip-tags nginx` and apply the `nginx` tag
+   after provisioning them.
 
    ```sh
    ansible-playbook -i inventory.yml site.yml --limit server.example.ru -K

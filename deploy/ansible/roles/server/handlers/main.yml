@@ -26,10 +26,21 @@
     name: memcached
     state: restarted
 
-- name: Reload nginx
+- name: Validate nginx before reload
+  ansible.builtin.command:
+    argv:
+      - /usr/sbin/nginx
+      - -t
+      - -c
+      - "{{ server_nginx_directory }}/nginx.conf"
+  changed_when: false
+  listen: Reload nginx
+
+- name: Reload nginx service
   ansible.builtin.systemd_service:
     name: nginx
     state: reloaded
+  listen: Reload nginx
 
 # Never restart nftables: before its drop-in is in place, stopping it deletes Docker's rules too
 - name: Reload nftables

@@ -1,9 +1,9 @@
 # Server setup
 
-The Ansible playbook `deploy/ansible/site.yml` does the steps of this guide that need neither files from the old
-server nor secrets: packages, users, system configuration and the files listed here, on the production server and on
-the backup host. It leaves out PostgreSQL and the sites in `/www`.
-[deploy/ansible/README.md](ansible/README.md) tells how to run it and what is left to do by hand.
+The [Ansible playbook](ansible/site.yml) configures the production server and backup host. It installs packages,
+creates users, and manages nginx, service units, timers and log rotation. PostgreSQL, application checkouts in
+`/www`, TLS files and application secrets are provisioned separately. Start with the [Ansible runbook](ansible/README.md)
+for inventory setup and first-run instructions. The manual steps below also serve as a reference for the resulting setup.
 
 Historically server is run under latest Debian Stable.
 
@@ -23,6 +23,7 @@ apt install memcached
 apt install redis-server
 apt install certbot
 apt install git
+apt install curl acl systemd-timesyncd
 ```
 
 The following packages are required for building python packages:
@@ -74,9 +75,10 @@ Setup correct timezone:
 timedatectl set-timezone Europe/Moscow
 ```
 
-Enable time syncronization. Edit `/etc/systemd/timesyncd.conf` file:
+Enable time synchronization. Ansible writes `/etc/systemd/timesyncd.conf.d/ntp.conf`:
 
 ```ini
+[Time]
 NTP=ru.pool.ntp.org
 ```
 
@@ -124,15 +126,15 @@ of `sshd_config.d` come first, in the order of their names. Cloud images have `5
 PermitRootLogin no
 PasswordAuthentication no
 X11Forwarding no
-AllowUsers andrey nikolays maria egor
+AllowUsers andrey nikolays maria egor deploy
 ClientAliveInterval 60
 ClientAliveCountMax 8
 ```
 
 `PasswordAuthentication` covers only the `password` method of ssh, which cannot ask for an OTP code. Logins with a
 password go through `keyboard-interactive`, which asks for the password and the OTP code, see
-[Two factor authentication](#two-factor-authentication). Add a user to `AllowUsers` when you create one, including
-the user that GitHub Actions deploys with (the `DEPLOY_USER` secret).
+[Two factor authentication](#two-factor-authentication). Ansible builds `AllowUsers` from `server_users` and
+`server_ssh_extra_users`, which includes the frontend deployment account `deploy` by default.
 
 ## Two factor authentication
 
@@ -212,10 +214,27 @@ the frontends do: `127.0.0.1:9324:8080`.
 
 # Nginx setup
 
-Copy `/etc/nginx/basic_auth` and `/etc/nginx/htpasswd` from old server to new.
-Copy `/etc/nginx/sites-available/*` from old server to new. Set links to all configs in `sites-enabled`.
+The `nginx` tag installs the [bundled `nginx.conf`, site files and shared includes](ansible/roles/server/files/nginx/).
+It creates `/var/cache/nginx`, enables the 11 sites listed in `server_nginx_sites_enabled`, and removes Debian's
+`sites-enabled/default` link in favor of the bundled `default.conf`. To retire a site, remove it from the enabled
+list and add it to `server_nginx_sites_disabled`. Other links are left alone.
 
-Each site writes its logs to `/var/log/nginx`, named after the site, never into `/www`:
+Before applying the role, provision each site's TLS certificate and key at the paths in its server blocks. Install
+`/etc/nginx/htpasswd` with owner `root`, group `www-data` and mode `0640`. The bundled `basic_auth` include uses
+that file. Keep the TLS files and password hashes outside git.
+
+From `deploy/ansible`, preview the nginx changes and then apply them together with log rotation:
+
+```sh
+ansible-playbook -i inventory.yml site.yml --limit server.example.ru -K --tags nginx --check --diff
+ansible-playbook -i inventory.yml site.yml --limit server.example.ru -K --tags nginx,logrotate
+```
+
+Use the production host from your inventory in place of `server.example.ru`. During apply, Ansible runs `nginx -t`
+with the installed files before reloading nginx. Changed nginx files get timestamped backups. Review the
+[nginx runbook](ansible/README.md#nginx-sites) for first-run and recovery steps.
+
+Site logs live under `/var/log/nginx`, with filenames based on the site:
 
 ```nginx
 access_log   /var/log/nginx/www.sewing-world.ru_access.log upstream;
@@ -227,76 +246,11 @@ nginx opens its logs as root, and on reopen gives them to `www-data`. Whoever ca
 replace the log with a symbolic link, and nginx then writes to the file it points to as root (CVE-2016-1247). Only
 root can write `/var/log/nginx`, while `/www/<site>/logs` belongs to the [service user](#service-user). Debian's
 `/etc/logrotate.d/nginx` rotates `/var/log/nginx/*.log` and keeps 14 days. The files belong to the group `adm`.
+The legacy redirect log uses a `.jsonl` extension and has a [separate rotation rule](#log-rotation).
 
-Adjust `/etc/nginx/nginx.conf`. Add `worker_rlimit_nofile` after `worker_processes`, and raise `worker_connections`
-in `events`:
-
-```nginx
-worker_rlimit_nofile 16384;
-
-events {
-  worker_connections 4096;
-}
-```
-
-Add to `http`, where Debian's file already has `gzip on`. `brotli` needs `libnginx-mod-http-brotli-filter`, and
-`proxy_cache_path` needs its parent directory, `mkdir /var/cache/nginx`:
-
-```nginx
-tcp_nodelay on;
-keepalive_timeout 65;
-server_names_hash_bucket_size 64;
-
-map $http_upgrade $connection_upgrade {
-  default upgrade;
-  ''      '';
-}
-
-ssl_session_cache shared:SSL:20m;
-ssl_session_timeout 1d;
-
-log_format upstream '$remote_addr - $remote_user [$time_local] '
-                    '"$request" $status $body_bytes_sent '
-                    'rt="$request_time" uct="$upstream_connect_time" uht="$upstream_header_time" urt="$upstream_response_time" '
-                    '"$http_referer" "$http_user_agent"';
-
-log_format errored  '[$time_local] $status "$request" "$http_referer"';
-
-map $status $moved {
-  ~^[3]   1;
-  default 0;
-}
-
-map $status $notfound {
-  ~^[4]   1;
-  default 0;
-}
-
-map $status $errored {
-  ~^[5]   1;
-  default 0;
-}
-
-gzip_vary on;
-gzip_proxied any;
-gzip_comp_level 5;
-gzip_min_length 1024;
-gzip_types text/plain text/css text/xml text/javascript application/javascript application/json
-           application/xml application/rss+xml application/atom+xml application/manifest+json
-           image/svg+xml font/ttf font/otf application/vnd.ms-fontobject;
-
-brotli on;
-brotli_types text/plain text/css text/xml text/javascript application/javascript application/json
-             application/xml application/rss+xml application/atom+xml application/manifest+json
-             image/svg+xml font/ttf font/otf application/vnd.ms-fontobject;
-
-proxy_cache_path /var/cache/nginx/next_image levels=1:2 keys_zone=next_image:10m max_size=2g inactive=30d use_temp_path=off;
-map $http_accept $image_format {
-  ~image/avif avif;
-  ~image/webp webp;
-  default     orig;
-}
-```
+The bundled `nginx.conf` sets the worker limits, shared TLS session cache, upstream log formats, gzip and Brotli
+compression, and the `next_image` cache. If configuring a server manually, install `libnginx-mod-http-brotli-filter`
+and create `/var/cache/nginx` before checking the configuration with `nginx -t`.
 
 ## Media files
 
@@ -304,27 +258,19 @@ Content admins upload the files that HTML text links to (images, videos, documen
 "Швейный Мир › Файлы" ([django-admin-filemanager](https://github.com/andreynovikov/django-admin-filemanager)), and not over FTP. The files go into the site's `media/`, which the
 [service user](#service-user) writes, so FTP can be turned off once nobody uses it.
 
-- The admin's server takes uploads as large as the largest video, in its `server` or the `location` that passes
-  to uWSGI: `client_max_body_size 500m;`. Django and uWSGI set no limit of their own.
-- A replaced file keeps its URL, so `location /media/` caches the files for minutes only. nginx sends `ETag` and
-  `Last-Modified` for files, and browsers then revalidate:
-
-  ```nginx
-  location /media/ {
-    expires 10m;
-  }
-  ```
-
-  The storefronts' optimized images in `next_image` above follow their own cache time. A replaced image shows on a
-  storefront once that copy expires.
+- The bundled admin site sets `client_max_body_size 10M`. For larger uploads, adjust the limit in its site file
+  and apply the `nginx` tag.
+- The main and API sites set `expires 14d` on `/media/`. This works for files with unique URLs. If a file is
+  replaced at the same URL, clients can keep using a cached copy. The production storefronts also cache successful
+  `/_next/image` responses in `next_image` for up to 30 days.
 
 # TLS certificates
 
 certbot gets the certificates of the sites from Let's Encrypt and renews them. It proves a domain through the site
 directory: it puts the challenge into `.well-known/acme-challenge/` there, and the `location /.well-known/` of the
 site's nginx server serves it. `certbot.timer` checks the certificates twice a day and renews those that expire
-within 30 days. Create `/etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh` with mode `755`, so that nginx
-serves a renewed certificate:
+within 30 days. The `certbot` tag enables the timer and installs
+`/etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh`, so that nginx serves a renewed certificate:
 
 ```sh
 #!/bin/bash
@@ -471,7 +417,8 @@ stats-http = true
 `need-app`, uWSGI stops when Django cannot be loaded, also on such a reload, and systemd starts it again until the
 code loads. The API runs mostly Python, which a process runs on one core at a time, so `prod` has 6 processes of 4
 threads rather than 3 of 8. uWSGI logs only failed requests and those slower than 2 seconds, nginx logs them all.
-Keep `harakiri` a little shorter than nginx's `uwsgi_read_timeout` for the app, which is 60 s by default.
+Keep `harakiri` a little shorter than nginx's `uwsgi_read_timeout`. The bundled nginx configuration waits 65 s for
+`prod` and `dev`, which have a 60 s worker limit. The admin vhost waits 310 s for `admin`, which has a 300 s limit.
 
 The admin site (`admin.ini`) is the same with `env = ADMIN=True`, `processes = 2`, `harakiri = 300` for exports and
 labels, and without `stats`, and it logs to `admin_uwsgi_error.log`. `dev.ini` has `processes = 1` and
@@ -658,6 +605,9 @@ on the default branch. Run on `main`, it fails.
 - No repository secret `ENV_FILE`: a job falls back to it when its environment has none, and would build a frontend
   with another one's `.env`.
 - Repository secrets `DEPLOY_HOST`, `DEPLOY_USER` and `SSH_PRIVATE_KEY`: the ssh login of the deploy jobs.
+  The `deployment` tag provisions the default `deploy` account and installs the
+  [restricted deployment command](ansible/roles/server/files/deploy-frontend). The key's forced command
+  accepts a storefront name and an image tag. Set `DEPLOY_USER` to `deploy` when using this account.
 - The `Protected branches` ruleset lists the frontend branches by name. Update it when a branch is added or renamed.
 
 # Database backups
@@ -765,6 +715,11 @@ Enable them with `systemctl enable --now db-backup@fresh.timer db-backup@prune.t
 
 ## Production server
 
+With Ansible, set `server_db_backup_deployments` to the sites that own a database and
+`server_db_backup_config_deployments` to sites that only need daily configuration backups. The `backup` tag copies
+the repository password and enables the configured timers when a backup host is present in the inventory.
+Add the `RESTIC_*` settings to the site's `.env` before enabling its timer.
+
 1. `apt install restic`. It must be 0.17 or later, and `pg_dump --version` must not be older than the database
    server.
 
@@ -868,9 +823,11 @@ restart uWSGI and Celery.
 
 ## Log rotation
 
-Create `/etc/logrotate.d/sewing-world`. The patterns cover the logs that the uWSGI apps, Celery nodes and Django
-handlers of `sewingworld/settings/logging.py` write. Add a line here when one of them gets a new log file. The nginx
-logs are in `/var/log/nginx`, which Debian's `/etc/logrotate.d/nginx` rotates, see [Nginx setup](#nginx-setup):
+The `logrotate` tag installs `/etc/logrotate.d/sewing-world` from the
+[application log template](ansible/roles/server/templates/logrotate.j2). Update the template when a uWSGI, Celery
+or Django log needs rotation. Debian rotates `/var/log/nginx/*.log` with `/etc/logrotate.d/nginx`. Ansible installs
+[`/etc/logrotate.d/nginx-legacy`](ansible/roles/server/files/nginx-legacy.logrotate) for `*_legacy.jsonl`, rotating
+those files monthly and keeping 12 rotations. The default application rules are:
 
 ```
 /www/*/logs/*uwsgi*.log
@@ -895,6 +852,11 @@ logs are in `/var/log/nginx`, which Debian's `/etc/logrotate.d/nginx` rotates, s
   notifempty
 }
 ```
+
+## Docker cleanup
+
+The `docker` tag enables `docker-prune.timer`. It runs weekly and removes unused Docker images and build cache
+older than seven days. Keep any image you might need to roll back available in the registry.
 
 ## Development database syncronization
 

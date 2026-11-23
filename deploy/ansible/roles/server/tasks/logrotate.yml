@@ -3,3 +3,11 @@
     src: logrotate.j2
     dest: /etc/logrotate.d/sewing-world
     mode: "0644"
+
+- name: Rotate the nginx legacy redirect log
+  ansible.builtin.copy:
+    src: nginx-legacy.logrotate
+    dest: /etc/logrotate.d/nginx-legacy
+    owner: root
+    group: root
+    mode: "0644"
