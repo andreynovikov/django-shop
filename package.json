@@ -2,8 +2,7 @@
   "name": "sworld",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 127.0.0.1 -p 3004 --experimental-https --experimental-https-key certificates/localhost-key.pem --experimental-https-cert certificates/localhost.pem",
-    "test": "next dev -H 127.0.0.1 -p 4004",
+    "dev": "next dev -H 127.0.0.1 -p 4004",
     "start": "next start -H 127.0.0.1 -p 4004",
     "lint": "eslint src/",
     "test:e2e": "playwright test",

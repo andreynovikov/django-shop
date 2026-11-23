@@ -65,7 +65,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: process.env.CI ? 'PORT=4004 node .next/standalone/server.js' : 'npm run test',
+    command: process.env.CI ? 'PORT=4004 node .next/standalone/server.js' : 'npm run dev',
     url: 'http://127.0.0.1:4004',
     reuseExistingServer: !process.env.CI,
   },
