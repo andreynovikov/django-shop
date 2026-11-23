@@ -39,7 +39,7 @@ export function RetailAvailability({ id, instock, children }: { id: number, inst
         <IconMapPin {...lineIcon} />
         <span>
           Товар есть в наличии в розничном магазине по адресу{" "}
-          <Link className="whitespace-nowrap" href="/stores/">
+          <Link className="whitespace-nowrap" href={`/stores/${retailStore.id}/`}>
             {retailStore.address}
           </Link>
         </span>
@@ -60,7 +60,7 @@ export function RetailStock({ id, instock }: { id: number, instock: number }) {
           <IconMapPin {...lineIcon} />
           <span>
             Товар есть в наличии в розничном магазине по адресу{" "}
-            <Link className="whitespace-nowrap" href="/stores/">
+            <Link className="whitespace-nowrap" href={`/stores/${retailStore.id}/`}>
               {retailStore.city.name}, {retailStore.address}
             </Link>
           </span>
@@ -77,8 +77,10 @@ export function RetailStock({ id, instock }: { id: number, instock: number }) {
         <div>
           <IconMapPin {...lineIcon} />
           <span>
-            Товар есть в наличии в пункте выдачи по адресу{" "}
-            {pickpoint.city.name}, {pickpoint.address}
+            Товар есть в наличии в магазине по адресу{" "}
+            <Link className="whitespace-nowrap" href={`/stores/${pickpoint.id}/`}>
+              {pickpoint.city.name}, {pickpoint.address}
+            </Link>
             . Обязательно оформите заказ перед посещением.
           </span>
         </div>
