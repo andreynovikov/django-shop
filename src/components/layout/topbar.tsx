@@ -210,6 +210,11 @@ export default function TopBar({ catalog }: { catalog: ReactNode }) {
             keepMounted>
             <ul className="flex flex-col md:flex-row">
               <li className={navItemClass}>
+                <Link className={navLinkClass} href="/pages/about/">
+                  О нас
+                </Link>
+              </li>
+              <li className={navItemClass}>
                 <Link className={navLinkClass} href="/stores/">
                   Магазины
                 </Link>

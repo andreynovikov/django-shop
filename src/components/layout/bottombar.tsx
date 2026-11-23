@@ -50,7 +50,7 @@ export default function BottomBar() {
         </div>
         <div className="pb-1 text-center text-xs text-white">
           <p className="mb-4">
-            &copy; 2003-{new Date().getFullYear()} Janome. Все права защищены.
+            &copy; 2000-{new Date().getFullYear()} Janome. Все права защищены.
           </p>
           <p className="mb-4 opacity-50">
             Developed by <a className="text-white" href="https://newf.ru/" target="_blank" rel="noopener">Andrey Novikov</a>.
