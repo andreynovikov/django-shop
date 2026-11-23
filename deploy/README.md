@@ -252,6 +252,13 @@ The bundled `nginx.conf` sets the worker limits, shared TLS session cache, upstr
 compression, and the `next_image` cache. If configuring a server manually, install `libnginx-mod-http-brotli-filter`
 and create `/var/cache/nginx` before checking the configuration with `nginx -t`.
 
+## Storefront outage pages
+
+Each storefront deployment, including stage, provides `unavailable.html` in its own `.docker/public/` directory.
+nginx serves it internally for 502, 503 and 504 responses from the storefront proxy. Clients receive HTTP 503
+with `Retry-After: 120` and `Cache-Control: no-store`. If the file is missing, nginx still returns 503. Keep the
+page self-contained so it can render while the container is down. Next.js handles storefront 404 responses.
+
 ## Media files
 
 Content admins upload the files that HTML text links to (images, videos, documents) in the admin's file manager,

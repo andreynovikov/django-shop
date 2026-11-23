@@ -8,3 +8,7 @@ proxy_set_header X-Forwarded-Proto $scheme;
 proxy_read_timeout 120s;
 proxy_buffer_size 16k;
 proxy_buffers 32 16k;
+
+# Next.js handles its own 404 responses. Only replace gateway and availability errors.
+proxy_intercept_errors on;
+error_page 502 503 504 =503 /unavailable.html;
