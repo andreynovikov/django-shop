@@ -2,6 +2,9 @@ MIDDLEWARE = (
     'django_prometheus.middleware.PrometheusBeforeMiddleware',
     # first, to see the 500 made of an exception in any other middleware
     'errors.middleware.ErrorCaptureMiddleware',
+    # X-Content-Type-Options, Referrer-Policy and Cross-Origin-Opener-Policy on every response, including errors.
+    # nginx redirects to HTTPS, so SECURE_SSL_REDIRECT stays off.
+    'django.middleware.security.SecurityMiddleware',
     # before everything that uses the site, the client address or the session
     'sewingworld.middleware.FrontendKeyMiddleware',
     'sewingworld.middleware.BlockedIpMiddleware',
