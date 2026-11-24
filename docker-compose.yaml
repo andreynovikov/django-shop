@@ -18,6 +18,8 @@ services:
       - "127.0.0.1:${PORT}:3000/tcp"
     environment:
       NODE_ENV: production
+      STOREFRONT_UID: "${STOREFRONT_UID:-}"
+      STOREFRONT_GID: "${STOREFRONT_GID:-}"
     restart: unless-stopped
     logging:
       driver: syslog
