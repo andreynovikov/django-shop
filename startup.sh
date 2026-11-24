@@ -32,4 +32,4 @@ sync ./public ./.docker/public
 find ./.docker/ -mindepth 1 -maxdepth 1 ! -name static ! -name public -exec rm -rf {} +
 
 # exec replaces the shell, so the signals of docker stop reach node and Next shuts down cleanly
-exec node "$APP_MAIN_FILE"
+exec node ./server.js

@@ -27,12 +27,12 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder /app/container-entrypoint.sh /app/startup.sh ./
-RUN command -v setpriv && mv ./server.js ./${entity}.js
+RUN command -v setpriv
 
 EXPOSE 3000
 
 ENV PORT=3000
-ENV APP_MAIN_FILE=${entity}.js
+ENV STOREFRONT_PROCESS_NAME=${entity}
 
 # The entrypoint drops privileges before startup.sh syncs assets and execs Node.
 ENTRYPOINT ["/bin/sh", "/app/container-entrypoint.sh"]
