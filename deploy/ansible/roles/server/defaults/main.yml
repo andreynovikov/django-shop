@@ -53,8 +53,17 @@ server_users:
   - name: egor
     groups: [www-data]
 
-# The system user that runs uWSGI, Celery and the backups, see "Service user" in deploy/README.md
+# The system user for uWSGI, Celery, backups and storefronts, see "Service user" in deploy/README.md
 server_app_user: sworld
+
+# The names passed by GitHub Actions and their checkouts on the Docker host.
+server_frontend_sites:
+  sworld: { directory: /www/www.sewing-world.ru, port: 4104 }
+  stage: { directory: /www/cartzilla.sigalev.ru, port: 4004, image: sworld }
+  family: { directory: /www/familysew.ru, port: 4101 }
+  singer: { directory: /www/singer.ru, port: 4102 }
+  janome: { directory: /www/janome.club, port: 4103 }
+  dortak: { directory: /www/dor-tak.ru, port: 4105 }
 
 # AllowUsers of sshd lists server_users and these. Add the user GitHub Actions deploys with if it is not one of them.
 server_ssh_extra_users: [deploy]

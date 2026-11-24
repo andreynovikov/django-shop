@@ -3,20 +3,20 @@
 set -euf
 set -- ${SSH_ORIGINAL_COMMAND-}
 [ $# -eq 2 ] || { echo "usage: <frontend> <tag>" >&2; exit 2; }
-name=$1 tag=$2 image=$1
+name=$1 tag=$2
 case $name in
-  sworld) dir=/www/www.sewing-world.ru port=4104 ;;
-  stage)  dir=/www/cartzilla.sigalev.ru port=4004 image=sworld ;;
-  family) dir=/www/familysew.ru port=4101 ;;
-  singer) dir=/www/singer.ru port=4102 ;;
-  janome) dir=/www/janome.club port=4103 ;;
-  dortak) dir=/www/dor-tak.ru port=4105 ;;
+{% for site, config in server_frontend_sites.items() %}
+  {{ site | quote }}) dir={{ config.directory | quote }} port={{ config.port }} image={{ config.image | default(site) | quote }} ;;
+{% endfor %}
   *) echo "unknown frontend $name" >&2; exit 2 ;;
 esac
 case $tag in
   *[!0-9a-f.-]* | '') echo "bad tag $tag" >&2; exit 2 ;;
 esac
+STOREFRONT_UID=$(id -u {{ server_app_user | quote }})
+STOREFRONT_GID=$(id -g {{ server_app_user | quote }})
+export STOREFRONT_UID STOREFRONT_GID
 ref=ghcr.io/andreynovikov/$image:$tag
 docker pull "$ref" || { echo "No image $ref: has the build of this commit finished?" >&2; exit 1; }
 cd "$dir"
-NAME=$name PORT=$port IMAGE=$ref docker compose up -d
+NAME=$name PORT=$port IMAGE=$ref docker compose --env-file /dev/null up -d

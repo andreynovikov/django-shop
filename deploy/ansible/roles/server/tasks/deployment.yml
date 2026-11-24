@@ -17,9 +17,43 @@
     exclusive: true
   when: created_user.ssh_public_key is defined
 
+- name: Check which storefronts have a Compose file
+  ansible.builtin.stat:
+    path: "{{ item.value.directory }}/docker-compose.yaml"
+    get_checksum: false
+  loop: "{{ server_frontend_sites | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  register: frontend_compose_files
+
+- name: Give the service user ownership of storefront assets
+  ansible.builtin.file:
+    path: "{{ item.item.value.directory }}/.docker"
+    state: directory
+    owner: "{{ server_app_user }}"
+    group: "{{ server_app_user }}"
+    recurse: true
+    follow: false
+  loop: "{{ frontend_compose_files.results }}"
+  loop_control:
+    label: "{{ item.item.key }}"
+  when: item.stat.isreg | default(false)
+
+- name: Allow nginx to traverse storefront asset roots
+  ansible.builtin.file:
+    path: "{{ item.item.value.directory }}/.docker"
+    state: directory
+    mode: "0755"
+    follow: false
+  loop: "{{ frontend_compose_files.results }}"
+  loop_control:
+    label: "{{ item.item.key }}"
+  when: item.stat.isreg | default(false)
+
 - name: Install frontend deployment script
-  ansible.builtin.copy:
-    src: deploy-frontend
-    dest: /usr/local/bin/
+  ansible.builtin.template:
+    src: deploy-frontend.j2
+    dest: /usr/local/bin/deploy-frontend
     group: docker
     mode: "0750"
+    validate: /bin/sh -n %s

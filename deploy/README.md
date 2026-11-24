@@ -103,8 +103,8 @@ Increase memcached limits in `/etc/memcached.conf` file:
 
 ## Service user
 
-uWSGI, Celery and the backups run as the system user `sworld`. It has no password, shell, home or sudo, and the
-code of the sites is read-only for it, so a hole in the app gives nobody a login or the code:
+uWSGI, Celery, backups and storefronts run as the system user `sworld`. It has no password, shell, home or sudo,
+and the code of the sites is read-only for it:
 
 ```sh
 adduser --system --group --home /nonexistent --no-create-home sworld
@@ -591,17 +591,52 @@ runs the Playwright tests and deploys every push to stage.
 
 To deploy a frontend to production, open Actions → Frontend CI → Run workflow on GitHub and choose its branch. The run
 deploys the image of the branch's last commit, and fails if that commit's build has not finished or has failed. To roll
-back, re-run an earlier deploy run (GitHub allows re-runs for 30 days), or start an older image on the server.
-`docker images` lists the ones it has; pulling another one needs `docker login ghcr.io` with a token that can read
-packages:
+back, re-run an earlier deploy run (GitHub allows re-runs for 30 days), or start an earlier image on the server.
+Choose an image with runtime UID/GID support so it can write to the `sworld`-owned asset directory.
+`docker images` lists the images on the server. Pulling another one needs `docker login ghcr.io` with a token
+that can read packages. For a manual deploy, supply the host UID and GID:
 
 ```sh
 cd /www/janome.club
-NAME=janome PORT=4103 IMAGE=ghcr.io/andreynovikov/janome:2026.11.10-eb964ab docker compose up -d
+tag=IMAGE_TAG
+STOREFRONT_UID=$(id -u sworld) && STOREFRONT_GID=$(id -g sworld) &&
+  export STOREFRONT_UID STOREFRONT_GID &&
+  NAME=janome PORT=4103 IMAGE="ghcr.io/andreynovikov/janome:$tag" \
+  docker compose --env-file /dev/null up -d
 ```
 
 The `frontend.yml` on `main` only puts the Run workflow button on the Actions page: GitHub shows it only for workflows
 on the default branch. Run on `main`, it fails.
+
+## Storefront service user
+
+All storefronts use the host's service account. On each deploy, the deploy script resolves the account's UID and
+GID and passes them through the server's `docker-compose.yaml` as `STOREFRONT_UID` and `STOREFRONT_GID`.
+The image uses those IDs for asset sync and Next.js, including its on-disk caches. This mapping assumes rootful
+Docker without user namespace remapping. Keep Django's code, configuration and sockets outside the frontend
+bind mounts.
+
+On a new host, put each storefront's current `docker-compose.yaml` and `templates/` in its directory before
+its first deploy. Run the `deployment` tag from `deploy/ansible` to install the deploy script and prepare the
+`sworld`-owned `.docker/` tree for each storefront whose Compose file is in place. If you add a checkout later,
+rerun this tag before deploying it.
+
+```sh
+ansible-playbook -i inventory.yml site.yml --limit server.example.ru -K --tags deployment
+```
+
+Verify the running Node process and directory ownership on the host. Substitute the appropriate container name for
+another storefront:
+
+```sh
+container_pid=$(docker inspect --format '{{.State.Pid}}' nextjs-stage)
+ps -o uid=,gid=,args= -p "$container_pid"
+id sworld
+stat -c '%u:%g %n' /www/cartzilla.sigalev.ru/.docker
+```
+
+Check that nginx serves a static asset, and revalidate a cached stage page to confirm Next.js can write the
+regenerated response under `/app/.next/server/route-cache/`.
 
 ## GitHub settings
 
@@ -613,7 +648,7 @@ on the default branch. Run on `main`, it fails.
   with another one's `.env`.
 - Repository secrets `DEPLOY_HOST`, `DEPLOY_USER` and `SSH_PRIVATE_KEY`: the ssh login of the deploy jobs.
   The `deployment` tag provisions the default `deploy` account and installs the
-  [restricted deployment command](ansible/roles/server/files/deploy-frontend). The key's forced command
+  [restricted deployment command](ansible/roles/server/templates/deploy-frontend.j2). The key's forced command
   accepts a storefront name and an image tag. Set `DEPLOY_USER` to `deploy` when using this account.
 - The `Protected branches` ruleset lists the frontend branches by name. Update it when a branch is added or renamed.
 
