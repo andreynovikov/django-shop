@@ -16,6 +16,7 @@ export default function OrderTracking({ addDivider }: { addDivider: boolean }) {
     enabled: status === 'authenticated'
   })
 
+  // Payment takes precedence over tracking. An explicit null ID means there is no unpaid order.
   const { data: lastOrder } = useQuery({
     queryKey: orderKeys.last(),
     queryFn: () => getLastOrder(),

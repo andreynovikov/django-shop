@@ -9,6 +9,7 @@ export default function SliderFilter({ filter, filterValue, onFilterChanged }: F
   const currentValue = filterValue ?? minValue
 
   const handleValueChange = (value: number) => {
+    // The leftmost position represents an unset filter in the URL.
     if (value === minValue)
       onFilterChanged(filter.name, null)
     else

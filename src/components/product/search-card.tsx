@@ -27,6 +27,7 @@ function resultToProduct(result: ProductResult) {
 export default function ProductSearchCard({ result, position }: { result: ProductResult, position: number }) {
   const searchProduct = useMemo(() => resultToProduct(result), [result])
 
+  // Render from the search hit immediately and use current storefront data when Django responds.
   const { data: product, isSuccess } = useQuery({
     queryKey: productKeys.info(Number(result.id)),
     queryFn: () => loadProductInfo(Number(result.id)),

@@ -5,6 +5,7 @@ runtime_uid=${STOREFRONT_UID:-}
 runtime_gid=${STOREFRONT_GID:-}
 set -- /usr/local/bin/docker-entrypoint.sh "$@"
 
+# Custom IDs let the process write to asset mounts owned by the matching host user.
 if [ -z "$runtime_uid$runtime_gid" ]; then
   [ "$(id -u)" -eq 0 ] || exec "$@"
   runtime_uid=node

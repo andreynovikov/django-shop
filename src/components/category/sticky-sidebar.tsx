@@ -54,6 +54,7 @@ function updateSidebarStyle(container: HTMLElement, sidebar: HTMLElement, scroll
     (['fixedBottom', 'absoluteBottom'].includes(state!) && scrollOffset < 0) ||
     (['fixedTop'].includes(state!) && scrollOffset > 0 && isSidebarTaller)
   ) {
+    // Preserve the current offset so the sidebar scrolls with the page without jumping.
     sidebar.style.setProperty('position', 'relative')
     sidebar.style.setProperty('top', (sidebarRect.top - containerRect.top) + 'px', 'important')
     sidebar.style.setProperty('bottom', 'auto', 'important')

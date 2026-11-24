@@ -59,7 +59,7 @@ export function SmallPageSelector({ pathname, query, pageInPath, totalPages, cur
 
 // Pages from currentPage to lastCurrentPage are shown together, e.g. when following ones were loaded on scroll
 export default function PageSelector({ pathname, query, pageInPath, totalPages, currentPage, lastCurrentPage = currentPage }: PageSelectorProps & { lastCurrentPage?: number }) {
-  // количество переключателей страниц лимитировано дизайном
+  // Use a smaller window when both ends may need a first or last page link and an ellipsis.
   const pageRange = currentPage > 1 && lastCurrentPage < totalPages ? 7 : 10
   let minPage = currentPage - pageRange + Math.min(4, totalPages - lastCurrentPage)
   if (minPage < 4)

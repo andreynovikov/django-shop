@@ -30,7 +30,8 @@ export default function OrderPaymentButton({ orderId, iconOnly = false }: { orde
           'return_url': site.url_prefix + window.location.pathname + window.location.search
         }
       })
-      window.location.assign(result.location) // axios didn't support redirects so API returns JSON with location
+      // The API returns the payment URL in JSON so the browser can navigate there.
+      window.location.assign(result.location)
     } catch (error) {
       console.log(error)
     }

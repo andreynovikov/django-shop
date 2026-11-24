@@ -47,6 +47,7 @@ export default function ExtendWarrantyForm() {
     },
   })
 
+  // Keep the serial number through sign-in and submit it once, even if the effect runs again.
   useEffect(() => {
     if (!registered.current && sn !== undefined && session?.status === 'authenticated') {
       registered.current = true
@@ -66,22 +67,22 @@ export default function ExtendWarrantyForm() {
   return (
     <div className="container mb-2 py-12 md:mb-6">
       {errors !== undefined ? (
-        /* серийный номер уже был зарегистрирован */
+        /* Errors can include an already registered serial number. */
         errors.map(error => (
           <p className="mb-4" key={error}>{error}</p>
         ))
       ) : serial !== undefined ? (
-        /* серийный номер зарегистрирован */
+        /* Registration can succeed while approval is still pending. */
         <p className="mb-4">
           Серийный номер <b>{serial.number}</b> зарегистрирован.{' '}
           {serial.approved ? 'И' : 'После проверки и'}нформация о нём
           {!serial.approved && ' будет'}{' '}доступна в личном кабинете.
         </p>
       ) : sn !== undefined && session?.status !== 'authenticated' ? (
-        /* сюда мы попадаем только, если пользователь не авторизован */
+        /* A signed-out customer continues with the embedded sign-in form. */
         <LoginForm ctx="warranty" embedded="warranty" />
       ) : (
-        /* первичный экран */
+        /* The customer enters the serial number before signing in. */
         <>
           <h3 className="mb-3 pb-2 text-h4">Заполните форму и увеличьте период бесплатного ремонта</h3>
           <p className="mb-4">

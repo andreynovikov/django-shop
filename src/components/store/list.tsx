@@ -64,6 +64,7 @@ export function StoreList({ stores }: { stores: StoreInfo[] }) {
     if (!stores)
       return []
 
+    // Django returns each city's stores together. Group them before sorting the city names for display.
     const { groups } = stores.reduce(({ groups, city }, store) => {
       if (store.city.id !== city) {
         groups.push({ city: store.city, stores: [] })

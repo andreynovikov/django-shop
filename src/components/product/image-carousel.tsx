@@ -25,6 +25,7 @@ export default function ImageCarousel({ image, images, alt }: ImageCarouselProps
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [galleryOpen, setGalleryOpen] = useState(false)
 
+  // Give the gallery its own history entry so the browser's Back button closes it.
   useEffect(() => {
     const location = window.location.href.split('#')[0]
     if (galleryOpen)

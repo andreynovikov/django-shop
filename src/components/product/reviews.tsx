@@ -35,6 +35,7 @@ export default function ProductReviews({ product }: { product: Product }) {
 
   useEffect(() => {
     if (isSuccess && reviews.count > 0) {
+      // Fill gaps in the API histogram so every star rating has a row.
       const choices: RatingChoice[] = []
       let rating = 0
       for (let r = 1; r < 6; r++) {

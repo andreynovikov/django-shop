@@ -20,6 +20,7 @@ function stripTags(html: string) {
   return sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} })
 }
 
+// The products feed lists only root categories, so each descendant must resolve to its root ID.
 function topCategoryMap(categories: CategoryTree) {
   const map = new Map<number, CategoryTreeItem>()
   for (const category of categories) {
@@ -44,6 +45,7 @@ export async function GET(request: Request, { params }: RouteContext<'/xml/[file
 
   try {
     const site = await loadCurrentSite()
+    // Custom feed names are integration UTM sources. Django selects the template for each one.
     if (!globalXmls.includes(utm)) {
       integration = await retriveIntegrationByUtm(utm)
       if (!integration.enabled)

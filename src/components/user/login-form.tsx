@@ -112,7 +112,7 @@ export default function LoginForm({ ctx, hideModal, embedded = '' }: LoginFormPr
       if (error instanceof HttpError && error.status === 404) {
         if (['order', 'preorder', 'warranty'].includes(ctx)) {
           setSignInPending(true)
-          // register user in background when making order or registering warranty
+          // Only checkout, preorder, and warranty can create an account as part of sign-in.
           const result = await signIn({ phone, ctx })
           if (result.ok) {
             if (embedded && hideModal)
@@ -242,7 +242,7 @@ export default function LoginForm({ ctx, hideModal, embedded = '' }: LoginFormPr
     <form onSubmit={handleSubmit} noValidate>
       {shopUser !== undefined ? (
         <>
-          { /* Пользователь с таким телефоном уже есть, требуем подтверждение пароля */}
+          {/* An existing account must authenticate with its permanent password or an SMS code. */}
           <div className="mb-2 text-xl font-light">{formatPhone(shopUser.phone)}</div>
           {ctx === 'order' && (
             <div className="-mt-2 mb-4 text-xs text-muted">
@@ -298,7 +298,7 @@ export default function LoginForm({ ctx, hideModal, embedded = '' }: LoginFormPr
         </>
       ) : (
         <>
-          { /* Анонимный пользователь */}
+          {/* The phone lookup determines which sign-in step comes next. */}
           <div className="mb-4">
             <label className="inline-block text-xl font-light" htmlFor={`${embedded}${ctx}-phone-input`}>
               {ctx === 'order' ? "Для продолжения у" : "У"}
