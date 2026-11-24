@@ -315,12 +315,13 @@ def import1c(file):
             except MultipleObjectsReturned:
                 errors.append("%s: артикль не уникален" % line['article'])
             except ObjectDoesNotExist:
-                # errors.append("%s: товар отсутствует" % line['article'])
+                # Ignore articles from 1C that are absent from the shop catalog.
                 pass
 
         if updated_products:
             post_update_products.s(updated_products).delay()
 
+        # Keep manual corrections when the new 1C export omits the product or supplier.
         for product, stocks in corrected_stocks.items():
             for stock, (correction, reason) in stocks.items():
                 table_copy.write('{}\t{}\t{}\t{}\t{}\n'.format(0, product, stock, correction, reason))
@@ -328,6 +329,7 @@ def import1c(file):
         with connection.cursor() as cursor:
             log.info('Start 1C_IMPORT_COPYING')
             enable_flag('1C_IMPORT_COPYING')
+            # Replace the stock snapshot atomically so readers never see an empty table between DELETE and COPY.
             cursor.execute("BEGIN")
             cursor.execute("DELETE FROM shop_stock")
             # cursor.execute("TRUNCATE TABLE shop_stock RESTART IDENTITY")

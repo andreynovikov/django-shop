@@ -1,3 +1,4 @@
+# Stage has its own Compose project but uses the sworld storefront branch.
 name: ${NAME}
 services:
   app:
@@ -9,10 +10,12 @@ services:
       args:
         entity: "${STOREFRONT_BRANCH:?Set STOREFRONT_BRANCH}"
     volumes:
+      # Host nginx serves the static files that the container publishes here.
       - ./.docker/:/app/.docker/
       - ./templates/:/app/templates/
     network_mode: bridge
     ports:
+      # Host nginx is the public entry point for every storefront.
       - "127.0.0.1:${PORT}:3000/tcp"
     environment:
       NODE_ENV: production

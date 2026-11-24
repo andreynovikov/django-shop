@@ -190,16 +190,16 @@ def order_status(request, account='beru'):
     order_id = str(beru_order.get('id', 0))
     try:
         order = Order.objects.get(delivery_tracking_number=order_id)
-        if order.integration is None:  # этого не должно быть, но иногда бывает, когда заказ добавляют руками
+        if order.integration is None:  # Manually entered orders may have no integration.
             return HttpResponse('')
         status = beru_order.get('status', 'UNKNOWN')
-        if status == 'PROCESSING':  # заказ начал обрабатываться в Беру!
+        if status == 'PROCESSING':  # Yandex Market has started processing the order.
             order.status = Order.STATUS_ACCEPTED
             if beru_order.get('paymentType', 'UNKNOWN') == 'PREPAID':
                 order.paid = True
-        elif status == 'PICKUP':  # заказ доставлен в пункт самовывоза
+        elif status == 'PICKUP':  # The order is at the pickup point.
             order.status = Order.STATUS_DELIVERED
-        elif status == 'DELIVERED':  # заказ получен покупателем
+        elif status == 'DELIVERED':  # The customer has received the order.
             is_taxi = order.integration.settings.get('is_taxi', False)
             if is_taxi:
                 info = 'Доставлен покупателю в {}'.format(date_format(timezone.localtime(timezone.now()), "DATETIME_FORMAT"))
@@ -209,10 +209,10 @@ def order_status(request, account='beru'):
                     order.delivery_info = info
             else:
                 order.status = Order.STATUS_DONE
-        elif status == 'CANCELLED':  # заказ отменен
+        elif status == 'CANCELLED':
             substatus = beru_order.get('substatus', '')
             info = BERU_ORDER_SUBSTATUS.get(substatus, "Неизвестная причина отмены заказа")
-            if order.status in (Order.STATUS_NEW, Order.STATUS_CANCELED):  # меняем статус только, если заказ не обрабатывается
+            if order.status in (Order.STATUS_NEW, Order.STATUS_CANCELED):  # Only update the status if fulfillment has not started.
                 if substatus in ('REPLACING_ORDER', 'RESERVATION_EXPIRED', 'USER_CHANGED_MIND', 'USER_NOT_PAID', 'USER_REFUSED_DELIVERY',
                                  'USER_UNREACHABLE', 'USER_BOUGHT_CHEAPER', 'BANK_REJECT_CREDIT_OFFER', 'USER_PLACED_OTHER_ORDER'):
                     order.status = Order.STATUS_CANCELED
@@ -224,10 +224,10 @@ def order_status(request, account='beru'):
                     order.delivery_info = '\n'.join([order.delivery_info, info])
                 else:
                     order.delivery_info = info
-            else:  # если заказ в обработке, выставляем флаг тревоги, не меняя статус
+            else:  # Flag cancellations during fulfillment for staff review.
                 order.alert = info
-        elif status == 'DELIVERY':  # заказ передан в службу доставки
-            pass  # ничего не меняем, так как с нашей стороны статус уже установлен
+        elif status == 'DELIVERY':
+            pass  # The local workflow already sets the dispatch status.
         elif status == 'UNPAID':
             pass
 
@@ -253,6 +253,6 @@ def order_status(request, account='beru'):
     except Order.DoesNotExist:
         logger.error("Не существует внутреннего заказа с заказом Беру №{}".format(order_id))
         return HttpResponse("Не существует внутреннего заказа с заказом Беру №{}".format(order_id))
-        # return HttpResponseBadRequest("Не существует внутреннего заказа с заказом Беру №{}".format(order_id))
+        # return HttpResponseBadRequest("No local order found for Yandex Market order #{}".format(order_id))
 
     return HttpResponse('')

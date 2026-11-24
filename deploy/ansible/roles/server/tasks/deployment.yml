@@ -65,6 +65,7 @@
     group: root
     mode: "0755"
 
+# The forced deployment command uses only this root-owned Compose file.
 - name: Install the shared storefront Compose file
   ansible.builtin.copy:
     src: docker-compose.yaml

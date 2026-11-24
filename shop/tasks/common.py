@@ -1,6 +1,6 @@
 from django.contrib.sites.models import Site
 
-# Dates in SMS: '5 марта', and '5 марта 2027' when not this year
+# Include the year in SMS dates only when it differs from the current year.
 SINGLE_DATE_FORMAT = 'j E'
 SINGLE_DATE_FORMAT_WITH_YEAR = 'j E Y'
 

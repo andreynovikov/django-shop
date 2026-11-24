@@ -16,8 +16,7 @@ register = template.Library()
 @register.simple_tag(takes_context=True)
 def get_unpaid_order(context):
     """
-    Находит последний собранный и неоплаченный заказ, который можно
-    оплатить онлайн.
+    Find the latest packed, unpaid order that can be paid online.
     """
     if hasattr(context, 'request') and context.request.user.is_authenticated:
         orders = Order.objects.order_by('-id').filter(user=context.request.user.id)
@@ -45,7 +44,7 @@ def get_favorites_count(context):
 @register.simple_tag
 def barcode(number, fmt='code128', width=0.5, height=15):
     """
-    Генерирует SVG с штрихкодом из числа.
+    Render a number as an SVG barcode.
     """
     if fmt == 'ean13':
         number = '{:012d}'.format(number)

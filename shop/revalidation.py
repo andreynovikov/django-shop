@@ -138,6 +138,7 @@ class Batch:
 
         for pk, tags in per_site.items():
             site = sites[pk]
+            # Immediate expiry takes precedence when both modes touch the same tag.
             for background, chunk in [(False, sorted(tags[False]))] + [(True, sorted(tags[True] - tags[False]))]:
                 for start in range(0, len(chunk), TAGS_PER_REQUEST):
                     payload = {'tags': chunk[start:start + TAGS_PER_REQUEST]}

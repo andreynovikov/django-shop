@@ -348,7 +348,7 @@ def notify_abandoned_baskets(first_try=True):
         if phone is None and basket.phone:
             phone = basket.phone
 
-        if email:  # or phone: отключили отправку смс
+        if email:  # SMS reminders are disabled.
             notify_abandoned_basket.delay(basket.id, email, phone)
             num = num + 1
     log.info('Sent notifications for %d abandoned baskets' % num)

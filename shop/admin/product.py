@@ -470,13 +470,12 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
 
     def save_model(self, request, obj, form, change):
         before = Product.objects.filter(pk=obj.pk).values('code', 'firstpage').first() if change else None
-        # обновляем кеш наличия при сохранении
+        # Mark cached stock for recount.
         obj.num = -1
         super().save_model(request, obj, form, change)
-        # обновляем мета-данные фоновой задачей, когда сохранятся и связанные объекты (save_related задаёт сайты
-        # товара) и закончится транзакция админки: иначе задача видит старые данные
+        # Rebuild the search vector after commit so the worker sees the saved product.
         post_update_product.delay_on_commit(obj.pk, 'admin')
-        # страницы с товаром перегенерируются после транзакции, и те, где он был: под старым кодом, на главной
+        # Revalidation runs after save_related() updates site assignments. Include pages that used to show the product.
         tags = set()
         if before is not None and before['code'] != obj.code:
             tags.add(product_tag(before['code']))

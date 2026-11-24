@@ -24,7 +24,7 @@ SHOP_OWNER_INFO = {
     'okved': '',
     'account_no': '40802810902300002510',
     'account_bank': 'АО "Альфа-Банк" г.Москва',
-    # следующие две записи разбивают AccountBank на две строчки
+    # Some documents print AccountBank on two lines.
     'account_bank_1': 'АО "Альфа-Банк"',
     'account_bank_2': 'г.Москва',
     'bik': '044525593',

@@ -38,6 +38,7 @@ def validation_error_serializer(serializer_class):
 
 class NonNullModelSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
+        # The API omits empty fields. Zero and False are meaningful values for storefronts.
         def keep(value):
             return not (value is None or (isinstance(value, str) and len(value) == 0) or (hasattr(value, '__len__') and len(value) == 0))
 

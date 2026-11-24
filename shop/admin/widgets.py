@@ -88,7 +88,7 @@ class YandexDeliveryWidget(TextInput):
         id = final_attrs.get('id', uuid.uuid4().hex)
         if value:
             glyphicon = 'pencil-dollar'
-            if value.find("YD") >= 0:  # старая Яндекс.Доставка
+            if value.find("YD") >= 0:  # Legacy Yandex Delivery.
                 yd_id = value[value.find("YD") + 2:]
                 popup = 'https://delivery.yandex.ru/order/create?id=' + yd_id
             else:

@@ -18,6 +18,7 @@ STOREFRONT_GID=$(id -g {{ server_app_user | quote }})
 export STOREFRONT_UID STOREFRONT_GID
 ref=ghcr.io/andreynovikov/$branch:$tag
 docker pull "$ref" || { echo "No image $ref: has the build of this commit finished?" >&2; exit 1; }
+# Resolve bind mounts in the storefront directory and ignore any .env file there.
 NAME=$name PORT=$port IMAGE=$ref STOREFRONT_BRANCH=$branch \
   docker compose --env-file /dev/null -f /etc/sworld/storefront-compose.yaml --project-directory "$dir" \
   up -d --no-build --pull never

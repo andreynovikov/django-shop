@@ -14,6 +14,7 @@ def create_task_result_on_publish(sender=None, headers=None, body=None, **kwargs
     if "task" not in headers:
         return
 
+    # Monitoring needs to see tasks while they are still waiting for a worker.
     TaskResult.objects.store_result(
         "application/json",
         "utf-8",

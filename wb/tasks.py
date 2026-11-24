@@ -311,7 +311,7 @@ def get_integration_order_statuses(self, account):
                 continue
 
             update = {}
-            if status == Order.STATUS_CANCELED and order.status not in (Order.STATUS_NEW, Order.STATUS_CANCELED):  # если заказ в обработке, выставляем флаг тревоги, не меняя статус
+            if status == Order.STATUS_CANCELED and order.status not in (Order.STATUS_NEW, Order.STATUS_CANCELED):  # Flag cancellations during fulfillment for staff review.
                 update['alert'] = wbStatus or 'canceled'
             elif status != order.status:
                 update['status'] = status

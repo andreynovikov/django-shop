@@ -253,6 +253,7 @@ class Order(models.Model):
 
     @property
     def weight(self):
+        # Once boxes are recorded, a missing box weight makes the shipment weight unknown.
         weight = 0
         for box in self.boxes.all():
             if box.weight == 0:
@@ -308,22 +309,20 @@ class Order(models.Model):
         else:
             qnt = Decimal('1')
 
-        # добавляем в заказ все элементы корзины
         for item in basket.items.all():
             price = item.product.site_price(order.site)
-            # если это интеграция, то указываем только предоставленную рублёвую скидку
+            # API integrations supply the full discount as a fixed amount.
             if integration is not None and integration.uses_api:
                 pct_discount = 0
                 val_discount = item.ext_discount
-            # если это опт, то указываем только рублёвую скидку, высчитанную корзиной
+            # Wholesale uses the fixed amount calculated by the basket.
             elif wholesale:
                 pct_discount = 0
                 val_discount = item.discount
-            # иначе считаем отдельно скидку в процентах и копируем текущую рублёвую скидку товара
+            # Retail keeps the percentage and the product's fixed discount separate.
             else:
                 pct_discount = basket.product_pct_discount(order.site, item.product, user_discount)
                 val_discount = item.product.site_val_discount(order.site)
-            # если это обычный товар, добавляем его в заказ
             if item.product.constituents.count() == 0:
                 order.items.create(product=item.product,
                                    product_price=price.quantize(qnt, rounding=ROUND_UP),
@@ -331,8 +330,8 @@ class Order(models.Model):
                                    val_discount=val_discount,
                                    quantity=item.quantity,
                                    meta=item.meta)
-            # если это комплект, то добавляем элементы комплекта отдельно
             else:
+                # Fulfillment needs separate order lines for the components of a set.
                 full_discount = val_discount
                 discount_remainder = full_discount
                 if not item.product.recalculate_price:
@@ -348,12 +347,12 @@ class Order(models.Model):
                     item_price = 0
                     item_total = 0
                     proportion = Decimal(itm.constituent.price / item.product.price)
-                    # если комплект динамически пересчитывает цену, то указываем цену элемента
+                    # Repriced sets use each component's own price and set discount.
                     if item.product.recalculate_price:
                         item_price = (constituent_price * Decimal((100 - itm.discount) / 100)).quantize(qnt, rounding=ROUND_HALF_EVEN)
                         if itm.quantity > 1:
                             item_total = item_price * itm.quantity * item.quantity
-                    # иначе разбиваем цену комплекта на части пропорционально ценам элементов
+                    # Allocate a fixed set price proportionally, with the last component taking the remainder.
                     elif idx < last:
                         item_price = (constituent_price * proportion).quantize(qnt, rounding=ROUND_HALF_EVEN)
                         price_remainder = price_remainder - item_price * itm.quantity
@@ -363,7 +362,7 @@ class Order(models.Model):
                         item_price = price_remainder / itm.quantity
                         if itm.quantity > 1:
                             item_total = price_remainder * item.quantity
-                    # рублёвую скидку в любом случае разбиваем на части пропорционально ценам элементов
+                    # Allocate the fixed discount proportionally, with the last component absorbing rounding.
                     if idx < last:
                         if itm.quantity > 1:
                             val_discount = (full_discount * proportion * itm.quantity).quantize(qnt, rounding=ROUND_DOWN)
@@ -380,8 +379,8 @@ class Order(models.Model):
                                            quantity=item.quantity * itm.quantity,
                                            total=item_total,
                                            meta=item.meta)
-                    # в данный момент, если цена позиции равна нулю, то она принудительно устанавливается в цену товара
-                    # todo: можно перенести эту логику в admin, и тогда можно будет избавиться от двойного сохранения
+                    # The first save replaces a zero line price with the product's price.
+                    # TODO: Move that default to the admin so a second save is unnecessary.
                     if not item_price:
                         i.product_price = item_price
                         i.save()

@@ -32,7 +32,7 @@ class Serial(models.Model):
         item = OrderItem.objects.filter(serial_number__iexact=sn).order_by('-order').first()
         if item is not None:
             if item.order.user == user:
-                # Вариант 1: пользователь зарегистрирован и покупал товар с таким номером
+                # The order belongs to the claimant, so the warranty can be approved automatically.
                 serial = Serial(
                     number=sn,
                     user=user,
@@ -43,7 +43,7 @@ class Serial(models.Model):
                 )
 
             elif 'FBO' in item.order.name:  # TODO: find proper way to identify such orders
-                # Вариант 2: товар с таким номером отгружался по FBO
+                # Record the FBO sale under the claimant while keeping the original purchase date.
                 order = Order(
                     site=item.order.site,
                     user=user,
@@ -81,7 +81,7 @@ class Serial(models.Model):
                 )
 
             else:
-                # Вариант 3: кто-то другой покупал товар с таким номером
+                # A different customer bought this serial. Leave the warranty pending review.
                 serial = Serial(
                     number=sn,
                     user=user,
@@ -91,7 +91,7 @@ class Serial(models.Model):
                 )
 
         else:
-            # Вариант 4: о таком номере ничего неизвестно
+            # Unknown serials also need manual approval.
             serial = Serial(number=sn, user=user)
 
         try:

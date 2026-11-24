@@ -55,7 +55,7 @@ def confirm_sber_order(self, order_id):
     url = SBER_MARKET.get('api', '') + '/order/confirm'
     headers = {
         'Content-Type': 'application/json; charset=utf-8',
-        'User-Agent': 'Mozilla/5.0'  # грёбаный Сбер считает, что Python-urllib - это попытка взлома!
+        'User-Agent': 'Mozilla/5.0'  # F*cking Sber rejects requests with urllib's default user agent.
     }
     request = Request(url, data_encoded, headers, method='POST')
     try:
@@ -111,7 +111,7 @@ def reject_sber_order(self, order_id):
     url = SBER_MARKET.get('api', '') + '/order/reject'
     headers = {
         'Content-Type': 'application/json; charset=utf-8',
-        'User-Agent': 'Mozilla/5.0'  # грёбаный Сбер считает, что Python-urllib - это попытка взлома!
+        'User-Agent': 'Mozilla/5.0'  # F*cking Sber rejects requests with urllib's default user agent.
     }
     request = Request(url, data_encoded, headers, method='POST')
     try:
@@ -170,7 +170,7 @@ def notify_sber_order_packed(self, order_id):
     url = SBER_MARKET.get('api', '') + '/order/packing'
     headers = {
         'Content-Type': 'application/json; charset=utf-8',
-        'User-Agent': 'Mozilla/5.0'  # грёбаный Сбер считает, что Python-urllib - это попытка взлома!
+        'User-Agent': 'Mozilla/5.0'  # F*cking Sber rejects requests with urllib's default user agent.
     }
     request = Request(url, data_encoded, headers, method='POST')
     try:
@@ -227,7 +227,7 @@ def notify_sber_order_shipped(self, order_id):
     url = SBER_MARKET.get('api', '') + '/order/shipping'
     headers = {
         'Content-Type': 'application/json; charset=utf-8',
-        'User-Agent': 'Mozilla/5.0'  # грёбаный Сбер считает, что Python-urllib - это попытка взлома!
+        'User-Agent': 'Mozilla/5.0'  # F*cking Sber rejects requests with urllib's default user agent.
     }
     request = Request(url, data_encoded, headers, method='POST')
     try:
@@ -269,7 +269,7 @@ def get_sber_order_details(self, order_id):
     url = SBER_MARKET.get('api', '') + '/order/get'
     headers = {
         'Content-Type': 'application/json; charset=utf-8',
-        'User-Agent': 'Mozilla/5.0'  # грёбаный Сбер считает, что Python-urllib - это попытка взлома!
+        'User-Agent': 'Mozilla/5.0'  # F*cking Sber rejects requests with urllib's default user agent.
     }
     request = Request(url, data_encoded, headers, method='POST')
     try:

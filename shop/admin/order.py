@@ -360,10 +360,9 @@ class OrderAdmin(admin.ModelAdmin):
 
     def get_formsets_with_inlines(self, request, obj=None):
         for inline in self.get_inline_instances(request, obj):
-            # показываем встроенную форму коробок только для заказов Беру и Яндекс.Доставки:
-            # тут немного сложная логика, так как этот метод вызывается и при показе формы, и при сохранении
-            # и надо правильно отработать ситуацию, когда способ доставки уже поменяли, а встроенной формы
-            # с коробками ещё не было
+            # Show box forms for integrations that use boxes and for Yandex Delivery.
+            # A POST that switches to Yandex Delivery may come from a page without the inline.
+            # In that case Django has no box management form to validate until the next GET.
             is_integration_with_boxes = obj and obj.integration and obj.integration.uses_boxes
             is_yandex_delivery = obj and obj.delivery == Order.DELIVERY_YANDEX
             has_boxes_form = 'boxes-TOTAL_FORMS' in request.POST

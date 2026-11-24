@@ -19,7 +19,7 @@ def order_saved(sender, **kwargs):
     if order.tracker.has_changed('status'):
         if order.status == Order.STATUS_ACCEPTED:
             confirm_sber_order.delay_on_commit(order.id)
-            get_sber_order_details.delay_on_commit(order.id)  # дату доставки можно получить только из расширенной информации о заказе
+            get_sber_order_details.delay_on_commit(order.id)  # Only the order details include the delivery date.
         if order.status == Order.STATUS_CANCELED:
             reject_sber_order.delay_on_commit(order.id)
         if order.status == Order.STATUS_COLLECTED:

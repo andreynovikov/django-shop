@@ -4,8 +4,7 @@ from django.template.defaultfilters import stringfilter
 
 register = template.Library()
 
-# pluralize for russian language
-# {{someval|rupluralize:"товар,товара,товаров"}}
+# Pass the Russian forms for counts such as 1, 2, and 5 as comma-separated values, in that order.
 
 
 @register.filter(is_safe=False)

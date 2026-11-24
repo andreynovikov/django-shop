@@ -112,7 +112,7 @@ def new_order(request):
         if date:
             order.delivery_dispatch_date = datetime.strptime(date.split('T')[0], '%Y-%m-%d')
 
-        order.status = Order.STATUS_ACCEPTED  # автоматическое подтверждение сработает по сигналу смены статуса
+        order.status = Order.STATUS_ACCEPTED  # The status-change signal initiates confirmation.
         order.save()
 
     return JsonResponse({"data": {}, "meta": {"id": str(order.id)}, "success": 1})
@@ -132,13 +132,14 @@ def cancel_order(request):
         try:
             order = Order.objects.get(delivery_tracking_number=shipment_id)
             deleted_items = []
+            # Sber can cancel individual items without canceling the shipment.
             for sber_item in shipment.get('items', []):
                 item_index = sber_item.get('itemIndex', '-1')
                 offer_id = sber_item.get('offerId', '#NO_SKU#')
                 item = order.items.get(meta__itemIndex=item_index)
                 if str(item.product.id) != offer_id:
                     raise Exception('Wrong product SKU')
-                deleted_items.append(item)  # Сбер поддерживает частичную отмену заказа
+                deleted_items.append(item)
             if order.items.count() == len(deleted_items):
                 order.alert = 'Заказ отменён'
             else:

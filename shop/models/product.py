@@ -75,7 +75,7 @@ class Product(models.Model):
     kind = models.ManyToManyField('shop.ProductKind', verbose_name='тип', related_name='products', related_query_name='product', blank=True)
     categories = TreeManyToManyField('shop.Category', related_name='products', related_query_name='product', verbose_name='категории', blank=True)
     sites = models.ManyToManyField(Site, verbose_name='сайты', related_name='products', related_query_name='product', blank=True)
-    tags = models.CharField('теги', max_length=255, blank=True)  # TagField('теги')
+    tags = models.CharField('теги', max_length=255, blank=True)  # TagField('tags')
     forbid_price_import = models.BooleanField('не импортировать цену', default=False)
     forbid_ws_price_import = models.BooleanField('не импортировать опт. цену', default=False)
     service_life = models.PositiveSmallIntegerField('срок службы, мес', default=60)
@@ -420,6 +420,7 @@ class Product(models.Model):
 
     @property
     def instock(self) -> int:
+        # Reading stale stock can save a new count and run post-save receivers.
         if self.num < 0:
             self.save_stock(self.get_stock())
         return self.num

@@ -25,6 +25,7 @@ log = logging.getLogger('shop')
 @shared_task(name='shop.tasks.update_order', bind=True, queue="priority", autoretry_for=(DatabaseError,), max_retries=12, retry_backoff=300, retry_jitter=False)
 def update_order(self, order_id, data):
     order = Order.objects.get(id=order_id)
+    # The admin sets the order owner while a staff member is editing.
     if order.owner:
         if self.request.retries < self.max_retries - 1:
             log.info('Locked by %s, retrying' % order.owner)
@@ -41,7 +42,7 @@ def update_order(self, order_id, data):
             continue
         old_val = getattr(order, attr)
         if old_val != new_val:
-            if isinstance(field, JSONField):  # json fields are merged for purpose
+            if isinstance(field, JSONField):  # Keep keys omitted by a partial marketplace update.
                 if old_val:
                     new_val = {**old_val, **new_val}
             setattr(order, attr, new_val)
