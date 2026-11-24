@@ -20,9 +20,9 @@ else
     esac
   done
 
-  # Next writes image and fetch caches here, and ISR output alongside the built App Router files.
-  mkdir -p .next/cache
-  chown -hR "$runtime_uid:$runtime_gid" .next/cache .next/server/app
+  # Next writes image and fetch caches under .next/cache and regenerated responses under .next/server/route-cache.
+  mkdir -p .next/cache .next/server/route-cache
+  chown -hR "$runtime_uid:$runtime_gid" .next/cache .next/server/route-cache
   export HOME=/tmp
 fi
 

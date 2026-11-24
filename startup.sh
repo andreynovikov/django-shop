@@ -1,6 +1,16 @@
 #!/bin/sh
 set -e
 
+# Check existing directories before copying or pruning anything in the nginx asset mount.
+if [ -d ./.docker ]; then
+  blocked_dir=$(find ./.docker -type d \( ! -readable -o ! -writable -o ! -executable \) -print -quit)
+  if [ -n "$blocked_dir" ]; then
+    printf >&2 'Cannot sync assets in %s as UID:GID %s:%s (directory mode and owner: %s)\n' \
+      "$blocked_dir" "$(id -u)" "$(id -g)" "$(stat -c '%a %u:%g' "$blocked_dir")"
+    exit 1
+  fi
+fi
+
 # Copy a build's files into .docker/, where nginx serves them from, over the previous build's instead of emptying
 # the folder first: a file both builds have, such as unavailable.html (nginx's page for when this container is
 # down), never disappears. Then delete what this build doesn't have.
