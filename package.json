@@ -5,9 +5,7 @@
         "dev": "next dev -H 127.0.0.1 -p 3005",
         "start": "next start -H 127.0.0.1 -p 4005",
         "lint": "eslint src/",
-        "build": "next build",
-        "docker-build": "NAME=dortak IMAGE=dortak PORT=4105 docker compose build",
-        "docker-deploy": "NAME=dortak IMAGE=dortak PORT=4105 docker compose up -d"
+        "build": "next build"
     },
     "dependencies": {
         "@base-ui/react": "^1.9.0",
