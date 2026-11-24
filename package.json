@@ -5,9 +5,7 @@
         "dev": "next dev -H 127.0.0.1 -p 3001",
         "start": "next start -H 127.0.0.1 -p 4001",
         "lint": "eslint src/",
-        "build": "next build",
-        "docker-build": "NAME=family IMAGE=family PORT=4101 docker compose build",
-        "docker-deploy": "NAME=family IMAGE=family PORT=4101 docker compose up -d"
+        "build": "next build"
     },
     "dependencies": {
         "@base-ui/react": "^1.9.0",
