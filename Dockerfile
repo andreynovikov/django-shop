@@ -18,7 +18,7 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
-ARG entity=sworld
+ARG entity=janome
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -26,15 +26,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
-COPY --from=builder /app/startup.sh ./
-RUN mv ./server.js ./${entity}.js
-
-USER node
+COPY --from=builder /app/container-entrypoint.sh /app/startup.sh ./
+RUN command -v setpriv
 
 EXPOSE 3000
 
 ENV PORT=3000
-ENV APP_MAIN_FILE=${entity}.js
+ENV STOREFRONT_PROCESS_NAME=${entity}
 
-# startup.sh execs node, which then runs as PID 1 and gets the SIGTERM of docker stop
-CMD ["/bin/sh", "startup.sh"]
+# The entrypoint drops privileges before startup.sh syncs assets and execs Node.
+ENTRYPOINT ["/bin/sh", "/app/container-entrypoint.sh"]
+CMD ["/bin/sh", "./startup.sh"]
