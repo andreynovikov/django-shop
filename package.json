@@ -7,8 +7,6 @@
     "start": "next start -H 127.0.0.1 -p 4003",
     "lint": "eslint src/",
     "build": "next build",
-    "docker-build": "NAME=janome IMAGE=janome PORT=4103 docker compose build",
-    "docker-deploy": "NAME=janome IMAGE=janome PORT=4103 docker compose up -d",
     "vars": "printenv | grep npm"
   },
   "dependencies": {
