@@ -136,4 +136,4 @@ jobs:
           echo "$DEPLOY_HOST $DEPLOY_HOST_KEY" > ~/known_hosts
           ssh -i ~/key -o UserKnownHostsFile=~/known_hosts -o StrictHostKeyChecking=yes \
             -o ConnectTimeout=60 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
-            "$DEPLOY_USER@$DEPLOY_HOST" sworld "$VERSION"
+            "$DEPLOY_USER@$DEPLOY_HOST" dortak "$VERSION"
