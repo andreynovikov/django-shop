@@ -17,38 +17,61 @@
     exclusive: true
   when: created_user.ssh_public_key is defined
 
-- name: Check which storefronts have a Compose file
-  ansible.builtin.stat:
-    path: "{{ item.value.directory }}/docker-compose.yaml"
-    get_checksum: false
+- name: Create missing storefront directories
+  ansible.builtin.command:
+    argv:
+      - install
+      - -d
+      - -o
+      - "{{ server_www_owner }}"
+      - -g
+      - www-data
+      - -m
+      - "0755"
+      - --
+      - "{{ item.value.directory }}"
+    creates: "{{ item.value.directory }}"
   loop: "{{ server_frontend_sites | dict2items }}"
   loop_control:
     label: "{{ item.key }}"
-  register: frontend_compose_files
 
 - name: Give the service user ownership of storefront assets
   ansible.builtin.file:
-    path: "{{ item.item.value.directory }}/.docker"
+    path: "{{ item.value.directory }}/.docker"
     state: directory
     owner: "{{ server_app_user }}"
     group: "{{ server_app_user }}"
     recurse: true
     follow: false
-  loop: "{{ frontend_compose_files.results }}"
+  loop: "{{ server_frontend_sites | dict2items }}"
   loop_control:
-    label: "{{ item.item.key }}"
-  when: item.stat.isreg | default(false)
+    label: "{{ item.key }}"
 
 - name: Allow nginx to traverse storefront asset roots
   ansible.builtin.file:
-    path: "{{ item.item.value.directory }}/.docker"
+    path: "{{ item.value.directory }}/.docker"
     state: directory
     mode: "0755"
     follow: false
-  loop: "{{ frontend_compose_files.results }}"
+  loop: "{{ server_frontend_sites | dict2items }}"
   loop_control:
-    label: "{{ item.item.key }}"
-  when: item.stat.isreg | default(false)
+    label: "{{ item.key }}"
+
+- name: Create the storefront configuration directory
+  ansible.builtin.file:
+    path: /etc/sworld
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the shared storefront Compose file
+  ansible.builtin.copy:
+    src: docker-compose.yaml
+    dest: /etc/sworld/storefront-compose.yaml
+    owner: root
+    group: root
+    mode: "0644"
 
 - name: Install frontend deployment script
   ansible.builtin.template:

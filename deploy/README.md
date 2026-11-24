@@ -535,12 +535,15 @@ The backend is on the `main` branch only, and is deployed by hand. Its productio
 [UWSGI setup](#uwsgi-setup) and [Celery setup](#celery-setup)), and `/www/dev.sigalev.ru` is the development one.
 Every other branch of this repository is a storefront, never a copy of the backend: see
 [Frontend deployment](#frontend-deployment). A backend checkout has its Python virtualenv in `.venv`, which uv fills
-from `uv.lock`:
+from `uv.lock`. For a fresh production backend, initialize the checkout in the directory created by Ansible.
+The directory can already contain the storefront's `.docker/` tree.
 
 ```sh
-cd /www
-git clone git@github.com:andreynovikov/django-shop.git www.sewing-world.ru
-cd www.sewing-world.ru
+cd /www/www.sewing-world.ru
+git init -b main
+git remote add origin git@github.com:andreynovikov/django-shop.git
+git fetch origin main
+git switch -c main --track origin/main
 uv sync --locked --no-dev --compile-bytecode
 mkdir media static logs .cache import
 sudo chown -R sworld:www-data media static logs .cache import
@@ -580,29 +583,33 @@ built by GitHub Actions:
 | singer | /www/singer.ru            | singer | 4102 |
 | dortak | /www/dor-tak.ru           | dortak | 4105 |
 
-The second sworld line is the stage site. Each directory holds the branch's `docker-compose.yaml` and its
-`templates/`, which is mounted into the container for the XML feeds. At start the container copies its static files
-into `.docker/`, where nginx serves them from. nginx proxies everything else to `127.0.0.1:<port>`.
+Stage uses the `sworld` image with its own deployment name and port. The `deployment` Ansible tag installs the
+shared Compose file from `main` at `/etc/sworld/storefront-compose.yaml`. The deploy script sets each site's Compose project
+directory, so `templates/` supplies XML feed templates and `.docker/` holds the static files nginx serves.
+nginx proxies everything else to `127.0.0.1:<port>`. Keep site-specific feed templates in place and update them
+when they change.
+[Shared Compose source](ansible/roles/server/files/docker-compose.yaml)
 
 Each branch has its own `.github/workflows/frontend.yml`. Every push to the branch runs lint and type checks, builds
 the image with the frontend's `.env`, and pushes it to `ghcr.io/andreynovikov/<branch>`. The image is tagged with
 the commit's date in Moscow time and its short hash, such as `2026.11.11-7f57710`, and with `latest`. sworld also
 runs the Playwright tests and deploys every push to stage.
 
-To deploy a frontend to production, open Actions → Frontend CI → Run workflow on GitHub and choose its branch. The run
-deploys the image of the branch's last commit, and fails if that commit's build has not finished or has failed. To roll
-back, re-run an earlier deploy run (GitHub allows re-runs for 30 days), or start an earlier image on the server.
-Choose an image with runtime UID/GID support so it can write to the `sworld`-owned asset directory.
+To deploy a frontend to production, open Actions → Frontend CI → Run workflow on GitHub and choose its branch. The
+deploy command pulls the image for that commit and runs Compose with builds disabled. The run fails if the image is
+unavailable. To roll back, re-run an earlier deploy run (GitHub allows re-runs for 30 days) or start an earlier
+image on the server. Choose an image with runtime UID/GID support so it can write to the `sworld`-owned asset
+directory.
 `docker images` lists the images on the server. Pulling another one needs `docker login ghcr.io` with a token
-that can read packages. For a manual deploy, supply the host UID and GID:
+that can read packages. To start a local image manually, supply the branch name and the host UID and GID:
 
 ```sh
-cd /www/janome.club
 tag=IMAGE_TAG
 STOREFRONT_UID=$(id -u sworld) && STOREFRONT_GID=$(id -g sworld) &&
   export STOREFRONT_UID STOREFRONT_GID &&
-  NAME=janome PORT=4103 IMAGE="ghcr.io/andreynovikov/janome:$tag" \
-  docker compose --env-file /dev/null up -d
+  NAME=janome PORT=4103 STOREFRONT_BRANCH=janome IMAGE="ghcr.io/andreynovikov/janome:$tag" \
+  docker compose --env-file /dev/null -f /etc/sworld/storefront-compose.yaml \
+  --project-directory /www/janome.club up -d --no-build --pull never
 ```
 
 The `frontend.yml` on `main` only puts the Run workflow button on the Actions page: GitHub shows it only for workflows
@@ -611,15 +618,14 @@ on the default branch. Run on `main`, it fails.
 ## Storefront service user
 
 All storefronts use the host's service account. On each deploy, the deploy script resolves the account's UID and
-GID and passes them through the server's `docker-compose.yaml` as `STOREFRONT_UID` and `STOREFRONT_GID`.
+GID and passes them through the shared Compose file as `STOREFRONT_UID` and `STOREFRONT_GID`.
 The image uses those IDs for asset sync and Next.js, including its on-disk caches. This mapping assumes rootful
 Docker without user namespace remapping. Keep Django's code, configuration and sockets outside the frontend
 bind mounts.
 
-On a new host, put each storefront's current `docker-compose.yaml` and `templates/` in its directory before
-its first deploy. Run the `deployment` tag from `deploy/ansible` to install the deploy script and prepare the
-`sworld`-owned `.docker/` tree for each storefront whose Compose file is in place. If you add a checkout later,
-rerun this tag before deploying it.
+Run the `deployment` tag from `deploy/ansible` to create the configured storefront directories and their
+`sworld`-owned `.docker/` trees, and to install the shared Compose file and deploy script. Provision any feed
+templates before deploying. Rerun this tag after changing the shared configuration or the storefront list.
 
 ```sh
 ansible-playbook -i inventory.yml site.yml --limit server.example.ru -K --tags deployment
@@ -637,6 +643,37 @@ stat -c '%u:%g %n' /www/cartzilla.sigalev.ru/.docker
 
 Check that nginx serves a static asset, and revalidate a cached stage page to confirm Next.js can write the
 regenerated response under `/app/.next/server/route-cache/`.
+
+## Emergency local build
+
+- `BUILD_CONTEXT` points to the storefront source checkout containing its Dockerfile and build-time `.env`.
+- `--project-directory` points to the deployment directory, where Compose resolves the `.docker/` and `templates/`
+  bind mounts.
+
+Both paths can point to the same directory. If the frontend source is already checked out in the deployment
+directory, omit `BUILD_CONTEXT`. It defaults to `.` relative to `--project-directory`.
+
+Set `STOREFRONT_BRANCH` to the source branch. The stage example below uses a separate `sworld` checkout.
+
+```sh
+(
+  set -e
+  export NAME=stage PORT=4004 IMAGE=sworld:emergency-stage
+  export BUILD_CONTEXT=/path/to/sworld-checkout STOREFRONT_BRANCH=sworld
+  STOREFRONT_UID=$(id -u sworld)
+  STOREFRONT_GID=$(id -g sworld)
+  export STOREFRONT_UID STOREFRONT_GID
+
+  docker compose --env-file /dev/null -f /etc/sworld/storefront-compose.yaml \
+    --project-directory /www/cartzilla.sigalev.ru build app
+  docker compose --env-file /dev/null -f /etc/sworld/storefront-compose.yaml \
+    --project-directory /www/cartzilla.sigalev.ru up -d --no-build --pull never
+)
+```
+
+Compose passes `STOREFRONT_BRANCH` as the Dockerfile's `entity` build argument and tags the build with `IMAGE`.
+The container uses that image reference when it starts.
+Use the branch, deployment name, port and directory from the table.
 
 ## GitHub settings
 

@@ -56,10 +56,10 @@ server_users:
 # The system user for uWSGI, Celery, backups and storefronts, see "Service user" in deploy/README.md
 server_app_user: sworld
 
-# The names passed by GitHub Actions and their checkouts on the Docker host.
+# Deployment names and directories. The source branch defaults to the deployment name.
 server_frontend_sites:
   sworld: { directory: /www/www.sewing-world.ru, port: 4104 }
-  stage: { directory: /www/cartzilla.sigalev.ru, port: 4004, image: sworld }
+  stage: { directory: /www/cartzilla.sigalev.ru, port: 4004, branch: sworld }
   family: { directory: /www/familysew.ru, port: 4101 }
   singer: { directory: /www/singer.ru, port: 4102 }
   janome: { directory: /www/janome.club, port: 4103 }

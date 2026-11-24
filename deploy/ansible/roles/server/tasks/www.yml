@@ -1,4 +1,4 @@
-# The sites are cloned into /www by hand, see "Environment setup".
+# Create the web root before the deployment role prepares storefront directories.
 - name: Create /www
   ansible.builtin.file:
     path: /www

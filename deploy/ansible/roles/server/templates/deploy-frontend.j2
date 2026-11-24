@@ -6,7 +6,7 @@ set -- ${SSH_ORIGINAL_COMMAND-}
 name=$1 tag=$2
 case $name in
 {% for site, config in server_frontend_sites.items() %}
-  {{ site | quote }}) dir={{ config.directory | quote }} port={{ config.port }} image={{ config.image | default(site) | quote }} ;;
+  {{ site | quote }}) dir={{ config.directory | quote }} port={{ config.port }} branch={{ config.branch | default(site) | quote }} ;;
 {% endfor %}
   *) echo "unknown frontend $name" >&2; exit 2 ;;
 esac
@@ -16,7 +16,8 @@ esac
 STOREFRONT_UID=$(id -u {{ server_app_user | quote }})
 STOREFRONT_GID=$(id -g {{ server_app_user | quote }})
 export STOREFRONT_UID STOREFRONT_GID
-ref=ghcr.io/andreynovikov/$image:$tag
+ref=ghcr.io/andreynovikov/$branch:$tag
 docker pull "$ref" || { echo "No image $ref: has the build of this commit finished?" >&2; exit 1; }
-cd "$dir"
-NAME=$name PORT=$port IMAGE=$ref docker compose --env-file /dev/null up -d
+NAME=$name PORT=$port IMAGE=$ref STOREFRONT_BRANCH=$branch \
+  docker compose --env-file /dev/null -f /etc/sworld/storefront-compose.yaml --project-directory "$dir" \
+  up -d --no-build --pull never

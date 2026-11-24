@@ -37,6 +37,10 @@
   ansible.builtin.import_tasks: celery.yml
   tags: celery
 
+- name: Web root setup
+  ansible.builtin.import_tasks: www.yml
+  tags: [www, deployment]
+
 - name: Deployment setup
   ansible.builtin.import_tasks: deployment.yml
   tags: deployment
@@ -50,8 +54,3 @@
 - name: Log rotation
   ansible.builtin.import_tasks: logrotate.yml
   tags: logrotate
-
-- name: Web root setup
-  ansible.builtin.import_tasks: www.yml
-  tags: www
-
