@@ -133,10 +133,12 @@ class CreateTests(Base):
         basket = self.client.post('/api/v0/baskets/').json()['id']
         self.client.post(f'/api/v0/baskets/{basket}/add/', {'product': 1, 'quantity': 2}, format='json')
         self.client.post(f'/api/v0/baskets/{basket}/add/', {'product': 2}, format='json')
+        return basket
 
     def test_basket_becomes_an_order(self):
         self.fill_basket()
-        response = self.client.post('/api/v0/orders/')
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post('/api/v0/orders/')
         self.assertEqual(response.status_code, 200)
         order = Order.objects.get()
         self.assertEqual((response.json()['id'], response.json()['total']), (order.id, 40300))
@@ -145,6 +147,57 @@ class CreateTests(Base):
         self.assertFalse(Basket.objects.exists())
         for notice in self.notices.values():
             notice.apply_async.assert_called_once_with((order.id,), countdown=300)
+
+    def test_retry_returns_original_order_and_leaves_new_basket_alone(self):
+        key = str(self.fill_basket())
+        with self.captureOnCommitCallbacks(execute=True):
+            first = self.client.post('/api/v0/orders/', headers={'Idempotency-Key': key})
+            replay = self.client.post('/api/v0/orders/', headers={'Idempotency-Key': key})
+            new_basket = self.fill_basket()
+            stale_replay = self.client.post('/api/v0/orders/', headers={'Idempotency-Key': key})
+        self.assertEqual(first.status_code, 200)
+        for response in (replay, stale_replay):
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json(), first.json())
+        self.assertEqual(Order.objects.count(), 1)
+        self.assertTrue(Basket.objects.filter(pk=new_basket).exists())
+        for notice in self.notices.values():
+            notice.apply_async.assert_called_once_with((first.json()['id'],), countdown=300)
+
+        response = self.client.post('/api/v0/orders/', headers={'Idempotency-Key': str(new_basket)})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response.json()['id'], first.json()['id'])
+
+    def test_another_user_cannot_submit_or_replay_a_basket(self):
+        key = str(self.fill_basket())
+        other = signed_in(ShopUser.objects.create(phone='+79160000000'))
+        before = other.post('/api/v0/orders/', headers={'Idempotency-Key': key})
+        self.assertEqual(self.client.post('/api/v0/orders/', headers={'Idempotency-Key': key}).status_code, 200)
+        after = other.post('/api/v0/orders/', headers={'Idempotency-Key': key})
+        for response in (before, after):
+            self.assertEqual((response.status_code, response.json()), (400, 'Basket does not exist'))
+
+    def test_failed_checkout_rolls_back_order_and_can_retry(self):
+        basket = self.fill_basket()
+        headers = {'Idempotency-Key': str(basket)}
+        with mock.patch.object(Basket, 'delete', side_effect=RuntimeError('Delete failed')):
+            response = self.client.post('/api/v0/orders/', headers=headers)
+        self.assertEqual(response.status_code, 500)
+        self.assertFalse(Order.objects.exists())
+        self.assertTrue(Basket.objects.filter(pk=basket).exists())
+        for notice in self.notices.values():
+            notice.apply_async.assert_not_called()
+
+        response = self.client.post('/api/v0/orders/', headers=headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Order.objects.count(), 1)
+
+    def test_invalid_checkout_key_cannot_consume_basket(self):
+        basket = self.fill_basket()
+        response = self.client.post('/api/v0/orders/', headers={'Idempotency-Key': 'not-a-basket-id'})
+        self.assertEqual((response.status_code, response.json()), (400, 'Invalid idempotency key'))
+        self.assertTrue(Basket.objects.filter(pk=basket).exists())
+        self.assertFalse(Order.objects.exists())
 
     def test_promo_discount_is_used_up(self):
         session = self.client.session
@@ -188,18 +241,20 @@ class CreateRaceTests(Shop, TransactionTestCase):
         self.addCleanup(patcher.stop)
 
     def test_basket_ordered_once(self):
-        for _ in range(3):
+        for keyed in (False, True):
             basket = self.client.post('/api/v0/baskets/').json()['id']
             self.client.post(f'/api/v0/baskets/{basket}/add/', {'product': 1}, format='json')
             barrier = threading.Barrier(4)
-            statuses = []
+            results = []
+            headers = {'Idempotency-Key': str(basket)} if keyed else {}
 
             def post():
                 client = StorefrontClient()
                 client.cookies = copy.deepcopy(self.client.cookies)
                 barrier.wait()
                 try:
-                    statuses.append(client.post('/api/v0/orders/').status_code)
+                    response = client.post('/api/v0/orders/', headers=headers)
+                    results.append((response.status_code, response.json()))
                 finally:
                     connection.close()
 
@@ -208,8 +263,9 @@ class CreateRaceTests(Shop, TransactionTestCase):
                 thread.start()
             for thread in threads:
                 thread.join()
-            self.assertEqual(sorted(statuses), [200, 400, 400, 400])
-            self.assertEqual(Order.objects.count(), 1)
+            order = Order.objects.get()
+            self.assertEqual(sorted(code for code, _ in results), [200] * 4 if keyed else [200, 400, 400, 400])
+            self.assertEqual({data['id'] for code, data in results if code == 200}, {order.id})
             self.assertFalse(Basket.objects.exists())
             Order.objects.all().delete()
 

@@ -1,7 +1,9 @@
 import logging
+import re
 
 from django.conf import settings
 from django.core.mail import mail_admins
+from django.db import transaction
 from django.db.models import Prefetch
 from django.http import HttpResponseRedirect
 from django.template.loader import render_to_string
@@ -24,7 +26,7 @@ from sewingworld.serializers.common import validation_error_serializer
 from sewingworld.serializers.orders import OrderListSerializer, OrderSerializer, OrderActionSerializer, \
     PreorderSerializer, SerialSerializer
 
-from .common import FORBIDDEN, NOT_FOUND, ORDER_REGISTRATION_LOCK, StandardResultsSetPagination, advisory_lock, id_params
+from .common import FORBIDDEN, NOT_FOUND, StandardResultsSetPagination, id_params
 from .users import queue_email_confirmation
 
 logger = logging.getLogger("django")
@@ -32,6 +34,15 @@ logger = logging.getLogger("django")
 # Built once, drf-spectacular expects one serializer class per component name
 ORDER_ERRORS = validation_error_serializer(OrderActionSerializer)
 PREORDER_ERRORS = validation_error_serializer(PreorderSerializer)
+
+
+def notify_new_order(order_id):
+    # Give the buyer five minutes to fill out the order details.
+    try:
+        notify_user_order_new_mail.apply_async((order_id,), countdown=300)
+        notify_user_order_new_sms.apply_async((order_id,), countdown=300)
+    except Exception as error:
+        mail_admins('Task error', f'Failed to send notification: {error}', fail_silently=True)
 
 
 def adopt_order_email(request, view, order):
@@ -99,63 +110,56 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         request=None,
+        parameters=[OpenApiParameter(
+            'Idempotency-Key', str, location=OpenApiParameter.HEADER, pattern=r'^[1-9][0-9]{0,18}$',
+            description='Basket ID. Retrying with the same ID returns the same order for this user and storefront.',
+        )],
         responses={
             200: OrderSerializer,
-            400: OpenApiResponse(OpenApiTypes.STR, description='Basket does not exist, Basket is empty or Failed to register order'),
+            400: OpenApiResponse(OpenApiTypes.STR, description='Invalid idempotency key, Basket does not exist, Basket is empty or Failed to register order'),
             403: FORBIDDEN,
+            500: OpenApiResponse(OpenApiTypes.STR, description='Failed to register order. Retry with the same key.'),
         },
     )
     def create(self, request):
-        if not request.session.session_key:  # without it, the query would match every basket left without a session
-            return Response("Basket does not exist", status=status.HTTP_400_BAD_REQUEST)
-        try:
-            basket = Basket.objects.get(site=request.site, session_id=request.session.session_key)
-        except Basket.DoesNotExist:
-            return Response("Basket does not exist", status=status.HTTP_400_BAD_REQUEST)
+        key = request.headers.get('Idempotency-Key')
+        if key is not None and not re.fullmatch(r'[1-9][0-9]{0,18}', key):
+            return Response('Invalid idempotency key', status=status.HTTP_400_BAD_REQUEST)
 
-        # A request sent twice used to order the basket twice. Now the later one waits and finds it gone.
-        # Order.register() runs outside a transaction: the signals of the order queue tasks that read its rows.
-        with advisory_lock(ORDER_REGISTRATION_LOCK, basket.id):
-            return self._register_basket(request, basket.id)
-
-    def _register_basket(self, request, basket_id):
-        basket = Basket.objects.filter(pk=basket_id).first()
-        if basket is None:
+        session_key = request.session.session_key
+        if not session_key:  # without it, the query would match every basket left without a session
             return Response("Basket does not exist", status=status.HTTP_400_BAD_REQUEST)
-
-        if basket.quantity == 0:
-            return Response("Basket is empty", status=status.HTTP_400_BAD_REQUEST)
+        baskets = Basket.objects.filter(site=request.site, session_id=session_key)
+        if key is not None:
+            baskets = baskets.filter(pk=key)
 
         try:
-            order = Order.register(basket, site=request.site)
-            """
-            ipgeobases = IPGeoBase.objects.by_ip(request.META.get('REMOTE_ADDR'))
-            if ipgeobases.exists():
-                for ipgeobase in ipgeobases:
-                    if ipgeobase.city is not None:
-                        order.city = ipgeobase.city
-                        break
-            order.save()
-            """
-            """ wait for 5 minutes to let user supply comments and other stuff """
-            try:
-                notify_user_order_new_mail.apply_async((order.id,), countdown=300)
-                notify_user_order_new_sms.apply_async((order.id,), countdown=300)
-            except Exception as e:
-                mail_admins('Task error', 'Failed to send notification: %s' % e, fail_silently=True)
-            basket.delete()
+            with transaction.atomic():
+                try:
+                    basket = baskets.select_for_update().get()
+                except Basket.DoesNotExist:
+                    # A concurrent checkout holds the basket lock until the order and deletion commit.
+                    if key is not None:
+                        order = Order.objects.filter(user=request.user, basket_checkout_key=f'{request.site.pk}:{key}').first()
+                        if order is not None:
+                            return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
+                    return Response('Basket does not exist', status=status.HTTP_400_BAD_REQUEST)
 
-            """ clear promo discount """
-            try:
-                del request.session['discount']
-            except KeyError:
-                pass
+                if basket.quantity == 0:
+                    return Response('Basket is empty', status=status.HTTP_400_BAD_REQUEST)
 
-            return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
-        except Exception as e:
+                # Keep the source site in the key because an integration can override the order's site.
+                order = Order.register(basket, site=request.site, basket_checkout_key=f'{request.site.pk}:{basket.pk}')
+                basket.delete()
+                transaction.on_commit(lambda: notify_new_order(order.id), robust=True)
+        except Exception:
             # mail_admins('Order error', 'Failed to register order: %s' % e, fail_silently=True)
-            logger.exception(e)
-            return Response("Failed to register order", status=status.HTTP_400_BAD_REQUEST)
+            logger.exception('Failed to register order')
+            error_status = status.HTTP_400_BAD_REQUEST if key is None else status.HTTP_500_INTERNAL_SERVER_ERROR
+            return Response('Failed to register order', status=error_status)
+
+        request.session.pop('discount', None)  # clear promo discount
+        return Response(OrderSerializer(order, context=self.get_serializer_context()).data)
 
     def update(self, request, *args, **kwargs):
         super().update(request, *args, **kwargs)

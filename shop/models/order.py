@@ -172,6 +172,7 @@ class Order(models.Model):
     comment = models.TextField('комментарий', blank=True)
     shop_name = models.CharField('магазин', max_length=20, blank=True)
     site = models.ForeignKey(Site, verbose_name='сайт', on_delete=models.PROTECT)
+    basket_checkout_key = models.CharField(max_length=40, unique=True, null=True, blank=True, editable=False)
     integration = models.ForeignKey(Integration, verbose_name='интеграция', blank=True, null=True, on_delete=models.PROTECT)
     payment = models.SmallIntegerField('оплата', choices=PAYMENT_CHOICES, default=PAYMENT_UNKNOWN)
     paid = models.BooleanField('оплачен', default=False)
