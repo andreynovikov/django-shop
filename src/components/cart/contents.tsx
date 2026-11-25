@@ -28,14 +28,14 @@ export default function CartContents() {
 
   // a new buyer, registered by the login form without a code, orders right away
   useEffect(() => {
-    if (status === 'authenticated' && registered) {
-      mutate()
+    if (status === 'authenticated' && registered && basket.id !== undefined) {
+      mutate(basket.id)
       invalidate()
     }
-  }, [invalidate, mutate, registered, status])
+  }, [basket.id, invalidate, mutate, registered, status])
 
   const handleCreateOrder = () => {
-    mutate()
+    mutate(basket.id)
   }
 
   const lastPage = useLastCatalog()
