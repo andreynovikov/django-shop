@@ -47,7 +47,7 @@ export default function CartNotice() {
 
   const handleCreateOrder = () => {
     if (status === 'authenticated')
-      mutate()
+      mutate(basket.id)
     else
       router.push('/cart')
   }

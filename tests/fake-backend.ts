@@ -145,6 +145,8 @@ export class FakeBackend {
   private basket: { id: number, items: { id: number, product: BasketItemProduct, quantity: number }[], utm_source: string } | null = null
   private favorites = new Map<number, number[]>()
   private orders: FakeOrder[] = []
+  private checkoutOrders = new Map<string, number>()
+  private loseOrderResponse = false
   private products = new Map<number, BasketItemProduct>()
   private nextId = { user: 1, basket: 1, item: 1, order: 100001 }
   // codes that prove a new phone, by phone and the user moving to it ('' when registering), see PhoneCode
@@ -317,6 +319,10 @@ export class FakeBackend {
       (typeof path === 'string' ? request.path === path : path.test(request.path)))
   }
 
+  dropNextOrderResponse() {
+    this.loseOrderResponse = true
+  }
+
   private async handle(route: Route) {
     const request = route.request()
     const url = new URL(request.url())
@@ -330,7 +336,7 @@ export class FakeBackend {
     }
     this.requests.push({ method: request.method(), path: decodeURIComponent(path), body })
 
-    const response = await this.respond(request.method(), segments, url.searchParams, (body ?? {}) as Body)
+    const response = await this.respond(request.method(), segments, url.searchParams, (body ?? {}) as Body, request.headers())
     if (response === undefined)
       return route.fallback()
     const query = Object.fromEntries([...new Set(url.searchParams.keys())].map(key => {
@@ -344,12 +350,16 @@ export class FakeBackend {
       headers: request.headers(),
       body: body ?? undefined,
     }, response))
+    if (this.loseOrderResponse && request.method() === 'POST' && path === 'orders/' && response.status === 200) {
+      this.loseOrderResponse = false
+      return route.abort()
+    }
     if (response.status === 204)
       return route.fulfill({ status: 204 })
     return route.fulfill({ status: response.status, json: response.body })
   }
 
-  private async respond(method: string, segments: string[], query: URLSearchParams, body: Body) {
+  private async respond(method: string, segments: string[], query: URLSearchParams, body: Body, headers: Record<string, string>) {
     const [resource, ...rest] = segments
     switch (resource) {
       case 'users':
@@ -357,7 +367,7 @@ export class FakeBackend {
       case 'baskets':
         return this.respondBaskets(method, rest, body)
       case 'orders':
-        return this.respondOrders(method, rest, query, body)
+        return this.respondOrders(method, rest, query, body, headers['idempotency-key'])
       case 'favorites':
         return this.respondFavorites(method, rest, body)
       case 'serials':
@@ -673,12 +683,12 @@ export class FakeBackend {
     return noContent()
   }
 
-  private respondOrders(method: string, [id, action]: string[], query: URLSearchParams, body: Body) {
+  private respondOrders(method: string, [id, action]: string[], query: URLSearchParams, body: Body, key?: string) {
     const user = this.user
     const orders = this.orders.filter(order => order.user === user?.id).toSorted((a, b) => b.id - a.id)
 
     if (method === 'POST' && id === undefined)
-      return user ? this.createOrder() : notAuthenticated()
+      return user ? this.createOrder(user.id, key) : notAuthenticated()
     if (method === 'GET' && id === undefined)
       return user ? ok(this.orderList(orders, query)) : notAuthenticated()
     if (method === 'POST' && id === 'last')
@@ -711,12 +721,21 @@ export class FakeBackend {
     return undefined
   }
 
-  private createOrder() {
-    if (this.basket === null)
+  private createOrder(userId: number, key?: string) {
+    if (key !== undefined && !/^[1-9][0-9]{0,18}$/.test(key))
+      return { status: 400, body: 'Invalid idempotency key' }
+    if (key !== undefined) {
+      const orderId = this.checkoutOrders.get(key)
+      const previousOrder = this.orders.find(order => order.id === orderId && order.user === userId)
+      if (previousOrder !== undefined)
+        return ok(this.orderJson(previousOrder))
+    }
+    if (this.basket === null || (key !== undefined && key !== String(this.basket.id)))
       return { status: 400, body: 'Basket does not exist' }
     if (this.basket.items.length === 0)
       return { status: 400, body: 'Basket is empty' }
     const order = this.addOrder({ items: this.basket.items })
+    this.checkoutOrders.set(String(this.basket.id), order.id)
     this.basket = null
     return ok(order)
   }

@@ -98,6 +98,29 @@ test('signed in buyer orders right away', async ({ page, request, backend }) => 
   expect(backend.smsLog).toEqual([])
 })
 
+test('checkout reuses the basket key when the order response is lost', async ({ page, request, backend }) => {
+  const [product] = await findSewingMachines(request, { instock: '1' })
+  const user = backend.signIn({ name: 'Анна Иванова' })
+  const basketId = backend.addBasket({ product })
+  backend.dropNextOrderResponse()
+
+  const keys: (string | undefined)[] = []
+  page.on('request', request => {
+    if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/v0/orders/')
+      keys.push(request.headers()['idempotency-key'])
+  })
+
+  await gotoHydrated(page, '/cart/')
+  await expect(page.getByText(`Добро пожаловать, ${user.name}!`)).toBeVisible()
+  await page.locator('aside').getByRole('button', { name: 'Оформить заказ' }).click()
+
+  await expect(page).toHaveURL(/\/confirmation\/$/)
+  expect(keys).toEqual([String(basketId), String(basketId)])
+  const order = backend.lastOrder()
+  expect(orderedItems(order)).toEqual([{ product: product.id, quantity: 1 }])
+  await expect(page.getByRole('heading', { name: `№${order?.id}` })).toBeVisible()
+})
+
 for (const wholesale of [false, true]) {
   test(`${wholesale ? 'wholesale site orders products sold in packs in whole packs' : 'retail site ignores packs'}`, async ({ page, request, backend }) => {
     const [product] = await findSewingMachines(request, { instock: '1' })
