@@ -2,8 +2,9 @@
 
 ## Scope and architecture
 
-- Django backend for the Швейный Мир family of shops: Python 3.13, Django 6.1, DRF, PostgreSQL, Celery/Redis and memcached. Dependencies and exact versions live in `pyproject.toml` and `uv.lock`. Preserve existing Russian comments, verbose names and UI text where appropriate.
-- The backend lives on `main` and is deployed manually. Other branches (`sworld`, `family`, `janome`, `singer`, `dortak`) contain Next.js storefronts. Never merge backend changes into those branches. Consult `deploy/README.md` and provide the manual deployment steps relevant to a backend change.
+- Django backend for the Швейный Мир family of shops: Python 3.13, Django 6.1, DRF, PostgreSQL, Celery/Redis and memcached. Dependencies and exact versions live in `pyproject.toml` and `uv.lock`. Verbose names and UI text are in Russian; keep them so. Code comments are in English.
+- The backend lives on `main` and is deployed manually. Other branches (`sworld`, `family`, `janome`, `singer`, `dortak`) contain Next.js storefronts. Never merge backend changes into those branches. Consult `deploy/README.md` and provide the manual deployment steps relevant to a backend change (migrate, collectstatic, uWSGI/Celery reload, and the Ansible tag when nginx, units or storefront deployment change).
+- Keep `CLAUDE.md` and this file in step: a rule changed in one belongs in the other.
 - `sewingworld/` is both the project package and an app. REST views and serializers are grouped by domain in `sewingworld/api/` and `sewingworld/serializers/`; routing is in `sewingworld/urls.py`, product filters in `sewingworld/filters.py`.
 - `shop/` holds the domain. Models/admins are split into `shop/models/` and `shop/admin/`; export new models through `shop/models/__init__.py` and its `__all__`. Keep order-admin logic in `order_supply.py`, `order_shipping.py` and `order_editing.py`, and list filters in `order_filters.py`. The user model is `shop.ShopUser`.
 - `sewingworld/settings/` is a package: add settings to the matching topic module. `ADMIN=True` loads `.env.admin` over `.env` and selects the 2FA admin; otherwise serve the public API at `/api/v0/` and payment/document endpoints. API and admin are separate uWSGI apps sharing the code.
@@ -42,6 +43,7 @@ git ls-files -z '*.py' | xargs -0 uv run --no-sync flake8
 
 - `SiteProfile` extends `django.contrib.sites` with root category, wholesale mode, order prefix, aliases, payment credentials and frontend/revalidation keys. API code must use `request.site`.
 - For `/api/v0/`, `FrontendKeyMiddleware` selects the site by `X-Frontend-Key` and accepts `X-Real-IP` from a valid storefront. Without a valid key, it uses the default site, ignores session cookies and permits writes only with token authentication. `Origin`/`Referer` selection applies outside this API path, not as a replacement for the key. Preserve browser `Origin` forwarding for CSRF checks.
+- `SecurityMiddleware` sends nosniff, Referrer-Policy and COOP on every response, errors included. nginx adds HSTS and redirects to HTTPS, so `SECURE_SSL_REDIRECT` stays off.
 - Use the existing local `SiteProfile.frontend_key` for site-specific tests. Preserve and restore any key temporarily changed. Default-site reads can look correct even when a frontend key is rejected.
 - `settings.SITE_ID` identifies the main site whose in-progress orders reserve stock; this rule is distinct from request-site selection.
 - Declare product-list parameters in `ProductFilterSet` and OpenAPI. Unknown filters are ignored by the backend but rejected by storefront contract tests. Coordinate changes with storefront `src/lib/search-params.ts` (`productSearchParams`).
@@ -53,7 +55,7 @@ git ls-files -z '*.py' | xargs -0 uv run --no-sync flake8
 ## Accounts and communication
 
 - API phone validation accepts `+7` only; do not indiscriminately apply it to marketplace/system records. Registration and phone changes require an SMS code. Silent checkout/preorder/warranty accounts remain unverified until SMS login; first verification resets email verification.
-- Passwords require at least eight characters without complexity rules. Per-phone lockout counts wrong permanent passwords; SMS codes must still allow login. Reveal an occupied email only after a correct SMS code; phone/username availability remains part of initial validation.
+- Passwords require at least eight characters without complexity rules. There is no password lockout. Reveal an occupied email only after a correct SMS code; phone/username availability remains part of initial validation.
 - Customer mail requires `email_verified`; staff confirmation counts. Order mail waits for confirmation and retries for up to seven days (`confirmed_email`/`postpone_mail` in `shop/tasks/user_interaction.py`).
 - Keep basket restore/clear and logout as POST operations. Preserve CSRF/session protections and the cookie compatibility period described below.
 
@@ -87,11 +89,13 @@ git ls-files -z '*.py' | xargs -0 uv run --no-sync flake8
 
 ## Operations and private references
 
-- Read `deploy/README.md` and `deploy/ansible/README.md` before infrastructure changes. The frontend workflow on `main` is an intentional failing stub exposing GitHub's manual deployment button; real workflows live on storefront branches.
+- Read `deploy/README.md` and `deploy/ansible/README.md` before infrastructure changes. The playbook `deploy/ansible/site.yml` (roles `server`, `backup_host`) manages packages, users, sshd/OTP, nftables, uWSGI/Celery units (apps, processes and threads in `roles/server/defaults/main.yml`), certbot's reload hook, backups, log rotation, `docker-prune.timer` and storefront deployment. TLS files, `/etc/nginx/htpasswd`, OTP secrets, the backend checkout with `.env` and storefront feed templates stay manual.
+- The complete nginx configuration (`nginx.conf`, all sites, `sw_proxy_params`, snippets) lives in `roles/server/files/nginx/`. Change it there, not on the server; the `nginx` tag installs it, enables `server_nginx_sites_enabled` and runs `nginx -t` before reload. Site logs go to `/var/log/nginx`, never into `/www`. Storefront proxies turn 502–504 into a 503 with the storefront's `.docker/public/unavailable.html`.
+- The frontend workflow on `main` is an intentional failing stub exposing GitHub's manual deployment button; real workflows live on storefront branches. Deploys log in as `deploy`, whose key runs only the forced command `deploy-frontend <name> <tag>` (`roles/server/templates/deploy-frontend.j2`). It pulls `ghcr.io/andreynovikov/<branch>:<tag>` and starts it with the shared Compose file (`roles/server/files/docker-compose.yaml`, installed as `/etc/sworld/storefront-compose.yaml`) in the site directory, as the `sworld` UID/GID. Storefronts, directories and ports are in `server_frontend_sites`; `stage` runs the `sworld` branch at `/www/cartzilla.sigalev.ru`. Apply the `deployment` tag after changing them.
 - Preserve per-connection `lock_timeout=5s` and its propagation to `pg_dump` through `PGOPTIONS`. For deployment lock failures, check `SHOW lock_timeout` through Django: a pooler may discard startup options. Use a `connection_created` setting only if that behavior is confirmed.
 - Backups stream `pg_dump` into append-only restic storage: daily/post-migration full dumps, otherwise hot data. Put frequently changing models in `DB_BACKUP['HOT_MODELS']`, log tables in `EXCLUDE_DATA_APPS`. Full backups also preserve environment/integration configuration. Restore/retention scripts live in `deploy/backup/`.
 - `postman/README.md` covers schema generation, import and CLI usage for the Sewing World API workspace. Keep `postman/prerequest.js`, `postman/test.js` and `tests/test_postman_spec.py` synchronized. Retain `allowSideEffects`; CLI runs lack credentials stored only as app current values. Look up current workspace/collection/environment IDs rather than assuming historical IDs still apply.
-- This repository is public. Never commit `SERVER.md`, `PROBLEMS.md`, `server_inspection.txt`, credentials, or quotations of their open findings. Consult those gitignored records for infrastructure details and known issues; recheck code before acting. Nginx site publication remains conditional on fixing recorded weaknesses; keep site-specific inventory gitignored and hashes/tokens in ansible-vault.
+- This repository is public. Never commit `SERVER.md`, `PROBLEMS.md`, `server_inspection.txt`, credentials, or quotations of their open findings. Consult those gitignored records for infrastructure details and known issues; recheck code before acting. The nginx configuration is published in the role since the recorded weaknesses were fixed; check that an nginx change does not reintroduce one. Keep `inventory.yml` gitignored, TLS keys and `htpasswd` out of git, and hashes/tokens in ansible-vault.
 
 ## Compatibility work requiring coordination
 
