@@ -10,6 +10,8 @@ import { Spinner } from '@/components/loading'
 
 import { pageKeys, loadPages, loadPage } from '@/lib/queries'
 
+// The help of a product field is the backend's content page /help/<field name>/, these fields share another one.
+// 'sm_stitchlenght' is the backend's misspelled field name.
 const fieldMappings: Partial<Record<string, string>> = {
   'sm_stitchwidth': 'sm_stitchlength',
   'sm_stitchlenght': 'sm_stitchlength',

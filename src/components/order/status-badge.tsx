@@ -1,6 +1,6 @@
 import { badgeClass } from '@/components/ui/badge'
 
-// Must be synced with Order model
+// Must be synced with Order model (shop/models/order.py in django-shop)
 export const STATUS_NEW = 0x0
 export const STATUS_ACCEPTED = 0x00000001
 export const STATUS_WAITING = 0x00000002

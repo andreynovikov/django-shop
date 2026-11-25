@@ -38,6 +38,7 @@ interface ProductCardLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
 }
 
 export function ProductCardLink({ product, gtmCategory = undefined, gtmList = '', gtmPosition = 0, children, ...props }: ProductCardLinkProps) {
+  // `variations` is the URL of the catalog page that lists the product's variants
   const productLink = product.variations ? product.variations : `/products/${product.code}`
 
   const handleClick = () => {

@@ -52,7 +52,7 @@ export function SmallPageSelector({ pathname, query, pageInPath, totalPages, cur
 }
 
 export default function PageSelector({ pathname, query, pageInPath, totalPages, currentPage }: PageSelectorProps) {
-  // количество переключателей страниц лимитировано дизайном
+  // The number of page links is limited by the design: fewer when both the previous and the next page links are shown
   const pageRange = currentPage > 1 && currentPage < totalPages ? 7 : 10
   let minPage = currentPage - pageRange + Math.min(4, totalPages - currentPage)
   if (minPage < 4)

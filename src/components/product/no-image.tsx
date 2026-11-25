@@ -1,5 +1,6 @@
 import { IconCamera } from '@tabler/icons-react'
 
+// A camera in place of a missing product picture, in a square of `size` or, as a `block`, centered
 export default function NoImage({ size = 200, block = false, className = '' }: { size?: number, block?: boolean, className?: string }) {
   const style = block ? {
     width: size,

@@ -25,6 +25,7 @@ export interface LoginCredentials {
   ctx?: string
 }
 
+// To the backend's +7XXXXXXXXXX form: a number without a country code is taken for a Russian one
 export function normalizePhone(phone: string) {
   phone = phone.replaceAll(/[^0-9\+]/g, '')
   if (!phone.startsWith('+')) {
@@ -36,6 +37,8 @@ export function normalizePhone(phone: string) {
   return phone
 }
 
+// 404 for an unknown phone. Sends a code by SMS unless the account has a permanent password, or with reset (a
+// forgotten password); a code that can't be requested again yet isn't sent again, e.g. after a page reload.
 export async function checkUser(phone: string, reset: boolean) {
   return await apiFetch<UserCheck>('users/' + normalizePhone(phone) + '/check/', {
     body: { reset }
@@ -87,6 +90,8 @@ export async function confirmEmail(token: string) {
   })
 }
 
+// With ctx 'order', 'preorder' or 'warranty', an unknown phone gets an account at once, without a code, and the answer
+// says registered. The phone is unverified and the account has no password until its owner logs in with a code.
 export async function loginUser(credentials: LoginCredentials) {
   return await apiFetch<LoginResult, LoginCredentials>('users/login/', {
     body: credentials

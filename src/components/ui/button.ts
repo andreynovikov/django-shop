@@ -11,6 +11,7 @@ const variants = {
   'outline-success': 'border-success text-success hover:bg-success hover:text-white',
   'link': 'border-transparent text-primary hover:text-primary-hover',
   'link-danger': 'border-transparent text-danger hover:underline',
+  // the product's pages on the Wildberries and Ozon marketplaces
   'wb': 'border-wb bg-wb text-white hover:border-wb-hover hover:bg-wb-hover',
   'ozon': 'border-ozon bg-ozon text-white hover:border-ozon-hover hover:bg-ozon-hover',
 }

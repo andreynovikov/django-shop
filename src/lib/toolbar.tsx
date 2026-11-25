@@ -10,6 +10,7 @@ export const ToolbarContext = createContext<ToolbarContextType>({
   setItem: () => {}
 })
 
+// A page registers its action while mounted. The shared toolbar calls without an argument to read it.
 export function useToolbar(toolbarItem?: ReactElement) {
   const { item, setItem } = useContext(ToolbarContext)
   useEffect(() => {

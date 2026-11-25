@@ -107,6 +107,7 @@
 /* Site styles */
 
 @layer components {
+  /* Singer's narrow page: the header and the footer draw on background images, below sm on the primary color */
   header,
   main,
   footer {
@@ -158,6 +159,7 @@
     }
   }
 
+  /* The header's links, cart and search (#secondaryNavigation) and its menu at the image's bottom (#navigation) */
   #secondaryNavigation {
     color: #f9b3b8;
 
@@ -228,6 +230,7 @@
     }
   }
 
+  /* A tile of the home page or a product card */
   .product_display {
     padding: 10px;
     width: 380px;
@@ -266,6 +269,7 @@
     }
   }
 
+  /* A category page: the list of its subcategories and its promo image */
   ul.si-category-list {
     width: 240px;
     margin: 0;
@@ -315,6 +319,7 @@
     }
   }
 
+  /* Availability ("nal" is short for "nalichie") */
   .product-nal-true {
     color: #4cae4c;
     font-weight: bold;
@@ -330,6 +335,7 @@
   --toastify-color-progress-light: var(--color-primary);
 }
 
+/* The lightbox of the product images (yet-another-react-lightbox) */
 .yarl__root {
   --yarl__color_backdrop: rgba(255, 255, 255, 1);
   --yarl__color_button: rgba(192, 192, 192, 1);

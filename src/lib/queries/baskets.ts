@@ -6,10 +6,12 @@ export const basketKeys = {
   details: () => [...basketKeys.all, 'detail'],
 }
 
+// The session's basket on this site, at most one: Django keeps one basket per session and site
 export async function loadBaskets() {
   return await apiFetch<Basket[]>('baskets/')
 }
 
+// Returns the session's existing basket if it has one, so it is safe to call whenever no basket is loaded
 export async function createBasket() {
   return await apiFetch<Basket>('baskets/', { method: 'POST' })
 }

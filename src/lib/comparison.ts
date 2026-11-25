@@ -9,7 +9,8 @@ export default function useComparison(options?: { kind: number | null }) {
 
   const { kind } = options || { kind: null } // null like a missing kind in the '/compare' query
 
-  // Initial data would count as fresh under the App Router's default staleTime and skip the first request,
+  // Initial data would count as fresh under the App Router client's default staleTime (a minute, see query-client.ts)
+  // and skip the first request,
   // so the list is empty until it is loaded and isSuccess tells that it is
   const { data: comparisons = noComparisons, isSuccess, isLoading, isError } = useQuery({
     queryKey: comparisonKeys.list(kind),

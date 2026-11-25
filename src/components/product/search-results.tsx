@@ -48,6 +48,7 @@ export default function SearchResults() {
   const [{ text, page }] = useQueryStates(searchParams)
   const query = convertSearchParams(useSearchParams())
 
+  // the cart's link back to the catalog leads to these results
   useCatalog()
 
   const filters = { text }

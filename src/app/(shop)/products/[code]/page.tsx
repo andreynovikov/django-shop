@@ -17,6 +17,7 @@ import { Product } from '@/lib/types'
 
 import { getProduct } from './load'
 
+// Catches the changes that revalidation by cache tags misses (lib/queries/cache-tags.ts)
 export const revalidate = 3600
 
 const sectionTitleClass = 'mt-2.5 mb-2 text-3xl leading-none font-light'
@@ -50,7 +51,9 @@ function filterProductFields(product: Product) {
   })
 }
 
-// Descriptions are written for the wider columns and the headings of the main site
+// Descriptions are written for the wider columns and the headings of the main site: the old 24-column classes become
+// the 12-column ones and headings go two levels down. Bootstrap 4's embed classes become the ratio classes that
+// backend-content.css styles.
 function rebootstrap(value: string) {
   value = value.replaceAll('col-md-8', 'col-md-4')
   value = value.replaceAll('col-md-10', 'col-md-5')
@@ -268,6 +271,8 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
 
 // Machines and overlocks are prerendered, other products on their first visit
 export async function generateStaticParams() {
+  // Pre-rendered only by a production build, not in dev or CI's PLAYWRIGHT_TEST build, where each page is rendered
+  // on its first visit
   if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
     return []
 
