@@ -24,9 +24,6 @@ from sewingworld.tasks import PRIORITY_IDLE
 
 from shop.models import Basket, Integration, Order, Product, ProductIntegration, ShopUser
 
-from .views import BERU_ORDER_SUBSTATUS
-
-
 logger = logging.getLogger('beru')
 
 
@@ -39,6 +36,7 @@ class MarketUnavailable(OSError):
 
 
 MARKET_URL = 'https://api.partner.market.yandex.ru'
+ORDER_SYNC_LOCK = 'beru.get_integration_orders'
 READY_TO_SHIP = ('PROCESSING', 'READY_TO_SHIP')
 AWAITING_PACKING = ('PROCESSING', 'STARTED')
 CLOSED_STATUSES = (Order.STATUS_CANCELED, Order.STATUS_DONE, Order.STATUS_FINISHED)
@@ -55,6 +53,22 @@ FULFILLMENT_STATUSES = (
 EARLY_CANCELLATIONS = {
     'REPLACING_ORDER', 'RESERVATION_EXPIRED', 'USER_CHANGED_MIND', 'USER_NOT_PAID', 'USER_REFUSED_DELIVERY',
     'USER_UNREACHABLE', 'USER_BOUGHT_CHEAPER', 'BANK_REJECT_CREDIT_OFFER', 'USER_PLACED_OTHER_ORDER',
+}
+
+BERU_ORDER_SUBSTATUS = {
+    'PROCESSING_EXPIRED': 'Магазин не обработал заказ в течение семи дней',
+    'REPLACING_ORDER': 'Покупатель решил заменить товар другим по собственной инициативе',
+    'RESERVATION_EXPIRED': 'Покупатель не завершил оформление зарезервированного заказа в течение 10 минут',
+    'SHOP_FAILED': 'Магазин не может выполнить заказ',
+    'USER_CHANGED_MIND': 'Покупатель отменил заказ по собственным причинам',
+    'USER_NOT_PAID': 'Покупатель не оплатил заказ (для типа оплаты PREPAID) в течение двух часов',
+    'USER_BOUGHT_CHEAPER': 'Покупатель нашёл товар дешевле',
+    'USER_REFUSED_DELIVERY': 'Покупателя не устраивают условия доставки',
+    'USER_REFUSED_PRODUCT': 'Покупателю не подошел товар',
+    'USER_REFUSED_QUALITY': 'Покупателя не устраивает качество товара',
+    'USER_UNREACHABLE': 'Не удалось связаться с покупателем',
+    'BANK_REJECT_CREDIT_OFFER': 'Банк отклонил заявку на кредит',
+    'USER_PLACED_OTHER_ORDER': 'Покупатель оформил другой заказ'
 }
 
 
@@ -146,6 +160,14 @@ def _market_orders(integration, campaign_id, business_id, filters):
 
 def _market_order_status(data):
     return data.get('status'), data.get('substatus')
+
+
+def _market_order_by_id(integration, campaign_id, business_id, order_id):
+    return next(
+        (order for order in _market_orders(integration, campaign_id, business_id, {'orderIds': [order_id]})
+         if order['orderId'] == order_id),
+        None,
+    )
 
 
 def _delivery_fields(data):
@@ -312,7 +334,7 @@ def get_integration_orders(self, account, target_site_id=None):
     integration = Integration.get_for_utm_source(account, target_site_id)
     if not integration.enabled or not integration.uses_api or 'ym_campaign' not in (integration.settings or {}):
         return 0
-    lock = Lock('beru.get_integration_orders', integration.pk)
+    lock = Lock(ORDER_SYNC_LOCK, integration.pk)
     if not lock.locked:
         return 0
     try:
@@ -333,6 +355,30 @@ def get_integration_orders(self, account, target_site_id=None):
             if _market_order_status(order) == AWAITING_PACKING:
                 changed += _import_order(integration, order)
         return changed
+    finally:
+        lock.release()
+
+
+@shared_task(bind=True, queue='integrations', autoretry_for=(OSError, django.db.Error), retry_backoff=30, retry_backoff_max=300)
+@sensitive_variables()
+def sync_integration_order(self, integration_id, campaign_id, order_id):
+    integration = Integration.objects.filter(pk=integration_id, enabled=True, uses_api=True).first()
+    market_settings = (integration.settings or {}) if integration else {}
+    if not market_settings.get('push_token') or _positive_id(market_settings.get('ym_campaign')) != campaign_id:
+        return False
+
+    # Polling and notifications must serialize imports and apply snapshots in fetch order.
+    lock = Lock(ORDER_SYNC_LOCK, integration_id)
+    if not lock.locked:
+        raise MarketUnavailable(f'Yandex Market order sync is already running for integration {integration_id}')
+    try:
+        _, business_id = _campaign_ids(integration)
+        order = _market_order_by_id(integration, campaign_id, business_id, order_id)
+        if order is None:
+            return False
+        if _market_order_status(order) == AWAITING_PACKING and _import_order(integration, order):
+            return True
+        return _sync_order(integration, order)
     finally:
         lock.release()
 
@@ -412,11 +458,7 @@ def notify_beru_order_status(self, order_id, status, substatus):
                 raise TaskFailure('В заказе не указан номер заказа Яндекс Маркета')
 
             campaign_id, business_id = _campaign_ids(integration)
-            market_order = next(
-                (entry for entry in _market_orders(integration, campaign_id, business_id, {'orderIds': [market_id]})
-                 if entry['orderId'] == market_id),
-                None,
-            )
+            market_order = _market_order_by_id(integration, campaign_id, business_id, market_id)
             if market_order is None or _market_order_status(market_order) != AWAITING_PACKING:
                 return None
 

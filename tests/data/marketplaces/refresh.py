@@ -12,7 +12,7 @@ import yaml
 SOURCES = {
     'ozon': (
         'https://docs.ozon.ru/api/seller/swagger.json',
-        {'/v4/posting/fbs/list': 'post', '/v2/products/stocks': 'post'},
+        {'/v4/posting/fbs/list': 'post', '/v3/posting/fbs/get': 'post', '/v2/products/stocks': 'post'},
     ),
     'wb_items': (
         'https://dev.wildberries.ru/api/swagger/yaml/en/02-items.yaml',
@@ -24,10 +24,13 @@ SOURCES = {
     ),
 }
 YANDEX_OPERATIONS = {
-    '/v2/campaigns/{campaignId}': 'get',
-    '/v1/businesses/{businessId}/orders': 'post',
-    '/v2/campaigns/{campaignId}/orders/{orderId}/boxes': 'put',
-    '/v2/campaigns/{campaignId}/orders/{orderId}/status': 'put',
+    'yandex_market': {
+        '/v2/campaigns/{campaignId}': 'get',
+        '/v1/businesses/{businessId}/orders': 'post',
+        '/v2/campaigns/{campaignId}/orders/{orderId}/boxes': 'put',
+        '/v2/campaigns/{campaignId}/orders/{orderId}/status': 'put',
+    },
+    'yandex_market_notifications': {'/notification': 'post'},
 }
 DOCUMENTATION = {'description', 'summary', 'example', 'examples', 'externalDocs'}
 NAMED_FIELDS = {'properties', 'headers', 'content'}
@@ -111,20 +114,14 @@ def normalize_ozon(spec):
         stock['anyOf'] = [{'required': ['offer_id']}, {'required': ['product_id']}]
 
 
-def bundle_yandex_market(source):
+def bundle_yandex_market(source, operations):
     root = yaml.safe_load((source / 'openapi.yaml').read_text(encoding='utf-8'))
-    components = {'securitySchemes': {'ApiKey': root['components']['securitySchemes']['ApiKey']}}
+    components = {}
+    if 'components' in root:
+        components['securitySchemes'] = {'ApiKey': root['components']['securitySchemes']['ApiKey']}
 
-    # Keep references local to the bundle, including cycles such as the region's parent.
-    def rewrite(value, directory):
-        if isinstance(value, list):
-            return [rewrite(item, directory) for item in value]
-        if not isinstance(value, dict):
-            return value
-        if '$ref' not in value:
-            return {key: rewrite(item, directory) for key, item in value.items()}
-
-        target = (directory / value['$ref']).resolve()
+    def component_ref(ref, directory):
+        target = (directory / ref).resolve()
         section, filename = target.relative_to(source / 'components').parts
         component = Path(filename).stem
         definitions = components.setdefault(section, {})
@@ -132,36 +129,51 @@ def bundle_yandex_market(source):
             definitions[component] = None
             definition = yaml.safe_load(target.read_text(encoding='utf-8'))
             definitions[component] = rewrite(definition, target.parent)
-        return {**value, '$ref': f'#/components/{section}/{component}'}
+        return f'#/components/{section}/{component}'
+
+    # Keep references local to the bundle, including cycles such as the region's parent.
+    def rewrite(value, directory):
+        if isinstance(value, list):
+            return [rewrite(item, directory) for item in value]
+        if not isinstance(value, dict):
+            return value
+        if '$ref' in value:
+            return {**value, '$ref': component_ref(value['$ref'], directory)}
+        if 'propertyName' in value and 'mapping' in value:
+            return {**value, 'mapping': {name: component_ref(ref, directory) for name, ref in value['mapping'].items()}}
+        return {key: rewrite(item, directory) for key, item in value.items()}
 
     paths = {}
-    for url, method in YANDEX_OPERATIONS.items():
+    for url, method in operations.items():
         path = source / root['paths'][url]['$ref']
         operation = yaml.safe_load(path.read_text(encoding='utf-8'))[method]
         paths[url] = {method: rewrite(operation, path.parent)}
-    return {
+    result = {
         'openapi': root['openapi'],
         'info': root['info'],
-        'servers': root['servers'],
-        'security': [{'ApiKey': []}],
         'paths': paths,
         'components': components,
     }
+    if 'servers' in root:
+        result['servers'] = root['servers']
+    if 'securitySchemes' in components:
+        result['security'] = [{'ApiKey': []}]
+    return result
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('marketplace', choices=(*SOURCES, 'yandex_market'))
+    parser.add_argument('marketplace', choices=(*SOURCES, *YANDEX_OPERATIONS))
     parser.add_argument('source', type=Path, help='Local schema file or a checkout of the Yandex Market API repository')
     parser.add_argument('--source-url', help='Actual download URL if the source came from a mirror')
     args = parser.parse_args()
     destination = Path(__file__).with_name(f'{args.marketplace}.json')
-    if args.marketplace == 'yandex_market':
+    if args.marketplace in YANDEX_OPERATIONS:
         checkout = args.source.resolve()
         revision = check_output(['git', '-C', checkout, 'rev-parse', 'HEAD'], text=True).strip()
         if check_output(['git', '-C', checkout, 'status', '--porcelain', '--', 'openapi', 'LICENSE'], text=True):
             parser.error('The upstream checkout must have a clean spec and license')
-        result = bundle_yandex_market(checkout / 'openapi')
+        result = bundle_yandex_market(checkout / 'openapi', YANDEX_OPERATIONS[args.marketplace])
         result['x-upstream-commit'] = revision
         copyfile(checkout / 'LICENSE', destination.with_suffix('.LICENSE'))
     else:

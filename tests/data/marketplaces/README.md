@@ -7,7 +7,10 @@ snapshot records its source URL and SHA-256 or its upstream commit.
 - `yandex_market.json` contains the four order operations used by Beru from the
   [Yandex Market Partner API specification](https://github.com/yandex-market/yandex-market-partner-api).
   Its upstream license is in [yandex_market.LICENSE](yandex_market.LICENSE).
-- `ozon.json` contains FBS posting retrieval and stock updates. The
+- `yandex_market_notifications.json` contains the callback contract from the
+  [Yandex Market Notification API specification](https://github.com/yandex-market/yandex-market-notification-api).
+  Its upstream license is in [yandex_market_notifications.LICENSE](yandex_market_notifications.LICENSE).
+- `ozon.json` contains FBS posting listing, posting details, and stock updates. The
   [published Ozon schema](https://docs.ozon.ru/api/seller/swagger.json) returned
   HTTP 403 after redirects from the development environment. This snapshot uses a
   [pinned public mirror of the published schema](https://github.com/MissiaL/ozon-api/blob/2f240188c7a6fec4d4c185eb2b6bc935c2c7983b/references/ozon-seller-openapi.json).
@@ -21,12 +24,13 @@ two literal format placeholders used as regex patterns. For stock rows it
 uses the documented choice of `offer_id` or `product_id` and omits the stale
 requirement for the undefined `quant_size` field.
 
-Check out the desired Yandex Market revision in a separate directory and
+Check out the desired revisions of the Yandex Market schemas and
 download the Ozon and Wildberries schema files. Regenerate the fixtures from
 the backend checkout.
 
 ```sh
 uv run --no-sync python tests/data/marketplaces/refresh.py yandex_market /path/to/yandex-market-partner-api
+uv run --no-sync python tests/data/marketplaces/refresh.py yandex_market_notifications /path/to/yandex-market-notification-api
 uv run --no-sync python tests/data/marketplaces/refresh.py ozon /path/to/swagger.json
 uv run --no-sync python tests/data/marketplaces/refresh.py wb_items /path/to/02-items.yaml
 uv run --no-sync python tests/data/marketplaces/refresh.py wb_orders /path/to/03-orders-fbs.yaml

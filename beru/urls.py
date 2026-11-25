@@ -4,7 +4,5 @@ from . import views
 
 
 urlpatterns = [
-    path('cart', views.cart),
-    path('order/accept', views.accept_order),
-    path('order/status', views.order_status),
+    path('<int:integration_id>/notification', views.notification, name='beru-notification'),
 ]

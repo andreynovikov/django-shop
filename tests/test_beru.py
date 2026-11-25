@@ -1,19 +1,25 @@
-from datetime import date, time
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.sites.models import Site
-from django.test import TestCase
+from django.test import Client, TestCase
+from django.urls import reverse
+from kombu.exceptions import OperationalError
+from openapi_schema_validator import OAS30ReadValidator, OAS30WriteValidator
 
-from beru.tasks import MarketUnavailable, TaskFailure, get_integration_orders, get_orders, notify_beru_order_status
+from beru.tasks import MarketUnavailable, TaskFailure, get_integration_orders, get_orders, notify_beru_order_status, sync_integration_order
 from sewingworld.models import SiteProfile
 from shop.models import Basket, Box, Contractor, Integration, Order, ShopUser
 
 from .fixtures import add_marketplace_sites, add_product
-from .marketplace_api import OpenAPIMock, load_spec
+from .marketplace_api import OpenAPIMock, load_spec, validate_json
 
 
 MARKET_SPEC = load_spec('marketplaces/yandex_market.json')
+NOTIFICATION_SPEC = load_spec('marketplaces/yandex_market_notifications.json')
+NOTIFICATION_OPERATION = NOTIFICATION_SPEC['paths']['/notification']['post']
+NOTIFICATION_TIME = '2026-11-25T12:00:00Z'
 CAMPAIGN = '/v2/campaigns/{campaignId}'
 ORDERS = '/v1/businesses/{businessId}/orders'
 BOXES = '/v2/campaigns/{campaignId}/orders/{orderId}/boxes'
@@ -123,6 +129,46 @@ class BeruOrderTests(TestCase):
             self.assertEqual(get_orders.run(), 1)
         signature.assert_called_once_with('beru', target_site_id=self.integration.target_site_id)
         signature.return_value.apply_async.assert_called_once()
+
+    def test_notification_import_uses_the_same_order_as_polling(self):
+        self.integration.settings['push_token'] = 'test-push-token'
+        self.integration.save(update_fields=['settings'])
+        remote = market_order(items=[item('machine', 10)])
+        for imported in (True, False):
+            self.expect_campaign()
+            self.expect_orders([remote], {'orderIds': [789]})
+            self.assertEqual(sync_integration_order.run(self.integration.pk, 123, 789), imported)
+        self.expect_campaign()
+        self.expect_orders([remote], {'orderIds': [789]})
+        self.expect_orders([remote], AWAITING_PACKING)
+        self.assertEqual(self.poll(), 0)
+
+        order = Order.objects.get(integration=self.integration, delivery_tracking_number='789')
+        self.assertEqual((order.status, order.items.get().product), (Order.STATUS_NEW, self.product))
+        self.assertEqual(Basket.objects.filter(secondary=True).count(), 1)
+
+    def test_notification_sync_uses_current_market_status_and_detects_campaign_change(self):
+        self.integration.settings['push_token'] = 'test-push-token'
+        self.integration.save(update_fields=['settings'])
+        order = self.local_order()
+        self.assertFalse(sync_integration_order.run(self.integration.pk, 124, 789))
+
+        self.expect_campaign()
+        self.expect_orders([market_order(790), market_order(status='CANCELLED', substatus='USER_CHANGED_MIND')], {'orderIds': [789]})
+        self.assertTrue(sync_integration_order.run(self.integration.pk, 123, 789))
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.STATUS_CANCELED)
+        self.assertFalse(Order.objects.filter(delivery_tracking_number='790').exists())
+
+    def test_notification_retries_when_polling_holds_the_import_lock(self):
+        self.integration.settings['push_token'] = 'test-push-token'
+        self.integration.save(update_fields=['settings'])
+        with patch('beru.tasks.Lock') as lock, patch.object(sync_integration_order, 'retry', side_effect=lambda *, exc, **kw: exc) as retry:
+            lock.return_value.locked = False
+            with self.assertRaises(MarketUnavailable):
+                sync_integration_order.run(self.integration.pk, 123, 789)
+        lock.assert_called_once_with('beru.get_integration_orders', self.integration.pk)
+        retry.assert_called_once()
 
     def test_paginates_and_imports_valid_lines_with_discounts_and_an_alert(self):
         prices = {
@@ -291,3 +337,82 @@ class BeruOrderTests(TestCase):
 
     def test_ignores_queued_shipped_calls(self):
         self.assertIsNone(notify_beru_order_status.run(42, 'PROCESSING', 'SHIPPED'))
+
+
+class BeruNotificationTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.integration = Integration.objects.create(
+            name='Яндекс Маркет', utm_source='beru', source_site=Site.objects.create(domain='market.yandex.ru'),
+            target_site=Site.objects.get_current(), uses_api=True, enabled=True,
+            settings={'ym_campaign': '123', 'api_key': 'test-api-key', 'push_token': 'test-push-token'},
+        )
+
+    def setUp(self):
+        self.client = Client(enforce_csrf_checks=True)
+        self.publish = self.enterContext(patch('beru.views.sync_integration_order.apply_async'))
+
+    def notify(self, payload, *, token='test-push-token', sender='5.45.207.42', **headers):
+        url = reverse('beru-notification', args=[self.integration.pk], query={'token': token})
+        return self.client.post(url, payload, content_type='application/json', REMOTE_ADDR=sender, **headers)
+
+    def assert_contract_response(self, response, status):
+        self.assertEqual(response.status_code, status)
+        validate_json(NOTIFICATION_SPEC, OAS30ReadValidator, NOTIFICATION_OPERATION['responses'][str(status)], response.json())
+
+    def notify_valid(self, payload, status=200):
+        validate_json(NOTIFICATION_SPEC, OAS30WriteValidator, NOTIFICATION_OPERATION['requestBody'], payload)
+        response = self.notify(payload)
+        self.assert_contract_response(response, status)
+        return response
+
+    def test_ping_returns_the_market_connection_check_response(self):
+        now = datetime(2026, 11, 25, 12, tzinfo=UTC)
+        self.assertEqual(reverse('beru-notification', args=[self.integration.pk]),
+                         f'/integrations/beru/{self.integration.pk}/notification')
+        with patch('beru.views.timezone.now', return_value=now):
+            response = self.notify_valid({'notificationType': 'PING', 'time': NOTIFICATION_TIME})
+        self.assertEqual(response.json(), {'version': '1.0', 'name': 'Sewing World', 'time': NOTIFICATION_TIME})
+        self.publish.assert_not_called()
+
+    def test_queues_supported_order_events_with_only_routing_parameters(self):
+        cases = {
+            'ORDER_CREATED': {'items': [{'offerId': 'machine', 'count': 1}], 'createdAt': NOTIFICATION_TIME},
+            'ORDER_STATUS_UPDATED': {'status': 'PROCESSING', 'substatus': 'STARTED', 'updatedAt': NOTIFICATION_TIME},
+            'ORDER_CANCELLED': {'items': [], 'cancelledAt': NOTIFICATION_TIME},
+            'ORDER_UPDATED': {'updateType': 'DELIVERY_DATE_UPDATED', 'updatedAt': NOTIFICATION_TIME},
+        }
+        for event, payload in cases.items():
+            with self.subTest(event=event):
+                self.notify_valid({'notificationType': event, 'campaignId': 123, 'orderId': 789, **payload})
+                self.publish.assert_called_once_with((self.integration.pk, 123, 789), retry=False)
+                self.publish.reset_mock()
+
+    def test_acknowledges_events_for_other_campaigns_and_unhandled_types(self):
+        self.notify_valid({
+            'notificationType': 'ORDER_CREATED', 'campaignId': 124, 'orderId': 789,
+            'items': [], 'createdAt': NOTIFICATION_TIME,
+        })
+        self.assert_contract_response(self.notify({'notificationType': 'FUTURE_EVENT'}), 200)
+        self.publish.assert_not_called()
+
+    def test_rejects_invalid_payloads_and_untrusted_requests(self):
+        ping = {'notificationType': 'PING', 'time': NOTIFICATION_TIME}
+        self.assertEqual(self.notify(ping, sender='127.0.0.1', HTTP_X_FORWARDED_FOR='5.45.207.42').status_code, 403)
+        self.assertEqual(self.notify(ping, token='bad-token').status_code, 403)
+        for payload in (b'{', [], {}, {'notificationType': 'ORDER_CREATED', 'campaignId': 123, 'orderId': True}):
+            with self.subTest(payload=payload):
+                self.assert_contract_response(self.notify(payload), 400)
+        self.integration.enabled = False
+        self.integration.save(update_fields=['enabled'])
+        self.assertEqual(self.notify(ping).status_code, 403)
+        self.publish.assert_not_called()
+
+    def test_returns_market_error_when_broker_is_unavailable(self):
+        self.publish.side_effect = OperationalError
+        with self.assertLogs('beru', 'ERROR'):
+            response = self.notify_valid({
+                'notificationType': 'ORDER_CANCELLED', 'campaignId': 123, 'orderId': 789,
+                'items': [], 'cancelledAt': NOTIFICATION_TIME,
+            }, status=500)
+        self.assertEqual(response.json()['error']['type'], 'UNKNOWN')

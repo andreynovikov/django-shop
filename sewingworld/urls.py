@@ -57,6 +57,9 @@ else:
         path('stock_avito.csv', views.stock, name='stock'),
         # /shop/*
         path('shop/', include('shop.urls')),
+        path('ozon/', include('ozon.urls')),
+        path('integrations/ozon/', include('ozon.urls')),
+        path('integrations/beru/', include('beru.urls')),
         path('sber/', include('sber.urls')),
         path('kassa/', include('yandex_kassa.urls')),
 
