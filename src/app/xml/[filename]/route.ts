@@ -46,7 +46,7 @@ export async function GET(request: Request, { params }: RouteContext<'/xml/[file
     const site = await loadCurrentSite()
     if (!globalXmls.includes(utm)) {
       integration = await retriveIntegrationByUtm(utm)
-      if (!integration.enabled)
+      if (!integration.enabled || !integration.output_template)
         return Response.json({ error: 'Not found' }, { status: 404 })
       templateName = integration.output_template
     }
@@ -117,7 +117,7 @@ export async function generateStaticParams() {
   
   const integrations = await listIntegrations()
   return integrations.filter(
-    integration => integration.enabled
+    integration => integration.enabled && integration.output_template
   ).map(
     integration => integration.utm_source
   ).concat(

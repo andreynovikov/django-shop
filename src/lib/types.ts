@@ -680,7 +680,7 @@ export interface Integration {
   name: string
   utm_source: string
   enabled: boolean
-  output_template: string
+  output_template?: string
   output_all: boolean
   output_paged: boolean
   output_available: boolean
@@ -691,7 +691,8 @@ export interface Integration {
   uses_boxes: boolean
   settings?: JSONValue
   admin_user_fields?: JSONValue
-  site: number
+  source_site: number
+  target_site: number
   seller?: number
   buyer?: number
   wirehouse?: number
