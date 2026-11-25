@@ -1,6 +1,6 @@
 # Playwright and local backend verification
 
-These instructions supplement the repository root `AGENTS.md`. Use them for running tests as well as editing this directory.
+These instructions supplement the repository root `AGENTS.md`. Use them for running tests as well as editing this directory. `CLAUDE.md` imports this file too, so edit it here.
 
 ## Backend safety and fixtures
 
