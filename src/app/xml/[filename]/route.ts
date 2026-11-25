@@ -46,7 +46,7 @@ export async function GET(request: Request, { params }: RouteContext<'/xml/[file
     const site = await loadCurrentSite()
     if (!globalXmls.includes(utm)) {
       integration = await retriveIntegrationByUtm(utm)
-      if (!integration.enabled)
+      if (!integration.enabled || !integration.output_template)
         return Response.json({ error: 'Not found' }, { status: 404 })
       templateName = integration.output_template
     }
