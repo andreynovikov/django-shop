@@ -12,8 +12,11 @@ export const orderKeys = {
   detail: (id: number) => [...orderKeys.details(), id],
 }
 
-export async function createOrder() {
-  return await apiFetch<Order>('orders/', { method: 'POST' })
+export async function createOrder(basketId: number) {
+  return await apiFetch<Order>('orders/', {
+    method: 'POST',
+    headers: { 'idempotency-key': String(basketId) },
+  })
 }
 
 export async function createPreorder(product: number) {

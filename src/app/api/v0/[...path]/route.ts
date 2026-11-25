@@ -51,6 +51,12 @@ async function proxyRequest(request: NextRequest, { params }: RouteContext<'/api
       headers.push(['x-csrftoken', csrf])
   }
 
+  if (request.method === 'POST' && endpoint === 'orders') {
+    const idempotencyKey = request.headers.get('idempotency-key')
+    if (idempotencyKey !== null)
+      headers.push(['idempotency-key', idempotencyKey])
+  }
+
   const url = new URL(`${process.env.API_SERVER}/api/v0/${path.map(encodeURIComponent).join('/')}/`)
   url.search = request.nextUrl.searchParams.toString()
   if (!url.pathname.startsWith('/api/v0/'))
