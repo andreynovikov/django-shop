@@ -193,6 +193,7 @@
   }
 }
 
+/* The lightbox of the product images (yet-another-react-lightbox) */
 .yarl__root {
   --yarl__color_backdrop: rgba(255, 255, 255, 1);
   --yarl__color_button: rgba(192, 192, 192, 1);

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
-// Metrika's Webvisor and click maps show the pages in a frame on its own sites. The list is from its help,
-// https://yandex.ru/support/metrica/code/install-counter-csp.html ("Адреса для frame-ancestors").
+// Metrika's Webvisor and click maps frame storefront pages from these documented origins.
+// https://yandex.ru/support/metrica/code/install-counter-csp.html
 const METRIKA_FRAME_ANCESTORS = [
   'metrika.yandex.ru', 'analytics.yandex.by', 'analytics.yandex.com', 'analytics.yandex.com.tr', 'analytics.yandex.kz',
   'analytics.yandex.ru', 'metr.yandex.by', 'metr.yandex.com', 'metr.yandex.com.tr', 'metr.yandex.kz', 'metr.yandex.ru',

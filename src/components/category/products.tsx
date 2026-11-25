@@ -21,7 +21,7 @@ interface CategoryProductsProps {
   loadedAt: number  // when the server loaded initialProducts
 }
 
-// Product list of the category as the server rendered it. The page is rendered once a day, so the list
+// Product list of the category as the server rendered it. The page can be up to an hour old, so the list
 // is loaded again in the browser once it is older than the products' stale time, to show current stock.
 export default function CategoryProducts({ categoryName, query: { filters, order, pageSize }, initialProducts, loadedAt }: CategoryProductsProps) {
   const { data: products } = useQuery({

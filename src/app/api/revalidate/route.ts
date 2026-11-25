@@ -19,7 +19,9 @@ type RevalidationResponse = {
 
 const respond = (body: RevalidationResponse, status = 200) => Response.json(body, { status })
 
-// The backend posts the tags of the data that changed, the pages that used them are rendered again
+// The backend posts the tags of the data that changed, the pages that used them are rendered again. Django's
+// revalidate_nextjs task sends them in batches of up to 500 tags, with the site profile's revalidation token as the
+// secret (so it must equal REVALIDATION_TOKEN), and retries while this route answers 5xx or can't be reached.
 export async function POST(request: Request) {
   const data = await request.json().catch(() => undefined) as RevalidationRequest | undefined
   if (!data)

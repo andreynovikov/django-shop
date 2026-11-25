@@ -1,3 +1,5 @@
+// Site search and its suggestions come from Diginetica, a hosted search service the browser asks directly; the
+// backend's product search isn't used for them
 const suggestionParams = {
   apiKey: 'OHZ51IBWQJ',
   strategy: 'advanced_xname,zero_queries',

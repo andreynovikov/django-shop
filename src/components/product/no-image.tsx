@@ -1,6 +1,6 @@
 import { HTMLAttributes } from 'react'
 
-// Dor Tak's placeholder with the props of cartzilla's NoImage, which is a Cartzilla font icon
+// Dor Tak's placeholder for a missing product picture, an empty set sign, with the props of cartzilla's NoImage
 export default function NoImage({ size = 160, block = false, ...props }: { size?: number, block?: boolean } & HTMLAttributes<HTMLSpanElement>) {
   const style = {
     width: size,

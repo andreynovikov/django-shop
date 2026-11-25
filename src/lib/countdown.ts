@@ -48,6 +48,7 @@ function getReturnValues(countDown: number): [number, string] {
   return [timeleft, text]
 }
 
+// The Russian plural of n: titles are the forms for 1, for 2–4 and for 5–20, e.g. минуту, минуты, минут
 function declOfNum(n: number, titles: string[]) {
   return titles[(n % 10 === 1 && n % 100 !== 11) ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2]
 }

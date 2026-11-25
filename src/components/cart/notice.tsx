@@ -7,6 +7,7 @@ import { buttonClass } from '@/components/ui/button'
 import rupluralize from '@/lib/rupluralize'
 import useBasket from '@/lib/basket'
 
+// The cart summary in the site header
 export default function CartNotice() {
   const { basket, isEmpty } = useBasket()
 

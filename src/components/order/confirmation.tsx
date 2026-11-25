@@ -20,6 +20,8 @@ import { useSession } from '@/lib/session'
 import { basketKeys, orderKeys, userKeys, loadOrder, updateOrder, FormDataJson } from '@/lib/queries'
 import { User } from '@/lib/types'
 
+// The page after placing an order, whose ID useCreateOrder (lib/order.ts) keeps in sessionStorage as lastOrder.
+// The order exists already: while it is new, the buyer can add their contact details, an address and a comment.
 export default function OrderConfirmation() {
   const [updated, setUpdated] = useState(false)
 

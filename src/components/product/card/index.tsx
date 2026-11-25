@@ -99,6 +99,7 @@ export default function ProductCard({ product, gtmCategory = undefined, gtmList 
               <ProductCardLink className={buttonClass({ variant: 'success', size: 'sm' })} role="button" product={product} gtmCategory={gtmCategory} gtmList={gtmList} gtmPosition={gtmPosition}>
                 Выбрать
               </ProductCardLink>
+            // a product sold in packs only can be bought while a whole pack is in stock
             ) : (product.ws_pack_only && product.instock >= product.pack_factor) || (!product.ws_pack_only && product.instock > 0) ? (
               <QuantityInput
                 quantity={item !== null ? item.quantity : undefined}
