@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   trailingSlash: true,
   output: 'standalone',
+  // Keeps `next dev` from writing its stub AGENTS.md when an AI agent runs it
+  agentRules: false,
   allowedDevOrigins: ['singer.ru'],
   images: {
     remotePatterns: [
