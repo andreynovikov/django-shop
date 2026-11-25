@@ -77,6 +77,7 @@ function useCategoryProducts() {
     initialData: isFiltered ? undefined : initialProducts,
     // keeps filter choices and ranges while the next filtered list is loaded
     placeholderData: (previousData, previousQuery) => {
+      // queryKey[2] holds the parameters of productKeys.list
       const previousKey = previousQuery?.queryKey[2] as { filters?: ProductSearchParamsType } | undefined
       return previousKey?.filters?.categories === categoryId ? previousData : undefined
     },

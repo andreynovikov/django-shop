@@ -14,6 +14,7 @@ interface BlogEntryPreviewProps {
 }
 
 export default function BlogEntryPreview({ entry, last }: BlogEntryPreviewProps) {
+  // The preview ends where the entry has the <!--more--> marker, which becomes the link to the whole entry
   const previewContent = () => {
     return entry.content.preview.replace('<!--more-->', `
             <a href="${entry.urls.canonical}" class="${metaLinkClass} font-medium">[читать далее]</a>

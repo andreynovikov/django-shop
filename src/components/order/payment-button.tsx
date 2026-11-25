@@ -26,11 +26,13 @@ export default function OrderPaymentButton({ orderId, iconOnly = false }: { orde
     event.stopPropagation()
     try {
       const result = await apiFetch<{ location: string}>(`orders/${orderId}/pay/`, {
+        // The payment page sends the buyer back here; url_prefix is the storefront's address, from the site profile
         body: {
           'return_url': site.url_prefix + window.location.pathname + window.location.search
         }
       })
-      window.location.assign(result.location) // axios didn't support redirects so API returns JSON with location
+      // The API returns the payment URL in JSON so the browser can navigate there.
+      window.location.assign(result.location)
     } catch (error) {
       console.log(error)
     }

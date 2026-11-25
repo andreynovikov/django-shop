@@ -136,6 +136,8 @@ export function SessionProvider({ children }: SessionProviderProps) {
     refreshUser()
   }, [refreshUser])
 
+  // Never stale: loaded again by the changes above and on every return to the tab, as the visitor may have signed
+  // in or out in another one
   const { data: user, isSuccess, isLoading } = useQuery({
     queryKey: userKeys.current(),
     queryFn: () => currentUser(),

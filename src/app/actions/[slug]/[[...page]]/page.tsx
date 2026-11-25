@@ -11,6 +11,7 @@ import { HttpError, loadSalesAction, loadSalesActionProducts, loadSalesActions }
 import { parsePageParam } from '@/lib/pagination'
 import { contentClass } from '@/components/ui/content'
 
+// Catches the changes that revalidation by cache tags misses (lib/queries/cache-tags.ts)
 export const revalidate = 86400
 
 // Shared by generateMetadata and the page, so the action is fetched once per render
@@ -96,6 +97,8 @@ export default async function SalesActionPage({ params }: PageProps<'/actions/[s
 }
 
 export async function generateStaticParams() {
+  // Pre-rendered only by a production build, not in dev or CI's PLAYWRIGHT_TEST build, where each page is rendered
+  // on its first visit
   if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
     return []
 

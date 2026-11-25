@@ -19,6 +19,8 @@ import { useCreateOrder } from '@/lib/order'
 import { useSession } from '@/lib/session'
 import { BasketItemProduct } from '@/lib/types'
 
+// The cart item of the handheld toolbar. extraItemsCount counts the toolbar's optional items; when there are more than
+// two, an empty cart makes room for them below md.
 export function MobileCartNotice({ extraItemsCount }: { extraItemsCount: number }) {
   const { basket, isEmpty } = useBasket()
 
@@ -45,6 +47,7 @@ export default function CartNotice() {
     removeItem(product)
   }
 
+  // A visitor who isn't signed in orders in the cart, which has the sign-in form
   const handleCreateOrder = () => {
     if (status === 'authenticated')
       mutate(basket.id)

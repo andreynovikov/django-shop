@@ -12,6 +12,8 @@ export const orderKeys = {
   detail: (id: number) => [...orderKeys.details(), id],
 }
 
+// Orders the session's basket. Its ID is the idempotency key: Django deletes the basket with the order, and a repeat
+// with the same key gets that order back, so useCreateOrder (lib/order.ts) can retry a lost answer
 export async function createOrder(basketId: number) {
   return await apiFetch<Order>('orders/', {
     method: 'POST',
@@ -34,10 +36,12 @@ export async function loadOrders(page: number, filter: string, site?: number) {
   return await apiFetch<PaginatedResult<OrderInfo>>(url)
 }
 
+// The latest order still in progress (not done, finished or canceled), for order tracking
 export async function getLastOrder() {
   return await apiFetch<{id: number | null}>('orders/last/', { method: 'POST' })
 }
 
+// The latest collected order that is still to be paid by card, transfer or credit
 export async function getUnpaidOrder() {
   return await apiFetch<{id: number | null}>('orders/unpaid/', { method: 'POST' })
 }

@@ -14,6 +14,10 @@ function getContentHeight(container: HTMLElement) {
   return Math.max(0, ...columns.map((element) => element.getBoundingClientRect().height))
 }
 
+// Moves the sidebar between the states in its data-state as the page scrolls by scrollOffset (down is positive):
+// none (in place), fixedTop (under the navbar), fixedBottom (a taller sidebar at the bottom of the window),
+// absoluteBottom (at the bottom of its column, where the content ends) and relativeBottom (scrolls with the page
+// from where it was)
 function updateSidebarStyle(container: HTMLElement, sidebar: HTMLElement, scrollOffset: number) {
   const navbar = document.getElementById('navbar')
   if (navbar === null || sidebar.parentElement === null)
@@ -54,6 +58,7 @@ function updateSidebarStyle(container: HTMLElement, sidebar: HTMLElement, scroll
     (['fixedBottom', 'absoluteBottom'].includes(state!) && scrollOffset < 0) ||
     (['fixedTop'].includes(state!) && scrollOffset > 0 && isSidebarTaller)
   ) {
+    // Preserve the current offset so the sidebar scrolls with the page without jumping.
     sidebar.style.setProperty('position', 'relative')
     sidebar.style.setProperty('top', (sidebarRect.top - containerRect.top) + 'px', 'important')
     sidebar.style.setProperty('bottom', 'auto', 'important')

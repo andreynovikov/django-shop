@@ -16,6 +16,7 @@ import { baseFilters } from '@/lib/catalog'
 import { parsePageParam } from '@/lib/pagination'
 import { Category, CategoryTreeItem } from '@/lib/types'
 
+// Catches the changes that revalidation by cache tags misses (lib/queries/cache-tags.ts)
 export const revalidate = 3600
 
 const pageSize = 1000
@@ -106,6 +107,7 @@ export default async function CategoryPage({ params }: PageProps<'/catalog/[...p
     getProducts(query.page, query.pageSize, query.filters, query.order),
     loadAdverts(['categories'], category.id),
   ])
+  // A category without products of its own shows the recommended ones from its whole tree (in_category) instead
   const recommended = products.count === 0
     ? await getProducts(query.page, query.pageSize, { ...query.filters, categories: null, in_category: [category.id], recomended: true }, query.order)
     : undefined
@@ -181,6 +183,8 @@ export default async function CategoryPage({ params }: PageProps<'/catalog/[...p
 }
 
 export async function generateStaticParams() {
+  // Pre-rendered only by a production build, not in dev or CI's PLAYWRIGHT_TEST build, where each page is rendered
+  // on its first visit
   if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
     return []
 

@@ -12,7 +12,8 @@ interface PageSelectorProps {
   query?: ParsedUrlQuery,               /* current query string params, page number is
                                            put in query string, e.g. "/search/?q=pfaff&page=2" */
   pageInPath?: boolean,                 /* put page number in path instead, e.g.:
-                                           "/blog/tags/sewing/2/", the first page is {pathname} */
+                                           "/blog/tags/sewing/2/", the first page is {pathname},
+                                           the query is dropped */
   totalPages: number,
   currentPage: number,
 }
@@ -54,7 +55,8 @@ export function SmallPageSelector({ pathname, query, pageInPath, totalPages, cur
 }
 
 export default function PageSelector({ pathname, query, pageInPath, totalPages, currentPage }: PageSelectorProps) {
-  // количество переключателей страниц лимитировано дизайном
+  // The design limits the number of page links: a smaller window when both ends may need a first or last page link
+  // and an ellipsis.
   const pageRange = currentPage > 1 && currentPage < totalPages ? 7 : 10
   let minPage = currentPage - pageRange + Math.min(4, totalPages - currentPage)
   if (minPage < 4)

@@ -5,6 +5,7 @@ import Catalog from '@/components/catalog'
 
 import { loadCategories } from '@/lib/queries'
 
+// Catches the changes that revalidation by cache tags misses (lib/queries/cache-tags.ts)
 export const revalidate = 3600
 
 export const metadata: Metadata = {

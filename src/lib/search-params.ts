@@ -74,10 +74,10 @@ export const productSearchParams = {
   id: parseAsNativeArrayOf(parseAsInteger),
   text: parseAsString,
   title: parseAsString,
-  instock: parseAsInteger,
-  categories: parseAsInteger,
-  in_category: parseAsNativeArrayOf(parseAsInteger),
-  variations: parseAsString,
+  instock: parseAsInteger,  // 1 for products in stock, 0 for those out of stock
+  categories: parseAsInteger,  // products right in the category; the list then brings the facets of its filters
+  in_category: parseAsNativeArrayOf(parseAsInteger),  // products in the categories or their active subcategories
+  variations: parseAsString,  // an empty value finds the products without variations
   enabled: parseAsBoolean,
   show_on_sw: parseAsBoolean,
   isnew: parseAsBoolean,
@@ -89,6 +89,7 @@ export const productSearchParams = {
   kind: parseAsNativeArrayOf(parseAsInteger),
   manufacturer: parseAsNativeArrayOf(parseAsInteger),
 
+  // Sewing machine attributes that categories offer as filters: sm_power and sm_stitchquantity find greater values
   sm_alphabet_bool: parseAsBoolean,
   sm_autobuttonhole_bool: parseAsBoolean,
   sm_dualtransporter_bool: parseAsBoolean,
@@ -100,9 +101,9 @@ export const productSearchParams = {
   page: parseAsInteger.withDefault(1),
   page_size: parseAsInteger,
   ordering: parseAsString,
-  for_xml: parseAsBoolean,
+  for_xml: parseAsBoolean,  // the products as the feeds need them, see app/xml
 
-  ta: parseAsInteger,
+  ta: parseAsInteger,  // any value: the products' titles, for typeahead, instead of the products
 }
 
 export type ProductSearchParamsType = Partial<inferParserType<typeof productSearchParams>>

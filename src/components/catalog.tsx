@@ -8,6 +8,9 @@ import { widgetLinkClass, widgetListItemClass } from '@/components/ui/widget'
 import { CategoryTree, CategoryTreeItem } from '@/lib/types'
 import { columns, rows } from '@/lib/partition'
 
+// Top categories by id: the machines (3-6, 744: mechanical and electronic sewing machines, machines with embroidery,
+// overlocks, coverstitch machines) come first, in two columns. The special New and promo (745, 743) are the highlighted
+// links, found by their slugs below.
 const first = [3, 4, 5, 6, 744]
 const other = [743, 3, 4, 5, 6, 744, 745] // other than these
 

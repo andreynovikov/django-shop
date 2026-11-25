@@ -12,6 +12,7 @@ import { Product } from '@/lib/types'
 const ProductReviews = lazyWithReload(() => import('@/components/product/reviews'))
 
 export default function ProductReviewsWrapper({ product }: { product: Product }) {
+  // Begin loading the reviews as the section approaches the viewport and keep them mounted afterward.
   const { ref: reviewsRef, inView: reviewsVisible } = useInView({
     rootMargin: '300px',
     triggerOnce: true,

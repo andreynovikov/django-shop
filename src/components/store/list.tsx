@@ -26,6 +26,7 @@ export function StoreList({ stores }: { stores: StoreInfo[] }) {
     if (!stores)
       return []
 
+    // The backend orders stores by city, so each city's stores come one after another
     const { groups } = stores.reduce(({ groups, city }, store) => {
       if (store.city.id !== city) {
         groups.push({ city: store.city, stores: [] })
@@ -55,6 +56,7 @@ export function StoreList({ stores }: { stores: StoreInfo[] }) {
                   <div className="relative flex min-w-0 flex-col rounded-lg bg-white shadow-sm">
                     <div className="p-5" itemScope itemType="http://schema.org/Organization">
                       <h6 className="mb-3 text-h6">
+                        {/* Only Janome's own stores link to their pages, the sitemap lists the same ones */}
                         {store.logo === 'janome' ?
                           <Link href={`/stores/${store.id}`} itemProp="url">
                             <span itemProp="name">{store.name}</span>

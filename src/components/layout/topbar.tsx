@@ -205,6 +205,7 @@ export default function TopBar({ catalog }: { catalog: ReactNode }) {
               <ProductSearchInput mobile />
             </div>}
           </div>
+          {/* Collapsed below md and opened by the menu buttons, shown from md up. It stays mounted, so robots see its links. */}
           <Collapsible.Panel
             className="sw-shown-md grow basis-full md:basis-auto max-md:h-(--collapsible-panel-height) max-md:overflow-hidden max-md:transition-[height] max-md:duration-350 max-md:data-ending-style:h-0 max-md:data-starting-style:h-0"
             keepMounted>

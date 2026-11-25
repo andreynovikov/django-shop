@@ -28,6 +28,7 @@ import { Product } from '@/lib/types'
 
 import { getProduct } from './load'
 
+// Catches the changes that revalidation by cache tags misses (lib/queries/cache-tags.ts)
 export const revalidate = 3600
 
 // const gana = require('gana')
@@ -95,6 +96,8 @@ function AvailabilityBadge({ product }: { product: Product }) {
   )
 }
 
+// The labels of the product fields: the backend's verbose names, which may have a unit after a comma.
+// fieldNames has [label, unit] for each, the unit follows the value.
 const getFields = cache(async () => {
   const fields = await getProductFields()
   const fieldNames = Object.entries(fields).reduce((names, [key, value]) => {
@@ -419,6 +422,8 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
 }
 
 export async function generateStaticParams() {
+  // Pre-rendered only by a production build, not in dev or CI's PLAYWRIGHT_TEST build, where each page is rendered
+  // on its first visit
   if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
     return []
 
@@ -429,6 +434,7 @@ export async function generateStaticParams() {
   const filters = {
     ...baseFilters,
     in_category: categories.map(category => category.id),
+    // an empty value finds the products without variations
     variations: '',
   }
   const pageSize = 500

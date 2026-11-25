@@ -12,6 +12,8 @@ import { UserBonus as UserBonusType } from '@/lib/types'
 export default function UserBonus() {
   const { status } = useSession()
 
+  // Polled every second while the backend is updating the balance. The badge takes the warning color when the balance
+  // was updated within the hour, the danger color when the backend has no balance for the user.
   const { data: bonus, isFetching, isLoading } = useQuery<UserBonusType>({
     queryKey: userKeys.bonus(),
     queryFn: () => getUserBonus(),

@@ -41,6 +41,7 @@ export default function ProductSearchInput({ mobile = false }: { mobile?: boolea
     if (!suggestions || searchText.length < MIN_LENGTH)
       return []
 
+    // products can share a title, each title is suggested once
     const titles = suggestions.results.filter((title, index, all) => all.indexOf(title) === index)
     const allGroups: SuggestionGroup[] = [
       {

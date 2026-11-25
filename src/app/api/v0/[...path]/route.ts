@@ -12,6 +12,8 @@ const DECODED_HEADERS = ['content-encoding', 'content-length']
 // The old name is read until the backend's cookie rename has been out for SESSION_COOKIE_AGE (4 weeks)
 const CSRF_COOKIES = ['__Host-csrftoken', 'csrftoken']
 
+// Every apiFetch() in the browser comes here (see lib/queries/fetch.ts): the browser has no API_SERVER, and the
+// session and CSRF cookies are this site's. Server-side reads go to Django directly.
 async function proxyRequest(request: NextRequest, { params }: RouteContext<'/api/v0/[...path]'>) {
   const { path } = await params
 
@@ -51,12 +53,15 @@ async function proxyRequest(request: NextRequest, { params }: RouteContext<'/api
       headers.push(['x-csrftoken', csrf])
   }
 
+  // The basket ID that useCreateOrder (lib/order.ts) sends with a new order: Django answers a repeat with the order
+  // that basket already became, so a retry after a lost answer doesn't order twice
   if (request.method === 'POST' && endpoint === 'orders') {
     const idempotencyKey = request.headers.get('idempotency-key')
     if (idempotencyKey !== null)
       headers.push(['idempotency-key', idempotencyKey])
   }
 
+  // Django's routes end with a slash. The prefix check is a second guard, after the segment check above.
   const url = new URL(`${process.env.API_SERVER}/api/v0/${path.map(encodeURIComponent).join('/')}/`)
   url.search = request.nextUrl.searchParams.toString()
   if (!url.pathname.startsWith('/api/v0/'))

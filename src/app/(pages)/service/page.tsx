@@ -9,6 +9,7 @@ import { Country, ServiceCenter } from '@/lib/types'
 import { navLinkClass } from '@/components/ui/nav'
 import { IconMapPin, IconPhone } from '@tabler/icons-react'
 
+// Catches the changes that revalidation by cache tags misses (lib/queries/cache-tags.ts)
 export const revalidate = 86400
 
 export const metadata: Metadata = {

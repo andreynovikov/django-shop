@@ -19,6 +19,7 @@ const infoIcon = { size: 28, stroke: 1.5, className: 'mt-2 mb-6 text-primary' }
 import { HttpError, loadStore, loadStores } from '@/lib/queries'
 import { parsePhones } from '@/lib/format'
 
+// Catches the changes that revalidation by cache tags misses (lib/queries/cache-tags.ts)
 export const revalidate = 86400
 
 // Shared by generateMetadata and the page, so the store is fetched once per render
@@ -151,10 +152,13 @@ export default async function StorePage({ params }: PageProps<'/stores/[id]'>) {
 }
 
 export async function generateStaticParams() {
+  // Pre-rendered only by a production build, not in dev or CI's PLAYWRIGHT_TEST build, where each page is rendered
+  // on its first visit
   if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
     return []
 
   const stores = await loadStores()
+  // Janome's own stores, the sitemap lists the same ones
   return stores
     .filter(store => store.logo === 'janome')
     .map(store => ({ id: store.id.toString() }))

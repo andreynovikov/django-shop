@@ -224,6 +224,7 @@ export default function OrderDetails({ id }: { id: number }) {
           </div>
           <div>
             <h4 className={infoTitleClass}>Оплата заказа:</h4>
+            {/* An order can be paid only once it is collected: online by card or credit, or by the bill for a transfer */}
             <ul className={infoListClass}>
               {order.payment === PAYMENT_UNKNOWN ? (
                 <li>Способ оплаты уточняется</li>

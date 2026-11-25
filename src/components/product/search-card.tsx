@@ -7,8 +7,10 @@ import { ProductResult } from "@/lib/diginetica"
 
 import { productKeys, loadProductInfo } from '@/lib/queries'
 
+// The product code in Diginetica's link, which ends with either '/' or '.html'
 const codeRegex = /products\/(.+)(\/|\.html)/
 
+// The search hit in the shape of the product card's data
 function resultToProduct(result: ProductResult) {
   const matches = result.link_url.match(codeRegex)
   return {
@@ -27,6 +29,7 @@ function resultToProduct(result: ProductResult) {
 export default function ProductSearchCard({ result, position }: { result: ProductResult, position: number }) {
   const searchProduct = useMemo(() => resultToProduct(result), [result])
 
+  // Render from the search hit immediately and use current storefront data when Django responds.
   const { data: product, isSuccess } = useQuery({
     queryKey: productKeys.info(Number(result.id)),
     queryFn: () => loadProductInfo(Number(result.id)),
