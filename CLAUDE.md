@@ -4,19 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Next.js storefront for sewing-world.ru (package name `sworld`, branch `sworld`), styled with Tailwind CSS v4 after the look of the Cartzilla theme it was built on. It has no database of its own: all data comes from a separate Django backend (the `django-shop` repo) over REST at `${API_SERVER}/api/v0/`. The UI and content are in Russian.
+Next.js storefront for sewing-world.ru (package name `sworld`, branch `sworld`), styled with Tailwind CSS v4 after the look of the Cartzilla theme it was built on. It has no database of its own: all data comes from a separate Django backend (the `django-shop` repo) over REST at `${API_SERVER}/api/v0/`. The UI and content are in Russian. Code comments are in English.
+
+`AGENTS.md` and `tests/AGENTS.md` carry the same guidance for Codex. When a rule here changes, change it there too, and the other way round.
 
 ## Commands
 
-- `npm run dev`: dev server at https://127.0.0.1:3004 (experimental HTTPS). It uses the certs in `certificates/`, which is gitignored. On a fresh clone, create them first with `mkcert -install -key-file certificates/localhost-key.pem -cert-file certificates/localhost.pem localhost 127.0.0.1 ::1`. The certs are passed explicitly because Next's own reuse check fails for an IP host and would regenerate them on every start.
-- `npm run test`: plain `next dev` at http://127.0.0.1:4004. Playwright uses this as its web server locally.
+- `npm run dev`: plain `next dev` at http://127.0.0.1:4004 (no HTTPS since 2026-11-23). Playwright reuses it when it is already running, otherwise starts it.
 - `npm run build` / `npm start`: production build (`output: 'standalone'`) and server on port 4004
 - `npm run lint`: ESLint over `src/` (next core-web-vitals, next typescript, and the tanstack-query recommended rules)
-- `npm run test:e2e`: Playwright tests in `tests/` (chromium, firefox, Mobile Chrome)
+- Type check: `npx next typegen` (writes the route types `PageProps`/`LayoutProps`), then `npx tsc --noEmit`. CI runs lint and both, in that order.
+- `npm run test:e2e`: Playwright tests in `tests/` (chromium, firefox, webkit, Mobile Chrome, Mobile Safari)
   - Run one file: `npx playwright test tests/checkout.spec.ts`
   - Run one test by name: `npx playwright test -g "anonymous buyer orders"`
   - Run one browser: `npx playwright test --project=chromium`
-  - The tests read from the real backend configured in `.env`. With `CI` set, they run against `node .next/standalone/server.js` instead of the dev server.
+  - The tests read from the backend in `API_SERVER`. `.env` names production; locally, set `API_SERVER=http://127.0.0.1:8000` (a django-shop runserver) on the command line for both the dev server and Playwright, since a variable already set wins over `.env`. With `CI` set, they run against `node .next/standalone/server.js` (a `PLAYWRIGHT_TEST=true` build with `.next/static` and `public/` copied into `.next/standalone/`) instead of the dev server.
   - Tests must never write to that backend. The auto fixture `blockApiWrites` in `tests/fixtures.ts` aborts every non-GET `/api/v0/` request that no test mocked, and fails the test.
   - User flows (login, registration, cart, orders, favorites, profile, warranty) use the `backend` fixture: `tests/fake-backend.ts`, an in-memory copy of django-shop's user endpoints with a session, a basket, favorites, orders, serial number registration, an SMS log and a log of email confirmation links. It answers browser requests only, which is enough because user state is never rendered on the server. Requests it does not handle fall through to the real backend (GET) or the guard. Seed state with `backend.addUser()`, `backend.signIn()`, `backend.addOrder()`, `backend.addFavorites()` and `backend.addBasket()`, read the code a login, registration or phone change sent with `backend.lastSmsCode(phone)`, and open a confirmation link with `backend.lastEmailLink(email)`.
   - Contract checks (`tests/contract.ts`) validate every request the fake answers, and every fake answer, against the backend's OpenAPI schema; a mismatch fails the test. Global setup downloads the schema from `${API_SERVER}/api/v0/schema/` with `API_TOKEN` into `tests/.cache/openapi.json` and reuses it for an hour (delete the file to refresh). Set `API_SCHEMA` to a local schema file, e.g. from django-shop's `manage.py spectacular --format openapi-json`, to check backend changes before deploying them.
@@ -35,8 +37,10 @@ Everything is in `src/app/`. The route groups `(auth)` (login, registration), `(
 
 ### Data layer (`src/lib/queries/`)
 - Each resource module exports a query-key factory (`xxxKeys`) and plain `load*`/`retrieve*` functions built on `apiFetch` (`fetch.ts`). Loaders that static pages use pass the request's cache tags with `tagged(...)`, see "Static generation and revalidation". Everything is re-exported from `@/lib/queries`.
-- `apiFetch` sends requests with a body to the relative `/api/v0/...` path. That path is the proxy `src/app/api/v0/[...path]/route.ts`, which forwards cookies, sets Django's `X-CSRFToken` header from the `csrftoken` cookie, and passes `Set-Cookie` back. Requests without a body are prefixed with `API_SERVER`. `API_SERVER` isn't `NEXT_PUBLIC_`, so it is set only on the server. As a result, server-side GETs go straight to Django, and every browser request goes through the proxy. The proxy exports only GET, POST and PUT.
-- Server-side requests and the proxy send `X-Frontend-Key: FRONTEND_KEY`, and the proxy passes on `X-Real-IP` from nginx. With the key, Django takes the site from it and the client address from `X-Real-IP`. Without one, Django ignores the session cookie, refuses writes that have no token, and uses the default site, so the build needs the key too.
+- `apiFetch` sends requests with a body to the relative `/api/v0/...` path. That path is the proxy `src/app/api/v0/[...path]/route.ts`, which forwards cookies, sets Django's `X-CSRFToken` header from the `__Host-csrftoken` cookie, and passes `Set-Cookie` back. Requests without a body are prefixed with `API_SERVER`. `API_SERVER` isn't `NEXT_PUBLIC_`, so it is set only on the server. As a result, server-side GETs go straight to Django, and every browser request goes through the proxy. The proxy exports only GET, POST and PUT.
+- Server-side requests and the proxy send `X-Frontend-Key: FRONTEND_KEY`, and the proxy passes on `X-Real-IP` from nginx. With the key, Django takes the site from it and the client address from `X-Real-IP`. Without one, Django ignores the session cookie, refuses writes that have no token, and uses the default site, so the build needs the key too. sewing-world.ru is the default site, so with a wrong key its reads still look right; only sessions and writes fail.
+- The proxy's safeguards are deliberate, keep them: it forwards only the request headers in `REQUEST_HEADERS` (the browser's `Origin` included, which Django's CSRF check needs); a POST or PUT needs `X-Requested-With` and an absent or `same-origin` `Sec-Fetch-Site`, which `apiFetch` satisfies; dot segments and slashes in path segments are refused; `users/logout` is POST only; and `content-encoding`/`content-length` are dropped from the answer, because fetch has already decoded the body (passing them on broke every API call when nginx turned on brotli). `CSRF_COOKIES` still lists the old `csrftoken` name until the cookie-rename transition ends (not before 2026-12-07; the checklist is in the gitignored `PROBLEMS.md`).
+- Placing an order (`useCreateOrder` in `lib/order.ts`) sends the basket id as `Idempotency-Key`, which the proxy forwards for `POST orders/` only, and retries once after a network error or a 5xx. Django answers a repeat with the order the key already made, so a lost answer never orders twice; Metrika's purchase event is sent once per order id.
 - `API_TOKEN` (`queries/tokenized.ts`, for the XML feeds) and `FRONTEND_KEY` are used only in server code.
 - `userReferences` and `userDependencies` in `queries/index.ts` list the queries that are reset when the user changes (login, logout, another user in another tab) and invalidated whenever the user is loaded. Update them when you add user-specific queries.
 - `src/lib/query-client.ts` sets the default `staleTime` to 60 s; categories and pages never go stale, products stay fresh for 10 minutes. Because of the default, `initialData` counts as fresh and the query is not fetched for a minute, even when it becomes enabled later. For a list that is empty until loaded, use a module-level empty constant as the destructuring default instead (see `useComparison` and `useFavorites`).
@@ -64,7 +68,8 @@ Everything is in `src/app/`. The route groups `(auth)` (login, registration), `(
 ### Shared with the other storefronts
 janome.club, singer.ru and dor-tak.ru copy some files from here unchanged, so a change made here is copied to them:
 - `src/lib/` (familysew.ru copies it too);
-- `app/api/revalidate/route.ts` (familysew.ru too);
+- `app/api/revalidate/route.ts` and the proxy `app/api/v0/[...path]/route.ts` (familysew.ru too);
+- the container files `startup.sh`, `container-entrypoint.sh` and `src/instrumentation.ts`, and the `Dockerfile` apart from its `entity` (familysew.ru too);
 - the user-flow components:
   - `components/user/`: login, registration, update and confirm-email forms, `phone-code-input`, `profile`, `sidebar`, `topbar`, `avatar`;
   - `components/order/`: `confirmation`, `details`, `list`, `payment-button`, `status-badge`;
@@ -81,12 +86,16 @@ Each storefront keeps its own versions of the rest:
 A shared component styles itself only through these helpers and tokens. When it needs a new helper option or token, add it to every storefront.
 
 ## Release and deploy
+- The storefronts are branches of the django-shop GitHub repository; its `main` is the backend (checked out in `../django-shop`).
 - `.github/workflows/frontend.yml` runs on every push to `sworld`:
-  - lint and type checks, then the Playwright tests and the Docker build;
+  - lint and type checks, then the Playwright tests and the Docker build side by side;
   - the image goes to `ghcr.io/andreynovikov/sworld`, tagged `latest` and with the commit's Moscow date and short hash, e.g. `2026.11.11-7f57710`;
-  - then it is deployed to stage on port 4004.
+  - then it is deployed to stage on port 4004. Stage waits for the build only, not for the tests.
 - Production (port 4104) is deployed by hand: Actions → Frontend CI → Run workflow on the `sworld` branch. That deploys the image of the branch's head commit without rebuilding it. Re-running an earlier deploy run rolls back. There are no version numbers or release tags.
-- The build and the tests take `ENV_FILE` from the `sworld` GitHub environment, because the `.env` is baked into the image; stage runs the production image. The deploy jobs use the repo secrets `DEPLOY_HOST`, `DEPLOY_USER` and `SSH_PRIVATE_KEY`.
+- The build and the tests take `ENV_FILE` from the `sworld` GitHub environment, because the `.env` is baked into the image; stage runs the production image. A changed secret needs a new build, not just a deploy.
+- A deploy job logs in over ssh (`DEPLOY_USER@DEPLOY_HOST` with `SSH_PRIVATE_KEY`, the host key pinned by `DEPLOY_HOST_KEY`) to a `deploy` account whose key can only run the forced command `deploy-frontend <name> <tag>`, with name `stage` or `sworld`. On the server, that command pulls the image and starts it with one Compose file shared by all storefronts (`/etc/sworld/storefront-compose.yaml`) in the site's directory (stage: `/www/cartzilla.sigalev.ru`), as the `sworld` user's UID and GID. Both live in the Ansible role on `main` (`deploy/ansible/roles/server/`: `templates/deploy-frontend.j2`, `files/docker-compose.yaml`, sites and ports in `server_frontend_sites` in `defaults/main.yml`), so this repo has no compose file.
+- In the container, `container-entrypoint.sh` drops root with `setpriv` to `STOREFRONT_UID`/`STOREFRONT_GID` (or `node` without them), after giving that user `.next/cache` and `.next/server/route-cache`, where Next writes its caches and regenerated pages. Then `startup.sh` stops if any directory in the `.docker/` volume isn't writable, copies `.next/static` and `public/` over the previous build's files there (so `public/unavailable.html` never disappears), deletes what the new build lacks, and execs `node server.js` so `docker stop` reaches Next. `src/instrumentation.ts` names the process `nextjs-<STOREFRONT_PROCESS_NAME>`.
+- nginx serves `.docker/static` and `.docker/public`, and answers 502–504 with `.docker/public/unavailable.html` as a 503. Its whole configuration is in the Ansible role on `main` (`roles/server/files/nginx/`), not on the server.
+- Product stock and reviews are lazy chunks loaded with `lazyWithReload` (`lib/lazy.ts`): after a deploy removes the old chunk, the page reloads once (at most once a minute) instead of failing.
 - The other storefronts' branches have the same workflow without the tests and stage. `main` holds a stub of it, which GitHub needs to show the Run workflow button.
-- At container start, `startup.sh` copies `.next/static` and `public/` into the `.docker/` volume so nginx can serve them.
-- "Frontend deployment" in `deploy/README.md` on the `main` branch documents the server side and the GitHub settings. That file also covers the rest of the server setup: nginx, Postgres, the Django backend (uWSGI, Celery), backups and monitoring. Part of it is automated by the Ansible playbook in `deploy/ansible/`.
+- "Frontend deployment" in `deploy/README.md` on the `main` branch documents the server side and the GitHub settings. That file also covers the rest of the server setup: nginx, Postgres, the Django backend (uWSGI, Celery), backups and monitoring. The Ansible playbook in `deploy/ansible/` sets most of it up.
