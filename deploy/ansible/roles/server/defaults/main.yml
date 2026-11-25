@@ -45,7 +45,7 @@ server_docker_packages:
 # password, a crypt hash that is set only when the user is created.
 server_users:
   - name: andrey
-    groups: [adm, docker, sudo, www-data]
+    groups: [adm, docker, sudo, www-data, sworld]
   - name: nikolays
     groups: [adm, sudo, www-data]
   - name: maria
