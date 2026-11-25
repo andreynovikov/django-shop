@@ -7,8 +7,10 @@ import { ProductResult } from "@/lib/diginetica"
 
 import { productKeys, loadProductInfo } from '@/lib/queries'
 
+// The product code in Diginetica's link, which ends with either '/' or '.html'
 const codeRegex = /products\/(.+)(\/|\.html)/
 
+// The search hit in the shape of the product card's data
 function resultToProduct(result: ProductResult) {
   const matches = result.link_url.match(codeRegex)
   return {

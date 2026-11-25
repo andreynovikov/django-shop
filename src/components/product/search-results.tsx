@@ -86,6 +86,7 @@ export default function SearchResults() {
 
   const pages = Math.ceil((result?.totalHits ?? 0) / pageSize)
 
+  // The values of Diginetica's price slider are its bounds, their ids make PriceFilter's min_value and max_value
   const priceFilter = useMemo(() => {
     const priceFacet = result?.facets?.find((facet) => facet.name === 'price')
     if (priceFacet !== undefined)

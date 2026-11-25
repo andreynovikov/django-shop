@@ -4,6 +4,7 @@ import { getCategoryDescendants } from '@/lib/categories'
 import { loadCategories, loadCurrentSite, loadPages, loadProducts, loadSalesActions, loadStores, loadTopics } from '@/lib/queries'
 import { FlatPageInfo, ForumTopic, SalesAction } from '@/lib/types'
 
+// Catches the changes that revalidation by cache tags misses (lib/queries/cache-tags.ts)
 export const revalidate = 86400
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -60,6 +61,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     enabled: true,
     price: [0, 10000000],
     in_category: categories.map(category => category.id),
+    // an empty value finds the products without variations; the cards of the others link to the catalog page of
+    // their variants (ProductCardLink)
     variations: '',
   }
   const pageSize = 500
@@ -84,6 +87,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Stores
 
   const stores = await loadStores()
+  // the chain's own stores, not the partner ones
   stores.filter(store => store.logo === 'sewingworld').forEach(store => {
     routes.push({
       url: `${site.url_prefix}/stores/${store.id}/`,
@@ -108,6 +112,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Flat pages
 
   const pages = await loadPages() as FlatPageInfo[]
+  // help and dialog pages are shown inside other pages, /pages/ answers 404 for them
   pages.filter(page => !page.url.match('^\/(help|dialog)\/.*')).forEach(page => {
     routes.push({
       url: `${site.url_prefix}/pages${page.url}`,

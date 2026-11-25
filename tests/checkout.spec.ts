@@ -115,6 +115,7 @@ test('checkout reuses the basket key when the order response is lost', async ({ 
   await page.locator('aside').getByRole('button', { name: 'Оформить заказ' }).click()
 
   await expect(page).toHaveURL(/\/confirmation\/$/)
+  // the retry sends the same key, and the backend answers it with the order the lost answer had
   expect(keys).toEqual([String(basketId), String(basketId)])
   const order = backend.lastOrder()
   expect(orderedItems(order)).toEqual([{ product: product.id, quantity: 1 }])

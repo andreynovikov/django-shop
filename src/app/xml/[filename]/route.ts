@@ -11,6 +11,7 @@ export const revalidate = 3600
 export const dynamic = 'error'
 
 const rootDirectory = process.cwd()
+// Feeds of the site's own products, rendered with the template of the same name; any other name is an integration's
 const globalXmls = [
   'products',
   'search',
@@ -53,13 +54,16 @@ export async function GET(request: Request, { params }: RouteContext<'/xml/[file
       templateName = integration.output_template
     }
 
+    // The site's top categories marked for feeds, with their subcategories
     const categories = integration?.output_skip_categories ? [] : await loadCategories({ feed: true })
     const categoryMap = topCategoryMap(categories)
 
     if (integration) {
+      // The backend picks them by the integration's settings, with stock only when the integration outputs it
       products = await retriveIntegrationProducts(integration.id)
     } else {
       products = []
+      // Every enabled product in those categories without variations, page by page
       const filters = {
         for_xml: true,
         enabled: true,

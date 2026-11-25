@@ -25,6 +25,7 @@ export function YandexMetrika(props: YMParams) {
 
   return (
     <>
+      {/* Metrika's stub: ym() calls are queued until tag.js has loaded */}
       <Script
         id="_sw-ym-init"
         dangerouslySetInnerHTML={{
@@ -46,6 +47,7 @@ export function YandexMetrika(props: YMParams) {
   )
 }
 
+// Metrika's e-commerce reads these pushes from the container it was given as `ecommerce`, see app/layout.tsx
 export function eCommerce(payload: Record<string, unknown>) {
   if (window['dataLayer'] === undefined) {
     if (process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID)

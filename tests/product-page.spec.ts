@@ -14,6 +14,7 @@ test('product page has canonical link', async ({ page }) => {
   await page.locator('[itemtype="http://schema.org/Offer"]').first().getByRole('link').first().click()
   await page.waitForURL('/products/**')
   const path = new URL(page.url()).pathname
+  // the canonical link leaves the query out
   await page.goto(path + '?test')
   await page.waitForURL('/products/**')
   const canonicalLink = page.locator('link[rel="canonical"]')

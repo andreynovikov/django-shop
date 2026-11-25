@@ -162,6 +162,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+  # Waits for the build only, not for the tests
   deploy-stage:
     needs: build
     runs-on: ubuntu-24.04
@@ -171,6 +172,8 @@ jobs:
       packages: read
 
     steps:
+      # The key may only run the server's forced command deploy-frontend, which takes "<frontend> <tag>" as the
+      # command and starts that image (the Ansible role on main). The host key is pinned by DEPLOY_HOST_KEY.
       - name: Deploy to stage
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -203,6 +206,7 @@ jobs:
         id: version
         run: echo "version=$(TZ=Europe/Moscow git log -1 --format=%cd --date=format-local:%Y.%m.%d)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
+      # Nothing is built here: the image is the one the push of this commit built, the deploy fails if there is none yet
       - name: Deploy to production
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}

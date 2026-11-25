@@ -20,9 +20,9 @@ import { checkUser, normalizePhone, HttpError, LoginCredentials } from '@/lib/qu
 type FieldErrors = Record<string, string>
 
 interface LoginFormProps {
-  ctx: string
+  ctx: string  // where the form is; with 'order', 'preorder' or 'warranty' an unknown phone gets an account, see loginUser
   hideModal?: () => void
-  embedded?: string
+  embedded?: string  // the ID prefix of a form inside another page or a modal, empty on the login page
 }
 
 // For new passwords only: older, shorter ones still log in
@@ -140,6 +140,7 @@ export default function LoginForm({ ctx, hideModal, embedded = '' }: LoginFormPr
       {} : { phone: "Введите корректный номер" }
   }
 
+  // A code from SMS has 6 digits. Older permanent passwords can be shorter than PERMANENT_PASSWORD_LENGTH.
   const validatePassword = (value: string): FieldErrors => {
     if (!(shopUser?.permanent_password ? /^.{5,}$/ : /^\d{6}$/).test(value))
       return { password: "Указан неверный " + (shopUser?.permanent_password ? "пароль" : "код") }
@@ -298,7 +299,7 @@ export default function LoginForm({ ctx, hideModal, embedded = '' }: LoginFormPr
         </>
       ) : (
         <>
-          {/* The phone lookup determines which sign-in step comes next. */}
+          {/* Anonymous visitor: the phone lookup determines which sign-in step comes next. */}
           <div className="mb-4">
             <label className="inline-block text-xl font-light" htmlFor={`${embedded}${ctx}-phone-input`}>
               {ctx === 'order' ? "Для продолжения у" : "У"}

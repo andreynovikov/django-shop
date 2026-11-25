@@ -26,7 +26,8 @@ export default function CartContents() {
 
   const { mutate, isPending } = useCreateOrder()
 
-  // a new buyer, registered by the login form without a code, orders right away
+  // a new buyer, registered by the login form without a code, orders right away; invalidate() clears registered,
+  // so the order is placed once
   useEffect(() => {
     if (status === 'authenticated' && registered && basket.id !== undefined) {
       mutate(basket.id)
@@ -98,6 +99,7 @@ export default function CartContents() {
               <LoginForm embedded="cart" ctx="order" />
             )}
 
+            {/* Signs out, so that the login form can take another phone */}
             {status === 'authenticated' && (
               <div className="mt-4">
                 <a className="text-sm text-primary hover:text-link-hover" onClick={async () => setSignOutFailed(!await signOut())}>Оформить заказ от другого имени</a>

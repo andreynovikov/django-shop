@@ -74,6 +74,7 @@ test('callback survives registration', async ({ page, backend }) => {
 })
 
 test('registration does not follow off-site callback', async ({ page, backend }) => {
+  // a redirect off the site would get this stub instead of the real site, and fail the URL check
   await page.route(/^https?:\/\/example\.com\//, route => route.fulfill({ body: 'Another site' }))
   await page.goto(`/register/?callbackUrl=${encodeURIComponent('//example.com/')}`)
   const phone = page.getByRole('textbox', { name: 'Укажите номер мобильного телефона:' })

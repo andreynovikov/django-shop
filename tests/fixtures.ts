@@ -6,8 +6,9 @@ import { focusPhone } from './phone'
 export { expect }
 
 export const test = base.extend<{ blockApiWrites: void, skipHeavyResources: void, backend: FakeBackend }>({
-  // Tests run against the production backend, so writes must be mocked or faked by the test.
-  // Anything else is aborted and fails the test.
+  // Tests run against a real backend (production on CI, a local copy of its database with real SMS credentials
+  // otherwise), so writes must be mocked or faked by the test. Anything else is aborted and fails the test.
+  // Only browser requests pass here: server rendering and the `request` fixture reach the backend directly.
   blockApiWrites: [async ({ page }, use) => {
     const blocked: string[] = []
     await page.route('**/api/v0/**', route => {
@@ -70,6 +71,7 @@ export const rubles = (value: number) => new RegExp(value.toLocaleString('ru').r
 export async function loginWithCode(page: Page, backend: FakeBackend, phone: string) {
   const input = page.getByRole('textbox', { name: 'Укажите номер мобильного телефона:' })
   await focusPhone(input)
+  // the mask has already put +7 in
   await input.pressSequentially(normalizePhone(phone).slice(2))
   await page.getByRole('button', { name: 'Войти' }).click()
   const code = page.getByPlaceholder('Код из смс')

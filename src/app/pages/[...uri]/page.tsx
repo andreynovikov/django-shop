@@ -10,7 +10,8 @@ import { contentClass } from '@/components/ui/content'
 // help and dialog pages are shown inside other pages, not on their own
 const isEmbedded = (uri: string[]) => ['help', 'dialog'].includes(uri[0])
 
-// Pages added after the build are rendered on their first visit
+// Pages added after the build are rendered on their first visit. The time catches the changes that revalidation by
+// cache tags misses (lib/queries/cache-tags.ts).
 export const revalidate = 86400
 
 // Shared by generateMetadata and the page, so the page is fetched once per render
@@ -47,6 +48,8 @@ export default async function FlatPage({ params }: PageProps<'/pages/[...uri]'>)
 }
 
 export async function generateStaticParams() {
+  // Pre-rendered only by a production build, not in dev or CI's PLAYWRIGHT_TEST build, where each page is rendered
+  // on its first visit
   if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
     return []
 

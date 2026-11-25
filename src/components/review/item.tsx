@@ -21,6 +21,8 @@ export default function ReviewItem({ review, first, last }: { review: ProductRev
           <div><ReviewRating value={review.rating.value} /></div>
           <div className="text-ms text-muted">
             {review.rating.text}
+            {/* The backend weighs a review by its author: 1 anyone, 10 a buyer of the product, 50 a moderator
+                (get_review_user_weight in django-shop's shop/__init__.py) */}
             {(review.weight > 1 && review.weight <= 10) ? (
               <> &mdash; отзыв покупателя</>
             ) : review.weight > 10 && (

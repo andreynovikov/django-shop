@@ -100,7 +100,8 @@ export function normalizePhone(phone: string) {
   return '+7' + (digits.length === 11 ? digits.slice(1) : digits)
 }
 
-// The backend serializes basket products with NonNullModelSerializer, which leaves out empty values
+// The backend serializes basket products with NonNullModelSerializer, which leaves out empty values,
+// and caps instock at 10 (BasketItemProductSerializer.get_instock)
 function toBasketProduct(product: ProductInfo | BasketItemProduct): BasketItemProduct {
   const optional = { whatis: product.whatis, partnumber: product.partnumber, article: product.article, image: product.image }
   return {
@@ -129,8 +130,9 @@ function itemPrices(product: BasketItemProduct, quantity: number) {
 
 /*
 In-memory stand-in for the user part of the backend: session, basket, favorites and orders.
-Requests it does not handle fall through, so GET requests still read the production backend
+Requests it does not handle fall through, so GET requests still read the real backend
 (catalog, products, stores), and other methods are blocked by the blockApiWrites fixture.
+Only browser requests are faked: server-rendered pages still see an anonymous visitor.
 */
 export class FakeBackend {
   readonly requests: LoggedRequest[] = []
@@ -145,6 +147,7 @@ export class FakeBackend {
   private basket: { id: number, items: { id: number, product: BasketItemProduct, quantity: number }[], utm_source: string } | null = null
   private favorites = new Map<number, number[]>()
   private orders: FakeOrder[] = []
+  // orders made at checkout by the basket id, which useCreateOrder sends as the Idempotency-Key
   private checkoutOrders = new Map<string, number>()
   private loseOrderResponse = false
   private products = new Map<number, BasketItemProduct>()
@@ -319,6 +322,7 @@ export class FakeBackend {
       (typeof path === 'string' ? request.path === path : path.test(request.path)))
   }
 
+  // The next order is made, but its answer is aborted as if the connection dropped, so the checkout retries
   dropNextOrderResponse() {
     this.loseOrderResponse = true
   }
@@ -337,6 +341,7 @@ export class FakeBackend {
     this.requests.push({ method: request.method(), path: decodeURIComponent(path), body })
 
     const response = await this.respond(request.method(), segments, url.searchParams, (body ?? {}) as Body, request.headers())
+    // unhandled requests go on to the routes added before: the blockApiWrites guard, then the network
     if (response === undefined)
       return route.fallback()
     const query = Object.fromEntries([...new Set(url.searchParams.keys())].map(key => {
@@ -693,6 +698,7 @@ export class FakeBackend {
       return user ? ok(this.orderList(orders, query)) : notAuthenticated()
     if (method === 'POST' && id === 'last')
       return user ? ok({ id: orders[0]?.id ?? null }) : notAuthenticated()
+    // follows OrderViewSet.unpaid: the order the topbar offers to pay
     if (method === 'POST' && id === 'unpaid') {
       const unpaid = orders.find(order => order.status === STATUS_COLLECTED && !order.paid &&
         [PAYMENT_CARD, PAYMENT_TRANSFER, PAYMENT_CREDIT].includes(order.payment))
@@ -721,6 +727,7 @@ export class FakeBackend {
     return undefined
   }
 
+  // Follows OrderViewSet.create: a repeat with the same key gets the order that key already made
   private createOrder(userId: number, key?: string) {
     if (key !== undefined && !/^[1-9][0-9]{0,18}$/.test(key))
       return { status: 400, body: 'Invalid idempotency key' }
@@ -784,6 +791,7 @@ export class FakeBackend {
     return { status: 201, body: { number: String(body.number), purchase_date: null, approved: false, product: null, order: null } }
   }
 
+  // Products the test did not seed are read from the backend, so any existing product can go in the basket
   private async product(id: number) {
     if (!this.products.has(id)) {
       const response = await this.request.get(`/api/v0/products/?id=${id}`)

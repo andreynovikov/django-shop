@@ -10,6 +10,7 @@ import { LocationMap, MapMarker, MarkerPin, MarkersMap } from '@/components/map'
 
 import { Store, StoreInfo } from '@/lib/types'
 
+// Pins by the store's `logo`: the chain's own stores ('sewingworld'), Nadel's, and a gray one for the other partners
 const storePins: Record<string, MarkerPin> = {
   sewingworld: { icon: '/i/shoplogos/marks/sewingworld.svg', color: '#3163ad' },
   nadel: { icon: '/i/shoplogos/marks/nadel.svg', color: '#ffed00' },

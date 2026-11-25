@@ -13,6 +13,7 @@ import FavoriteIcon from './favorite-icon'
 import BasketButton from './basket-button'
 import { ProductCardImpression, ProductCardLink } from './ecommerce'
 
+// A Diginetica search hit, shown in the card until the backend's data of the product arrives (search-card.tsx)
 export interface SearchProduct {
   id: number
   code: string | undefined

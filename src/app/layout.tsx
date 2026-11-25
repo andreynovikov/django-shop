@@ -51,6 +51,9 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const categories = await loadCategories()
 
+  // While the full-screen image gallery (.sw-no-body-scroll) is open, the page under it doesn't scroll.
+  // `isolate` makes the page its own stacking context, as Base UI advises, so the popups it portals into the body
+  // always show above the page.
   return (
     <html lang="ru" className={`${rubik.variable} has-[.sw-no-body-scroll]:overflow-hidden`}>
       <body>

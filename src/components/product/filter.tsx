@@ -11,6 +11,8 @@ interface ProductFilterProps {
   onFilterChanged: (name: string, value: unknown) => void
 }
 
+// The widget is chosen by the backend's description of the filter: its form field `class` and its `widget`
+// (the facets in django-shop's sewingworld/filters.py). A filter of any other kind is not shown.
 export default function ProductFilter({ filter, filterValue, onFilterChanged }: ProductFilterProps) {
   // the value is parsed from the query by productSearchParams, whose parser for a filter matches its class
   const props = { filter, onFilterChanged }

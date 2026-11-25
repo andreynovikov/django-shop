@@ -14,6 +14,10 @@ function getContentHeight(container: HTMLElement) {
   return Math.max(0, ...columns.map((element) => element.getBoundingClientRect().height))
 }
 
+// Moves the sidebar between the states in its data-state as the page scrolls by scrollOffset (down is positive):
+// none (in place), fixedTop (under the navbar), fixedBottom (a taller sidebar at the bottom of the window),
+// absoluteBottom (at the bottom of its column, where the content ends) and relativeBottom (scrolls with the page
+// from where it was)
 function updateSidebarStyle(container: HTMLElement, sidebar: HTMLElement, scrollOffset: number) {
   const navbar = document.getElementById('navbar')
   if (navbar === null || sidebar.parentElement === null)

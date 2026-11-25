@@ -180,6 +180,7 @@
 }
 
 /* Swiper adds the dots when it initializes after hydration, their line is reserved so the content below doesn't shift */
+/* (a shift between pointerdown and pointerup closes a Base UI menu opened by the click, seen in Mobile Safari) */
 .swiper-pagination {
   position: relative !important;
   padding-top: 10px;

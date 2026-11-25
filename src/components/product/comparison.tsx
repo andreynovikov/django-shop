@@ -29,11 +29,11 @@ const comparisonParams = {
   product: parseAsNativeArrayOf(parseAsInteger),
 }
 
-// Reading the query needs a Suspense boundary, the page is static
 // A bordered table cell and the field name at the start of a row
 const cellClass = 'border p-3'
 const headerCellClass = 'border p-3 text-start font-medium text-heading first-letter:uppercase'
 
+// Reading the query needs a Suspense boundary, the page is static
 export default function ProductComparison() {
   const [{ kind: kindId, product: productIds }, setParams] = useQueryStates(comparisonParams)
   const { addItem, addingProductId } = useBasket()
@@ -98,6 +98,8 @@ export default function ProductComparison() {
     return names
   }, [fields])
 
+  // The kind lists the fields its products are compared by. Rows where all the products are empty are left out,
+  // and with "only differences" the rows where they are equal too.
   const productFields = !(isKindSuccess && products !== undefined && products.length > 0) ? [] :
     kind.comparison.reduce((fields, name) => {
       const field = name as keyof Product

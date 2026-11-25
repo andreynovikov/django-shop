@@ -100,6 +100,7 @@ export function StoreList({ stores }: { stores: StoreInfo[] }) {
             <StoreMap stores={stores} focusPoints={mapFocusPoints} />
           </div>
           <div className="p-6 xl:px-12">
+            {/* Moscow (city 2) and Saint Petersburg (city 21) come first, they are also in the list of all cities */}
             <div>
               <Collapsable
                 id={2}

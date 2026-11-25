@@ -1,3 +1,4 @@
+// The Russian plural of value: endings are the forms for 1, for 2–4 and for 5–20, e.g. товар, товара, товаров
 const rupluralize = (value: number, endings: string[]) => {
   if ([11, 12, 13, 14].includes(value % 100))
     return endings[2]

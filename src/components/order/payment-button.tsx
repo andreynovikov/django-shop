@@ -26,6 +26,7 @@ export default function OrderPaymentButton({ orderId, iconOnly = false }: { orde
     event.stopPropagation()
     try {
       const result = await apiFetch<{ location: string}>(`orders/${orderId}/pay/`, {
+        // The payment page sends the buyer back here; url_prefix is the storefront's address, from the site profile
         body: {
           'return_url': site.url_prefix + window.location.pathname + window.location.search
         }

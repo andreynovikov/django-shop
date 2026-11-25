@@ -116,6 +116,8 @@ export default function ReviewForm({ product, review: reviewId }: ReviewFormProp
         )}
 
         <div className="grid gap-y-4">
+          {/* The fields of django-rated-reviews' form. Its honeypot field is hidden: the backend refuses a review
+              that has anything in it. */}
           {form.map((field) => (
             <div style={{ display: (field.widget === 'HiddenInput' || field.name === 'honeypot') ? "none" : "initial" }} key={field.id}>
               {field.widget !== 'HiddenInput' && (

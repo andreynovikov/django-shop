@@ -42,7 +42,9 @@ export async function apiFetch<TReturn, TData = JSONValue>(endpoint: string, opt
     credentials: 'include',
   }
 
-  // Route requests through API proxy to correctly set CSRF header
+  // Route requests through API proxy to correctly set CSRF header. API_SERVER is set on the server only, so in the
+  // browser every request takes the relative path to the proxy, and on the server a request without a body goes
+  // straight to Django. A request with a body always takes the relative path, so it works in the browser only.
   const baseURL = (body ? '' : (process.env.API_SERVER ?? '')) + '/api/v0/'
   const response = await fetch(baseURL + endpoint, config)
 

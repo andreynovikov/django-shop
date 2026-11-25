@@ -59,6 +59,7 @@ export default function UpdateForm({ id, embedded = false, onReady, onUpdated }:
   const { user: sessionUser, status } = useSession()
   const user = status === 'authenticated' ? sessionUser as User : undefined
 
+  // The fields, their labels and help texts come from the backend
   const { data: form, isSuccess } = useQuery({
     queryKey: userKeys.form(),
     queryFn: () => getUserForm(),

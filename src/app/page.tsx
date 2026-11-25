@@ -12,11 +12,13 @@ import { baseFilters, newProductsFilters } from '@/lib/catalog'
 import { Advert, ProductInfo } from '@/lib/types'
 import { advertClass } from '@/components/ui/content'
 
+// Catches the changes that revalidation by cache tags misses (lib/queries/cache-tags.ts)
 export const revalidate = 3600
 
 const itemsPerSection = 16
 const sort = '-cost'
 
+// The products of the promo category (473, "/catalog/promo/") marked for the home page
 const recomendedProductsFilters = {
   ...baseFilters,
   categories: 473,

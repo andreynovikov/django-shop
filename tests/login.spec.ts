@@ -80,6 +80,7 @@ test('wrong passwords stop the password, but a code still logs in', async ({ pag
   await page.getByRole('button', { name: 'Войти' }).click()
 
   const password = page.getByPlaceholder('Пароль')
+  // ten wrong passwords reach the backend's per-phone limit (PASSWORD_FAILURES_PER_PHONE in the fake)
   for (let attempt = 0; attempt < 10; attempt++) {
     await password.fill(`wrong ${attempt}`)
     await page.getByRole('button', { name: 'Продолжить' }).click()
@@ -284,6 +285,7 @@ test('a link with an unknown phone creates no account', async ({ page, backend }
 
 test('limit of sent codes is explained', async ({ page, backend }) => {
   const user = backend.addUser()
+  // five codes sent before reach the per-phone limit (CODES_PER_PHONE in the fake)
   backend.smsLog.push(...Array(5).fill({ phone: user.phone, code: '123456' }))
   await typePhone(phoneInput(page), '9161234567')
   await page.getByRole('button', { name: 'Войти' }).click()

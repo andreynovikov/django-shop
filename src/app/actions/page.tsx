@@ -7,6 +7,7 @@ import { pageContentWrapper } from '@/components/layout/page-content-wrapper'
 
 import { loadSalesActions } from '@/lib/queries'
 
+// Catches the changes that revalidation by cache tags misses (lib/queries/cache-tags.ts)
 export const revalidate = 86400
 
 export const metadata: Metadata = {
