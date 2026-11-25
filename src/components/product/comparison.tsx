@@ -91,6 +91,8 @@ export default function ProductComparison() {
     return names
   }, [fields])
 
+  // The kind lists the fields its products are compared by. Rows where all the products are empty are left out,
+  // and with "only differences" the rows where they are equal too.
   const productFields = !(isKindSuccess && products !== undefined && products.length > 0) ? [] :
     kind.comparison.reduce((fields, name) => {
       const field = name as keyof Product

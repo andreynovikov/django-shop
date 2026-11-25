@@ -13,6 +13,7 @@ export default function ReviewItem({ review }: { review: ProductReview, last?: b
   return (
     <div className="flex border-b border-gray-200 px-4 py-8 first-of-type:pt-4 last-of-type:border-b-0" id={"r" + review.id}>
       <div className="me-6 shrink-0 text-center xl:me-12">
+        {/* The admin can give a review an author's name and avatar of its own, they replace the user's */}
         {review.reviewer_name ? (
           <UserAvatar className={avatarClass} gravatar={review.reviewer_avatar} name={review.reviewer_name} size={120} />
         ) : (

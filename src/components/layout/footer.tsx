@@ -49,6 +49,7 @@ export default function Footer() {
                         <div>
                             <h6 className="mb-4 font-bold leading-[1.1] tracking-widest text-dark uppercase">Новинки и скидки</h6>
                             <p className="mb-4">Подпишитесь на новости и мы сообщим о наших специальных предложениях:</p>
+                            {/* Unisender's subscription form, posted straight to Unisender with its hidden settings */}
                             <form method="POST" action="https://cp.unisender.com/ru/subscribe?hash=6ag87sp95se3dnxjfcqpuuzuecea35ueiscjkuqxbo9kgbqc8oy3y" name="subscribtion_form" id="newsletter-form">
                                 <div className="mb-4 flex">
                                     <input

@@ -7,7 +7,7 @@ import ReviewsCarousel from '@/components/home/reviews-carousel'
 
 import { loadPromoReviews, loadNews } from '@/lib/queries'
 
-// News and reviews have no revalidation of their own on this page
+// Catches the changes that revalidation by cache tags misses (lib/queries/cache-tags.ts)
 export const revalidate = 3600
 
 const bannerClass = 'flex h-screen items-center'

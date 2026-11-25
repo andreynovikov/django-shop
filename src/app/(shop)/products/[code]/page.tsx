@@ -18,8 +18,10 @@ import { Product } from '@/lib/types'
 
 import { getProduct } from './load'
 
+// Catches the changes that revalidation by cache tags misses (lib/queries/cache-tags.ts)
 export const revalidate = 3600
 
+// The fields of the specification tab, in this order
 const fieldList: (keyof Product)[] = [
   'km_class', 'km_font', 'km_needles', 'km_prog', 'km_rapport',
   'sw_hoopsize', 'sw_datalink', 'sm_software', 'sm_shuttletype', 'sm_stitchwidth',
@@ -44,12 +46,14 @@ function filterProductFields(product: Product) {
     if (!(field in product))
       return false
     if (field === 'country' || field === 'developer_country')
+      // countries are objects, a disabled one is not shown
       return product[field].enabled
     return product[field]
   })
 }
 
-// Descriptions are written for the wider columns and the headings of the main site
+// Descriptions are written for the wider columns and the headings of the main site, and use Bootstrap 4's
+// embed-responsive classes, which became ratio in Bootstrap 5 (backend-content.css styles those)
 function rebootstrap(value: string) {
   value = value.replaceAll('col-md-8', 'col-md-4')
   value = value.replaceAll('col-md-10', 'col-md-5')
@@ -63,7 +67,8 @@ function rebootstrap(value: string) {
   return value
 }
 
-// Field names are "name,unit"
+// The labels of the product fields: the backend's verbose names, which may have a unit after a comma ("name,unit").
+// Each gets [label, unit], the unit follows the value.
 const getFieldNames = cache(async () => {
   const fields = await getProductFields()
   return Object.entries(fields).reduce((names, [key, value]) => {
@@ -211,9 +216,12 @@ export default async function ProductPage({ params }: PageProps<'/products/[code
 }
 
 export async function generateStaticParams() {
+  // Pre-rendered only by a production build, not in dev or CI's PLAYWRIGHT_TEST build, where each page is rendered
+  // on its first visit
   if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
     return []
 
+  // the first 1000 products, any others are rendered on their first visit
   const products = await loadProducts(null, 1000, baseFilters, '', ['code'])
   return products.results.map((product) => ({ code: product.code }))
 }

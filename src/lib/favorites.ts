@@ -10,7 +10,8 @@ export default function useFavorites() {
 
   const queryClient = useQueryClient()
 
-  // Initial data would count as fresh under the App Router's default staleTime and skip the first request,
+  // Initial data would count as fresh under the App Router client's default staleTime (a minute, see query-client.ts)
+  // and skip the first request,
   // so the list is empty until it is loaded and isSuccess tells that it is
   const { data: favorites = noFavorites, isSuccess, isLoading, isError } = useQuery({
     queryKey: favoriteKeys.details(),

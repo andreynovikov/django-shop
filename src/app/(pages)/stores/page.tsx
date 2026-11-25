@@ -61,6 +61,7 @@ export default async function StoresPage() {
 
   const storeGroups = groupByCountryAndCity(stores)
 
+  // `publish` is the backend's "show on maps" flag, the list below shows every store
   const markers: MapMarker[] = stores
     .filter((store) => store.publish && store.latitude && store.longitude)
     .map((store) => ({

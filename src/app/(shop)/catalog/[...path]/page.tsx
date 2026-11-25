@@ -9,8 +9,10 @@ import { baseFilters } from '@/lib/catalog'
 import { HttpError, loadCategories, loadCategory, loadCurrentSite, loadProducts } from '@/lib/queries'
 import { CategoryTreeItem } from '@/lib/types'
 
+// Catches the changes that revalidation by cache tags misses (lib/queries/cache-tags.ts)
 export const revalidate = 3600
 
+// The category page has no page links, it shows all the category's products at once
 const pageSize = 1000
 const defaultOrder = 'title'
 
@@ -59,6 +61,8 @@ export default async function CategoryPage({ params }: PageProps<'/catalog/[...p
 }
 
 export async function generateStaticParams() {
+  // Pre-rendered only by a production build, not in dev or CI's PLAYWRIGHT_TEST build, where each page is rendered
+  // on its first visit
   if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
     return []
 

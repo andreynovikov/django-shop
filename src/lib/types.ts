@@ -103,15 +103,15 @@ export interface ProductInfo {
   type_prefix: string
   title: string
   variations: string
-  price: number
-  cost: number
+  price: number  // the site's list price
+  cost: number  // the price that the site shows, discounts taken off
   discount: number
   instock: number
   image?: string
   enabled: boolean
   isnew: boolean
   recomended: boolean
-  ws_pack_only: boolean
+  ws_pack_only: boolean  // a wholesale site sells it in whole packs of pack_factor only, see useSite().site.wholesale
   pack_factor: number
   sales?: string[]
   sales_notes: string
@@ -680,7 +680,7 @@ export interface Integration {
   name: string
   utm_source: string
   enabled: boolean
-  output_template?: string
+  output_template?: string  // the feed's template in templates/xml/, without .ejs; none means no feed
   output_all: boolean
   output_paged: boolean
   output_available: boolean
@@ -707,7 +707,7 @@ export interface IntegrationProduct {
   title: string
   price: number
   enabled: boolean
-  stock?: number
+  stock?: number  // only when the integration outputs stock
 }
 
 interface BlogEntryBase {

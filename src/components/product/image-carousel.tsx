@@ -24,6 +24,7 @@ export default function ImageCarousel({ image, images = [] }: { image: string, i
         pagination={{ clickable: true }}
         modules={[Pagination]}
       >
+        {/* The main image comes first, the lightbox counts the slides the same way */}
         <SwiperSlide key={image} className="relative" style={{ aspectRatio: "4/3" }}>
           <Image
             src={image}

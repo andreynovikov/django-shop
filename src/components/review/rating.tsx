@@ -1,5 +1,6 @@
 import { IconStar, IconStarFilled, IconStarHalfFilled } from '@tabler/icons-react'
 
+// Stars are filled up to the value, with a half star for a remainder of 0.3 or more
 function getStarIcon(star: number, value: number) {
   if (star <= value)
     return <IconStarFilled />

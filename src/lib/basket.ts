@@ -43,6 +43,7 @@ export default function useBasket() {
     queryFn: () => loadBaskets()
   })
 
+  // The session has at most one basket on the site
   const isEmpty = baskets === undefined || baskets.length === 0 || baskets[0].items.length === 0
   const basket = useMemo(() => isEmpty ? {} as Basket : baskets[0], [baskets, isEmpty])
 

@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: { absolute: '404: Страница не найдена' },
 }
 
+// After Next's built-in 404 page, padded instead of filling the viewport
 const styles: Record<string, CSSProperties> = {
   error: {
     fontFamily: '-apple-system, BlinkMacSystemFont, Roboto, "Segoe UI", "Fira Sans", Avenir, "Helvetica Neue", "Lucida Grande", sans-serif',

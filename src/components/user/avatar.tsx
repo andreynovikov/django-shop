@@ -47,6 +47,8 @@ function generateAvatar(fullName: string, size: number) {
 }
 
 async function loadAvatar(gravatar: string, name: string, size: number) {
+  // A user without a name is named by the phone, partly hidden, so initials would mean nothing: Gravatar's generic
+  // figure instead. Otherwise Gravatar answers 404 for an email without an avatar and the initials are drawn.
   const d = name.startsWith('+7') ? 'mp' : '404'
   try {
     const response = await fetch(gravatar + '&d=' + d)
@@ -66,6 +68,7 @@ interface UserAvatarProps {
   name: string
   size?: number
   border?: boolean
+  // replaces the round shape and the border
   className?: string
 }
 

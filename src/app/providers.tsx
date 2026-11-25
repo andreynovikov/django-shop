@@ -12,6 +12,8 @@ import { getQueryClient } from '@/lib/query-client'
 
 import '@/lib/moment'
 
+// Fewer than cartzilla's: familysew has no login, cart or toasts, and no component here reads the site, session,
+// topbar or toolbar contexts
 export default function Providers({ children }: { children: ReactNode }) {
   const queryClient = getQueryClient()
 

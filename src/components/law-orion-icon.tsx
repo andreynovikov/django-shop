@@ -1,5 +1,6 @@
 import { SVGProps } from 'react'
 
+// The Orion library's "Law" icon (scales), the comparison icon, which the sprite of svg-icon.tsx lacks
 export default function LawOrionIcon(props: SVGProps<SVGSVGElement>) {
     return (
         <svg {...props}

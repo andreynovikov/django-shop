@@ -9,6 +9,7 @@ import { MapMarker, MarkerPin, MarkersMap } from '@/components/map'
 import { loadServiceCenters } from '@/lib/queries'
 import { ServiceCenter } from '@/lib/types'
 
+// Catches the changes that revalidation by cache tags misses (lib/queries/cache-tags.ts)
 export const revalidate = 86400
 
 export const metadata: Metadata = {
