@@ -4,8 +4,9 @@
       - item is match('^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
       - "'..' not in item"
       - item not in server_nginx_sites_enabled or item not in server_nginx_sites_disabled
+      - item not in server_nginx_sites_enabled or item not in server_nginx_sites_removed
     quiet: true
-  loop: "{{ server_nginx_sites_enabled + server_nginx_sites_disabled }}"
+  loop: "{{ server_nginx_sites_enabled + server_nginx_sites_disabled + server_nginx_sites_removed }}"
 
 - name: Install the bundled nginx configuration
   ansible.builtin.copy:
@@ -18,11 +19,18 @@
     backup: true
   notify: Reload nginx
 
-- name: Disable explicitly retired nginx sites
+- name: Disable nginx sites
   ansible.builtin.file:
     path: "{{ server_nginx_directory }}/sites-enabled/{{ item }}"
     state: absent
-  loop: "{{ server_nginx_sites_disabled }}"
+  loop: "{{ server_nginx_sites_disabled + server_nginx_sites_removed }}"
+  notify: Reload nginx
+
+- name: Remove retired nginx site configurations
+  ansible.builtin.file:
+    path: "{{ server_nginx_directory }}/sites-available/{{ item }}"
+    state: absent
+  loop: "{{ server_nginx_sites_removed }}"
   notify: Reload nginx
 
 - name: Enable nginx sites

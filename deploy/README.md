@@ -215,11 +215,11 @@ the frontends do: `127.0.0.1:9324:8080`.
 # Nginx setup
 
 The `nginx` tag installs the [bundled `nginx.conf`, site files and shared includes](ansible/roles/server/files/nginx/).
-It creates `/var/cache/nginx`, enables the 11 sites listed in `server_nginx_sites_enabled`, and removes Debian's
-`sites-enabled/default` link in favor of the bundled `default.conf`. To retire a site, remove it from the enabled
-list and add it to `server_nginx_sites_disabled`. Other links are left alone.
+It creates `/var/cache/nginx`, enables the sites listed in `server_nginx_sites_enabled`, and removes Debian's
+`sites-enabled/default` link in favor of the bundled `default.conf`. The dev site stays in `sites-available`.
+The role removes the stats site from both `sites-enabled` and `sites-available`.
 
-Before applying the role, provision each site's TLS certificate and key at the paths in its server blocks. Install
+Before applying the role, provision each enabled site's TLS certificate and key at the paths in its server blocks. Install
 `/etc/nginx/htpasswd` with owner `root`, group `www-data` and mode `0640`. The bundled `basic_auth` include uses
 that file. Keep the TLS files and password hashes outside git.
 
@@ -237,7 +237,8 @@ with the installed files before reloading nginx. Changed nginx files get timesta
 Site logs live under `/var/log/nginx`, with filenames based on the site:
 
 ```nginx
-access_log   /var/log/nginx/www.sewing-world.ru_access.log upstream;
+access_log   /var/log/nginx/www.sewing-world.ru_access.log upstream buffer=64k flush=5s;
+access_log   /var/log/nginx/www.sewing-world.ru_4xx.log errored if=$notfound;
 access_log   /var/log/nginx/www.sewing-world.ru_5xx.log errored if=$errored;
 error_log    /var/log/nginx/www.sewing-world.ru_error.log;
 ```
@@ -268,8 +269,12 @@ Content admins upload the files that HTML text links to (images, videos, documen
 - The bundled admin site sets `client_max_body_size 10M`. For larger uploads, adjust the limit in its site file
   and apply the `nginx` tag.
 - The main and API sites set `expires 14d` on `/media/`. This works for files with unique URLs. If a file is
-  replaced at the same URL, clients can keep using a cached copy. The production storefronts also cache successful
-  `/_next/image` responses in `next_image` for up to 30 days.
+  replaced at the same URL, clients can keep using a cached copy. Stage and the other storefronts cache
+  `/media/` and `/images/` for one hour because some filenames are reused. The media and Django static
+  locations cache file metadata and open descriptors per worker, with checks every 30 seconds on access.
+- All storefronts, including stage, serve build assets from `.docker/static/` and cache successful
+  `/_next/image` responses in `next_image` for up to 30 days. Stage HTTPS responses carry
+  `X-Robots-Tag: noindex`.
 
 # TLS certificates
 
@@ -934,8 +939,8 @@ those files monthly and keeping 12 rotations. The default application rules are:
 
 ## Docker cleanup
 
-The `docker` tag enables `docker-prune.timer`. It runs weekly and removes unused Docker images and build cache
-older than seven days. Keep any image you might need to roll back available in the registry.
+The `docker` tag enables `docker-prune.timer`. It runs daily at midnight server time and removes unused Docker
+images and build cache older than seven days. Keep any image you might need to roll back available in the registry.
 
 ## Development database syncronization
 

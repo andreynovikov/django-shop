@@ -22,11 +22,11 @@ PostgreSQL runs on a separate server.
 
 The `nginx` tag installs [the bundled configuration](roles/server/files/nginx/) with the main `nginx.conf`,
 the production sites, and their custom includes. Debian supplies the standard files and the Brotli module.
-The role enables the sites listed in `server_nginx_sites_enabled` and removes the Debian default link via
-`server_nginx_sites_disabled`. It leaves other site links alone. To retire a site, remove it from the enabled
-list and add it to the disabled list so the playbook removes its existing link.
+The role enables the sites in `server_nginx_sites_enabled`. Move a site to `server_nginx_sites_disabled` to
+remove only its `sites-enabled` entry. To also delete its installed config, remove the bundled file and move
+the site to `server_nginx_sites_removed`. The dev site is disabled and the stats site is removed.
 
-Provision the TLS certificates and their keys at the paths referenced in the site files. Also install
+Provision the TLS certificates and their keys at the paths referenced in the enabled site files. Also install
 `/etc/nginx/htpasswd` with `root:www-data` ownership and `0640` permissions. Provision these files before
 applying the `nginx` tag. Keep the password hashes and keys outside git.
 

@@ -1,8 +1,8 @@
 [Unit]
-Description=Weekly Docker cleanup
+Description=Daily Docker cleanup
 
 [Timer]
-OnCalendar=weekly
+OnCalendar=daily
 Persistent=true
 
 [Install]

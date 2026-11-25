@@ -12,7 +12,7 @@
     mode: "0644"
   notify: Reload systemd
 
-- name: Enable weekly Docker cleaning
+- name: Enable the daily Docker prune timer
   ansible.builtin.systemd_service:
     name: docker-prune.timer
     enabled: true

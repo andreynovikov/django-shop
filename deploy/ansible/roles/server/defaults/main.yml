@@ -89,15 +89,14 @@ server_nginx_sites_enabled:
   - admin.sewing-world.ru.conf
   - api.sewing-world.ru.conf
   - default.conf
-  - dev.sigalev.ru.conf
   - dor-tak.ru.conf
   - familysew.ru.conf
   - janome.club.conf
   - singer.ru.conf
   - stage.sewing-world.ru.conf
-  - stats.sewing-world.ru.conf
   - www.sewing-world.ru.conf
-server_nginx_sites_disabled: [default]
+server_nginx_sites_disabled: [default, dev.sigalev.ru.conf]
+server_nginx_sites_removed: [stats.sewing-world.ru.conf]
 
 # Owner of /www, where the sites live
 server_www_owner: andrey
