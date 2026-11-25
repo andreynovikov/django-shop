@@ -183,8 +183,8 @@ def get_beru_labels_data(order_id):
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error), rate_limit='1/s', retry_backoff=300, retry_jitter=False)
-def notify_beru_product_stocks(self, products, account):
-    integration = Integration.objects.get(utm_source=account)
+def notify_beru_product_stocks(self, products, account, target_site_id=None):
+    integration = Integration.get_for_utm_source(account, target_site_id)
 
     campaign_id = integration.settings.get('ym_campaign', '')
     api_key = integration.settings.get('api_key', '')
@@ -242,7 +242,7 @@ def notify_beru_marked_stocks(self):
         products = ProductIntegration.objects.order_by().filter(integration=integration, notify_stock=True)
         products = list(products.values_list('product_id', flat=True).distinct())
         if products:
-            notify_beru_product_stocks.s(products, integration.utm_source).apply_async(priority=PRIORITY_IDLE)
+            notify_beru_product_stocks.s(products, integration.utm_source, target_site_id=integration.target_site_id).apply_async(priority=PRIORITY_IDLE)
             total += len(products)
     return total
 
@@ -264,7 +264,7 @@ def notify_beru_integration_stocks(self):
 
         countdown = 0
         for chunk in batched(products, 20):
-            notify_beru_product_stocks.s(chunk, integration.utm_source).apply_async(countdown=countdown, priority=PRIORITY_IDLE)
+            notify_beru_product_stocks.s(chunk, integration.utm_source, target_site_id=integration.target_site_id).apply_async(countdown=countdown, priority=PRIORITY_IDLE)
             countdown += 60
 
         total += len(products)

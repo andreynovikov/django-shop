@@ -55,7 +55,7 @@ class IntegrationProductSerializer(serializers.ModelSerializer):
         integration = self.context.get('integration')
         request = self.context.get('request')
         if integration is not None:
-            self.site = integration.site
+            self.site = integration.source_site
             if integration.output_skip_categories:
                 self.fields.pop('categories')
         else:

@@ -16,7 +16,7 @@ def product_saved(sender, **kwargs):
     if product.num >= 0:  # report new stock only if stock is reset (this disables double renew on stocks import)
         return
 
-    for integration in product.integrations.filter(pk__in=Site.objects.get(domain='ozon.ru').integrations.all()):
+    for integration in product.integrations.filter(pk__in=Site.objects.get(domain='ozon.ru').source_integrations.all()):
         try:
             product_integration = ProductIntegration.objects.get(product=product, integration=integration)
             product_integration.notify_stock = True

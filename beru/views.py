@@ -22,19 +22,19 @@ logger = logging.getLogger('beru')
 def token_required(func):
     @wraps(func)
     def _wrapped_view(request, *args, **kwargs):
-        integration = Integration.objects.filter(utm_source=kwargs.get('account', 'beru')).first()
+        integration = Integration.objects.filter(target_site=request.site, utm_source=kwargs.get('account', 'beru')).first()
         if integration is None or not integration.settings:
             return HttpResponseForbidden()
         if request.META.get('HTTP_AUTHORIZATION', None) != integration.settings.get('token', ''):
             return HttpResponseForbidden()
-        return func(request, *args, **kwargs)
+        return func(request, *args, integration=integration, **kwargs)
     return _wrapped_view
 
 
 @require_POST
 @csrf_exempt
 @token_required
-def cart(request, account='beru'):
+def cart(request, account='beru', *, integration):
     if request.body:
         data = json.loads(request.body.decode('utf-8'))
     else:
@@ -43,7 +43,6 @@ def cart(request, account='beru'):
         """)
     logger.info('>>> ' + request.path)
     logger.debug(data)
-    integration = Integration.objects.filter(utm_source=account).first()
     response = {'cart': {'items': []}}
     for item in data.get('cart', {}).get('items', []):
         try:
@@ -72,7 +71,7 @@ def cart(request, account='beru'):
 @require_POST
 @csrf_exempt
 @token_required
-def accept_order(request, account='beru'):
+def accept_order(request, account='beru', *, integration):
     if request.body:
         data = json.loads(request.body.decode('utf-8'))
     else:
@@ -84,19 +83,18 @@ def accept_order(request, account='beru'):
     beru_order = data.get('order', {})
 
     order_id = beru_order.get('id', None)
-    order = Order.objects.filter(delivery_tracking_number=order_id).first()  # Beru sometimes registers same order several times
+    order = Order.objects.filter(integration=integration, delivery_tracking_number=order_id).first()  # Beru sometimes registers same order several times
     if order is not None:
         return JsonResponse({"order": {"accepted": True, "id": str(order.id)}})
 
     user = ShopUser.objects.get(phone='0000')
-    integration = Integration.objects.filter(utm_source=account).first()
 
     if not request.session.session_key:
         request.session.save()
         request.session.modified = True
     request.session[SESSION_KEY] = user._meta.pk.value_to_string(user)
     request.session.save()
-    basket = Basket.objects.create(site=integration.site, session_id=request.session.session_key, utm_source=account, secondary=True)
+    basket = Basket.objects.create(site=integration.source_site, session_id=request.session.session_key, utm_source=account, secondary=True)
 
     for beru_item in beru_order.get('items', []):
         try:
@@ -177,7 +175,7 @@ BERU_ORDER_SUBSTATUS = {
 @require_POST
 @csrf_exempt
 @token_required
-def order_status(request, account='beru'):
+def order_status(request, account='beru', *, integration):
     if request.body:
         data = json.loads(request.body.decode('utf-8'))
     else:
@@ -189,9 +187,7 @@ def order_status(request, account='beru'):
     beru_order = data.get('order', {})
     order_id = str(beru_order.get('id', 0))
     try:
-        order = Order.objects.get(delivery_tracking_number=order_id)
-        if order.integration is None:  # Manually entered orders may have no integration.
-            return HttpResponse('')
+        order = Order.objects.get(integration=integration, delivery_tracking_number=order_id)
         status = beru_order.get('status', 'UNKNOWN')
         if status == 'PROCESSING':  # Yandex Market has started processing the order.
             order.status = Order.STATUS_ACCEPTED

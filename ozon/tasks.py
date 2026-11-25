@@ -26,8 +26,8 @@ class TaskFailure(Exception):
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
-def get_integration_unfulfilled_orders(self, account):
-    integration = Integration.objects.get(utm_source=account)
+def get_integration_unfulfilled_orders(self, account, target_site_id=None):
+    integration = Integration.get_for_utm_source(account, target_site_id)
     client_id = integration.settings.get('client_id', '')
     api_key = integration.settings.get('api_key', '')
 
@@ -90,9 +90,9 @@ def get_integration_unfulfilled_orders(self, account):
                 if not posting_number:
                     continue
 
-                order = Order.objects.filter(delivery_tracking_number=posting_number).first()
+                order = Order.objects.filter(integration=integration, delivery_tracking_number=posting_number).first()
                 if order is None:
-                    basket = Basket.objects.create(site=integration.site, session_id=session.session_key, utm_source=account, secondary=True)
+                    basket = Basket.objects.create(site=integration.source_site, session_id=session.session_key, utm_source=account, secondary=True)
 
                     for ozon_item in posting.get('products', []):
                         try:
@@ -163,15 +163,15 @@ def get_integration_unfulfilled_orders(self, account):
 @shared_task
 def get_unfulfilled_orders():
     total = 0
-    for integration in Integration.objects.filter(site__domain='ozon.ru', enabled=True):
-        get_integration_unfulfilled_orders.s(integration.utm_source).apply_async(priority=PRIORITY_IDLE)
+    for integration in Integration.objects.filter(source_site__domain='ozon.ru', enabled=True):
+        get_integration_unfulfilled_orders.s(integration.utm_source, target_site_id=integration.target_site_id).apply_async(priority=PRIORITY_IDLE)
         total += 1
     return total
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), rate_limit='1/s', retry_backoff=300, retry_jitter=False)
-def notify_product_stocks(self, products, account):
-    integration = Integration.objects.get(utm_source=account)
+def notify_product_stocks(self, products, account, target_site_id=None):
+    integration = Integration.get_for_utm_source(account, target_site_id)
     client_id = integration.settings.get('client_id', '')
     api_key = integration.settings.get('api_key', '')
 
@@ -239,10 +239,10 @@ def notify_product_stocks(self, products, account):
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_marked_stocks(self):
     total = 0
-    for integration in Integration.objects.filter(site__domain='ozon.ru', enabled=True):
+    for integration in Integration.objects.filter(source_site__domain='ozon.ru', enabled=True):
         products = ProductIntegration.objects.order_by().filter(integration=integration, notify_stock=True)
         products = list(products.values_list('product_id', flat=True).distinct())
         if products:
-            notify_product_stocks.s(products, integration.utm_source).apply_async(priority=PRIORITY_IDLE)
+            notify_product_stocks.s(products, integration.utm_source, target_site_id=integration.target_site_id).apply_async(priority=PRIORITY_IDLE)
             total += len(products)
     return total

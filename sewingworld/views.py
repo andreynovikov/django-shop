@@ -17,7 +17,7 @@ def stock(request):
         'categories__in': root.get_descendants(include_self=True),
         'avito': True
     }
-    integration = Integration.objects.filter(utm_source='avito').first()
+    integration = Integration.objects.filter(target_site=request.site, utm_source='avito').first()
     products = list(Product.objects.filter(**filters).distinct())
     counted = Product.get_stocks([product.pk for product in products], integration=integration)
     products = [(product, max(int(counted[product.pk]), 0)) for product in products]

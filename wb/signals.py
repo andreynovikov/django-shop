@@ -19,7 +19,7 @@ def product_saved(sender, **kwargs):
     if product.num >= 0:  # report new stock only if stock is reset (this disables double renew on stocks import)
         return
 
-    for integration in product.integrations.filter(pk__in=Site.objects.get(domain='wildberries.ru').integrations.all()):
+    for integration in product.integrations.filter(pk__in=Site.objects.get(domain='wildberries.ru').source_integrations.all()):
         if integration.settings.get('warehouse_id', 0) != 0:
             try:
                 product_integration = ProductIntegration.objects.get(product=product, integration=integration)
@@ -35,6 +35,6 @@ def product_integration_changed(sender, **kwargs):  # used to clean remote wareh
     if product is None:
         return
     if kwargs.get('action', None) == 'post_remove':
-        for integration in Integration.objects.filter(pk__in=kwargs.get('pk_set', []), site__domain='wildberries.ru'):
+        for integration in Integration.objects.filter(pk__in=kwargs.get('pk_set', []), source_site__domain='wildberries.ru'):
             if integration.settings.get('warehouse_id', '') != '':
-                notify_product_stocks.s([product.id], integration.utm_source, True).apply_async(priority=PRIORITY_IDLE)
+                notify_product_stocks.s([product.id], integration.utm_source, True, target_site_id=integration.target_site_id).apply_async(priority=PRIORITY_IDLE)

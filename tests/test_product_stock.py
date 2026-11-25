@@ -27,7 +27,8 @@ class StockTests(TestCase):
     def integration(self, domain, *suppliers):
         """ An integration that sells from these suppliers on a site of its own """
         site = Site.objects.create(domain=domain, name=domain)
-        integration = Integration.objects.create(name=domain, utm_source=domain, site=site, output_template='market')
+        integration = Integration.objects.create(name=domain, utm_source=domain, source_site=site, target_site=Site.objects.get_current(),
+                                                 output_template='market')
         integration.suppliers.set(suppliers)
         return integration
 
@@ -89,8 +90,8 @@ class StockTests(TestCase):
         other = self.integration('wildberries.ru', self.on_request)
         self.order(Site.objects.get_current(), (self.machine, 1))
         self.order(shop, (self.machine, 2))
-        self.order(marketplace.site, (self.machine, 3))
-        self.order(other.site, (self.machine, 4))  # sells from another supplier
+        self.order(marketplace.source_site, (self.machine, 3))
+        self.order(other.source_site, (self.machine, 4))  # sells from another supplier
         self.assertEqual(self.machine.get_stock(), 4)
         self.assertEqual(self.machine.get_stock(integration=marketplace), 4)
 

@@ -10,10 +10,13 @@ __all__ = [
 
 class Integration(models.Model):
     name = models.CharField('название', max_length=100)
-    utm_source = models.CharField('источник', max_length=20, unique=True, db_index=True)
-    site = models.ForeignKey(Site, verbose_name='сайт', related_name='integrations', related_query_name='integration', on_delete=models.PROTECT)
+    utm_source = models.CharField('источник', max_length=20)
+    source_site = models.ForeignKey(Site, verbose_name='сайт-источник', related_name='source_integrations',
+                                    related_query_name='source_integration', on_delete=models.PROTECT)
+    target_site = models.ForeignKey(Site, verbose_name='сайт-витрина', related_name='integrations',
+                                    related_query_name='integration', on_delete=models.PROTECT)
     enabled = models.BooleanField('включена', default=False)
-    output_template = models.CharField('шаблон выгрузки', max_length=20)
+    output_template = models.CharField('шаблон выгрузки', max_length=20, blank=True)
     output_all = models.BooleanField('выгражать все', default=False, help_text="Выгружать товары по дереву категорий, а не по флагу интеграции")
     output_paged = models.BooleanField('выгражать постранично', default=False)
     output_available = models.BooleanField('выгражать только в наличии', default=False)
@@ -35,9 +38,16 @@ class Integration(models.Model):
         verbose_name = 'интеграция'
         verbose_name_plural = 'интеграции'
         ordering = ['name']
+        constraints = [models.UniqueConstraint(fields=['target_site', 'utm_source'], name='shop_integration_target_utm_unique')]
 
     def __str__(self):
         return self.name
+
+    @classmethod
+    def get_for_utm_source(cls, utm_source, target_site_id=None):
+        if target_site_id is None:
+            target_site_id = Site.objects.get_current().pk
+        return cls.objects.get(utm_source=utm_source, target_site_id=target_site_id)
 
 
 class ProductIntegration(models.Model):

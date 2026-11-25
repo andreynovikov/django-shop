@@ -500,9 +500,9 @@ class Product(models.Model):
         # suppliers, the sites without integrations if a supplier counts in stock, and always the main site, which
         # has integrations of its own.
         sites_of = defaultdict(set)
-        for supplier, site in Supplier.objects.filter(pk__in=list(count_in_stock), integration__isnull=False).values_list('pk', 'integration__site'):
+        for supplier, site in Supplier.objects.filter(pk__in=list(count_in_stock), integration__isnull=False).values_list('pk', 'integration__source_site'):
             sites_of[supplier].add(site)
-        without_integrations = set(Site.objects.filter(integration__isnull=True).values_list('pk', flat=True))
+        without_integrations = set(Site.objects.filter(source_integration__isnull=True).values_list('pk', flat=True))
         ordered = defaultdict(dict)
         for product, site, quantity in OrderItem.objects.filter(
             product__in=available,

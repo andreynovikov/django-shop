@@ -279,9 +279,9 @@ class Order(models.Model):
         user = ShopUser.objects.get(id=uid)
         integration = kwargs.get('integration', None)
         if integration is None and basket.utm_source:
-            integration = Integration.objects.filter(utm_source=basket.utm_source).first()
+            integration = Integration.objects.filter(target_site=kwargs.get('site', basket.site), utm_source=basket.utm_source).first()
         if integration and integration.uses_api:
-            kwargs['site'] = integration.site
+            kwargs['site'] = integration.source_site
         if 'site' not in kwargs:
             kwargs['site'] = Site.objects.get_current()
         order = Order(user=user, **kwargs)

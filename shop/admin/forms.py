@@ -37,6 +37,18 @@ class CategoryAdminForm(forms.ModelForm):
         }
 
 
+def integration_label(integration):
+    return f'{integration.name} ({integration.target_site.domain})'
+
+
+class IntegrationChoiceField(forms.ModelChoiceField):
+    label_from_instance = staticmethod(integration_label)
+
+
+class IntegrationMultipleChoiceField(forms.ModelMultipleChoiceField):
+    label_from_instance = staticmethod(integration_label)
+
+
 class IntegrationAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(IntegrationAdminForm, self).__init__(*args, **kwargs)
@@ -165,6 +177,10 @@ class IntegrationInlineForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['integration'].label = 'Интеграция'
+        self.fields['integration'].queryset = self.fields['integration'].queryset.select_related('target_site')
+
+    class Meta:
+        field_classes = {'integration': IntegrationChoiceField}
 
 
 class SWTreeNodeMultipleChoiceField(TreeNodeMultipleChoiceField):
@@ -242,7 +258,11 @@ class ProductAdminForm(forms.ModelForm):
 
 
 class ProductListAdminForm(forms.ModelForm):
-    integrations = forms.ModelMultipleChoiceField(queryset=Integration.objects.filter(enabled=True, output_all=False), widget=forms.CheckboxSelectMultiple, required=False)
+    integrations = IntegrationMultipleChoiceField(
+        queryset=Integration.objects.filter(enabled=True, output_all=False).select_related('target_site'),
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+    )
 
     def __init__(self, *args, **kwargs):
         instance = kwargs.get('instance')
@@ -335,6 +355,8 @@ class OrderAdminForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(OrderAdminForm, self).__init__(*args, **kwargs)
+        if 'integration' in self.fields:
+            self.fields['integration'].queryset = self.fields['integration'].queryset.select_related('target_site')
         try:
             instance = kwargs['instance']
             self.fields['buyer'].queryset = Contractor.objects.filter(is_seller=False)
@@ -372,6 +394,7 @@ class OrderAdminForm(forms.ModelForm):
     class Meta:
         model = Order
         exclude = ['created']
+        field_classes = {'integration': IntegrationChoiceField}
         widgets = {
             'address': forms.TextInput(attrs={'style': 'width: 60%'}),
             'phone': PhoneWidget(),

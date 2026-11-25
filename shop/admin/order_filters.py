@@ -12,6 +12,8 @@ from more_admin_filters import RelatedDropdownFilter, SimpleDropdownFilter
 
 from shop.models import Order, ShopUser
 
+from .forms import integration_label
+
 
 class OrderStatusListFilter(SimpleDropdownFilter):
     title = _('статус')
@@ -226,4 +228,5 @@ class OrderOwnerFilter(SimpleDropdownFilter):
 
 class OrderIntegrationFilter(RelatedDropdownFilter):
     def field_choices(self, field, request, model_admin):
-        return field.get_choices(include_blank=False, limit_choices_to={'enabled': True})
+        integrations = field.remote_field.model.objects.filter(enabled=True).select_related('target_site')
+        return [(integration.pk, integration_label(integration)) for integration in integrations]

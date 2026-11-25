@@ -48,8 +48,8 @@ class TaskFailure(Exception):
     pass
 
 
-def get_warehouses(account):
-    integration = Integration.objects.get(utm_source=account)
+def get_warehouses(account, target_site_id=None):
+    integration = Integration.get_for_utm_source(account, target_site_id)
 
     api_key = integration.settings.get('api_key', '')
 
@@ -77,10 +77,10 @@ def get_warehouses(account):
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
-def get_integration_new_orders(self, account):
-    integration = Integration.objects.get(utm_source=account)
+def get_integration_new_orders(self, account, target_site_id=None):
+    integration = Integration.get_for_utm_source(account, target_site_id)
     warehouseId = integration.settings.get('warehouse_id', '')
-    warehouses = get_warehouses(account)
+    warehouses = get_warehouses(account, target_site_id)
 
     api_key = integration.settings.get('api_key', '')
 
@@ -115,11 +115,11 @@ def get_integration_new_orders(self, account):
             if not order_number:
                 continue
 
-            order = Order.objects.filter(delivery_tracking_number=str(order_number)).first()
+            order = Order.objects.filter(integration=integration, delivery_tracking_number=str(order_number)).first()
             if order is not None:
                 continue
 
-            basket = Basket.objects.create(site=integration.site, session_id=session.session_key, utm_source=account, secondary=True)
+            basket = Basket.objects.create(site=integration.source_site, session_id=session.session_key, utm_source=account, secondary=True)
 
             has_problem = False
             for sku in wb_order.get('skus', []):
@@ -169,17 +169,17 @@ def get_integration_new_orders(self, account):
 @shared_task
 def get_new_orders():
     total = 0
-    for integration in Integration.objects.filter(site__domain='wildberries.ru', enabled=True):
-        get_integration_new_orders.s(integration.utm_source).apply_async(priority=PRIORITY_IDLE)
+    for integration in Integration.objects.filter(source_site__domain='wildberries.ru', enabled=True):
+        get_integration_new_orders.s(integration.utm_source, target_site_id=integration.target_site_id).apply_async(priority=PRIORITY_IDLE)
         total += 1
     return total
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
-def get_integration_detached_orders(self, account):
-    integration = Integration.objects.get(utm_source=account)
+def get_integration_detached_orders(self, account, target_site_id=None):
+    integration = Integration.get_for_utm_source(account, target_site_id)
     warehouseId = integration.settings.get('warehouse_id', '')
-    warehouses = get_warehouses(account)
+    warehouses = get_warehouses(account, target_site_id)
     if len(list(filter(lambda k: k != warehouseId, warehouses.keys()))) == 0:
         return
 
@@ -219,11 +219,11 @@ def get_integration_detached_orders(self, account):
             if not order_number:
                 continue
 
-            order = Order.objects.filter(delivery_tracking_number=str(order_number)).first()
+            order = Order.objects.filter(integration=integration, delivery_tracking_number=str(order_number)).first()
             if order is not None:
                 continue
 
-            basket = Basket.objects.create(site=integration.site, session_id=session.session_key, utm_source=account, secondary=True)
+            basket = Basket.objects.create(site=integration.source_site, session_id=session.session_key, utm_source=account, secondary=True)
 
             has_problem = False
             for sku in wb_order.get('skus', []):
@@ -267,15 +267,15 @@ def get_integration_detached_orders(self, account):
 @shared_task
 def get_detached_orders():
     total = 0
-    for integration in Integration.objects.filter(site__domain='wildberries.ru', enabled=True):
-        get_integration_detached_orders.s(integration.utm_source).apply_async(priority=PRIORITY_IDLE)
+    for integration in Integration.objects.filter(source_site__domain='wildberries.ru', enabled=True):
+        get_integration_detached_orders.s(integration.utm_source, target_site_id=integration.target_site_id).apply_async(priority=PRIORITY_IDLE)
         total += 1
     return total
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
-def get_integration_order_statuses(self, account):
-    integration = Integration.objects.get(utm_source=account)
+def get_integration_order_statuses(self, account, target_site_id=None):
+    integration = Integration.get_for_utm_source(account, target_site_id)
     api_key = integration.settings.get('api_key', '')
 
     url = 'https://marketplace-api.wildberries.ru/api/v3/orders/status'
@@ -300,7 +300,7 @@ def get_integration_order_statuses(self, account):
         num = 0
         for wb_order in result.get('orders', []):
             order_number = wb_order.get('id', 0)
-            order = Order.objects.filter(delivery_tracking_number=str(order_number)).first()
+            order = Order.objects.filter(integration=integration, delivery_tracking_number=str(order_number)).first()
             if order is None:
                 continue
 
@@ -333,15 +333,15 @@ def get_integration_order_statuses(self, account):
 @shared_task
 def get_order_statuses():
     total = 0
-    for integration in Integration.objects.filter(site__domain='wildberries.ru', enabled=True):
-        get_integration_order_statuses.s(integration.utm_source).apply_async(priority=PRIORITY_IDLE)
+    for integration in Integration.objects.filter(source_site__domain='wildberries.ru', enabled=True):
+        get_integration_order_statuses.s(integration.utm_source, target_site_id=integration.target_site_id).apply_async(priority=PRIORITY_IDLE)
         total += 1
     return total
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), rate_limit='1/s', retry_backoff=300, retry_jitter=False)
-def notify_product_stocks(self, products, account, zero_out=False):
-    integration = Integration.objects.get(utm_source=account)
+def notify_product_stocks(self, products, account, zero_out=False, target_site_id=None):
+    integration = Integration.get_for_utm_source(account, target_site_id)
 
     api_key = integration.settings.get('api_key', '')
 
@@ -361,7 +361,7 @@ def notify_product_stocks(self, products, account, zero_out=False):
         if product_integration.meta is None or product_integration.meta.get('chrtID', None) is None:
             if not product.gtin:
                 product_integration.delete()
-                for phone in integration.site.profile.manager_phones.split(','):
+                for phone in integration.source_site.profile.manager_phones.split(','):
                     send_message.s(phone, 'У товара {} отключена интеграция "{}" (отсутствует штрих-код)'.format(product.code, integration.utm_source)).apply_async(priority=PRIORITY_IDLE)
                 continue
             data = {'settings': {'filter': {'textSearch': product.gtin, 'withPhoto': -1}}}
@@ -380,7 +380,7 @@ def notify_product_stocks(self, products, account, zero_out=False):
                             product_integration.save()
                 if product_integration.meta is None or product_integration.meta.get('chrtID', None) is None:
                     product_integration.delete()
-                    for phone in integration.site.profile.manager_phones.split(','):
+                    for phone in integration.source_site.profile.manager_phones.split(','):
                         send_message.s(phone, 'У товара {} отключена интеграция "{}" (не найден штрих-код)'.format(product.code, integration.utm_source)).apply_async(priority=PRIORITY_IDLE)
                     continue
             except HTTPError as e:
@@ -439,7 +439,7 @@ def notify_product_stocks(self, products, account, zero_out=False):
                         sku = item.get('sku')
                         ProductIntegration.objects.filter(product__gtin=sku, integration=integration).delete()
                         # {'data': [{'sku': '374318830018', 'chrtId': 0, 'amount': 4}], 'code': 'NotFound', 'message': 'Not found'}
-                        for phone in integration.site.profile.manager_phones.split(','):
+                        for phone in integration.source_site.profile.manager_phones.split(','):
                             send_message.s(phone, 'У товара с штрих-кодом {} отключена интеграция WB'.format(sku)).apply_async(priority=PRIORITY_IDLE)
             return True
         else:
@@ -453,7 +453,7 @@ def notify_product_stocks(self, products, account, zero_out=False):
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_marked_stocks(self):
     total = 0
-    for integration in Integration.objects.filter(site__domain='wildberries.ru', enabled=True):
+    for integration in Integration.objects.filter(source_site__domain='wildberries.ru', enabled=True):
         if integration.settings.get('warehouse_id', 0) == 0:
             continue
 
@@ -462,7 +462,7 @@ def notify_marked_stocks(self):
         if products:
             countdown = 0
             for chunk in batched(products, 20):
-                notify_product_stocks.s(chunk, integration.utm_source).apply_async(countdown=countdown, priority=PRIORITY_IDLE)
+                notify_product_stocks.s(chunk, integration.utm_source, target_site_id=integration.target_site_id).apply_async(countdown=countdown, priority=PRIORITY_IDLE)
                 countdown += 20
         total += len(products)
     return total
@@ -471,7 +471,7 @@ def notify_marked_stocks(self):
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_integration_stocks(self):
     total = 0
-    for integration in Integration.objects.filter(site__domain='wildberries.ru', enabled=True):
+    for integration in Integration.objects.filter(source_site__domain='wildberries.ru', enabled=True):
         if integration.settings.get('warehouse_id', 0) == 0:
             continue
 
@@ -488,7 +488,7 @@ def notify_integration_stocks(self):
 
         countdown = 0
         for chunk in batched(products, 20):
-            notify_product_stocks.s(chunk, integration.utm_source).apply_async(countdown=countdown, priority=PRIORITY_IDLE)
+            notify_product_stocks.s(chunk, integration.utm_source, target_site_id=integration.target_site_id).apply_async(countdown=countdown, priority=PRIORITY_IDLE)
             countdown += 60
 
         total += len(products)

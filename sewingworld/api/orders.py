@@ -148,7 +148,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 if basket.quantity == 0:
                     return Response('Basket is empty', status=status.HTTP_400_BAD_REQUEST)
 
-                # Keep the source site in the key because an integration can override the order's site.
+                # Keep the storefront site in the key because an integration can override the order's site.
                 order = Order.register(basket, site=request.site, basket_checkout_key=f'{request.site.pk}:{basket.pk}')
                 basket.delete()
                 transaction.on_commit(lambda: notify_new_order(order.id), robust=True)

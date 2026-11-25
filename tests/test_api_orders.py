@@ -15,7 +15,7 @@ from rest_framework.authtoken.models import Token
 from yookassa import Configuration
 
 from sewingworld.models import SiteProfile
-from shop.models import Basket, Contractor, Order, Product, Serial, ShopUser
+from shop.models import Basket, Contractor, Integration, Order, Product, Serial, ShopUser
 
 from .clients import StorefrontClient, add_storefront_key, count_queries, signed_in
 from .fixtures import add_marketplace_sites, add_product
@@ -147,6 +147,19 @@ class CreateTests(Base):
         self.assertFalse(Basket.objects.exists())
         for notice in self.notices.values():
             notice.apply_async.assert_called_once_with((order.id,), countdown=300)
+
+    def test_checkout_uses_the_storefronts_integration(self):
+        source_site = Site.objects.get(domain='ozon.ru')
+        other_site = Site.objects.create(domain='other.test', name='Other storefront')
+        Integration.objects.create(name='A different integration', utm_source='ozon', source_site=source_site, target_site=other_site)
+        integration = Integration.objects.create(name='Ozon', utm_source='ozon', source_site=source_site, target_site=self.site)
+        Basket.objects.filter(pk=self.fill_basket()).update(utm_source='ozon')
+
+        response = self.client.post('/api/v0/orders/')
+
+        self.assertEqual(response.status_code, 200, response.content)
+        order = Order.objects.get(pk=response.json()['id'])
+        self.assertEqual((order.integration, order.site), (integration, self.site))
 
     def test_retry_returns_original_order_and_leaves_new_basket_alone(self):
         key = str(self.fill_basket())

@@ -37,6 +37,11 @@ class IntegrationViewSet(viewsets.ReadOnlyModelViewSet):
     authentication_classes = [SessionAuthentication, TokenAuthentication]
     permission_classes = [DjangoModelPermissions]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        site = getattr(self.request, 'site', None)
+        return queryset.filter(target_site=site) if site else queryset.none()
+
     @action(detail=True)
     def byutm(self, request, pk=None):
         integration = self.get_queryset().filter(utm_source=pk).first()
@@ -56,8 +61,8 @@ class IntegrationViewSet(viewsets.ReadOnlyModelViewSet):
 
         if not integration.output_skip_categories:
             root_category = None
-            if hasattr(integration.site, 'profile'):
-                root_category = integration.site.profile.root_category
+            if hasattr(integration.source_site, 'profile'):
+                root_category = integration.source_site.profile.root_category
             if root_category is None:
                 root_category = self.request.site.profile.root_category
             filters['categories__in'] = root_category.get_descendants(include_self=True).filter(active=True, feed=True)
