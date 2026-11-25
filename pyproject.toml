@@ -54,6 +54,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "flake8>=7.4.1",
+    "openapi-schema-validator>=0.9.0",
 ]
 
 [tool.uv]

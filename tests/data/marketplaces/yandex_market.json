@@ -1,0 +1,3154 @@
+{
+  "components": {
+    "parameters": {
+      "AliasedPageToken": {
+        "description": "Идентификатор страницы c результатами.\n\nЕсли параметр не указан, возвращается первая страница.\n\nПередавайте значение выходного параметра `nextPageToken`, полученное при последнем запросе.\n",
+        "in": "query",
+        "name": "pageToken",
+        "required": false,
+        "schema": {
+          "type": "string"
+        },
+        "x-aliases": [
+          "pageToken",
+          "page_token"
+        ],
+        "x-transform": "token"
+      },
+      "BusinessId": {
+        "description": "Идентификатор кабинета.\n\n{% if audience == \"partner\" %}\n\nЧтобы его узнать, воспользуйтесь запросом [GET v2/campaigns](../../reference/campaigns/getCampaigns.md).\n\nℹ️ [Что такое кабинет и магазин на Маркете](https://yandex.ru/support/marketplace/account/introduction.html)\n\n{% endif %}\n",
+        "in": "path",
+        "name": "businessId",
+        "required": true,
+        "schema": {
+          "format": "int64",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "CampaignId": {
+        "description": "Идентификатор кампании (магазина) — технический идентификатор, который представляет ваш магазин в системе Яндекс Маркета при работе через API. Он однозначно связывается с вашим магазином, но предназначен только для автоматизированного взаимодействия.\n\nЕго можно узнать с помощью запроса [GET v2/campaigns](../../reference/campaigns/getCampaigns.md) или найти в кабинете продавца на Маркете. Нажмите на иконку вашего аккаунта → **Настройки** и в меню слева выберите **API и модули**:\n\n* блок **Идентификатор кампании**;\n* вкладка **Лог запросов** → выпадающий список в блоке **Показывать логи**.\n\n⚠️ Не путайте его с:\n- идентификатором магазина, который отображается в личном кабинете продавца;\n- рекламными кампаниями.\n",
+        "in": "path",
+        "name": "campaignId",
+        "required": true,
+        "schema": {
+          "format": "int64",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "OrderId": {
+        "description": "Идентификатор заказа.",
+        "in": "path",
+        "name": "orderId",
+        "required": true,
+        "schema": {
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "PageLimit50Truncate": {
+        "description": "{{ limit-truncate-param-description }}\n",
+        "in": "query",
+        "name": "limit",
+        "required": false,
+        "schema": {
+          "default": 50,
+          "format": "int32",
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "x-transform": "truncateLimit"
+      }
+    },
+    "responses": {
+      "400": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiClientDataErrorResponse"
+            }
+          }
+        },
+        "description": "Запрос содержит неправильные данные. [Подробнее об ошибке](../../concepts/error-codes.md#400)"
+      },
+      "400Orders": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiClientDataErrorResponse"
+            }
+          }
+        },
+        "description": "Запрос содержит неправильные данные. [Подробнее об ошибках при работе с заказами](../../concepts/error-codes#orders)\n"
+      },
+      "401": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiUnauthorizedErrorResponse"
+            }
+          }
+        },
+        "description": "В запросе не указаны данные для авторизации. [Подробнее об ошибке](../../concepts/error-codes.md#401)"
+      },
+      "403": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiForbiddenErrorResponse"
+            }
+          }
+        },
+        "description": "Данные для авторизации неверны или доступ к ресурсу запрещен. [Подробнее об ошибке](../../concepts/error-codes.md#403)"
+      },
+      "404": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiNotFoundErrorResponse"
+            }
+          }
+        },
+        "description": "Запрашиваемый ресурс не найден. [Подробнее об ошибке](../../concepts/error-codes.md#404)"
+      },
+      "420": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiLimitErrorResponse"
+            }
+          }
+        },
+        "description": "Превышено ограничение на доступ к ресурсу. [Подробнее об ошибке](../../concepts/error-codes.md#420)"
+      },
+      "500": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiServerErrorResponse"
+            }
+          }
+        },
+        "description": "Внутренняя ошибка Маркета. [Подробнее об ошибке](../../concepts/error-codes.md#500)"
+      }
+    },
+    "schemas": {
+      "ApiAvailabilityStatusType": {
+        "description": "Возможность использовать API:\n\n* `AVAILABLE` — методы API доступны для выполнения запросов.\n* `DISABLED_BY_INACTIVITY` — методы API недоступны, так как магазин не размещал товары на витрине больше 90 дней.\n* `DISABLED_BY_NO_ACTIVE_CONTRACT` — методы API недоступны из-за отсутствия активного договора с Маркетом.\n* `MANUALLY_DISABLED` — методы API недоступны, так как интеграция выключена вручную.\n* `DISABLED_BY_NO_PLACEMENT_TYPE` — методы API недоступны, так как магазин не подключен к программе размещения.\n\n[Подробная инструкция по восстановлению доступа](../../concepts/api-access.md)\n",
+        "enum": [
+          "AVAILABLE",
+          "DISABLED_BY_INACTIVITY",
+          "DISABLED_BY_NO_ACTIVE_CONTRACT",
+          "MANUALLY_DISABLED",
+          "DISABLED_BY_NO_PLACEMENT_TYPE"
+        ],
+        "type": "string"
+      },
+      "ApiClientDataErrorResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        ],
+        "description": "Ошибка в данных переданных от клиента.",
+        "type": "object"
+      },
+      "ApiErrorDTO": {
+        "description": "Общий формат ошибки.",
+        "properties": {
+          "code": {
+            "description": "Код ошибки.",
+            "type": "string"
+          },
+          "message": {
+            "description": "Описание ошибки.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "ApiErrorResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "properties": {
+              "errors": {
+                "description": "Список ошибок.",
+                "items": {
+                  "$ref": "#/components/schemas/ApiErrorDTO"
+                },
+                "minItems": 1,
+                "nullable": true,
+                "type": "array"
+              }
+            }
+          }
+        ],
+        "description": "Стандартная обертка для ошибок сервера.",
+        "type": "object"
+      },
+      "ApiForbiddenErrorResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        ],
+        "description": "Неверны авторизационные данные, указанные в запросе, или запрещен доступ к запрашиваемому ресурсу.",
+        "type": "object"
+      },
+      "ApiLimitErrorResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        ],
+        "description": "Превышено ограничение на доступ к ресурсу.",
+        "type": "object"
+      },
+      "ApiNotFoundErrorResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        ],
+        "description": "Запрашиваемый ресурс не найден.",
+        "type": "object"
+      },
+      "ApiResponse": {
+        "description": "Стандартная обертка для ответов сервера.",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ApiResponseStatusType"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "ApiResponseStatusType": {
+        "description": "Тип ответа.\nВозможные значения:\n* `OK` — ошибок нет.\n* `ERROR` — при обработке запроса произошла ошибка.\n",
+        "enum": [
+          "OK",
+          "ERROR"
+        ],
+        "type": "string"
+      },
+      "ApiServerErrorResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        ],
+        "description": "Внутренняя ошибка сервера.",
+        "type": "object"
+      },
+      "ApiUnauthorizedErrorResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiErrorResponse"
+          }
+        ],
+        "description": "В запросе не указаны авторизационные данные.",
+        "type": "object"
+      },
+      "BriefOrderItemInstanceDTO": {
+        "description": "Идентификатор единицы товара.\n\nЗаполните только одно поле в зависимости от того, в какой системе маркирован товар.\n\nПодробно о работе с маркируемыми товарами читайте [в Справке Маркета для продавцов](https://yandex.ru/support/marketplace/orders/cz.html).\n",
+        "properties": {
+          "cis": {
+            "$ref": "#/components/schemas/Cis"
+          },
+          "countryCode": {
+            "$ref": "#/components/schemas/CountryCode"
+          },
+          "gtd": {
+            "description": "Грузовая таможенная декларация.\n\nПредставляет собой строку из трех чисел, разделенных косой чертой: ХХХХХХХХ/ХХХХХХ/ХХХХХХХ.\n\nПервая часть — код таможни, которая зарегистрировала декларацию на ввезенные товары. Далее — дата и номер декларации.\n",
+            "type": "string"
+          },
+          "rnpt": {
+            "description": "Регистрационный номер партии товара.\n\nПредставляет собой строку из четырех чисел, разделенных косой чертой: ХХХХХХХХ/ХХХХХХ/ХХХХХХХ/ХХХ.\n\nПервая часть — код таможни, которая зарегистрировала декларацию на партию товара. Далее — дата, номер декларации и номер маркированного товара в декларации.\n",
+            "type": "string"
+          },
+          "uin": {
+            "description": "Уникальный идентификационный номер ювелирного изделия.\n\nПредставляет собой число из 16 цифр.\n",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "BusinessDTO": {
+        "description": "Информация о кабинете.",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/BusinessId"
+          },
+          "name": {
+            "description": "Название бизнеса.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "BusinessId": {
+        "description": "Идентификатор кабинета. {% if audience == \"partner\" %}Чтобы его узнать, воспользуйтесь запросом [GET v2/campaigns](../../reference/campaigns/getCampaigns.md).\n\nℹ️ [Что такое кабинет и магазин на Маркете](https://yandex.ru/support/marketplace/account/introduction.html)\n{% endif %}\n",
+        "format": "int64",
+        "minimum": 1,
+        "type": "integer"
+      },
+      "BusinessOrderBoxLayoutDTO": {
+        "description": "Информация о коробке (для заказов в кабинете).",
+        "properties": {
+          "barcode": {
+            "description": "Идентификатор грузового места в системе магазина.",
+            "type": "string"
+          },
+          "boxId": {
+            "description": "Идентификатор коробки.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "description": "Список товаров в коробке.\n\nЕсли в коробке едет часть большого товара, в списке может быть только один пункт.\n",
+            "items": {
+              "$ref": "#/components/schemas/BusinessOrderBoxLayoutItemDTO"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "boxId",
+          "barcode"
+        ],
+        "type": "object"
+      },
+      "BusinessOrderBoxLayoutItemDTO": {
+        "description": "Информация о товаре в коробке.",
+        "properties": {
+          "fullCount": {
+            "description": "Количество единиц товара в коробке.\n",
+            "format": "int32",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "id": {
+            "description": "Идентификатор товара в заказе.\n\nПараметр `id` в `items`.\n",
+            "format": "int64",
+            "type": "integer"
+          },
+          "instances": {
+            "description": "Переданные коды маркировки.",
+            "items": {
+              "$ref": "#/components/schemas/BriefOrderItemInstanceDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "partialCount": {
+            "$ref": "#/components/schemas/BusinessOrderBoxLayoutPartialCountDTO",
+            "description": "Информация о части товара в коробке.\n"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "BusinessOrderBoxLayoutPartialCountDTO": {
+        "description": "Информация о части товара в коробке.",
+        "properties": {
+          "current": {
+            "description": "Номер части, начиная с 1.",
+            "format": "int32",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "total": {
+            "description": "На сколько всего частей разделен товар.",
+            "format": "int32",
+            "minimum": 2,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "current",
+          "total"
+        ],
+        "type": "object"
+      },
+      "BusinessOrderCourierDeliveryDTO": {
+        "description": "Информация о курьерской доставке.",
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/BusinessOrderDeliveryAddressDTO"
+          },
+          "region": {
+            "$ref": "#/components/schemas/RegionDTO"
+          }
+        },
+        "type": "object"
+      },
+      "BusinessOrderDTO": {
+        "description": "Информация о заказе.",
+        "properties": {
+          "buyerType": {
+            "$ref": "#/components/schemas/OrderBuyerType",
+            "description": "Тип покупателя: физическое лицо или организация.\n\nТолько для FBS- и FBY-магазинов, которые размещают товары на витрине [business.market.yandex.ru](https://business.market.yandex.ru).\n"
+          },
+          "campaignId": {
+            "$ref": "#/components/schemas/CampaignId"
+          },
+          "cancelRequested": {
+            "description": "**Только для модели DBS**\n\nЗапрошена ли отмена.\n",
+            "type": "boolean"
+          },
+          "creationDate": {
+            "description": "Дата и время оформления заказа.\n\nФормат даты: ISO 8601 со смещением относительно UTC.\n",
+            "example": "2020-02-02T14:30:30+03:00",
+            "format": "date-time",
+            "type": "string"
+          },
+          "delivery": {
+            "$ref": "#/components/schemas/BusinessOrderDeliveryDTO"
+          },
+          "externalOrderId": {
+            "$ref": "#/components/schemas/ExternalOrderId"
+          },
+          "fake": {
+            "description": "Тип заказа:\n\n* `false` — настоящий заказ покупателя.\n\n* `true` — [тестовый заказ](../../concepts/sandbox.md) Маркета.\n",
+            "type": "boolean"
+          },
+          "items": {
+            "description": "Список товаров в заказе.",
+            "items": {
+              "$ref": "#/components/schemas/BusinessOrderItemDTO"
+            },
+            "type": "array"
+          },
+          "notes": {
+            "description": "Комментарий к заказу.",
+            "type": "string"
+          },
+          "orderId": {
+            "description": "Идентификатор заказа.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "paymentMethod": {
+            "$ref": "#/components/schemas/OrderPaymentMethodType"
+          },
+          "paymentType": {
+            "$ref": "#/components/schemas/OrderPaymentType"
+          },
+          "prices": {
+            "$ref": "#/components/schemas/OrderPriceDTO",
+            "description": "Информация о стоимости заказа, доставки и вознаграждениях.\n"
+          },
+          "programType": {
+            "$ref": "#/components/schemas/SellingProgramType",
+            "description": "Тип программы кампании магазина."
+          },
+          "services": {
+            "$ref": "#/components/schemas/BusinessOrderServicesDTO"
+          },
+          "sourcePlatform": {
+            "$ref": "#/components/schemas/OrderSourcePlatformType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatusType"
+          },
+          "substatus": {
+            "$ref": "#/components/schemas/OrderSubstatusType"
+          },
+          "updateDate": {
+            "description": "Дата и время последнего обновления заказа.\n\nФормат даты: ISO 8601 со смещением относительно UTC.\n",
+            "example": "2020-02-02T14:30:30+03:00",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "orderId",
+          "campaignId",
+          "status",
+          "substatus",
+          "creationDate",
+          "paymentType",
+          "paymentMethod",
+          "fake",
+          "items",
+          "delivery"
+        ],
+        "type": "object"
+      },
+      "BusinessOrderDeliveryAddressDTO": {
+        "description": "Адрес доставки.\n\nУказывается, если параметр `type` принимает значение `DELIVERY`, `POST` или `PICKUP` (только для модели DBS). Если `type=PICKUP`, возвращается адрес пункта выдачи.\n",
+        "properties": {
+          "apartment": {
+            "description": "Номер квартиры или офиса.",
+            "type": "string"
+          },
+          "block": {
+            "description": "Корпус.",
+            "type": "string"
+          },
+          "city": {
+            "description": "Город или населенный пункт.",
+            "type": "string"
+          },
+          "country": {
+            "description": "Страна.",
+            "type": "string"
+          },
+          "district": {
+            "description": "Район.",
+            "type": "string"
+          },
+          "entrance": {
+            "description": "Номер подъезда.",
+            "type": "string"
+          },
+          "entryphone": {
+            "description": "Код домофона.",
+            "type": "string"
+          },
+          "floor": {
+            "description": "Этаж.",
+            "type": "string"
+          },
+          "gps": {
+            "$ref": "#/components/schemas/GpsDTO",
+            "description": "GPS-координаты."
+          },
+          "house": {
+            "description": "Номер дома.",
+            "type": "string"
+          },
+          "postcode": {
+            "description": "Почтовый индекс.",
+            "type": "string"
+          },
+          "street": {
+            "description": "Улица.",
+            "type": "string"
+          },
+          "subway": {
+            "description": "Станция метро.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "BusinessOrderDeliveryDTO": {
+        "description": "Информация о доставке заказа.",
+        "properties": {
+          "boxesLayout": {
+            "description": "Раскладка товаров по коробкам.",
+            "items": {
+              "$ref": "#/components/schemas/BusinessOrderBoxLayoutDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "courier": {
+            "$ref": "#/components/schemas/BusinessOrderCourierDeliveryDTO",
+            "description": "Информация о курьерской доставке."
+          },
+          "dates": {
+            "$ref": "#/components/schemas/BusinessOrderDeliveryDatesDTO"
+          },
+          "deliveryPartnerType": {
+            "$ref": "#/components/schemas/OrderDeliveryPartnerType",
+            "description": "Тип сотрудничества со службой доставки в рамках указанного заказа."
+          },
+          "deliveryServiceId": {
+            "description": "Идентификатор службы доставки.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "digitalGoods": {
+            "$ref": "#/components/schemas/DigitalGoodsDeliveryDetailsDTO",
+            "description": "Информация о доставке цифрового товара."
+          },
+          "dispatchType": {
+            "$ref": "#/components/schemas/OrderDeliveryDispatchType"
+          },
+          "estimated": {
+            "description": "Приблизительная ли дата доставки.",
+            "type": "boolean"
+          },
+          "pickup": {
+            "$ref": "#/components/schemas/BusinessOrderPickupDeliveryDTO",
+            "description": "Информация о доставке в пункт выдачи."
+          },
+          "receiveBarcode": {
+            "description": "**Только для модели LaaS**\n\nШтрихкод получения заказа на ПВЗ.\n",
+            "type": "string"
+          },
+          "receiveCode": {
+            "description": "**Только для модели LaaS**\n\nКод получения заказа на ПВЗ.\n",
+            "type": "string"
+          },
+          "serviceName": {
+            "description": "Название службы доставки.",
+            "type": "string"
+          },
+          "shipment": {
+            "$ref": "#/components/schemas/BusinessOrderShipmentDTO",
+            "description": "Информация об отгрузке."
+          },
+          "tracks": {
+            "description": "Информация для отслеживания посылки.",
+            "items": {
+              "$ref": "#/components/schemas/OrderTrackDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "transfer": {
+            "$ref": "#/components/schemas/BusinessOrderTransferDTO",
+            "description": "Информация о курьере и код подтверждения."
+          },
+          "type": {
+            "$ref": "#/components/schemas/OrderDeliveryType",
+            "description": "Способ доставки заказа.\n"
+          },
+          "warehouseId": {
+            "description": "Идентификатор склада в системе магазина, на который сформирован заказ.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "serviceName",
+          "deliveryServiceId",
+          "deliveryPartnerType",
+          "dates"
+        ],
+        "type": "object"
+      },
+      "BusinessOrderDeliveryDatesDTO": {
+        "description": "Диапазон дат доставки.",
+        "properties": {
+          "fromDate": {
+            "description": "Ближайшая дата доставки.\n\nФормат даты: `ГГГГ-ММ-ДД`.\n",
+            "format": "date",
+            "type": "string"
+          },
+          "fromTime": {
+            "description": "Начало интервала времени доставки.\n\nПередается только вместе с параметром `type=DELIVERY`.\n\nФормат времени: 24-часовой, `ЧЧ:ММ`. Вместо `ММ` всегда указывайте `00` (исключение — `23:59`).\n\nМинимальное значение: `00:00`.\n",
+            "format": "time",
+            "type": "string"
+          },
+          "realDeliveryDate": {
+            "description": "Дата, когда товар доставлен до пункта выдачи заказа (в случае самовывоза) или до покупателя (если заказ доставляет курьер).\n\nФормат даты: `ГГГГ-ММ-ДД`.\n",
+            "format": "date",
+            "type": "string"
+          },
+          "toDate": {
+            "description": "Самая поздняя дата доставки.\n\nЕсли `toDate` не указан, считается дата в параметре `fromDate`.\n\nФормат даты: `ГГГГ-ММ-ДД`.\n",
+            "format": "date",
+            "type": "string"
+          },
+          "toTime": {
+            "description": "Конец интервала времени доставки.\n\nПередается только вместе с параметром `type=DELIVERY`.\n\nФормат времени: 24-часовой, `ЧЧ:ММ`. Вместо `ММ` всегда указывайте `00` (исключение — `23:59`).\n\nМаксимальное значение: `23:59`.\n",
+            "format": "time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fromDate"
+        ],
+        "type": "object"
+      },
+      "BusinessOrderEacDTO": {
+        "description": "Информация о коде подтверждения.",
+        "properties": {
+          "eacCode": {
+            "description": "Код подтверждения ЭАПП (для типа `MERCHANT_TO_COURIER`).\n",
+            "type": "string"
+          },
+          "eacType": {
+            "$ref": "#/components/schemas/OrderDeliveryEacType",
+            "description": "Тип кода подтверждения ЭАПП."
+          }
+        },
+        "required": [
+          "eacType"
+        ],
+        "type": "object"
+      },
+      "BusinessOrderItemDTO": {
+        "description": "Информация о товаре.",
+        "properties": {
+          "count": {
+            "description": "Количество единиц товара.",
+            "type": "integer"
+          },
+          "id": {
+            "description": "Идентификатор товара в заказе.\n\nПозволяет идентифицировать товар в рамках заказа.\n",
+            "format": "int64",
+            "type": "integer"
+          },
+          "instances": {
+            "description": "Информация о маркировке единиц товара.\n\nВозвращаются данные для маркировки, переданные в запросе:\n\n* Для DBS — [PUT v2/campaigns/{campaignId}/orders/{orderId}/identifiers](../../reference/orders/provideOrderItemIdentifiers.md) или [PUT v2/campaigns/{campaignId}/orders/{orderId}/boxes](../../reference/orders/setOrderBoxLayout.md).\n* Для FBS и EXPRESS — [PUT v2/campaigns/{campaignId}/orders/{orderId}/boxes](../../reference/orders/setOrderBoxLayout.md).\n\nДля FBY возвращаются коды маркировки, переданные во время поставки.\n\nЕсли магазин еще не передавал коды для этого заказа, `instances` отсутствует.\n",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemInstanceDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "itemStatuses": {
+            "description": "Информация о статусах отдельных единиц товара в заказе.\n\nЕсли данных о статусах отдельных единиц товара нет, поле отсутствует.\n",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemUnitStatusDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "offerId": {
+            "$ref": "#/components/schemas/ShopSku",
+            "description": "Идентификатор товарного предложения."
+          },
+          "offerName": {
+            "description": "Название товара.",
+            "type": "string"
+          },
+          "prices": {
+            "$ref": "#/components/schemas/ItemPriceDTO",
+            "description": "Информация о выплатах и вознаграждениях.\n"
+          },
+          "requiredInstanceTypes": {
+            "description": "Список необходимых маркировок товара.",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemInstanceType"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "tags": {
+            "description": "Признаки товара.",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemTagType"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "id",
+          "offerId",
+          "offerName",
+          "count"
+        ],
+        "type": "object"
+      },
+      "BusinessOrderPickupDeliveryDTO": {
+        "description": "Информация о доставке в пункт выдачи.",
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/BusinessOrderDeliveryAddressDTO"
+          },
+          "logisticPointId": {
+            "$ref": "#/components/schemas/LogisticPointId"
+          },
+          "outletCode": {
+            "description": "Идентификатор пункта самовывоза, присвоенный магазином.",
+            "type": "string"
+          },
+          "outletStorageLimitDate": {
+            "description": "Дата, до которой заказ будет храниться в пункте выдачи. Возвращается, когда заказ переходит в статус `PICKUP`.\n\nОдин раз дату можно поменять с помощью метода [PUT v2/campaigns/{campaignId}/orders/{orderId}/delivery/storage-limit](../../reference/order-delivery/updateOrderStorageLimit.md).\n\nФормат даты: `ГГГГ-ММ-ДД`.\n",
+            "format": "date",
+            "type": "string"
+          },
+          "region": {
+            "$ref": "#/components/schemas/RegionDTO"
+          }
+        },
+        "type": "object"
+      },
+      "BusinessOrderServicesDTO": {
+        "description": "Услуги, добавленные в заказ.",
+        "properties": {
+          "liftType": {
+            "$ref": "#/components/schemas/OrderLiftType"
+          }
+        },
+        "type": "object"
+      },
+      "BusinessOrderShipmentDTO": {
+        "description": "Информация об отгрузке заказа.",
+        "properties": {
+          "id": {
+            "description": "Идентификатор отгрузки.",
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
+          "shipmentDate": {
+            "description": "Дата отгрузки.\n\nФормат даты: `ГГГГ-ММ-ДД`.\n",
+            "format": "date",
+            "type": "string"
+          },
+          "shipmentTime": {
+            "description": "Время отгрузки.",
+            "format": "time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "shipmentDate"
+        ],
+        "type": "object"
+      },
+      "BusinessOrderTransferDTO": {
+        "description": "Информация о курьере и код подтверждения.",
+        "properties": {
+          "courier": {
+            "$ref": "#/components/schemas/OrderCourierDTO"
+          },
+          "eac": {
+            "$ref": "#/components/schemas/BusinessOrderEacDTO"
+          }
+        },
+        "type": "object"
+      },
+      "CampaignDTO": {
+        "description": "Информация о магазине.",
+        "properties": {
+          "apiAvailability": {
+            "$ref": "#/components/schemas/ApiAvailabilityStatusType"
+          },
+          "business": {
+            "$ref": "#/components/schemas/BusinessDTO"
+          },
+          "clientId": {
+            "deprecated": true,
+            "description": "{% note warning \"Параметр устарел и будет отключен 05.10.2026.\" %}\n\n \n\n{% endnote %}\n\nИдентификатор плательщика в Яндекс Балансе.\n",
+            "format": "int64",
+            "type": "integer",
+            "x-deprecation-config": {
+              "shutdown-date": "2026-10-05"
+            }
+          },
+          "domain": {
+            "description": "Название магазина.",
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/CampaignId"
+          },
+          "placementType": {
+            "$ref": "#/components/schemas/PlacementType"
+          }
+        },
+        "type": "object"
+      },
+      "CampaignId": {
+        "description": "Идентификатор кампании (магазина) — технический идентификатор, который представляет ваш магазин в системе Яндекс Маркета при работе через API. Он однозначно связывается с вашим магазином, но предназначен только для автоматизированного взаимодействия.\n\nЕго можно узнать с помощью запроса [GET v2/campaigns](../../reference/campaigns/getCampaigns.md) или найти в кабинете продавца на Маркете. Нажмите на иконку вашего аккаунта → **Настройки** и в меню слева выберите **API и модули**:\n\n* блок **Идентификатор кампании**;\n* вкладка **Лог запросов** → выпадающий список в блоке **Показывать логи**.\n\n⚠️ Не путайте его с:\n- идентификатором магазина, который отображается в личном кабинете продавца;\n- рекламными кампаниями.\n",
+        "format": "int64",
+        "minimum": 1,
+        "type": "integer"
+      },
+      "Cis": {
+        "description": "[Код идентификации](*cis-regular-value) единицы товара в системе [«Честный ЗНАК»](https://честныйзнак.рф/) или [«ASL BELGISI»](https://aslbelgisi.uz) (для продавцов Market Yandex Go).\n\n{% note warning \"Не экранируйте косую черту в коде символа-разделителя `\\u001d`\" %}\n\n✅ `01030410947874432155Qbag!\\u001d93Zjqw`\n\n❌ `01030410947874432155Qbag!\\\\u001d93Zjqw`\n\nКосые черты и кавычки в других местах экранируйте по правилам JSON: `\\\\` и `\\\"`\n\n{% endnote %}\n",
+        "type": "string"
+      },
+      "CountryCode": {
+        "description": "Страна производства в формате ISO 3166-1 alpha-2. [Как получить](../../reference/regions/getRegionsCodes.md)\n",
+        "example": "RU",
+        "maxLength": 2,
+        "minLength": 2,
+        "pattern": "^[A-Z]{2}$",
+        "type": "string"
+      },
+      "CurrencyType": {
+        "description": "Коды валют:\n\n* `RUR` — российский рубль.\n* `UAH` — украинская гривна.\n* `BYR` — белорусский рубль.\n* `KZT` — казахстанский тенге.\n* `UZS` — узбекский сум.\n",
+        "enum": [
+          "RUR",
+          "USD",
+          "EUR",
+          "UAH",
+          "AUD",
+          "GBP",
+          "BYR",
+          "BYN",
+          "DKK",
+          "ISK",
+          "KZT",
+          "CAD",
+          "CNY",
+          "NOK",
+          "XDR",
+          "SGD",
+          "TRY",
+          "SEK",
+          "CHF",
+          "JPY",
+          "AZN",
+          "ALL",
+          "DZD",
+          "AOA",
+          "ARS",
+          "AMD",
+          "AFN",
+          "BHD",
+          "BGN",
+          "BOB",
+          "BWP",
+          "BND",
+          "BRL",
+          "BIF",
+          "HUF",
+          "VEF",
+          "KPW",
+          "VND",
+          "GMD",
+          "GHS",
+          "GNF",
+          "HKD",
+          "GEL",
+          "AED",
+          "EGP",
+          "ZMK",
+          "ILS",
+          "INR",
+          "IDR",
+          "JOD",
+          "IQD",
+          "IRR",
+          "YER",
+          "QAR",
+          "KES",
+          "KGS",
+          "COP",
+          "CDF",
+          "CRC",
+          "KWD",
+          "CUP",
+          "LAK",
+          "LVL",
+          "SLL",
+          "LBP",
+          "LYD",
+          "SZL",
+          "LTL",
+          "MUR",
+          "MRO",
+          "MKD",
+          "MWK",
+          "MGA",
+          "MYR",
+          "MAD",
+          "MXN",
+          "MZN",
+          "MDL",
+          "MNT",
+          "NPR",
+          "NGN",
+          "NIO",
+          "NZD",
+          "OMR",
+          "PKR",
+          "PYG",
+          "PEN",
+          "PLN",
+          "KHR",
+          "SAR",
+          "RON",
+          "SCR",
+          "SYP",
+          "SKK",
+          "SOS",
+          "SDG",
+          "SRD",
+          "TJS",
+          "THB",
+          "TWD",
+          "BDT",
+          "TZS",
+          "TND",
+          "TMM",
+          "UGX",
+          "UZS",
+          "UYU",
+          "PHP",
+          "DJF",
+          "XAF",
+          "XOF",
+          "HRK",
+          "CZK",
+          "CLP",
+          "LKR",
+          "EEK",
+          "ETB",
+          "RSD",
+          "ZAR",
+          "KRW",
+          "NAD",
+          "TL",
+          "UE"
+        ],
+        "type": "string"
+      },
+      "CurrencyValueDTO": {
+        "description": "Валюта и ее значение.",
+        "properties": {
+          "currencyId": {
+            "$ref": "#/components/schemas/CurrencyType",
+            "description": "Валюта."
+          },
+          "value": {
+            "description": "Значение.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "value",
+          "currencyId"
+        ],
+        "type": "object"
+      },
+      "DateDdMmYyyy": {
+        "description": "Формат даты: `ДД-ММ-ГГГГ`.\n",
+        "example": "23-09-2022",
+        "format": "date-dd-MM-yyyy",
+        "type": "string"
+      },
+      "DateDdMmYyyyHhMmSs": {
+        "example": "23-09-2022 09:12:41",
+        "format": "date-dd-MM-yyyy-HH-mm-ss",
+        "type": "string"
+      },
+      "DeliveryPriceDTO": {
+        "description": "Информация о стоимости доставки, включая подъем на этаж.\n\n{% note info \"Как рассчитывается стоимость доставки\" %}\n\n* Стоимость доставки складывается из параметров `payment` и `subsidy`.\n* Все суммы указаны в валюте магазина.\n\n{% endnote %}\n",
+        "properties": {
+          "payment": {
+            "$ref": "#/components/schemas/CurrencyValueDTO",
+            "description": "Платеж покупателя за доставку."
+          },
+          "subsidy": {
+            "$ref": "#/components/schemas/CurrencyValueDTO",
+            "description": "Вознаграждение Маркета за доставку."
+          },
+          "vat": {
+            "$ref": "#/components/schemas/OrderVatType",
+            "description": "НДС на доставку."
+          }
+        },
+        "type": "object"
+      },
+      "DigitalGoodsDeliveryDetailsDTO": {
+        "description": "Информация о доставке цифрового товара.",
+        "properties": {
+          "steamLink": {
+            "description": "Ссылка на Steam-аккаунт покупателя. Передается только для типа `STEAM_GIFT`.",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/DigitalGoodsDeliveryType",
+            "description": "Тип цифрового товара."
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "DigitalGoodsDeliveryType": {
+        "description": "Способ получения цифрового товара:\n\n* `EMAIL` — код активации по почте: покупатель получит письмо с кодом и инструкцией на почту.\n\n* `ACTIVATION_CODE` — код активации в заказе на Маркете: покупатель получит инструкцию и код в чате с магазином, а в списке заказов сможет скопировать код.\n\n* `STEAM_GIFT` — игры подарком в Steam: вы получите от покупателя ссылку формата https://s.team/p/m**-***/******** на добавление в друзья. Перейдите по ссылке, добавьте покупателя в друзья и отправьте ему игру. В течение трех часов передайте Маркету статус, что заказ доставлен — через API или на странице заказа.\n\n* `CHAT` — игры и товары в чате с покупателем на Маркете: покупатель получит сертификат в чате с магазином. Передайте Маркету статус, что заказ доставлен — через API или на странице заказа.\n",
+        "enum": [
+          "EMAIL",
+          "ACTIVATION_CODE",
+          "STEAM_GIFT",
+          "CHAT"
+        ],
+        "type": "string"
+      },
+      "EnrichedOrderBoxLayoutDTO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OrderBoxLayoutDTO"
+          },
+          {
+            "properties": {
+              "boxId": {
+                "description": "Идентификатор коробки.",
+                "format": "int64",
+                "type": "integer"
+              }
+            }
+          }
+        ],
+        "description": "Информация о коробке.",
+        "type": "object"
+      },
+      "ExternalOrderId": {
+        "description": "Внешний идентификатор заказа, который вы передали в [POST v2/campaigns/{campaignId}/orders/{orderId}/external-id](../../reference/orders/updateExternalOrderId.md).",
+        "minLength": 1,
+        "type": "string"
+      },
+      "GetBusinessOrdersRequest": {
+        "description": "Запрос на получение информации о заказах бизнеса.",
+        "properties": {
+          "campaignIds": {
+            "description": "Идентификаторы кампаний магазинов.",
+            "items": {
+              "$ref": "#/components/schemas/CampaignId"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "nullable": true,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "dates": {
+            "$ref": "#/components/schemas/OrderDatesFilterDTO",
+            "description": "Даты заказов."
+          },
+          "externalOrderIds": {
+            "description": "Внешние идентификаторы заказов.",
+            "items": {
+              "$ref": "#/components/schemas/ExternalOrderId"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "nullable": true,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "fake": {
+            "description": "Тип заказа:\n\n* `false` — настоящий заказ покупателя.\n\n* `true` — [тестовый заказ](../../concepts/sandbox.md) Маркета.\n",
+            "type": "boolean"
+          },
+          "orderIds": {
+            "description": "Идентификаторы заказов.",
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "nullable": true,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "programTypes": {
+            "description": "Модели работы магазина на Маркете.",
+            "items": {
+              "$ref": "#/components/schemas/SellingProgramType"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "sourcePlatforms": {
+            "description": "Площадки-источники заказов.",
+            "items": {
+              "$ref": "#/components/schemas/OrderSourcePlatformType"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "statuses": {
+            "description": "Статусы заказов.",
+            "items": {
+              "$ref": "#/components/schemas/OrderStatusType"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "substatuses": {
+            "description": "Этапы обработки или причины отмены заказов.",
+            "items": {
+              "$ref": "#/components/schemas/OrderSubstatusType"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "waitingForCancellationApprove": {
+            "description": "**Только для модели DBS**\n\nФильтр для получения заказов, по которым есть запросы на отмену.\n\nПри значении `true` возвращаются только те заказы, которые находятся в статусе `DELIVERY` или `PICKUP`, и пользователи решили их отменить.\n",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "GetBusinessOrdersResponse": {
+        "description": "Ответ со списком заказов бизнеса.",
+        "properties": {
+          "orders": {
+            "description": "Список заказов в кабинете.",
+            "items": {
+              "$ref": "#/components/schemas/BusinessOrderDTO"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "paging": {
+            "$ref": "#/components/schemas/PackagingForwardScrollingPagerDTO",
+            "description": "Информация о страницах результатов."
+          }
+        },
+        "required": [
+          "orders"
+        ],
+        "type": "object"
+      },
+      "GetCampaignResponse": {
+        "description": "Информация о магазине к данным идентификатора кампании.",
+        "properties": {
+          "campaign": {
+            "$ref": "#/components/schemas/CampaignDTO"
+          }
+        },
+        "type": "object"
+      },
+      "GpsDTO": {
+        "description": "GPS-координаты широты и долготы.\n",
+        "properties": {
+          "latitude": {
+            "description": "Широта.",
+            "type": "number"
+          },
+          "longitude": {
+            "description": "Долгота.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "type": "object"
+      },
+      "ItemPriceDTO": {
+        "description": "Информация о выплатах и вознаграждениях.\n\n{% note info \"Как рассчитывается стоимость всех единиц товара и вознаграждение продавцу\" %}\n\n* Стоимость всех единиц товара складывается из параметров `payment` и `cashback`.\n* Общая сумма вознаграждений продавцу возвращается в параметре `subsidy`.\n* Значение `payment`, `cashback` и `subsidy` может отличаться от стоимости в каталоге, потому что информация об акциях магазина не возвращается.\n* Если в заказе несколько единиц товаров, в параметрах возвращается суммарное значение.\n* Все суммы указаны в валюте магазина.\n\n{% endnote %}\n",
+        "properties": {
+          "cashback": {
+            "$ref": "#/components/schemas/CurrencyValueDTO",
+            "description": "Сумма, которая оплачена баллами Плюса.\n"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/CurrencyValueDTO",
+            "description": "Общая стоимость всех единиц товара.\n"
+          },
+          "subsidy": {
+            "$ref": "#/components/schemas/CurrencyValueDTO",
+            "description": "Общая сумма вознаграждений продавцу.\n"
+          },
+          "vat": {
+            "$ref": "#/components/schemas/OrderVatType",
+            "description": "НДС на товар."
+          }
+        },
+        "type": "object"
+      },
+      "LogisticPointId": {
+        "description": "Идентификатор пункта выдачи.\n\nЕго можно узнать с помощью метода [POST v1/businesses/{businessId}/logistics-points](../../reference/logistic-points/getLogisticPoints.md).\n",
+        "format": "int64",
+        "minimum": 1,
+        "type": "integer"
+      },
+      "OperationDTO": {
+        "description": "Информация об операции.",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/OperationId"
+          },
+          "type": {
+            "$ref": "#/components/schemas/OperationType"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "type": "object"
+      },
+      "OperationId": {
+        "description": "Идентификатор операции.",
+        "maxLength": 1000,
+        "minLength": 1,
+        "type": "string"
+      },
+      "OperationType": {
+        "description": "Тип операции:\n\n* `ORDER_RECIPIENT_UPDATE` — изменение данных получателя.\n\n* `ORDER_DELIVERY_INTERVAL_UPDATE` — изменение интервала дат доставки.\n\n* `ORDER_STORAGE_LIMIT_DATE_UPDATE` — продление срока хранения заказа.\n\n* `ORDER_STATUS_UPDATE` — обновление статуса заказа для его отмены.\n\n* `RETURN_CANCELLATION` — отмена возврата.\n",
+        "enum": [
+          "ORDER_RECIPIENT_UPDATE",
+          "ORDER_DELIVERY_INTERVAL_UPDATE",
+          "ORDER_STORAGE_LIMIT_DATE_UPDATE",
+          "ORDER_STATUS_UPDATE",
+          "RETURN_CANCELLATION"
+        ],
+        "type": "string"
+      },
+      "OrderBoxLayoutDTO": {
+        "description": "Информация о коробке.",
+        "properties": {
+          "items": {
+            "description": "Список товаров в коробке.\n\nЕсли в коробке едет часть большого товара, в списке может быть только один пункт.\n",
+            "items": {
+              "$ref": "#/components/schemas/OrderBoxLayoutItemDTO"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "OrderBoxLayoutItemDTO": {
+        "description": "Информация о товаре в коробке.",
+        "properties": {
+          "fullCount": {
+            "description": "Количество единиц товара в коробке.\n\nИспользуйте это поле, если в коробке поедут целые товары, не разделенные на части. Не используйте это поле одновременно с `partialCount`.\n",
+            "format": "int32",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "id": {
+            "description": "Идентификатор товара в заказе.\n\nОн приходит в ответе метода [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md) — параметр `id` в `items`.\n",
+            "format": "int64",
+            "type": "integer"
+          },
+          "instances": {
+            "description": "Переданные коды маркировки.",
+            "items": {
+              "$ref": "#/components/schemas/BriefOrderItemInstanceDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "partialCount": {
+            "$ref": "#/components/schemas/OrderBoxLayoutPartialCountDTO",
+            "description": "Информация о части товара в коробке.\n\nИспользуйте это поле, если в коробке поедет часть большого товара. Не используйте это поле одновременно с `fullCount`.\n"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "OrderBoxLayoutPartialCountDTO": {
+        "description": "Информация о части товара в коробке.",
+        "properties": {
+          "current": {
+            "description": "Номер части, начиная с 1.",
+            "format": "int32",
+            "minimum": 1,
+            "type": "integer"
+          },
+          "total": {
+            "description": "На сколько всего частей разделен товар.",
+            "format": "int32",
+            "minimum": 2,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "current",
+          "total"
+        ],
+        "type": "object"
+      },
+      "OrderBoxesLayoutDTO": {
+        "description": "Распределение товаров по коробкам.",
+        "properties": {
+          "boxes": {
+            "description": "Список коробок.",
+            "items": {
+              "$ref": "#/components/schemas/EnrichedOrderBoxLayoutDTO"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "boxes"
+        ],
+        "type": "object"
+      },
+      "OrderBuyerBasicInfoDTO": {
+        "description": "Информация о покупателе с базовыми полями.",
+        "properties": {
+          "firstName": {
+            "description": "Имя.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Идентификатор покупателя.",
+            "type": "string"
+          },
+          "lastName": {
+            "description": "Фамилия.",
+            "type": "string"
+          },
+          "middleName": {
+            "description": "Отчество.",
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/OrderBuyerType",
+            "description": "Тип покупателя: физическое лицо или организация.\n\nТолько для FBS- и FBY-магазинов, которые размещают товары на витрине [business.market.yandex.ru](https://business.market.yandex.ru).\n"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "type": "object"
+      },
+      "OrderBuyerDTO": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/OrderBuyerBasicInfoDTO"
+          },
+          {}
+        ],
+        "description": "Информация о покупателе.\n\nПараметры `id`, `lastName`, `firstName` и `middleName` возвращаются, только если вы работаете по модели DBS.\n",
+        "type": "object"
+      },
+      "OrderBuyerType": {
+        "description": "Тип покупателя:\n\n* `PERSON` — физическое лицо.\n\n* `BUSINESS` — организация.\n",
+        "enum": [
+          "PERSON",
+          "BUSINESS"
+        ],
+        "type": "string"
+      },
+      "OrderCourierDTO": {
+        "description": "Информация о курьере.",
+        "properties": {
+          "fullName": {
+            "description": "Полное имя.",
+            "type": "string"
+          },
+          "phone": {
+            "description": "Номер телефона.",
+            "type": "string"
+          },
+          "phoneExtension": {
+            "description": "Добавочный номер телефона.",
+            "type": "string"
+          },
+          "vehicleDescription": {
+            "description": "Описание транспортного средства. Например, модель и цвет.",
+            "type": "string"
+          },
+          "vehicleNumber": {
+            "description": "Номер транспортного средства.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "OrderDTO": {
+        "description": "Заказ.",
+        "properties": {
+          "buyer": {
+            "$ref": "#/components/schemas/OrderBuyerDTO"
+          },
+          "buyerItemsTotal": {
+            "deprecated": true,
+            "description": "{% note warning \"Параметр устарел и будет отключен 05.10.2026.\" %}\n\nВместо него используйте `itemsTotal`.\n\n{% endnote %}\n\nСтоимость всех товаров в заказе в валюте покупателя после применения скидок и без учета стоимости доставки.\n",
+            "type": "number",
+            "x-deprecation-config": {
+              "replacement-field": "itemsTotal",
+              "shutdown-date": "2026-10-05"
+            }
+          },
+          "buyerItemsTotalBeforeDiscount": {
+            "description": "Стоимость всех товаров в заказе в валюте покупателя без учета стоимости доставки и до применения скидок по:\n\n* акциям;\n* купонам;\n* промокодам.\n",
+            "type": "number"
+          },
+          "buyerTotal": {
+            "deprecated": true,
+            "description": "{% note warning \"Параметр устарел и будет отключен 05.10.2026.\" %}\n\n \n\n{% endnote %}\n\nСтоимость всех товаров в заказе в валюте покупателя после применения скидок и с учетом стоимости доставки.\n",
+            "type": "number",
+            "x-deprecation-config": {
+              "shutdown-date": "2026-10-05"
+            }
+          },
+          "buyerTotalBeforeDiscount": {
+            "deprecated": true,
+            "description": "{% note warning \"Параметр устарел и будет отключен 05.10.2026.\" %}\n\n \n\n{% endnote %}\n\nСтоимость всех товаров в заказе в валюте покупателя до применения скидок и с учетом стоимости доставки (`buyerItemsTotalBeforeDiscount` + стоимость доставки).\n",
+            "type": "number",
+            "x-deprecation-config": {
+              "shutdown-date": "2026-10-05"
+            }
+          },
+          "cancelRequested": {
+            "description": "**Только для модели DBS**\n\nЗапрошена ли отмена.\n",
+            "type": "boolean"
+          },
+          "creationDate": {
+            "$ref": "#/components/schemas/DateDdMmYyyyHhMmSs",
+            "description": "Дата и время оформления заказа.\n\nФормат даты и времени: `ДД-ММ-ГГГГ ЧЧ:ММ:СС`. Часовой пояс — UTC+03:00 (Москва).\n"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyType",
+            "description": "Валюта, в которой указаны цены на товары в заказе.\n"
+          },
+          "delivery": {
+            "$ref": "#/components/schemas/OrderDeliveryDTO"
+          },
+          "deliveryTotal": {
+            "description": "Стоимость доставки.\n",
+            "type": "number"
+          },
+          "expiryDate": {
+            "$ref": "#/components/schemas/DateDdMmYyyyHhMmSs",
+            "description": "Дата, после которой заказ будет отменен, если не сменит статус.\n\nФормат даты: `ДД-ММ-ГГГГ`.\n"
+          },
+          "externalOrderId": {
+            "$ref": "#/components/schemas/ExternalOrderId"
+          },
+          "fake": {
+            "description": "Тип заказа:\n\n* `false` — настоящий заказ покупателя.\n\n* `true` — [тестовый заказ](../../concepts/sandbox.md) Маркета.\n",
+            "type": "boolean"
+          },
+          "id": {
+            "description": "Идентификатор заказа.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "description": "Список товаров в заказе.",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemDTO"
+            },
+            "type": "array"
+          },
+          "itemsTotal": {
+            "description": "Платеж покупателя.\n",
+            "type": "number"
+          },
+          "notes": {
+            "description": "Комментарий к заказу.",
+            "type": "string"
+          },
+          "paymentMethod": {
+            "$ref": "#/components/schemas/OrderPaymentMethodType"
+          },
+          "paymentType": {
+            "$ref": "#/components/schemas/OrderPaymentType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatusType"
+          },
+          "subsidies": {
+            "description": "Список субсидий по типам.",
+            "items": {
+              "$ref": "#/components/schemas/OrderSubsidyDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "substatus": {
+            "$ref": "#/components/schemas/OrderSubstatusType"
+          },
+          "taxSystem": {
+            "$ref": "#/components/schemas/OrderTaxSystemType"
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/DateDdMmYyyyHhMmSs",
+            "description": "Дата и время последнего обновления заказа.\n\nФормат даты и времени: `ДД-ММ-ГГГГ ЧЧ:ММ:СС`. Часовой пояс — UTC+03:00 (Москва).\n"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "substatus",
+          "creationDate",
+          "currency",
+          "itemsTotal",
+          "deliveryTotal",
+          "buyerItemsTotalBeforeDiscount",
+          "paymentType",
+          "paymentMethod",
+          "fake",
+          "items",
+          "delivery",
+          "buyer",
+          "taxSystem"
+        ],
+        "type": "object"
+      },
+      "OrderDatesFilterDTO": {
+        "description": "Фильтр по датам заказов.",
+        "properties": {
+          "creationDateFrom": {
+            "description": "Начальная дата для фильтрации заказов по дате оформления.\n\nФормат даты: `ГГГГ-ММ-ДД`.\n\nМежду начальной и конечной датой (параметр `creationDateTo`) должно быть не больше 30 дней.\n\nЗначение по умолчанию: 30 дней назад от текущей даты.\n\nНачальная дата включается в интервал для фильтрации.\n",
+            "format": "date",
+            "type": "string"
+          },
+          "creationDateTo": {
+            "description": "Конечная дата для фильтрации заказов по дате оформления.\n\nФормат даты: `ГГГГ-ММ-ДД`.\n\nМежду начальной (параметр `creationDateFrom`) и конечной датой должно быть не больше 30 дней.\n\nЗначение по умолчанию: текущая дата.\n\nЕсли промежуток времени между `creationDateTo` и `creationDateFrom` меньше суток, то `creationDateTo` равен `creationDateFrom` + сутки.\n\nКонечная дата не включается в интервал для фильтрации.\n",
+            "format": "date",
+            "type": "string"
+          },
+          "shipmentDateFrom": {
+            "description": "Начальная дата для фильтрации заказов по дате отгрузки в службу доставки (параметр `shipmentDate`).\n\nФормат даты: `ГГГГ-ММ-ДД`.\n\nМежду начальной и конечной датой (параметр `shipmentDateTo`) должно быть не больше 30 дней.\n\nНачальная дата включается в интервал для фильтрации.\n",
+            "format": "date",
+            "type": "string"
+          },
+          "shipmentDateTo": {
+            "description": "Конечная дата для фильтрации заказов по дате отгрузки в службу доставки (параметр `shipmentDate`).\n\nФормат даты: `ГГГГ-ММ-ДД`.\n\nМежду начальной (параметр `shipmentDateFrom`) и конечной датой должно быть не больше 30 дней.\n\nЕсли промежуток времени между `shipmentDateTo` и `shipmentDateFrom` меньше суток, то `shipmentDateTo` равен `shipmentDateFrom` + сутки.\n\nКонечная дата не включается в интервал для фильтрации.\n",
+            "format": "date",
+            "type": "string"
+          },
+          "updateDateFrom": {
+            "description": "Начальная дата обновления заказа (ISO 8601).",
+            "format": "date-time",
+            "type": "string"
+          },
+          "updateDateTo": {
+            "description": "Конечная дата обновления заказа (ISO 8601).",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "OrderDeliveryAddressDTO": {
+        "description": "Адрес доставки.\n\nУказывается, если параметр `type` принимает значение `DELIVERY`, `POST` или `PICKUP` (только для модели DBS). Если `type=PICKUP`, возвращается адрес пункта выдачи.\n",
+        "properties": {
+          "apartment": {
+            "description": "Номер квартиры или офиса.",
+            "type": "string"
+          },
+          "block": {
+            "description": "Корпус.",
+            "type": "string"
+          },
+          "building": {
+            "description": "Строение.",
+            "type": "string"
+          },
+          "city": {
+            "description": "Город или населенный пункт.\n",
+            "type": "string"
+          },
+          "country": {
+            "description": "Страна.\n",
+            "type": "string"
+          },
+          "district": {
+            "description": "Район.",
+            "type": "string"
+          },
+          "entrance": {
+            "description": "Номер подъезда.",
+            "type": "string"
+          },
+          "entryphone": {
+            "description": "Код домофона.",
+            "type": "string"
+          },
+          "estate": {
+            "description": "Номер владения.\n",
+            "type": "string"
+          },
+          "floor": {
+            "description": "Этаж.",
+            "type": "string"
+          },
+          "gps": {
+            "$ref": "#/components/schemas/GpsDTO",
+            "description": "GPS-координаты."
+          },
+          "house": {
+            "description": "Номер дома.\n",
+            "type": "string"
+          },
+          "phone": {
+            "description": "Телефон получателя заказа.\n",
+            "type": "string"
+          },
+          "postcode": {
+            "description": "Почтовый индекс.\n\nУказывается, если выбрана доставка почтой (`delivery type=POST`).\n",
+            "type": "string"
+          },
+          "recipient": {
+            "description": "Фамилия, имя и отчество получателя заказа.\n",
+            "type": "string"
+          },
+          "street": {
+            "description": "Улица.\n",
+            "type": "string"
+          },
+          "subway": {
+            "description": "Станция метро.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "OrderDeliveryDTO": {
+        "description": "Информация о доставке.",
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/OrderDeliveryAddressDTO"
+          },
+          "courier": {
+            "$ref": "#/components/schemas/OrderCourierDTO"
+          },
+          "dates": {
+            "$ref": "#/components/schemas/OrderDeliveryDatesDTO"
+          },
+          "deliveryPartnerType": {
+            "$ref": "#/components/schemas/OrderDeliveryPartnerType",
+            "description": "Тип сотрудничества со службой доставки в рамках указанного заказа."
+          },
+          "deliveryServiceId": {
+            "description": "Идентификатор службы доставки.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "dispatchType": {
+            "$ref": "#/components/schemas/OrderDeliveryDispatchType"
+          },
+          "eacCode": {
+            "description": "Код подтверждения ЭАПП (для типа `MERCHANT_TO_COURIER`).\n",
+            "type": "string"
+          },
+          "eacType": {
+            "$ref": "#/components/schemas/OrderDeliveryEacType",
+            "description": "Тип кода подтверждения ЭАПП."
+          },
+          "estimated": {
+            "description": "Приблизительная ли дата доставки.",
+            "type": "boolean"
+          },
+          "id": {
+            "deprecated": true,
+            "description": "{% note warning \"Параметр устарел и будет отключен 05.10.2026.\" %}\n\n \n\n{% endnote %}\n\nИдентификатор доставки, присвоенный магазином.\n\nУказывается, только если магазин передал данный идентификатор в ответе на запрос методом `POST cart`.\n",
+            "type": "string",
+            "x-deprecation-config": {
+              "shutdown-date": "2026-10-05"
+            }
+          },
+          "liftPrice": {
+            "description": "Стоимость подъема на этаж.",
+            "type": "number"
+          },
+          "liftType": {
+            "$ref": "#/components/schemas/OrderLiftType"
+          },
+          "outletCode": {
+            "description": "Идентификатор пункта выдачи, присвоенный магазином.",
+            "type": "string"
+          },
+          "outletStorageLimitDate": {
+            "$ref": "#/components/schemas/DateDdMmYyyy",
+            "description": "Дата, до которой заказ будет храниться в пункте выдачи. Возвращается, когда заказ переходит в статус `PICKUP`.\n\nОдин раз дату можно поменять с помощью метода [PUT v2/campaigns/{campaignId}/orders/{orderId}/delivery/storage-limit](../../reference/order-delivery/updateOrderStorageLimit.md).\n"
+          },
+          "price": {
+            "deprecated": true,
+            "description": "{% note warning \"Параметр устарел и будет отключен 05.10.2026.\" %}\n\nСтоимость доставки смотрите в параметре `deliveryTotal`.\n\n{% endnote %}\n\nСтоимость доставки в валюте заказа.\n",
+            "type": "number",
+            "x-deprecation-config": {
+              "replacement-field": "deliveryTotal",
+              "shutdown-date": "2026-10-05"
+            }
+          },
+          "receiveCode": {
+            "description": "**Только для модели LaaS**\n\nКод получения заказа на ПВЗ.\n",
+            "type": "string"
+          },
+          "region": {
+            "$ref": "#/components/schemas/RegionDTO"
+          },
+          "serviceName": {
+            "description": "Название службы доставки.",
+            "type": "string"
+          },
+          "shipments": {
+            "description": "Информация о посылках.",
+            "items": {
+              "$ref": "#/components/schemas/OrderShipmentDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "tracks": {
+            "description": "Информация для отслеживания посылки.",
+            "items": {
+              "$ref": "#/components/schemas/OrderTrackDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "type": {
+            "$ref": "#/components/schemas/OrderDeliveryType",
+            "description": "Способ доставки заказа.\n"
+          },
+          "vat": {
+            "$ref": "#/components/schemas/OrderVatType"
+          }
+        },
+        "required": [
+          "type",
+          "serviceName",
+          "deliveryPartnerType",
+          "dates",
+          "deliveryServiceId"
+        ],
+        "type": "object"
+      },
+      "OrderDeliveryDatesDTO": {
+        "description": "Диапазон дат доставки.",
+        "properties": {
+          "fromDate": {
+            "$ref": "#/components/schemas/DateDdMmYyyy",
+            "description": "Ближайшая дата доставки.\n\nФормат даты: `ДД-ММ-ГГГГ`.\n"
+          },
+          "fromTime": {
+            "description": "Начало интервала времени доставки.\n\nПередается только вместе с параметром `type=DELIVERY`.\n\nФормат времени: 24-часовой, `ЧЧ:ММ`. Вместо `ММ` всегда указывайте `00` (исключение — `23:59`).\n\nМинимальное значение: `00:00`.\n",
+            "format": "time",
+            "type": "string"
+          },
+          "realDeliveryDate": {
+            "$ref": "#/components/schemas/DateDdMmYyyy",
+            "description": "Дата, когда товар доставлен до пункта выдачи (в случае самовывоза) или до покупателя (если заказ доставляет курьер)."
+          },
+          "toDate": {
+            "$ref": "#/components/schemas/DateDdMmYyyy",
+            "description": "Самая поздняя дата доставки.\n\nЕсли `toDate` не указан, считается дата в параметре `fromDate`.\n\nФормат даты: `ДД-ММ-ГГГГ`.\n"
+          },
+          "toTime": {
+            "description": "Конец интервала времени доставки.\n\nПередается только вместе с параметром `type=DELIVERY`.\n\n Формат времени: 24-часовой, `ЧЧ:ММ`. Вместо `ММ` всегда указывайте `00` (исключение — `23:59`).\n\nМаксимальное значение: `23:59`.\n",
+            "format": "time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "fromDate"
+        ],
+        "type": "object"
+      },
+      "OrderDeliveryDispatchType": {
+        "description": "Способ доставки:\n\n* `BUYER` — курьерская доставка покупателю.\n\n* `MARKET_BRANDED_OUTLET` — доставка в пункт выдачи заказов Маркета.\n\n* `SHOP_OUTLET` — доставка в пункт выдачи заказов магазина.\n\n* `UNKNOWN` — неизвестный тип.\n",
+        "enum": [
+          "UNKNOWN",
+          "BUYER",
+          "MARKET_BRANDED_OUTLET",
+          "SHOP_OUTLET"
+        ],
+        "type": "string"
+      },
+      "OrderDeliveryEacType": {
+        "description": "Тип кода подтверждения ЭАПП:\n\n* `MERCHANT_TO_COURIER` (временно не возвращается) — продавец передает код курьеру для получения невыкупа.\n\n* `COURIER_TO_MERCHANT` — курьер передает код продавцу для получения заказа.\n\n* `CHECKING_BY_MERCHANT` — продавец проверяет код на своей стороне.\n",
+        "enum": [
+          "MERCHANT_TO_COURIER",
+          "COURIER_TO_MERCHANT",
+          "CHECKING_BY_MERCHANT"
+        ],
+        "type": "string"
+      },
+      "OrderDeliveryPartnerType": {
+        "description": "Тип сотрудничества со службой доставки в рамках конкретного заказа:\n\n* `SHOP` — магазин работает со службой доставки напрямую или доставляет заказы самостоятельно.\n\n* `YANDEX_MARKET` — магазин работает со службой доставки через Маркет.\n\n* `UNKNOWN` — неизвестный тип.\n",
+        "enum": [
+          "SHOP",
+          "YANDEX_MARKET",
+          "UNKNOWN"
+        ],
+        "type": "string"
+      },
+      "OrderDeliveryType": {
+        "description": "Способ доставки заказа:\n\n* `DELIVERY` — курьерская доставка.\n\n* `PICKUP` — самовывоз.\n\n* `POST` — почта.\n\n* `DIGITAL` — для цифровых товаров.\n\n* `UNKNOWN` — неизвестный тип.\n",
+        "enum": [
+          "DELIVERY",
+          "PICKUP",
+          "POST",
+          "DIGITAL",
+          "UNKNOWN"
+        ],
+        "type": "string"
+      },
+      "OrderItemDTO": {
+        "description": "Список товаров в заказе.",
+        "properties": {
+          "buyerPrice": {
+            "description": "Цена товара в валюте покупателя. В цене уже учтены скидки по:\n\n* акциям;\n* купонам;\n* промокодам.\n",
+            "type": "number"
+          },
+          "buyerPriceBeforeDiscount": {
+            "description": "Стоимость товара в валюте покупателя до применения скидок по:\n\n* акциям;\n* купонам;\n* промокодам.\n\nЭто зачеркнутая цена, которая отображается покупателю на карточке товара до применения скидок.\n",
+            "type": "number"
+          },
+          "count": {
+            "description": "Количество единиц товара.",
+            "type": "integer"
+          },
+          "details": {
+            "deprecated": true,
+            "description": "{% note warning \"Параметр устарел и будет отключен 05.10.2026.\" %}\n\nДля получения информации о невыкупах и возвратах используйте [GET v2/campaigns/{campaignId}/returns](../../reference/returns/getReturns.md).\n\n{% endnote %}\n\nИнформация о невыкупленных или возвращенных товарах в заказе.\n",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemDetailDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array",
+            "x-deprecation-config": {
+              "shutdown-date": "2026-10-05"
+            }
+          },
+          "id": {
+            "description": "Идентификатор товара в заказе.\n\nПозволяет идентифицировать товар в рамках заказа.\n",
+            "format": "int64",
+            "type": "integer"
+          },
+          "instances": {
+            "description": "Информация о маркировке единиц товара.\n\nВозвращаются данные для маркировки, переданные в запросе:\n\n* Для DBS — [PUT v2/campaigns/{campaignId}/orders/{orderId}/identifiers](../../reference/orders/provideOrderItemIdentifiers.md) или [PUT v2/campaigns/{campaignId}/orders/{orderId}/boxes](../../reference/orders/setOrderBoxLayout.md).\n* Для FBS и EXPRESS — [PUT v2/campaigns/{campaignId}/orders/{orderId}/boxes](../../reference/orders/setOrderBoxLayout.md).\n\nДля FBY возвращаются коды маркировки, переданные во время поставки.\n\nЕсли магазин еще не передавал коды для этого заказа, `instances` отсутствует.\n",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemInstanceDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "offerId": {
+            "$ref": "#/components/schemas/ShopSku",
+            "description": "Идентификатор вашего товарного предложения для определенного товара. [Описание поля в Справке Маркета для продавцов](https://yandex.ru/support/marketplace/assortment/fields/index.html#sku)"
+          },
+          "offerName": {
+            "description": "Название товара.",
+            "type": "string"
+          },
+          "partnerWarehouseId": {
+            "description": "**Только для моделей FBY и LaaS**\n\nИдентификатор склада, на который сформирован заказ.\n",
+            "type": "string"
+          },
+          "price": {
+            "description": "Цена товара в валюте заказа без учета вознаграждения продавцу за скидки по промокодам, купонам и акциям (параметр `subsidies`).\n\nВключает НДС.\n",
+            "type": "number"
+          },
+          "priceBeforeDiscount": {
+            "deprecated": true,
+            "description": "{% note warning \"Параметр устарел и будет отключен 05.10.2026.\" %}\n\n \n\n{% endnote %}\n\nСтоимость товара в валюте магазина до применения скидок.\n",
+            "type": "number",
+            "x-deprecation-config": {
+              "shutdown-date": "2026-10-05"
+            }
+          },
+          "promos": {
+            "description": "Информация о вознаграждении продавцу за скидки на товар по промокодам, купонам и акциям.",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemPromoDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "requiredInstanceTypes": {
+            "description": "Список необходимых маркировок товара.",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemInstanceType"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "shopSku": {
+            "$ref": "#/components/schemas/ShopSku",
+            "deprecated": true,
+            "description": "{% note warning \"Параметр устарел и будет отключен 05.10.2026.\" %}\n\nВместо него используйте `offerId`.\n\n{% endnote %}\n\nВаш SKU — идентификатор товара в вашей системе.\n",
+            "x-deprecation-config": {
+              "replacement-field": "offerId",
+              "shutdown-date": "2026-10-05"
+            }
+          },
+          "subsidies": {
+            "description": "Список субсидий по типам.",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemSubsidyDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "subsidy": {
+            "deprecated": true,
+            "description": "{% note warning \"Параметр устарел и будет отключен 05.10.2026.\" %}\n\nВместо него используйте `subsidies`.\n\n{% endnote %}\n\nОбщее вознаграждение продавцу за DBS-доставку и все скидки на товар:\n\n* по промокодам;\n* по купонам;\n* по баллам Плюса;\n* по акциям.\n",
+            "type": "number",
+            "x-deprecation-config": {
+              "replacement-field": "subsidies",
+              "shutdown-date": "2026-10-05"
+            }
+          },
+          "tags": {
+            "description": "Признаки товара.",
+            "items": {
+              "$ref": "#/components/schemas/OrderItemTagType"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "vat": {
+            "$ref": "#/components/schemas/OrderVatType",
+            "description": "НДС на товар."
+          }
+        },
+        "required": [
+          "id",
+          "offerId",
+          "offerName",
+          "price",
+          "buyerPrice",
+          "buyerPriceBeforeDiscount",
+          "count"
+        ],
+        "type": "object"
+      },
+      "OrderItemDetailDTO": {
+        "description": "Детали по товару в заказе.",
+        "properties": {
+          "itemCount": {
+            "description": "Количество единиц товара.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "itemStatus": {
+            "$ref": "#/components/schemas/OrderItemStatusType"
+          },
+          "updateDate": {
+            "$ref": "#/components/schemas/DateDdMmYyyy"
+          }
+        },
+        "required": [
+          "itemCount",
+          "itemStatus",
+          "updateDate"
+        ],
+        "type": "object"
+      },
+      "OrderItemInstanceDTO": {
+        "description": "Переданные для данной позиции коды маркировки или УИНы. Коды «Честного знака» возвращаются в двух вариантах — с криптохвостом и без.\n",
+        "properties": {
+          "cis": {
+            "description": "Код идентификации единицы товара в системе [«Честный ЗНАК»](https://честныйзнак.рф/) без криптохвоста или [«ASL BELGISI»](https://aslbelgisi.uz) (для продавцов Market Yandex Go).",
+            "type": "string"
+          },
+          "cisFull": {
+            "description": "Код идентификации единицы товара в системе [«Честный ЗНАК»](https://честныйзнак.рф/) с криптохвостом.",
+            "type": "string"
+          },
+          "countryCode": {
+            "$ref": "#/components/schemas/CountryCode"
+          },
+          "gtd": {
+            "description": "Грузовая таможенная декларация.\n\nПредставляет собой строку из трех чисел, разделенных косой чертой: ХХХХХХХХ/ХХХХХХ/ХХХХХХХ.\n\nПервая часть — код таможни, которая зарегистрировала декларацию на ввезенные товары. Далее — дата и номер декларации.\n",
+            "type": "string"
+          },
+          "rnpt": {
+            "description": "Регистрационный номер партии товара.\n\nПредставляет собой строку из четырех чисел, разделенных косой чертой: ХХХХХХХХ/ХХХХХХ/ХХХХХХХ/ХХХ.\n\nПервая часть — код таможни, которая зарегистрировала декларацию на партию товара. Далее — дата, номер декларации и номер маркированного товара в декларации.\n",
+            "type": "string"
+          },
+          "uin": {
+            "description": "УИН ювелирного изделия (16-значный код)\nПроизводитель получает УИН, когда регистрирует изделие в системе контроля за оборотом драгоценных металлов и камней — ГИИС ДМДК.\n",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "OrderItemInstanceType": {
+        "description": "Вид маркировки товара:\n\n* `CIS` — КИЗ, идентификатор единицы товара в системе [«Честный ЗНАК»](https://честныйзнак.рф/) или [«ASL BELGISI»](https://aslbelgisi.uz) (для продавцов Market Yandex Go). Обязателен для заполнения.\n\n* `CIS_OPTIONAL` — КИЗ, идентификатор единицы товара в системе [«Честный ЗНАК»](https://честныйзнак.рф/). Необязателен для заполнения, но в ближайшее время потребуется его передача.\n\n* `UIN` — УИН, уникальный идентификационный номер.\n\n* `RNPT` — РНПТ, регистрационный номер партии товара.\n\n* `GTD` — номер ГТД, грузовой таможенной декларации.\n",
+        "enum": [
+          "CIS",
+          "CIS_OPTIONAL",
+          "UIN",
+          "RNPT",
+          "GTD"
+        ],
+        "type": "string"
+      },
+      "OrderItemPromoDTO": {
+        "description": "Информация о вознаграждении продавцу за скидки на товар по промокодам, купонам и акциям.",
+        "properties": {
+          "discount": {
+            "description": "Размер пользовательской скидки в валюте покупателя.\n",
+            "type": "number"
+          },
+          "marketPromoId": {
+            "description": "Идентификатор акции в рамках соглашения на оказание услуг по продвижению сервиса между Маркетом и продавцом.\n",
+            "type": "string"
+          },
+          "shopPromoId": {
+            "description": "Идентификатор акции поставщика.\n",
+            "type": "string"
+          },
+          "subsidy": {
+            "description": "Вознаграждение продавцу от Маркета за товар, проданный в рамках акции.\n",
+            "type": "number"
+          },
+          "type": {
+            "$ref": "#/components/schemas/OrderPromoType",
+            "description": "Тип скидки.\n"
+          }
+        },
+        "required": [
+          "type",
+          "subsidy"
+        ],
+        "type": "object"
+      },
+      "OrderItemStatusType": {
+        "description": "Невыкупленный или возвращенный товар:\n\n* `REJECTED` — невыкупленный.\n\n* `RETURNED` — возвращенный.\n",
+        "enum": [
+          "REJECTED",
+          "RETURNED"
+        ],
+        "type": "string"
+      },
+      "OrderItemSubsidyDTO": {
+        "description": "Общее вознаграждение продавцу за все скидки на товар:\n\n* по промокодам, купонам и акциям;\n* по баллам Плюса.\n\nВключает НДС.\n",
+        "properties": {
+          "amount": {
+            "description": "Сумма субсидии.",
+            "type": "number"
+          },
+          "type": {
+            "$ref": "#/components/schemas/OrderItemSubsidyType"
+          }
+        },
+        "required": [
+          "type",
+          "amount"
+        ],
+        "type": "object"
+      },
+      "OrderItemSubsidyType": {
+        "description": "Тип субсидии:\n\n* `YANDEX_CASHBACK` — скидка по подписке Яндекс Плюс.\n\n* `SUBSIDY` — скидка Маркета (по акциям, промокодам, купонам и т. д.).\n",
+        "enum": [
+          "YANDEX_CASHBACK",
+          "SUBSIDY"
+        ],
+        "type": "string"
+      },
+      "OrderItemTagType": {
+        "description": "Признак товара:\n\n* `ULTIMA` — премиум-товар.\n* `SAFE_TAG` — товар с [защитной меткой](*safe-tag).\n",
+        "enum": [
+          "ULTIMA",
+          "SAFE_TAG"
+        ],
+        "type": "string"
+      },
+      "OrderItemUnitStatusDTO": {
+        "description": "Количество единиц товара с определенным статусом.",
+        "properties": {
+          "count": {
+            "description": "Количество единиц товара.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderItemUnitStatusType"
+          }
+        },
+        "required": [
+          "status",
+          "count"
+        ],
+        "type": "object"
+      },
+      "OrderItemUnitStatusType": {
+        "description": "Статус единицы товара в заказе.\n\n* `CREATED` — создана.\n\n* `SHIPPED` — передана в доставку.\n\n* `CANCELLED` — отменена или удалена из заказа.\n\n* `DELIVERED_TO_BUYER` — передана покупателю.\n\n* `LOST` — утеряна.\n\n* `REJECTED` — невыкупленная.\n\n* `RETURNED` — возвращенная.\n",
+        "enum": [
+          "CREATED",
+          "SHIPPED",
+          "CANCELLED",
+          "DELIVERED_TO_BUYER",
+          "LOST",
+          "REJECTED",
+          "RETURNED"
+        ],
+        "type": "string"
+      },
+      "OrderLiftType": {
+        "description": "Тип подъема заказа на этаж:\n\n* `NOT_NEEDED` — не требуется.\n\n* `MANUAL` — ручной.\n\n* `ELEVATOR` — лифт.\n\n* `CARGO_ELEVATOR` — грузовой лифт.\n\n* `FREE` — любой из перечисленных выше, если включена опция бесплатного подъема.\n\n* `UNKNOWN` — неизвестный тип.\n",
+        "enum": [
+          "NOT_NEEDED",
+          "MANUAL",
+          "ELEVATOR",
+          "CARGO_ELEVATOR",
+          "FREE",
+          "UNKNOWN"
+        ],
+        "type": "string"
+      },
+      "OrderParcelBoxDTO": {
+        "description": "Информация о грузоместе.",
+        "properties": {
+          "fulfilmentId": {
+            "description": "Идентификатор грузового места в системе магазина.",
+            "type": "string"
+          },
+          "id": {
+            "description": "Идентификатор грузового места.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "fulfilmentId"
+        ],
+        "type": "object"
+      },
+      "OrderPaymentMethodType": {
+        "description": "Способ оплаты заказа:\n\n* Значения, если выбрана оплата при оформлении заказа (`\"paymentType\": \"PREPAID\"`):\n\n  * `YANDEX` — банковской картой.\n\n  * `APPLE_PAY` — Apple Pay (не используется).\n\n  * `GOOGLE_PAY` — Google Pay (не используется).\n\n  * `CREDIT` — в кредит.\n\n  * `TINKOFF_CREDIT` — в кредит в Тинькофф Банке.\n\n  * `TINKOFF_INSTALLMENTS` — рассрочка в Тинькофф Банке.\n\n  * `EXTERNAL_CERTIFICATE` — подарочным сертификатом (например, из приложения «Сбербанк Онлайн»).\n\n  * `SBP` — через систему быстрых платежей.\n\n  * `B2B_ACCOUNT_PREPAYMENT` — заказ оплачивает организация.\n\n  * `MICROCREDIT` - Сплит на основе МКК (Микрокредитной компании).\n\n  * `BNPL_TBC` - BNPL через внешний банк TBC.\n\n  * `DIGITAL_RUBLE` - Цифровой рубль.\n\n\n* Значения, если выбрана оплата при получении заказа (`\"paymentType\": \"POSTPAID\"`):\n\n  * `CARD_ON_DELIVERY` — банковской картой.\n\n  * `BOUND_CARD_ON_DELIVERY` — привязанной картой при получении.\n\n  * `BNPL_BANK_ON_DELIVERY` — супер Сплитом.\n\n  * `BNPL_ON_DELIVERY` — Сплитом.\n\n  * `BNPL_TBYB` - Оплата после доставки на основе Сплита.\n\n  * `SBP_ON_DELIVERY` — постоплата через СБП.\n\n  * `CASH_ON_DELIVERY` — наличными.\n\n  * `B2B_ACCOUNT_POSTPAYMENT` — заказ оплачивает организация после доставки.\n\n* `UNKNOWN` — неизвестный тип.\n\nЗначение по умолчанию: `CASH_ON_DELIVERY`.\n",
+        "enum": [
+          "CASH_ON_DELIVERY",
+          "CARD_ON_DELIVERY",
+          "BOUND_CARD_ON_DELIVERY",
+          "BNPL_BANK_ON_DELIVERY",
+          "BNPL_ON_DELIVERY",
+          "YANDEX",
+          "APPLE_PAY",
+          "EXTERNAL_CERTIFICATE",
+          "CREDIT",
+          "GOOGLE_PAY",
+          "TINKOFF_CREDIT",
+          "SBP",
+          "SBP_ON_DELIVERY",
+          "TINKOFF_INSTALLMENTS",
+          "B2B_ACCOUNT_PREPAYMENT",
+          "B2B_ACCOUNT_POSTPAYMENT",
+          "MICROCREDIT",
+          "BNPL_TBYB",
+          "BNPL_TBC",
+          "DIGITAL_RUBLE",
+          "UNKNOWN"
+        ],
+        "type": "string"
+      },
+      "OrderPaymentType": {
+        "description": "Тип оплаты заказа:\n\n* `PREPAID` — оплата при оформлении заказа.\n\n* `POSTPAID` — оплата при получении заказа.\n\n* `UNKNOWN` — неизвестный тип.\n\nЕсли параметр отсутствует, заказ будет оплачен при получении.\n",
+        "enum": [
+          "PREPAID",
+          "POSTPAID",
+          "UNKNOWN"
+        ],
+        "type": "string"
+      },
+      "OrderPriceDTO": {
+        "description": "Информация о стоимости заказа.\n\n{% note info \"Как рассчитывается стоимость заказа, доставки и вознаграждение продавцу\" %}\n\n* Стоимость товаров в заказе складывается из параметров `payment` и `cashback`.\n* Общая сумма вознаграждений продавцу возвращается в параметре `subsidy`.\n* Значение `payment`, `cashback` и `subsidy` может отличаться от стоимости в каталоге, потому что информация об акциях магазина не возвращается.\n* Стоимость доставки складывается из параметров `payment` и `subsidy` в `delivery`.\n* Все суммы указаны в валюте магазина.\n\n{% endnote %}\n",
+        "properties": {
+          "cashback": {
+            "$ref": "#/components/schemas/CurrencyValueDTO",
+            "description": "Сумма, которая оплачена баллами Плюса.\n\nВозвращается баллами.\n"
+          },
+          "delivery": {
+            "$ref": "#/components/schemas/DeliveryPriceDTO",
+            "description": "Информация о стоимости доставки, включая подъем на этаж.\n"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/CurrencyValueDTO",
+            "description": "Сумма платежа покупателя."
+          },
+          "subsidy": {
+            "$ref": "#/components/schemas/CurrencyValueDTO",
+            "description": "Общая сумма вознаграждений продавцу.\n"
+          }
+        },
+        "type": "object"
+      },
+      "OrderPromoType": {
+        "description": "Тип скидки:\n\n* `DIRECT_DISCOUNT` — прямая скидка, которую устанавливает продавец или Маркет.\n\n* `BLUE_SET` — комплекты.\n\n* `BLUE_FLASH` — флеш-акция.\n\n* `MARKET_COUPON` — скидка по промокоду Маркета.\n\n* `MARKET_PROMOCODE` — скидка по промокоду магазина.\n\n* `MARKET_BLUE` — скидка на Маркете.\n\n* `CHEAPEST_AS_GIFT` — самый дешевый товар в подарок.\n\n* `CASHBACK` — кешбэк.\n\n* `SPREAD_DISCOUNT_COUNT` — скидка за количество одинаковых товаров.\n\n* `SPREAD_DISCOUNT_RECEIPT` — скидка от суммы чека.\n\n* `DISCOUNT_BY_PAYMENT_TYPE` — прямая скидка при оплате картой Плюса.\n\n* `PERCENT_DISCOUNT` — прямая скидка в процентах.\n\n* `DCO_EXTRA_DISCOUNT` — дополнительная скидка, необходимая для расчета субсидии от Маркета.\n\n* `UNKNOWN` — неизвестный тип.\n\nУстаревшие типы:\n\n* `GENERIC_BUNDLE`.\n\n* `MARKET_COIN`.\n\n* `PRICE_DROP_AS_YOU_SHOP`.\n\n* `SECRET_SALE`.\n",
+        "enum": [
+          "DIRECT_DISCOUNT",
+          "BLUE_SET",
+          "BLUE_FLASH",
+          "GENERIC_BUNDLE",
+          "MARKET_COUPON",
+          "MARKET_PROMOCODE",
+          "MARKET_BLUE",
+          "MARKET_COIN",
+          "PRICE_DROP_AS_YOU_SHOP",
+          "SECRET_SALE",
+          "CHEAPEST_AS_GIFT",
+          "CASHBACK",
+          "SPREAD_DISCOUNT_COUNT",
+          "SPREAD_DISCOUNT_RECEIPT",
+          "DISCOUNT_BY_PAYMENT_TYPE",
+          "PERCENT_DISCOUNT",
+          "DCO_EXTRA_DISCOUNT",
+          "UNKNOWN"
+        ],
+        "type": "string"
+      },
+      "OrderShipmentDTO": {
+        "description": "Список посылок.\n\nВ параметре может указываться несколько посылок.\n",
+        "properties": {
+          "boxes": {
+            "description": "Список грузовых мест.",
+            "items": {
+              "$ref": "#/components/schemas/OrderParcelBoxDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "id": {
+            "deprecated": true,
+            "description": "{% note warning \"Параметр устарел и будет отключен 05.10.2026.\" %}\n\n \n\n{% endnote %}\n\nИдентификатор посылки, присвоенный Маркетом.\n",
+            "format": "int64",
+            "type": "integer",
+            "x-deprecation-config": {
+              "shutdown-date": "2026-10-05"
+            }
+          },
+          "shipmentDate": {
+            "$ref": "#/components/schemas/DateDdMmYyyy",
+            "description": "День, в который нужно отгрузить заказ службе доставки.\n\nФормат даты: `ДД-ММ-ГГГГ`.\n\nЕсли заказ сделан организацией, параметр не возвращается до согласования даты доставки.\n\n{% cut \"Иногда Маркет может перенести дату отгрузки\" %}\n\nУ таких заказов обновится параметр `updatedAt`. Чтобы найти их, в запросе [POST v1/businesses/{businessId}/orders](../../reference/orders/getBusinessOrders.md) укажите параметры `updateDateFrom` и `updateDateTo`.\n\n{% endcut %}\n\n \n"
+          },
+          "shipmentTime": {
+            "description": "**Только для модели Экспресс**\n\nВремя, к которому магазин должен упаковать заказ и перевести его в статус `READY_TO_SHIP`. После смены статуса за заказом приедет курьер.\n\nПоле может появиться не сразу. Запрашивайте информацию о заказе в течении 5–10 минут, пока оно не вернется.\n\nФормат времени: 24-часовой, `ЧЧ:ММ`.\n\nЕсли заказ сделан организацией, параметр не возвращается до согласования даты доставки.\n",
+            "type": "string"
+          },
+          "tracks": {
+            "description": "**Только для модели DBS**\n\nИнформация для отслеживания посылки.\n",
+            "items": {
+              "$ref": "#/components/schemas/OrderTrackDTO"
+            },
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "OrderSourcePlatformType": {
+        "description": "Площадка-источник заказа:\n\n* `MARKET` — заказ, оформленный на Маркете.\n\n* `OTHER` — LaaS-заказ, созданный продавцом.\n",
+        "enum": [
+          "MARKET",
+          "OZON",
+          "WILDBERRIES",
+          "OTHER"
+        ],
+        "type": "string"
+      },
+      "OrderStatusChangeDTO": {
+        "description": "Заказ.",
+        "properties": {
+          "delivery": {
+            "$ref": "#/components/schemas/OrderStatusChangeDeliveryDTO"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatusType"
+          },
+          "substatus": {
+            "$ref": "#/components/schemas/OrderSubstatusType"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "type": "object"
+      },
+      "OrderStatusChangeDeliveryDTO": {
+        "description": "Информация о доставке.",
+        "properties": {
+          "dates": {
+            "$ref": "#/components/schemas/OrderStatusChangeDeliveryDatesDTO"
+          }
+        },
+        "type": "object"
+      },
+      "OrderStatusChangeDeliveryDatesDTO": {
+        "description": "Диапазон дат доставки.",
+        "properties": {
+          "realDeliveryDate": {
+            "description": "**Только для модели DBS**\n\nФактическая дата доставки.\n<br><br>\nКогда передавать параметр `realDeliveryDate`:\n\n* Не передавайте параметр, если:\n  * переводите заказ в любой статус, кроме `PICKUP` или `DELIVERED`;\n  * меняете статус заказа на `PICKUP` или `DELIVERED` в день доставки — будет указана дата выполнения запроса.\n* Передавайте дату доставки, если переводите заказ в статус `PICKUP` или `DELIVERED` не в день доставки. Нельзя указывать дату доставки в будущем.\n\n  {% note warning \"Передача статуса после установленного срока снижает индекс качества\" %}\n\n  О сроках читайте [в Справке Маркета для продавцов](https://yandex.ru/support2/marketplace/ru/quality/tech#dbs).\n\n  {% endnote %}\n\n   \nФормат даты: `ГГГГ-ММ-ДД`.\n",
+            "format": "date",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "OrderStatusType": {
+        "description": "Статус заказа:\n\n* `PLACING` — оформляется, подготовка к резервированию.\n\n* `RESERVED` — зарезервирован, но недооформлен (только для LaaS).\n\n* `UNPAID` — оформлен, но еще не оплачен (если выбрана оплата при оформлении).\n\n* `PROCESSING` — находится в обработке.\n\n* `DELIVERY` — передан в службу доставки.\n\n* `PICKUP` — доставлен в пункт выдачи.\n\n* `DELIVERED` — получен покупателем.\n\n* `CANCELLED` — отменен.\n\n* `PENDING` — ожидает обработки со стороны продавца.\n\n* `PARTIALLY_RETURNED` — возвращен частично.\n\n* `RETURNED` — возвращен полностью.\n\n* `UNKNOWN` — неизвестный статус.\n\nТакже могут возвращаться другие значения. Обрабатывать их не нужно.\n",
+        "enum": [
+          "PLACING",
+          "RESERVED",
+          "UNPAID",
+          "PROCESSING",
+          "DELIVERY",
+          "PICKUP",
+          "DELIVERED",
+          "CANCELLED",
+          "PENDING",
+          "PARTIALLY_RETURNED",
+          "RETURNED",
+          "UNKNOWN"
+        ],
+        "type": "string"
+      },
+      "OrderSubsidyDTO": {
+        "description": "Общее вознаграждение продавцу за DBS-доставку и все скидки на товар:\n\n* по промокодам, купонам и акциям;\n* по баллам Плюса;\n* по доставке (DBS).\n\nВключает НДС.\n",
+        "properties": {
+          "amount": {
+            "description": "Сумма субсидии.",
+            "type": "number"
+          },
+          "type": {
+            "$ref": "#/components/schemas/OrderSubsidyType"
+          }
+        },
+        "required": [
+          "type",
+          "amount"
+        ],
+        "type": "object"
+      },
+      "OrderSubsidyType": {
+        "description": "Тип субсидии:\n\n* `YANDEX_CASHBACK` — скидка по подписке Яндекс Плюс.\n\n* `SUBSIDY` — скидка Маркета (по акциям, промокодам, купонам и т. д.)\n\n* `DELIVERY` — скидка за доставку (DBS).\n",
+        "enum": [
+          "YANDEX_CASHBACK",
+          "SUBSIDY",
+          "DELIVERY"
+        ],
+        "type": "string"
+      },
+      "OrderSubstatusType": {
+        "description": "Этап обработки заказа (статус `PROCESSING`) или причина отмены заказа (статус `CANCELLED`).\n\n* Значения для заказа в статусе `PROCESSING`:\n\n    * `STARTED` — заказ подтвержден, его можно начать обрабатывать.\n\n    * `READY_TO_SHIP` — заказ собран и готов к отправке.\n\n* Значения для заказа в статусе `CANCELLED`:\n\n    * `RESERVATION_EXPIRED` — покупатель не завершил оформление зарезервированного заказа в течение 10 минут.\n\n    * `USER_NOT_PAID` — покупатель не оплатил заказ (для типа оплаты `PREPAID`) в течение 30 минут.\n\n    * `USER_UNREACHABLE` — не удалось связаться с покупателем. Для отмены с этой причиной необходимо выполнить условия:\n\n      * не менее 3 звонков с 8 до 21 в часовом поясе покупателя;\n      * перерыв между первым и третьим звонком не менее 90 минут;\n      * соединение не короче 5 секунд.\n\n      Если хотя бы одно из этих условий не выполнено (кроме случая, когда номер недоступен), отменить заказ не получится. Вернется ответ с кодом ошибки 400.\n\n    * `USER_CHANGED_MIND` — покупатель отменил заказ по личным причинам.\n\n    * `USER_REFUSED_DELIVERY` — покупателя не устроили условия доставки.\n\n    * `USER_REFUSED_PRODUCT` — покупателю не подошел товар.\n\n    * `SHOP_FAILED` — магазин не может выполнить заказ.\n\n    * `USER_REFUSED_QUALITY` — покупателя не устроило качество товара.\n\n    * `USER_IDENTIFICATION_MISMATCH` — идентификационный документ покупателя не совпадает с данными в заказе.\n\n    * `PURCHASE_GROUP_THRESHOLD_NOT_REACHED_CANCELLED` — заказ участвовал в групповой покупке и был отменен, потому что не было достигнуто нужное количество покупок.\n\n    * `REPLACING_ORDER` — покупатель решил заменить товар другим по собственной инициативе.\n\n    * `PROCESSING_EXPIRED` — значение более не используется.\n\n    * `PICKUP_EXPIRED` — закончился срок хранения заказа в пункт выдачи.\n\n    * `TOO_MANY_DELIVERY_DATE_CHANGES` — заказ переносили слишком много раз.\n\n    * `TOO_LONG_DELIVERY` — заказ доставляется слишком долго.\n\n    * `INCORRECT_PERSONAL_DATA` — для заказа из-за рубежа указаны неправильные данные получателя, заказ не пройдет проверку на таможне.\n\n* `TECHNICAL_ERROR` — техническая ошибка на стороне Маркета. Обратитесь в поддержку.\n\nТакже могут возвращаться другие значения. Обрабатывать их не нужно.\n",
+        "enum": [
+          "RESERVATION_EXPIRED",
+          "USER_NOT_PAID",
+          "USER_UNREACHABLE",
+          "USER_CHANGED_MIND",
+          "USER_REFUSED_DELIVERY",
+          "USER_REFUSED_PRODUCT",
+          "SHOP_FAILED",
+          "USER_REFUSED_QUALITY",
+          "REPLACING_ORDER",
+          "PROCESSING_EXPIRED",
+          "PENDING_EXPIRED",
+          "SHOP_PENDING_CANCELLED",
+          "PENDING_CANCELLED",
+          "USER_FRAUD",
+          "RESERVATION_FAILED",
+          "USER_PLACED_OTHER_ORDER",
+          "USER_BOUGHT_CHEAPER",
+          "MISSING_ITEM",
+          "BROKEN_ITEM",
+          "WRONG_ITEM",
+          "PICKUP_EXPIRED",
+          "DELIVERY_PROBLEMS",
+          "LATE_CONTACT",
+          "CUSTOM",
+          "DELIVERY_SERVICE_FAILED",
+          "WAREHOUSE_FAILED_TO_SHIP",
+          "DELIVERY_SERVICE_UNDELIVERED",
+          "PREORDER",
+          "AWAIT_CONFIRMATION",
+          "STARTED",
+          "PACKAGING",
+          "READY_TO_SHIP",
+          "SHIPPED",
+          "ASYNC_PROCESSING",
+          "WAITING_USER_INPUT",
+          "WAITING_BANK_DECISION",
+          "BANK_REJECT_CREDIT_OFFER",
+          "CUSTOMER_REJECT_CREDIT_OFFER",
+          "CREDIT_OFFER_FAILED",
+          "AWAIT_DELIVERY_DATES_CONFIRMATION",
+          "SERVICE_FAULT",
+          "DELIVERY_SERVICE_RECEIVED",
+          "USER_RECEIVED",
+          "WAITING_FOR_STOCKS",
+          "AS_PART_OF_MULTI_ORDER",
+          "READY_FOR_LAST_MILE",
+          "LAST_MILE_STARTED",
+          "ANTIFRAUD",
+          "DELIVERY_USER_NOT_RECEIVED",
+          "DELIVERY_SERVICE_DELIVERED",
+          "DELIVERED_USER_NOT_RECEIVED",
+          "USER_WANTED_ANOTHER_PAYMENT_METHOD",
+          "USER_RECEIVED_TECHNICAL_ERROR",
+          "USER_FORGOT_TO_USE_BONUS",
+          "DELIVERY_SERVICE_NOT_RECEIVED",
+          "DELIVERY_SERVICE_LOST",
+          "SHIPPED_TO_WRONG_DELIVERY_SERVICE",
+          "DELIVERED_USER_RECEIVED",
+          "WAITING_TINKOFF_DECISION",
+          "COURIER_SEARCH",
+          "COURIER_FOUND",
+          "COURIER_IN_TRANSIT_TO_SENDER",
+          "COURIER_ARRIVED_TO_SENDER",
+          "COURIER_RECEIVED",
+          "COURIER_NOT_FOUND",
+          "COURIER_NOT_DELIVER_ORDER",
+          "COURIER_RETURNS_ORDER",
+          "COURIER_RETURNED_ORDER",
+          "WAITING_USER_DELIVERY_INPUT",
+          "PICKUP_SERVICE_RECEIVED",
+          "PICKUP_USER_RECEIVED",
+          "CANCELLED_COURIER_NOT_FOUND",
+          "COURIER_NOT_COME_FOR_ORDER",
+          "DELIVERY_NOT_MANAGED_REGION",
+          "INCOMPLETE_CONTACT_INFORMATION",
+          "INCOMPLETE_MULTI_ORDER",
+          "INAPPROPRIATE_WEIGHT_SIZE",
+          "TECHNICAL_ERROR",
+          "SORTING_CENTER_LOST",
+          "COURIER_SEARCH_NOT_STARTED",
+          "LOST",
+          "AWAIT_PAYMENT",
+          "AWAIT_LAVKA_RESERVATION",
+          "USER_WANTS_TO_CHANGE_ADDRESS",
+          "FULL_NOT_RANSOM",
+          "PRESCRIPTION_MISMATCH",
+          "DROPOFF_LOST",
+          "DROPOFF_CLOSED",
+          "DELIVERY_TO_STORE_STARTED",
+          "USER_WANTS_TO_CHANGE_DELIVERY_DATE",
+          "WRONG_ITEM_DELIVERED",
+          "DAMAGED_BOX",
+          "AWAIT_DELIVERY_DATES",
+          "LAST_MILE_COURIER_SEARCH",
+          "PICKUP_POINT_CLOSED",
+          "LEGAL_INFO_CHANGED",
+          "USER_HAS_NO_TIME_TO_PICKUP_ORDER",
+          "DELIVERY_CUSTOMS_ARRIVED",
+          "DELIVERY_CUSTOMS_CLEARED",
+          "FIRST_MILE_DELIVERY_SERVICE_RECEIVED",
+          "AWAIT_AUTO_DELIVERY_DATES",
+          "AWAIT_USER_PERSONAL_DATA",
+          "NO_PERSONAL_DATA_EXPIRED",
+          "CUSTOMS_PROBLEMS",
+          "AWAIT_CASHIER",
+          "WAITING_POSTPAID_BUDGET_RESERVATION",
+          "AWAIT_SERVICEABLE_CONFIRMATION",
+          "POSTPAID_BUDGET_RESERVATION_FAILED",
+          "AWAIT_CUSTOM_PRICE_CONFIRMATION",
+          "READY_FOR_PICKUP",
+          "TOO_MANY_DELIVERY_DATE_CHANGES",
+          "TOO_LONG_DELIVERY",
+          "DEFERRED_PAYMENT",
+          "POSTPAID_FAILED",
+          "INCORRECT_PERSONAL_DATA",
+          "CUSTOMS_FAILED_MARKET",
+          "CUSTOMS_FAILED_USER_COMMERCIAL_ITEMS",
+          "CUSTOMS_FAILED_USER_DUTY_NOT_PAID",
+          "CUSTOMS_FAILED_USER_INVALID_PERSONAL_DATA",
+          "CUSTOMS_FAILED_USER_ADDITIONAL_DATA_NOT_PROVIDED",
+          "AWAIT_PAYMENT_AFTER_DELIVERY",
+          "AWAIT_USER_STEAM_FAST_URL",
+          "USER_IDENTIFICATION_MISMATCH",
+          "PURCHASE_GROUP_THRESHOLD_NOT_REACHED_CANCELLED",
+          "UNKNOWN"
+        ],
+        "type": "string"
+      },
+      "OrderTaxSystemType": {
+        "description": "Система налогообложения (СНО) магазина на момент оформления заказа:\n\n* `ECHN` — единый сельскохозяйственный налог (ЕСХН).\n\n* `ENVD` — единый налог на вмененный доход (ЕНВД).\n\n* `OSN` — общая система налогообложения (ОСН).\n\n* `PSN` — патентная система налогообложения (ПСН).\n\n* `USN` — упрощенная система налогообложения (УСН).\n\n* `USN_MINUS_COST` — упрощенная система налогообложения, доходы, уменьшенные на величину расходов (УСН «Доходы минус расходы»).\n\n* `NPD` — налог на профессиональный доход (НПД).\n\n* `AUSN` — автоматизированная упрощенная система налогообложения (АУСН).\n\n* `AUSN_MINUS_COST` — автоматизированная упрощенная система налогообложения, доходы, уменьшенные на величину расходов (АУСН «Доходы минус расходы»).\n\n* `UNKNOWN_VALUE` — неизвестное значение.\n",
+        "enum": [
+          "OSN",
+          "USN",
+          "USN_MINUS_COST",
+          "ENVD",
+          "ECHN",
+          "PSN",
+          "NPD",
+          "AUSN",
+          "AUSN_MINUS_COST",
+          "UNKNOWN_VALUE"
+        ],
+        "type": "string"
+      },
+      "OrderTrackDTO": {
+        "description": "Информация о трек-номере посылки (DBS).",
+        "properties": {
+          "deliveryServiceId": {
+            "description": "Идентификатор службы доставки. Информацию о службе доставки можно получить с помощью запроса [GET delivery/services](../../reference/delivery-services/getDeliveryServices.md).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "trackCode": {
+            "description": "Трек‑номер посылки.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deliveryServiceId"
+        ],
+        "type": "object"
+      },
+      "OrderVatType": {
+        "description": "НДС на товар или доставку:\n\n* `NO_VAT` — НДС не облагается, используется только для отдельных видов услуг.\n\n* `VAT_0` — НДС 0%. Например, используется при продаже товаров, вывезенных в таможенной процедуре экспорта, или при оказании услуг по международной перевозке товаров.\n\n* `VAT_10` — НДС 10%. Например, используется при реализации отдельных продовольственных и медицинских товаров.\n\n* `VAT_10_110` — НДС 10/110. НДС 10%, применяется только при предоплате.\n\n* `VAT_20` — НДС 20%. Основной НДС с 2019 года до 1 января 2026 года.\n\n* `VAT_20_120` — НДС 20/120. НДС 20%, применяется только при предоплате.\n\n* `VAT_18` — НДС 18%. Основной НДС до 2019 года.\n\n* `VAT_18_118` — НДС 18/118. НДС использовался до 1 января 2019 года при предоплате.\n\n* `VAT_12` — НДС 12%. Используется только в Узбекистане.\n\n* `VAT_05` — НДС 5%. НДС для упрощенной системы налогообложения (УСН).\n\n* `VAT_07` — НДС 7%. НДС для упрощенной системы налогообложения (УСН).\n\n* `VAT_22` — НДС 22%. Основной НДС с 1 января 2026 года.\n\n* `UNKNOWN_VALUE` — неизвестный тип.\n",
+        "enum": [
+          "NO_VAT",
+          "VAT_0",
+          "VAT_10",
+          "VAT_10_110",
+          "VAT_20",
+          "VAT_20_120",
+          "VAT_18",
+          "VAT_18_118",
+          "VAT_12",
+          "VAT_05",
+          "VAT_07",
+          "VAT_22",
+          "UNKNOWN_VALUE"
+        ],
+        "type": "string"
+      },
+      "PackagingForwardScrollingPagerDTO": {
+        "description": "Идентификатор следующей страницы.\n",
+        "properties": {
+          "nextPageToken": {
+            "description": "Идентификатор следующей страницы результатов.",
+            "type": "string",
+            "x-serialize-transform": "token"
+          }
+        },
+        "type": "object"
+      },
+      "PlacementType": {
+        "description": "Модель, по которой работает магазин:\n\n* `FBS` — FBS или Экспресс.\n* `FBY` — FBY.\n* `DBS` — DBS.\n* `LAAS` — LaaS.\n",
+        "enum": [
+          "FBS",
+          "FBY",
+          "DBS",
+          "LAAS"
+        ],
+        "type": "string"
+      },
+      "RegionDTO": {
+        "description": "Регион доставки.",
+        "properties": {
+          "id": {
+            "description": "Идентификатор региона.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Название региона.",
+            "type": "string"
+          },
+          "parent": {
+            "$ref": "#/components/schemas/RegionDTO",
+            "description": "Информация о родительском регионе.\n\nУказываются родительские регионы до уровня страны.\n"
+          },
+          "type": {
+            "$ref": "#/components/schemas/RegionType",
+            "description": "Тип региона."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "RegionType": {
+        "description": "Тип региона.\n\nВозможные значения:\n\n* `CITY_DISTRICT` — район города.\n\n* `CITY` — крупный город.\n\n* `CONTINENT` — континент.\n\n* `COUNTRY_DISTRICT` — область.\n\n* `COUNTRY` — страна.\n\n* `REGION` — регион.\n\n* `REPUBLIC_AREA` — район субъекта федерации.\n\n* `REPUBLIC` — субъект федерации.\n\n* `SUBWAY_STATION` — станция метро.\n\n* `VILLAGE` — город.\n\n* `OTHER` — неизвестный регион.\n",
+        "enum": [
+          "OTHER",
+          "CONTINENT",
+          "REGION",
+          "COUNTRY",
+          "COUNTRY_DISTRICT",
+          "REPUBLIC",
+          "CITY",
+          "VILLAGE",
+          "CITY_DISTRICT",
+          "SUBWAY_STATION",
+          "REPUBLIC_AREA"
+        ],
+        "type": "string"
+      },
+      "SellingProgramType": {
+        "description": "Модель работы:\n\n* `FBY` — FBY.\n* `FBS` — FBS.\n* `DBS` — DBS.\n* `EXPRESS` — Экспресс.\n* `LAAS` — LaaS.\n",
+        "enum": [
+          "FBY",
+          "FBS",
+          "DBS",
+          "EXPRESS",
+          "LAAS"
+        ],
+        "type": "string"
+      },
+      "SetOrderBoxLayoutRequest": {
+        "properties": {
+          "allowRemove": {
+            "default": false,
+            "description": "Передайте `true`, если вы собираетесь удалить часть товаров из заказа.",
+            "type": "boolean"
+          },
+          "boxes": {
+            "description": "Список коробок.",
+            "items": {
+              "$ref": "#/components/schemas/OrderBoxLayoutDTO"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "boxes"
+        ],
+        "type": "object"
+      },
+      "SetOrderBoxLayoutResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiResponse"
+          },
+          {
+            "properties": {
+              "result": {
+                "$ref": "#/components/schemas/OrderBoxesLayoutDTO"
+              }
+            }
+          }
+        ],
+        "type": "object"
+      },
+      "ShopSku": {
+        "description": "Ваш SKU — идентификатор товара в вашей системе.\n\nПравила использования SKU:\n\n* У каждого товара SKU должен быть свой.\n\n* Уже заданный SKU нельзя освободить и использовать заново для другого товара. Каждый товар должен получать новый идентификатор, до того никогда не использовавшийся в вашем каталоге.\n\nSKU товара можно изменить в кабинете продавца на Маркете. О том, как это сделать, читайте [в Справке Маркета для продавцов](https://yandex.ru/support2/marketplace/ru/assortment/operations/edit-sku).\n\n{% note warning %}\n\nПробельные символы в начале и конце значения автоматически удаляются. Например, `\"  SKU123  \"` и `\"SKU123\"` будут обработаны как одинаковые значения.\n\n{% endnote %}\n\n[Что такое SKU и как его назначать](https://yandex.ru/support/marketplace/assortment/add/index.html#fields)\n",
+        "maxLength": 255,
+        "minLength": 1,
+        "pattern": "^(?=.*\\S.*)[^\\x00-\\x08\\x0A-\\x1f\\x7f]{1,255}$",
+        "type": "string",
+        "x-transform": "trim"
+      },
+      "UpdateOrderStatusRequest": {
+        "properties": {
+          "order": {
+            "$ref": "#/components/schemas/OrderStatusChangeDTO"
+          }
+        },
+        "required": [
+          "order"
+        ],
+        "type": "object"
+      },
+      "UpdateOrderStatusResponse": {
+        "description": "Информация об изменении статуса заказа.",
+        "properties": {
+          "operation": {
+            "$ref": "#/components/schemas/OperationDTO",
+            "description": "**Только для модели LaaS**\n\nИнформация о запущенной операции по обновлению статуса.\n"
+          },
+          "order": {
+            "$ref": "#/components/schemas/OrderDTO"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "ApiKey": {
+        "in": "header",
+        "name": "Api-Key",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "API Яндекс Маркета помогает продавцам автоматизировать и упростить работу с маркетплейсом.\n\nВ числе возможностей интеграции:\n\n* управление каталогом товаров и витриной,\n\n* обработка заказов,\n\n* изменение настроек магазина,\n\n* получение отчетов.\n",
+    "license": {
+      "name": "BSD 3-Clause",
+      "url": "https://opensource.org/license/bsd-3-clause/"
+    },
+    "title": "API Яндекс Маркета для продавцов",
+    "version": "LATEST"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/v1/businesses/{businessId}/orders": {
+      "post": {
+        "description": "{% include notitle [access](../../_auto/method_scopes/getBusinessOrders.md) %}\n\nВозвращает информацию о заказах в кабинете. Запрос можно использовать для отслеживания заказов и их статусов.\n\n{% note tip \"Вы также можете настроить API-уведомления\" %}\n\nМаркет отправит вам [запрос](../../push-notifications/reference/sendNotification.md), когда появится новый заказ или изменится его статус. А полную информацию можно получить с помощью этого метода.\n\n[{#T}](../../push-notifications/index.md)\n\n{% endnote %}\n\nДоступна фильтрация по параметрам:\n\n* дата оформления заказа;\n\n* дата и время обновления заказа;\n\n* дата отгрузки;\n\n* статусы заказов (`statuses`);\n\n* этапы обработки или причины отмены (`substatuses`);\n\n* идентификаторы кампаний;\n\n* идентификаторы заказов;\n\n* внешние идентификаторы заказов;\n\n* тип заказа (настоящий или тестовый);\n\n* модели размещения;\n\n* наличие запросов от покупателей на отмену заказа.\n\nМаксимальный диапазон дат за один запрос — 30 дней (передается в параметрах `fromDate` и `toDate`). Если их не передать, возвращается информация за последние 30 дней.\n\nРезультаты возвращаются постранично. Для навигации используйте параметры `pageToken` и `limit`.\n\nПолучить более подробную информацию о покупателе и его номере телефона можно с помощью запроса [GET v2/campaigns/{campaignId}/orders/{orderId}/buyer](../../reference/order-delivery/getOrderBuyerInfo.md).\n\n**Пошаговые инструкции**\n\n* [Получать информацию о заказах](../../step-by-step/orders-receive.md)\n\n{% include notitle [limit](../../_auto/method_limits/getBusinessOrders.md) %}\n",
+        "operationId": "getBusinessOrders",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/BusinessId"
+          },
+          {
+            "$ref": "#/components/parameters/AliasedPageToken"
+          },
+          {
+            "$ref": "#/components/parameters/PageLimit50Truncate"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetBusinessOrdersRequest"
+              }
+            }
+          },
+          "description": "Параметры фильтрации заказов.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetBusinessOrdersResponse"
+                }
+              }
+            },
+            "description": "Список заказов в кабинете."
+          },
+          "400": {
+            "$ref": "#/components/responses/400Orders"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "420": {
+            "$ref": "#/components/responses/420"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "summary": "Информация о заказах в кабинете",
+        "tags": [
+          "orders",
+          "fbs",
+          "dbs",
+          "fby",
+          "express",
+          "laas"
+        ],
+        "x-allowed": [
+          "seller",
+          "market-yandex-go"
+        ],
+        "x-auth-scopes": [
+          "all-methods",
+          "all-methods:read-only",
+          "inventory-and-order-processing",
+          "inventory-and-order-processing:read-only",
+          "finance-and-accounting"
+        ],
+        "x-resource-limit-config": {
+          "medium": {
+            "amount": 10000,
+            "period": "hours",
+            "period-duration": 1
+          },
+          "none": {
+            "amount": 10000,
+            "period": "hours",
+            "period-duration": 1
+          },
+          "parallel-limit-value": 6,
+          "path": "resp"
+        }
+      }
+    },
+    "/v2/campaigns/{campaignId}": {
+      "get": {
+        "description": "{% include notitle [access](../../_auto/method_scopes/getCampaign.md) %}\n\nВозвращает информацию о магазине.\n\n{% include notitle [limit](../../_auto/method_limits/getCampaign.md) %}\n",
+        "operationId": "getCampaign",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CampaignId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetCampaignResponse"
+                }
+              }
+            },
+            "description": "Информация о магазине."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "420": {
+            "$ref": "#/components/responses/420"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "summary": "Информация о магазине",
+        "tags": [
+          "campaigns",
+          "dbs",
+          "express",
+          "fbs",
+          "fby",
+          "laas"
+        ],
+        "x-allowed": [
+          "seller",
+          "market-yandex-go"
+        ],
+        "x-auth-scopes": [
+          "all-methods",
+          "all-methods:read-only",
+          "settings-management",
+          "finance-and-accounting",
+          "offers-and-cards-management",
+          "offers-and-cards-management:read-only",
+          "pricing",
+          "pricing:read-only",
+          "inventory-and-order-processing",
+          "inventory-and-order-processing:read-only",
+          "promotion",
+          "promotion:read-only",
+          "communication",
+          "supplies-management:read-only"
+        ],
+        "x-resource-limit-config": {
+          "medium": {
+            "amount": 5000,
+            "period": "hours",
+            "period-duration": 1
+          },
+          "none": {
+            "amount": 5000,
+            "period": "hours",
+            "period-duration": 1
+          },
+          "path": "resp"
+        }
+      }
+    },
+    "/v2/campaigns/{campaignId}/orders/{orderId}/boxes": {
+      "put": {
+        "description": "{% include notitle [access](../../_auto/method_scopes/setOrderBoxLayout.md) %}\n\n{% note tip \"Подходит и для DBS\" %}\n\nЗапрос предназначен для работы с FBS-заказами, но вы можете использовать его для обработки DBS-заказов, если это удобно.\n\n{% endnote %}\n\nПозволяет выполнить три операции:\n\n* передать Маркету информацию о распределении товаров по коробкам;\n* передать Маркету коды маркировки для товаров;\n* удалить товар из заказа, если его не оказалось на складе.\n\nЕсли нужно что-то поправить в переданных данных, просто повторите запрос — это можно делать сколько угодно раз до перевода заказа в статус **Готов к отгрузке**. ⚠️ Если вы меняете раскладку уже после печати и расклейки ярлыков, не забудьте перепечатать их и наклеить заново.\n\n{% cut \"Как передать информацию о распределении товаров\" %}\n\nВ этом запросе вам нужно передать Маркету список коробок и указать, какие именно товары лежат в каждой из них. Коробки могут быть двух типов:\n\n* **Содержащие товары целиком.** Такая коробка может содержать сколько угодно единиц любых товаров.\n\n* **Содержащие часть товара.** Такие коробки содержат по одной части одного товара. Например, одна содержит внешний блок кондиционера, а другая — внутренний блок.\n\n⚠️ Одна коробка не может содержать и товары целиком, и части товаров.\n\n{% endcut %}\n\n{% cut \"Как передавать коды маркировки и получать статус их проверки\" %}\n\n{% note info \"Маркировка товаров в системе [«Честный ЗНАК»](https://честныйзнак.рф/) необязательна для заказов от физических лиц\" %}\n\nДля заказов от бизнеса все еще нужно передавать коды маркировки.\n\n{% endnote %}\n\nЕсли в заказе есть товары, подлежащие маркировке, в запросе нужно передать соответствующие уникальные коды. [Что такое маркировка](https://yandex.ru/support/marketplace/orders/cz.html)\n\nПринимаются коды следующих типов:\n\n* Коды в системе [«Честный ЗНАК»](https://честныйзнак.рф/) или [«ASL BELGISI»](https://aslbelgisi.uz) (для продавцов :no-translate[Market Yandex Go]).\n* УИН для ювелирных изделий.\n* РНПТ и ГТД для импортных прослеживаемых товаров.\n\nДля каждой позиции в заказе, требующей маркировки, нужно передать список кодов — по одному для каждой единицы товара. Например, если в заказе две пары тапочек и одна пара туфель, получится список из двух кодов для первой позиции и список из одного кода для второй.\n\nЕсли товар едет в нескольких коробках, код маркировки нужно передать для каждой из них.\n\n{% note warning \"Если вы работаете по модели FBS, EXPRESS\" %}\n\nДля заказов, в которых есть ювелирные изделия или товары с маркировкой в системе :no-translate[«Честный ЗНАК»], перевод в статус `READY_TO_SHIP` становится доступен, только когда:\n\n1. Вы передадите Маркету :no-translate[УИНы] по каждому ювелирному изделию в заказе и коды в системе :no-translate[«Честный ЗНАК»] по всем товарам в заказе, для которых обязательна эта маркировка.\n2. Все коды маркировки успешно пройдут проверку. [Как получить статусы проверки](../../reference/orders/getOrderIdentifiersStatus.md)\n\n{% endnote %}\n\n{% endcut %}\n\n{% cut \"Как удалить товар из заказа\" %}\n\nЧтобы удалить товар из заказа:\n\n1. Добавьте в запрос `allowRemove: true`.\n2. Передайте распределение по коробкам без товара, который нужно удалить.\n\n{% note warning \"Удаление нельзя отменить\" %}\n\nЭта операция необратима: покупатель сразу получит уведомление, а состав заказа изменится.\n\n{% endnote %}\n\nЧтобы удалить позицию целиком, не передавайте соответствующий `OrderBoxLayoutItemDTO`. Чтобы уменьшить количество товара, передайте уменьшенное значение в поле `fullCount`.\n\nНельзя удалить или уменьшить количество товара, если он:\n\n* добавлен по акции;\n* составляет 99% стоимости заказа;\n* единственный товар в заказе.\n\nЕсли вы не можете отгрузить такой товар, отмените заказ. Для этого отправьте запрос методом [PUT v2/campaigns/{campaignId}/orders/{orderId}/status](../../reference/orders/updateOrderStatus.md) и передайте статус заказа `CANCELLED` с причиной отмены `SHOP_FAILED`.\n\n{% endcut %}\n\n{% note info \"Увеличить заказ нельзя\" %}\n\nС помощью запроса нельзя увеличить количество одинаковых товаров, добавить новые товары в заказ или заменить один товар другим.\n\n{% endnote %}\n\n## Примеры\n\n{% cut \"Товар умещается в коробку\" %}\n\nВот как будет выглядеть запрос, если в одной коробке едут:\n\n  * три единицы одного товара, требующего маркировки;\n  * одна единица другого товара, не требущего маркировки.\n\n  ```json translate=no\n  {\n      \"boxes\": [\n          {\n              \"items\": [\n                  {\n                      \"id\": 123456,\n                      \"fullCount\": 3,\n                      \"instances\": [\n                          {\n                              \"cis\": \"01030410947874432155Qbag!\\u001d93Zjqw\"\n                          },\n                          {\n                              \"cis\": \"010304109478gftJ14545762!\\u001dhGt264\"\n                          },\n                          {\n                              \"cis\": \"010304109478fRs28323ks23!\\u001dhet201\"\n                          }\n                      ]\n                  },\n                  {\n                      \"id\": 654321,\n                      \"fullCount\": 1\n                  }\n              ]\n          }\n      ]\n  }\n  ```\n\n{% endcut %}\n\n{% cut \"Товар едет в разных коробках\" %}\n\nВот как будет выглядеть запрос, если товар едет в двух коробках:\n\n  ```json translate=no\n  {\n      \"boxes\": [\n          {\n              \"items\": [\n                  {\n                      \"id\": 123456,\n                      \"partialCount\": {\n                          \"current\": 1,\n                          \"total\": 2\n                      },\n                      \"instances\": [\n                          {\n                              \"cis\": \"01030410947874432155Qbag!\\u001d93Zjqw\"\n                          }\n                      ]\n                  }\n              ]\n          },\n          {\n              \"items\": [\n                  {\n                      \"id\": 123456,\n                      \"partialCount\": {\n                          \"current\": 2,\n                          \"total\": 2\n                      },\n                      \"instances\": [\n                          {\n                              \"cis\": \"01030410947874432155Qbag!\\u001d93Zjqw\"\n                          }\n                      ]\n                  }\n              ]\n          }\n      ]\n  }\n  ```\n\n{% endcut %}\n\n{% cut \"Одинаковые товары, где каждый едет в нескольких коробках\" %}\n\nВот как будет выглядеть запрос, если каждый из двух одинаковых товаров едет в двух коробках:\n\n  ```json translate=no\n  {\n      \"boxes\": [\n          {\n              \"items\": [\n                  {\n                      \"id\": 123456,\n                      \"partialCount\": {\n                          \"current\": 1,\n                          \"total\": 2\n                      },\n                      \"instances\": [\n                          {\n                              \"cis\": \"01030410947874432155Qbag!\\u001d93Zjqw\"\n                          }\n                      ]\n                  }\n              ]\n          },\n          {\n              \"items\": [\n                  {\n                      \"id\": 123456,\n                      \"partialCount\": {\n                          \"current\": 2,\n                          \"total\": 2\n                      },\n                      \"instances\": [\n                          {\n                              \"cis\": \"01030410947874432155Qbag!\\u001d93Zjqw\"\n                          }\n                      ]\n                  }\n              ]\n          },\n          {\n              \"items\": [\n                  {\n                      \"id\": 123456,\n                      \"partialCount\": {\n                          \"current\": 1,\n                          \"total\": 2\n                      },\n                      \"instances\": [\n                          {\n                              \"cis\": \"01030410947874432155Qbag!\\u001d93Zjqw\"\n                          }\n                      ]\n                  }\n              ]\n          },\n          {\n              \"items\": [\n                  {\n                      \"id\": 123456,\n                      \"partialCount\": {\n                          \"current\": 2,\n                          \"total\": 2\n                      },\n                      \"instances\": [\n                          {\n                              \"cis\": \"01030410947874432155Qbag!\\u001d93Zjqw\"\n                          }\n                      ]\n                  }\n              ]\n          }\n      ]\n  }\n  ```\n\n{% endcut %}\n\n{% cut \"Разные товары в разных коробках\" %}\n\nВот как будет выглядеть запрос, если два разных товара разложены по разным коробкам:\n\n  ```json translate=no\n  {\n      \"boxes\": [\n          {\n              \"items\": [\n                  {\n                      \"id\": 123456,\n                      \"fullCount\": 1\n                  }\n              ]\n          },\n          {\n              \"items\": [\n                  {\n                      \"id\": 654321,\n                      \"fullCount\": 1\n                  }\n              ]\n          }\n      ]\n  }\n  ```\n\n{% endcut %}\n\n**Пошаговые инструкции**\n\n* [Обработка FBS-заказов](../../step-by-step/fbs.md)\n* [Обработка Экспресс-заказов](../../step-by-step/express.md)\n* [Передать маркировку для заказа от юридического лица](../../step-by-step/business-info.md)\n\n{% include notitle [limit](../../_auto/method_limits/setOrderBoxLayout.md) %}\n",
+        "operationId": "setOrderBoxLayout",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CampaignId"
+          },
+          {
+            "$ref": "#/components/parameters/OrderId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetOrderBoxLayoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetOrderBoxLayoutResponse"
+                }
+              }
+            },
+            "description": "В ответ придет переданная раскладка с идентификаторами коробок — они понадобятся для запроса ярлыков.\n"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiClientDataErrorResponse"
+                }
+              }
+            },
+            "description": "Запрос содержит неправильные данные. [Подробнее об ошибках при работе с заказами](../../concepts/error-codes#orders)\n"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "420": {
+            "$ref": "#/components/responses/420"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "summary": "Подготовка заказа",
+        "tags": [
+          "orders",
+          "fbs",
+          "express",
+          "dbs"
+        ],
+        "x-allowed": [
+          "seller",
+          "market-yandex-go"
+        ],
+        "x-auth-scopes": [
+          "all-methods",
+          "inventory-and-order-processing"
+        ],
+        "x-resource-limit-config": {
+          "medium": {
+            "amount": 10000,
+            "period": "hours",
+            "period-duration": 1
+          },
+          "none": {
+            "amount": 10000,
+            "period": "hours",
+            "period-duration": 1
+          },
+          "path": "resp"
+        }
+      }
+    },
+    "/v2/campaigns/{campaignId}/orders/{orderId}/status": {
+      "put": {
+        "description": "{% include notitle [access](../../_auto/method_scopes/updateOrderStatus.md) %}\n\nИзменяет статус заказа. Возможные изменения статусов:\n\n* Если магазин подтвердил и подготовил заказ к отправке, то заказ из статуса `\"status\": \"PROCESSING\"` и этапа обработки `\"substatus\": \"STARTED\"` нужно перевести в статус `\"status\": \"PROCESSING\"` и этап обработки `\"substatus\": \"READY_TO_SHIP\"`.\n* Если магазин подтвердил заказ, но не может его выполнить (например, товар числится в базе, но отсутствует на складе или нет нужного цвета), то заказ из статуса `\"status\": \"PROCESSING\"` и этапа обработки `\"substatus\": \"STARTED\"` нужно перевести в статус `\"status\": \"CANCELLED\"` с причиной отмены заказа `\"substatus\": \"SHOP_FAILED\"`.\n* Если магазин подготовил заказ к отгрузке, но не может его выполнить (например, последний товар был поврежден или оказался с браком), то заказ из статуса `\"status\": \"PROCESSING\"` и этапа обработки `\"substatus\": \"READY_TO_SHIP\"` нужно перевести в статус `\"status\": \"CANCELLED\"` с причиной отмены заказа `\"substatus\": \"SHOP_FAILED\"`.\n\n{% cut \"**Как подтвердить LaaS-заказ**\" %}\n\nДля подтверждения черновика заказа передайте статус `\"status\": \"PROCESSING\"` с подстатусом `\"substatus\": \"STARTED\"`.\n\nПодтверждение заказа, созданного с параметром `draft` равным `false`, не требуется.\n\n{% endcut %}\n\n{% cut \"**Как отменить LaaS-заказ**\" %}\n\nПередайте статус `\"status\": \"CANCELLED\"` с причиной отмены заказа `\"substatus\": \"SHOP_FAILED\"`.\n\nПри успешном выполнении запроса отмена произойдет через некоторое время. [Как проверить статус операции](../../reference/operations/getOperations.md)\n\n{% endcut %}\n\n**Пошаговые инструкции**\n\n* [Обработка FBS-заказов](../../step-by-step/fbs.md)\n* [Обработка Экспресс-заказов](../../step-by-step/express.md)\n* [Изменить статус DBS-заказа](../../concepts/dbs-order-status-model.md)\n* [Обработка заказов с цифровыми товарами](../../step-by-step/digital.md)\n* [Работа с LaaS-заказом](../../step-by-step/laas-order.md)\n* [Изменить статус LaaS-заказа](../../step-by-step/laas-order-status-model.md)\n\n{% include notitle [limit](../../_auto/method_limits/updateOrderStatus.md) %}\n",
+        "operationId": "updateOrderStatus",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CampaignId"
+          },
+          {
+            "$ref": "#/components/parameters/OrderId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOrderStatusRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateOrderStatusResponse"
+                }
+              }
+            },
+            "description": "В случае успешного изменения статуса заказа возвращается обновленная информация о заказе."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "420": {
+            "$ref": "#/components/responses/420"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "summary": "Изменение статуса одного заказа",
+        "tags": [
+          "orders",
+          "fbs",
+          "dbs",
+          "laas",
+          "express"
+        ],
+        "x-allowed": [
+          "seller",
+          "market-yandex-go"
+        ],
+        "x-auth-scopes": [
+          "all-methods",
+          "inventory-and-order-processing"
+        ],
+        "x-resource-limit-config": {
+          "medium": {
+            "amount": 10000,
+            "period": "hours",
+            "period-duration": 1
+          },
+          "none": {
+            "amount": 10000,
+            "period": "hours",
+            "period-duration": 1
+          },
+          "path": "resp"
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKey": []
+    }
+  ],
+  "servers": [
+    {
+      "url": "https://api.partner.market.yandex.ru"
+    }
+  ],
+  "x-upstream-commit": "fbf491ab9461699bf242d21dd029a83a98010ee8"
+}

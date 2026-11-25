@@ -34,7 +34,7 @@ class OrderStatusTests(TestCase):
     def test_marketplace_gets_the_boxes_filled_after_the_order(self):
         market = Site.objects.create(domain='market.yandex.ru', name='Яндекс Маркет')
         integration = Integration.objects.create(name='Маркет', utm_source='beru', source_site=market, target_site=Site.objects.get_current(),
-                                                 output_template='beru', uses_api=True, settings={'ym_campaign': 1})
+                                                 output_template='beru', uses_api=True, enabled=True, settings={'ym_campaign': 1})
         order = self.order(integration=integration)
         order.items.create(product=add_product(1), product_price=1000, quantity=1)
         boxes_seen = []  # of the items, when the task is queued

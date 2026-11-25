@@ -1,0 +1,836 @@
+{
+  "components": {
+    "parameters": {
+      "Limit": {
+        "in": "query",
+        "name": "limit",
+        "required": true,
+        "schema": {
+          "maximum": 1000,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "Next": {
+        "in": "query",
+        "name": "next",
+        "required": true,
+        "schema": {
+          "format": "int64",
+          "type": "integer"
+        }
+      }
+    },
+    "responses": {
+      "401": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "origin": {
+                  "type": "string"
+                },
+                "requestId": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                },
+                "statusText": {
+                  "type": "string"
+                },
+                "timestamp": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          }
+        }
+      },
+      "402": {
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "properties": {
+                "detail": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          }
+        }
+      },
+      "429": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                },
+                "origin": {
+                  "type": "string"
+                },
+                "requestId": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                },
+                "statusText": {
+                  "type": "string"
+                },
+                "timestamp": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "nullable": false,
+        "properties": {
+          "code": {
+            "nullable": false,
+            "type": "string"
+          },
+          "data": {
+            "nullable": true,
+            "type": "object"
+          },
+          "message": {
+            "nullable": false,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Next": {
+        "format": "int64",
+        "nullable": false,
+        "type": "integer"
+      },
+      "Order": {
+        "properties": {
+          "address": {
+            "nullable": true,
+            "properties": {
+              "fullAddress": {
+                "type": "string"
+              },
+              "latitude": {
+                "format": "float64",
+                "nullable": false,
+                "type": "number"
+              },
+              "longitude": {
+                "format": "float64",
+                "nullable": false,
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "article": {
+            "nullable": false,
+            "type": "string"
+          },
+          "cargoType": {
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "nullable": false,
+            "type": "integer"
+          },
+          "chrtId": {
+            "format": "uint64",
+            "nullable": false,
+            "type": "integer"
+          },
+          "colorCode": {
+            "nullable": false,
+            "type": "string"
+          },
+          "comment": {
+            "maxLength": 300,
+            "nullable": false,
+            "type": "string"
+          },
+          "convertedCurrencyCode": {
+            "format": "ISO 4217",
+            "nullable": false,
+            "type": "integer"
+          },
+          "convertedPrice": {
+            "nullable": false,
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "nullable": false,
+            "type": "string"
+          },
+          "crossBorderType": {
+            "enum": [
+              0,
+              1
+            ],
+            "format": "int32",
+            "nullable": false,
+            "type": "integer"
+          },
+          "currencyCode": {
+            "format": "ISO 4217",
+            "nullable": false,
+            "type": "integer"
+          },
+          "deliveryType": {
+            "enum": [
+              "fbs"
+            ],
+            "nullable": false,
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "nullable": false,
+            "type": "integer"
+          },
+          "isZeroOrder": {
+            "type": "boolean"
+          },
+          "nmId": {
+            "nullable": false,
+            "type": "integer"
+          },
+          "officeId": {
+            "format": "int64",
+            "nullable": false,
+            "type": "integer"
+          },
+          "offices": {
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "options": {
+            "properties": {
+              "isB2B": {
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "orderUid": {
+            "type": "string"
+          },
+          "price": {
+            "nullable": false,
+            "type": "integer"
+          },
+          "rid": {
+            "nullable": false,
+            "type": "string"
+          },
+          "scanPrice": {
+            "format": "uint32",
+            "nullable": true,
+            "type": "number"
+          },
+          "skus": {
+            "items": {
+              "type": "string"
+            },
+            "nullable": false,
+            "type": "array"
+          },
+          "supplyId": {
+            "type": "string"
+          },
+          "trackNumber": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "nullable": false,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "OrderNew": {
+        "properties": {
+          "address": {
+            "nullable": true,
+            "properties": {
+              "fullAddress": {
+                "type": "string"
+              },
+              "latitude": {
+                "format": "float64",
+                "nullable": false,
+                "type": "number"
+              },
+              "longitude": {
+                "format": "float64",
+                "nullable": false,
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "article": {
+            "nullable": false,
+            "type": "string"
+          },
+          "cargoType": {
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "nullable": false,
+            "type": "integer"
+          },
+          "chrtId": {
+            "format": "uint64",
+            "nullable": false,
+            "type": "integer"
+          },
+          "colorCode": {
+            "nullable": false,
+            "type": "string"
+          },
+          "comment": {
+            "maxLength": 300,
+            "nullable": false,
+            "type": "string"
+          },
+          "convertedCurrencyCode": {
+            "format": "ISO 4217",
+            "nullable": false,
+            "type": "integer"
+          },
+          "convertedFinalPrice": {
+            "type": "integer"
+          },
+          "convertedPrice": {
+            "nullable": false,
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "nullable": false,
+            "type": "string"
+          },
+          "crossBorderType": {
+            "enum": [
+              0,
+              1
+            ],
+            "format": "int32",
+            "nullable": false,
+            "type": "integer"
+          },
+          "currencyCode": {
+            "format": "ISO 4217",
+            "nullable": false,
+            "type": "integer"
+          },
+          "ddate": {
+            "nullable": false,
+            "type": "string"
+          },
+          "deliveryType": {
+            "enum": [
+              "fbs"
+            ],
+            "nullable": false,
+            "type": "string"
+          },
+          "finalPrice": {
+            "type": "integer"
+          },
+          "id": {
+            "format": "int64",
+            "nullable": false,
+            "type": "integer"
+          },
+          "isPickupPointShipmentAllowed": {
+            "nullable": false,
+            "type": "boolean"
+          },
+          "isZeroOrder": {
+            "type": "boolean"
+          },
+          "nmId": {
+            "nullable": false,
+            "type": "integer"
+          },
+          "officeId": {
+            "format": "int64",
+            "nullable": false,
+            "type": "integer"
+          },
+          "offices": {
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "optionalMeta": {
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "options": {
+            "properties": {
+              "isB2B": {
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "orderUid": {
+            "type": "string"
+          },
+          "price": {
+            "nullable": false,
+            "type": "integer"
+          },
+          "requiredMeta": {
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "rid": {
+            "nullable": false,
+            "type": "string"
+          },
+          "salePrice": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "scanPrice": {
+            "format": "uint32",
+            "nullable": true,
+            "type": "number"
+          },
+          "sellerDate": {
+            "nullable": true,
+            "type": "string"
+          },
+          "skus": {
+            "items": {
+              "type": "string"
+            },
+            "nullable": false,
+            "type": "array"
+          },
+          "warehouseId": {
+            "nullable": false,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "Response4XX": {
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "number"
+          },
+          "statusText": {
+            "type": "string"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "detail",
+          "requestId",
+          "origin",
+          "status",
+          "statusText",
+          "timestamp"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "HeaderApiKey": {
+        "in": "header",
+        "name": "Authorization",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "title": "FBS Orders",
+    "version": "order"
+  },
+  "openapi": "3.0.1",
+  "paths": {
+    "/api/v3/orders": {
+      "get": {
+        "operationId": "getV3Orders",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Next"
+          },
+          {
+            "in": "query",
+            "name": "dateFrom",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "dateTo",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": false,
+                  "properties": {
+                    "next": {
+                      "$ref": "#/components/schemas/Next"
+                    },
+                    "orders": {
+                      "items": {
+                        "$ref": "#/components/schemas/Order"
+                      },
+                      "nullable": false,
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "402": {
+            "$ref": "#/components/responses/402"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response4XX"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          }
+        },
+        "security": [
+          {
+            "HeaderApiKey": []
+          }
+        ],
+        "tags": [
+          "FBS Assembly Orders"
+        ]
+      },
+      "servers": [
+        {
+          "url": "https://marketplace-api.wildberries.ru"
+        },
+        {
+          "url": "https://marketplace-api-sandbox.wildberries.ru"
+        }
+      ]
+    },
+    "/api/v3/orders/new": {
+      "get": {
+        "operationId": "getV3OrdersNew",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": false,
+                  "properties": {
+                    "orders": {
+                      "items": {
+                        "$ref": "#/components/schemas/OrderNew"
+                      },
+                      "nullable": false,
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "402": {
+            "$ref": "#/components/responses/402"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response4XX"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          }
+        },
+        "security": [
+          {
+            "HeaderApiKey": []
+          }
+        ],
+        "tags": [
+          "FBS Assembly Orders"
+        ]
+      },
+      "servers": [
+        {
+          "url": "https://marketplace-api.wildberries.ru"
+        },
+        {
+          "url": "https://marketplace-api-sandbox.wildberries.ru"
+        }
+      ]
+    },
+    "/api/v3/orders/status": {
+      "post": {
+        "operationId": "postV3OrdersStatus",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "orders": {
+                    "items": {
+                      "format": "int64",
+                      "type": "integer"
+                    },
+                    "maxItems": 1000,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "orders"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "orders": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "format": "int64",
+                            "nullable": false,
+                            "type": "integer"
+                          },
+                          "isCancellable": {
+                            "nullable": false,
+                            "type": "boolean"
+                          },
+                          "isTransferable": {
+                            "nullable": false,
+                            "type": "boolean"
+                          },
+                          "supplierStatus": {
+                            "enum": [
+                              "new",
+                              "confirm",
+                              "complete",
+                              "cancel"
+                            ],
+                            "nullable": false,
+                            "type": "string"
+                          },
+                          "wbStatus": {
+                            "enum": [
+                              "waiting",
+                              "sorted",
+                              "sold",
+                              "canceled",
+                              "canceled_by_client",
+                              "declined_by_client",
+                              "defect",
+                              "ready_for_pickup",
+                              "postponed_delivery",
+                              "accepted_by_carrier",
+                              "sent_to_carrier",
+                              "delivering_by_carrier"
+                            ],
+                            "nullable": false,
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "nullable": false,
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "402": {
+            "$ref": "#/components/responses/402"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              },
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Response4XX"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/429"
+          }
+        },
+        "security": [
+          {
+            "HeaderApiKey": []
+          }
+        ],
+        "tags": [
+          "FBS Assembly Orders"
+        ]
+      },
+      "servers": [
+        {
+          "url": "https://marketplace-api.wildberries.ru"
+        },
+        {
+          "url": "https://marketplace-api-sandbox.wildberries.ru"
+        }
+      ]
+    }
+  },
+  "security": [
+    {
+      "HeaderApiKey": []
+    }
+  ],
+  "x-source-sha256": "2fa63335999d966e36e04b7a57dbf0cf73a59c9d2d876e1add0764072f3ea5b7",
+  "x-source-url": "https://dev.wildberries.ru/api/swagger/yaml/en/03-orders-fbs.yaml"
+}
