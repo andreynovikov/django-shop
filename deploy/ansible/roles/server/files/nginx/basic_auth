@@ -1,3 +1,4 @@
+# Requests from the server itself pass, everybody else needs a login from htpasswd
 satisfy any;
 allow 127.0.0.1;
 deny all;

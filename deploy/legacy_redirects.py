@@ -19,7 +19,8 @@ level. The access_log goes into the server block, and into every location there 
         '"ua":"$http_user_agent","ip":"$remote_addr"}';
     access_log /var/log/nginx/www.sewing-world.ru_legacy.jsonl legacy_redirects if=$legacy_uri;
 
-The name doesn't end in .log, so Debian's logrotate for nginx, which keeps 14 days, leaves the file alone.
+The name doesn't end in .log, so Debian's logrotate for nginx, which keeps 14 days, leaves the file alone. The
+playbook's nginx-legacy.logrotate rotates it monthly instead and keeps a year of it.
 
 This script reads the rules from the config, replays each logged URI through them as nginx does, and reports for
 each rule its hits, the clients and the pages that link to it. Run it on the server, with read access to the logs

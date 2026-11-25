@@ -5,6 +5,8 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_BROKER_TRANSPORT_OPTIONS = {
     # 'sep': ':',
     # 'queue_order_strategy': 'priority',
+    # Redis hands a task that no worker has acknowledged to another one after this long, so it has to outlast
+    # the longest countdown or ETA: order mail waits up to seven days for a confirmed address, review requests a week.
     'visibility_timeout': 691200  # 8 days
 }
 # CELERY_SEND_EVENTS = True

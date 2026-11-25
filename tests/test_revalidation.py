@@ -259,7 +259,7 @@ class StockTests(RevalidationTestCase):
         self.commit()
 
     def test_import_revalidates_in_the_background_the_products_whose_stock_shows_otherwise(self):
-        # before the import: 9 and 2 in stock, now 8 and 1
+        # before the import: 9 and 2 in stock, now 8 and 1. 9 and 8 both show as more than five, 1 shows as the last one.
         self.assertEqual(self.commit(lambda: count_stocks([[1, 9], [2, 2]])), {(self.main.domain, True): {'product:p2'}})
         self.assertEqual(Product.objects.get(pk=1).num, 8)
 

@@ -42,6 +42,7 @@ class Lock:
 
 @contextmanager
 def lock(name: str):
+    """ Blocks until it holds the advisory lock on hashtext(name), and holds it for the with block """
     cursor = connection.cursor()
     cursor.execute('SELECT pg_advisory_lock(hashtext(%s))', (name,))
     try:

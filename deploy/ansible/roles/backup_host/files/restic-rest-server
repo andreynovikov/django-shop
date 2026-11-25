@@ -1,5 +1,7 @@
 LISTEN = :8000
 BACKUP_DIR = /srv/restic/
+# A login can only add snapshots (--append-only) and reach only the repository of its own name (--private-repos):
+# the production server cannot delete snapshots or reach other repositories. maintain.sh uses the directory directly.
 ARGS = "\
   --htpasswd-file /etc/restic-rest-server/users.htpasswd \
   --append-only --private-repos \

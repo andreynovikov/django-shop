@@ -10,6 +10,7 @@ __all__ = [
 
 
 class Bonus(models.Model):
+    """ A customer's balance of the bonus program, which is retired """
     STATUS_OK = 0x0
     STATUS_UNDEFINED = 0x00000001
     STATUS_PENDING = 0x00000002

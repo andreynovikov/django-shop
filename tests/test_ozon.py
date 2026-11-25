@@ -1,3 +1,7 @@
+"""
+Ozon: FBS postings polled and pushed by notifications, and stock updates. urlopen is mocked with the operations of
+the bundled API schema in tests/data/marketplaces, so nothing reaches the marketplace. See settings.py on how to run.
+"""
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from unittest import expectedFailure
@@ -261,6 +265,7 @@ class OzonNotificationTests(TestCase):
         self.client = Client(enforce_csrf_checks=True)
         self.publish = self.enterContext(patch('ozon.views.sync_integration_posting.apply_async'))
 
+    # The default sender is in OZON_NETWORKS of ozon/views.py, the addresses Ozon notifies from
     def notify(self, payload, *, token='test-push-token', sender='91.223.93.246', integration_id=None, **headers):
         url = reverse('ozon-notifications', args=[integration_id or self.integration.pk], query={'token': token})
         return self.client.post(url, payload, content_type='application/json', REMOTE_ADDR=sender, **headers)

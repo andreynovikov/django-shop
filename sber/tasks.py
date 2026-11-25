@@ -1,3 +1,7 @@
+"""
+Status changes of SberMegaMarket orders reported to its API, see signals.py. A call that the API refuses puts
+the order into the problem status with the error in delivery_info, and is retried every 10 minutes.
+"""
 import json
 import logging
 from datetime import datetime

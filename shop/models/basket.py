@@ -21,8 +21,12 @@ class Basket(models.Model):
     session = models.ForeignKey(Session, null=True, on_delete=models.SET_NULL)
     site = models.ForeignKey(Site, on_delete=models.PROTECT)
     created = models.DateTimeField(auto_now_add=True)
+    # For the discount of the account with this phone (see user_discount) and for the abandoned basket notice
     phone = models.CharField(max_length=30, blank=True)
+    # Where the customer came from: the order takes the integration of the site with this utm_source
     utm_source = models.CharField(max_length=20, blank=True)
+    # Made for the customer rather than by them: by an integration, a preorder or the link in an abandoned basket
+    # notice. It gets no abandoned basket notice.
     secondary = models.BooleanField(default=False)
 
     @classmethod
@@ -70,6 +74,7 @@ class Basket(models.Model):
         if site.profile.wholesale:
             if pd > product.ws_max_discount:
                 pd = product.ws_max_discount
+            # no lower than sp_price: a discount that would go below it shrinks to what keeps the price there
             pdp = round(product.ws_price * Decimal((100 - pd) / 100))
             if pdp < product.sp_price:
                 d = product.ws_price - product.sp_price
@@ -148,6 +153,10 @@ class Basket(models.Model):
 
     @cached_property
     def user_discount(self):
+        """
+        The bigger of the session's promo discount and the personal discount of the session's user or, failing that,
+        of the account with the basket's phone
+        """
         # if session contains valid user, get his discount
         session_data = self.session.get_decoded()
         discount = session_data.get('discount', 0)
@@ -187,6 +196,7 @@ class BasketItem(models.Model):
     basket = models.ForeignKey(Basket, related_name='items', related_query_name='item', on_delete=models.CASCADE)
     product = models.ForeignKey(Product, related_name='+', on_delete=models.PROTECT)
     quantity = models.PositiveSmallIntegerField(default=1)
+    # Discount in roubles that an API integration (a marketplace) gives on the item; the order takes it as it is
     ext_discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     meta = models.JSONField(null=True, blank=True, editable=False)
 

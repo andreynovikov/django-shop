@@ -26,6 +26,7 @@
     name: memcached
     state: restarted
 
+# Both handlers listen to "Reload nginx" and run in this order, so a failed nginx -t stops before the reload
 - name: Validate nginx before reload
   ansible.builtin.command:
     argv:

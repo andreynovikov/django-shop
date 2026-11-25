@@ -8,6 +8,7 @@ module = sewingworld.wsgi:application
 ; Stop when Django does not load, instead of answering every request with an error
 need-app = true
 single-interpreter = true
+; Each worker loads Django after the fork, which touch-chain-reload below needs
 lazy-apps = true
 processes = {{ item.processes | default(2) }}
 threads = {{ item.threads | default(4) }}
@@ -26,6 +27,7 @@ vacuum = true
 max-requests = 5000
 ; Megabytes. Restarts a worker that leaks before the OOM killer stops it.
 reload-on-rss = 600
+; Touching the file reloads the workers one after another, so the app keeps answering during a deploy
 touch-chain-reload = /www/{{ item.site }}/.touch_reload
 logger = file:/www/{{ item.site }}/logs/{{ 'admin_' if item.admin | default(false) else '' }}uwsgi_error.log
 log-date = true

@@ -172,6 +172,8 @@ class Order(models.Model):
     comment = models.TextField('комментарий', blank=True)
     shop_name = models.CharField('магазин', max_length=20, blank=True)
     site = models.ForeignKey(Site, verbose_name='сайт', on_delete=models.PROTECT)
+    # '<storefront site id>:<basket id>' of the checkout that placed the order: a checkout repeated with the basket id
+    # as Idempotency-Key gets this order back instead of a second one, see OrderViewSet.create()
     basket_checkout_key = models.CharField(max_length=40, unique=True, null=True, blank=True, editable=False)
     integration = models.ForeignKey(Integration, verbose_name='интеграция', blank=True, null=True, on_delete=models.PROTECT)
     payment = models.SmallIntegerField('оплата', choices=PAYMENT_CHOICES, default=PAYMENT_UNKNOWN)
@@ -219,7 +221,10 @@ class Order(models.Model):
     # state
     created = models.DateTimeField('создан', auto_now_add=True)
     status = models.PositiveIntegerField('статус', choices=STATUS_CHOICES, default=STATUS_NEW, db_index=True)
+    # Id of the order's sale document on the courier's ModulPOS terminal, see create_modulpos_order()
     hidden_tracking_number = models.CharField(max_length=50, blank=True, db_index=True)
+    # The staff member who has the order open in the admin, or the system user while update_order() saves it: a lock
+    # that update_order() waits for
     owner = models.ForeignKey(ShopUser, verbose_name='владелец', blank=True, null=True, related_name='owned_orders', on_delete=models.SET_NULL)
 
     tracker = FieldTracker(fields=['status'])
@@ -274,6 +279,13 @@ class Order(models.Model):
 
     @staticmethod
     def register(basket, **kwargs):
+        """
+        Places an order of the basket's contents for the user of its session, with kwargs as order fields. An
+        integration, given or found by the basket's utm_source, makes it cash on delivery and supplies the 1C
+        contractors and warehouse; one that uses the API (a marketplace) places the order on its source site.
+        Wholesale prices are kept in kopecks, retail ones in whole roubles, and a set becomes an item for each of its
+        parts.
+        """
         session_data = basket.session.get_decoded()
         uid = session_data.get('_auth_user_id')
         user = ShopUser.objects.get(id=uid)
@@ -443,6 +455,8 @@ class OrderItem(models.Model):
     pct_discount = models.PositiveSmallIntegerField('скидка, %', default=0)
     val_discount = models.DecimalField('скидка, руб', max_digits=10, decimal_places=2, default=0)
     quantity = models.PositiveSmallIntegerField('количество', default=1)
+    # Above zero, the item's sum before the discount instead of product_price × quantity: register() sets it for the
+    # parts of a set that come several to a set, whose unit price may not divide evenly
     total = models.DecimalField('сумма', max_digits=10, decimal_places=2, default=0)
     serial_number = models.CharField('SN', max_length=30, blank=True)
     box = models.ForeignKey(Box, blank=True, null=True, related_name='products', related_query_name='box', verbose_name='коробка', on_delete=models.SET_NULL)
@@ -524,6 +538,7 @@ class OrderItem(models.Model):
 
 
 def set_order_item_price(sender, instance, **kwargs):
+    """ A new item without a price gets the product's retail price """
     if instance._state.adding is True:
         if not instance.product_price:
             instance.product_price = instance.product.price

@@ -1,7 +1,7 @@
 import autocomplete_light.shortcuts as al
 from .models import ShopUser, Category, Product, SalesAction, Store
 
-# This will generate a PersonAutocomplete class
+# This will generate a ShopUserAutocomplete class
 al.register(
     ShopUser,
     # Just like in ModelAdmin.search_fields

@@ -42,6 +42,10 @@ class DecimalEncoder(json.JSONEncoder):
 
 @shared_task(name='shop.tasks.update_user_bonuses', bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=600, retry_jitter=False)
 def update_user_bonuses(self):
+    """
+    Bonus balances of the customers from 1C's file on Yandex Disk, by phone (the card's barcode), creating accounts
+    it lacks; those it doesn't list get none. Retired with the bonus program.
+    """
     bonused_users = set(ShopUser.objects.filter(bonuses__gt=0).values_list('id', flat=True))
     filename = 'БонусныеБаллыИнфо.txt'  # БонусныеБаллыНаДР.txt
     url = 'https://cloud-api.yandex.net/v1/disk/resources?path={}'.format(quote('disk:/' + filename))
@@ -111,6 +115,7 @@ def update_user_bonuses(self):
 
 @shared_task(name='shop.tasks.update_user_birthday_bonuses', bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=600, retry_jitter=False)
 def update_user_birthday_bonuses(self):
+    """ SMS about birthday bonuses to the phones in 1C's file on Yandex Disk. Retired with the bonus program. """
     # bonused_users = set(ShopUser.objects.filter(bonuses__gt=0).values_list('id', flat=True))
     filename = 'БонусныеБаллыНаДР.txt'
     url = 'https://cloud-api.yandex.net/v1/disk/resources?path={}'.format(quote('disk:/' + filename))
@@ -167,6 +172,7 @@ def update_user_birthday_bonuses(self):
 
 @shared_task(name='shop.tasks.update_cbrf_currencies', bind=True, autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def update_cbrf_currencies(self):
+    """ Sets the Central Bank's dollar rate on currency 998; saving it converts the prices of its products again """
     url = 'https://www.cbr-xml-daily.ru/daily_json.js'
     request = Request(url)
     response = urlopen(request)
@@ -183,6 +189,10 @@ def update_cbrf_currencies(self):
 
 @shared_task(name='shop.tasks.create_modulpos_order', queue="integrations", bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
 def create_modulpos_order(self, order_id):
+    """
+    Puts the order on the ModulPOS terminal of its courier and keeps the document id in hidden_tracking_number.
+    An error other than a document that exists already makes the order a problem, the error in its comment.
+    """
     order = Order.objects.get(id=order_id)
     if not order.courier:
         return 'Отсутствует привязка курьера'
@@ -270,6 +280,10 @@ def create_modulpos_order(self, order_id):
 
 @shared_task(name='shop.tasks.delete_modulpos_order', queue="integrations", bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
 def delete_modulpos_order(self, order_id):
+    """
+    Takes the order off its courier's ModulPOS terminal, keeping the fiscal receipt of a sale made on it in the
+    order's meta (the admin links to it). An error makes the order a problem, the error in its comment.
+    """
     order = Order.objects.get(id=order_id)
     if not order.courier:
         return 'Отсутствует привязка курьера'
@@ -331,6 +345,7 @@ def delete_modulpos_order(self, order_id):
 
 @shared_task(name='shop.tasks.ym_upload_user', autoretry_for=(OSError, DatabaseError), retry_backoff=600, retry_jitter=False)
 def ym_upload_user(user_id, order_id):
+    """ The buyer as a contact of Yandex Metrika's CDP, with the Metrika client ids (clientID) of their orders """
     user = ShopUser.objects.get(pk=user_id)
     order = Order.objects.get(id=order_id)
     metas = Order.objects.filter(user=user, meta__has_key='clientID').values_list('meta', flat=True).exclude(id=order_id)
@@ -371,6 +386,7 @@ def ym_upload_user(user_id, order_id):
 
 @shared_task(name='shop.tasks.ym_upload_order', autoretry_for=(OSError, DatabaseError), retry_backoff=600, retry_jitter=False)
 def ym_upload_order(order_id):
+    """ The order and its status to Yandex Metrika's CDP; upload_ym_order_statuses tells it what the statuses mean """
     order = Order.objects.get(id=order_id)
     data = {
         "orders": [

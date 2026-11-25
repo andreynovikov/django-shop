@@ -80,6 +80,8 @@
 (function($) {
     $(document).ready(function() {
 {% if not original.pk or original.owner == request.user %}
+{# Opening an order locks it for the user (Order.owner), and _save releases the lock in OrderAdmin.save_model(). #}
+{# The buttons swap names: the main one saves and keeps the lock, the relabelled one saves and releases it. #}
         var $SaveButton = $("input[name='_save']");
         var $ContinueButton = $("input[name='_continue']");
         $SaveButton.attr('name', '_continue');
@@ -143,6 +145,7 @@
         submitting = true;
     });
 
+{# Leaving the page without saving releases the lock #}
     window.addEventListener("pagehide", function(e) {
         if (!submitting) {
             {% url opts|admin_urlname:'unlock' original.pk|admin_urlquote as unlock_url %}

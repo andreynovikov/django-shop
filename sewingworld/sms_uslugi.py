@@ -31,9 +31,8 @@ class Client(object):
         return json.loads(data.decode('utf-8'))
 
     def send(self, to, message, express=False, check=False):
-        """Sends the message to the specified recipient. Returns a numeric
-        status code, its text description and, if the message was successfully
-        accepted, its reference number."""
+        """Sends the message to the specified recipient. Returns the provider's
+        JSON answer as it is."""
         args = {"to": to, "txt": message.encode("utf-8")}
         if check:
             args["check"] = "1"

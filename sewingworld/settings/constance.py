@@ -31,5 +31,6 @@ CONSTANCE_CONFIG = OrderedDict([
     ('sw_yd_campaign', ('', 'Идентификатор кампании Яндекс.Доставка')),
     ('sw_yd_sender', ('', 'Идентификатор магазина Яндекс.Доставка')),
     ('sw_yd_token', ('', 'OAuth-токен магазина Яндекс.Доставка')),
+    # Despite the name, the 1C stock and price import (shop/tasks/stocks.py) reads Yandex Disk with it too
     ('sw_bonuses_ydisk_token', ('', 'OAuth токен Яндекс.Диск для бонусов')),
 ])

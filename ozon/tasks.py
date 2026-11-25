@@ -1,3 +1,13 @@
+"""
+Ozon FBS postings (orders) and stocks.
+
+get_unfulfilled_orders polls the postings of the last week of every enabled Ozon integration and registers the new ones.
+An integration with a push_token in its settings also takes Ozon's push notifications (views.notifications), each
+of which syncs one posting. For such an integration polling and pushes also "reconcile": they apply cancellations,
+delivery statuses and the shipment date to the orders already registered.
+
+Stocks go to Ozon for the products whose ProductIntegration.notify_stock is set, see notify_marked_stocks.
+"""
 import json
 import logging
 from datetime import date, timedelta
@@ -56,6 +66,8 @@ def _posting_request(integration, endpoint, data):
         with urlopen(request, timeout=15) as response:
             return json.load(response)
     except HTTPError as error:
+        # An HTTPError is an OSError, which the tasks retry; the 404 of a single posting is left to the caller.
+        # Other errors fail the task with Ozon's message.
         if error.code == 429 or error.code >= 500 or (error.code == 404 and endpoint == '/v3/posting/fbs/get'):
             raise
         logger.error('Ozon request to %s failed with HTTP %s for integration %s', endpoint, error.code, integration.pk)
@@ -67,6 +79,7 @@ def _posting_request(integration, endpoint, data):
 
 
 def _order_session():
+    """ A session of the service user of Ozon orders: Order.register() takes the buyer from the basket's session """
     user = ShopUser.objects.get(phone='0002')
     session = import_module(settings.SESSION_ENGINE).SessionStore()
     session[auth.SESSION_KEY] = user._meta.pk.value_to_string(user)
@@ -110,6 +123,9 @@ def _register_posting(integration, posting, session):
 
 
 def _status_fields(order, status):
+    # A cancelled posting cancels a new order, while an order already in work gets an alert for the managers, once.
+    # Delivery statuses only move an order forward (statuses are numbered in the order of the workflow), and never
+    # one that has the cancellation alert.
     if status in FBS_CANCELLATIONS:
         if order.status == Order.STATUS_NEW:
             return {'status': Order.STATUS_CANCELED}
@@ -249,6 +265,7 @@ def notify_product_stocks(self, products, account, target_site_id=None):
     products = list(Product.objects.filter(pk__in=products))
     counted = Product.get_stocks([product.pk for product in products], integration=integration)
     counted_express = Product.get_stocks([product.pk for product in products], integration=integration, express=True)
+    # At most 20 of a product; express warehouses get the stock of the integration's express suppliers
     for product in products:
         stock = max(0, min(20, int(counted[product.pk])))
         express_stock = max(0, min(20, int(counted_express[product.pk])))

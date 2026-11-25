@@ -87,6 +87,7 @@ class EntrySerializer(BaseEntrySerializer):
     @extend_schema_field(EntryNavigationSerializer)
     def get_navigation(self, obj):
         request = self.context.get('request')
+        # newest first (Entry.Meta.ordering): the previous entry follows this one in the list
         entries = list(Entry.objects.filter(sites=request.site, status=Entry.PUBLISHED).values_list('id', flat=True))
         index = entries.index(obj.pk)
         try:

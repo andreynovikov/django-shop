@@ -74,6 +74,8 @@
     /
     <a href="{% url 'admin:shop_shopuser_changelist' %}">Пользователи</a>
 </div>
+{# The 1C stock import (shop/tasks/stocks.py): red while it replaces the stock table, gold while it runs, #}
+{# green when idle. check1CImportStatus() above refreshes the color every 20 seconds. #}
 <div id="stocks_status">
     {% flag_enabled '1C_IMPORT_RUNNING' as running_flag %}
     {% flag_enabled '1C_IMPORT_COPYING' as copying_flag %}

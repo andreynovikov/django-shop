@@ -46,6 +46,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     def get_object(self):
         key = self.kwargs.get(self.lookup_field)
 
+        # An id, or the path of slugs under the site's root category, see Category.get_api_path()
         if not key.isdigit():
             root_category = self.request.site.profile.root_category
             # instance select taken from mptt_urls
@@ -208,6 +209,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             if not parts:
                 quantity = stocks[product.pk, store.supplier_id]
             else:
+                # a set: as many as the scarcest part makes up, nothing when a part is missing
                 quantity = 32767
                 for item in parts:
                     q = stocks.get((item.constituent_id, store.supplier_id))

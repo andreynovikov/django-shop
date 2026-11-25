@@ -55,6 +55,7 @@ class OrderStatusListFilter(SimpleDropdownFilter):
             return None
         if self.value():
             return queryset.filter(status__exact=self.value())
+        # by default, the orders still in work
         if self.value() is None:
             return queryset.filter(status__in=[Order.STATUS_NEW, Order.STATUS_ACCEPTED, Order.STATUS_COLLECTING, Order.STATUS_COLLECTED, Order.STATUS_SENT, Order.STATUS_DELIVERED_SHOP, Order.STATUS_CONSULTATION, Order.STATUS_PROBLEM, Order.STATUS_SERVICE])
 
@@ -74,6 +75,7 @@ class OrderDeliveryListFilter(SimpleDropdownFilter):
         """
         choices = (
             ('all', _('All')),
+            # a negative value excludes that delivery
             (-Order.DELIVERY_YANDEX, _('кроме Яндекс.Доставки')),
         )
         choices += Order.DELIVERY_CHOICES

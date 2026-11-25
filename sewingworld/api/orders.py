@@ -122,6 +122,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         },
     )
     def create(self, request):
+        # The storefront sends the basket id as Idempotency-Key and retries once after a network error or a 5xx.
+        # The order keeps '<site>:<basket>' in basket_checkout_key (unique), so a retry after the basket has been
+        # ordered and deleted gets that order back. A failure with a key answers 500, so that it is retried.
         key = request.headers.get('Idempotency-Key')
         if key is not None and not re.fullmatch(r'[1-9][0-9]{0,18}', key):
             return Response('Invalid idempotency key', status=status.HTTP_400_BAD_REQUEST)
@@ -181,6 +184,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     )
     @action(detail=False, methods=['post'])
     def preorder(self, request):
+        # A request to be told when the product arrives: an order of one item, registered from a basket of its own
         serializer = PreorderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         product = serializer.validated_data['product']
@@ -275,6 +279,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     )
     @action(detail=False, methods=['post'])
     def unpaid(self, request):
+        # The latest order that is collected and waits for an online payment
         queryset = self.get_queryset().order_by('-id').values_list('id', flat=True)
         unpaid = queryset.filter(status=Order.STATUS_COLLECTED, paid=False, payment__in=[Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_CREDIT]).first()
         return Response({

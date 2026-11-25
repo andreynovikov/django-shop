@@ -14,8 +14,8 @@ def rerun_task_by_id(task_id):
     module = import_module(module_name)
     celery_task = getattr(module, task_name)
 
-    # 3. Deserialize arguments (django-celery-results stores them as stringified JSON)
-    # 3. Safely parse args (ensure it becomes a list)
+    # 3. Deserialize and safely parse args, ensuring they become a list (django-celery-results stores them as
+    #    stringified JSON)
     args = task_log.task_args or []
     if isinstance(args, str):
         args = json.loads(args)
@@ -34,7 +34,7 @@ def rerun_task_by_id(task_id):
         if isinstance(kwargs, str):
             kwargs = json.loads(kwargs)
 
-    # 4. Trigger the task again
+    # 5. Trigger the task again
     new_task = celery_task.delay(*args, **kwargs)
     return new_task.id
 

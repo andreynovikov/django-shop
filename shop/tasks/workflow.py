@@ -24,6 +24,12 @@ log = logging.getLogger('shop')
 
 @shared_task(name='shop.tasks.update_order', bind=True, queue="priority", autoretry_for=(DatabaseError,), max_retries=12, retry_backoff=300, retry_jitter=False)
 def update_order(self, order_id, data):
+    """
+    Sets order fields from data, {field: value}, for integrations and other tasks, and records the change in the
+    order's admin history under its buyer. The pk and relations are skipped, a JSON field takes the keys given
+    over those it has. While staff have the order open in the admin it waits, retrying every 10 minutes, and the last
+    attempt goes ahead anyway.
+    """
     order = Order.objects.get(id=order_id)
     # The admin sets the order owner while a staff member is editing.
     if order.owner:
@@ -32,6 +38,7 @@ def update_order(self, order_id, data):
             raise self.retry(countdown=600)  # 10 minutes
         else:
             log.warning('Locked by %s, force unlocking' % order.owner)
+    # the system user holds the lock while the task saves
     order.owner = ShopUser.objects.get(phone='000')
     order.save()
     changed = {}
@@ -106,6 +113,7 @@ def post_update_products(product_ids):
 
 @shared_task(name='shop.tasks.remove_outdated_baskets', autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
 def remove_outdated_baskets():
+    """ Deletes baskets older than a session lives, whose sessions have expired, and the expired sessions """
     threshold = timezone.now() - timedelta(seconds=settings.SESSION_COOKIE_AGE)
     baskets = Basket.objects.filter(created__lt=threshold)
     num = len(baskets)

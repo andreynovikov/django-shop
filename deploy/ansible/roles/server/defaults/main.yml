@@ -81,6 +81,7 @@ server_firewall_rules:
 
 server_timezone: Europe/Moscow
 server_ntp: ru.pool.ntp.org
+# Megabytes, memcached -m
 server_memcached_memory: 256
 
 # Bundled sites to enable. The Debian package ships a different default server.
@@ -144,7 +145,7 @@ server_app_directories:
   static: "2775"
   .cache: "2775"
   import: "2775"
-# The secrets only the service user and root may read, with the backups that Emacs leaves next to them
+# The secrets only the service user and root may read
 server_app_secrets:
   - .env
   - .env.admin

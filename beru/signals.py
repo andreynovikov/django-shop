@@ -16,6 +16,7 @@ def product_saved(sender, **kwargs):
     if product.num >= 0:  # report new stock only if stock is reset (this disables double renew on stocks import)
         return
 
+    # Yandex Market integrations are the ones with a campaign in their settings
     for integration in product.integrations.filter(settings__has_key='ym_campaign'):
         if integration.settings.get('warehouse_id', '') != '':
             logger.info('### ' + integration.settings.get('warehouse_id', '') + " " + product.article + " " + str(product.num))

@@ -7,6 +7,8 @@
     ssh_key_type: ed25519
   register: created_user
 
+# The private key is the SSH_PRIVATE_KEY secret of the GitHub repository. exclusive drops any other key of the
+# account, and the forced command lets the key run only deploy-frontend.
 - name: Add deployment user public key to authorized_keys
   ansible.posix.authorized_key:
     user: deploy
@@ -35,6 +37,8 @@
   loop_control:
     label: "{{ item.key }}"
 
+# The containers run as the service user, see container-entrypoint.sh and startup.sh on the storefront branches,
+# and copy their static files and public/ into .docker for nginx
 - name: Give the service user ownership of storefront assets
   ansible.builtin.file:
     path: "{{ item.value.directory }}/.docker"
@@ -74,6 +78,7 @@
     group: root
     mode: "0644"
 
+# Only root and the docker group, which the deploy account is in, can run it
 - name: Install frontend deployment script
   ansible.builtin.template:
     src: deploy-frontend.j2

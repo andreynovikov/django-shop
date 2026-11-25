@@ -1,3 +1,7 @@
+"""
+Bonus balances of customers' 1C-Rarus loyalty cards. Part of the retired bonus program: the call of get_bonus_value
+in sewingworld/api/users.py is commented out.
+"""
 import json
 import logging
 

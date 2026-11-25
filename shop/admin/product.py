@@ -259,6 +259,7 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
         return '<a href="%s" target="_blank"><i class="ti ti-external-link"></i></a>' % url
     product_link.short_description = 'о'
 
+    # An empty column: the list renders ProductListAdminForm's integrations field in it, which every row's form has
     def integrations(self, obj):
         pass
     integrations.short_description = 'внешние интеграции'
@@ -492,6 +493,8 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
                 del formsets[index]
         super().save_related(request, form, formsets, change)
         obj = form.instance
+        # The product is on the sites whose catalogs have its categories: the root of each category's tree is a
+        # site's root category
         sites = [
             profile.site for profile in set(
                 c.get_root().profile.get() for c in obj.categories.all()

@@ -26,6 +26,8 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
         return urls
 
     def get_app_list(self, request, app_label=None):
+        # The shop goes first, then a "Швейный Мир" group with the constance settings, flat pages, file manager
+        # and sites. The OTP models join "Two Factor Authentication", and the shop's users are listed under auth too.
         apps = super().get_app_list(request, app_label)
 
         shop = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'shop'), None)

@@ -1,4 +1,10 @@
-"""Bundle the API operations used by the marketplace tests."""
+"""
+Bundle the API operations used by the marketplace tests.
+
+Writes <marketplace>.json next to this file: only the operations listed below and the components they reference,
+without documentation and vendor extensions, with the source URL and hash or the upstream commit recorded. Yandex
+Market is read from a checkout of its API repository, whose LICENSE is copied alongside.
+"""
 import argparse
 import hashlib
 import json
@@ -37,6 +43,10 @@ NAMED_FIELDS = {'properties', 'headers', 'content'}
 
 
 def contract_fields(node, named_fields=False):
+    """
+    The node without documentation and x- extensions. Keys of properties, headers and content are names, not
+    keywords, and stay.
+    """
     if isinstance(node, list):
         return [contract_fields(item) for item in node]
     if isinstance(node, dict):

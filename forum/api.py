@@ -58,4 +58,5 @@ class ThreadViewSet(viewsets.ReadOnlyModelViewSet):
         return Thread.objects.filter(enabled=True)
 
     def list(self, request):
+        # threads are listed in their topic, see TopicSerializer
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)

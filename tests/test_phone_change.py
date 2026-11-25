@@ -15,6 +15,7 @@ PHONE = '+79161234567'
 NEW = '+79167654321'
 
 
+# Throttles count attempts in cache and tests clear it, so that they never touch the shared memcached
 @override_settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}})
 class Base(TestCase):
     def setUp(self):

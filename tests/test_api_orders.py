@@ -277,6 +277,7 @@ class CreateRaceTests(Shop, TransactionTestCase):
             for thread in threads:
                 thread.join()
             order = Order.objects.get()
+            # Without the key the others find the basket ordered already; with it they get the order it made
             self.assertEqual(sorted(code for code, _ in results), [200] * 4 if keyed else [200, 400, 400, 400])
             self.assertEqual({data['id'] for code, data in results if code == 200}, {order.id})
             self.assertFalse(Basket.objects.exists())

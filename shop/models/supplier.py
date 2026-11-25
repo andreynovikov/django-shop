@@ -4,6 +4,8 @@ __all__ = ['Supplier']
 
 
 class Supplier(models.Model):
+    # Only COUNT_STOCK suppliers count in a product's stock; an integration counts its own suppliers whatever their
+    # setting. See Product.get_stocks().
     COUNT_STOCK = 1
     COUNT_DEFER = 2
     COUNT_NONE = 99

@@ -10,7 +10,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sewingworld.settings')
 
 app = Celery('sewingworld')
 
-# modify settings only if executing celery worker
+# modify settings only if executing celery worker: no persistent database connections, and no django_prometheus
+# exporter, which would take a port of PROMETHEUS_METRICS_EXPORT_PORT_RANGE
 if hasattr(main, '__file__') and 'celery' in main.__file__:
     settings.CONN_MAX_AGE = 0
     settings.DATABASES['default']['CONN_MAX_AGE'] = 0

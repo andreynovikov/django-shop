@@ -1,3 +1,7 @@
+"""
+A small client of the UniSender API. shop/tasks/user_interaction.py sends some customer mail through it, such as
+the request to review the products of an order.
+"""
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from collections import OrderedDict

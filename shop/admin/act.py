@@ -34,6 +34,7 @@ class ActAdmin(admin.ModelAdmin):
     inlines = (ActOrderInline,)
     date_hierarchy = 'created'
 
+    # Acts are made from the order list, by its action
     def has_add_permission(self, request, obj=None):
         return False
 

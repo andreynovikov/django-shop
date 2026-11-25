@@ -26,6 +26,8 @@ def _error(status, error_type, message):
     return JsonResponse({'error': {'type': error_type, 'message': message}}, status=status)
 
 
+# Yandex Market notifications, accepted as Ozon's are (see ozon.views.notifications): from the Market's networks,
+# with the integration's push_token. An order event of the integration's campaign queues a sync of that order.
 @csrf_exempt
 @require_POST
 @sensitive_variables()

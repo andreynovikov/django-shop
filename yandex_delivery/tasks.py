@@ -1,3 +1,7 @@
+"""
+Yandex.Delivery calls of the order admin: a draft delivery order of the order's boxes, and the delivery options for
+an estimate. The shop's credentials are in constance (sw_yd_sender, sw_yd_token).
+"""
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 import json

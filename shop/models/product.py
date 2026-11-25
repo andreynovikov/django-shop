@@ -53,12 +53,16 @@ class Product(models.Model):
     tnved = models.CharField('ТН ВЭД', max_length=16, blank=True)
     enabled = models.BooleanField('включён', default=False, db_index=True)
     title = models.CharField('название', max_length=200, db_index=True)
+    # Each price is set in a currency (cur_price, cur_code) and save() converts it to roubles at the currency's rate:
+    # price is the retail one, ws_ the wholesale one that wholesale sites sell at, and sp_ the one that wholesale
+    # discounts never go below (see Basket.product_pct_discount). ProductPrice sets a site's own price and discounts.
     price = models.DecimalField('цена, руб', max_digits=10, decimal_places=2, default=0, db_index=True)
     cur_price = models.DecimalField('цена, вал', max_digits=10, decimal_places=2, default=0)
     cur_code = models.ForeignKey(Currency, verbose_name='валюта', related_name="rtprice", on_delete=models.PROTECT, default=643)
     ws_price = models.DecimalField('опт. цена, руб', max_digits=10, decimal_places=2, default=0)
     ws_cur_price = models.DecimalField('опт. цена, вал', max_digits=10, decimal_places=2, default=0)
     ws_cur_code = models.ForeignKey(Currency, verbose_name='опт. валюта', related_name="wsprice", on_delete=models.PROTECT, default=643)
+    # Wholesale sites sell it only in whole packs of pack_factor items
     ws_pack_only = models.BooleanField('опт. только упаковкой', default=False)
     sp_price = models.DecimalField('цена СП, руб', max_digits=10, decimal_places=2, default=0)
     sp_cur_price = models.DecimalField('цена СП, вал', max_digits=10, decimal_places=2, default=0)
@@ -89,6 +93,7 @@ class Product(models.Model):
     sales_notes = models.CharField('Yandex.Market Sales Notes', max_length=128, blank=True)
     bid = models.CharField('Ставка маркета для основной выдачи', max_length=10, blank=True)
     cbid = models.CharField('Ставка маркета для карточки модели', max_length=10, blank=True)
+    # On sewing-world.ru: its storefront lists only such products (baseFilters in cartzilla's src/storefront.ts)
     show_on_sw = models.BooleanField('витрина', default=True, db_index=True)
     gift = models.BooleanField('Годится в подарок', default=False)
     merchant = models.BooleanField('мерчант', default=False, db_index=True)
@@ -128,6 +133,7 @@ class Product(models.Model):
     complect = models.TextField('Комплектация', blank=True)
     dealertxt = models.TextField('Текст про официального дилера', blank=True)
     video_url = models.URLField('Ссылка на видео-описание', max_length=255, blank=True)
+    # The stock counted by get_stocks(), saved; below zero it is stale and the next read of instock counts it again
     num = models.IntegerField('в наличии', default=-1)
     stock = models.ManyToManyField(Supplier, through='Stock')
     pack_factor = models.SmallIntegerField('Количество в упаковке', default=1)
@@ -143,6 +149,7 @@ class Product(models.Model):
     sales_actions = models.ManyToManyField(SalesAction, related_name='products', related_query_name='product', verbose_name='акции', blank=True, limit_choices_to={'active': True})
     related = models.ManyToManyField('self', through='ProductRelation', symmetrical=False, blank=True)
     constituents = models.ManyToManyField('self', through='ProductSet', related_name='+', symmetrical=False, blank=True)
+    # A set (a product with constituents) with recalculate_price costs the sum of its parts, see update_set_price()
     recalculate_price = models.BooleanField('пересчитывать цену', default=True)
     hide_contents = models.BooleanField('скрыть содержимое', default=True)
 
@@ -246,6 +253,11 @@ class Product(models.Model):
         return reverse('product', args=[str(self.code)])
 
     def save(self, *args, **kwargs):
+        """
+        Converts the currency prices to roubles, or prices a set from its parts, then passes the changes on to the
+        sets the product is part of. A copy read without cur_code keeps its prices (and logs an error), one read
+        without num leaves the sets alone.
+        """
         deferred = self.get_deferred_fields()
         if 'cur_code' not in deferred:
             if self.pk is None or self.constituents.count() == 0 or not self.recalculate_price:
@@ -261,6 +273,7 @@ class Product(models.Model):
             self.update_sets()
 
     def update_sets(self):
+        """ The sets with this product: their stock is reset with its own, those priced from their parts get new prices """
         product_sets = ProductSet.objects.filter(constituent=self)
         for product_set in product_sets:
             updated = False
@@ -274,6 +287,10 @@ class Product(models.Model):
                 product_set.declaration.save()
 
     def update_set_price(self):
+        """
+        Prices the set as the sum of its parts, each less its discount in the set (a discounted retail price is
+        rounded to roubles, the others to kopecks). It doesn't save.
+        """
         price = Decimal('0')
         ws_price = Decimal('0')
         sp_price = Decimal('0')
@@ -328,6 +345,7 @@ class Product(models.Model):
 
     @property
     def discount(self) -> Decimal:
+        # The bigger of the two discounts, not both: pct_discount of the price rounded up to roubles, or val_discount
         pd = Decimal(0)
         if self.pct_discount > 0:
             price = self.price.quantize(Decimal('1'), rounding=ROUND_UP)
@@ -626,6 +644,7 @@ class Stock(models.Model):
 
 
 def update_product_prices(sender, instance, **kwargs):
+    """ A currency saved, with a new rate maybe: its products are saved again to convert their prices """
     products = Product.objects.filter(models.Q(cur_code=instance) | models.Q(ws_cur_code=instance))
     for product in products:
         product.save()

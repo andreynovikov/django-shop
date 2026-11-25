@@ -21,10 +21,10 @@ def round_up(value, decimals=0):
     Takes a number and rounds it up to a specified
     number of digits.
 
-    Examples (assuming value="12.345"):
-    {% value|round_up %} -> 13
-    {% value|round_up:1 %} -> 12.35
-    {% value|round_up:-1 %} -> 20
+    Examples (assuming value=12.345):
+    {{ value|round_up }} -> 13
+    {{ value|round_up:1 }} -> 12.4
+    {{ value|round_up:-1 }} -> 20
     """
     multiplier = 10 ** decimals
     if decimals > 0:
@@ -39,10 +39,10 @@ def round_down(value, decimals=0):
     Takes a number and rounds it down to a specified
     number of digits.
 
-    Examples (assuming value="12.345"):
-    {% value|round_up %} -> 12
-    {% value|round_up:1 %} -> 12.34
-    {% value|round_up:-1 %} -> 10
+    Examples (assuming value=12.345):
+    {{ value|round_down }} -> 12
+    {{ value|round_down:1 }} -> 12.3
+    {{ value|round_down:-1 }} -> 10
     """
     multiplier = 10 ** decimals
     if decimals > 0:

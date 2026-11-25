@@ -1,4 +1,8 @@
 # coding: utf-8
+"""
+Resolves a URL path of slugs, parent/child/, to an MPTT node and passes it to the view as `instance`. No urlconf
+uses it now; CategoryViewSet.get_object() in sewingworld/api/catalog.py follows its lookup.
+"""
 from django.utils.module_loading import import_string
 
 

@@ -1,6 +1,8 @@
 #!/bin/sh
 # Forced command of the GitHub deploy key: "<frontend> <tag>" starts that image of a known frontend.
 set -euf
+# SSH_ORIGINAL_COMMAND is the command line the client sent. It is split into words unquoted, and set -f keeps them
+# from expanding as globs.
 set -- ${SSH_ORIGINAL_COMMAND-}
 [ $# -eq 2 ] || { echo "usage: <frontend> <tag>" >&2; exit 2; }
 name=$1 tag=$2
@@ -10,6 +12,8 @@ case $name in
 {% endfor %}
   *) echo "unknown frontend $name" >&2; exit 2 ;;
 esac
+# Only the date-and-hash tags of the CI builds, such as 2026.11.11-7f57710, so the tag cannot change the image reference.
+# latest is refused too: a deploy names the image of a commit.
 case $tag in
   *[!0-9a-f.-]* | '') echo "bad tag $tag" >&2; exit 2 ;;
 esac

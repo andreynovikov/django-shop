@@ -17,6 +17,7 @@ from .common import get_default_site
 
 @shared_task(name='shop.tasks.notify_manager', queue="priority", autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)
 def notify_manager(order_id):
+    """ Mails the new order to the managers of its site, or of the main site when it has none """
     order = Order.objects.get(id=order_id)
 
     msg_plain = render_to_string('mail/shop/order_manager.txt', {'order': order})

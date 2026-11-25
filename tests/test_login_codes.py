@@ -569,6 +569,7 @@ class StaffTests(Base):
         self.assertTrue(user.permanent_password)
 
 
+# Threads see only what is committed, so these tests commit; each thread closes the connection it opened
 @override_settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}})
 class RaceTests(TransactionTestCase):
     serialized_rollback = True  # the current Site from migrations, which an earlier TransactionTestCase flushes

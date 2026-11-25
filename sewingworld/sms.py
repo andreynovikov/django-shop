@@ -7,6 +7,10 @@ from . import sms_uslugi, smsru
 
 
 def send_sms(phone, message, bonuses=False):
+    """
+    Sends an SMS through the provider chosen in constance (sw_sms_provider). With bonuses, sms.ru is called with
+    the key of the retired bonus program (BONUSES_SMSRU_KEY).
+    """
     sms_client = None
     if config.sw_sms_provider == 'sms_uslugi':
         sms_login = getattr(settings, 'SMS_USLUGI_LOGIN', None)

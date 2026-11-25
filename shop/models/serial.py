@@ -29,6 +29,11 @@ class Serial(models.Model):
 
     @classmethod
     def register(cls, sn, user):
+        """
+        Registers the user's warranty card of the serial number. It is approved when an order of the user has the
+        number, or a marketplace's FBO order, whose item is then copied to a new order of the user; otherwise staff
+        check it. Returns None when the number is registered already.
+        """
         item = OrderItem.objects.filter(serial_number__iexact=sn).order_by('-order').first()
         if item is not None:
             if item.order.user == user:

@@ -118,6 +118,7 @@ class SiteProfileViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = SiteProfile.objects.all()
 
     def get_permissions(self):
+        # Anyone may read the site of the request, sites/current/; other sites only superusers
         self.permission_classes = [IsSuperUser]
         if self.action == 'retrieve':
             key = self.kwargs.get(self.lookup_field)

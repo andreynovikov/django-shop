@@ -10,6 +10,7 @@ User={{ server_app_user }}
 # Not www-data: the app must not write what people share through that group
 Group={{ server_app_user }}
 Restart=on-failure
+# uWSGI reloads on SIGTERM, which systemd sends by default; SIGQUIT stops it
 KillSignal=SIGQUIT
 Type=notify
 StandardError=syslog

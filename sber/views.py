@@ -1,3 +1,8 @@
+"""
+Notifications that SberMegaMarket sends about its orders, with basic auth (SBER_MARKET in settings/integrations.py).
+Each shipment of a new order becomes an order of the 'sber' integration, with the shipment id in
+delivery_tracking_number.
+"""
 import base64
 import logging
 import json
@@ -52,6 +57,8 @@ def new_order(request):
     logger.debug(data)
     sber_order = data.get('data', {})
 
+    # Order.register() takes the buyer from the basket's session, so this request's session is signed in
+    # as the service user of SberMegaMarket orders
     user = ShopUser.objects.get(phone='0001')
     integration = Integration.objects.filter(target_site=request.site, utm_source='sber').first()
 
@@ -140,6 +147,7 @@ def cancel_order(request):
                 if str(item.product.id) != offer_id:
                     raise Exception('Wrong product SKU')
                 deleted_items.append(item)
+            # The items stay in the order: the alert tells the managers what was cancelled
             if order.items.count() == len(deleted_items):
                 order.alert = 'Заказ отменён'
             else:

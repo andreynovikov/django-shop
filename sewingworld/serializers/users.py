@@ -159,6 +159,7 @@ class LoginSerializer(serializers.Serializer):
     phone = serializers.CharField(validators=[PhoneValidator()])
     password = serializers.CharField(required=False)
     permanent_password = serializers.CharField(required=False)
+    # Where the login happens: an unknown phone gets an account at 'order', 'preorder' and 'warranty', see validate()
     ctx = serializers.CharField(required=False)
 
     def validate_permanent_password(self, value):

@@ -24,6 +24,10 @@ def goto_order(request):
 
 
 def product_stock_view(product, order=None):
+    """
+    HTML of the product's stock for the admin: the quantity and correction at each supplier shown in orders, and in
+    an order, how many other orders in progress hold the product, linked. A set shows the stock counted.
+    """
     result = ''
     if product.constituents.count() == 0:
         suppliers = product.stock.filter(show_in_order=True).order_by('order')
@@ -54,6 +58,7 @@ def product_stock_view(product, order=None):
         if order:
             items = OrderItem.objects.filter(
                 product=product,
+                # the statuses that hold stock, as in Product.get_stocks()
                 order__status__in=[Order.STATUS_NEW, Order.STATUS_ACCEPTED, Order.STATUS_COLLECTING, Order.STATUS_COLLECTED, Order.STATUS_DELIVERED_SHOP, Order.STATUS_SENT]
             ).exclude(order=order).values_list('order_id', 'quantity')
             if items:

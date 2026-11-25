@@ -12,6 +12,7 @@ table inet host {
 		iif lo accept
 		iifname "docker0" accept
 		meta l4proto { icmp, ipv6-icmp } accept
+		# DHCP replies, IPv4 and IPv6
 		udp dport { 68, 546 } accept
 		tcp dport { {{ server_firewall_tcp_ports | join(', ') }} } accept
 {% if server_firewall_udp_ports %}

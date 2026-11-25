@@ -59,7 +59,8 @@ class EntryViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_object(self):
         """
-        Retrive object by pk, short link and full link
+        Retrieves an entry by its short link (the base36 pk of Entry.short_url), by pk, or by its full link,
+        year/month/day/slug
         """
         key = self.kwargs.get(self.lookup_field)
         if key.isalnum():  # short link or pk

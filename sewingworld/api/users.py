@@ -129,6 +129,7 @@ class IsSelf(BasePermission):
 class UserViewSet(viewsets.ModelViewSet):
     pagination_class = StandardResultsSetPagination
     queryset = ShopUser.objects.order_by('id')  # pages of an unordered query may repeat or skip rows
+    # An id, a phone (see get_object) or `current`, the user of the session
     lookup_value_regex = r'(:?\+?\d+|current)'
 
     def get_serializer_class(self):
@@ -279,6 +280,7 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not hasattr(user, 'bonus'):
             user.bonus = Bonus()
+        # The bonus program is retired: the stored balance is no longer refreshed from 1C-Rarus
         # if not user.bonus.is_fresh and not user.bonus.is_updating:
         #     user.bonus.status = Bonus.STATUS_PENDING
         #     user.bonus.save()

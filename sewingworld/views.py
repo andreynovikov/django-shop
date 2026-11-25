@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def stock(request):
+    """ /stock_avito.csv: stock of the products marked for Avito, counted at the suppliers of the Avito integration """
     root = Category.objects.get(slug=settings.MPTT_ROOT)
     filters = {
         'enabled': True,

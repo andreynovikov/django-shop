@@ -26,6 +26,7 @@ from .clients import StorefrontClient, add_storefront_key
 
 PHONE = '+79161234567'
 EMAIL = 'buyer@example.com'
+# Throttles count attempts in cache and tests clear it, so that they never touch the shared memcached
 CACHES = {'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}}
 
 

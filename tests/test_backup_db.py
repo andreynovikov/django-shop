@@ -76,6 +76,7 @@ class TablesTests(SimpleTestCase):
 class ChooseKindTests(SimpleTestCase):
     max_age = timedelta(hours=25)
 
+    # A daily full snapshot at 03:00 local time, at most 25 hours apart
     def choose(self, last_full, now, schema='schema:abc'):
         return choose_kind(last_full, schema, now.astimezone(UTC), 3, self.max_age)[0]
 
@@ -240,7 +241,8 @@ class CommandTests(TestCase):
             'needs restic, jq and the PostgreSQL client tools')
 class RestoreTests(TransactionTestCase):
     """A full and a hot snapshot into a real repository, restored by restore.sh into a database next to the test one."""
-    serialized_rollback = True
+    # pg_dump sees only committed rows, hence TransactionTestCase
+    serialized_rollback = True  # the current Site from migrations, which an earlier TransactionTestCase flushes
 
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()

@@ -374,6 +374,7 @@ class ProductSerializer(NonNullModelSerializer):
 
     def to_representation(self, obj):
         data = super().to_representation(obj)
+        # a product outside the site's catalog has no page on that site
         if not data.get('categories'):
             raise NotFound()
         return data

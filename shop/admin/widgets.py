@@ -48,6 +48,10 @@ BOOTSTRAP_INPUT_TEMPLATE = {
 
 
 class PhoneWidget(TextInput):
+    """
+    Phone input with a button that opens the form sending an SMS to the phone typed: the button's script puts it into
+    the form's URL in place of +0
+    """
     def __init__(self, attrs=None, bootstrap_version=None):
         if bootstrap_version in [2, 3]:
             self.bootstrap_version = bootstrap_version
@@ -331,6 +335,7 @@ class OrderItemProductLink(Widget):
 
 
 class DisablePluralText(forms.TextInput):
+    """ Read-only for an item with a total (see OrderItem.total), whose sum the price and quantity don't make """
     def __init__(self, obj, attrs=None):
         self.object = obj
         super().__init__(attrs)
@@ -348,6 +353,7 @@ class DisablePluralText(forms.TextInput):
 
 
 class OrderItemTotalText(forms.TextInput):
+    """ The item's total, an input when it is set, otherwise the sum that the price and quantity make """
     def __init__(self, obj, attrs=None):
         self.object = obj
         super().__init__(attrs)

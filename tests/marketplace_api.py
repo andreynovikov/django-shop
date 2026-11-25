@@ -34,7 +34,12 @@ def validate_json(spec, validator_class, definition, payload):
 
 
 class OpenAPIMock:
-    """Check the actual wire request and validate each JSON response before serving it."""
+    """
+    Check the actual wire request and validate each JSON response before serving it.
+
+    It stands in for urlopen: each call must be the next request queued with expect(), and a request left unmade
+    fails the test. Requests and responses are validated against the operation in the bundled schema.
+    """
 
     def __init__(self, test, headers):
         self.test = test
@@ -61,6 +66,7 @@ class OpenAPIMock:
         actual_url = urlsplit(request.full_url)
         self.test.assertEqual((request.get_method(), actual_url._replace(query='').geturl()), (method, url))
         self.test.assertEqual(parse_qs(actual_url.query), query)
+        # urllib.request.Request keeps header names as str.capitalize() makes them, such as Api-key
         for name, value in self.headers.items():
             self.test.assertEqual(request.get_header(name.capitalize()), value)
         if 'timeout' in kwargs:

@@ -281,6 +281,7 @@ def effective_spans(children_spans, wide):
         fixed = [row[bp] for row in result if isinstance(row[bp], int)]
         autos = [row for row in result if not isinstance(row[bp], int)]
         if autos:
+            # what the fixed columns leave, shared; when they fill the row, the auto ones share a row of their own
             share = max(1, (12 - min(sum(fixed), 12)) // len(autos)) if sum(fixed) < 12 else 12 // len(autos) or 1
             for row in autos:
                 row[bp] = share
@@ -346,11 +347,11 @@ class Report:
         self.converted += other.converted
 
 
-# Elements that the frontends' typography (Tailwind's `prose`) styles, and the classes that set what it sets on them.
-# Bootstrap's utilities were !important, so on these elements such classes get Tailwind's ! to keep winning.
 # Bootstrap components, their classes aren't !important (unlike Bootstrap's utilities)
 COMPONENTS = {'card', 'card-body', 'product-title', 'product-meta', 'carousel-caption', 'badge', 'img-thumbnail',
               'container-fluid', 'list-unstyled', 'aligncenter'}
+# Elements that the frontends' typography (Tailwind's `prose`) styles, and the classes that set what it sets on them.
+# Bootstrap's utilities were !important, so on these elements such classes get Tailwind's ! to keep winning.
 PROSE_TAGS = {'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'strong', 'b', 'em', 'img', 'table', 'thead',
               'tbody', 'tr', 'th', 'td', 'blockquote', 'figure', 'figcaption', 'hr', 'dl', 'dt', 'dd'}
 # prose sets vertical margins only, and paddings

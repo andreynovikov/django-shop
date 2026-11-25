@@ -50,6 +50,7 @@ class ShopUserManager(BaseUserManager):
     @staticmethod
     def format_phone(phone):
         m = re.match(r"(\+7)(\d{3})(\d{3})(\d{2})(\d{2})", phone)
+        # the second pattern also takes a phone masked with asterisks, see ShopUser.get_full_name()
         if not m:
             m = re.match(r"(\+7)(\d{3})(\d.{2})(.{2})(\d{2})", phone)
             if not m:
@@ -65,6 +66,7 @@ class AliasField(models.Field):
 
 
 class UsernameField(models.CharField):
+    """ Unique, but optional: a blank one is stored as NULL, which a unique column allows any number of times """
     description = "CharField that stores NULL but returns ''"
 
     def __init__(self, *args, **kwargs):
@@ -102,15 +104,19 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
     postcode = models.CharField('индекс', max_length=10, blank=True)
     city = models.CharField('город', max_length=255, blank=True)
     address = models.CharField('адрес', max_length=255, blank=True)
+    # Personal discount: the basket gives it on products whose own discount is smaller, up to their maximum
     discount = models.PositiveSmallIntegerField('скидка, %', default=0)
+    # Of the bonus program, which is retired along with its import from 1C
     bonuses = models.PositiveIntegerField('бонусы', default=0)
     expiring_bonuses = models.PositiveIntegerField('сгорающие бонусы', default=0)
     expiration_date = models.DateTimeField('дата сгорания бонусов', blank=True, null=True)
     is_active = models.BooleanField('активный', default=True)
     is_staff = models.BooleanField('сотрудник', default=False)
+    # The user has set a password; otherwise logging in takes a code sent by SMS, and an SMS login clears this
     permanent_password = models.BooleanField('постоянный пароль', default=False)
     date_joined = models.DateTimeField('дата регистрации', default=timezone.now)
     tags = models.CharField('теги', max_length=255, blank=True)  # TagField('теги')
+    # Both read the name column, for code that expects the first_name and last_name of Django's user
     first_name = AliasField(db_column='name', blank=True)
     last_name = AliasField(db_column='name', blank=True)
 
@@ -134,6 +140,7 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
         return self.name or self.phone
 
     def get_full_name(self):
+        # A user without a username or name is shown with the phone partly hidden, e.g. +7 (916) 1**-**-67
         return self.username or self.name or ShopUserManager.format_phone(self.phone[:-6] + '****' + self.phone[-2:])
 
     def __str__(self):

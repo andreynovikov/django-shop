@@ -1,3 +1,5 @@
+# The logs that deploy/legacy_redirects.py reads, kept for a year. Their names don't end in .log, so Debian's
+# /etc/logrotate.d/nginx leaves them alone.
 /var/log/nginx/*_legacy.jsonl {
   monthly
   rotate 12

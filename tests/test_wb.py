@@ -1,3 +1,8 @@
+"""
+Wildberries: new orders and those of other warehouses, their statuses, and stock updates. urlopen is mocked with the
+operations of the bundled API schemas in tests/data/marketplaces, so nothing reaches the marketplace. See settings.py
+on how to run.
+"""
 from datetime import UTC, datetime
 from unittest import expectedFailure
 from unittest.mock import patch

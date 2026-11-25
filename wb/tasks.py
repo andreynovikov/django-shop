@@ -1,3 +1,15 @@
+"""
+Wildberries FBS orders and stocks, all by polling.
+
+get_new_orders registers the new orders. An order for another warehouse of the account than the integration's
+warehouse_id is registered as delivered to the store, with the warehouse's name in manager_comment;
+get_detached_orders picks up such orders of the last 30 minutes. get_order_statuses brings the statuses of open
+orders, see WB_ORDER_STATUS.
+
+Stocks are sent by chrtID, the id of a size of a product card, looked up by the product's GTIN and kept in
+ProductIntegration.meta.
+A product that Wildberries doesn't know loses its integration, and the managers get an SMS about it.
+"""
 import json
 import logging
 from datetime import datetime
@@ -23,24 +35,26 @@ from shop.tasks.workflow import update_order
 
 logger = logging.getLogger('wb')
 
+# Local status for a Wildberries status of an assembly task (сборочное задание, an order), None to keep the status.
+# wbStatus takes precedence over supplierStatus, see get_integration_order_statuses.
 WB_ORDER_STATUS = {
     # supplierStatus
-    'new': None,                        # новое сборочное задание
-    'confirm': None,                    # на сборке
-    'complete': None,                   # в доставке
-    'cancel': Order.STATUS_CANCELED,    # отменено продавцом
-    'receive': None,                    # получено клиентом (wbgo)
-    'reject': None,                     # отказ клиента при получении (wbgo)
+    'new': None,                        # new assembly task
+    'confirm': None,                    # being assembled
+    'complete': None,                   # in delivery
+    'cancel': Order.STATUS_CANCELED,    # cancelled by the seller
+    'receive': None,                    # received by the customer (wbgo)
+    'reject': None,                     # refused by the customer on receipt (wbgo)
     # wbStatus
-    'waiting': None,                                  # сборочное задание в работе
-    'sorted': None,                                   # сборочное задание отсортировано
-    'sold': Order.STATUS_DONE,                        # сборочное задание получено покупателем
-    'canceled': Order.STATUS_CANCELED,                # отмена сборочного задания
-    'canceled_by_client': Order.STATUS_CANCELED,      # покупатель отменил заказ при получении
-    'declined_by_client': Order.STATUS_CANCELED,      # покупатель отменил заказ в первый чаc, если заказ не переведён на сборку
-    'defect': Order.STATUS_CANCELED,                  # отмена сборочного задания по причине брака
-    'ready_to_pickup': Order.STATUS_DELIVERED_STORE,  # сборочное задание прибыло на ПВЗ
-    'postponed_delivery': None,                       # курьерская доставка отложена
+    'waiting': None,                                  # assembly task in progress
+    'sorted': None,                                   # assembly task sorted
+    'sold': Order.STATUS_DONE,                        # assembly task received by the buyer
+    'canceled': Order.STATUS_CANCELED,                # assembly task cancelled
+    'canceled_by_client': Order.STATUS_CANCELED,      # the buyer cancelled the order on receipt
+    'declined_by_client': Order.STATUS_CANCELED,      # the buyer cancelled within the first hour, before assembly
+    'defect': Order.STATUS_CANCELED,                  # assembly task cancelled because of a defect
+    'ready_to_pickup': Order.STATUS_DELIVERED_STORE,  # assembly task arrived at the pickup point
+    'postponed_delivery': None,                       # courier delivery postponed
 }
 
 
@@ -101,6 +115,7 @@ def get_integration_new_orders(self, account, target_site_id=None):
          'createdAt': '2023-10-13T06:35:01Z', 'offices': ['Москва_Север'], 'skus': ['4650254750105'], 'id': 1119437040, 'warehouseId': 825523, 'nmId': 181465736,
          'chrtId': 299656738, 'price': 53900, 'convertedPrice': 53900, 'currencyCode': 643, 'convertedCurrencyCode': 643, 'cargoType': 1, 'isLargeCargo': False}]}
         """
+        # Order.register() takes the buyer from the basket's session: the service user of Wildberries orders
         SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
         session = SessionStore()
         session.cycle_key()
@@ -388,7 +403,7 @@ def notify_product_stocks(self, products, account, zero_out=False, target_site_i
                 error = json.loads(content.decode('utf-8'))
                 logger.error(error)
                 if error.get('status', 0) == 429:
-                    return False
+                    return False  # the products keep notify_stock for the next run
                 else:
                     continue
         chrtIDs[product.gtin] = product_integration.meta.get('chrtID')

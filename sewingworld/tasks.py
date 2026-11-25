@@ -9,6 +9,10 @@ from celery import shared_task
 
 
 def single_instance_task(timeout):
+    """
+    Skips a run while another one holds the cache lock. The lock expires after `timeout` seconds, in case a run
+    dies without releasing it. sewingworld.lock.single_instance does the same with a database lock.
+    """
     def task_exc(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -28,6 +32,7 @@ def django_clearsessions():
     management.call_command("clearsessions", verbosity=1)
 
 
+# Task priorities are switched off: apply_async(priority=None) leaves the priority to Celery's default.
 # PRIORITY_HIGHEST = 0
 # PRIORITY_HIGH = 2
 # PRIORITY_NORMAL = 4

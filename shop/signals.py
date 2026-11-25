@@ -34,6 +34,10 @@ logger = logging.getLogger(__name__)
 
 @receiver(post_save, sender=OrderItem, dispatch_uid='order_item_saved_receiver')
 def order_item_saved(sender, **kwargs):
+    """
+    A new quantity of an item changes the stock of its product: it is reset to be counted again, and the storefronts
+    get the product's pages again if the stock they show changes
+    """
     order_item = kwargs['instance']
     if order_item.tracker.has_changed('quantity'):
         product = order_item.product
@@ -63,6 +67,7 @@ def order_saved(sender, **kwargs):
             if not order.integration and order.meta and 'clientID' in order.meta:
                 ym_upload_user.apply_async_on_commit((order.user.id, order.id), countdown=300)
 
+        # Orders of marketplaces get none of what follows: no Metrika upload, POS order or customer notice
         if order.integration and order.integration.uses_api:
             return
 
@@ -78,6 +83,7 @@ def order_saved(sender, **kwargs):
                     """
                     pass
 
+        # An order on its way with a courier who has a ModulPOS terminal is on that terminal until its status changes
         if order.status == Order.STATUS_SENT:
             if order.courier and order.courier.pos_terminal:
                 create_modulpos_order.delay_on_commit(order.id)

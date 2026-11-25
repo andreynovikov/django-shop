@@ -189,6 +189,7 @@ class OrderAdmin(admin.ModelAdmin):
     @mark_safe
     def name_and_phone(self, obj):
         name = obj.name if obj.name else '---'
+        # service accounts of marketplaces have phones without +
         phone = ShopUserManager.format_phone(obj.user.phone) if obj.user.phone[0] == '+' else '---'
         return '{}<br/>{}'.format(name, phone)
     name_and_phone.admin_order_field = 'phone'
@@ -206,6 +207,7 @@ class OrderAdmin(admin.ModelAdmin):
         checkmark = ''
         if obj.paid and obj.has_fiscal:
             style = '; color: green'
+            # receipts of the later orders are at 1-OFD, of the earlier ones at Taxcom
             if obj.id > 152982:  # TODO: move to order.seller
                 checkmark = '<a href="https://consumer.1-ofd.ru/ticket?s=%s&fn=%s&i=%s&fp=%s&n=1" target="_blank" style="color: green"><i class="ti ti-receipt"></i></a>' % (obj.meta['fiscalInfo']['sum'], obj.meta['fiscalInfo']['fnNumber'], obj.meta['fiscalInfo']['fnDocNumber'], obj.meta['fiscalInfo']['fnDocMark'])
             else:
@@ -381,6 +383,7 @@ class OrderAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
+        # staff with the St Petersburg permission see the orders of its sites only
         if not request.user.is_superuser and request.user.has_perm('shop.change_order_spb'):
             qs = qs.filter(site__in=[6, 14])
         return qs
@@ -409,6 +412,9 @@ class OrderAdmin(admin.ModelAdmin):
     def change_view(self, request, object_id, form_url='', extra_context=None):
         if not request.user.is_staff:
             raise PermissionDenied
+        # Opening an order locks it (owner) for whoever opened it first, and update_order() waits for the lock. A save
+        # with _save (a relabelled button, see the order's change_form.html) or _unlock releases it, as does the unlock
+        # URL, which the page calls when it is left unsaved.
         order = Order.objects.get(pk=object_id)
         if not order.owner:
             order.owner = request.user
@@ -433,6 +439,8 @@ class OrderAdmin(admin.ModelAdmin):
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
+        # Boxes of marketplace and Yandex Delivery orders: the weight, and the dimensions of a box with one item, are
+        # taken from what is packed in them where staff left zero
         if not (form.instance.integration and form.instance.integration.uses_api) and not form.instance.delivery == Order.DELIVERY_YANDEX:
             return
         packed = []
@@ -773,6 +781,7 @@ class OrderAdmin(admin.ModelAdmin):
     def order_set_user_tag_action(self, request, queryset):
         if not request.user.is_staff:
             raise PermissionDenied
+        # Tagging users is switched off: the action adds nothing and says so
         if 'set_user_tag' in request.POST:
             # tags = parse_tag_input(request.POST.get('tags'))
             # for order in queryset:

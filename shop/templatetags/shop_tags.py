@@ -58,6 +58,7 @@ def barcode(number, fmt='code128', width=0.5, height=15):
 def last_1c_import():
     try:
         task = TaskResult.objects.filter(task_name='shop.tasks.import1c', status=states.SUCCESS).latest('date_done')
+        # the result is the export's date as JSON, "25.11.2026 10:15:00": without the quotes and the seconds
         return task.result[1:-4]
     except TaskResult.DoesNotExist:
         return 'неизвестно'

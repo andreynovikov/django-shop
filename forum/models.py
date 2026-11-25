@@ -1,3 +1,7 @@
+"""
+Tables of the old site (users, forum, orders), used as they are: managed = False, so no migration creates or
+changes them. The API serves the forum read only.
+"""
 from django.db import models
 
 from shop.models import Product

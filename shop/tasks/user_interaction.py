@@ -320,6 +320,10 @@ def notify_abandoned_basket(self, basket_id, email, phone):
 
 @shared_task(name='shop.tasks.notify_abandoned_baskets', autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
 def notify_abandoned_baskets(first_try=True):
+    """
+    Reminds the owners of baskets left with products, by mail to a confirmed address only: of baskets they made
+    themselves (not secondary ones) 3 to 4 hours ago on the first try, 3 to 4 days ago on the second.
+    """
     SessionStore = import_module(settings.SESSION_ENGINE).SessionStore
 
     if first_try:
@@ -378,7 +382,7 @@ def notify_expiring_bonus(phone):
 
 @shared_task(name='shop.tasks.notify_expiring_bonuses', autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=3, retry_jitter=False)
 def notify_expiring_bonuses():
-    """ 2 weeks and > 500 bonuses """
+    """ Users whose more than 500 bonuses expire in 2 weeks, a day's worth of them; the bonus program is retired """
     lt = timezone.now() + timedelta(days=14)
     gt = lt - timedelta(days=1)
     users = ShopUser.objects.filter(expiring_bonuses__gt=500, expiration_date__lt=lt, expiration_date__gte=gt)

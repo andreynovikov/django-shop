@@ -1,3 +1,7 @@
+"""
+The shop app. Its functions below are the hooks of django-rated-reviews, which REVIEW_APP = 'shop' in the settings
+points here: reviews of products are ProductReview, belong to the request's site, and weigh by the reviewer.
+"""
 default_app_config = 'shop.apps.ShopAppConfig'
 
 
@@ -21,6 +25,10 @@ def get_review_api_user_serializer():
 
 
 def get_review_user_weight(user, target):
+    """
+    How much the user's rating counts: 50 for moderators, 10 for a buyer of the product (an order of it done or
+    passed to another shop), 1 for anyone else
+    """
     if user.has_perm('reviews.can_moderate'):
         return 50
     from .models import Product, Order

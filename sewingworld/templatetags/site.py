@@ -85,6 +85,7 @@ def exclude_qs(queryset, field):
 
 @register.filter
 def get_unique_mapped_list(queryset, dictionary):
+    """ Distinct values that the dictionary maps the objects' pks to, e.g. the feed categories of product categories """
     return set(filter(lambda pk: pk is not None, [dictionary.get(o.pk, None) for o in queryset]))
 
 
@@ -188,6 +189,7 @@ def from_months(value):
 
 @register.filter
 def ya_days(value):
+    """ Months as an ISO 8601 duration, P1Y6M, as the Yandex Market feed takes warranty and service life """
     years = int(value / 12)
     months = value % 12
     result = ['P']

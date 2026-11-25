@@ -3,6 +3,8 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 6000
 
 IMPORT_EXPORT_SKIP_ADMIN_LOG = True
 
+# django-flags that the 1C stock import (shop/tasks/stocks.py) switches on while it runs and while it copies;
+# the product admin shows them.
 FLAGS = {
     '1C_IMPORT_RUNNING': [],
     '1C_IMPORT_COPYING': []

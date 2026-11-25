@@ -1,3 +1,12 @@
+"""
+Yandex Market (formerly Beru) FBS orders and stocks.
+
+get_orders polls every Market integration that uses the API: it syncs the open orders and registers the orders
+that wait for packing (PROCESSING/STARTED). An integration with a push_token also takes Market's notifications
+(views.notification), each of which syncs one order. Both hold the integration's ORDER_SYNC_LOCK.
+When the admin marks an order collected, notify_beru_order_status sends its boxes and READY_TO_SHIP; a failure
+that a retry can't mend puts the order into the problem status with the reason in delivery_info.
+"""
 import json
 import logging
 from collections import Counter
@@ -103,6 +112,7 @@ def _market_request(integration, method, path, data=None, params=None):
         status = error.code
         error.close()
         message = f'Яндекс Маркет вернул HTTP {status} для {method} {path}'
+        # MarketUnavailable is an OSError, which the tasks retry; TaskFailure fails them
         if status in (408, 420, 429) or status >= 500:
             raise MarketUnavailable(message) from None
         raise TaskFailure(message) from None
@@ -234,6 +244,7 @@ def _import_order(integration, data):
         if Order.objects.filter(integration=integration, delivery_tracking_number=order_number).exists():
             return False
 
+        # Order.register() takes the buyer from the basket's session: the service user of Market orders
         user = ShopUser.objects.get(phone='0000')
         session = import_module(settings.SESSION_ENGINE).SessionStore()
         session[auth.SESSION_KEY] = user._meta.pk.value_to_string(user)
@@ -285,6 +296,8 @@ def _import_order(integration, data):
 
 
 def _cancellation_fields(order, substatus):
+    # A new order is cancelled for a reason in EARLY_CANCELLATIONS and becomes a problem for any other, such as
+    # SHOP_FAILED. An order already in work gets an alert for the managers instead.
     reason = BERU_ORDER_SUBSTATUS.get(substatus, 'Неизвестная причина отмены заказа')
     if order.status == Order.STATUS_NEW:
         status = Order.STATUS_CANCELED if substatus in EARLY_CANCELLATIONS else Order.STATUS_PROBLEM
@@ -305,6 +318,7 @@ def _sync_order(integration, data):
             logger.error('Multiple local orders match Yandex Market order %s in integration %s', data['orderId'], integration.pk)
             return False
 
+        # an order that a manager is editing (the admin sets its owner meanwhile) is left to the next sync
         if order.owner_id or order.status in CLOSED_STATUSES:
             return False
 
@@ -317,6 +331,7 @@ def _sync_order(integration, data):
             fields.update(_cancellation_fields(order, substatus))
         else:
             next_status = DELIVERY_STATUSES.get((status, substatus)) or DELIVERY_STATUSES.get((status, None))
+            # statuses are numbered in the order of the workflow, so an order only moves forward
             if next_status and order.status in FULFILLMENT_STATUSES and next_status > order.status:
                 fields['status'] = next_status
 
@@ -606,6 +621,7 @@ def notify_beru_marked_stocks(self):
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def notify_beru_integration_stocks(self):
+    """ Sends the stock of every product of the Market integrations, in chunks of 20 a minute apart """
     total = 0
     for integration in Integration.objects.filter(settings__has_key='ym_campaign', enabled=True):
         products = Product.objects.order_by().filter(integration=integration)

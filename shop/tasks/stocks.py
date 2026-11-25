@@ -45,6 +45,11 @@ log = logging.getLogger('shop')
 
 @shared_task(name='shop.tasks.update_1c_stocks', bind=True, queue="import", autoretry_for=(OSError, DatabaseError), retry_backoff=300, retry_jitter=False)
 def update_1c_stocks(self):
+    """
+    Downloads 1C's export from Yandex Disk into SHOP_IMPORT_DIRECTORY, unless it is older than the file imported last,
+    and queues import1c() for it. The Disk token is constance's sw_bonuses_ydisk_token, named after the retired
+    bonus import that used it first.
+    """
     filename = 'ВыгрузкаНаСайтПоВсемСкладамПромимпекс.csv'
     url = 'https://cloud-api.yandex.net/v1/disk/resources?path={}'.format(quote('disk:/' + filename))
     headers = {
@@ -100,6 +105,7 @@ def update_1c_stocks(self):
 
 
 class fragile(object):
+    """ Wraps a context manager so that `raise fragile.Break` leaves the with block early, as no error """
     class Break(Exception):
         """Break out of the with statement"""
 
@@ -148,6 +154,18 @@ def stored_prices(product):
 @shared_task(name='shop.tasks.import1c', time_limit=7200, retry_backoff=True)
 @single_instance_task(1200)
 def import1c(file):
+    """
+    Imports 1C's export of prices and stock, a file in SHOP_IMPORT_DIRECTORY, which is kept as <name>_last.csv (and
+    the one before as _penult). The file has the export's date on its first line, then a skipped line,
+    '//Список складов' and a 'name;1C code' line for each supplier, then '//Остатки' and a row for each product:
+    article; prices and currency codes (sp_, ws_, retail; a code of 0 skips the price); its quantity at each
+    supplier in the order of the list.
+
+    Prices are saved and the storefronts revalidated for those that changed. The stock table is replaced as a whole,
+    keeping staff's corrections, and the products' stock is reset for count_stocks(). The result goes to the main
+    site's managers by mail, with frozen orders whose products are in stock again. While it runs, the admin shows the
+    1C_IMPORT_* flags and can't save products (see ProductAdminForm.clean()), and another import does nothing.
+    """
     log.error('Import1C')
     enable_flag('1C_IMPORT_RUNNING')
 
@@ -164,6 +182,7 @@ def import1c(file):
             quantities[n1_pos] = min(quantities[n1_pos], quantities[pi_pos])
         return quantities
 
+    # Frozen orders that wait for products out of stock now, to report those that the import brings back
     frozen_orders = Order.objects.filter(status=Order.STATUS_FROZEN)
     frozen_products = defaultdict(list)
     if frozen_orders.exists():
@@ -275,6 +294,7 @@ def import1c(file):
                 if line['cur_code'] != '0' and not product.forbid_price_import:
                     try:
                         cur_price = float(line['cur_price'].replace('\xA0', ''))
+                        # only for products priced in roubles (643), in whole roubles
                         if cur_price > 0 and product.cur_code.code == 643:
                             cur_price = Decimal(cur_price).quantize(Decimal('1'), rounding=ROUND_HALF_EVEN)
                             product.cur_price = cur_price

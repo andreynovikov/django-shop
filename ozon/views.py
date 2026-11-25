@@ -32,6 +32,10 @@ def _error(status, message, *, code='ERROR_UNKNOWN'):
     return JsonResponse({'error': {'code': code, 'message': message, 'details': None}}, status=status)
 
 
+# Ozon push notifications. They are taken only from Ozon's networks (REMOTE_ADDR is the address nginx sees,
+# FrontendKeyMiddleware replaces it under /api/v0/ only) with the integration's push_token in the `token` query
+# parameter. A posting event just queues a sync of the posting, which reads it from the Seller API; other events
+# are acknowledged and ignored.
 @csrf_exempt
 @require_POST
 @sensitive_variables()

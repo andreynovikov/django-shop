@@ -8,6 +8,7 @@ backup_host_alert_email: admin@sewing-world.ru
 # The password of the production server's login. The login is created only when it is set.
 # backup_host_login_password:
 
+# The commands of deploy/backup/maintain.sh and their OnCalendar times, a db-backup@<command>.timer each
 backup_host_timers:
   fresh: "*:30"
   prune: "12:00"

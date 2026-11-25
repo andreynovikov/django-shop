@@ -32,6 +32,7 @@ class PostmanSpecTests(SimpleTestCase):
     def test_path_parameters_are_collection_variables(self):
         for method, path, operation in self.operations():
             for parameter in operation.get('parameters', []):
+                # template_name takes a document name, such as bill, rather than a variable
                 if parameter['in'] == 'path' and parameter['name'] != 'template_name':
                     self.assertRegex(parameter['example'], r'^\{\{\w+\}\}$', '%s %s' % (method, path))
 

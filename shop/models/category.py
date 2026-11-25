@@ -13,6 +13,7 @@ class Category(MPTTModel):
     active = models.BooleanField('включена', default=True, db_index=True)
     hidden = models.BooleanField('спрятана', default=False, db_index=True)
     feed = models.BooleanField('выдавать в фиды', default=True)
+    # Comma-separated names of the filters its page shows, see category_filters() in sewingworld/filters.py
     filters = models.CharField('фильтры', max_length=255, blank=True)
     brief = models.TextField('описание', blank=True)
     description = models.TextField('статья', blank=True)
@@ -38,6 +39,8 @@ class Category(MPTTModel):
         return self.get_descendants().filter(active=True, hidden=False)
 
     def __str__(self):
+        # The full path, so that categories of the same name tell apart, in the admin's list filter choices and
+        # autocomplete, which the call stack gives away; elsewhere the name alone
         show_path = False
         import traceback
         tb = traceback.extract_stack(limit=6)

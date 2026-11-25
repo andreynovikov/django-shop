@@ -17,6 +17,7 @@ logger = logging.getLogger('yandex_kassa')
 
 @shared_task(bind=True, autoretry_for=(EnvironmentError, DatabaseError), retry_backoff=60, retry_jitter=False)
 def get_receipt(self, order_id, payment_id):
+    """ Saves the fiscal data of the payment's receipt in order.meta, once YooKassa has registered it """
     order = Order.objects.get(id=order_id)
 
     configure_yookassa(order)

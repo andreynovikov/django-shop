@@ -251,13 +251,17 @@ class ProductAdminForm(forms.ModelForm):
         # test for code presence is required for mass edit
         if code and not reg.fullmatch(code):
             self.add_error('code', forms.ValidationError("Код товара содержит недопустимые символы"))
-        # detect import lock - do not allow save during import
+        # detect import lock (the key single_instance_task holds while import1c() runs) - do not allow save during import
         if cache.get("celery-single-instance-import1c") is not None:
             self.add_error(None, forms.ValidationError("Сохранение невозможно во время импорта склада, попробуйте позже."))
         return cleaned_data
 
 
 class ProductListAdminForm(forms.ModelForm):
+    """
+    Form of each row of the product list. Its integrations, checkboxes in the column of that name, put the product in
+    the feeds of the integrations that don't output all products, at price 0 when it is new there.
+    """
     integrations = IntegrationMultipleChoiceField(
         queryset=Integration.objects.filter(enabled=True, output_all=False).select_related('target_site'),
         widget=forms.CheckboxSelectMultiple,
@@ -320,6 +324,7 @@ class OrderItemInlineAdminForm(forms.ModelForm):
 
 
 class BoxInlineAdminForm(forms.ModelForm):
+    # A new box is saved even when its form is left empty
     def has_changed(self):
         if self.instance.pk:
             return super().has_changed()

@@ -4,6 +4,7 @@ services:
   app:
     container_name: nextjs-${NAME}
     image: ${IMAGE}
+    # Only for the emergency local build in deploy/README.md; deploy-frontend runs the CI image with --no-build
     build:
       context: ${BUILD_CONTEXT:-.}
       target: runner

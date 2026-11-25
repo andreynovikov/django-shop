@@ -1,3 +1,8 @@
+"""
+Yandex Market (beru): orders polled and pushed by notifications, their statuses and boxes. urlopen is mocked with
+the operations of the bundled API schemas in tests/data/marketplaces, so nothing reaches the marketplace. See
+settings.py on how to run.
+"""
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from unittest.mock import patch
@@ -47,6 +52,7 @@ def market_order(order_id=789, *, status='PROCESSING', substatus='STARTED', item
 
 
 def ready_response():
+    # The status operation writes dates as DD-MM-YYYY, unlike the order list
     return {'order': {
         **READY_TO_SHIP,
         'id': 789, 'creationDate': '25-11-2026 12:00:00', 'currency': 'RUR',
@@ -352,6 +358,7 @@ class BeruNotificationTests(TestCase):
         self.client = Client(enforce_csrf_checks=True)
         self.publish = self.enterContext(patch('beru.views.sync_integration_order.apply_async'))
 
+    # The default sender is in MARKET_NETWORKS of beru/views.py, the addresses the market notifies from
     def notify(self, payload, *, token='test-push-token', sender='5.45.207.42', **headers):
         url = reverse('beru-notification', args=[self.integration.pk], query={'token': token})
         return self.client.post(url, payload, content_type='application/json', REMOTE_ADDR=sender, **headers)
