@@ -3,6 +3,8 @@ docker-compose.yaml
 .dockerignore
 node_modules
 .docker
+# The configuration comes in as a secret, see Dockerfile
+.env*
 .next
 .git
 .gitignore

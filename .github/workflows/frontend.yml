@@ -46,7 +46,7 @@ jobs:
   build:
     needs: check
     runs-on: ubuntu-24.04
-    # The .env is baked into the image, so the build takes the production environment's ENV_FILE
+    # The build reads the production environment's ENV_FILE as a secret, which stays out of the image
     environment:
       name: dortak
       deployment: false
@@ -66,7 +66,7 @@ jobs:
         id: version
         run: echo "version=$(TZ=Europe/Moscow git log -1 --format=%cd --date=format-local:%Y.%m.%d)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
-      - name: Create .env file
+      - name: Check ENV_FILE
         env:
           ENV_FILE: ${{ secrets.ENV_FILE }}
         run: |
@@ -74,7 +74,6 @@ jobs:
             echo "::error::The dortak environment has no ENV_FILE secret"
             exit 1
           fi
-          printf '%s\n' "$ENV_FILE" > .env
 
       - name: Docker meta
         id: meta
@@ -96,12 +95,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      # The Dockerfile mounts the secret as .env.local for npm run build only. The server mounts its own copy into the
+      # container, see "Frontend deployment" in deploy/README.md on main.
       - name: Build and push Docker image
         uses: docker/build-push-action@v7
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
         with:
           context: .
           build-args: |
             entity=dortak
+          secret-envs: |
+            storefront_env=ENV_FILE
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
