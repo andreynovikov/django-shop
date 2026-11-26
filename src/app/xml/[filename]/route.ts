@@ -117,9 +117,8 @@ export async function GET(request: Request, { params }: RouteContext<'/xml/[file
   }
 }
 
+// No feed is rendered at build time: the templates are mounted on the server, so that they can be edited without a new
+// build, and the build has none or outdated ones. Each feed is rendered on its first request and then cached.
 export async function generateStaticParams() {
-  if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
-    return []
-
   return []
 }
