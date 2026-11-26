@@ -1,0 +1,64 @@
+name: Clean images
+
+# Deletes old storefront images from the GitHub Container Registry, which keeps every build otherwise. It keeps:
+# - every image younger than 30 days, as long as GitHub lets an old deploy run be re-run to roll back;
+# - the 5 newest older images of each storefront, for those built seldom;
+# - latest, which stage runs, and the image production runs, the one the last Run workflow of the branch deployed.
+# An image here is an index with its platform image and attestation, which the action deletes together.
+# See "GitHub settings" in deploy/README.md.
+on:
+  schedule:
+    - cron: '0 3 * * 1'  # Mondays at 06:00 Moscow time
+  workflow_dispatch:
+
+# Until this is true, a run only lists in its summary what it would delete
+env:
+  DELETE: false
+
+permissions: {}
+
+jobs:
+
+  clean:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [sworld, family, janome, singer, dortak]
+    # The action must not run twice at once on one package
+    concurrency: clean-images-${{ matrix.package }}
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+
+    steps:
+      # The tag the deploy job made for the commit of the newest successful Run workflow (a re-run of an older one,
+      # a rollback, starts later): its Moscow date and short hash. A failed lookup fails the job, before anything
+      # is deleted.
+      - name: Find the image production runs
+        id: production
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ matrix.package }}
+        run: |
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/frontend.yml/runs?branch=$BRANCH&event=workflow_dispatch&status=success&per_page=20" \
+            --jq '[.workflow_runs[]] | max_by(.run_started_at) | .head_sha // empty')
+          tags=latest
+          if [ -n "$sha" ]; then
+            date=$(gh api "repos/$GITHUB_REPOSITORY/commits/$sha" --jq .commit.committer.date)
+            tags="$tags,$(TZ=Europe/Moscow date -d "$date" +%Y.%m.%d)-${sha::7}"
+          fi
+          echo "Keeping $tags"
+          echo "exclude-tags=$tags" >> "$GITHUB_OUTPUT"
+
+      - name: Delete old images
+        uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f  # v1.2.2
+        with:
+          package: ${{ matrix.package }}
+          exclude-tags: ${{ steps.production.outputs.exclude-tags }}
+          older-than: 30 days
+          keep-n-tagged: 5
+          delete-untagged: true
+          validate: true
+          dry-run: ${{ env.DELETE != 'true' }}

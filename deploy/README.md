@@ -714,7 +714,7 @@ runs the Playwright tests and deploys every push to stage.
 To deploy a frontend to production, open Actions → Frontend CI → Run workflow on GitHub and choose its branch. The
 deploy command pulls the image for that commit and runs Compose with builds disabled. The run fails if the image is
 unavailable. To roll back, re-run an earlier deploy run (GitHub allows re-runs for 30 days) or start an earlier
-image on the server. Choose an image with runtime UID/GID support so it can write to the `sworld`-owned asset
+image on the server. The registry keeps the images of those 30 days, see [GitHub settings](#github-settings). Choose an image with runtime UID/GID support so it can write to the `sworld`-owned asset
 directory.
 `docker images` lists the images on the server. The images are public and hold no secrets, so pulling another one
 needs no login. The repository and the registry are `server_git_repository` and `server_frontend_registry` of the
@@ -850,6 +850,11 @@ Use the branch, deployment name, port and directory from the table.
   `DEPLOY_HOST_KEY` pins.
 - The storefront packages of the GitHub Container Registry are public, since the images hold no configuration. The
   server pulls them without a login.
+- [Clean images](../.github/workflows/clean-images.yml) deletes old storefront images every Monday, or with its Run
+  workflow button. It keeps every image younger than 30 days, the 5 newest older ones of each storefront, `latest`
+  and the image production runs. Until `DELETE` in the workflow is `true`, a run only lists in its summary what it would
+  delete. The workflow's token may delete only from packages that give this repository the Admin role: in each
+  package's settings, Manage Actions access.
 - The `Protected branches` ruleset lists the frontend branches by name. Update it when a branch is added or renamed.
 
 # Database backups
