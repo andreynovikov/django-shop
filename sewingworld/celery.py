@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import __main__ as main
 from celery import Celery

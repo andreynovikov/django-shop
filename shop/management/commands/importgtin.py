@@ -12,7 +12,7 @@ class Command(BaseCommand):
         file = options['file'][0]
         self.stdout.write(file)
         num = 0
-        with open(file, 'rU') as f:
+        with open(file, encoding='utf-8') as f:
             for line in f:
                 article, gtin = line.split('\t')
                 gtin_num = int(gtin)

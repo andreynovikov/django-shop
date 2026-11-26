@@ -10,7 +10,7 @@ that a retry can't mend puts the order into the problem status with the reason i
 import json
 import logging
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal, ROUND_UP
 from importlib import import_module
 from itertools import batched
@@ -567,7 +567,7 @@ def notify_beru_product_stocks(self, products, account, target_site_id=None):
         'Content-Type': 'application/json'
     }
 
-    updatedAt = datetime.utcnow().replace(microsecond=0).isoformat() + '+00:00'
+    updatedAt = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     skus = []
 
     products = list(Product.objects.filter(pk__in=products))

@@ -2,7 +2,6 @@
 The shop app. Its functions below are the hooks of django-rated-reviews, which REVIEW_APP = 'shop' in the settings
 points here: reviews of products are ProductReview, belong to the request's site, and weigh by the reviewer.
 """
-default_app_config = 'shop.apps.ShopAppConfig'
 
 
 def get_review_model():

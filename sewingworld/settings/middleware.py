@@ -9,7 +9,6 @@ MIDDLEWARE = (
     'sewingworld.middleware.FrontendKeyMiddleware',
     'sewingworld.middleware.BlockedIpMiddleware',
     'sewingworld.middleware.SiteDetectionMiddleware',
-    # 'sewingworld.middleware.ProcessExceptionMiddleware',
     'sewingworld.middleware.CookieRenameMiddleware',
     'sewingworld.middleware.PrivateApiCacheMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

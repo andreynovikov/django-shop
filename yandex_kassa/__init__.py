@@ -1,7 +1,5 @@
 from yookassa import Configuration
 
-default_app_config = 'yandex_kassa.apps.YandexKassaAppConfig'
-
 
 def configure_yookassa(order):
     """

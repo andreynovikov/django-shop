@@ -1,7 +1,5 @@
 import ipaddress
 import logging
-import sys
-import traceback
 
 from urllib.parse import urlparse
 
@@ -172,9 +170,3 @@ class BlockedIpMiddleware:
         if request.META.get('REMOTE_ADDR') in self.BLOCKED_IPS:
             return HttpResponseForbidden()
         return self.get_response(request)
-
-
-class ProcessExceptionMiddleware(object):
-    def process_exception(self, request, exception):
-        print('\n'.join(traceback.format_exception(*sys.exc_info())), file=sys.stderr)
-        return None
