@@ -15,3 +15,7 @@ class CategoryAdmin(DraggableMPTTAdmin):
     list_display_links = ['indented_title']
     exclude = ('image_width', 'image_height', 'promo_image_width', 'promo_image_height')
     form = CategoryAdminForm
+
+    def autocomplete_labels(self):
+        """ Labels of the autocomplete fields' results, see SWAutocompleteJsonView """
+        return Category.paths()

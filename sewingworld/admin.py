@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib import admin
+from django.contrib.admin.views.autocomplete import AutocompleteJsonView
 from django.db import models
 from django.urls import path
 from django.utils.translation import gettext_lazy as _
@@ -13,9 +14,27 @@ from shop.models import Category
 from .models import SiteProfile
 
 
+class SWAutocompleteJsonView(AutocompleteJsonView):
+    """
+    Search results of the autocomplete fields. The model admin's autocomplete_labels(), when it has one, gives their
+    labels by ID: categories show their paths, which tell those of the same name apart. Others show str().
+    """
+    def serialize_result(self, obj, to_field_name):
+        result = super().serialize_result(obj, to_field_name)
+        get_labels = getattr(self.model_admin, 'autocomplete_labels', None)
+        if get_labels is not None:
+            if not hasattr(self, 'labels'):
+                self.labels = get_labels()  # once for the page of results
+            result['text'] = self.labels.get(obj.pk, result['text'])
+        return result
+
+
 class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
     site_header = "Швейный Мир"
     site_title = "Административный сайт Швейный Мир"
+
+    def autocomplete_view(self, request):
+        return SWAutocompleteJsonView.as_view(admin_site=self)(request)
 
     def get_urls(self):
         import shop.admin.views  # prevent circular import

@@ -1,6 +1,8 @@
 """
-Saving a product in the admin, beyond what Django does. See settings.py on how to run.
+The product admin beyond what Django does: saving a product, the list of products and how categories are
+labelled. See settings.py on how to run.
 """
+import json
 from unittest import mock
 
 from django.contrib.admin.sites import site as admin_site
@@ -109,3 +111,16 @@ class CategoryLabelTests(TestCase):
         with self.assertNumQueries(2):  # the categories, and all their paths
             labels = [label for value, label in field.choices]
         self.assertEqual(labels, ['Каталог', 'Каталог/Машины', 'Каталог/Машины/Машины'])
+
+    def test_autocomplete(self):
+        request = RequestFactory().get('/', {'app_label': 'shop', 'model_name': 'product', 'field_name': 'categories', 'term': 'Маш'})
+        request.user = ShopUser.objects.create(phone='+79990000000', is_staff=True, is_superuser=True)
+        response = admin_site.autocomplete_view(request)
+        self.assertEqual([result['text'] for result in json.loads(response.content)['results']],
+                         ['Каталог/Машины', 'Каталог/Машины/Машины'])
+        # other models keep their names
+        request = RequestFactory().get('/', {'app_label': 'shop', 'model_name': 'productset', 'field_name': 'constituent', 'term': 'Товар'})
+        request.user = ShopUser.objects.get()
+        add_product(1)
+        response = admin_site.autocomplete_view(request)
+        self.assertEqual([result['text'] for result in json.loads(response.content)['results']], [str(Product.objects.get())])
