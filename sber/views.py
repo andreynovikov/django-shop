@@ -1,9 +1,11 @@
 """
-Notifications that SberMegaMarket sends about its orders, with basic auth (SBER_MARKET in settings/integrations.py).
+Notifications that SberMegaMarket sends about its orders, with basic auth (SBER_MARKET_AUTH_USER and
+SBER_MARKET_AUTH_PASSWORD in .env, see settings/integrations.py).
 Each shipment of a new order becomes an order of the 'sber' integration, with the shipment id in
 delivery_tracking_number.
 """
 import base64
+import hmac
 import logging
 import json
 from datetime import datetime
@@ -28,7 +30,9 @@ SBER_MARKET = getattr(settings, 'SBER_MARKET', {})
 def token_required(func):
     @wraps(func)
     def _wrapped_view(request, *args, **kwargs):
-        if request.META.get('HTTP_AUTHORIZATION', None) != SBER_MARKET.get('token', ''):
+        # Unset credentials are empty, and an empty header must not match them
+        token = SBER_MARKET.get('token', '')
+        if not token or not hmac.compare_digest(request.META.get('HTTP_AUTHORIZATION', '').encode(), token.encode()):
             return HttpResponseForbidden()
         return func(request, *args, **kwargs)
     return _wrapped_view
@@ -42,7 +46,9 @@ def auth_required(func):
             if len(auth) == 2:
                 if auth[0].lower() == "basic":
                     uname, passwd = base64.b64decode(auth[1]).decode('utf8').split(':', 1)
-                    if uname == SBER_MARKET.get('auth_user', '') and passwd == SBER_MARKET.get('auth_password', ''):
+                    user, password = SBER_MARKET.get('auth_user', ''), SBER_MARKET.get('auth_password', '')
+                    if (user and password and hmac.compare_digest(uname.encode(), user.encode())
+                            and hmac.compare_digest(passwd.encode(), password.encode())):
                         return func(request, *args, **kwargs)
         return HttpResponseForbidden()
     return _wrapped_view

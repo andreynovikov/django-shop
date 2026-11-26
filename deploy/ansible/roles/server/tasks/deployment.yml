@@ -1,23 +1,30 @@
+- name: Check the registry setting
+  ansible.builtin.assert:
+    that: server_frontend_registry | length > 0
+    fail_msg: Set server_frontend_registry in inventory.yml, see inventory.example.yml
+    quiet: true
+
+# Without server_deploy_ssh_public_key, the account gets a key of its own, whose private half goes into the
+# SSH_PRIVATE_KEY secret of the GitHub repository. With it, a new server accepts the key GitHub already has.
 - name: Create deployment user
   ansible.builtin.user:
     name: deploy
     groups: [docker]
     shell: /bin/sh  # sshd runs the forced command of the key through the login shell
-    generate_ssh_key: true
+    generate_ssh_key: "{{ server_deploy_ssh_public_key | default('') | length == 0 }}"
     ssh_key_type: ed25519
   register: created_user
 
-# The private key is the SSH_PRIVATE_KEY secret of the GitHub repository. exclusive drops any other key of the
-# account, and the forced command lets the key run only deploy-frontend.
+# exclusive drops any other key of the account, and the forced command lets the key run only deploy-frontend.
 - name: Add deployment user public key to authorized_keys
   ansible.posix.authorized_key:
     user: deploy
     state: present
-    key: "{{ created_user.ssh_public_key }}"
+    key: "{{ server_deploy_ssh_public_key | default('', true) or created_user.ssh_public_key }}"
     key_options: 'restrict,command="/usr/local/bin/deploy-frontend"'
     comment: github-deploy
     exclusive: true
-  when: created_user.ssh_public_key is defined
+  when: server_deploy_ssh_public_key | default('') | length > 0 or created_user.ssh_public_key is defined
 
 - name: Create missing storefront directories
   ansible.builtin.command:
@@ -60,6 +67,34 @@
   loop: "{{ server_frontend_sites | dict2items }}"
   loop_control:
     label: "{{ item.key }}"
+
+# vault_storefront_env of secrets.yml has them by deployment name, and a deployment without its own, such as stage,
+# gets its branch's. The vault is their source: a file edited on the server is replaced, and the old one kept next to
+# it.
+- name: List the storefront configurations of the vault
+  ansible.builtin.set_fact:
+    storefront_env_sources: >-
+      {{ storefront_env_sources | default({})
+         | combine({item.key: item.key if item.key in vault_storefront_env else item.value.branch | default(item.key)}) }}
+  loop: "{{ server_frontend_sites | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: item.key in vault_storefront_env | default({}) or item.value.branch | default(item.key) in vault_storefront_env | default({})
+
+- name: Write the storefront configurations
+  ansible.builtin.copy:
+    dest: "{{ server_frontend_sites[item.key].directory }}/.env.storefront"
+    content: "{{ vault_storefront_env[item.value] }}"
+    owner: root
+    group: "{{ server_app_user }}"
+    mode: "0640"
+    backup: true
+  loop: "{{ storefront_env_sources | default({}) | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  register: storefront_env_files
+  no_log: true
+  diff: false
 
 - name: Find the storefront configurations
   ansible.builtin.stat:
@@ -106,3 +141,184 @@
     group: docker
     mode: "0750"
     validate: /bin/sh -n %s
+
+# The XML feeds read their templates from the directory, which the container mounts. A storefront without any gets
+# them from its branch; templates already there are kept, they may be edited on the server.
+- name: Find the feed templates
+  ansible.builtin.find:
+    paths: "{{ item.value.directory }}/templates/xml"
+    patterns: "*.ejs"
+  loop: "{{ server_frontend_sites | dict2items | selectattr('value.feeds', 'defined') | selectattr('value.feeds') | list }}"
+  loop_control:
+    label: "{{ item.key }}"
+  register: feed_templates
+
+- name: Copy the feed templates of the branch
+  ansible.builtin.shell:
+    cmd: |
+      set -e
+      tmp=$(mktemp -d)
+      trap 'rm -rf "$tmp"' EXIT
+      git clone -q --depth 1 --filter=blob:none --sparse --branch "$BRANCH" "$REPOSITORY" "$tmp"
+      git -C "$tmp" sparse-checkout set templates/xml
+      install -d -o "$OWNER" -g www-data -m 0755 "$DIR/templates" "$DIR/templates/xml"
+      for f in "$tmp"/templates/xml/*.ejs; do
+        [ -e "$f" ] || continue
+        [ -e "$DIR/templates/xml/${f##*/}" ] || install -o "$OWNER" -g www-data -m 0644 "$f" "$DIR/templates/xml/"
+      done
+  environment:
+    REPOSITORY: "{{ server_git_repository }}"
+    BRANCH: "{{ item.item.value.branch | default(item.item.key) }}"
+    DIR: "{{ item.item.value.directory }}"
+    OWNER: "{{ server_www_owner }}"
+  loop: "{{ feed_templates.results | selectattr('matched', 'defined') | selectattr('matched', 'eq', 0) | list }}"
+  loop_control:
+    label: "{{ item.item.key }}"
+  when: server_git_repository | length > 0
+  changed_when: true
+
+- name: Find the storefront containers
+  ansible.builtin.command:
+    argv: [docker, inspect, --type, container, "nextjs-{{ item.key }}"]
+  loop: "{{ server_frontend_sites | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  register: storefront_containers
+  changed_when: false
+  failed_when: storefront_containers.rc not in [0, 1]
+  check_mode: false
+
+# Compose doesn't notice a changed configuration, and docker restart may keep the old file
+- name: Recreate the storefronts whose configuration changed
+  ansible.builtin.command:
+    cmd: /usr/local/bin/deploy-frontend
+  environment:
+    SSH_ORIGINAL_COMMAND: "{{ item.item.key }} {{ (item.stdout | from_json)[0].Config.Image.split(':') | last }}"
+    STOREFRONT_RECREATE: "1"
+  loop: >-
+    {{ storefront_containers.results | selectattr('rc', 'eq', 0)
+       | selectattr('item.key', 'in', storefront_env_files.results | default([]) | select('changed')
+                                      | map(attribute='item.key') | list)
+       | list }}
+  loop_control:
+    label: "{{ item.item.key }}"
+  register: storefront_recreated
+  failed_when: false
+  changed_when: storefront_recreated.rc == 0
+  become: true
+  become_user: deploy
+
+# The first start of a storefront, the way GitHub Actions deploys it: an image tag of server_frontend_tags, or the one
+# storefront-first-tag.py chooses. A storefront that doesn't start is named in the summary, and the rest of the server
+# is set up anyway.
+- name: Choose the images of new storefronts
+  ansible.builtin.script:
+    cmd: >-
+      storefront-first-tag.py {{ server_frontend_registry | quote }} {{ server_github_repository | quote }}
+      {{ item.item.value.branch | default(item.item.key) | quote }}
+      {{ 'latest' if item.item.value.latest | default(false) else 'production' }}
+    executable: python3
+  loop: >-
+    {{ storefront_containers.results | selectattr('rc', 'eq', 1)
+       | rejectattr('item.key', 'in', server_frontend_tags) | list }}
+  loop_control:
+    label: "{{ item.item.key }}"
+  register: storefront_tags
+  failed_when: false
+  changed_when: false
+  become: true
+  become_user: deploy
+
+- name: List the images of new storefronts
+  ansible.builtin.set_fact:
+    storefront_starts: >-
+      {{ storefront_starts | default([])
+         + [{'name': item.item.key, 'tag': server_frontend_tags[item.item.key]}] }}
+  loop: >-
+    {{ storefront_containers.results | selectattr('rc', 'eq', 1)
+       | selectattr('item.key', 'in', server_frontend_tags) | list }}
+  loop_control:
+    label: "{{ item.item.key }}"
+
+- name: List the chosen images of new storefronts
+  ansible.builtin.set_fact:
+    storefront_starts: >-
+      {{ storefront_starts | default([])
+         + [{'name': item.item.item.key, 'tag': item.stdout.split() | first, 'source': item.stdout.split() | last}] }}
+  loop: "{{ storefront_tags.results | default([]) | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0) | list }}"
+  loop_control:
+    label: "{{ item.item.item.key }}"
+
+- name: Start new storefronts
+  ansible.builtin.command:
+    cmd: /usr/local/bin/deploy-frontend
+  environment:
+    SSH_ORIGINAL_COMMAND: "{{ item.name }} {{ item.tag }}"
+  loop: "{{ storefront_starts | default([]) }}"
+  loop_control:
+    label: "{{ item.name }} {{ item.tag }}"
+  register: storefront_started
+  failed_when: false
+  changed_when: storefront_started.rc == 0
+  become: true
+  become_user: deploy
+
+- name: Remember what the storefronts need
+  ansible.builtin.set_fact:
+    rollout_storefront_problems: >-
+      {{ (storefront_tags.results | default([]) | selectattr('rc', 'defined') | rejectattr('rc', 'eq', 0)
+          | map(attribute='item.item.key') | map('regex_replace', '$', ': no image found to start, see its task above')
+          | list)
+         + (storefront_started.results | default([]) | selectattr('rc', 'defined') | rejectattr('rc', 'eq', 0)
+            | map(attribute='item.name') | map('regex_replace', '$', ': its first start failed, see its task above')
+            | list)
+         + (storefront_recreated.results | default([]) | selectattr('rc', 'defined') | rejectattr('rc', 'eq', 0)
+            | map(attribute='item.item.key')
+            | map('regex_replace', '$', ': not recreated after its configuration changed, see its task above')
+            | list) }}
+    # Production storefronts that started the latest build, because Run workflow never deployed one
+    rollout_storefronts_latest: >-
+      {{ storefront_starts | default([]) | selectattr('source', 'defined') | selectattr('source', 'eq', 'latest')
+         | rejectattr('name', 'in', server_frontend_sites | dict2items | selectattr('value.latest', 'defined')
+                                    | map(attribute='key') | list)
+         | map(attribute='name') | list }}
+
+# Once every image can be pulled without a login, the deploy account keeps none, so no token sits on the server
+- name: Check which storefront images need a login
+  ansible.builtin.command:
+    argv: [docker, manifest, inspect, "{{ server_frontend_registry }}/{{ item }}:latest"]
+  environment:
+    DOCKER_CONFIG: /nonexistent
+  loop: >-
+    {{ (server_frontend_sites | dict2items | selectattr('value.branch', 'defined') | map(attribute='value.branch') | list
+        + server_frontend_sites | dict2items | rejectattr('value.branch', 'defined') | map(attribute='key') | list)
+       | unique }}
+  register: storefront_image_access
+  # A network hiccup must not count as a private image
+  until: storefront_image_access.rc == 0
+  retries: 3
+  delay: 10
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Remember the private storefront images
+  ansible.builtin.set_fact:
+    rollout_private_images: "{{ storefront_image_access.results | rejectattr('rc', 'eq', 0) | map(attribute='item') | list }}"
+
+- name: Find the registry login of the deploy account
+  ansible.builtin.slurp:
+    src: /home/deploy/.docker/config.json
+  register: deploy_docker_config
+  failed_when: false
+
+- name: Log the deploy account out of the registry
+  ansible.builtin.command:
+    argv: [docker, logout, "{{ server_frontend_registry.split('/') | first }}"]
+  become: true
+  become_user: deploy
+  changed_when: true
+  when:
+    - rollout_private_images | length == 0
+    - deploy_docker_config.content is defined
+    - (server_frontend_registry.split('/') | first) in (deploy_docker_config.content | b64decode | from_json).get('auths', {})

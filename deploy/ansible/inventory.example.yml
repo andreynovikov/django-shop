@@ -1,11 +1,14 @@
-# Copy to inventory.yml and fill in, see README.md.
+# Copy to inventory.yml and fill in, see README.md. It is not secret, but private: keep it in the password manager
+# with secrets.yml and the vault password, not in git.
 all:
   children:
     production:
       hosts:
+        # The server's name or address. setup-server.sh, run on the server itself, doesn't use it.
         server.example.ru:
       vars:
-        # Keys and password hashes (openssl passwd -6) of the users, the password is set only on creation.
+        # Keys and password hashes (openssl passwd -6) of the users, the password is set only on creation. root
+        # can't log in over ssh after the first run, so whoever sets up the server needs a key here.
         server_users:
           - name: andrey
             groups: [adm, docker, sudo, www-data]
@@ -14,14 +17,30 @@ all:
               - ssh-ed25519 AAAA... andrey
           - name: nikolays
             groups: [adm, sudo, www-data]
+            password: '$6$...'
+            ssh_keys:
+              - ssh-ed25519 AAAA... nikolays
           - name: maria
             groups: [www-data]
           - name: egor
             groups: [www-data]
+        # The repository the backend is cloned from, and the registry of the storefront images
+        server_git_repository: https://github.com/andreynovikov/django-shop.git
+        server_frontend_registry: ghcr.io/andreynovikov
+        # The public key whose private half is the SSH_PRIVATE_KEY secret of the GitHub repository, so that GitHub
+        # deploys to a new server too. export-secrets.sh prints it. Without it, the deploy account gets a new key.
+        # server_deploy_ssh_public_key: ssh-ed25519 AAAA...
+        # The other names of each certificate besides its first, export-secrets.sh prints them. A name added here
+        # is added to the certificate on the next run.
+        server_certificate_aliases:
+          www.sewing-world.ru: [sewing-world.ru]
+          janome.club: [www.janome.club]
+        # server_certbot_email: admin@sewing-world.ru
+        # The image tag of a storefront's first start, by deployment name, instead of the one production runs
+        # server_frontend_tags: { janome: 2026.11.26-0de72de }
         # sshd lets in only the users above and these. Add the user of the DEPLOY_USER secret if it is another one.
         # server_ssh_extra_users: [deploy]
-        # After the deployment and its .env are in place:
-        # server_db_backup_deployments: [www.sewing-world.ru]
+        server_db_backup_deployments: [www.sewing-world.ru]
         # Where the hosting's firewall filters the traffic. It must allow what server_firewall_* of
         # roles/server/defaults/main.yml allow.
         # server_firewall: false

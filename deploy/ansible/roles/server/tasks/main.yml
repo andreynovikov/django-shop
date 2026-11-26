@@ -1,4 +1,6 @@
 # Sections of deploy/README.md. "PostgreSql setup" is skipped, the database runs on a separate server.
+# Each section creates what the later ones need, so a run on a clean server sets it up completely: the backend before
+# its services, the storefronts before nginx, whose sites wait for their certificates.
 - name: Server setup
   ansible.builtin.import_tasks: server.yml
   tags: server
@@ -12,22 +14,28 @@
   when: server_firewall
   tags: firewall
 
-- name: Nginx setup
-  ansible.builtin.import_tasks: nginx.yml
-  tags: nginx
-
-- name: TLS certificates
-  ansible.builtin.import_tasks: certbot.yml
-  tags: certbot
-
 - name: Docker setup
   ansible.builtin.import_tasks: docker.yml
   tags: docker
 
+- name: Web root setup
+  ansible.builtin.import_tasks: www.yml
+  tags: [www, backend, deployment]
+
+# The backend sites of the vault: cloned, configured and given a venv on the first rollout
+- name: Backend checkout
+  ansible.builtin.import_tasks: backend.yml
+  tags: backend
+
 # uwsgi.yml and celery.yml need to know which sites are deployed
 - name: Environment setup
   ansible.builtin.import_tasks: sites.yml
-  tags: [sites, uwsgi, celery]
+  tags: [sites, uwsgi, celery, backend]
+
+# Needs the directories of sites.yml
+- name: Backend first start
+  ansible.builtin.import_tasks: backend_init.yml
+  tags: backend
 
 - name: UWSGI setup
   ansible.builtin.import_tasks: uwsgi.yml
@@ -37,20 +45,31 @@
   ansible.builtin.import_tasks: celery.yml
   tags: celery
 
-- name: Web root setup
-  ansible.builtin.import_tasks: www.yml
-  tags: [www, deployment]
-
 - name: Deployment setup
   ansible.builtin.import_tasks: deployment.yml
   tags: deployment
 
-# Only with a backup host in the inventory, which the repository password is copied from
+- name: Nginx setup
+  ansible.builtin.import_tasks: nginx.yml
+  tags: nginx
+
+- name: TLS certificates
+  ansible.builtin.import_tasks: certbot.yml
+  tags: certbot
+
+# With the repository password in the vault, or a backup host to copy it from. A run on the server itself can't log
+# in to the backup host.
 - name: Database backups
   ansible.builtin.import_tasks: backup.yml
-  when: server_backup_password_host | length > 0
+  when: >-
+    vault_restic_password is defined
+    or (server_backup_password_host | length > 0 and ansible_connection != 'local')
   tags: backup
 
 - name: Log rotation
   ansible.builtin.import_tasks: logrotate.yml
   tags: logrotate
+
+- name: Summary
+  ansible.builtin.import_tasks: summary.yml
+  tags: always

@@ -12,11 +12,12 @@ server_packages:
   - redis-server
   - certbot
   - git
-  # not listed in deploy/README.md: the uv installer download with curl, Ansible needs acl to become
-  # an unprivileged user, and timesyncd is not installed everywhere
+  # the uv installer download with curl, Ansible needs acl to become an unprivileged user, timesyncd and hwclock
+  # (util-linux-extra, for setting the timezone) are not installed everywhere
   - curl
   - acl
   - systemd-timesyncd
+  - util-linux-extra
 
 # for building Python packages
 server_build_packages:
@@ -56,14 +57,30 @@ server_users:
 # The system user for uWSGI, Celery, backups and storefronts, see "Service user" in deploy/README.md
 server_app_user: sworld
 
-# Deployment names and directories. The source branch defaults to the deployment name.
+# Deployment names and directories. The source branch defaults to the deployment name. feeds: the branch has XML feed
+# templates in templates/xml, which the first rollout copies into the directory. latest: the first rollout starts the
+# latest build, where the others start the image that Run workflow deployed last.
 server_frontend_sites:
-  sworld: { directory: /www/www.sewing-world.ru, port: 4104 }
-  stage: { directory: /www/cartzilla.sigalev.ru, port: 4004, branch: sworld }
+  sworld: { directory: /www/www.sewing-world.ru, port: 4104, feeds: true }
+  stage: { directory: /www/cartzilla.sigalev.ru, port: 4004, branch: sworld, feeds: true, latest: true }
   family: { directory: /www/familysew.ru, port: 4101 }
   singer: { directory: /www/singer.ru, port: 4102 }
   janome: { directory: /www/janome.club, port: 4103 }
   dortak: { directory: /www/dor-tak.ru, port: 4105 }
+
+# The image tag of a deployment's first start, by deployment name, in place of the one chosen as above
+server_frontend_tags: {}
+
+# The repository the backend is cloned from and the registry of the storefront images. Both are set in the inventory,
+# see inventory.example.yml.
+server_git_repository: ""
+server_frontend_registry: ""
+# The repository on GitHub as owner/name, where the first start of a storefront looks up what production runs
+server_github_repository: >-
+  {{ server_git_repository | regex_replace('^.*github[.]com[:/]', '') | regex_replace('([.]git)?/?$', '')
+     if 'github.com' in server_git_repository else '' }}
+# The branch the backend sites are cloned from
+server_backend_branch: main
 
 # AllowUsers of sshd lists server_users and these. Add the user GitHub Actions deploys with if it is not one of them.
 server_ssh_extra_users: [deploy]
@@ -149,7 +166,6 @@ server_app_directories:
 server_app_secrets:
   - .env
   - .env.admin
-  - sewingworld/settings/integrations.py
 
 # Deployments in /www that back up their database hourly, one per database, and deployments that only save their
 # config daily
@@ -159,3 +175,25 @@ server_db_backup_config_deployments: []
 # The host that holds the backup repository password, the first one of the inventory group "backup". Without it the
 # "Database backups" section is skipped, so leave the group empty until the backup host is ready.
 server_backup_password_host: "{{ (groups['backup'] | default([]) | first) | default('', true) }}"
+
+# The TLS certificates of the nginx sites by name, which is the first domain of each, with the directory whose
+# .well-known/ the site serves. The other domains of a certificate, redirected to the site, are its aliases in
+# server_certificate_aliases of the inventory. A run requests a certificate an enabled site lacks, and expands one that
+# lacks an alias, see "TLS certificates" in deploy/README.md.
+server_certificates:
+  www.sewing-world.ru: /www/www.sewing-world.ru
+  admin.sewing-world.ru: /www/www.sewing-world.ru
+  api.sewing-world.ru: /www/www.sewing-world.ru
+  stage.sewing-world.ru: /www/cartzilla.sigalev.ru
+  janome.club: /www/janome.club
+  singer.ru: /www/singer.ru
+  dor-tak.ru: /www/dor-tak.ru
+  familysew.ru: /www/familysew.ru
+  dev.sigalev.ru: /www/dev.sigalev.ru
+server_certificate_aliases: {}
+# Let's Encrypt's account email, optional
+server_certbot_email: ""
+# Tests point these at a local ACME server. Never on a real server: the certificates it issues would count as present
+# and stay.
+server_certbot_server: https://acme-v02.api.letsencrypt.org/directory
+server_certbot_extra_args: []

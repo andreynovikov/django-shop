@@ -22,9 +22,13 @@ esac
 STOREFRONT_UID=$(id -u {{ server_app_user | quote }})
 STOREFRONT_GID=$(id -g {{ server_app_user | quote }})
 export STOREFRONT_UID STOREFRONT_GID
-ref=ghcr.io/andreynovikov/$branch:$tag
+ref={{ server_frontend_registry | quote }}/$branch:$tag
 docker pull "$ref" || { echo "No image $ref: has the build of this commit finished?" >&2; exit 1; }
+# Ansible sets STOREFRONT_RECREATE=1 after it changed the configuration, which Compose doesn't notice by itself. An ssh
+# client can't set it: sshd passes on only the variables of AcceptEnv (LANG and LC_* on Debian).
+recreate=
+[ "${STOREFRONT_RECREATE-}" != 1 ] || recreate=--force-recreate
 # Resolve bind mounts in the storefront directory and ignore any .env file there.
 NAME=$name PORT=$port IMAGE=$ref STOREFRONT_BRANCH=$branch \
   docker compose --env-file /dev/null -f /etc/sworld/storefront-compose.yaml --project-directory "$dir" \
-  up -d --no-build --pull never
+  up -d --no-build --pull never $recreate

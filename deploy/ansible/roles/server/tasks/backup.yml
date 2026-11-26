@@ -1,5 +1,6 @@
-# "Production server" in "Database backups". RESTIC_* settings go into the .env of the deployment by hand.
-# main.yml skips this file without a backup host in the inventory.
+# "Production server" in "Database backups". The RESTIC_* settings are in the deployment's .env. The repository
+# password is vault_restic_password of secrets.yml, or copied from the backup host; main.yml skips this file without
+# either.
 - name: Install restic
   ansible.builtin.apt:
     name: restic
@@ -13,17 +14,20 @@
 - name: Read the repository password on the backup host
   ansible.builtin.slurp:
     src: /etc/db-backup/restic-password
-  delegate_to: "{{ server_backup_password_host }}"
+  # Ansible resolves the host even when the condition skips the task
+  delegate_to: "{{ server_backup_password_host or inventory_hostname }}"
   register: restic_password
+  when: vault_restic_password is not defined
   no_log: true
 
 - name: Copy the repository password
   ansible.builtin.copy:
     dest: /etc/db-backup/restic-password
-    content: "{{ restic_password.content | b64decode }}"
+    content: "{{ (vault_restic_password | trim) ~ '\n' if vault_restic_password is defined else restic_password.content | b64decode }}"
     owner: "{{ server_app_user }}"
     mode: "0400"
   no_log: true
+  diff: false
 
 - name: Install backup units
   ansible.builtin.template:

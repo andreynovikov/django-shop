@@ -40,6 +40,21 @@
     name: "{{ server_docker_packages }}"
     update_cache: "{{ docker_repository is changed }}"
 
+# "Service user": no password, shell, home or sudo. Before the other users, which may be in its group.
+- name: Create the service user's group
+  ansible.builtin.group:
+    name: "{{ server_app_user }}"
+    system: true
+
+- name: Create the service user
+  ansible.builtin.user:
+    name: "{{ server_app_user }}"
+    group: "{{ server_app_user }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: /nonexistent
+    create_home: false
+
 - name: Create users
   ansible.builtin.user:
     name: "{{ item.name }}"
@@ -60,20 +75,37 @@
   loop_control:
     label: "{{ item.0.name }}"
 
-# "Service user": no password, shell, home or sudo
-- name: Create the service user's group
-  ansible.builtin.group:
-    name: "{{ server_app_user }}"
-    system: true
+# vault_ssh_host_keys of secrets.yml, by type (ed25519, ecdsa, rsa): a new server keeps the old one's identity, so ssh
+# clients and the DEPLOY_HOST_KEY secret of GitHub keep trusting it
+- name: Check the ssh host key types
+  ansible.builtin.assert:
+    that: vault_ssh_host_keys | default({}) | difference(['ed25519', 'ecdsa', 'rsa']) | length == 0
+    fail_msg: vault_ssh_host_keys takes ed25519, ecdsa and rsa keys
+    quiet: true
 
-- name: Create the service user
-  ansible.builtin.user:
-    name: "{{ server_app_user }}"
-    group: "{{ server_app_user }}"
-    system: true
-    shell: /usr/sbin/nologin
-    home: /nonexistent
-    create_home: false
+- name: Install the ssh host keys
+  ansible.builtin.copy:
+    dest: /etc/ssh/ssh_host_{{ item.key }}_key
+    content: "{{ item.value }}"
+    owner: root
+    group: root
+    mode: "0600"
+    backup: true
+  loop: "{{ vault_ssh_host_keys | default({}) | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  register: ssh_host_keys
+  no_log: true
+  diff: false
+  notify: Reload ssh
+
+- name: Derive the public ssh host keys
+  ansible.builtin.shell:
+    cmd: ssh-keygen -y -f /etc/ssh/ssh_host_{{ item.item.key }}_key > /etc/ssh/ssh_host_{{ item.item.key }}_key.pub
+  loop: "{{ ssh_host_keys.results | select('changed') | list }}"
+  loop_control:
+    label: "{{ item.item.key }}"
+  changed_when: true
 
 # The name sorts before 50-cloud-init.conf, whose PasswordAuthentication yes would win otherwise
 - name: Configure ssh

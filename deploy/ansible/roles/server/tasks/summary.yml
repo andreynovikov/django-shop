@@ -1,0 +1,40 @@
+# What the run couldn't finish, in one message at the end, for whoever runs it. Each section leaves its rollout_* facts,
+# and a run limited with --tags reports only on the sections it ran.
+- name: Summary
+  ansible.builtin.debug:
+    msg: "{{ notes if notes else ['The server is set up, nothing is left to do.'] }}"
+  vars:
+    backups_skipped: >-
+      {{ server_db_backup_deployments | length > 0 and vault_restic_password is not defined
+         and (server_backup_password_host | length == 0 or ansible_connection == 'local') }}
+    notes: >-
+      {{ (rollout_certificates_waiting | default([])
+          | map('regex_replace', '^', 'Certificate ') | map('regex_replace', '$', ' is missing, its sites are off')
+          | list)
+         + (['These names do not reach this server yet, so their certificates were not requested: '
+             ~ rollout_unreachable_names | join(', ')
+             ~ '. Point their DNS at this server, then run the same command again.']
+            if rollout_unreachable_names | default([]) else [])
+         + (rollout_certificate_failures | default([])
+            | map('regex_replace', '^', 'certbot failed for ') | map('regex_replace', '$', ', see its task above')
+            | list)
+         + (rollout_certificates_unexpanded | default([])
+            | map('regex_replace', '^', 'Certificate ')
+            | map('regex_replace', '$', ' still lacks names of server_certificate_aliases') | list)
+         + (rollout_certificates_extra | default([])
+            | map('regex_replace', '^', 'Certificate ')
+            | map('regex_replace', '$', ' has names that server_certificate_aliases does not list; they are kept')
+            | list)
+         + (rollout_storefront_problems | default([]) | map('regex_replace', '^', 'Storefront ') | list)
+         + (rollout_storefronts_latest | default([])
+            | map('regex_replace', '^', 'Storefront ')
+            | map('regex_replace', '$', ' started its latest build: no Run workflow has deployed it yet') | list)
+         + (['These images could not be read without a registry login: ' ~ rollout_private_images | join(', ')
+             ~ '. The deploy account keeps its login until they can.']
+            if rollout_private_images | default([]) else [])
+         + (['Backups are not set up: put the repository password into vault_restic_password of secrets.yml.']
+            if backups_skipped else [])
+         + (['New backend sites ' ~ backend_new_sites | join(', ')
+             ~ ' have no uploaded files yet: copy media/ from the old server, see "Quick setup with Ansible"'
+             ~ ' in deploy/README.md.']
+            if backend_new_sites | default([]) else []) }}

@@ -50,13 +50,15 @@
     label: "{{ item.name }}"
   register: uwsgi_sockets
 
-# A running app is restarted when its configuration changed, or when it has just got its socket unit: until then it
-# accepts on a socket it bound itself.
+# A running app is restarted when its configuration or its site's secrets changed, or when it has just got its socket
+# unit: until then it accepts on a socket it bound itself.
 - name: Start uWSGI apps
   ansible.builtin.systemd_service:
     name: uwsgi@{{ item.item.name }}.service
     enabled: true
-    state: "{{ 'restarted' if item is changed or uwsgi_units is changed or item.item.name in changed_configs else 'started' }}"
+    state: >-
+      {{ 'restarted' if item is changed or uwsgi_units is changed or item.item.name in changed_configs
+         or item.item.site in backend_changed_sites | default([]) else 'started' }}
     daemon_reload: true
   loop: "{{ uwsgi_sockets.results }}"
   loop_control:

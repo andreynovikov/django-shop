@@ -19,6 +19,19 @@
     backup: true
   notify: Reload nginx
 
+# Read on every request, so nothing reloads
+- name: Install the basic auth passwords
+  ansible.builtin.copy:
+    dest: "{{ server_nginx_directory }}/htpasswd"
+    content: "{{ vault_nginx_htpasswd }}"
+    owner: root
+    group: www-data
+    mode: "0640"
+    backup: true
+  when: vault_nginx_htpasswd is defined
+  no_log: true
+  diff: false
+
 - name: Disable nginx sites
   ansible.builtin.file:
     path: "{{ server_nginx_directory }}/sites-enabled/{{ item }}"
@@ -33,17 +46,9 @@
   loop: "{{ server_nginx_sites_removed }}"
   notify: Reload nginx
 
-- name: Enable nginx sites
-  ansible.builtin.file:
-    src: "{{ server_nginx_directory }}/sites-available/{{ item }}"
-    dest: "{{ server_nginx_directory }}/sites-enabled/{{ item }}"
-    state: link
-    # In check mode the preceding copy only predicts creation of a new source file.
-    force: "{{ ansible_check_mode }}"
-    owner: root
-    group: root
-  loop: "{{ server_nginx_sites_enabled }}"
-  notify: Reload nginx
+# Each enabled site waits for the certificates its file names, nginx doesn't start without them
+- name: Enable the sites and get their certificates
+  ansible.builtin.import_tasks: certificates.yml
 
 # Site fragments cannot be checked alone: upstreams, maps and snippets are shared.
 - name: Validate the complete nginx configuration
@@ -55,3 +60,7 @@
       - "{{ server_nginx_directory }}/nginx.conf"
   changed_when: false
   when: not ansible_check_mode
+
+# The sites are served from here on, not only at the end of the run
+- name: Apply the nginx configuration
+  ansible.builtin.meta: flush_handlers

@@ -17,7 +17,7 @@ DB_BACKUP = {
     'PG_DUMP': 'pg_dump',
     'RESTIC': 'restic',
     # Files with secrets saved with every full dump or by --kind config, relative to BASE_DIR. Missing ones are skipped.
-    'CONFIG_FILES': ['.env', '.env.admin', 'sewingworld/settings/integrations.py'],
+    'CONFIG_FILES': ['.env', '.env.admin'],
     # restic --host of config snapshots, the project directory name by default, so that each deployment has its own.
     'CONFIG_HOST': None,
 }

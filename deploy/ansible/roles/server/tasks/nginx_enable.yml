@@ -1,0 +1,23 @@
+# Enables the sites of server_nginx_sites_enabled whose certificates are all present, see certificates.yml
+- name: Find the present certificates
+  ansible.builtin.stat:
+    path: /etc/letsencrypt/live/{{ item }}/fullchain.pem
+  loop: "{{ nginx_certificates }}"
+  register: nginx_certificate_files
+
+- name: Remember the present certificates
+  ansible.builtin.set_fact:
+    nginx_present_certificates: "{{ nginx_certificate_files.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+
+- name: Enable nginx sites
+  ansible.builtin.file:
+    src: "{{ server_nginx_directory }}/sites-available/{{ item }}"
+    dest: "{{ server_nginx_directory }}/sites-enabled/{{ item }}"
+    state: link
+    # In check mode the preceding copy only predicts creation of a new source file.
+    force: "{{ ansible_check_mode }}"
+    owner: root
+    group: root
+  loop: "{{ server_nginx_sites_enabled }}"
+  when: nginx_site_certificates[item] | difference(nginx_present_certificates) | length == 0
+  notify: Reload nginx

@@ -281,7 +281,7 @@ def extra_paths():
         '/sber/order/new': {'post': {
             'operationId': 'sber_order_new', 'tags': ['webhooks'],
             'description': 'SberMegaMarket new order notification. Basic auth with the marketplace credentials of '
-                           '`SBER_MARKET` in integrations.py.',
+                           '`SBER_MARKET_AUTH_USER` and `SBER_MARKET_AUTH_PASSWORD` in .env.',
             'security': [{'sberAuth': []}],
             'requestBody': {'content': {'application/json': {'schema': {'type': 'object'}}}},
             'responses': {'200': text('Accepted'), '401': text('Wrong credentials')},

@@ -1,0 +1,41 @@
+# Sets the ENV_FILE secret of each storefront's GitHub environment from vault_storefront_env of secrets.yml, so that
+# the builds use what the server has. See "Secrets" in README.md. Needs gh, signed in with access to the repository:
+#
+#   ansible-playbook -i inventory.yml github-env.yml -J
+#
+# A deployment named after its branch has the environment of that name; stage has none.
+- name: Set the ENV_FILE of the storefronts' GitHub environments
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - roles/server/defaults/main.yml
+    - group_vars/production/secrets.yml
+  vars:
+    production: "{{ groups['production'] | first }}"
+    git_repository: "{{ hostvars[production].server_git_repository | default('') }}"
+    # server_github_repository of the role's defaults, from the inventory's settings
+    repository: >-
+      {{ hostvars[production].server_github_repository
+         | default(git_repository | regex_replace('^.*github[.]com[:/]', '') | regex_replace('([.]git)?/?$', '')
+                   if 'github.com' in git_repository else '') }}
+  tasks:
+    - name: Check the repository setting
+      ansible.builtin.assert:
+        that: repository | length > 0
+        fail_msg: Set server_git_repository of production in inventory.yml to the GitHub repository
+        quiet: true
+
+    - name: Set ENV_FILE
+      ansible.builtin.command:
+        argv: [gh, secret, set, ENV_FILE, --env, "{{ item.key }}", --repo, "{{ repository }}"]
+        stdin: "{{ item.value }}"
+        stdin_add_newline: false
+      loop: >-
+        {{ vault_storefront_env | dict2items
+           | selectattr('key', 'in', server_frontend_sites | dict2items | rejectattr('value.branch', 'defined')
+                                     | map(attribute='key') | list)
+           | list }}
+      loop_control:
+        label: "{{ item.key }}"
+      no_log: true

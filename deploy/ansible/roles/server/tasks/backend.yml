@@ -1,0 +1,103 @@
+# "Environment setup": the backend sites with secret files in the vault (vault_backend_files of secrets.yml). A site
+# without a commit is cloned and gets its venv, which is all a first rollout needs before sites.yml and
+# backend_init.yml. Later runs leave the code and the venv to the manual updates of deploy/README.md, and only keep
+# the secret files the same as the vault's.
+- name: List the backend sites
+  ansible.builtin.set_fact:
+    backend_sites: "{{ (vault_backend_files | default({})).keys() | list }}"
+
+- name: Check the repository setting
+  ansible.builtin.assert:
+    that: server_git_repository | length > 0
+    fail_msg: Set server_git_repository in inventory.yml, see inventory.example.yml
+    quiet: true
+  when: backend_sites | length > 0
+
+- name: Create missing backend site directories
+  ansible.builtin.command:
+    argv: [install, -d, -o, "{{ server_www_owner }}", -g, www-data, -m, "0755", --, "/www/{{ item }}"]
+    creates: /www/{{ item }}
+  loop: "{{ backend_sites }}"
+
+# As root, which git trusts in a checkout of any owner. 0: a commit, 1: none yet, 128: not a repository.
+- name: Check which backend sites have a commit
+  ansible.builtin.command:
+    argv: [git, -c, safe.directory=*, -C, "/www/{{ item }}", rev-parse, --verify, --quiet, HEAD]
+  loop: "{{ backend_sites }}"
+  register: backend_heads
+  changed_when: false
+  failed_when: backend_heads.rc not in [0, 1, 128]
+  check_mode: false
+
+# The directory may already hold a storefront's .docker/ and .env.storefront, so the checkout is made in place rather
+# than cloned. The marker tells backend_init.yml that the site is new, until its first start has succeeded.
+- name: Clone the backend
+  ansible.builtin.shell:
+    cmd: |
+      set -e
+      [ -d .git ] || git init -q -b "$BRANCH"
+      git remote get-url origin >/dev/null 2>&1 || git remote add origin "$REPOSITORY"
+      git fetch -q origin "$BRANCH"
+      git switch -q -c "$BRANCH" --track "origin/$BRANCH"
+      touch .git/ansible-first-rollout
+    chdir: /www/{{ item.item }}
+  environment:
+    REPOSITORY: "{{ server_git_repository }}"
+    BRANCH: "{{ server_backend_branch }}"
+  loop: "{{ backend_heads.results | rejectattr('rc', 'eq', 0) | list }}"
+  loop_control:
+    label: "{{ item.item }}"
+  become: true
+  become_user: "{{ server_www_owner }}"
+  changed_when: true
+
+- name: List the backend secret files
+  ansible.builtin.set_fact:  # noqa: jinja[invalid] item is a dict2items entry
+    backend_secret_files: >-
+      {{ backend_secret_files | default([])
+         + (item.value | dict2items | map('combine', {'site': item.key}) | list) }}
+  loop: "{{ vault_backend_files | default({}) | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  no_log: true
+
+# The vault is their source: a file edited on the server is replaced, and the old one kept next to it
+- name: Write the backend secret files
+  ansible.builtin.copy:
+    dest: /www/{{ item.site }}/{{ item.key }}
+    content: "{{ item.value }}"
+    owner: root
+    group: "{{ server_app_user }}"
+    mode: "0640"
+    backup: true
+  loop: "{{ backend_secret_files | default([]) }}"
+  loop_control:
+    label: /www/{{ item.site }}/{{ item.key }}
+  register: backend_secret_results
+  no_log: true
+  diff: false
+
+# uwsgi.yml and celery.yml restart the services of these sites
+- name: Remember the sites whose secrets changed
+  ansible.builtin.set_fact:
+    backend_changed_sites: "{{ backend_secret_results.results | select('changed') | map(attribute='item.site') | unique | list }}"
+
+- name: Find the backend sites to set up
+  ansible.builtin.stat:
+    path: /www/{{ item }}/.git/ansible-first-rollout
+  loop: "{{ backend_sites }}"
+  register: backend_markers
+
+# uWSGI's python3 plugin runs Debian's Python, so the venv must have the same one, not a Python that uv downloads
+- name: Create the virtualenvs of new backend sites
+  ansible.builtin.command:
+    cmd: uv sync --locked --no-dev --compile-bytecode --python /usr/bin/python3
+    chdir: /www/{{ item.item }}
+  environment:
+    UV_PYTHON_DOWNLOADS: never
+  loop: "{{ backend_markers.results | selectattr('stat.exists') | list }}"
+  loop_control:
+    label: "{{ item.item }}"
+  become: true
+  become_user: "{{ server_www_owner }}"
+  changed_when: true

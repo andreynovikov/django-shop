@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+# Answers Let's Encrypt on port 80 for the certificates that enabled sites wait for. The playbook removes this file once
+# they are all present, see tasks/certificates.yml.
+{% for name in acme_certificates %}
+
+server {
+  listen 80;
+  server_name {{ ([name] + server_certificate_aliases[name] | default([])) | join(' ') }};
+
+  location /.well-known/acme-challenge/ {
+    root {{ server_certificates[name] }};
+  }
+
+  location / {
+    return 503;
+  }
+}
+{% endfor %}

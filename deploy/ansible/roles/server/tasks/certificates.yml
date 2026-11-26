@@ -1,0 +1,177 @@
+# "TLS certificates" in deploy/README.md. A site of server_nginx_sites_enabled is enabled once the certificates its file
+# names are present. The run requests a missing certificate, and expands one that lacks an alias of the inventory, but
+# only when every name of it reaches this server: before the DNS switch of a new server, its sites wait for a run
+# after it. A certificate that has all its names is never touched, and none is ever shrunk.
+- name: Find the certificates of the enabled sites
+  ansible.builtin.set_fact:
+    nginx_site_certificates: >-
+      {{ nginx_site_certificates | default({})
+         | combine({item: lookup('ansible.builtin.file', 'nginx/sites-available/' ~ item)
+                          | regex_findall('/etc/letsencrypt/live/([^/]+)/') | unique}) }}
+  loop: "{{ server_nginx_sites_enabled }}"
+
+- name: List the certificates
+  ansible.builtin.set_fact:
+    nginx_certificates: "{{ nginx_site_certificates.values() | flatten | unique }}"
+
+- name: Check that the certificates have webroots
+  ansible.builtin.assert:
+    that: nginx_certificates | difference(server_certificates.keys()) | length == 0
+    fail_msg: "Add these certificates to server_certificates: {{ nginx_certificates | difference(server_certificates.keys()) }}"
+    quiet: true
+
+- name: Enable the sites whose certificates are present
+  ansible.builtin.import_tasks: nginx_enable.yml
+
+- name: Read the names of the present certificates
+  ansible.builtin.command:
+    argv: [openssl, x509, -noout, -ext, subjectAltName, -in, "/etc/letsencrypt/live/{{ item }}/cert.pem"]
+  loop: "{{ nginx_present_certificates }}"
+  register: certificate_sans
+  changed_when: false
+  check_mode: false
+
+# A certificate's names are its own and its aliases of the inventory
+- name: Compare the certificates with the inventory
+  ansible.builtin.set_fact:
+    certificates_lacking: "{{ certificates_lacking | default([]) + ([item.item] if wanted | difference(present) else []) }}"
+    certificates_extra: "{{ certificates_extra | default([]) + ([item.item] if present | difference(wanted) else []) }}"
+    certificate_names: "{{ certificate_names | default({}) | combine({item.item: present}) }}"
+  loop: "{{ certificate_sans.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+  vars:
+    present: "{{ item.stdout | lower | regex_findall('dns:([a-z0-9.*-]+)') }}"
+    wanted: "{{ [item.item] + server_certificate_aliases[item.item] | default([]) }}"
+
+# An expanded certificate keeps the names it has: with --cert-name, certbot would drop those not requested
+- name: List the certificates to request
+  ansible.builtin.set_fact:  # noqa: jinja[invalid] ansible-lint can't render the loop's item
+    certificate_requests: >-
+      {{ certificate_requests | default([])
+         + [{'name': item,
+             'domains': ([item] + server_certificate_aliases[item] | default([])
+                         + (certificate_names | default({})).get(item, [])) | unique,
+             'expand': item in certificates_lacking | default([])}] }}
+  loop: "{{ nginx_certificates | difference(nginx_present_certificates) + certificates_lacking | default([]) }}"
+
+# Until a site has its certificate, this server answers Let's Encrypt for its names on port 80. An enabled site
+# does that itself.
+- name: Answer certificate requests for the sites that wait
+  ansible.builtin.template:
+    src: acme-bootstrap.conf.j2
+    dest: "{{ server_nginx_directory }}/sites-enabled/acme-bootstrap.conf"
+    mode: "0644"
+  vars:
+    acme_certificates: "{{ nginx_certificates | difference(nginx_present_certificates) }}"
+  when: acme_certificates | length > 0
+  notify: Reload nginx
+
+- name: Apply the nginx configuration before the requests
+  ansible.builtin.meta: flush_handlers
+
+- name: Create a probe that the names reach this server
+  ansible.builtin.set_fact:
+    certificate_probe: "ansible-probe-{{ lookup('ansible.builtin.password', '/dev/null', length=24, chars=['ascii_lowercase', 'digits']) }}"
+  when: certificate_requests | default([]) | length > 0
+
+- name: Create the challenge directories
+  ansible.builtin.file:
+    path: "{{ item }}/.well-known/acme-challenge"
+    state: directory
+    mode: "0755"
+  loop: "{{ certificate_requests | default([]) | map(attribute='name') | map('extract', server_certificates) | unique }}"
+
+- name: Put the probe into the webroots
+  ansible.builtin.copy:
+    dest: "{{ item }}/.well-known/acme-challenge/{{ certificate_probe }}"
+    content: "{{ certificate_probe }}"
+    mode: "0644"
+  loop: "{{ certificate_requests | default([]) | map(attribute='name') | map('extract', server_certificates) | unique }}"
+  changed_when: false
+
+# The way Let's Encrypt asks, through public DNS, following redirects without checking the certificate
+- name: Check that every name reaches this server
+  ansible.builtin.uri:
+    url: http://{{ item.1 }}/.well-known/acme-challenge/{{ certificate_probe }}
+    return_content: true
+    follow_redirects: all
+    validate_certs: false
+    timeout: 20
+  loop: "{{ certificate_requests | default([]) | subelements('domains') }}"
+  loop_control:
+    label: "{{ item.1 }}"
+  register: certificate_probes
+  failed_when: false
+
+- name: Remove the probe
+  ansible.builtin.file:
+    path: "{{ item }}/.well-known/acme-challenge/{{ certificate_probe }}"
+    state: absent
+  loop: "{{ certificate_requests | default([]) | map(attribute='name') | map('extract', server_certificates) | unique }}"
+  changed_when: false
+
+- name: Remember the names that don't reach this server
+  ansible.builtin.set_fact:
+    certificate_unreachable: >-
+      {{ certificate_probes.results | default([]) | rejectattr('skipped', 'defined')
+         | rejectattr('content', 'defined') | map(attribute='item') | list
+         + certificate_probes.results | default([]) | rejectattr('skipped', 'defined') | selectattr('content', 'defined')
+           | rejectattr('content', 'eq', certificate_probe | default('')) | map(attribute='item') | list }}
+
+- name: Request the certificates
+  ansible.builtin.command:
+    argv: >-
+      {{ ['certbot', 'certonly', '--non-interactive', '--agree-tos', '--keep-until-expiring',
+          '--server', server_certbot_server, '--webroot', '--webroot-path', server_certificates[item.name],
+          '--cert-name', item.name, '--domains', item.domains | join(',')]
+         + (['--expand'] if item.expand else [])
+         + (['--email', server_certbot_email] if server_certbot_email | length > 0
+            else ['--register-unsafely-without-email'])
+         + server_certbot_extra_args }}
+  loop: >-
+    {{ certificate_requests | default([])
+       | rejectattr('name', 'in', certificate_unreachable | map(attribute='0.name') | list) | list }}
+  loop_control:
+    label: "{{ item.name }}"
+  register: certificate_results
+  failed_when: false
+  changed_when: certificate_results.rc == 0
+  # For an expanded certificate. certbot's own deploy hook of certbot.yml does that too, but may not be installed yet.
+  notify: Reload nginx
+
+- name: Enable the sites whose certificates came
+  ansible.builtin.import_tasks: nginx_enable.yml
+
+- name: Answer certificate requests for the sites that still wait
+  ansible.builtin.template:
+    src: acme-bootstrap.conf.j2
+    dest: "{{ server_nginx_directory }}/sites-enabled/acme-bootstrap.conf"
+    mode: "0644"
+  vars:
+    acme_certificates: "{{ nginx_certificates | difference(nginx_present_certificates) }}"
+  when: acme_certificates | length > 0
+  notify: Reload nginx
+
+- name: Stop answering certificate requests
+  ansible.builtin.file:
+    path: "{{ server_nginx_directory }}/sites-enabled/acme-bootstrap.conf"
+    state: absent
+  when: nginx_certificates | difference(nginx_present_certificates) | length == 0
+  notify: Reload nginx
+
+- name: Remember what the certificates need
+  ansible.builtin.set_fact:
+    rollout_certificates_waiting: >-
+      {{ nginx_certificates | difference(nginx_present_certificates)
+         | list }}
+    rollout_certificates_unexpanded: >-
+      {{ certificates_lacking | default([])
+         | reject('in', certificate_results.results | default([]) | selectattr('rc', 'defined')
+                        | selectattr('rc', 'eq', 0) | map(attribute='item.name') | list)
+         | list }}
+    rollout_certificate_failures: >-
+      {{ certificate_results.results | default([]) | selectattr('rc', 'defined') | rejectattr('rc', 'eq', 0)
+         | map(attribute='item.name') | list }}
+    rollout_unreachable_names: "{{ certificate_unreachable | map(attribute='1') | unique | list }}"
+    rollout_certificates_extra: "{{ certificates_extra | default([]) }}"

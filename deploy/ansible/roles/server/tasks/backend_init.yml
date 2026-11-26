@@ -1,0 +1,47 @@
+# The first start of a backend site cloned by backend.yml, the steps of "Environment setup" in deploy/README.md. It
+# needs the logs/ and static/ that sites.yml gives the service user. The marker goes last, so a failed run does it
+# again.
+- name: Find the new backend sites
+  ansible.builtin.stat:
+    path: /www/{{ item }}/.git/ansible-first-rollout
+  loop: "{{ backend_sites | default([]) }}"
+  register: backend_new
+
+- name: Remember the new backend sites
+  ansible.builtin.set_fact:
+    backend_new_sites: "{{ backend_new.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+
+# Only root and the service user read the secrets, so manage.py runs as that user
+- name: Migrate the databases of new backend sites
+  ansible.builtin.command:
+    cmd: .venv/bin/python manage.py migrate --noinput
+    chdir: /www/{{ item }}
+  loop: "{{ backend_new_sites }}"
+  become: true
+  become_user: "{{ server_app_user }}"
+  changed_when: true
+
+- name: Collect the static files of new backend sites
+  ansible.builtin.command:
+    cmd: .venv/bin/python manage.py collectstatic --noinput
+    chdir: /www/{{ item }}
+  loop: "{{ backend_new_sites }}"
+  become: true
+  become_user: "{{ server_app_user }}"
+  changed_when: true
+
+# The service user can't write __pycache__ into the code
+- name: Compile the code of new backend sites
+  ansible.builtin.command:
+    cmd: .venv/bin/python -m compileall -q -x '/\.venv/' .
+    chdir: /www/{{ item }}
+  loop: "{{ backend_new_sites }}"
+  become: true
+  become_user: "{{ server_www_owner }}"
+  changed_when: true
+
+- name: Mark the new backend sites as set up
+  ansible.builtin.file:
+    path: /www/{{ item }}/.git/ansible-first-rollout
+    state: absent
+  loop: "{{ backend_new_sites }}"

@@ -1,9 +1,81 @@
+# Quick setup with Ansible
+
+These steps turn a new server into a working production server: the backend with its API, admin and background tasks,
+the five storefronts, nginx with TLS certificates, backups and everything around them. You need:
+
+- A new server with Debian 13 from the hosting, and its root login.
+- From the password manager: `inventory.yml`, `secrets.yml` and the password of `secrets.yml` (the vault password).
+  Your ssh key must be in `inventory.yml`, because after the setup you log in as yourself, not as root.
+
+Two things are outside the server, ask the hosting or the domain registrar:
+
+- The database server must let the new server in: add the new server's address to its allowed addresses.
+- The sites' DNS names must point at the new server. The setup gets TLS certificates only for names that already
+  point at it. You can switch them later and run the setup again.
+
+The steps:
+
+1. On your computer, copy the two files to the server, with its address in place of `SERVER`:
+
+   ```sh
+   scp inventory.yml secrets.yml root@SERVER:
+   ```
+
+2. Log in to the server and get this repository:
+
+   ```sh
+   ssh root@SERVER
+   apt update && apt install -y git
+   git clone https://github.com/andreynovikov/django-shop.git
+   ```
+
+3. Run the setup. It asks for the vault password, then works for half an hour or so, printing each step:
+
+   ```sh
+   django-shop/deploy/ansible/setup-server.sh ~/inventory.yml ~/secrets.yml
+   ```
+
+   It ends with a `PLAY RECAP` line: the setup succeeded when it shows `failed=0`. Just before it, the
+   `Summary` lists what still needs you, or says that nothing is left. If the setup stops with an error, fix what it
+   names and run the same command again: it continues where it stopped.
+
+4. Do what the summary lists. The usual items:
+
+   - **Names that don't reach this server yet**: switch their DNS to the new server, wait until the change has spread
+     (`getent hosts www.sewing-world.ru` on the server shows the new address), then run the setup again. root can't log
+     in any more, so from now on log in as yourself and use sudo:
+
+     ```sh
+     ssh nikolays@SERVER
+     sudo /root/django-shop/deploy/ansible/setup-server.sh
+     ```
+
+   - **Uploaded files**: product pictures and the files of the admin's file manager are not in git, the vault or the
+     backups. Copy them from the old server while it still runs. `ssh -A` lets the new server use your key to log in
+     to the old one, and the last command gives the files to the service, which manages them:
+
+     ```sh
+     ssh -A nikolays@SERVER
+     rsync -a nikolays@OLD_SERVER:/www/www.sewing-world.ru/media/ /www/www.sewing-world.ru/media/
+     sudo chown -R sworld:www-data /www/www.sewing-world.ru/media
+     ```
+
+5. Delete the copies in your home directory: `rm ~/inventory.yml ~/secrets.yml`. The setup keeps its own in
+   `/root/django-shop/deploy/ansible`.
+
+Each user who logs in with a password also sets up OTP codes once, see
+[Two factor authentication](#two-factor-authentication). Until then they log in with their ssh key.
+
+[deploy/ansible/README.md](ansible/README.md) explains what the setup does, how the secrets are kept, and how to run
+it from your own computer instead. The rest of this file describes the server it sets up, step by step, as a reference
+and for setting up a server by hand.
+
 # Server setup
 
 The [Ansible playbook](ansible/site.yml) configures the production server and backup host. It installs packages,
-creates users, and manages nginx, service units, timers and log rotation. PostgreSQL, application checkouts in
-`/www`, TLS files and application secrets are provisioned separately. Start with the [Ansible runbook](ansible/README.md)
-for inventory setup and first-run instructions. The manual steps below also serve as a reference for the resulting setup.
+creates users, and manages nginx, TLS certificates, service units, timers and log rotation. On a new server it also
+clones the backend, writes the secrets of the [vault](ansible/README.md#secrets) and starts the storefronts. PostgreSQL
+runs on a separate server. The manual steps below describe the resulting setup.
 
 Historically server is run under latest Debian Stable.
 
@@ -23,7 +95,7 @@ apt install memcached
 apt install redis-server
 apt install certbot
 apt install git
-apt install curl acl systemd-timesyncd
+apt install curl acl systemd-timesyncd util-linux-extra
 ```
 
 The following packages are required for building python packages:
@@ -219,9 +291,11 @@ It creates `/var/cache/nginx`, enables the sites listed in `server_nginx_sites_e
 `sites-enabled/default` link in favor of the bundled `default.conf`. The dev site stays in `sites-available`.
 The role removes the stats site from both `sites-enabled` and `sites-available`.
 
-Before applying the role, provision each enabled site's TLS certificate and key at the paths in its server blocks. Install
-`/etc/nginx/htpasswd` with owner `root`, group `www-data` and mode `0640`. The bundled `basic_auth` include uses
-that file. Keep the TLS files and password hashes outside git.
+The role enables a site once the TLS certificates its server blocks name are present, and gets the missing ones, see
+[TLS certificates](#tls-certificates). It installs `/etc/nginx/htpasswd` from the [vault](ansible/README.md#secrets)
+with owner `root`, group `www-data` and mode `0640`; the bundled `basic_auth` include uses that file. By hand, put the
+certificates and the password file in place before enabling the sites. Keep the TLS files and password hashes outside
+git.
 
 From `deploy/ansible`, preview the nginx changes and then apply them together with log rotation:
 
@@ -289,18 +363,33 @@ within 30 days. The `certbot` tag enables the timer and installs
 systemctl try-reload-or-restart nginx
 ```
 
-Moving to a new server, copy all of `/etc/letsencrypt`. `tar` keeps the links from `live/` to `archive/`, and the
-settings in `renewal/` keep working while the sites stay in the same directories:
+The playbook gets the certificates itself. Each certificate is named after its first domain, the
+`/etc/letsencrypt/live/<name>/` the nginx site names, and its other domains are aliases that the site redirects:
+`server_certificates` in the role's defaults lists the names with the directory each site serves `.well-known/` from,
+and `server_certificate_aliases` in the inventory lists the aliases. A run requests a certificate that an enabled site
+lacks, and expands one with `--expand` when the inventory lists an alias it lacks. Before that, it checks that every
+name of the certificate reaches this server over HTTP, the way Let's Encrypt asks. A name that doesn't, because its DNS
+still points at the old server, makes the run skip that certificate, and its sites stay off until a run after the DNS
+switch. A certificate that has all its names is never touched, and a run never removes a name from one.
+
+Until a site has its certificate, nginx can't load its configuration, so the playbook leaves it disabled and answers
+Let's Encrypt for its names with a temporary `sites-enabled/acme-bootstrap.conf`, which it removes once the certificates
+are all present. Don't point `server_certbot_server` at a test or staging ACME server on a real server: the certificates
+it issues count as present, and the run never replaces them.
+
+Moving to a new server, you can also copy all of `/etc/letsencrypt`, so that the sites start before the DNS switch.
+`tar` keeps the links from `live/` to `archive/`, and the settings in `renewal/` keep working while the sites stay in
+the same directories:
 
 ```sh
 sudo tar -C /etc -czf letsencrypt.tgz letsencrypt    # on the old server
 sudo tar -C /etc -xzf letsencrypt.tgz                # on the new one
 ```
 
-A certificate for a new site:
+A certificate by hand, the way the playbook requests it:
 
 ```sh
-certbot certonly --webroot -w /www/janome.club -d janome.club -d www.janome.club
+certbot certonly --webroot -w /www/janome.club --cert-name janome.club -d janome.club -d www.janome.club
 ```
 
 Let's Encrypt asks over HTTP and follows the redirect to HTTPS, so on renewal the site's HTTPS server answers. A new
@@ -540,22 +629,24 @@ The backend is on the `main` branch only, and is deployed by hand. Its productio
 [UWSGI setup](#uwsgi-setup) and [Celery setup](#celery-setup)), and `/www/dev.sigalev.ru` is the development one.
 Every other branch of this repository is a storefront, never a copy of the backend: see
 [Frontend deployment](#frontend-deployment). A backend checkout has its Python virtualenv in `.venv`, which uv fills
-from `uv.lock`. For a fresh production backend, initialize the checkout in the directory created by Ansible.
-The directory can already contain the storefront's `.docker/` tree.
+from `uv.lock`. On a new server the playbook does all of this, for each site whose secret files are in the
+[vault](ansible/README.md#secrets), with the repository of `server_git_repository` in the inventory. By hand, initialize
+the checkout in the directory created by Ansible. The directory can already contain the storefront's `.docker/` tree.
+uWSGI's Python plugin runs Debian's Python, so the venv must use the same one:
 
 ```sh
 cd /www/www.sewing-world.ru
 git init -b main
-git remote add origin git@github.com:andreynovikov/django-shop.git
+git remote add origin https://github.com/andreynovikov/django-shop.git
 git fetch origin main
 git switch -c main --track origin/main
-uv sync --locked --no-dev --compile-bytecode
+UV_PYTHON_DOWNLOADS=never uv sync --locked --no-dev --compile-bytecode --python /usr/bin/python3
 mkdir media static logs .cache import
 sudo chown -R sworld:www-data media static logs .cache import
 sudo chmod 2775 media static .cache import
 sudo chmod 2755 logs
-sudo chown root:sworld .env* sewingworld/settings/integrations.py*
-sudo chmod 640 .env* sewingworld/settings/integrations.py*
+sudo chown root:sworld .env*
+sudo chmod 640 .env*
 ```
 
 The [service user](#service-user) writes only those directories: the uploads, the collected static files, the logs,
@@ -564,7 +655,27 @@ for the service. Only root and the service user can read the secrets, so run `ma
 
 ```sh
 sudo -u sworld .venv/bin/python manage.py migrate
+sudo -u sworld .venv/bin/python manage.py collectstatic --noinput
 ```
+
+`.env` holds all the secrets, the credentials of the integrations (SMS gateways, marketplaces, mailing, 1C) included,
+which [settings/integrations.py](../sewingworld/settings/integrations.py) reads from it. They used to be in a gitignored
+`sewingworld/settings/integrations.py` of their own. To move a checkout that still has one, as the user who deploys it,
+in its directory (the converter comes with the new code, so it is taken from there before the pull):
+
+```sh
+git fetch
+git show origin/main:deploy/integrations_to_env.py \
+  | sudo .venv/bin/python - sewingworld/settings/integrations.py | sudo tee -a .env >/dev/null
+sudo mv sewingworld/settings/integrations.py "/root/integrations.py.$(basename "$PWD")"
+git pull
+.venv/bin/python -m compileall -q -x '/\.venv/' .
+sudo systemctl restart uwsgi@prod uwsgi@admin celery@prod celery_beat@prod
+```
+
+The converter prints the settings it doesn't know to the terminal, add those to `.env` by hand. `git pull` refuses
+while the old file is in the place of the new one, and the services need the restart to read `.env` again. For
+`dev.sigalev.ru`, restart `uwsgi@dev` instead. Delete the copy in `/root` once the integrations work.
 
 The service user cannot write `__pycache__` into the code either, and without compiled files Python compiles each
 module again at every start. `--compile-bytecode` above compiles the packages, and after each `git pull` compile
@@ -605,8 +716,9 @@ deploy command pulls the image for that commit and runs Compose with builds disa
 unavailable. To roll back, re-run an earlier deploy run (GitHub allows re-runs for 30 days) or start an earlier
 image on the server. Choose an image with runtime UID/GID support so it can write to the `sworld`-owned asset
 directory.
-`docker images` lists the images on the server. Pulling another one needs `docker login ghcr.io` with a token
-that can read packages. To start a local image manually, supply the branch name and the host UID and GID:
+`docker images` lists the images on the server. The images are public and hold no secrets, so pulling another one
+needs no login. The repository and the registry are `server_git_repository` and `server_frontend_registry` of the
+inventory. To start a local image manually, supply the branch name and the host UID and GID:
 
 ```sh
 tag=IMAGE_TAG
@@ -627,22 +739,27 @@ rollback to them works too). Each deployment directory has its own `.env.storefr
 `ENV_FILE` secret of the branch's GitHub environment (see [GitHub settings](#github-settings)); stage's is a copy of
 sworld's. The shared Compose file mounts it read-only into the container as `/app/.env.local`, where Next.js reads it
 at start, and the container refuses to start without it. The build reads `ENV_FILE` the same way, as a secret that
-is mounted only while it runs and stays out of the image's layers. Create the file before the first deploy, as root
-and readable only by root and the service user:
+is mounted only while it runs and stays out of the image's layers. The playbook writes the file from
+`vault_storefront_env` of the [vault](ansible/README.md#secrets), stage's from sworld's, and recreates a running
+container whose file changed. By hand, create it before the first deploy, as root and readable only by root and the
+service user:
 
 ```sh
 sudo install -o root -g sworld -m 640 /dev/null /www/janome.club/.env.storefront
 sudoedit /www/janome.club/.env.storefront
 ```
 
-The `deployment` Ansible tag resets the owner and mode of existing files. The deploy account runs Compose but cannot
+A run with a vault replaces a file edited by hand with the vault's, so change the vault instead. The `deployment`
+Ansible tag resets the owner and mode of existing files. The deploy account runs Compose but cannot
 read them: the Docker daemon mounts the file, and the storefront reads it as the service user.
 
 Server-only settings (`API_SERVER`, `API_TOKEN`, `FRONTEND_KEY`, `REVALIDATION_TOKEN`) take effect when the container
-is recreated: change the file, then run the manual start command above with the running image's tag (`docker inspect
+is recreated: the playbook does that after changing the file. By hand, change the file, then run the manual start
+command above with the running image's tag (`docker inspect
 --format '{{.Config.Image}}' nextjs-<NAME>`) and `--force-recreate`. A deploy of the same image doesn't recreate it,
 and `docker restart` may keep the old file if the editor replaced it rather than writing into it. Change `ENV_FILE` too,
-so the next build uses the same values. The `NEXT_PUBLIC_*` settings are compiled
+so the next build uses the same values: `github-env.yml` sets it from the vault, see
+[Secrets](ansible/README.md#secrets). The `NEXT_PUBLIC_*` settings are compiled
 into the browser code, and the build also renders pages and the image settings from `API_SERVER`, `API_TOKEN` and
 `FRONTEND_KEY`. So a change of those needs a new build as well: change `ENV_FILE` and the file on the server, then push a
 commit or re-run the last push's workflow run, and deploy the new image.
@@ -656,9 +773,14 @@ Docker without user namespace remapping. Keep Django's code, configuration and s
 bind mounts.
 
 Run the `deployment` tag from `deploy/ansible` to create the configured storefront directories and their
-`sworld`-owned `.docker/` trees, and to install the shared Compose file and deploy script. Provision any feed
-templates and the [configuration](#storefront-configuration) before deploying. Rerun this tag after changing the
-shared configuration or the storefront list.
+`sworld`-owned `.docker/` trees, to write their [configuration](#storefront-configuration), and to install the shared
+Compose file and deploy script. Rerun this tag after changing the shared configuration or the storefront list.
+
+The tag also starts a storefront that has no container yet, with the deploy script, as GitHub Actions does. It starts
+the image that the last Run workflow of the branch deployed, which it finds through GitHub's API, or the latest build
+for stage and for a branch never deployed. `server_frontend_tags` in the inventory names another tag. A storefront
+with `feeds` in `server_frontend_sites` first gets the XML feed templates of its branch's `templates/xml/`; templates
+already in the directory are kept.
 
 ```sh
 ansible-playbook -i inventory.yml site.yml --limit server.example.ru -K --tags deployment
@@ -719,10 +841,15 @@ Use the branch, deployment name, port and directory from the table.
   up the build job, which reads the environment without deploying to it.
 - No repository secret `ENV_FILE`: a job falls back to it when its environment has none, and would build a frontend
   with another one's `.env`.
-- Repository secrets `DEPLOY_HOST`, `DEPLOY_USER` and `SSH_PRIVATE_KEY`: the ssh login of the deploy jobs.
-  The `deployment` tag provisions the default `deploy` account and installs the
+- Repository secrets `DEPLOY_HOST`, `DEPLOY_USER`, `SSH_PRIVATE_KEY` and `DEPLOY_HOST_KEY`: the ssh login of the
+  deploy jobs. The `deployment` tag provisions the default `deploy` account and installs the
   [restricted deployment command](ansible/roles/server/templates/deploy-frontend.j2). The key's forced command
-  accepts a storefront name and an image tag. Set `DEPLOY_USER` to `deploy` when using this account.
+  accepts a storefront name and an image tag. Set `DEPLOY_USER` to `deploy` when using this account. On a new server
+  these keep working when `DEPLOY_HOST` is a DNS name rather than an address, the inventory has the public half of
+  `SSH_PRIVATE_KEY` in `server_deploy_ssh_public_key`, and the vault has the old server's ssh host keys, which
+  `DEPLOY_HOST_KEY` pins.
+- The storefront packages of the GitHub Container Registry are public, since the images hold no configuration. The
+  server pulls them without a login.
 - The `Protected branches` ruleset lists the frontend branches by name. Update it when a branch is added or renamed.
 
 # Database backups
@@ -743,7 +870,7 @@ There are three kinds of snapshots, with settings in `sewingworld/settings/backu
   12 months.
 - **hot**: every other hour. It holds only the rows of orders, order items, boxes, users, serials and favorites.
   Kept 48 hours.
-- **config**: `.env`, `.env.admin` and `sewingworld/settings/integrations.py`, saved with each full snapshot.
+- **config**: `.env` and `.env.admin`, saved with each full snapshot.
   Kept 14 days and 12 months.
 
 ## Backup host

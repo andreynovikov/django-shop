@@ -9,8 +9,6 @@ Tests need a PostgreSQL role that can create databases. DATABASE_URL is taken fr
 and defaults to the current user on the local server, which can be allowed with ALTER ROLE <user> CREATEDB.
 """
 import os
-import sys
-import types
 
 import environ
 
@@ -36,9 +34,6 @@ for key, value in {
     'SESSION_COOKIE_SAMESITE': 'Lax',
 }.items():
     os.environ.setdefault(key, value)
-
-if not os.path.exists(os.path.join(PROJECT_DIR, 'sewingworld', 'settings', 'integrations.py')):
-    sys.modules['sewingworld.settings.integrations'] = types.ModuleType('sewingworld.settings.integrations')
 
 from sewingworld.settings import *  # noqa F401,F403,E402
 

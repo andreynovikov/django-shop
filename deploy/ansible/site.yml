@@ -5,12 +5,16 @@
 - name: Backup host
   hosts: backup
   become: true
+  force_handlers: true
   roles:
     - role: backup_host
       tags: backup_host
 
+# Handlers run also when a later task fails, so that a run that stops after changing nginx, for example, still
+# reloads it: the next run finds nothing to change and wouldn't.
 - name: Production server
   hosts: production
   become: true
+  force_handlers: true
   roles:
     - server

@@ -6,7 +6,6 @@ logs/
 __pycache__/
 *~
 *.pyc
-sewingworld/settings/integrations.py
 import/
 media
 media/
@@ -14,6 +13,8 @@ media/
 .cache/
 .touch_reload
 deploy/ansible/inventory.yml
+# encrypted, but the repository is public
+deploy/ansible/group_vars/*/secrets.yml
 # server inspection notes, they list unfixed weaknesses of production
 /SERVER.md
 /PROBLEMS.md
