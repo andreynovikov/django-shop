@@ -9,12 +9,15 @@ RUN npm ci --no-update-notifier
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-# The sources include .env, which CI writes from the GitHub environment's ENV_FILE: it is baked into the image
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN npm run build
+# The configuration (the GitHub environment's ENV_FILE) is not in the build context, see .dockerignore. The build gets
+# it as a secret, mounted only while it runs, because Next inlines NEXT_PUBLIC_* and pre-renders pages from the API.
+# It is mounted as .env.local, which Next loads but doesn't copy into .next/standalone, as it does .env, so no layer
+# keeps it. The container gets the same file at runtime as /app/.env.local, see startup.sh.
+RUN --mount=type=secret,id=storefront_env,target=/app/.env.local,required=true npm run build
 
 FROM base AS runner
 WORKDIR /app
