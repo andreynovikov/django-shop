@@ -4,16 +4,18 @@ from urllib.parse import quote
 
 from django import forms
 from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, DecimalField
-from django.core.exceptions import PermissionDenied
 from django.contrib import admin, messages
 from django.http import HttpResponse, HttpResponseRedirect
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
 from django.conf import settings
-from django.shortcuts import render
-from django.urls import re_path, reverse
+from django.db.models import QuerySet
+from django.shortcuts import get_object_or_404, render
+from django.urls import path, re_path, register_converter, reverse
+from django.urls.converters import StringConverter
 from django.utils import timezone
 from django.utils.formats import date_format, number_format
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from daterangefilter.filters import FutureDateRangeFilter, PastDateRangeFilter
@@ -37,10 +39,18 @@ from .order_shipping import measure_boxes, fill_box, split_name, delivery_option
     make_act, missing_1c_data
 from .order_supply import OWN_WAREHOUSE, DEFAULT_SUPPLIER, order_products, allocate_stock, stock_workbook, \
     products_workbook
-from .views import product_stock_view
+from .views import check_permission, join_html, permitted_object, product_stock_view
 
 
 logger = logging.getLogger(__name__)
+
+
+class WordConverter(StringConverter):
+    """ Lowercase letters: the names of the order's document templates, and nothing that leads out of their directory """
+    regex = '[a-z]+'
+
+
+register_converter(WordConverter, 'word')
 
 
 def parse_ids(values):
@@ -61,27 +71,22 @@ def close_popup(script='opener.dismissPopupAndReload(window);'):
 
 
 class OrderItemInline(admin.TabularInline):
-    @mark_safe
+    @admin.display(description='Ид/1С/PN', ordering='product__code')
     def product_codes(self, obj):
-        code = obj.product.code or '--'
-        article = obj.product.article or '--'
-        partnumber = obj.product.partnumber or '--'
-        code = '<a href="{}">{}</a>'.format(reverse('admin:shop_product_change', args=[obj.product.id]), code)
-        if obj.product.state:
-            state = '<span title="{}" class="sw-product-state">'.format(obj.product.state)
-        else:
-            state = '<span>'
-        return state + '<br/>'.join([code, article, partnumber]) + '</span>'
-    product_codes.admin_order_field = 'product__code'
-    product_codes.short_description = 'Ид/1С/PN'
+        product = obj.product
+        return format_html(
+            '<span{}><a href="{}">{}</a><br/>{}<br/>{}</span>',
+            format_html(' title="{}" class="sw-product-state"', product.state) if product.state else '',
+            reverse('admin:shop_product_change', args=[product.id]),
+            product.code or '--', product.article or '--', product.partnumber or '--')
 
+    @admin.display(description='склад')
     def product_stock(self, obj):
         return product_stock_view(obj.product, obj.order)
-    product_stock.short_description = 'склад'
 
+    @admin.display(description='стоимость')
     def item_cost(self, obj):
         return obj.cost
-    item_cost.short_description = 'стоимость'
 
     model = OrderItem
     form = OrderItemInlineAdminForm
@@ -113,13 +118,12 @@ class OrderItemInline(admin.TabularInline):
 
 
 class BoxInline(admin.TabularInline):
+    @admin.display(description='№', ordering='id')
     def title(self, obj):
         if obj.pk:
             return "{:010d}".format(obj.pk)
         else:
             return '-'
-    title.admin_order_field = 'id'
-    title.short_description = '№'
 
     model = Box
     form = BoxInlineAdminForm
@@ -131,178 +135,159 @@ class BoxInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    @mark_safe
+    @admin.display(description='заказ', ordering='id')
     def order_name(self, obj):
-        manager = ''
-        express = ''
-        if obj.manager:
-            manager = ' style="color: %s"' % obj.manager.color
-        lock = ''
-        if obj.owner:
-            lock = '&nbsp;<i class="ti ti-lock" title="%s" style="font-weight: bold"></i>' % str(obj.owner)
-        if obj.delivery == Order.DELIVERY_EXPRESS:
-            express = ' class="is-express"'
-        elif obj.integration and obj.integration.uses_api and obj.integration.settings:
-            if obj.integration.settings.get('is_taxi', False):
-                express = ' class="is-express"'
-        return '<span style="white-space:nowrap"%s><b%s>%s</b>%s</span><br/><span style="white-space:nowrap">%s</span>' % \
-            (express, manager, obj.title, lock, date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
-    order_name.admin_order_field = 'id'
-    order_name.short_description = 'заказ'
+        express = obj.delivery == Order.DELIVERY_EXPRESS or bool(
+            obj.integration and obj.integration.uses_api and obj.integration.settings
+            and obj.integration.settings.get('is_taxi', False))
+        return format_html(
+            '<span style="white-space:nowrap"{}><b{}>{}</b>{}</span><br/><span style="white-space:nowrap">{}</span>',
+            mark_safe(' class="is-express"') if express else '',
+            format_html(' style="color: {}"', obj.manager.color) if obj.manager else '',
+            obj.title,
+            format_html('&nbsp;<i class="ti ti-lock" title="{}" style="font-weight: bold"></i>', obj.owner) if obj.owner else '',
+            date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
 
-    @mark_safe
+    @admin.display(description='Комментарии', ordering='manager_comment')
     def combined_comments(self, obj):
         comment = []
         if obj.alert:
-            comment.append('<span style="color:#ba2121">{}</span><br/>'.format(obj.alert))
+            comment.append(format_html('<span style="color:#ba2121">{}</span><br/>', obj.alert))
         if obj.integration and obj.integration.uses_api:
-            comment.append('<span style="color:#2121ba">№{}</span> '.format(obj.delivery_tracking_number))
+            comment.append(format_html('<span style="color:#2121ba">№{}</span> ', obj.delivery_tracking_number))
         else:
             if obj.delivery_yd_order:
-                comment.append('<span style="color:#2121ba">{}</span> '.format(obj.delivery_yd_order))
+                comment.append(format_html('<span style="color:#2121ba">{}</span> ', obj.delivery_yd_order))
             if obj.delivery_tracking_number:
                 if obj.delivery_yd_order:
-                    comment.append('<span style="color:#2121ba">&#10095;</span> ')
-                comment.append('<span style="color:#21baba">{}</span> '.format(obj.delivery_tracking_number))
-        comment.append('{}<br/><em>{}</em>'.format(obj.delivery_info, obj.manager_comment))
-        return ''.join(comment)
-    combined_comments.admin_order_field = 'manager_comment'
-    combined_comments.short_description = 'Комментарии'
+                    comment.append(mark_safe('<span style="color:#2121ba">&#10095;</span> '))
+                comment.append(format_html('<span style="color:#21baba">{}</span> ', obj.delivery_tracking_number))
+        comment.append(format_html('{}<br/><em>{}</em>', obj.delivery_info, obj.manager_comment))
+        return join_html(comment)
 
-    @mark_safe
+    @admin.display(description='Доставка', ordering='delivery_dispatch_date')
     def combined_delivery(self, obj):
-        datetime = ''
+        dates = ''
         if obj.delivery_dispatch_date:
-            datetime = date_format(obj.delivery_dispatch_date, "d.m")
+            dates = date_format(obj.delivery_dispatch_date, "d.m")
         if obj.delivery_handing_date:
-            datetime = datetime + '<span style="color:#21baba">&#8594;' + date_format(obj.delivery_handing_date, "d.m") + '</span>'
+            dates = format_html('{}<span style="color:#21baba">&#8594;{}</span>', dates, date_format(obj.delivery_handing_date, "d.m"))
         courier = ''
         if obj.courier:
             if obj.hidden_tracking_number:
-                courier = ': %s <i class="ti ti-check" style="color: blue" title="%s"></i>' % (obj.courier.name, obj.hidden_tracking_number)
+                courier = format_html(': {} <i class="ti ti-check" style="color: blue" title="{}"></i>', obj.courier.name, obj.hidden_tracking_number)
             else:
-                courier = ': %s' % obj.courier.name
-        return '%s<span style="white-space:nowrap">%s</span><br/>%s' % (obj.get_delivery_display(), courier, datetime)
-    combined_delivery.admin_order_field = 'delivery_dispatch_date'
-    combined_delivery.short_description = 'Доставка'
+                courier = format_html(': {}', obj.courier.name)
+        return format_html('{}<span style="white-space:nowrap">{}</span><br/>{}', obj.get_delivery_display(), courier, dates)
 
-    @mark_safe
+    @admin.display(description='Покупатель', ordering='phone')
     def name_and_phone(self, obj):
-        name = obj.name if obj.name else '---'
         # service accounts of marketplaces have phones without +
-        phone = ShopUserManager.format_phone(obj.user.phone) if obj.user.phone[0] == '+' else '---'
-        return '{}<br/>{}'.format(name, phone)
-    name_and_phone.admin_order_field = 'phone'
-    name_and_phone.short_description = 'Покупатель'
+        phone = ShopUserManager.format_phone(obj.user.phone) if obj.user.phone.startswith('+') else '---'
+        return format_html('{}<br/>{}', obj.name or '---', phone)
 
-    @mark_safe
+    @admin.display(description='статус', ordering='status')
     def colored_status(self, obj):
-        return '<span style="color: %s">%s</span>' % (obj.STATUS_COLORS[obj.status], obj.get_status_display())
-    colored_status.admin_order_field = 'status'
-    colored_status.short_description = 'статус'
+        return format_html('<span style="color: {}">{}</span>', obj.STATUS_COLORS[obj.status], obj.get_status_display())
 
-    @mark_safe
+    @admin.display(description='оплата', ordering='payment')
     def combined_payment(self, obj):
         style = ''
         checkmark = ''
         if obj.paid and obj.has_fiscal:
             style = '; color: green'
+            fiscal = obj.meta['fiscalInfo']
             # receipts of the later orders are at 1-OFD, of the earlier ones at Taxcom
             if obj.id > 152982:  # TODO: move to order.seller
-                checkmark = '<a href="https://consumer.1-ofd.ru/ticket?s=%s&fn=%s&i=%s&fp=%s&n=1" target="_blank" style="color: green"><i class="ti ti-receipt"></i></a>' % (obj.meta['fiscalInfo']['sum'], obj.meta['fiscalInfo']['fnNumber'], obj.meta['fiscalInfo']['fnDocNumber'], obj.meta['fiscalInfo']['fnDocMark'])
+                checkmark = format_html('<a href="https://consumer.1-ofd.ru/ticket?s={}&fn={}&i={}&fp={}&n=1" target="_blank" style="color: green"><i class="ti ti-receipt"></i></a>',
+                                        fiscal['sum'], fiscal['fnNumber'], fiscal['fnDocNumber'], fiscal['fnDocMark'])
             else:
-                checkmark = '<a href="https://receipt.taxcom.ru/v01/show?fp=%s&s=%s" target="_blank" style="color: green"><i class="ti ti-receipt"></i></a>' % (obj.meta['fiscalInfo']['fnDocMark'], obj.meta['fiscalInfo']['sum'])
+                checkmark = format_html('<a href="https://receipt.taxcom.ru/v01/show?fp={}&s={}" target="_blank" style="color: green"><i class="ti ti-receipt"></i></a>',
+                                        fiscal['fnDocMark'], fiscal['sum'])
         elif obj.paid:
             style = 'color: green'
-            checkmark = '<span style="color: green"><i class="ti ti-check"></i></span>'
+            checkmark = mark_safe('<span style="color: green"><i class="ti ti-check"></i></span>')
         elif obj.payment in [Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_CREDIT]:
             style = 'color: red'
-        return '<span style="display: grid; grid-template-columns: min-content auto; column-gap: 5px"><span style="%s">%s</span>%s</span>' % (style, obj.get_payment_display(), checkmark)
-    combined_payment.admin_order_field = 'payment'
-    combined_payment.short_description = 'оплата'
+        return format_html('<span style="display: grid; grid-template-columns: min-content auto; column-gap: 5px"><span style="{}">{}</span>{}</span>',
+                           style, obj.get_payment_display(), checkmark)
 
-    @mark_safe
+    @admin.display(description='1С')
     def status1c(self, obj):
         if obj.status <= Order.STATUS_COLLECTED:
             return ''
-        if not obj.seller or not obj.buyer or not obj.wirehouse or not obj.wiring_date:
-            return '<span style="color: orange" title="Нет данных для проводки"><i class="ti ti-calendar-question"></i></span>'
+        # the IDs, so that the list doesn't load the contractors and the warehouse of each order
+        if not (obj.seller_id and obj.buyer_id and obj.wirehouse_id and obj.wiring_date):
+            return mark_safe('<span style="color: orange" title="Нет данных для проводки"><i class="ti ti-calendar-question"></i></span>')
         if obj.wiring_date == timezone.now().date():
-            return '<span style="color: #2121ba" title="Проводка сегодня"><i class="ti ti-calendar-bolt"></i></span>'
-        return '<span style="color: green"><i class="ti ti-calendar-check"></i></span>'
-    status1c.short_description = '1С'
+            return mark_safe('<span style="color: #2121ba" title="Проводка сегодня"><i class="ti ti-calendar-bolt"></i></span>')
+        return mark_safe('<span style="color: green"><i class="ti ti-calendar-check"></i></span>')
 
-    @mark_safe
+    @admin.display(description='всего')
     def total_cost(self, obj):
         if obj.total == int(obj.total):
             return number_format(int(obj.total), force_grouping=True)
         else:
             return number_format(obj.total, force_grouping=True)
-    total_cost.short_description = 'всего'
 
-    @mark_safe
+    @admin.display(description='несоответствие')
     def link_to_user(self, obj):
-        inconsistency = '-'
         if obj.name != obj.user.name or obj.phone != obj.user.phone or \
            obj.email != obj.user.email or obj.postcode != obj.user.postcode or \
            obj.address != obj.user.address:
-            inconsistency = '<span style="color: red" title="Несоответствие данных!">&#10033;</span>'
-        return inconsistency
-    link_to_user.short_description = 'несоответствие'
+            return mark_safe('<span style="color: red" title="Несоответствие данных!">&#10033;</span>')
+        return '-'
 
-    @mark_safe
+    @admin.display(description='заказы')
     def link_to_orders(self, obj):
-        orders = Order.objects.filter(user=obj.user.id).exclude(pk=obj.id).values_list('id', flat=True)
+        orders = list(Order.objects.filter(user=obj.user_id).exclude(pk=obj.id).values_list('id', flat=True))
         if not orders:
-            return '<span>нет</span>'
-        else:
-            url = '%s?pk__in=%s,%s&status=all' % (reverse("admin:shop_order_changelist"), obj.id, ','.join(map(lambda x: str(x), list(orders))))
-            return '<span><a href="%s">%s</a></span>' % (url, orders.count())
-    link_to_orders.short_description = 'заказы'
+            return mark_safe('<span>нет</span>')
+        url = '%s?pk__in=%s&status=all' % (reverse("admin:shop_order_changelist"), ','.join(map(str, [obj.id] + orders)))
+        return format_html('<span><a href="{}">{}</a></span>', url, len(orders))
 
-    @mark_safe
+    @admin.display(description='бонусы')
     def user_bonuses(self, obj):
-        return '<span>%d</span>' % obj.user.bonuses
-    user_bonuses.short_description = 'бонусы'
+        return format_html('<span>{}</span>', obj.user.bonuses)
 
-    @mark_safe
+    @admin.display(description='кредит')
     def credit_notice(self, obj):
         credit_allowed = False
         for item in obj.items.all():
             credit_allowed = credit_allowed or item.product.credit_allowed
         if credit_allowed:
-            return '''
+            return format_html('''
                    <div id="yandex-credit"></div>
                    <script src="https://static.yandex.net/kassa/pay-in-parts/ui/v1"></script>
                    <script>
-                   $(document).ready(function() {
-                     const $checkoutCreditUI = YandexCheckoutCreditUI({ shopId: '42873', sum: '%d' });
-                     const checkoutCreditText = $checkoutCreditUI({ type: 'info', domSelector: '#yandex-credit' });
-                   });
+                   $(document).ready(function() {{
+                     const $checkoutCreditUI = YandexCheckoutCreditUI({{ shopId: '42873', sum: '{}' }});
+                     const checkoutCreditText = $checkoutCreditUI({{ type: 'info', domSelector: '#yandex-credit' }});
+                   }});
                    </script>
-                   ''' % obj.total
+                   ''', int(obj.total))
         else:
             return 'нет'
-    credit_notice.short_description = 'кредит'
 
-    @mark_safe
+    @admin.display(description='штрих-код доставки')
     def delivery_barcode(self, obj):
-        if obj.meta is not None and obj.meta.get('barcode'):
-            return '<span>%s<b>%s</b></span>' % (obj.meta.get('barcode')[:-4], obj.meta.get('barcode')[-4:])
+        barcode = obj.meta.get('barcode') if obj.meta is not None else None
+        if barcode:
+            return format_html('<span>{}<b>{}</b></span>', barcode[:-4], barcode[-4:])
         else:
             return ''
-    delivery_barcode.short_description = 'штрих-код доставки'
 
-    @mark_safe
+    @admin.display(description='касса')
     def pos_status(self, obj):
         if obj.hidden_tracking_number:
-            return '<span style="color: blue; font-weight: bold" title="{}">&#10003;</span>'.format(obj.hidden_tracking_number)
+            return format_html('<span style="color: blue; font-weight: bold" title="{}">&#10003;</span>', obj.hidden_tracking_number)
         else:
             return ''
-    pos_status.short_description = 'касса'
 
     list_display = ['order_name', 'name_and_phone', 'city', 'total_cost', 'combined_payment', 'combined_delivery',
                     'colored_status', 'status1c', 'combined_comments']
+    # what the columns read of each order, the site's profile for its title; the items for its total are prefetched
+    list_select_related = ['site__profile', 'user', 'manager', 'owner', 'integration', 'courier']
     readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'delivery_barcode', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'user_bonuses', 'pos_status',
                        'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
                        'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
@@ -382,7 +367,8 @@ class OrderAdmin(admin.ModelAdmin):
         return super().lookup_allowed(lookup, value, request)
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
+        # the items make the total of the list and the documents of the actions; each one's order is the one prefetched
+        qs = super().get_queryset(request).prefetch_related('items')
         # staff with the St Petersburg permission see the orders of its sites only
         if not request.user.is_superuser and request.user.has_perm('shop.change_order_spb'):
             qs = qs.filter(site__in=[6, 14])
@@ -399,8 +385,6 @@ class OrderAdmin(admin.ModelAdmin):
         return readonly_fields
 
     def changelist_view(self, request, extra_context=None):
-        if not request.user.is_staff:
-            raise PermissionDenied
         if 'action' in request.POST and request.POST['action'] == 'order_product_list_action':
             if not request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME):
                 post = request.POST.copy()
@@ -410,13 +394,11 @@ class OrderAdmin(admin.ModelAdmin):
         return super().changelist_view(request, extra_context)
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
-        if not request.user.is_staff:
-            raise PermissionDenied
         # Opening an order locks it (owner) for whoever opened it first, and update_order() waits for the lock. A save
         # with _save (a relabelled button, see the order's change_form.html) or _unlock releases it, as does the unlock
         # URL, which the page calls when it is left unsaved.
-        order = Order.objects.get(pk=object_id)
-        if not order.owner:
+        order = self.get_object(request, object_id)
+        if order is not None and not order.owner and self.has_change_permission(request, order):
             order.owner = request.user
             order.save()
         return super().change_view(request, object_id, form_url, extra_context)
@@ -460,16 +442,17 @@ class OrderAdmin(admin.ModelAdmin):
     def get_urls(self):
         urls = super(OrderAdmin, self).get_urls()
         my_urls = [
-            re_path(r'(\d+)/document/([a-z]+)/$', self.admin_site.admin_view(self.document), name='shop_order_document'),
-            re_path(r'products/$', self.admin_site.admin_view(self.order_product_list), name='shop_order_product_list'),
-            re_path(r'(\d+)/item/(\d+)/print_warranty_card/$', self.admin_site.admin_view(self.print_warranty_card), name='print-warranty-card'),
-            re_path(r'(\d+)/combine/$', self.admin_site.admin_view(self.combine_form), name='shop_order_combine'),
-            re_path(r'(\d+)/discount/$', self.admin_site.admin_view(self.discount_form), name='shop_order_discount'),
-            re_path(r'(\d+)/yandex_delivery/$', self.admin_site.admin_view(self.yandex_delivery_form), name='shop_order_yandex_delivery'),
-            re_path(r'(\d+)/yandex_delivery_estimate/$', self.admin_site.admin_view(self.yandex_delivery_estimate), name='shop_order_yandex_delivery_estimate'),
-            re_path(r'(\d+)/beru_labels/$', self.admin_site.admin_view(self.beru_labels), name='shop_order_beru_labels'),
-            re_path(r'(\d+)/unlock/$', self.admin_site.admin_view(self.unlock), name='shop_order_unlock'),
-            re_path(r'sms/(\+\d+)/$', self.admin_site.admin_view(self.send_sms_form), name='shop_order_send_sms'),
+            path('<int:id>/document/<word:template>/', self.admin_site.admin_view(self.document), name='shop_order_document'),
+            path('products/', self.admin_site.admin_view(self.order_product_list), name='shop_order_product_list'),
+            path('<int:order_id>/item/<int:item_id>/print_warranty_card/', self.admin_site.admin_view(self.print_warranty_card), name='print-warranty-card'),
+            path('<int:id>/combine/', self.admin_site.admin_view(self.combine_form), name='shop_order_combine'),
+            path('<int:id>/discount/', self.admin_site.admin_view(self.discount_form), name='shop_order_discount'),
+            path('<int:id>/yandex_delivery/', self.admin_site.admin_view(self.yandex_delivery_form), name='shop_order_yandex_delivery'),
+            path('<int:id>/yandex_delivery_estimate/', self.admin_site.admin_view(self.yandex_delivery_estimate), name='shop_order_yandex_delivery_estimate'),
+            path('<int:arg>/beru_labels/', self.admin_site.admin_view(self.beru_labels), name='shop_order_beru_labels'),
+            path('<int:id>/unlock/', self.admin_site.admin_view(self.unlock), name='shop_order_unlock'),
+            # the phone keeps its pattern: the SMS widget reverses the URL with '+0' and puts the number in its place
+            re_path(r'^sms/(?P<phone>\+\d+)/$', self.admin_site.admin_view(self.send_sms_form), name='shop_order_send_sms'),
         ]
         return my_urls + urls
 
@@ -511,9 +494,7 @@ class OrderAdmin(admin.ModelAdmin):
         return self.action_form_page(request, form, title, action_title, is_popup=is_popup, messages=notices)
 
     def document(self, request, id, template):
-        if not request.user.is_staff:
-            raise PermissionDenied
-        order = Order.objects.get(pk=id)
+        order = permitted_object(self, request, id)
         return render(request, 'shop/order/' + template + '.html', {
             'owner_info': getattr(settings, 'SHOP_OWNER_INFO', {}),
             'default_seller': Contractor.objects.filter(pk=config.sw_default_seller).first(),
@@ -521,16 +502,13 @@ class OrderAdmin(admin.ModelAdmin):
             'opts': self.model._meta,
         })
 
+    @admin.action(description="Показать товары для выбранных заказов", permissions=['view'])
     def order_product_list_action(self, request, queryset):
-        if not request.user.is_staff:
-            raise PermissionDenied
         selected = request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME)
         return HttpResponseRedirect("products/?orders=%s" % ",".join(selected))
-    order_product_list_action.short_description = "Показать товары для выбранных заказов"
 
     def order_product_list(self, request):
-        if not request.user.is_staff:
-            raise PermissionDenied
+        check_permission(self, request)
         ids = request.GET.get('orders', '0')
         order_ids = None
         if ids != '0':
@@ -548,8 +526,8 @@ class OrderAdmin(admin.ModelAdmin):
         })
 
     def print_warranty_card(self, request, order_id, item_id):
-        order = self.get_object(request, order_id)
-        item = order.items.get(pk=item_id)
+        order = permitted_object(self, request, order_id, change=True)
+        item = get_object_or_404(order.items, pk=item_id)
 
         if request.method != 'POST':
             form = WarrantyCardPrintForm({'serial_number': item.serial_number})
@@ -587,12 +565,10 @@ class OrderAdmin(admin.ModelAdmin):
         return TemplateResponse(request, 'admin/shop/order/print_warranty_card.html', context)
 
     def combine_form(self, request, id):
-        if not request.user.is_staff:
-            raise PermissionDenied
-        order = Order.objects.get(pk=id)
+        order = permitted_object(self, request, id, change=True)
 
         def combine(form):
-            other_order = Order.objects.get(pk=form.cleaned_data['order_number'])
+            other_order = self.get_queryset(request).get(pk=form.cleaned_data['order_number'])
             if combine_orders(order, other_order):
                 return close_popup()
             form.add_error('order_number', "Разные пользователи у заказов")
@@ -601,9 +577,7 @@ class OrderAdmin(admin.ModelAdmin):
         return self.popup_form(request, OrderCombineForm, combine, "Укажите заказ для объединения", "Объеденить")
 
     def discount_form(self, request, id):
-        if not request.user.is_staff:
-            raise PermissionDenied
-        order = Order.objects.get(pk=id)
+        order = permitted_object(self, request, id, change=True)
 
         def discount(form):
             apply_discount(order, form.cleaned_data['discount'], form.cleaned_data['unit'])
@@ -612,9 +586,7 @@ class OrderAdmin(admin.ModelAdmin):
         return self.popup_form(request, OrderDiscountForm, discount, "Укажите скидку", "Применить")
 
     def yandex_delivery_form(self, request, id):
-        if not request.user.is_staff:
-            raise PermissionDenied
-        order = Order.objects.get(pk=id)
+        order = permitted_object(self, request, id, change=True)
 
         def create_draft(form):
             unpacked = [item for item in order.items.all() if item.box is None]
@@ -630,10 +602,7 @@ class OrderAdmin(admin.ModelAdmin):
                                initial={'fio': order.name})
 
     def yandex_delivery_estimate(self, request, id):
-        if not request.user.is_staff:
-            raise PermissionDenied
-
-        order = Order.objects.get(pk=id)
+        order = permitted_object(self, request, id)
 
         context = self.admin_site.each_context(request)
         context['opts'] = self.model._meta
@@ -657,19 +626,17 @@ class OrderAdmin(admin.ModelAdmin):
 
         return TemplateResponse(request, 'admin/shop/order/yandex_delivery_estimate.html', context)
 
+    @admin.action(description="Печать наклеек Беру", permissions=['view'])
     def beru_labels(self, request, arg):
-        if not request.user.is_staff:
-            raise PermissionDenied
-
         context = self.admin_site.each_context(request)
         context['opts'] = self.model._meta
         context['is_popup'] = request.GET.get('_popup', 0)
 
         # this method is called both from order change form with single id argument and order list with selected orders queryset
-        if isinstance(arg, str):
-            orders = [Order.objects.get(pk=arg)]
-        else:
+        if isinstance(arg, QuerySet):
             orders = arg.all()
+        else:
+            orders = [permitted_object(self, request, arg)]
 
         context['orders'] = []
         try:
@@ -678,11 +645,9 @@ class OrderAdmin(admin.ModelAdmin):
             context['error'] = getattr(e, 'message', str(e))
 
         return TemplateResponse(request, 'shop/order/beru_labels.html', context)
-    beru_labels.short_description = "Печать наклеек Беру"
 
     def send_sms_form(self, request, phone):
-        if not request.user.is_staff:
-            raise PermissionDenied
+        check_permission(self, request, change=True)
 
         def send(form):
             message = form.cleaned_data['message']
@@ -693,17 +658,14 @@ class OrderAdmin(admin.ModelAdmin):
         return self.popup_form(request, SendSmsForm, send, "Укажите текст сообщения для %s" % str(phone), "Отправить")
 
     def unlock(self, request, id):
-        if not request.user.is_staff:
-            raise PermissionDenied
-        order = Order.objects.get(pk=id)
+        order = permitted_object(self, request, id)
         if order.owner == request.user:
             order.owner = None
             order.save()
         return HttpResponse('<!DOCTYPE html><html/>')
 
+    @admin.action(description="Выгрузка в 1С", permissions=['view'])
     def order_1c_action(self, request, queryset):
-        if not request.user.is_staff:
-            raise PermissionDenied
         missing_contractors, missing_wirehouse, missing_wiring_date = missing_1c_data(queryset)
         if missing_contractors:
             self.message_user(request, "В заказах не указан контрагент: %s" % ', '.join(map(str, missing_contractors)), level=messages.ERROR)
@@ -716,11 +678,9 @@ class OrderAdmin(admin.ModelAdmin):
             response = HttpResponse(template.render({'orders': queryset}).replace('\n', '\r\n'), content_type='text/xml; charset=utf8')
             response['Content-Disposition'] = 'attachment; filename=1C-{0}.xml'.format(datetime.date.today().isoformat())
             return response
-    order_1c_action.short_description = "Выгрузка в 1С"
 
+    @admin.action(description="Выгрузка в ПикПоинт", permissions=['view'])
     def order_pickpoint_action(self, request, queryset):
-        if not request.user.is_staff:
-            raise PermissionDenied
         missing_terminal = False
         for order in queryset:
             if not order.delivery_pickpoint_terminal:
@@ -732,11 +692,9 @@ class OrderAdmin(admin.ModelAdmin):
             response = HttpResponse(template.render({'orders': queryset}), content_type='text/plain; charset=utf-8')
             response['Content-Disposition'] = 'attachment; filename=PickPoint-{0}.xml'.format(datetime.date.today().isoformat())
             return response
-    order_pickpoint_action.short_description = "Выгрузка в ПикПоинт"
 
+    @admin.action(description="Выгрузка поставщику", permissions=['view'])
     def order_stock_action(self, request, queryset):
-        if not request.user.is_staff:
-            raise PermissionDenied
         if 'show_stock' in request.POST:
             own = Supplier.objects.get(code=OWN_WAREHOUSE)
             supplier = Supplier.objects.get(pk=request.POST.get('supplier'))
@@ -761,26 +719,20 @@ class OrderAdmin(admin.ModelAdmin):
         form = SelectSupplierForm(initial={'supplier': Supplier.objects.get(code=DEFAULT_SUPPLIER).pk})
         return self.action_form_page(request, form, "Выберите поставщика", "Сформировать выгрузку", queryset=queryset,
                                      is_popup=0, action='order_stock_action', action_name='show_stock')
-    order_stock_action.short_description = "Выгрузка поставщику"
 
+    @admin.action(description="Выгрузка товаров", permissions=['view'])
     def order_products_action(self, request, queryset):
-        if not request.user.is_staff:
-            raise PermissionDenied
         selected = parse_ids(request.POST.getlist(admin.helpers.ACTION_CHECKBOX_NAME))
         response = HttpResponse(products_workbook(selected), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = 'attachment; filename=products-{}.xlsx'.format(datetime.date.today().isoformat())
         return response
-    order_products_action.short_description = "Выгрузка товаров"
 
+    @admin.action(description="Список заказов Беру", permissions=['view'])
     def order_beru_action(self, request, queryset):
-        if not request.user.is_staff:
-            raise PermissionDenied
         return TemplateResponse(request, 'admin/shop/order/beru.html', {'orders': queryset})
-    order_beru_action.short_description = "Список заказов Беру"
 
+    @admin.action(description="Добавить тег покупателю", permissions=['change'])
     def order_set_user_tag_action(self, request, queryset):
-        if not request.user.is_staff:
-            raise PermissionDenied
         # Tagging users is switched off: the action adds nothing and says so
         if 'set_user_tag' in request.POST:
             # tags = parse_tag_input(request.POST.get('tags'))
@@ -792,11 +744,9 @@ class OrderAdmin(admin.ModelAdmin):
         form = SelectTagForm(model=ShopUser)
         return self.action_form_page(request, form, "Укажите один или несколько тегов", "Добавить", queryset=queryset,
                                      is_popup=0, messages=None, action='order_set_user_tag_action', action_name='set_user_tag')
-    order_set_user_tag_action.short_description = "Добавить тег покупателю"
 
+    @admin.action(description="Сформировать акт", permissions=['change'])
     def order_act_action(self, request, queryset):
-        if not request.user.is_staff:
-            raise PermissionDenied
         wrong_status, already_acted = act_problems(queryset)
         if wrong_status:
             self.message_user(request, "Нельзя выписать акт по несобранным заказам: %s" % ', '.join(map(str, wrong_status)), level=messages.ERROR)
@@ -805,4 +755,3 @@ class OrderAdmin(admin.ModelAdmin):
         else:
             act = make_act(queryset)
             return HttpResponseRedirect(reverse('admin:shop_act_change', args=[act.pk]))
-    order_act_action.short_description = "Сформировать акт"

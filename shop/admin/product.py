@@ -5,13 +5,15 @@ from urllib.parse import quote
 
 from django.forms import TextInput
 from django.db.models import PositiveSmallIntegerField, PositiveIntegerField, \
-    DecimalField, FloatField, ImageField, Q
+    DecimalField, FloatField, ImageField, Prefetch, Q
 from django.conf import settings
 from django.contrib import admin
+from django.contrib.admin.views.main import ChangeList
 from django.core.exceptions import PermissionDenied
 from django.http import JsonResponse, HttpResponse
 from django.template.response import TemplateResponse
-from django.urls import re_path
+from django.urls import path
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
@@ -33,7 +35,7 @@ from .forms import ProductImportForm, ProductConfirmImportForm, ProductExportFor
     ProductAdminForm, ProductListAdminForm, ProductKindForm, StockInlineForm, IntegrationInlineForm, integration_label, \
     ProductCloneForm, OneSImportForm
 from .decorators import admin_changelist_link
-from .views import product_stock_view
+from .views import STOCK_PREFETCH, check_permission, join_html, permitted_object, product_stock_view
 from .widgets import ImageWidget
 
 SHOP_INFO = getattr(settings, 'SHOP_INFO', {})
@@ -43,19 +45,17 @@ logger = logging.getLogger(__name__)
 
 @admin.register(ProductRelation)
 class ProductRelationAdmin(admin.ModelAdmin):
-    @mark_safe
+    # Methods rather than 'parent_product__title' in list_display, which would give both columns the same header
+    @admin.display(description='товар', ordering='parent_product')
     def parent_product_link(self, obj):
-        return '<span style="white-space: normal!">%s</span>' % obj.parent_product.title
-    parent_product_link.admin_order_field = 'parent_product'
-    parent_product_link.short_description = 'товар'
+        return obj.parent_product.title
 
-    @mark_safe
+    @admin.display(description='связанный товар', ordering='child_product')
     def child_product_link(self, obj):
-        return '<span style="white-space: normal!">%s</span>' % obj.child_product.title
-    child_product_link.admin_order_field = 'child_product'
-    child_product_link.short_description = 'связанный товар'
+        return obj.child_product.title
 
     list_display = ['parent_product_link', 'child_product_link', 'kind']
+    list_select_related = ['parent_product', 'child_product']
     list_display_links = ['parent_product_link', 'child_product_link']
     list_filter = ['kind']
     search_fields = ['parent_product__title', 'parent_product__code', 'parent_product__article', 'parent_product__partnumber',
@@ -171,6 +171,28 @@ class IntegrationsFilter(SimpleDropdownFilter):
             return queryset
 
 
+class CategoryDropdownFilter(RelatedDropdownFilter):
+    """
+    Categories by their full path, which tells those of the same name apart. Category.__str__() gives it to Django's
+    filter with a query for each category; here one query gives them all.
+    """
+    def field_choices(self, field, request, model_admin):
+        ordering = self.field_admin_ordering(field, request, model_admin)
+        categories = field.remote_field.model._default_manager.order_by(*ordering) if ordering else \
+            field.remote_field.model._default_manager.all()
+        categories = list(categories.only('id', 'name', 'parent_id'))
+        by_id = {category.pk: category for category in categories}
+
+        def path(category):
+            names = []
+            while category is not None:
+                names.append(category.name)
+                category = by_id.get(category.parent_id)
+            return '/'.join(reversed(names))
+
+        return [(category.pk, path(category)) for category in categories]
+
+
 class OzonLinkFilter(admin.SimpleListFilter):
     title = 'ссылка Озон'
     parameter_name = 'ozon_link'
@@ -207,62 +229,56 @@ class WBLinkFilter(admin.SimpleListFilter):
         return queryset
 
 
+class ProductChangeList(ChangeList):
+    """
+    The list of products. What its stock column and the form of each row read is prefetched for the page shown,
+    not in get_queryset(), whose products the export also reads.
+    """
+    def get_results(self, request):
+        super().get_results(request)
+        self.result_list = self.result_list.prefetch_related(
+            *STOCK_PREFETCH, Prefetch('integrations', queryset=Integration.objects.only('id')))
+
+
 @admin.register(Product)
 class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, DynamicArrayMixin):
-    @mark_safe
+    @admin.display(description='Ид/1С/PN', ordering='code')
     def product_codes(self, obj):
-        code = obj.code or '--'
-        article = obj.article or '--'
-        partnumber = obj.partnumber or '--'
-        return '<br/>'.join([code, article, partnumber])
-    product_codes.admin_order_field = 'code'
-    product_codes.short_description = 'Ид/1С/PN'
+        return join_html([obj.code or '--', obj.article or '--', obj.partnumber or '--'], '<br/>')
 
-    @mark_safe
+    @admin.display(description='цена', ordering='price')
     def combined_price(self, obj):
-        result = '%s&nbsp;руб' % obj.price
+        result = format_html('{}&nbsp;руб', obj.price)
         if obj.forbid_price_import:
-            result = result + '&nbsp;<span style="color: var(--error-fg)">&#10004;</span>'
-        if not obj.cur_code.code == 643:
-            result = result + '<br/>%s&nbsp;%s' % (obj.cur_price, obj.cur_code)
+            result += mark_safe('&nbsp;<span style="color: var(--error-fg)">&#10004;</span>')
+        # the currency's code is its key: rouble prices don't load it
+        if obj.cur_code_id != 643:
+            result += format_html('<br/>{}&nbsp;{}', obj.cur_price, obj.cur_code)
         return result
-    combined_price.admin_order_field = 'price'
-    combined_price.short_description = 'цена'
 
-    @mark_safe
+    @admin.display(description='скидка')
     def combined_discount(self, obj):
-        result = '<span style="color: '
-        if obj.val_discount > 0:
-            result = result + 'var(--body-fg)'
-        else:
-            result = result + 'var(--border-color)'
-        result = result + '">%s&nbsp;руб<br/><span style="color: ' % obj.val_discount
-        if obj.pct_discount > 0:
-            result = result + 'var(--body-fg)'
-        else:
-            result = result + 'var(--border-color)'
-        result = result + '">%s%%</span>' % obj.pct_discount
-        return result
-    combined_discount.short_description = 'скидка'
+        def color(discount):
+            return 'var(--body-fg)' if discount > 0 else 'var(--border-color)'
+        return format_html('<span style="color: {}">{}&nbsp;руб<br/><span style="color: {}">{}%</span>',
+                           color(obj.val_discount), obj.val_discount, color(obj.pct_discount), obj.pct_discount)
 
+    @admin.display(description='склад')
     def product_stock(self, obj):
         return product_stock_view(obj)
-    product_stock.short_description = 'склад'
 
     @admin_changelist_link(None, 'з', model=Order, query_string=lambda p: 'item__product__pk={}'.format(p.pk))
     def orders_link(self, orders):
         return '<i class="ti ti-basket"></i>'
 
-    @mark_safe
+    @admin.display(description='о')
     def product_link(self, obj):
-        url = self.view_on_site(obj)
-        return '<a href="%s" target="_blank"><i class="ti ti-external-link"></i></a>' % url
-    product_link.short_description = 'о'
+        return format_html('<a href="{}" target="_blank"><i class="ti ti-external-link"></i></a>', self.view_on_site(obj))
 
     # An empty column: the list renders ProductListAdminForm's integrations field in it, which every row's form has
+    @admin.display(description='внешние интеграции')
     def integrations(self, obj):
         pass
-    integrations.short_description = 'внешние интеграции'
 
     form = ProductAdminForm
     # change_list_template = 'admin/shop/product/change_list.html'
@@ -276,9 +292,11 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
     list_filter = ['enabled', 'preorder', 'show_on_sw', OzonLinkFilter, WBLinkFilter, IntegrationsFilter,
                    'market', 'isnew', 'recomended',
                    'forbid_price_import', 'cur_code', ('pct_discount', DropdownFilter), ('val_discount', DropdownFilter),
-                   ('categories', RelatedDropdownFilter), ('manufacturer', RelatedDropdownFilter)]
+                   ('categories', CategoryDropdownFilter), ('manufacturer', RelatedDropdownFilter)]
     list_per_page = 50
+    list_select_related = ['cur_code']
     search_fields = ['code', 'article', 'partnumber', 'title', 'gtin', 'gtins', 'tags']
+    search_help_text = 'Ид, код 1С, PN, название, GTIN или теги товара'
     readonly_fields = ['price', 'ws_price', 'sp_price']
     ordering = ('-id',)
     save_on_top = True
@@ -437,8 +455,19 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
         prefix = SHOP_INFO.get('url_prefix', '')
         return f'{prefix}/products/{quote(obj.code)}.html'
 
+    def get_changelist(self, request, **kwargs):
+        return ProductChangeList
+
     def get_changelist_form(self, request, **kwargs):
-        return ProductListAdminForm
+        # The integrations to check in each row, read once for the page rather than by the form of each row
+        choices = list(ProductListAdminForm.base_fields['integrations'].choices)
+
+        class ProductListForm(ProductListAdminForm):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.fields['integrations'].choices = choices
+
+        return ProductListForm
 
     def get_import_form(self):
         return ProductImportForm
@@ -506,18 +535,16 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
         urls = super().get_urls()
         info = self.get_model_info()
         my_urls = [
-            re_path(r'(\d+)/stock/$', self.admin_site.admin_view(self.stock_view), name='%s_%s_stock' % info),
-            re_path(r'(\d+)/clone/$', self.admin_site.admin_view(self.clone_form), name='%s_%s_clone' % info),
-            re_path(r'^stock/correction/$', self.admin_site.admin_view(self.stock_correction_view), name='%s_%s_stock_correction' % info),
-            re_path(r'^import1c/$', self.admin_site.admin_view(self.import_1c_view), name='%s_%s_import_1c' % info),
-            re_path(r'^import1c/status/$', self.admin_site.admin_view(self.import_1c_status_view), name='%s_%s_import_1c_status' % info),
+            path('<int:id>/stock/', self.admin_site.admin_view(self.stock_view), name='%s_%s_stock' % info),
+            path('<int:id>/clone/', self.admin_site.admin_view(self.clone_form), name='%s_%s_clone' % info),
+            path('stock/correction/', self.admin_site.admin_view(self.stock_correction_view), name='%s_%s_stock_correction' % info),
+            path('import1c/', self.admin_site.admin_view(self.import_1c_view), name='%s_%s_import_1c' % info),
+            path('import1c/status/', self.admin_site.admin_view(self.import_1c_status_view), name='%s_%s_import_1c_status' % info),
         ]
         return my_urls + urls
 
     def stock_view(self, request, id):
-        if not request.user.is_staff:
-            raise PermissionDenied
-        product = Product.objects.get(pk=id)
+        product = permitted_object(self, request, id)
         stock = product.stock_items.all().order_by('supplier__order')
         context = {
             'title': 'Запасы %s' % str(product),
@@ -530,8 +557,7 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
         return TemplateResponse(request, 'admin/shop/product/stock.html', context)
 
     def stock_correction_view(self, request):
-        if not request.user.is_staff:
-            raise PermissionDenied
+        check_permission(self, request)
         sort = request.GET.get('o', 'product__title')
         stock = Stock.objects.filter(~Q(correction=0)).order_by(sort)
         context = {
@@ -544,9 +570,9 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
         return TemplateResponse(request, 'admin/shop/product/stock_correction.html', context)
 
     def clone_form(self, request, id):
-        if not request.user.is_staff:
+        product = permitted_object(self, request, id)
+        if not self.has_add_permission(request):
             raise PermissionDenied
-        product = Product.objects.get(pk=id)
         messages = None
         if request.method != 'POST':
             form = ProductCloneForm()
@@ -608,8 +634,8 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
         return TemplateResponse(request, 'admin/shop/custom_action_form.html', context)
 
     def import_1c_view(self, request):
-        if not request.user.is_staff:
-            raise PermissionDenied
+        # the import changes the stock and prices of products
+        check_permission(self, request, change=True)
         context = {
             'title': "Импорт 1С",
             'cl': self,
@@ -630,8 +656,7 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
         return TemplateResponse(request, 'admin/shop/import_1c.html', context)
 
     def import_1c_status_view(self, request):
-        if not request.user.is_staff:
-            raise PermissionDenied
+        check_permission(self, request)
         return JsonResponse({
             'running': flag_enabled('1C_IMPORT_RUNNING'),
             'copying': flag_enabled('1C_IMPORT_COPYING')
@@ -674,15 +699,16 @@ class ProductReviewAdmin(ReviewAdmin):
         ),
     )
 
-    @mark_safe
+    @admin.display(description=_('link'))
     def link(self, obj):
         if obj.is_public:
             product = Product.objects.get(pk=obj.object_pk)
             prefix = SHOP_INFO.get('url_prefix', '')
-            return f'<a href="{prefix}/products/{quote(product.code)}.html#r{obj.id}">{REVIEW_ADMIN_LINK_SYMBOL}</a>'
+            # the symbol is HTML from the settings
+            return format_html('<a href="{}/products/{}.html#r{}">{}</a>', prefix, quote(product.code), obj.id,
+                               mark_safe(REVIEW_ADMIN_LINK_SYMBOL))
         else:
             return ''
-    link.short_description = _('link')
 
 
 admin.site.register(ProductReview, ProductReviewAdmin)

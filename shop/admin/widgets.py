@@ -1,6 +1,7 @@
 import uuid
 
 import json
+from urllib.parse import quote
 
 from django import forms
 from django.conf import settings
@@ -10,11 +11,17 @@ from django.forms.widgets import Widget, TextInput
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from django.utils.encoding import force_str
-from django.utils.html import format_html, escape
+from django.utils.html import conditional_escape, escapejs, format_html, format_html_join
 
 # from tagging.models import Tag
 
 SHOP_INFO = getattr(settings, 'SHOP_INFO', {})
+
+
+def escaped(**values):
+    """ The values to put into a %-template of HTML, escaped unless marked safe """
+    return {key: conditional_escape(value) for key, value in values.items()}
+
 
 BOOTSTRAP_INPUT_TEMPLATE = {
     2: """
@@ -71,7 +78,7 @@ class PhoneWidget(TextInput):
         id = final_attrs.get('id', uuid.uuid4().hex)
 
         return mark_safe(
-            BOOTSTRAP_INPUT_TEMPLATE[self.bootstrap_version] % dict(
+            BOOTSTRAP_INPUT_TEMPLATE[self.bootstrap_version] % escaped(
                 id=id,
                 rendered_widget=rendered_widget,
                 glyphicon=self.glyphicon,
@@ -94,21 +101,21 @@ class YandexDeliveryWidget(TextInput):
             glyphicon = 'pencil-dollar'
             if value.find("YD") >= 0:  # Legacy Yandex Delivery.
                 yd_id = value[value.find("YD") + 2:]
-                popup = 'https://delivery.yandex.ru/order/create?id=' + yd_id
+                popup = 'https://delivery.yandex.ru/order/create?id=' + quote(yd_id)
             else:
                 yd_id = value
-                popup = 'https://partner.market.yandex.ru/delivery/{}/orders/item/{}'.format(self.yd_campaign, yd_id)
+                popup = 'https://partner.market.yandex.ru/delivery/{}/orders/item/{}'.format(self.yd_campaign, quote(yd_id))
             link_class = ''
             data = ''
         else:
             glyphicon = 'circle-plus'
             popup = reverse('admin:shop_order_yandex_delivery', args=[self.order_id]) + '?_popup=1'
             link_class = ' related-widget-wrapper-link'
-            data = ' data-popup="yes"'
+            data = mark_safe(' data-popup="yes"')
 
         output = [super(YandexDeliveryWidget, self).render(name, value, attrs, renderer)]
         output.append('''<a class="button%(link_class)s"%(data) style="display: inline-block; margin-left: 7px"
-                          id="%(id)s_create_link" href="%(popup)s"><i class="ti ti-%(glyphicon)s"></i></a>''' % dict(
+                          id="%(id)s_create_link" href="%(popup)s"><i class="ti ti-%(glyphicon)s"></i></a>''' % escaped(
                               id=id,
                               glyphicon=glyphicon,
                               popup=popup,
@@ -117,7 +124,7 @@ class YandexDeliveryWidget(TextInput):
                           ))
         if not value:
             output.append('''<a class="button related-widget-wrapper-link" data-popup="yes" style="display: inline-block"
-                              id="%(id)s_estimate_link" href="%(popup)s?_popup=1"><i class="ti ti-report-money"></i></a>''' % dict(
+                              id="%(id)s_estimate_link" href="%(popup)s?_popup=1"><i class="ti ti-report-money"></i></a>''' % escaped(
                                   id=id,
                                   popup=reverse('admin:shop_order_yandex_delivery_estimate', args=[self.order_id])
                               ))
@@ -132,7 +139,7 @@ class YandexDeliveryWidget(TextInput):
                             }
                         });
                     }(django.jQuery));
-                </script>''' % dict(id=id))
+                </script>''' % escaped(id=id))
 
         return mark_safe(''.join(output))
 
@@ -152,18 +159,18 @@ class DeliveryTrackingNumberWidget(TextInput):
         if value:
             popup = None
             if self.utm_source == 'ozon':
-                popup = 'https://seller.ozon.ru/app/postings/fbs/?postingDetails={postingId}'.format(postingId=value)
+                popup = 'https://seller.ozon.ru/app/postings/fbs/?postingDetails={postingId}'.format(postingId=quote(value))
             elif self.ym_campaign:
-                popup = 'https://partner.market.yandex.ru/supplier/{campaignId}/orders/{orderId}?id={campaignId}'.format(campaignId=self.ym_campaign, orderId=value)
+                popup = 'https://partner.market.yandex.ru/supplier/{campaignId}/orders/{orderId}?id={campaignId}'.format(campaignId=self.ym_campaign, orderId=quote(value))
 
             if popup:
                 link_class = ''
                 final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
                 # final_attrs['value'] = force_str(self.format_value(value))
                 # final_attrs['type'] = 'hidden'
-                output = ['<input{0} />№{1}'.format(flatatt(final_attrs), value)]
+                output = [format_html('<input{} />№{}', flatatt(final_attrs), value)]
                 output.append('''<a class="button%(link_class)s" style="display: inline-block; margin-left: 7px"
-                              id="%(id)s_create_link" href="%(popup)s"><i class="ti ti-pencil"></i></a>''' % dict(
+                              id="%(id)s_create_link" href="%(popup)s"><i class="ti ti-pencil"></i></a>''' % escaped(
                     id=id,
                     popup=popup,
                     link_class=link_class
@@ -218,10 +225,10 @@ class TagAutoComplete(widgets.AdminTextInputWidget):
             (function($) {{
                 function select2InputTags(queryStr) {{
                     var $input = $(queryStr);
-                    var $select = $('<select class="'+ $input.attr('class') + '" multiple="multiple"><select>');
+                    var $select = $('<select multiple="multiple"></select>').attr('class', $input.attr('class'));
                     if ($input.val() != "") {{
                         $input.val().split(',').forEach(function(item) {{
-                            $select.append('<option value="' + item + '" selected="selected">' + item + '</option>');
+                            $select.append($('<option selected="selected"></option>').val(item).text(item));
                         }});
                     }}
                     $select.insertAfter($input);
@@ -243,7 +250,8 @@ class TagAutoComplete(widgets.AdminTextInputWidget):
                     }});
                 }});
             }}(django.jQuery));
-            </script>'''.format(name, self.attrs.get('maxlength', '50'), json.dumps(self.get_tags())))
+            </script>'''.format(escapejs(name), int(self.attrs.get('maxlength', 50)),
+                                json.dumps(self.get_tags()).replace('<', '\\u003c')))
         return mark_safe('\n'.join(output))
 
     @property
@@ -282,7 +290,7 @@ class ImageWidget(widgets.AdminFileWidget):
     def render(self, name, value, attrs=None, renderer=None):
         output = [super().render(name, value, attrs, renderer)]
         if value and getattr(value, 'url', None):
-            output.append('<a href="{0}" target="_blank"><img src="{0}" alt="{1}" width="150" height="150" style="object-fit: contain;"/></a>'.format(value.url, str(value)))
+            output.append(format_html('<a href="{0}" target="_blank"><img src="{0}" alt="{1}" width="150" height="150" style="object-fit: contain;"/></a>', value.url, str(value)))
         return mark_safe('\n'.join(output))
 
 
@@ -305,7 +313,7 @@ class ReadOnlyInput(Widget):
         if self.value is None:
             self.value = value
         final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
-        return mark_safe('<input{} />{}'.format(flatatt(final_attrs), self.value))
+        return format_html('<input{} />{}', flatatt(final_attrs), self.value)
 
 
 class OrderItemProductLink(Widget):
@@ -319,17 +327,17 @@ class OrderItemProductLink(Widget):
     def render(self, name, value, attrs=None, renderer=None):
         final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
         if (self.object.order.integration and self.object.order.integration.uses_boxes) or self.object.order.delivery == self.object.order.DELIVERY_YANDEX:
-            dimensions = mark_safe("<br/>{} кг {}&times;{}&times;{} см".format(
+            dimensions = format_html(
+                "<br/>{} кг {}&times;{}&times;{} см",
                 self.num(self.object.product.prom_weight), self.num(self.object.product.length), self.num(self.object.product.width),
                 self.num(self.object.product.height))
-            )
         else:
             dimensions = ""
         return format_html(
             '<p><a href="{}/products/{}.html" target="_blank" style="margin-right: 8px"><i class="ti ti-external-link"></i></a>'
             '<input{} /><a href="{}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">{}</a>'
             ' <a href="{}?_popup=1" class="related-widget-wrapper-link" data-popup="yes" title="Гарантийный талон"><i class="ti ti-ticket"></i></a>'
-            '&nbsp;<span class="tiny">{}</span>{}</p>', SHOP_INFO.get('url_prefix', ''), self.object.product.code, flatatt(final_attrs),
+            '&nbsp;<span class="tiny">{}</span>{}</p>', SHOP_INFO.get('url_prefix', ''), quote(self.object.product.code), flatatt(final_attrs),
             reverse('admin:shop_product_stock', args=[self.object.product.id]), str(self.object.product),
             reverse('admin:print-warranty-card', args=[self.object.order.id, self.object.pk]), self.object.serial_number, dimensions)
 
@@ -347,9 +355,9 @@ class DisablePluralText(forms.TextInput):
         if value != '':
             final_attrs['value'] = force_str(self.format_value(value))
         if self.object.total > 0:
-            return mark_safe('<input{0} readonly="readonly" />'.format(flatatt(final_attrs)))
+            return format_html('<input{} readonly="readonly" />', flatatt(final_attrs))
         else:
-            return mark_safe('<input{0} />'.format(flatatt(final_attrs)))
+            return format_html('<input{} />', flatatt(final_attrs))
 
 
 class OrderItemTotalText(forms.TextInput):
@@ -365,10 +373,10 @@ class OrderItemTotalText(forms.TextInput):
         if value != '':
             final_attrs['value'] = force_str(self.format_value(value))
         if self.object.total > 0:
-            return mark_safe('<input{0} />'.format(flatatt(final_attrs)))
+            return format_html('<input{} />', flatatt(final_attrs))
         else:
             final_attrs['type'] = 'hidden'
-            return mark_safe('<p><input{0} />{1}</p>'.format(flatatt(final_attrs), self.object.quantity * self.object.cost))
+            return format_html('<p><input{} />{}</p>', flatatt(final_attrs), self.object.quantity * self.object.cost)
 
 
 class ListTextWidget(forms.TextInput):
@@ -380,8 +388,5 @@ class ListTextWidget(forms.TextInput):
         _id = attrs.get('id', uuid.uuid4().hex)
         attrs.update({'list': 'list__%s' % _id})
         text_html = super(ListTextWidget, self).render(name, value, attrs=attrs)
-        data_list = '<datalist id="list__%s">' % _id
-        for item in self._list:
-            data_list += '<option value="%s">' % escape(item)
-        data_list += '</datalist>'
-        return (text_html + data_list)
+        options = format_html_join('', '<option value="{}">', ((item,) for item in self._list))
+        return format_html('{}<datalist id="list__{}">{}</datalist>', text_html, _id, options)

@@ -272,7 +272,8 @@ class ProductListAdminForm(forms.ModelForm):
         instance = kwargs.get('instance')
         if instance:
             initial = kwargs.get('initial', {})
-            initial['integrations'] = instance.integrations.values_list("id", flat=True)
+            # prefetched by the list, see ProductChangeList
+            initial['integrations'] = [integration.pk for integration in instance.integrations.all()]
             kwargs['initial'] = initial
         super().__init__(*args, **kwargs)
 

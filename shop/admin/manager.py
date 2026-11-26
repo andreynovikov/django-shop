@@ -1,16 +1,14 @@
 from django.contrib import admin
-from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 
 from shop.models import Manager
 
 
 @admin.register(Manager)
 class ManagerAdmin(admin.ModelAdmin):
-    @mark_safe
+    @admin.display(description='цвет', ordering='color')
     def colorbar(self, obj):
-        return '<div style="width: 40px; background-color: ' + obj.color + '">&nbsp;</div>'
-    colorbar.admin_order_field = 'color'
-    colorbar.short_description = 'цвет'
+        return format_html('<div style="width: 40px; background-color: {}">&nbsp;</div>', obj.color)
 
     list_display = ['name', 'colorbar']
     list_display_links = ['name']

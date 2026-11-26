@@ -116,44 +116,36 @@ class SiteProfileInline(admin.StackedInline):
     can_delete = False
 
 
-def get_site_prefix(obj):
-    return obj.profile.order_prefix
-
-
-get_site_prefix.short_description = 'префикс'
-
-
-def get_manager_phones(obj):
-    return obj.profile.manager_phones
-
-
-get_manager_phones.short_description = 'телефоны менеджеров'
-
-
-def get_manager_emails(obj):
-    return obj.profile.manager_emails
-
-
-get_manager_emails.short_description = 'адреса менеджеров'
-
-
+@admin.display(description='Sites')
 def get_sites(obj):
-    'returns a list of site names for a FlatPage object'
-    return ", ".join((site.name for site in obj.sites.all()))
-
-
-get_sites.short_description = 'Sites'
+    'returns a list of site names for a FlatPage object, an advert or a sales action'
+    return ", ".join(site.name for site in obj.sites.all())
 
 
 def configure_admin():
     admin.site.enable_nav_sidebar = False
 
+    # Imported here, when the apps are ready: at the top they would register their admins while the site is made
     from django.contrib.sites.admin import SiteAdmin
     from django.contrib.sites.models import Site
-    SWSiteAdmin = type('SWSiteAdmin', (SiteAdmin,), {
-        'list_display': ('domain', 'name', get_site_prefix, get_manager_phones, get_manager_emails),
-        'inlines': (SiteProfileInline,)
-    })
+
+    class SWSiteAdmin(SiteAdmin):
+        list_display = ('domain', 'name', 'get_site_prefix', 'get_manager_phones', 'get_manager_emails')
+        inlines = (SiteProfileInline,)
+        list_select_related = ['profile']
+
+        @admin.display(description='префикс')
+        def get_site_prefix(self, obj):
+            return obj.profile.order_prefix
+
+        @admin.display(description='телефоны менеджеров')
+        def get_manager_phones(self, obj):
+            return obj.profile.manager_phones
+
+        @admin.display(description='адреса менеджеров')
+        def get_manager_emails(self, obj):
+            return obj.profile.manager_emails
+
     admin.site.unregister(Site)
     admin.site.register(Site, SWSiteAdmin)
 
@@ -167,9 +159,10 @@ def configure_admin():
 
     from django.contrib.flatpages.admin import FlatPageAdmin
     from django.contrib.flatpages.models import FlatPage
-    SWFlatPageAdmin = type('SWFlatPageAdmin', (FlatPageAdmin,), {
-        'list_display': ('url', 'title', get_sites),
-        'fieldsets': (
+
+    class SWFlatPageAdmin(FlatPageAdmin):
+        list_display = ('url', 'title', get_sites)
+        fieldsets = (
             (None, {'fields': ('url', 'title', 'content', 'sites')}),
             (_('Advanced options'), {
                 'classes': ('collapse', ),
@@ -179,11 +172,14 @@ def configure_admin():
                     'template_name',
                 ),
             }),
-        ),
-        'formfield_overrides': {  # content is its only text field
+        )
+        formfield_overrides = {  # content is its only text field
             models.TextField: {'widget': HTMLTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'})},
-        },
-    })
+        }
+
+        def get_queryset(self, request):
+            return super().get_queryset(request).prefetch_related('sites')
+
     admin.site.unregister(FlatPage)
     admin.site.register(FlatPage, SWFlatPageAdmin)
 

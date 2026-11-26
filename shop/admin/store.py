@@ -1,7 +1,6 @@
 from django.db.models import ImageField
 from django.conf import settings
 from django.contrib import admin
-from django.core.exceptions import PermissionDenied
 from django.template.response import TemplateResponse
 from django.urls import path
 
@@ -11,6 +10,7 @@ from more_admin_filters import RelatedDropdownFilter
 from shop.models import Store, StoreImage
 from .widgets import ImageWidget
 from .forms import StoreAdminForm
+from .views import check_permission
 
 SHOP_INFO = getattr(settings, 'SHOP_INFO', {})
 
@@ -48,8 +48,7 @@ class StoreAdmin(SortableAdminBase, admin.ModelAdmin):
         return my_urls + urls
 
     def yandex_map_feed_view(self, request):
-        if not request.user.is_staff:
-            raise PermissionDenied
+        check_permission(self, request)
         stores = Store.objects.filter(enabled=True, publish=True)
         context = {
             'stores': stores,

@@ -17,6 +17,9 @@ class SalesActionAdmin(SortableAdminMixin, admin.ModelAdmin):
     search_fields = ['name', 'slug']
     form = SalesActionAdminForm
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('sites')  # for get_sites
+
     def view_on_site(self, obj):
         prefix = SHOP_INFO.get('url_prefix', '')
         return f'{prefix}/actions/{obj.slug}/'

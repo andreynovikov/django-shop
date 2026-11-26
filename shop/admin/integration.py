@@ -9,7 +9,7 @@ from .forms import IntegrationAdminForm, integration_label
 @admin.register(Integration)
 class IntegrationAdmin(admin.ModelAdmin):
     form = IntegrationAdminForm
-    list_display = ['display_name', 'enabled', 'uses_api', 'utm_source', 'source_site', 'target_site', 'output_template', 'seller', 'supplier_list']
+    list_display = ['display_name', 'enabled', 'uses_api', 'utm_source', 'source_site', 'output_template', 'seller', 'supplier_list']
     list_filter = ['source_site', 'target_site', 'output_template', ('seller', RelatedDropdownFilter), 'enabled']
     list_select_related = ('source_site', 'target_site', 'seller')
     exclude = ['products']
@@ -19,9 +19,10 @@ class IntegrationAdmin(admin.ModelAdmin):
     def display_name(self, obj):
         return integration_label(obj)
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('suppliers')
+
+    @admin.display(description='поставщики')
     def supplier_list(self, obj):
-        if obj.suppliers.all().count():
-            return ', '.join([s.name for s in obj.suppliers.all()])
-        else:
-            return '-'
-    supplier_list.short_description = "поставщики"
+        # none shows as the admin's '-'
+        return ', '.join(supplier.name for supplier in obj.suppliers.all())

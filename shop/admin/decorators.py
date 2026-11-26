@@ -1,3 +1,4 @@
+from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -36,6 +37,7 @@ def admin_changelist_link(attr, short_description, empty_description="-", model=
             return credit_card.name
     """
     def wrap(func):
+        @admin.display(description=short_description)
         def field_func(self, obj):
             if model is None:
                 related_obj = getattr(obj, attr)
@@ -49,7 +51,5 @@ def admin_changelist_link(attr, short_description, empty_description="-", model=
             if query_string:
                 url += '?' + query_string(obj)
             return format_html('<a href="{}">{}</a>', url, mark_safe(title))
-        field_func.short_description = short_description
-        field_func.allow_tags = True
         return field_func
     return wrap

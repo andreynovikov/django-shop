@@ -11,16 +11,22 @@ import openpyxl
 
 from django import forms
 from django.contrib.admin import helpers
+from django.contrib.auth.models import Permission
 from django.contrib.admin.sites import site as admin_site
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sites.models import Site
+from django.core.exceptions import PermissionDenied
+from django.http import Http404
 from django.test import RequestFactory, TestCase, override_settings
-from django.urls import path, reverse
+from django.urls import path, resolve, reverse
 
 from shop.admin.forms import YandexDeliveryForm
-from shop.models import Act, ActOrder, Box, Contractor, Order, OrderItem, ShopUser, Stock, Supplier
+from shop.models import Act, ActOrder, Box, Contractor, Courier, Integration, Manager, Order, OrderItem, ShopUser, \
+    Stock, Supplier
+from sewingworld.models import SiteProfile
 
+from .clients import count_queries
 from .fixtures import add_marketplace_sites, add_product
 
 # The admin is served by a process of its own (ADMIN=True), its views and templates need its URLs
@@ -71,10 +77,10 @@ class Base(TestCase):
                                    prom_weight=0.1, length=10, width=5, height=1)
         self.thread = add_product(3, article='A3', title='Нитки')
 
-    def request(self, data=None, query=None):
-        """ POST of the data, or GET with the query """
+    def request(self, data=None, query=None, user=None):
+        """ POST of the data, or GET with the query, by the superuser unless another user is given """
         request = RequestFactory().post('/', data) if data is not None else RequestFactory().get('/', query)
-        request.user = self.staff
+        request.user = user or self.staff
         request.user.is_verified = lambda: True  # passed the second factor, as OTPMiddleware tells the admin site
         request.session = SessionStore()
         request._messages = FallbackStorage(request)
@@ -435,3 +441,118 @@ class FormPageTests(Base):
                 for order in orders:
                     self.assertIn('<input type="hidden" name="_selected_action" value="%s" />' % order.pk, html)
         self.assertNotIn('messages', self.admin.order_stock_action(self.selected(*orders), self.queryset(*orders)).context_data)
+
+
+class ListTests(Base):
+    """ The list of orders """
+
+    def setUp(self):
+        super().setUp()
+        SiteProfile.objects.update_or_create(site=self.site, defaults={'order_prefix': 'SW'})
+        self.manager = Manager.objects.create(name='Менеджер', color='#ba2121')
+        self.courier = Courier.objects.create(name='Курьер')
+        self.integration = Integration.objects.create(name='Маркет', utm_source='market', source_site=self.site,
+                                                      target_site=self.site, uses_api=True)
+
+    def changelist(self):
+        return self.admin.changelist_view(self.request(query={})).render()
+
+    def add_orders(self, count):
+        for _ in range(count):
+            self.order((self.machine, 1), (self.needles, 2), manager=self.manager, owner=self.staff, courier=self.courier)
+            self.order((self.thread, 3), integration=self.integration)
+
+    def test_queries_do_not_grow_with_the_orders(self):
+        self.add_orders(1)
+        few = count_queries(self.changelist)
+        self.add_orders(3)
+        self.assertContains(self.changelist(), 'class="action-select"', count=8)
+        self.assertEqual(count_queries(self.changelist), few)
+
+    def test_customer_data_is_escaped(self):
+        self.order(name='<script>alert(1)</script>', delivery_info='"Доставка" <b>')
+        html = self.changelist().content.decode()
+        self.assertIn('&lt;script&gt;alert(1)&lt;/script&gt;', html)
+        self.assertIn('&quot;Доставка&quot; &lt;b&gt;', html)
+        self.assertNotIn('<script>alert(1)', html)
+
+
+class PermissionTests(Base):
+    """ Actions and custom views need the permissions on orders that what they do needs, not just staff """
+
+    def staff_with(self, *permissions):
+        user = ShopUser.objects.create(phone='+7999000%04d' % ShopUser.objects.count(), is_staff=True)
+        user.user_permissions.set(Permission.objects.filter(content_type__app_label='shop', codename__in=permissions))
+        return ShopUser.objects.get(pk=user.pk)  # without the cache of permissions
+
+    def actions(self, user):
+        """ The order admin's own actions the user gets, without those that apps like massadmin add to every admin """
+        return set(self.admin.get_actions(self.request(query={}, user=user))) & set(self.admin.actions)
+
+    def test_actions_of_those_who_only_view(self):
+        self.assertEqual(self.actions(self.staff_with('view_order')), {
+            'order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_stock_action',
+            'order_products_action', 'order_beru_action', 'beru_labels'})
+        self.assertEqual(self.actions(self.staff_with('change_order')), set(self.admin.actions))
+        self.assertEqual(self.actions(self.staff_with()), set())
+
+    def test_views_that_change_an_order(self):
+        order = self.order((self.machine, 1))
+        viewer = self.staff_with('view_order')
+        with self.assertRaises(PermissionDenied):
+            self.admin.discount_form(self.request({'discount': 5, 'unit': 'pct'}, user=viewer), order.pk)
+        with self.assertRaises(PermissionDenied):
+            self.admin.combine_form(self.request({'order_number': self.order().pk}, user=viewer), order.pk)
+        self.assertEqual(order.items.get().pct_discount, 0)
+        self.assertEqual(self.admin.unlock(self.request(query={}, user=viewer), order.pk).status_code, 200)
+        with self.assertRaises(PermissionDenied):
+            self.admin.document(self.request(query={}, user=self.staff_with()), order.pk, 'bill')
+
+    def test_staff_of_some_sites_get_only_their_orders(self):
+        order = self.order((self.machine, 1))
+        spb = self.staff_with('view_order', 'change_order', 'change_order_spb')
+        with self.assertRaises(Http404):
+            self.admin.document(self.request(query={}, user=spb), order.pk, 'bill')
+        with self.assertRaises(Http404):
+            self.admin.discount_form(self.request({'discount': 5, 'unit': 'pct'}, user=spb), order.pk)
+
+    @mock.patch('django.contrib.admin.ModelAdmin.change_view')  # the form itself needs constance from the cache
+    def test_opening_without_change_permission_does_not_lock(self, change_view):
+        order = self.order()
+        self.admin.change_view(self.request(query={}, user=self.staff_with('view_order')), str(order.pk))
+        order.refresh_from_db()
+        self.assertIsNone(order.owner)
+        self.admin.change_view(self.request(query={}), str(order.pk))
+        order.refresh_from_db()
+        self.assertEqual(order.owner, self.staff)
+
+
+class UrlTests(Base):
+    """ The URLs of the custom views, which templates and widgets reverse with positional arguments """
+
+    def test_urls(self):
+        for name, args, kwargs in (
+            ('shop_order_document', [5, 'bill'], {'id': 5, 'template': 'bill'}),
+            ('shop_order_product_list', [], {}),
+            ('print-warranty-card', [5, 7], {'order_id': 5, 'item_id': 7}),
+            ('shop_order_combine', [5], {'id': 5}),
+            ('shop_order_discount', [5], {'id': 5}),
+            ('shop_order_yandex_delivery', [5], {'id': 5}),
+            ('shop_order_yandex_delivery_estimate', [5], {'id': 5}),
+            ('shop_order_beru_labels', [5], {'arg': 5}),
+            ('shop_order_unlock', [5], {'id': 5}),
+            ('shop_order_send_sms', ['+79161234567'], {'phone': '+79161234567'}),
+            ('shop_act_print', [5], {'id': 5}),
+            ('shop_product_stock', [5], {'id': 5}),
+            ('shop_product_clone', [5], {'id': 5}),
+            ('shop_product_stock_correction', [], {}),
+            ('shop_product_import_1c', [], {}),
+            ('shop_product_import_1c_status', [], {}),
+        ):
+            with self.subTest(name):
+                url = reverse('admin:' + name, args=args)
+                self.assertEqual(resolve(url).kwargs, kwargs)
+
+    def test_document_names_are_words(self):
+        with self.assertRaises(Exception):
+            reverse('admin:shop_order_document', args=[5, '../bill'])

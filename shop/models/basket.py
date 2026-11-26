@@ -3,6 +3,7 @@ import re
 
 from decimal import Decimal, ROUND_UP, ROUND_HALF_EVEN
 
+from django.contrib import admin
 from django.contrib.humanize.templatetags.humanize import intcomma
 from django.contrib.sessions.models import Session
 from django.contrib.sites.models import Site
@@ -185,11 +186,9 @@ class Basket(models.Model):
             self.session_id = session_key
             self.save()
 
+    @admin.display(description='Created recently?', ordering='created', boolean=True)
     def was_created_recently(self):
         return self.created >= timezone.now() - datetime.timedelta(days=1)
-    was_created_recently.admin_order_field = 'created'
-    was_created_recently.boolean = True
-    was_created_recently.short_description = 'Created recently?'
 
 
 class BasketItem(models.Model):

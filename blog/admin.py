@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
 from django.urls import NoReverseMatch
-from django.utils.html import conditional_escape, format_html
+from django.utils.html import format_html
 
 from filemanager.widgets import HTMLTextarea
 
@@ -44,30 +44,33 @@ class EntryAdmin(admin.ModelAdmin):
             kwargs['widget'] = HTMLTextarea(attrs={'rows': 15, 'style': 'width: 95%; max-height: 500px'})
         return super().formfield_for_dbfield(db_field, request, **kwargs)
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('categories', 'sites', 'tags')
+
+    # Plain text, which the admin escapes: escaped here, a joined list was escaped twice
+    @admin.display(description='категории')
     def get_categories(self, entry):
-        return ', '.join([conditional_escape(category.title) for category in entry.categories.all()])
-    get_categories.short_description = 'категории'
+        return ', '.join(category.title for category in entry.categories.all())
 
+    @admin.display(description='тэги')
     def get_tags(self, entry):
-        return conditional_escape(entry.tags)
-    get_tags.short_description = 'тэги'
+        return str(entry.tags)  # tagulous gives the tag string
 
+    @admin.display(description='сайты')
     def get_sites(self, entry):
-        return ', '.join([conditional_escape(site.name) for site in entry.sites.all()])
-    get_sites.short_description = 'сайты'
+        return ', '.join(site.name for site in entry.sites.all())
 
+    @admin.display(description='короткий url')
     def get_short_url(self, entry):
         try:
             short_url = entry.short_url
         except NoReverseMatch:
             short_url = entry.get_absolute_url()
         return format_html('<a href="{url}" target="blank">{url}</a>', url=short_url)
-    get_short_url.short_description = 'короткий url'
 
+    @admin.display(description='видимая', boolean=True)
     def get_is_visible(self, entry):
         return entry.is_visible
-    get_is_visible.boolean = True
-    get_is_visible.short_description = 'видимая'
 
     def get_changeform_initial_data(self, request):
         get_data = super(EntryAdmin, self).get_changeform_initial_data(request)
