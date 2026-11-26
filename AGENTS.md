@@ -43,6 +43,7 @@ python manage.py postman_spec /tmp/spec.json  # OpenAPI spec of the Postman coll
 ```
 
 - Add new Python files to the lint invocation. `.flake8` ignores E501; follow existing formatting and PEP 8 otherwise. CI runs `uv run --locked --only-dev flake8` in a clean checkout.
+- Use f-strings in new code and convert `%` formatting only in lines already being edited; no bulk rewrite. Keep `%` in logging arguments (lazy), translated strings (`_('%(name)s') % {...}`, the catalogs' msgids) and SQL placeholders; move HTML snippets to `format_html`. When converting, mind tuple operands, width/precision specs and `%d`'s integer check.
 - Use unittest/Django test cases in `tests/` and explicit test labels. Only `errors` and `filemanager` dependency tests belong in the backend suite; other packages may require their own settings and `auth.User`.
 - `.github/workflows/tests.yml` uses PostgreSQL 16. Backup/restore checks need matching PostgreSQL client tools, `jq` and restic >= 0.17; append-only server checks use `restic-rest-server`. A skipped prerequisite check is not verification.
 - If the local role cannot create databases, use an available private PostgreSQL cluster on TCP `127.0.0.1` with a short socket path or disabled Unix sockets. Report any major-version difference from CI. Review generated migrations for unrelated model drift before keeping them.
