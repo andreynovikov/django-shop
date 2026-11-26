@@ -61,6 +61,26 @@
   loop_control:
     label: "{{ item.key }}"
 
+- name: Find the storefront configurations
+  ansible.builtin.stat:
+    path: "{{ item.value.directory }}/.env.storefront"
+  loop: "{{ server_frontend_sites | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  register: storefront_envs
+
+# The deploy account runs Compose but doesn't read the file: the Docker daemon mounts it into the container, where
+# the storefront runs as the service user
+- name: Let only root and the service user read the storefront configurations
+  ansible.builtin.file:
+    path: "{{ item.stat.path }}"
+    owner: root
+    group: "{{ server_app_user }}"
+    mode: "0640"
+  loop: "{{ storefront_envs.results | selectattr('stat.exists') | list }}"
+  loop_control:
+    label: "{{ item.stat.path }}"
+
 - name: Create the storefront configuration directory
   ansible.builtin.file:
     path: /etc/sworld

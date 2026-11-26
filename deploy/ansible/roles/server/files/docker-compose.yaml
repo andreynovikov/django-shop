@@ -10,6 +10,13 @@ services:
       target: runner
       args:
         entity: "${STOREFRONT_BRANCH:?Set STOREFRONT_BRANCH}"
+      secrets:
+        - storefront_env
+    # The image has no configuration: Next.js reads it from .env.local, which the storefront's startup.sh requires.
+    # The file stays root:sworld 0640 on the host, and the container runs as sworld.
+    secrets:
+      - source: storefront_env
+        target: /app/.env.local
     volumes:
       # Host nginx serves the static files that the container publishes here.
       - ./.docker/:/app/.docker/
@@ -29,3 +36,8 @@ services:
       options:
         syslog-address: unixgram:///run/systemd/journal/dev-log
         tag: "{{.Name}}/{{.ID}}"
+
+secrets:
+  # The storefront's configuration, the same as the ENV_FILE secret of its GitHub environment
+  storefront_env:
+    file: ./.env.storefront

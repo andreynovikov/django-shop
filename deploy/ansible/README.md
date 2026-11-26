@@ -13,7 +13,8 @@ These steps stay manual, as [deploy/README.md](../README.md) describes them:
 - the nginx `htpasswd` file (copy privately or provision separately with ansible-vault);
 - users' OTP codes (`google-authenticator`);
 - TLS certificates of the sites and of the backup host;
-- the backend checkout and site configuration, including `.env` files and storefront feed templates;
+- the backend checkout and site configuration, including `.env` files, the storefronts' `.env.storefront` and their
+  feed templates;
 - saving the backup repository password in the password manager.
 
 PostgreSQL runs on a separate server.

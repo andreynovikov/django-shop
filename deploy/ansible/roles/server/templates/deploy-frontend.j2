@@ -17,6 +17,8 @@ esac
 case $tag in
   *[!0-9a-f.-]* | '') echo "bad tag $tag" >&2; exit 2 ;;
 esac
+# The configuration the shared Compose file mounts into the container
+[ -f "$dir/.env.storefront" ] || { echo "No $dir/.env.storefront: see Frontend deployment in deploy/README.md" >&2; exit 1; }
 STOREFRONT_UID=$(id -u {{ server_app_user | quote }})
 STOREFRONT_GID=$(id -g {{ server_app_user | quote }})
 export STOREFRONT_UID STOREFRONT_GID

@@ -596,7 +596,7 @@ when they change.
 [Shared Compose source](ansible/roles/server/files/docker-compose.yaml)
 
 Each branch has its own `.github/workflows/frontend.yml`. Every push to the branch runs lint and type checks, builds
-the image with the frontend's `.env`, and pushes it to `ghcr.io/andreynovikov/<branch>`. The image is tagged with
+the image, and pushes it to `ghcr.io/andreynovikov/<branch>`. The image is tagged with
 the commit's date in Moscow time and its short hash, such as `2026.11.11-7f57710`, and with `latest`. sworld also
 runs the Playwright tests and deploys every push to stage.
 
@@ -620,6 +620,33 @@ STOREFRONT_UID=$(id -u sworld) && STOREFRONT_GID=$(id -g sworld) &&
 The `frontend.yml` on `main` only puts the Run workflow button on the Actions page: GitHub shows it only for workflows
 on the default branch. Run on `main`, it fails.
 
+## Storefront configuration
+
+The images hold no configuration (older ones still contain a `.env`, which the mounted file overrides, so a
+rollback to them works too). Each deployment directory has its own `.env.storefront`, the same content as the
+`ENV_FILE` secret of the branch's GitHub environment (see [GitHub settings](#github-settings)); stage's is a copy of
+sworld's. The shared Compose file mounts it read-only into the container as `/app/.env.local`, where Next.js reads it
+at start, and the container refuses to start without it. The build reads `ENV_FILE` the same way, as a secret that
+is mounted only while it runs and stays out of the image's layers. Create the file before the first deploy, as root
+and readable only by root and the service user:
+
+```sh
+sudo install -o root -g sworld -m 640 /dev/null /www/janome.club/.env.storefront
+sudoedit /www/janome.club/.env.storefront
+```
+
+The `deployment` Ansible tag resets the owner and mode of existing files. The deploy account runs Compose but cannot
+read them: the Docker daemon mounts the file, and the storefront reads it as the service user.
+
+Server-only settings (`API_SERVER`, `API_TOKEN`, `FRONTEND_KEY`, `REVALIDATION_TOKEN`) take effect when the container
+is recreated: change the file, then run the manual start command above with the running image's tag (`docker inspect
+--format '{{.Config.Image}}' nextjs-<NAME>`) and `--force-recreate`. A deploy of the same image doesn't recreate it,
+and `docker restart` may keep the old file if the editor replaced it rather than writing into it. Change `ENV_FILE` too,
+so the next build uses the same values. The `NEXT_PUBLIC_*` settings are compiled
+into the browser code, and the build also renders pages and the image settings from `API_SERVER`, `API_TOKEN` and
+`FRONTEND_KEY`. So a change of those needs a new build as well: change `ENV_FILE` and the file on the server, then push a
+commit or re-run the last push's workflow run, and deploy the new image.
+
 ## Storefront service user
 
 All storefronts use the host's service account. On each deploy, the deploy script resolves the account's UID and
@@ -630,7 +657,8 @@ bind mounts.
 
 Run the `deployment` tag from `deploy/ansible` to create the configured storefront directories and their
 `sworld`-owned `.docker/` trees, and to install the shared Compose file and deploy script. Provision any feed
-templates before deploying. Rerun this tag after changing the shared configuration or the storefront list.
+templates and the [configuration](#storefront-configuration) before deploying. Rerun this tag after changing the
+shared configuration or the storefront list.
 
 ```sh
 ansible-playbook -i inventory.yml site.yml --limit server.example.ru -K --tags deployment
@@ -651,9 +679,10 @@ regenerated response under `/app/.next/server/route-cache/`.
 
 ## Emergency local build
 
-- `BUILD_CONTEXT` points to the storefront source checkout containing its Dockerfile and build-time `.env`.
+- `BUILD_CONTEXT` points to the storefront source checkout containing its Dockerfile.
 - `--project-directory` points to the deployment directory, where Compose resolves the `.docker/` and `templates/`
-  bind mounts.
+  bind mounts and `.env.storefront`. The build reads that file as a secret, as the container does, so the
+  checkout needs no `.env` (the Dockerfile's `.dockerignore` leaves out any `.env*` file).
 
 Both paths can point to the same directory. If the frontend source is already checked out in the deployment
 directory, omit `BUILD_CONTEXT`. It defaults to `.` relative to `--project-directory`.
@@ -683,8 +712,10 @@ Use the branch, deployment name, port and directory from the table.
 ## GitHub settings
 
 - Environments `sworld`, `family`, `janome`, `singer` and `dortak`, one per branch, each limited to its
-  branch. Each holds the secret `ENV_FILE`, the frontend's `.env`. Next.js builds it into the image, so the build
-  job reads it too, and sworld's stage runs the production image. Don't add required reviewers: they would also hold
+  branch. Each holds the secret `ENV_FILE`, the frontend's `.env`. The build job passes it to the Docker build as a
+  secret, which Next.js needs to compile the `NEXT_PUBLIC_*` settings and to render pages, and sworld's tests build
+  with it too. It doesn't end up in the image: the server has its own copy, see
+  [Storefront configuration](#storefront-configuration). sworld's stage runs the production image. Don't add required reviewers: they would also hold
   up the build job, which reads the environment without deploying to it.
 - No repository secret `ENV_FILE`: a job falls back to it when its environment has none, and would build a frontend
   with another one's `.env`.
