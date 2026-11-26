@@ -11,9 +11,9 @@ on:
     - cron: '0 3 * * 1'  # Mondays at 06:00 Moscow time
   workflow_dispatch:
 
-# Until this is true, a run only lists in its summary what it would delete
+# false: a run only lists in its summary what it would delete
 env:
-  DELETE: false
+  DELETE: true
 
 permissions: {}
 
