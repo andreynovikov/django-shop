@@ -4,7 +4,7 @@ import sanitizeHtml from 'sanitize-html'
 
 import { flattenCategoryTree, getCategoryDescendants } from '@/lib/categories'
 import { HttpError, loadCategories, loadCurrentSite, loadProducts } from '@/lib/queries'
-import { listIntegrations, retriveIntegrationByUtm, retriveIntegrationProducts } from '@/lib/queries'
+import { retriveIntegrationByUtm, retriveIntegrationProducts } from '@/lib/queries'
 import { CategoryTree, CategoryTreeItem, Integration, IntegrationProduct, ProductInfo } from '@/lib/types'
 
 export const revalidate = 3600
@@ -117,16 +117,8 @@ export async function GET(request: Request, { params }: RouteContext<'/xml/[file
   }
 }
 
+// No feed is rendered at build time: the templates are mounted on the server, so that they can be edited without a new
+// build, and the build has none or outdated ones. Each feed is rendered on its first request and then cached.
 export async function generateStaticParams() {
-  if (process.env.NODE_ENV !== 'production' || process.env.PLAYWRIGHT_TEST === 'true')
-    return []
-  
-  const integrations = await listIntegrations()
-  return integrations.filter(
-    integration => integration.enabled && integration.output_template
-  ).map(
-    integration => integration.utm_source
-  ).concat(
-    globalXmls
-  ).map(utm => ({filename: utm + '.xml'}))
+  return []
 }
