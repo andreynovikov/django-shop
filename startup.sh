@@ -1,6 +1,14 @@
 #!/bin/sh
 set -e
 
+# The image has no configuration of its own: the server mounts it as .env.local (see the Dockerfile), and Next.js
+# would start without API_SERVER and the keys if it couldn't read it.
+if [ ! -r ./.env.local ]; then
+  printf >&2 'Cannot read /app/.env.local as UID:GID %s:%s: mount the storefront configuration there\n' \
+    "$(id -u)" "$(id -g)"
+  exit 1
+fi
+
 # Check existing directories before copying or pruning anything in the nginx asset mount.
 if [ -d ./.docker ]; then
   blocked_dir=$(find ./.docker -type d \( ! -readable -o ! -writable -o ! -executable \) -print -quit)
