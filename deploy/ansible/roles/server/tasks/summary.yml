@@ -34,6 +34,9 @@
             if rollout_private_images | default([]) else [])
          + (['Backups are not set up: put the repository password into vault_restic_password of secrets.yml.']
             if backups_skipped else [])
+         + (['Backups are not set up: the backup host ' ~ server_backup_password_host ~ ' did not answer, and'
+             ~ ' vault_restic_password of secrets.yml has no repository password.']
+            if rollout_backup_password_missing | default(false) else [])
          + (['New backend sites ' ~ backend_new_sites | join(', ')
              ~ ' have no uploaded files yet: copy media/ from the old server, see "Quick setup with Ansible"'
              ~ ' in deploy/README.md.']

@@ -11,6 +11,8 @@
     state: directory
     mode: "0755"
 
+# A backup host that doesn't answer, or isn't set up yet, leaves the backups off and the summary says so, rather than
+# stopping the run
 - name: Read the repository password on the backup host
   ansible.builtin.slurp:
     src: /etc/db-backup/restic-password
@@ -18,7 +20,13 @@
   delegate_to: "{{ server_backup_password_host or inventory_hostname }}"
   register: restic_password
   when: vault_restic_password is not defined
+  ignore_unreachable: true
+  failed_when: false
   no_log: true
+
+- name: Remember whether the repository password is known
+  ansible.builtin.set_fact:
+    rollout_backup_password_missing: "{{ vault_restic_password is not defined and restic_password.content is not defined }}"
 
 - name: Copy the repository password
   ansible.builtin.copy:
@@ -26,6 +34,7 @@
     content: "{{ (vault_restic_password | trim) ~ '\n' if vault_restic_password is defined else restic_password.content | b64decode }}"
     owner: "{{ server_app_user }}"
     mode: "0400"
+  when: not rollout_backup_password_missing
   no_log: true
   diff: false
 
@@ -55,6 +64,7 @@
     enabled: true
     state: started
     daemon_reload: true
+  when: not rollout_backup_password_missing
   loop: "{{ server_db_backup_deployments }}"
 
 - name: Enable daily config backups
@@ -63,4 +73,5 @@
     enabled: true
     state: started
     daemon_reload: true
+  when: not rollout_backup_password_missing
   loop: "{{ server_db_backup_config_deployments }}"
