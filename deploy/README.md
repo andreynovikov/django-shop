@@ -659,23 +659,7 @@ sudo -u sworld .venv/bin/python manage.py collectstatic --noinput
 ```
 
 `.env` holds all the secrets, the credentials of the integrations (SMS gateways, marketplaces, mailing, 1C) included,
-which [settings/integrations.py](../sewingworld/settings/integrations.py) reads from it. They used to be in a gitignored
-`sewingworld/settings/integrations.py` of their own. To move a checkout that still has one, as the user who deploys it,
-in its directory (the converter comes with the new code, so it is taken from there before the pull):
-
-```sh
-git fetch
-git show origin/main:deploy/integrations_to_env.py \
-  | sudo .venv/bin/python - sewingworld/settings/integrations.py | sudo tee -a .env >/dev/null
-sudo mv sewingworld/settings/integrations.py "/root/integrations.py.$(basename "$PWD")"
-git pull
-.venv/bin/python -m compileall -q -x '/\.venv/' .
-sudo systemctl restart uwsgi@prod uwsgi@admin celery@prod celery_beat@prod
-```
-
-The converter prints the settings it doesn't know to the terminal, add those to `.env` by hand. `git pull` refuses
-while the old file is in the place of the new one, and the services need the restart to read `.env` again. For
-`dev.sigalev.ru`, restart `uwsgi@dev` instead. Delete the copy in `/root` once the integrations work.
+which [settings/integrations.py](../sewingworld/settings/integrations.py) reads from it.
 
 The service user cannot write `__pycache__` into the code either, and without compiled files Python compiles each
 module again at every start. `--compile-bytecode` above compiles the packages, and after each `git pull` compile
