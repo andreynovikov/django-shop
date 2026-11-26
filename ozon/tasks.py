@@ -141,17 +141,34 @@ def _status_fields(order, status):
     return {}
 
 
+def _warehouse_ids(integration):
+    # Several integrations can share one seller account (ozon and ozon_rfbs do), whose posting list holds the
+    # postings of all its warehouses. Each integration takes only the postings of its own warehouses.
+    return list(dict.fromkeys(str(warehouse['id']) for warehouse in integration.settings.get('warehouses', []) if warehouse.get('id')))
+
+
 @sensitive_variables()
 def _sync_posting(integration, posting, session, *, reconcile):
     posting_number = posting.get('posting_number')
     if not posting_number:
         return False
+    warehouses = _warehouse_ids(integration)
+    warehouse_id = (posting.get('delivery_method') or {}).get('warehouse_id')
+    if warehouses and warehouse_id and str(warehouse_id) not in warehouses:
+        return False
 
     status = posting.get('status')
     with transaction.atomic():
-        # Serialize poll and push imports before an Order row exists.
-        Integration.objects.select_for_update(no_key=True).only('pk').get(pk=integration.pk)
-        order = Order.objects.select_for_update().filter(integration=integration, delivery_tracking_number=posting_number).first()
+        # Serialize poll and push imports of all Ozon integrations before an Order row exists: they may share an account.
+        ozon_integrations = Integration.objects.filter(source_site_id=integration.source_site_id)
+        list(ozon_integrations.select_for_update(no_key=True).order_by('pk').values_list('pk', flat=True))
+        # Posting numbers are unique on Ozon, so the posting may already be the order of another integration.
+        order = (Order.objects.select_for_update().order_by('pk')
+                 .filter(integration__in=ozon_integrations, delivery_tracking_number=posting_number).first())
+        if order is not None and order.integration_id != integration.pk:
+            logger.warning('Ozon posting %s of integration %s is already order %s of integration %s',
+                           posting_number, integration.pk, order.pk, order.integration_id)
+            return False
         if order is None:
             if reconcile and status not in FBS_IMPORT_STATUSES:
                 return False
@@ -203,6 +220,9 @@ def get_integration_unfulfilled_orders(self, account, target_site_id=None):
         'limit': 100,
         'with': {'analytics_data': True, 'financial_data': True, 'barcodes': True},
     }
+    warehouses = _warehouse_ids(integration)
+    if warehouses:
+        data['filter']['warehouse_ids'] = warehouses
 
     num = 0
     while True:

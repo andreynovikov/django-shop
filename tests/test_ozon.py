@@ -32,6 +32,7 @@ POSTING_REQUEST = {
         'since': (NOW - timedelta(days=7)).isoformat(),
         'to': NOW.isoformat(),
         'statuses': ['awaiting_registration', 'awaiting_approve', 'awaiting_packaging', 'awaiting_deliver', 'delivering', 'delivered'],
+        'warehouse_ids': ['101', '102'],
     },
     'limit': 100,
     'with': {'analytics_data': True, 'financial_data': True, 'barcodes': True},
@@ -140,6 +141,51 @@ class OzonTests(TestCase):
         self.market.expect(SPEC, POSTINGS, 'POST', {'code': 3, 'message': 'Invalid filter'}, body=POSTING_REQUEST, status=400)
         with self.assertLogs('ozon', 'ERROR'), self.assertRaisesRegex(tasks.TaskFailure, 'Invalid filter'):
             self.poll()
+        self.assertFalse(Order.objects.exists())
+
+    def test_integrations_of_one_account_take_only_the_postings_of_their_warehouses(self):
+        # ozon and ozon_rfbs share a seller account: rFBS duplicated the orders of the other integration once.
+        rfbs = Integration.objects.create(
+            name='Ozon rFBS', utm_source='ozon_rfbs', source_site=self.integration.source_site,
+            target_site=self.integration.target_site, uses_api=True, enabled=True, seller=self.integration.seller,
+            settings={**self.integration.settings, 'warehouses': [{'id': 201, 'is_express': True}, {'id': 201}]},
+        )
+        own, other = posting('123-1-1', delivery_method={'warehouse_id': 101}), posting('123-2-1', delivery_method={'warehouse_id': 201})
+        self.expect_postings([own, other])
+        self.assertEqual(self.poll(), 1)
+
+        filters = {**POSTING_REQUEST['filter'], 'warehouse_ids': ['201']}
+        self.market.expect(SPEC, POSTINGS, 'POST', {'has_next': False, 'postings': [own, other]}, body={**POSTING_REQUEST, 'filter': filters})
+        with patch('ozon.tasks.timezone.now', return_value=NOW):
+            self.assertEqual(tasks.get_integration_unfulfilled_orders.run('ozon_rfbs', target_site_id=rfbs.target_site_id), 1)
+
+        self.assertEqual(
+            sorted(Order.objects.values_list('delivery_tracking_number', 'integration__utm_source')),
+            [('123-1-1', 'ozon'), ('123-2-1', 'ozon_rfbs')],
+        )
+
+    def test_does_not_import_a_posting_that_is_the_order_of_another_integration(self):
+        self.expect_postings([posting('123-1-1')])
+        self.assertEqual(self.poll(), 1)
+        order = Order.objects.get()
+
+        shared = Integration.objects.create(
+            name='Ozon 2', utm_source='ozon_2', source_site=self.integration.source_site,
+            target_site=self.integration.target_site, uses_api=True, enabled=True, seller=self.integration.seller, settings={'client_id': '42', 'api_key': 'test-ozon-key'},
+        )
+        filters = {key: value for key, value in POSTING_REQUEST['filter'].items() if key != 'warehouse_ids'}
+        self.market.expect(SPEC, POSTINGS, 'POST', {'has_next': False, 'postings': [posting('123-1-1', scanit='OTHER')]},
+                           body={**POSTING_REQUEST, 'filter': filters})
+        with patch('ozon.tasks.timezone.now', return_value=NOW), self.assertLogs('ozon', 'WARNING'):
+            self.assertEqual(tasks.get_integration_unfulfilled_orders.run('ozon_2', target_site_id=shared.target_site_id), 0)
+        self.assertEqual(list(Order.objects.all()), [order])
+        order.refresh_from_db()
+        self.assertNotIn('barcode', order.meta or {})
+
+    def test_push_ignores_a_posting_of_another_warehouse(self):
+        self.enable_push()
+        self.expect_posting_detail('123-2-1', delivery_method={'warehouse_id': 201})
+        self.assertFalse(self.sync('123-2-1'))
         self.assertFalse(Order.objects.exists())
 
     def test_push_details_import_and_reconcile_the_same_posting_as_polling(self):
