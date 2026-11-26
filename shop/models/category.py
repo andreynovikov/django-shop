@@ -39,20 +39,23 @@ class Category(MPTTModel):
         return self.get_descendants().filter(active=True, hidden=False)
 
     def __str__(self):
-        # The full path, so that categories of the same name tell apart, in the admin's list filter choices and
-        # autocomplete, which the call stack gives away; elsewhere the name alone
-        show_path = False
-        import traceback
-        tb = traceback.extract_stack(limit=6)
-        for line in tb:
-            if line.name == 'field_choices' and line.filename.endswith('contrib/admin/filters.py'):
-                show_path = True
-            if line.name == 'get' and line.filename.endswith('contrib/admin/views/autocomplete.py'):
-                show_path = True
-        if show_path:
-            return '/'.join([x['name'] for x in self.get_ancestors(include_self=True).values()])
-        else:
-            return self.name
+        return self.name
+
+    @classmethod
+    def paths(cls):
+        """
+        The full path of each category, such as 'Каталог/Машины/Janome', by its ID in tree order. The admin labels
+        categories with them, which tells those of the same name apart. One query reads them all.
+        """
+        categories = {category.pk: category for category in cls._default_manager.only('id', 'name', 'parent_id')}
+        paths = {}
+        for pk, category in categories.items():
+            names = []
+            while category is not None:
+                names.append(category.name)
+                category = categories.get(category.parent_id)
+            paths[pk] = '/'.join(reversed(names))
+        return paths
 
     class Meta:
         verbose_name = "категория"

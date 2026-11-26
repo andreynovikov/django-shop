@@ -88,3 +88,24 @@ class ProductListTests(TestCase):
         self.assertRegex(html, r'<input type="checkbox" name="form-1-integrations" value="%d"[^>]*checked' % self.integrations[1].pk)
         self.assertNotRegex(html, r'name="form-0-integrations"[^>]*checked')
         self.assertEqual(html.count(' checked>'), 3)  # and the two rows' show_on_sw
+
+
+class CategoryLabelTests(TestCase):
+    """ The admin shows categories by their full paths, which tell those of the same name apart """
+
+    def setUp(self):
+        catalog = Category.objects.create(name='Каталог', slug='catalog')
+        self.machines = Category.objects.create(name='Машины', slug='machines', parent=catalog)
+        self.used = Category.objects.create(name='Машины', slug='used', parent=self.machines)
+
+    def test_paths(self):
+        self.assertEqual(list(Category.paths().values()), ['Каталог', 'Каталог/Машины', 'Каталог/Машины/Машины'])
+        self.assertEqual(str(self.used), 'Машины')  # elsewhere the name alone
+
+    def test_product_form_reads_the_paths_once(self):
+        request = RequestFactory().get('/')
+        request.user = ShopUser.objects.create(phone='+79990000000', is_staff=True, is_superuser=True)
+        field = admin_site._registry[Product].get_form(request)().fields['categories']
+        with self.assertNumQueries(2):  # the categories, and all their paths
+            labels = [label for value, label in field.choices]
+        self.assertEqual(labels, ['Каталог', 'Каталог/Машины', 'Каталог/Машины/Машины'])

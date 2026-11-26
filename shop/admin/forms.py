@@ -8,8 +8,6 @@ from django.conf import settings
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.sites.models import Site
 from django.core.cache import cache
-from django.utils.encoding import smart_str
-from django.utils.html import conditional_escape, mark_safe
 
 from mptt.forms import TreeNodeMultipleChoiceField
 from import_export.forms import ImportForm, ConfirmImportForm, ExportForm
@@ -21,7 +19,7 @@ from filemanager.widgets import HTMLTextarea
 
 from sewingworld.widgets import AutosizedTextarea, JsonAutosizedTextarea
 
-from shop.models import Supplier, Product, Order, OrderItem, ShopUser, Box, ActOrder, Integration, Contractor
+from shop.models import Category, Supplier, Product, Order, OrderItem, ShopUser, Box, ActOrder, Integration, Contractor
 from shop.tasks.stocks import import1c
 from shop.tidy import tidy_html5
 
@@ -184,8 +182,11 @@ class IntegrationInlineForm(forms.ModelForm):
 
 
 class SWTreeNodeMultipleChoiceField(TreeNodeMultipleChoiceField):
+    """ Categories by their full paths, read once for the form's field rather than for each category """
     def label_from_instance(self, obj):
-        return mark_safe(conditional_escape(smart_str('/'.join([x['name'] for x in obj.get_ancestors(include_self=True).values()]))))
+        if not hasattr(self, '_paths'):
+            self._paths = Category.paths()
+        return self._paths.get(obj.pk, obj.name)
 
 
 class ProductImportForm(ImportForm):

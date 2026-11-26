@@ -27,7 +27,7 @@ from import_export.admin import ImportExportMixin
 
 from flags.state import flag_enabled
 
-from shop.models import Product, ProductImage, ProductPrice, ProductRelation, ProductSet, ProductKind, \
+from shop.models import Category, Product, ProductImage, ProductPrice, ProductRelation, ProductSet, ProductKind, \
     ProductReview, Stock, Integration, Order
 from shop.revalidation import product_tag, revalidate_products
 from shop.tasks.workflow import post_update_product
@@ -172,25 +172,14 @@ class IntegrationsFilter(SimpleDropdownFilter):
 
 
 class CategoryDropdownFilter(RelatedDropdownFilter):
-    """
-    Categories by their full path, which tells those of the same name apart. Category.__str__() gives it to Django's
-    filter with a query for each category; here one query gives them all.
-    """
+    """ Categories by their full paths, which tell those of the same name apart """
     def field_choices(self, field, request, model_admin):
+        paths = Category.paths()
         ordering = self.field_admin_ordering(field, request, model_admin)
-        categories = field.remote_field.model._default_manager.order_by(*ordering) if ordering else \
-            field.remote_field.model._default_manager.all()
-        categories = list(categories.only('id', 'name', 'parent_id'))
-        by_id = {category.pk: category for category in categories}
-
-        def path(category):
-            names = []
-            while category is not None:
-                names.append(category.name)
-                category = by_id.get(category.parent_id)
-            return '/'.join(reversed(names))
-
-        return [(category.pk, path(category)) for category in categories]
+        if ordering:
+            ids = Category._default_manager.order_by(*ordering).values_list('pk', flat=True)
+            return [(pk, paths[pk]) for pk in ids]
+        return list(paths.items())
 
 
 class OzonLinkFilter(admin.SimpleListFilter):
