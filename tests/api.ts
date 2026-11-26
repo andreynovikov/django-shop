@@ -19,8 +19,7 @@ export async function findSewingMachines(request: APIRequestContext, filters: Re
 async function loadProductStock(request: APIRequestContext, id: number) {
   const response = await request.get(`/api/v0/products/${id}/stock/`)
   expect(response.ok()).toBeTruthy()
-  // the product page's ProductStock (components/product/stock.tsx) hides store 295, so it is skipped here too
-  return (await response.json() as StoreInfo[]).filter(store => store.id !== 295)
+  return await response.json() as StoreInfo[]
 }
 
 // Product page shows reviews only for products that allow them

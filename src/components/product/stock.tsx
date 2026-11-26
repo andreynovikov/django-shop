@@ -14,8 +14,6 @@ export default function ProductStock({ id }: { id: number }) {
   const { data: stores, isSuccess, isLoading } = useQuery({
     queryKey: productKeys.stock(id),
     queryFn: () => loadProductStock(id),
-    // leaves out store 295, the specialized Janome store in Moscow
-    select: (data) => data.filter(store => store.id !== 295),
     enabled: id > 0
   })
 
