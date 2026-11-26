@@ -1,5 +1,7 @@
 certificates
 .docker
+# The configuration comes in as a secret, see Dockerfile
+.env*
 docker-compose.yaml
 Dockerfile
 .git
