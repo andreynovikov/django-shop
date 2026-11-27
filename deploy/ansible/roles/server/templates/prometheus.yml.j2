@@ -1,0 +1,42 @@
+# {{ ansible_managed }}
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  # Attached to the time series and alerts sent to external systems (federation, remote storage, Alertmanager)
+  external_labels:
+    monitor: 'example'
+{% if server_prometheus_alertmanagers %}
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: {{ server_prometheus_alertmanagers | to_json }}
+{% endif %}
+
+rule_files:
+  - /etc/prometheus/rules.yml
+
+scrape_configs:
+  - job_name: prometheus
+    scrape_interval: 5s
+    scrape_timeout: 5s
+    metrics_path: '{{ server_prometheus_external_url | urlsplit('path') | regex_replace('/$', '') }}/metrics'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: node
+    static_configs:
+      - targets: ['localhost:9100']
+
+  # The exporters of the uWSGI workers, each app on its own ports and with its own app label (metrics_ports of
+  # server_uwsgi_apps)
+  - job_name: django
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/django_targets.yml
+{% for job in server_prometheus_static_jobs %}
+
+  - job_name: {{ job.name }}
+    static_configs:
+      - targets: {{ job.targets | to_json }}
+{% endfor %}

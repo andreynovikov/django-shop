@@ -22,6 +22,10 @@ env = PYTHONIOENCODING=UTF-8
 {% if item.admin | default(false) %}
 env = ADMIN=True
 {% endif %}
+{% if item.metrics_ports is defined %}
+; The ports of the workers' Prometheus exporters, see sewingworld/settings/prometheus.py
+env = PROMETHEUS_METRICS_PORTS={{ item.metrics_ports }}
+{% endif %}
 harakiri = {{ item.harakiri | default(60) }}
 vacuum = true
 max-requests = 5000

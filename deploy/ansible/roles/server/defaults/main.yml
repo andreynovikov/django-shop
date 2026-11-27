@@ -123,21 +123,47 @@ server_www_owner: andrey
 # processes and threads default to 2 and 4, harakiri to 60 seconds, options adds more lines to the ini file.
 # The API runs mostly Python, which one process runs on one core at a time, so prod has more processes rather than
 # more threads. Keep harakiri a little shorter than nginx's uwsgi_read_timeout for the app.
+# metrics_ports are the app's own ports for the Prometheus exporters of its workers, one per process, which
+# /etc/prometheus/django_targets.yml lists for Prometheus with the app's name (see "Django metrics" in
+# deploy/README.md).
 server_uwsgi_apps:
   - name: prod
     site: www.sewing-world.ru
     processes: 6
     stats: 127.0.0.1:9191
+    metrics_ports: 9110-9115
+    metrics_label: production  # the app label its series have had
   # Exports, labels and 1C files take longer
   - name: admin
     site: www.sewing-world.ru
     admin: true
     harakiri: 300
+    metrics_ports: 9120-9121
   # Reload it after a pull with touch /www/dev.sigalev.ru/.touch_reload
   - name: dev
     site: dev.sigalev.ru
     processes: 1
     threads: 2
+    metrics_ports: "9130"
+
+# false skips the "Prometheus" section: the metrics server, node-exporter, the scrape jobs and the alert rules
+server_prometheus: true
+# Its path is also the prefix of Prometheus' own URLs
+server_prometheus_external_url: https://stats.sewing-world.ru/prometheus
+server_prometheus_retention_size: 20GB
+# host:port of the Alertmanagers that get the alerts. None is installed, so the rules alert nobody yet.
+server_prometheus_alertmanagers: []
+# The images of the exporters that run in Docker
+server_prometheus_cadvisor_image: ghcr.io/google/cadvisor:0.60.6
+server_prometheus_celery_exporter_image: danihodovic/celery-exporter:0.12.2
+# Jobs of the other exporters: celery-exporter, Docker and cAdvisor. The names are those of the existing series.
+server_prometheus_static_jobs:
+  - name: celery
+    targets: [localhost:9808]
+  - name: docker
+    targets: [localhost:9323]
+  - name: docker_cadvsor
+    targets: [localhost:9324]
 
 # ASGI apps (uvicorn), /etc/asgi/<name> each, for what keeps a connection open: the admin's instant notices, which
 # nginx passes to the socket /run/asgi/<name>.socket. The site must be one of the uWSGI apps'.

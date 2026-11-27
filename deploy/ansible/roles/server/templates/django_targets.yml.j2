@@ -1,0 +1,13 @@
+# {{ ansible_managed }}
+# The Prometheus exporters of the uWSGI apps' workers (metrics_ports of server_uwsgi_apps), for the file_sd_configs of
+# the django job in prometheus.yml. Each app is labelled with its name, or its metrics_label.
+{% for app in server_uwsgi_apps if app.metrics_ports is defined and app.site in server_deployed_sites %}
+{% set bounds = (app.metrics_ports | string).split('-') %}
+- targets:
+{% for port in range(bounds | first | int, bounds | last | int + 1) %}
+    - localhost:{{ port }}  # as the series have had it, the instance label
+{% endfor %}
+  labels:
+    app: {{ app.metrics_label | default(app.name) }}
+    site: {{ app.site }}
+{% endfor %}

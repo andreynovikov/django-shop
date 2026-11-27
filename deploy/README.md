@@ -500,6 +500,7 @@ uid = sworld
 gid = sworld
 chmod-socket = 660
 env = PYTHONIOENCODING=UTF-8
+env = PROMETHEUS_METRICS_PORTS=9110-9115
 harakiri = 60
 vacuum = true
 max-requests = 5000
@@ -516,14 +517,17 @@ stats-http = true
 
 `touch .touch_reload` in the site directory reloads the workers one by one, which needs `lazy-apps`, and restarts
 the [ASGI app](#asgi-setup). With `need-app`, uWSGI stops when Django cannot be loaded, also on such a reload, and
-systemd starts it again until the code loads. The API runs mostly Python, which a process runs on one core at a time, so `prod` has 6 processes of 4
-threads rather than 3 of 8. uWSGI logs only failed requests and those slower than 2 seconds, nginx logs them all.
+systemd starts it again until the code loads. The API runs mostly Python, which a process runs on one core at a
+time, so `prod` has 6 processes of 4 threads rather than 3 of 8. uWSGI logs only failed requests and those slower than 2 seconds, nginx logs them all.
 Keep `harakiri` a little shorter than nginx's `uwsgi_read_timeout`. The bundled nginx configuration waits 65 s for
 `prod` and `dev`, which have a 60 s worker limit. The admin vhost waits 310 s for `admin`, which has a 300 s limit.
 
 The admin site (`admin.ini`) is the same with `env = ADMIN=True`, `processes = 2`, `harakiri = 300` for exports and
 labels, and without `stats`, and it logs to `admin_uwsgi_error.log`. `dev.ini` has `processes = 1` and
 `threads = 2`. Reload it after a pull with `touch /www/dev.sigalev.ru/.touch_reload`.
+
+`PROMETHEUS_METRICS_PORTS` are the app's own ports for the Prometheus exporters of its workers, one per process:
+9110–9115 for `prod`, 9120–9121 for `admin` and 9130 for `dev`, see [Prometheus](#prometheus).
 
 Each application should be:
 
@@ -1210,12 +1214,85 @@ pg_dump sworld | psql sworld_dev
 
 # Monitoring
 
-## cAdvisor (Container Advisor)
+## Prometheus
+
+Prometheus and node-exporter come from Debian, the other exporters run in Docker, and all of them listen on
+127.0.0.1 only. Grafana reads Prometheus; the nginx site that served both is gone, so reach them through an ssh
+tunnel. The playbook's `prometheus` tag sets up all of this section as below, and `server_prometheus: false` in
+`inventory.yml` skips it.
+
+```sh
+apt install prometheus prometheus-node-exporter
+```
+
+`/etc/default/prometheus` (the path of the external URL is also the prefix of Prometheus' own URLs):
+
+```sh
+ARGS="--web.listen-address=127.0.0.1:9090 --web.external-url=https://stats.sewing-world.ru/prometheus --storage.tsdb.retention.size=20GB"
+```
+
+`/etc/default/prometheus-node-exporter`:
+
+```sh
+ARGS="--web.listen-address=127.0.0.1:9100"
+```
+
+`/etc/prometheus/prometheus.yml` scrapes Prometheus itself on `/prometheus/metrics`, node-exporter, the Django
+exporters and those below (`celery` on 9808, `docker` on 9323, `docker_cadvsor` on 9324), see
+[the role's template](ansible/roles/server/templates/prometheus.yml.j2). The alert rules are
+[rules.yml](ansible/roles/server/files/prometheus/rules.yml) in `/etc/prometheus`. No Alertmanager is installed, so
+nobody gets the alerts yet; `server_prometheus_alertmanagers` adds one. Check a change before reloading:
+
+```sh
+promtool check config /etc/prometheus/prometheus.yml
+systemctl reload prometheus
+```
+
+### Django metrics
+
+Each worker of a uWSGI app exports its metrics on a port of the app's own range (`PROMETHEUS_METRICS_PORTS` of its
+ini file, see [UWSGI setup](#uwsgi-setup)). The `django` job finds them in `/etc/prometheus/django_targets.yml`,
+which labels each app: `app="production"` for `prod`, as before, `app="admin"` and `app="dev"`. Prometheus reads it
+again when it changes:
+
+```yaml
+- targets: [localhost:9110, localhost:9111, localhost:9112, localhost:9113, localhost:9114, localhost:9115]
+  labels:
+    app: production
+    site: www.sewing-world.ru
+- targets: [localhost:9120, localhost:9121]
+  labels:
+    app: admin
+    site: www.sewing-world.ru
+- targets: [localhost:9130]
+  labels:
+    app: dev
+    site: dev.sigalev.ru
+```
+
+Celery and the [ASGI app](#asgi-setup) export nothing. A uWSGI app's range must have a port for each of its
+processes, which the playbook checks.
+
+### Docker metrics
+
+Docker exports its own metrics, the `docker` job, with `/etc/docker/daemon.json`:
+
+```json
+{
+    "metrics-addr": "127.0.0.1:9323"
+}
+```
+
+The playbook owns the whole file. A change of it restarts Docker, and the storefronts start again by their restart
+policy.
+
+### cAdvisor (Container Advisor)
 
 Provides container usage metrics to Prometheus.
 
 ```sh
 docker run \
+  --restart=unless-stopped \
   --volume=/:/rootfs:ro \
   --volume=/var/run:/var/run:ro \
   --volume=/sys:/sys:ro \
@@ -1229,18 +1306,21 @@ docker run \
   ghcr.io/google/cadvisor:0.60.6
 ```
 
-## celery-exporter
+### celery-exporter
 
-Provides celery usage metrics to Prometheus.
+Provides celery usage metrics to Prometheus. It uses the host's network to reach Redis on 127.0.0.1, and listens
+there too.
 
 ```sh
 docker run \
-  --publish=127.0.0.1:9808:9808 \
+  --restart=unless-stopped \
   --detach=true \
   --name=celery-exporter \
   --network="host" \
   danihodovic/celery-exporter:0.12.2 \
   --broker-url=redis://127.0.0.1:6379/0 \
   --broker-transport-option visibility_timeout=691200 \
-  --retry-interval=5
+  --retry-interval=5 \
+  --host=127.0.0.1 \
+  --port=9808
 ```

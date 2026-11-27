@@ -2,6 +2,31 @@
 #
 # The units need /run/uwsgi, not /var/run/uwsgi. systemd rewrites the path of the socket unit to /run, then uWSGI does
 # not recognize the socket it is given as its --socket and fails to bind that a second time.
+# Each worker takes a port of its app for its Prometheus exporter, and finds none when the app has too few or another
+# app has the same ones
+- name: Check the Prometheus ports of the uWSGI apps
+  ansible.builtin.assert:
+    that:
+      - app_ports | length >= item.processes | default(2)
+      - all_ports | length == all_ports | unique | length
+    fail_msg: "{{ item.name }} needs a port of metrics_ports for each process, which no other app has"
+    quiet: true
+  loop: "{{ server_uwsgi_apps | selectattr('metrics_ports', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    bounds: "{{ item.metrics_ports | string | split('-') }}"
+    app_ports: "{{ range(bounds | first | int, bounds | last | int + 1) | list }}"
+    all_ports: >-
+      {%- set ports = [] -%}
+      {%- for app in server_uwsgi_apps if app.metrics_ports is defined -%}
+      {%- set app_bounds = app.metrics_ports | string | split('-') -%}
+      {%- for port in range(app_bounds | first | int, app_bounds | last | int + 1) -%}
+      {%- set _ = ports.append(port) -%}
+      {%- endfor -%}
+      {%- endfor -%}
+      {{- ports -}}
+
 - name: Install uWSGI units
   ansible.builtin.template:
     src: "{{ item }}.j2"

@@ -44,6 +44,8 @@ all:
         # Where the hosting's firewall filters the traffic. It must allow what server_firewall_* of
         # roles/server/defaults/main.yml allow.
         # server_firewall: false
+        # Where the server is monitored otherwise: no Prometheus, node-exporter, cAdvisor or celery-exporter
+        # server_prometheus: false
     # Leave it empty until the backup host is ready, the production server skips its backup section then
     backup:
       hosts:

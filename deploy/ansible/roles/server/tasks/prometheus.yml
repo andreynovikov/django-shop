@@ -1,0 +1,101 @@
+# "Prometheus": the metrics server and node-exporter from Debian, Docker's own metrics, and cAdvisor and
+# celery-exporter in Docker, all listening on 127.0.0.1 only, with the scrape jobs and the alert rules. promtool checks
+# the configuration before Prometheus reloads it.
+- name: Install Prometheus
+  ansible.builtin.apt:
+    name:
+      - prometheus
+      - prometheus-node-exporter
+      # for community.docker.docker_container
+      - python3-docker
+
+# The whole of daemon.json, which holds nothing else. A change restarts Docker, and the storefronts with it, so the
+# content is that of the file on the production server to the byte.
+- name: Let Docker export its metrics
+  ansible.builtin.copy:
+    content: "{\n  \"metrics-addr\": \"127.0.0.1:9323\"\n}\n\n"
+    dest: /etc/docker/daemon.json
+    mode: "0644"
+  notify: Restart Docker
+
+# The containers' use of the host, the docker_cadvsor job
+- name: Run cAdvisor
+  community.docker.docker_container:
+    name: cadvisor
+    image: "{{ server_prometheus_cadvisor_image }}"
+    restart_policy: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg:rwm
+    published_ports:
+      - 127.0.0.1:9324:8080
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+
+# The Celery queues and workers, the celery job. It needs the host's network for Redis, which listens on 127.0.0.1;
+# the visibility timeout is that of CELERY_BROKER_TRANSPORT_OPTIONS (sewingworld/settings/celery.py).
+- name: Run celery-exporter
+  community.docker.docker_container:
+    name: celery-exporter
+    image: "{{ server_prometheus_celery_exporter_image }}"
+    restart_policy: unless-stopped
+    network_mode: host
+    command:
+      - --broker-url=redis://127.0.0.1:6379/0
+      - --broker-transport-option
+      - visibility_timeout=691200
+      - --retry-interval=5
+      - --host=127.0.0.1
+      - --port=9808
+
+- name: Configure the Prometheus service
+  ansible.builtin.template:
+    src: prometheus.default.j2
+    dest: /etc/default/prometheus
+    mode: "0644"
+  notify: Restart Prometheus
+
+- name: Configure node-exporter
+  ansible.builtin.copy:
+    content: |
+      # {{ ansible_managed }}
+      ARGS="--web.listen-address=127.0.0.1:9100"
+    dest: /etc/default/prometheus-node-exporter
+    mode: "0644"
+  notify: Restart node-exporter
+
+- name: Install the alert rules
+  ansible.builtin.copy:
+    src: prometheus/rules.yml
+    dest: /etc/prometheus/rules.yml
+    mode: "0644"
+    validate: /usr/bin/promtool check rules %s
+  notify: Reload Prometheus
+
+# Prometheus reads it again by itself when it changes
+- name: List the Prometheus exporters of the uWSGI apps
+  ansible.builtin.template:
+    src: django_targets.yml.j2
+    dest: /etc/prometheus/django_targets.yml
+    mode: "0644"
+
+- name: Configure Prometheus
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+    mode: "0644"
+    validate: /usr/bin/promtool check config %s
+  notify: Reload Prometheus
+
+- name: Start Prometheus
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - prometheus
+    - prometheus-node-exporter

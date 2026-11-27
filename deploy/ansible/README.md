@@ -147,6 +147,12 @@ hosting's firewall filters the traffic instead, set `server_firewall: false` in 
 allow the same: tcp 22, 80 and 443, udp 443, and tcp 10050 from the hosting's Zabbix servers. The playbook then
 skips the section, but it does not turn off nftables that an earlier run turned on.
 
+The `prometheus` tag installs Prometheus and node-exporter, their scrape jobs and alert rules, Docker's metrics and
+the cAdvisor and celery-exporter containers, see "Prometheus" in [deploy/README.md](../README.md#prometheus).
+`promtool` checks the configuration before Prometheus reloads it. It writes the whole of `/etc/docker/daemon.json`,
+and a change of it restarts Docker. Set `server_prometheus: false` in `inventory.yml` where the server is monitored
+otherwise; the playbook then leaves whatever monitoring there is alone.
+
 ## Preparation
 
 Install Ansible on your computer. Debian's `ansible` package includes the collections the playbook uses, the
