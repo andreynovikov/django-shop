@@ -25,6 +25,23 @@ test('signed in user sees the address confirmed in the profile', async ({ page, 
   await expect(page.getByText('Адрес не подтверждён')).toBeHidden()
 })
 
+test('confirmation outruns the first load of the user', async ({ page, backend }) => {
+  backend.signIn({ email: 'anna@example.com', email_verified: false })
+  backend.emailLog.push({ user: backend.user!.id, email: 'anna@example.com', token: 'good-token' })
+  // The page loads the session and sends the token together. The first user is answered as it was before the
+  // confirmation and arrives only after the confirmation's answer, as it did at random in CI.
+  const releaseUser = backend.holdNextResponse('GET', 'users/current/')
+  const confirmation = page.waitForResponse(response => response.url().endsWith('/api/v0/users/confirm-email/'))
+  await page.goto('/confirm-email/?token=good-token')
+  await confirmation
+  releaseUser()
+
+  await expect(page.getByRole('alert').filter({ hasText: 'подтверждён' })).toBeVisible()
+  await page.getByRole('link', { name: 'профиль' }).click()
+  await expect(page.getByLabel('Эл.почта:', { exact: true })).toHaveValue('anna@example.com')
+  await expect(page.getByText('Адрес не подтверждён')).toBeHidden()
+})
+
 for (const url of ['/confirm-email/?token=bad-token', '/confirm-email/']) {
   test(`bad link is refused: ${url}`, async ({ page, backend }) => {
     backend.addUser({ email: 'anna@example.com', email_verified: false })

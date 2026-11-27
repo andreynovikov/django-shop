@@ -22,7 +22,13 @@ function Confirmation() {
 
   const { mutate, data, isError } = useMutation({
     mutationFn: (token: string) => confirmEmail(token),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: userKeys.details() }),
+    // The session's first load starts with the token, so it may still be in flight with the user before the
+    // confirmation, and invalidation would reuse a first request instead of repeating it. It is cancelled first, as
+    // in refreshUser (lib/session.tsx), and awaited, so the profile link opens with the confirmed address.
+    onSuccess: async () => {
+      await queryClient.cancelQueries({ queryKey: userKeys.details() })
+      await queryClient.invalidateQueries({ queryKey: userKeys.details() })
+    },
   })
 
   useEffect(() => {

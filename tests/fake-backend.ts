@@ -150,6 +150,8 @@ export class FakeBackend {
   // orders made at checkout by the basket id, which useCreateOrder sends as the Idempotency-Key
   private checkoutOrders = new Map<string, number>()
   private loseOrderResponse = false
+  // answers delivered late, see holdNextResponse()
+  private heldResponses: { method: string, path: string, released: Promise<void> }[] = []
   private products = new Map<number, BasketItemProduct>()
   private nextId = { user: 1, basket: 1, item: 1, order: 100001 }
   // codes that prove a new phone, by phone and the user moving to it ('' when registering), see PhoneCode
@@ -327,6 +329,15 @@ export class FakeBackend {
     this.loseOrderResponse = true
   }
 
+  // The next request to the path (as requestsTo() logs it) is answered from the state at its arrival, but the answer is
+  // delivered only after the returned function is called, as a slow request's would be
+  holdNextResponse(method: string, path: string) {
+    let release!: () => void
+    const released = new Promise<void>(resolve => { release = resolve })
+    this.heldResponses.push({ method, path, released })
+    return release
+  }
+
   private async handle(route: Route) {
     const request = route.request()
     const url = new URL(request.url())
@@ -358,6 +369,11 @@ export class FakeBackend {
     if (this.loseOrderResponse && request.method() === 'POST' && path === 'orders/' && response.status === 200) {
       this.loseOrderResponse = false
       return route.abort()
+    }
+    const held = this.heldResponses.findIndex(hold => hold.method === request.method() && hold.path === decodeURIComponent(path))
+    if (held >= 0) {
+      const [{ released }] = this.heldResponses.splice(held, 1)
+      await released
     }
     if (response.status === 204)
       return route.fulfill({ status: 204 })
