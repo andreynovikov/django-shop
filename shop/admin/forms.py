@@ -35,18 +35,6 @@ class CategoryAdminForm(forms.ModelForm):
         }
 
 
-def integration_label(integration):
-    return f'{integration.name} ({integration.target_site.domain})'
-
-
-class IntegrationChoiceField(forms.ModelChoiceField):
-    label_from_instance = staticmethod(integration_label)
-
-
-class IntegrationMultipleChoiceField(forms.ModelMultipleChoiceField):
-    label_from_instance = staticmethod(integration_label)
-
-
 class IntegrationAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(IntegrationAdminForm, self).__init__(*args, **kwargs)
@@ -177,9 +165,6 @@ class IntegrationInlineForm(forms.ModelForm):
         self.fields['integration'].label = 'Интеграция'
         self.fields['integration'].queryset = self.fields['integration'].queryset.select_related('target_site')
 
-    class Meta:
-        field_classes = {'integration': IntegrationChoiceField}
-
 
 class SWTreeNodeMultipleChoiceField(TreeNodeMultipleChoiceField):
     """ Categories by their full paths, read once for the form's field rather than for each category """
@@ -263,7 +248,7 @@ class ProductListAdminForm(forms.ModelForm):
     Form of each row of the product list. Its integrations, checkboxes in the column of that name, put the product in
     the feeds of the integrations that don't output all products, at price 0 when it is new there.
     """
-    integrations = IntegrationMultipleChoiceField(
+    integrations = forms.ModelMultipleChoiceField(
         queryset=Integration.objects.filter(enabled=True, output_all=False).select_related('target_site'),
         widget=forms.CheckboxSelectMultiple,
         required=False,
@@ -295,7 +280,38 @@ class ProductKindForm(forms.ModelForm):
         }
 
 
-class OrderItemInlineAdminForm(forms.ModelForm):
+class ChangedFieldsFormMixin:
+    """
+    A model form that tells which fields the staff member changed on the page. Every field posts the value the page
+    showed along with the one in the input (show_hidden_initial), and changed_data compares the two. Django otherwise
+    compares the input with the object as it is when the form is posted: a field that something else, such as an
+    integration, changed in the meantime would look changed, and the save would put the old value back.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.show_hidden_initial = True
+
+    def changed_model_fields(self):
+        """ The changed fields that are columns of the model, for save(update_fields=...) """
+        columns = {field.name for field in self._meta.model._meta.concrete_fields}
+        return [name for name in self.changed_data if name in columns]
+
+
+class ChangedFieldsInlineFormSet(forms.BaseInlineFormSet):
+    """ Saves the fields of each row that the staff member changed, see ChangedFieldsFormMixin """
+    def save_existing(self, form, obj, commit=True):
+        if not commit:
+            return super().save_existing(form, obj, commit=commit)
+        obj = form.save(commit=False)
+        fields = form.changed_model_fields()
+        if fields:
+            obj.save(update_fields=fields)
+        form.save_m2m()
+        return obj
+
+
+class OrderItemInlineAdminForm(ChangedFieldsFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance.pk:
@@ -357,8 +373,9 @@ class BoxInlineAdminForm(forms.ModelForm):
         fields = '__all__'
 
 
-class OrderAdminForm(forms.ModelForm):
+class OrderAdminForm(ChangedFieldsFormMixin, forms.ModelForm):
     user_tags = forms.CharField(label='Теги', max_length=getattr(settings, 'MAX_TAG_LENGTH', 50), required=False)
+    lock_error = None
 
     def __init__(self, *args, **kwargs):
         super(OrderAdminForm, self).__init__(*args, **kwargs)
@@ -392,16 +409,22 @@ class OrderAdminForm(forms.ModelForm):
             raise forms.ValidationError("Не указан магазин доставки!")
         return store
 
+    def clean(self):
+        cleaned_data = super().clean()
+        # OrderAdmin.change_view() sets it when the page doesn't hold the lock on the order (shop/order_lock.py)
+        if self.lock_error:
+            raise forms.ValidationError(self.lock_error)
+        return cleaned_data
+
     def save(self, commit=True):
-        if 'user_tags' in self.cleaned_data:  # massadmin does not have it
+        if 'user_tags' in self.changed_data:  # massadmin does not have it
             self.instance.user.tags = self.cleaned_data['user_tags']
-            self.instance.user.save()
+            self.instance.user.save(update_fields=['tags'])
         return super(OrderAdminForm, self).save(commit=commit)
 
     class Meta:
         model = Order
         exclude = ['created']
-        field_classes = {'integration': IntegrationChoiceField}
         widgets = {
             'address': forms.TextInput(attrs={'style': 'width: 60%'}),
             'phone': PhoneWidget(),

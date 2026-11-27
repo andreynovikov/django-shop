@@ -32,7 +32,7 @@ from shop.models import Category, Product, ProductImage, ProductPrice, ProductRe
 from shop.revalidation import product_tag, revalidate_products
 from shop.tasks.workflow import post_update_product
 from .forms import ProductImportForm, ProductConfirmImportForm, ProductExportForm, \
-    ProductAdminForm, ProductListAdminForm, ProductKindForm, StockInlineForm, IntegrationInlineForm, integration_label, \
+    ProductAdminForm, ProductListAdminForm, ProductKindForm, StockInlineForm, IntegrationInlineForm, \
     ProductCloneForm, OneSImportForm
 from .decorators import admin_changelist_link
 from .views import STOCK_PREFETCH, check_permission, join_html, permitted_object, product_stock_view
@@ -162,7 +162,7 @@ class IntegrationsFilter(SimpleDropdownFilter):
     parameter_name = 'integration'
 
     def lookups(self, request, model_admin):
-        return [(integration.pk, integration_label(integration)) for integration in Integration.objects.select_related('target_site')]
+        return [(integration.pk, integration.name) for integration in Integration.objects.select_related('target_site')]
 
     def queryset(self, request, queryset):
         if self.value():

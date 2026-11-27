@@ -12,8 +12,6 @@ from more_admin_filters import RelatedDropdownFilter, SimpleDropdownFilter
 
 from shop.models import Order, ShopUser
 
-from .forms import integration_label
-
 
 class OrderStatusListFilter(SimpleDropdownFilter):
     title = _('статус')
@@ -223,7 +221,7 @@ class OrderOwnerFilter(SimpleDropdownFilter):
 
     def queryset(self, request, queryset):
         if self.value():
-            return queryset.filter(owner__exact=self.value())
+            return queryset.filter(owner__exact=self.value(), locked_until__gt=timezone.now())
         else:
             return queryset
 
@@ -231,4 +229,4 @@ class OrderOwnerFilter(SimpleDropdownFilter):
 class OrderIntegrationFilter(RelatedDropdownFilter):
     def field_choices(self, field, request, model_admin):
         integrations = field.remote_field.model.objects.filter(enabled=True).select_related('target_site')
-        return [(integration.pk, integration_label(integration)) for integration in integrations]
+        return [(integration.pk, integration.name) for integration in integrations]
