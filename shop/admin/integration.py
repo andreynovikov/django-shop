@@ -9,7 +9,7 @@ from .forms import IntegrationAdminForm
 @admin.register(Integration)
 class IntegrationAdmin(admin.ModelAdmin):
     form = IntegrationAdminForm
-    list_display = ['display_name', 'enabled', 'uses_api', 'utm_source', 'source_site', 'target_site', 'output_template', 'seller', 'supplier_list']
+    list_display = ['name', 'enabled', 'uses_api', 'utm_source', 'source_site', 'target_site', 'output_template', 'seller', 'supplier_list']
     list_filter = [('source_site', RelatedDropdownFilter), ('target_site', RelatedDropdownFilter), ('output_template', RelatedDropdownFilter), ('seller', RelatedDropdownFilter), 'enabled']
     list_select_related = ('source_site', 'target_site', 'seller')
     exclude = ['products']
