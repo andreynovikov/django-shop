@@ -8,12 +8,13 @@
 (function() {
     'use strict';
     var POLL = 300000;
-    var IMPORT_COLORS = {copying: 'red', running: 'gold', idle: 'limegreen'};
 
+    // ImportRun.status(): its colour, title and the date of the file imported last
     function showImport(status) {
         var indicator = document.getElementById('import1c_status');
         if (indicator) {
-            indicator.style.color = IMPORT_COLORS[status.copying ? 'copying' : status.running ? 'running' : 'idle'];
+            indicator.style.color = status.color;
+            indicator.parentNode.title = status.title;
         }
         var date = document.getElementById('import1c_date');
         if (date && status.last) {

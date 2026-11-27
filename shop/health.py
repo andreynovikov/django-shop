@@ -23,7 +23,7 @@ import binascii
 import json
 import logging
 from contextlib import contextmanager
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 from typing import NamedTuple
 from urllib.error import HTTPError, URLError
 
@@ -39,7 +39,7 @@ from django.views.decorators.debug import sensitive_variables
 from celery.exceptions import Ignore, Retry
 from constance import config
 
-from shop.models import HealthCheck, Integration
+from shop.models import HealthCheck, ImportRun, Integration
 
 logger = logging.getLogger('shop')
 
@@ -62,6 +62,13 @@ BROKER = 'celery.broker'
 BEAT = 'celery.beat'
 BEAT_MAX_AGE = timedelta(minutes=15)
 MONITOR = 'monitor'
+DOWNLOAD = 'shop.tasks.update_1c_stocks'
+IMPORT = 'shop.tasks.import1c'
+IMPORT_FRESH = 'import1c.fresh'
+# 1C exports about every two hours from 07:40 to 21:40, Moscow time: a problem when none came for IMPORT_GAP, but
+# for the night, when the first one may come as late as IMPORT_QUIET_END
+IMPORT_GAP = timedelta(hours=4, minutes=30)
+IMPORT_QUIET_START, IMPORT_QUIET_END = time(22), time(10)
 # Celery's queues and how long each may go without taking a heartbeat: import runs one 1C import at a time, for up
 # to two hours
 QUEUES = {
@@ -91,6 +98,9 @@ OPERATIONS = {
     'wb.tasks.notify_product_stocks': Operation('передача остатков'),
     TOKEN: Operation('срок действия токена API'),
     SMS: Operation('отправка SMS'),
+    DOWNLOAD: Operation('загрузка выгрузки 1С с Яндекс.Диска'),
+    IMPORT: Operation('импорт 1С'),
+    IMPORT_FRESH: Operation('новые выгрузки 1С'),
     BROKER: Operation('брокер Celery (Redis)', group=QUEUES_GROUP),
     BEAT: Operation('запуск задач по расписанию (beat)', group=QUEUES_GROUP),
     MONITOR: Operation('проверка состояния (check_health)', timedelta(minutes=10), QUEUES_GROUP),
@@ -427,6 +437,30 @@ def check_beat(now=None):
         notice = raise_problem(None, BEAT, f'Задачи по расписанию не запускались с {when}: celery_beat остановлен', notify=False)
         return [notice] if notice else [], []
     notice = record_success(None, BEAT, notify=False)
+    return [], [notice] if notice else []
+
+
+def import_deadline(last):
+    """ When a 1C import after the one at last is overdue, see IMPORT_GAP """
+    deadline = timezone.localtime(last) + IMPORT_GAP
+    if deadline.time() >= IMPORT_QUIET_START or deadline.time() < IMPORT_QUIET_END:
+        day = deadline.date() if deadline.time() < IMPORT_QUIET_END else deadline.date() + timedelta(days=1)
+        deadline = datetime.combine(day, IMPORT_QUIET_END, tzinfo=deadline.tzinfo)
+    return deadline
+
+
+def check_import(now=None):
+    """ Raises a problem when no 1C import has succeeded in time, see import_deadline(); returns (raised, restored) """
+    now = now or timezone.now()
+    last = ImportRun.objects.filter(stage=ImportRun.DONE).values_list('finished_at', flat=True).first()
+    if last is None:
+        return [], []
+    if now > import_deadline(last):
+        when = date_format(timezone.localtime(last), 'd.m.Y H:i')
+        notice = raise_problem(None, IMPORT_FRESH, f'Нет удачного импорта 1С с {when}: выгрузка не приходит на '
+                                                   'Яндекс.Диск, не загружается или не импортируется', notify=False)
+        return [notice] if notice else [], []
+    notice = record_success(None, IMPORT_FRESH, notify=False)
     return [], [notice] if notice else []
 
 

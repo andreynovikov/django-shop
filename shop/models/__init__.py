@@ -28,6 +28,8 @@ from .product import *  # NOQA
 from .product import __all__ as product_all
 from .integration import *  # NOQA
 from .integration import __all__ as integration_all
+from .import_run import *  # NOQA
+from .import_run import __all__ as import_run_all
 from .basket import *  # NOQA
 from .basket import __all__ as basket_all
 from .order import *  # NOQA
@@ -52,6 +54,7 @@ __all__ = [
     *news_all,
     *product_all,
     *integration_all,
+    *import_run_all,
     *basket_all,
     *order_all,
     *act_all,

@@ -30,6 +30,10 @@ class SWAutocompleteJsonView(AutocompleteJsonView):
         return result
 
 
+# The shop's models of the "Мониторинг" group of the index, see SWAdminSite.get_app_list()
+MONITORING_MODELS = ('HealthCheck', 'ImportRun')
+
+
 class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
     site_header = "Швейный Мир"
     site_title = "Административный сайт Швейный Мир"
@@ -77,9 +81,9 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
 
     def get_app_list(self, request, app_label=None):
         # The shop goes first, with the flat pages and the file manager, then a "Швейный Мир" group with the constance
-        # settings and sites. The health checks are a "Мониторинг" group after the server errors. The OTP models
-        # join "Two Factor Authentication", and the shop's users are listed under auth too. Comments are named in
-        # Russian.
+        # settings and sites. The health checks and the 1C import's runs are a "Мониторинг" group after the server
+        # errors. The OTP models join "Two Factor Authentication", and the shop's users are listed under auth too.
+        # Comments are named in Russian.
         apps = super().get_app_list(request, app_label)
 
         shop = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'shop'), None)
@@ -136,8 +140,8 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
         # The health checks go to a group of their own, placed below, which the index puts in the "system" tab
         checks = []
         if shop is not None and app_label is None:
-            checks = [model for model in apps[shop]['models'] if model['object_name'] == 'HealthCheck']
-            apps[shop]['models'] = [model for model in apps[shop]['models'] if model['object_name'] != 'HealthCheck']
+            checks = [model for model in apps[shop]['models'] if model['object_name'] in MONITORING_MODELS]
+            apps[shop]['models'] = [model for model in apps[shop]['models'] if model['object_name'] not in MONITORING_MODELS]
 
         if sewingworld is not None:
             if constance is not None:

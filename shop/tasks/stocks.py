@@ -28,13 +28,11 @@ from django.utils import dateparse, timezone
 from celery import shared_task
 
 from constance import config
-from flags.state import enable_flag, disable_flag
 
 from sewingworld.notifications import publish_status
 
-from sewingworld.tasks import single_instance_task
-
-from shop.models import Supplier, Currency, Product, Stock, Order
+from shop import health
+from shop.models import ImportRun, Supplier, Currency, Product, Stock, Order
 
 from .admin import notify_staff
 from .common import get_default_site
@@ -53,6 +51,17 @@ def update_1c_stocks(self):
     and queues import1c() for it. The Disk token is constance's sw_bonuses_ydisk_token, named after the retired
     bonus import that used it first.
     """
+    with health.monitor(None, health.DOWNLOAD):
+        return _update_1c_stocks(self)
+
+
+def _retry(task, failure, **options):
+    """ Counts the failure in the download's health, which a Retry doesn't, and retries """
+    health.record_failure(None, health.DOWNLOAD, failure)
+    return task.retry(**options)
+
+
+def _update_1c_stocks(self):
     filename = 'ВыгрузкаНаСайтПоВсемСкладамПромимпекс.csv'
     url = 'https://cloud-api.yandex.net/v1/disk/resources?path={}'.format(quote('disk:/' + filename))
     headers = {
@@ -68,7 +77,7 @@ def update_1c_stocks(self):
         modified = result.get('modified', None)
         if not import_file:
             log.error('No file')
-            raise self.retry(countdown=600, max_retries=4)  # 10 minutes
+            raise _retry(self, f'На Яндекс.Диске нет файла {filename}', countdown=600, max_retries=4)  # 10 minutes
 
         import_dir = getattr(settings, 'SHOP_IMPORT_DIRECTORY', 'import')
         filepath = os.path.join(import_dir, filename)
@@ -90,7 +99,8 @@ def update_1c_stocks(self):
         md5 = hashlib.md5(result).hexdigest()
         if md5 != import_md5:
             log.error('MD5 checksums differ')
-            raise self.retry(countdown=600, max_retries=4)  # 10 minutes
+            raise _retry(self, 'Файл с Яндекс.Диска загрузился с ошибкой: контрольные суммы MD5 не совпадают',
+                         countdown=600, max_retries=4)  # 10 minutes
 
         f = open(filepath, 'wb')
         f.write(result)
@@ -99,12 +109,14 @@ def update_1c_stocks(self):
         import1c.s(filename).apply_async(queue=self.request.delivery_info['routing_key'])
         return modified
     except HTTPError as e:
-        content = e.read()
-        error = json.loads(content.decode('utf-8'))
-        message = error.get('message', 'Неизвестная ошибка взаимодействия с Яндекс.Диском')
+        content = health.read_body(e)
+        try:
+            message = json.loads(content).get('message') or content
+        except (ValueError, AttributeError):
+            message = content
+        message = message or 'Неизвестная ошибка взаимодействия с Яндекс.Диском'
         log.error(message)
-        raise self.retry(countdown=600, max_retries=12, exc=e)  # 10 minutes
-    return 0
+        raise _retry(self, f'Яндекс.Диск: HTTP {e.code}: {message}', countdown=600, max_retries=12, exc=e)  # 10 minutes
 
 
 class fragile(object):
@@ -155,34 +167,42 @@ def stored_prices(product):
     return tuple(price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP) for price in (product.price, product.ws_price))
 
 
-def announce_import(running, copying=False, last=None):
+def announce_import():
     """
-    Tells the open admin pages what the import does, at once rather than on commit, for the top bar's indicator
-    (staticfiles/js/admin-indicators.js); last is the date of the file just imported, as shop_tags.last_1c_import
-    shows it
+    Tells the open admin pages the import's state at once, rather than on commit, for the top bar's indicator
+    (staticfiles/js/admin-indicators.js)
     """
-    publish_status('import', running=running, copying=copying, last=last)
+    publish_status('import', **ImportRun.status())
 
 
-@shared_task(name='shop.tasks.import1c', time_limit=7200, retry_backoff=True)
-@single_instance_task(1200)
+@shared_task(name='shop.tasks.import1c', time_limit=int(ImportRun.TIME_LIMIT.total_seconds()), retry_backoff=True)
 def import1c(file):
     """
-    Runs _import1c() unless another import runs, posting to the staff channel when it starts and if it fails. A failed
-    import has its 1C_IMPORT_* flags switched off, so that the admin doesn't show it running and saves products again.
+    Runs _import1c() as an ImportRun unless another one runs, posting to the staff channel when it starts and if it
+    fails. Its outcome is the health of the import (shop/health.py): an exception, or a file that left the stock
+    as it was, is a failure.
     """
+    run = ImportRun.start(file)
+    if run is None:
+        log.info('Another 1C import runs, %s is left to it', file)
+        return None
+    announce_import()
     notify_staff.delay(f'Импорт 1С из {file} начат')
-    try:
-        return _import1c(file)
-    except Exception as e:
-        disable_flag('1C_IMPORT_COPYING')
-        disable_flag('1C_IMPORT_RUNNING')
-        announce_import(False)
-        notify_staff.delay(f'Импорт 1С из {file} прерван: {type(e).__name__}: {e}')
-        raise
+    with health.monitor(None, health.IMPORT) as outcome:
+        try:
+            date = _import1c(file, run)
+        except Exception as e:
+            run.fail(f'{type(e).__name__}: {e}')
+            announce_import()
+            notify_staff.delay(f'Импорт 1С из {file} прерван: {type(e).__name__}: {e}')
+            raise
+        if run.stage == ImportRun.FAILED:
+            outcome.fail(run.error)
+    announce_import()
+    return date
 
 
-def _import1c(file):
+def _import1c(file, run):
     """
     Imports 1C's export of prices and stock, a file in SHOP_IMPORT_DIRECTORY, which is kept as <name>_last.csv (and
     the one before as _penult). The file has the export's date on its first line, then a skipped line,
@@ -193,12 +213,10 @@ def _import1c(file):
     Prices are saved and the storefronts revalidated for those that changed. The stock table is replaced as a whole,
     keeping staff's corrections, and the products' stock is reset for count_stocks(). The result goes to the main
     site's managers by mail and to the staff channel, with frozen orders whose products are in stock again. While it
-    runs, the admin shows the 1C_IMPORT_* flags and can't save products (see ProductAdminForm.clean()), and another
-    import does nothing.
+    runs, the admin shows its run's stage and can't save products (see ProductAdminForm.clean()), and another import
+    does nothing. A file whose format stops the import before the stock table is replaced fails the run.
     """
     log.error('Import1C')
-    enable_flag('1C_IMPORT_RUNNING')
-    announce_import(True)
 
     currencies = {}
 
@@ -263,6 +281,7 @@ def _import1c(file):
 
     pi_pos = -1
     n1_pos = -1
+    copied = False
 
     with fragile(tmp_file) as csvfile:  # https://stackoverflow.com/a/23665658
         line = csvfile.readline().strip()
@@ -378,24 +397,25 @@ def _import1c(file):
                 table_copy.write('{}\t{}\t{}\t{}\t{}\n'.format(0, product, stock, correction, reason))
         table_copy.seek(0)
         with connection.cursor() as cursor:
-            log.info('Start 1C_IMPORT_COPYING')
-            enable_flag('1C_IMPORT_COPYING')
-            announce_import(True, copying=True)
+            log.info('Replacing the stock table')
+            run.set_stage(ImportRun.COPYING)
+            announce_import()
             # Replace the stock snapshot atomically so readers never see an empty table between DELETE and COPY.
             # A failure rolls back to the old table and leaves the connection usable.
             cursor.execute("BEGIN")
             try:
                 cursor.execute("DELETE FROM shop_stock")
                 # cursor.execute("TRUNCATE TABLE shop_stock RESTART IDENTITY")
-                log.info('Continue 1C_IMPORT_COPYING')
+                log.info('Copying the stock table')
                 cursor.copy_from(table_copy, 'shop_stock', columns=('quantity', 'product_id', 'supplier_id', 'correction', 'reason'))
             except Exception:
                 cursor.execute("ROLLBACK")
                 raise
             cursor.execute("COMMIT")
-            disable_flag('1C_IMPORT_COPYING')
-            announce_import(True)
-            log.info('Stop 1C_IMPORT_COPYING')
+            copied = True
+            run.set_stage(ImportRun.RUNNING)
+            announce_import()
+            log.info('Stock table replaced')
     table_copy.close()
     tmp_file.close()
 
@@ -414,8 +434,10 @@ def _import1c(file):
 
     log.info('Frozen orders %s' % str(orders))
 
-    disable_flag('1C_IMPORT_RUNNING')
-    announce_import(False, last=date[:-3] if date else None)  # without the seconds
+    if copied:
+        run.finish(date, imported, updated, len(errors))
+    else:
+        run.fail(errors[0] if errors else 'Остатки не заменены')
     count_stocks.delay(stock)
     context = {'file': file, 'date': date, 'imported': imported, 'updated': updated, 'errors': errors, 'orders': orders,
                'opts': Order._meta}

@@ -3,7 +3,7 @@ Check what the tasks can't report themselves, see shop/health.py:
 
 * sends a heartbeat through each Celery queue, and raises a problem when the broker doesn't take it;
 * raises the queues and the scheduled operations of the integrations that stopped succeeding;
-* raises a problem when beat hasn't run a periodic task for a while;
+* raises a problem when beat hasn't run a periodic task for a while, or no 1C import succeeded in time;
 * warns before a Wildberries API token expires.
 
 Raised problems are mailed to the managers and posted to the staff channel, and so are the end of a broker, beat or
@@ -38,7 +38,7 @@ class Command(BaseCommand):
         with transaction.atomic():
             raised, restored = health.send_heartbeats()
             raised += health.raise_stale(now)
-            for check in (health.check_beat, health.check_tokens):
+            for check in (health.check_beat, health.check_import, health.check_tokens):
                 more_raised, more_restored = check(now)
                 raised += more_raised
                 restored += more_restored

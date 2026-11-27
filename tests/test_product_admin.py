@@ -9,10 +9,13 @@ from django.contrib.admin.sites import site as admin_site
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sites.models import Site
+from django.forms.utils import ErrorDict
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import path
+from django.utils import timezone
 
-from shop.models import Category, Currency, Integration, Product, ProductSet, ShopUser, Stock, Supplier
+from shop.admin.forms import ProductAdminForm
+from shop.models import Category, Currency, ImportRun, Integration, Product, ProductSet, ShopUser, Stock, Supplier
 from shop.tasks.workflow import post_update_product
 
 from .clients import count_queries
@@ -124,3 +127,23 @@ class CategoryLabelTests(TestCase):
         add_product(1)
         response = admin_site.autocomplete_view(request)
         self.assertEqual([result['text'] for result in json.loads(response.content)['results']], [str(Product.objects.get())])
+
+
+class ImportGuardTests(TestCase):
+    """ No product is saved while the 1C import replaces prices and stock, see ImportRun """
+
+    def setUp(self):
+        self.product = add_product(1)
+
+    def clean(self):
+        form = ProductAdminForm(instance=self.product)
+        form.cleaned_data, form._errors = {}, ErrorDict()  # as full_clean() leaves them for clean()
+        form.clean()
+        return form.non_field_errors()
+
+    def test_saving_waits_for_a_live_run_only(self):
+        self.assertEqual(self.clean(), [])
+        run = ImportRun.objects.create(file='stock.csv', active=True)
+        self.assertEqual(self.clean(), ['Сохранение невозможно во время импорта склада, попробуйте позже.'])
+        ImportRun.objects.filter(pk=run.pk).update(started_at=timezone.now() - ImportRun.STALE)
+        self.assertEqual(self.clean(), [])  # its worker died

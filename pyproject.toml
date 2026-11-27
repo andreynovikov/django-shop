@@ -20,7 +20,6 @@ dependencies = [
     "django-datetime-widget>=0.9.3",
     "django-environ>=0.14.0",
     "django-filter>=26.1",
-    "django-flags>=5.2.0",
     "django-import-export[ods,xlsx]>=4.4.1",  # the file formats offered in the admin
     "django-loginas>=0.3.14",
     "django-mass-edit>=3.5.0",

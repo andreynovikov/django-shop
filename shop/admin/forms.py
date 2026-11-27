@@ -7,7 +7,6 @@ from django import forms
 from django.conf import settings
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.sites.models import Site
-from django.core.cache import cache
 
 from mptt.forms import TreeNodeMultipleChoiceField
 from import_export.forms import ImportForm, ConfirmImportForm, ExportForm
@@ -19,7 +18,7 @@ from filemanager.widgets import HTMLTextarea
 
 from sewingworld.widgets import AutosizedTextarea, JsonAutosizedTextarea
 
-from shop.models import Category, Supplier, Product, Order, OrderItem, ShopUser, Box, ActOrder, Integration, Contractor
+from shop.models import Category, Supplier, Product, Order, OrderItem, ShopUser, Box, ActOrder, Integration, Contractor, ImportRun
 from shop.tasks.stocks import import1c
 from shop.tidy import tidy_html5
 
@@ -237,8 +236,8 @@ class ProductAdminForm(forms.ModelForm):
         # test for code presence is required for mass edit
         if code and not reg.fullmatch(code):
             self.add_error('code', forms.ValidationError("Код товара содержит недопустимые символы"))
-        # detect import lock (the key single_instance_task holds while import1c() runs) - do not allow save during import
-        if cache.get("celery-single-instance-import1c") is not None:
+        # no saving while the 1C import replaces prices and stock, see ImportRun
+        if ImportRun.running() is not None:
             self.add_error(None, forms.ValidationError("Сохранение невозможно во время импорта склада, попробуйте позже."))
         return cleaned_data
 

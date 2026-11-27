@@ -4,7 +4,7 @@ token expiry, SMS sending, Celery's queues, broker and beat, the check_health co
 """
 import base64
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
 from io import BytesIO, StringIO
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError, URLError
@@ -27,7 +27,7 @@ from sewingworld import sms
 from sewingworld.models import SiteProfile
 from sewingworld.signals import create_task_result_on_publish
 from shop import health
-from shop.models import HealthCheck, Integration, ShopUser
+from shop.models import HealthCheck, ImportRun, Integration, ShopUser
 from shop.tasks.admin import notify_health
 from shop.tasks.monitoring import heartbeat
 
@@ -454,6 +454,37 @@ class SmsTests(HealthTestCase):
         self.assertEqual(self.check().error, 'Нет связи: timed out')
 
 
+class ImportFreshnessTests(HealthTestCase):
+    """ 1C exports about every two hours by day, see health.import_deadline() """
+
+    def at(self, text):
+        return timezone.make_aware(datetime.strptime(text, '%d.%m.%Y %H:%M'))
+
+    def test_deadline(self):
+        for last, deadline in (
+            ('27.11.2026 11:40', '27.11.2026 16:10'),  # by day, two imports missed and some more
+            ('27.11.2026 21:40', '28.11.2026 10:00'),  # the night's gap ends at 10:00, the first comes at about 07:40
+            ('27.11.2026 19:40', '28.11.2026 10:00'),
+            ('28.11.2026 07:40', '28.11.2026 12:10'),
+        ):
+            with self.subTest(last=last):
+                self.assertEqual(health.import_deadline(self.at(last)), self.at(deadline))
+
+    def test_no_import_in_time_is_raised_and_the_next_one_clears(self):
+        run = ImportRun.objects.create(file='stock.csv', stage=ImportRun.DONE, finished_at=self.at('27.11.2026 11:40'))
+        self.assertEqual(health.check_import(self.at('27.11.2026 16:00')), ([], []))
+        raised, _ = health.check_import(self.at('27.11.2026 16:20'))
+        self.assertEqual(raised[0]['operation'], health.IMPORT_FRESH)
+        self.assertIn('Нет удачного импорта 1С с 27.11.2026 11:40', raised[0]['error'])
+        run.finished_at = self.at('27.11.2026 16:30')
+        run.save()
+        _, restored = health.check_import(self.at('27.11.2026 16:40'))
+        self.assertEqual(restored[0]['operation'], health.IMPORT_FRESH)
+
+    def test_nothing_before_the_first_import(self):
+        self.assertEqual(health.check_import(), ([], []))
+
+
 @override_settings(ROOT_URLCONF=__name__)
 class AdminTests(HealthTestCase):
     def setUp(self):
@@ -474,6 +505,8 @@ class AdminTests(HealthTestCase):
         self.assertEqual(tabs['system'][tabs['system'].index('errors') + 1], 'monitoring')
         shop = next(app for app in response.context_data['app_list'] if app['app_label'] == 'shop')
         self.assertNotIn('HealthCheck', [model['object_name'] for model in shop['models']])
+        monitoring = next(app for app in response.context_data['app_list'] if app['app_label'] == 'monitoring')
+        self.assertCountEqual([model['object_name'] for model in monitoring['models']], ['HealthCheck', 'ImportRun'])
 
     def test_top_bar_shows_the_level_and_the_problems(self):
         for _ in range(3):

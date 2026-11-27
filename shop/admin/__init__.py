@@ -6,6 +6,7 @@ from .country import CountryAdmin, RegionAdmin, CityAdmin  # NOQA
 from .courier import CourierAdmin  # NOQA
 from .currency import CurrencyAdmin  # NOQA
 from .integration import HealthCheckAdmin, IntegrationAdmin  # NOQA
+from .import_run import ImportRunAdmin  # NOQA
 from .manager import ManagerAdmin  # NOQA
 from .manufacturer import ManufacturerAdmin  # NOQA
 from .news import NewsAdmin  # NOQA

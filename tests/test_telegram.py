@@ -4,28 +4,26 @@ Telegram, requests.post is mocked. See settings.py on how to run.
 """
 import os
 import tempfile
+from datetime import timedelta
 from decimal import Decimal
 from unittest import mock
 
 import requests
 
 from django.contrib.sites.models import Site
-from django.core.cache import cache
 from django.db.backends.utils import CursorWrapper
 from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
-
-from flags.state import enable_flag, flag_state
+from django.utils import timezone
 
 from sewingworld.telegram import MAX_LENGTH, TelegramError, send_message
-from shop.models import Order, ShopUser, Stock, Supplier
+from shop import health
+from shop.models import HealthCheck, ImportRun, Order, ShopUser, Stock, Supplier
 from shop.tasks import stocks
 from shop.tasks.admin import notify_manager_telegram, notify_staff
 
-from .fixtures import add_marketplace_sites, add_product
+from .fixtures import add_marketplace_sites, add_product, mock_constance
 
 TOKEN = '123456:secret-token'
-# the import's lock is in the cache, which .env may point at a memcached that isn't running
-LOCAL_CACHE = override_settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}})
 
 
 def answer(status=200, **json):
@@ -135,71 +133,105 @@ class OrderNoticeTests(TestCase):
             self.assertNotIn(customer, text)
 
 
-@LOCAL_CACHE
-class ImportNoticeTests(SimpleTestCase):
+class ImportNoticeTests(TestCase):
     def setUp(self):
-        cache.delete('celery-single-instance-import1c')
+        mock_constance(self)
         patcher = mock.patch.object(notify_staff, 'delay')
         self.delay = patcher.start()
         self.addCleanup(patcher.stop)
+        self.announced = self.enterContext(mock.patch('shop.tasks.stocks.publish_status'))
 
     def posts(self):
         return [call.args[0] for call in self.delay.call_args_list]
 
     def test_start_is_posted(self):
-        with mock.patch('shop.tasks.stocks._import1c', return_value='27.11.2026 10:00:00'):
+        with mock.patch('shop.tasks.stocks._import1c', return_value='27.11.2026 10:00:00') as import1c:
             self.assertEqual(stocks.import1c.run('stock.csv'), '27.11.2026 10:00:00')
         self.assertEqual(self.posts(), ['Импорт 1С из stock.csv начат'])
+        self.assertEqual(import1c.call_args.args[1], ImportRun.objects.get())
 
-    def test_failure_is_posted_and_switches_the_flags_off(self):
-        with mock.patch('shop.tasks.stocks._import1c', side_effect=ValueError('bad line')), \
-                mock.patch('shop.tasks.stocks.disable_flag') as disable_flag:
+    def test_failure_is_posted_and_fails_the_run(self):
+        with mock.patch('shop.tasks.stocks._import1c', side_effect=ValueError('bad line')):
             with self.assertRaisesMessage(ValueError, 'bad line'):
                 stocks.import1c.run('stock.csv')
         self.assertEqual(self.posts(), ['Импорт 1С из stock.csv начат',
                                         'Импорт 1С из stock.csv прерван: ValueError: bad line'])
-        self.assertEqual(sorted(call.args[0] for call in disable_flag.call_args_list),
-                         ['1C_IMPORT_COPYING', '1C_IMPORT_RUNNING'])
+        run = ImportRun.objects.get()
+        self.assertEqual((run.stage, run.active, run.error), (ImportRun.FAILED, None, 'ValueError: bad line'))
+        self.assertIsNone(ImportRun.running())
+        self.assertEqual(HealthCheck.objects.get(operation=health.IMPORT).error, 'ValueError: bad line')
+        self.assertEqual(self.announced.call_args.kwargs['stage'], ImportRun.FAILED)
 
-    def test_nothing_is_posted_while_another_import_runs(self):
-        cache.add('celery-single-instance-import1c', 'true', 60)
-        self.addCleanup(cache.delete, 'celery-single-instance-import1c')
+    def test_nothing_runs_while_another_import_runs(self):
+        ImportRun.objects.create(file='other.csv', active=True)
         with mock.patch('shop.tasks.stocks._import1c') as import1c:
-            stocks.import1c.run('stock.csv')
+            self.assertIsNone(stocks.import1c.run('stock.csv'))
         import1c.assert_not_called()
         self.assertEqual(self.posts(), [])
 
+    def test_a_run_whose_worker_died_is_taken_over(self):
+        dead = ImportRun.objects.create(file='stock.csv', active=True,
+                                        started_at=timezone.now() - ImportRun.STALE - timedelta(minutes=1))
+        self.assertIsNone(ImportRun.running())  # products can be saved again
+        self.assertEqual(ImportRun.status()['stage'], ImportRun.FAILED)
+        with mock.patch('shop.tasks.stocks._import1c', return_value=None):
+            stocks.import1c.run('stock.csv')
+        dead.refresh_from_db()
+        self.assertEqual((dead.stage, dead.active), (ImportRun.FAILED, None))
+        self.assertIn('обработчик Celery остановлен', dead.error)
 
-@LOCAL_CACHE
-class ImportCopyFailureTests(TransactionTestCase):
-    """ The stock table is replaced in a transaction of its own, which a failure must roll back """
+
+class ImportFileTests(TransactionTestCase):
+    """ Imports of a small file: the stock table is replaced in a transaction of its own, which a failure rolls back """
 
     def setUp(self):
-        cache.delete('celery-single-instance-import1c')
+        mock_constance(self)
         self.supplier = Supplier.objects.create(code='S', code1c='001', name='Склад', order=1)
         self.stock = Stock.objects.create(product=add_product(1), supplier=self.supplier, quantity=3)
-        directory = tempfile.TemporaryDirectory()
-        self.addCleanup(directory.cleanup)
-        with open(os.path.join(directory.name, 'stock.csv'), 'w') as f:
-            f.write('27.11.2026 10:00:00\n\n//Список складов\nСклад;001\n//Остатки\n')
-        self.enterContext(override_settings(SHOP_IMPORT_DIRECTORY=directory.name))
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.enterContext(override_settings(SHOP_IMPORT_DIRECTORY=self.directory.name))
         self.enterContext(mock.patch.object(notify_staff, 'delay'))
         self.enterContext(mock.patch.object(stocks.count_stocks, 'delay'))
+        self.enterContext(mock.patch('shop.tasks.stocks.send_mail'))
+        self.enterContext(mock.patch('shop.tasks.stocks.get_default_site'))
+        self.announced = self.enterContext(mock.patch('shop.tasks.stocks.publish_status'))
 
-    def test_stock_and_flags_survive_a_failed_copy(self):
-        enable_flag('1C_IMPORT_RUNNING')
+    def write(self, text):
+        with open(os.path.join(self.directory.name, 'stock.csv'), 'w') as f:
+            f.write(text)
+
+    def stages(self):
+        return [call.kwargs['stage'] for call in self.announced.call_args_list]
+
+    def test_done(self):
+        self.write('27.11.2026 10:00:00\n\n//Список складов\nСклад;001\n//Остатки\n')
+        self.assertEqual(stocks.import1c.run('stock.csv'), '27.11.2026 10:00:00')
+        run = ImportRun.objects.get()
+        self.assertEqual((run.stage, run.active, run.errors), (ImportRun.DONE, None, 0))
+        self.assertEqual(timezone.localtime(run.file_date).strftime('%d.%m.%Y %H:%M'), '27.11.2026 10:00')
+        self.assertEqual(self.stages(), [ImportRun.RUNNING, ImportRun.COPYING, ImportRun.RUNNING, ImportRun.DONE])
+        self.assertEqual(ImportRun.status()['last'], '27.11.2026 10:00')
+        self.assertEqual(HealthCheck.objects.get(operation=health.IMPORT).failures, 0)
+
+    def test_a_file_that_leaves_the_stock_fails_the_run(self):
+        self.write('27.11.2026 10:00:00\n\nсломанный файл\n')
+        stocks.import1c.run('stock.csv')
+        run = ImportRun.objects.get()
+        self.assertEqual(run.stage, ImportRun.FAILED)
+        self.assertIn('Неправильный формат файла импорта', run.error)
+        self.assertEqual(HealthCheck.objects.get(operation=health.IMPORT).failures, 1)
+        self.assertEqual(list(Stock.objects.values_list('pk', 'quantity')), [(self.stock.pk, 3)])
+
+    def test_stock_survives_a_failed_copy(self):
+        self.write('27.11.2026 10:00:00\n\n//Список складов\nСклад;001\n//Остатки\n')
         # the cursor wrapper hands copy_from() to psycopg2's cursor, whose C type can't be patched
-        with mock.patch.object(CursorWrapper, 'copy_from', create=True, side_effect=OSError('disk full')) as copy_from, \
-                mock.patch('shop.tasks.stocks.publish_status') as announced:
+        with mock.patch.object(CursorWrapper, 'copy_from', create=True, side_effect=OSError('disk full')) as copy_from:
             with self.assertRaisesMessage(OSError, 'disk full'):
                 stocks.import1c.run('stock.csv')
-        # The admin pages heard of each step at once
-        self.assertEqual([call.kwargs for call in announced.call_args_list], [
-            {'running': True, 'copying': False, 'last': None},
-            {'running': True, 'copying': True, 'last': None},
-            {'running': False, 'copying': False, 'last': None},
-        ])
         copy_from.assert_called_once()
         self.assertEqual(list(Stock.objects.values_list('pk', 'quantity')), [(self.stock.pk, 3)])
-        self.assertFalse(flag_state('1C_IMPORT_RUNNING'))
-        self.assertFalse(flag_state('1C_IMPORT_COPYING'))
+        run = ImportRun.objects.get()
+        self.assertEqual((run.stage, run.active, run.error), (ImportRun.FAILED, None, 'OSError: disk full'))
+        # The admin pages heard of each step at once
+        self.assertEqual(self.stages(), [ImportRun.RUNNING, ImportRun.COPYING, ImportRun.FAILED])

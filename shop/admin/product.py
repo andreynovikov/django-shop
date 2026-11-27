@@ -25,10 +25,9 @@ from reviews.admin import ReviewAdmin, ReviewAdminForm, REVIEW_ADMIN_LINK_SYMBOL
 from import_export import resources
 from import_export.admin import ImportExportMixin
 
-from flags.state import flag_enabled
 
 from shop.models import Category, Product, ProductImage, ProductPrice, ProductRelation, ProductSet, ProductKind, \
-    ProductReview, Stock, Integration, Order
+    ProductReview, Stock, Integration, Order, ImportRun
 from shop.revalidation import product_tag, revalidate_products
 from shop.tasks.workflow import post_update_product
 from .forms import ProductImportForm, ProductConfirmImportForm, ProductExportForm, \
@@ -646,10 +645,7 @@ class ProductAdmin(ImportExportMixin, SortableAdminBase, admin.ModelAdmin, Dynam
 
     def import_1c_status_view(self, request):
         check_permission(self, request)
-        return JsonResponse({
-            'running': flag_enabled('1C_IMPORT_RUNNING'),
-            'copying': flag_enabled('1C_IMPORT_COPYING')
-        })
+        return JsonResponse(ImportRun.status())
 
 
 @admin.register(ProductKind)

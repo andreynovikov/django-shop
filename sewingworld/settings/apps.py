@@ -1,5 +1,4 @@
 INSTALLED_APPS = (
-    'flags',
     'datetimewidget',
     'colorfield',
     'loginas',
