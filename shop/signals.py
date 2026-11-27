@@ -63,7 +63,8 @@ def order_saved(sender, **kwargs):
 
             """ wait 5 minutes to let user supply comments and other stuff """
             notify_manager.apply_async_on_commit((order.id,), countdown=300)
-            notify_manager_telegram.apply_async_on_commit((order.id,), countdown=300)
+            # The post has none of the customer's details, only the total, which is set by now
+            notify_manager_telegram.apply_async_on_commit((order.id,))
 
             if not order.integration and order.meta and 'clientID' in order.meta:
                 ym_upload_user.apply_async_on_commit((order.user.id, order.id), countdown=300)

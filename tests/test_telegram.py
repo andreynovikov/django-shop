@@ -111,7 +111,7 @@ class OrderNoticeTests(TestCase):
             notify_manager_telegram.run(order.id)
         return send.call_args.args[0]
 
-    def test_new_order_is_posted_after_the_commit_with_the_mail(self):
+    def test_new_order_is_posted_after_the_commit_at_once(self):
         with mock.patch.object(notify_manager_telegram, 'apply_async') as apply_async, \
                 mock.patch('shop.signals.notify_manager.apply_async'):
             with self.captureOnCommitCallbacks(execute=True):
@@ -119,7 +119,7 @@ class OrderNoticeTests(TestCase):
                 apply_async.assert_not_called()
         apply_async.assert_called_once()
         self.assertEqual(apply_async.call_args.args[0], (order.id,))
-        self.assertEqual(apply_async.call_args.kwargs['countdown'], 300)
+        self.assertIsNone(apply_async.call_args.kwargs.get('countdown'))  # unlike the mail, it waits for no details
 
     def test_notice_is_short_without_the_customer(self):
         order = self.order(self.main_site)
