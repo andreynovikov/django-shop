@@ -17,7 +17,7 @@ from yookassa import Configuration
 from sewingworld.models import SiteProfile
 from shop.models import Basket, Contractor, Integration, Order, Product, Serial, ShopUser
 
-from .clients import StorefrontClient, add_storefront_key, count_queries, signed_in
+from .clients import StorefrontClient, add_storefront_key, api_reader, count_queries, signed_in, token_client
 from .fixtures import add_marketplace_sites, add_product
 
 PHONE = '+79161234567'
@@ -120,6 +120,91 @@ class RetrieveTests(Base):
         order = self.order()
         self.assertEqual(self.client.delete(f'/api/v0/orders/{order.id}/').status_code, 405)
         self.assertTrue(Order.objects.filter(pk=order.pk).exists())
+
+
+class ReadAllTests(Base):
+    """ The holder of the api_read_orders permission, such as analytics, reads every order whole and changes none """
+    def setUp(self):
+        super().setUp()
+        self.reader, self.reader_client = api_reader('api_read_orders')
+        self.other = ShopUser.objects.create(phone='+79160000000')
+
+    def full_order(self, **fields):
+        order = self.order(delivery_price=500, payment=Order.PAYMENT_CARD, name='Покупатель', phone=PHONE, **fields)
+        order.items.create(product=self.machine, product_price=20000, quantity=2, pct_discount=10)
+        return order
+
+    def test_lists_every_order_whole(self):
+        mine, theirs = self.full_order(), self.full_order(user=self.other)
+        response = self.reader_client.get('/api/v0/orders/')
+        self.assertEqual(response.status_code, 200, response.content)
+        results = response.json()['results']
+        self.assertEqual([order['id'] for order in results], [theirs.id, mine.id])
+        data = results[1]
+        self.assertEqual((data['user'], data['site'], data['seller'], data['phone'], data['total'], data['products_price']),
+                         (self.user.id, self.site.id, self.seller.id, PHONE, 36500, 36000))
+        self.assertEqual((data['status_text'], data['payment_text']), ('новый заказ', 'банковская карта'))
+        item = data['items'][0]
+        self.assertEqual((item['product'], item['quantity'], item['pct_discount'], item['discount'], item['price']),
+                         (self.machine.id, 2, 10, 2000, 36000))
+        for private in ('basket_checkout_key', 'owner', 'lock_token', 'locked_until'):
+            self.assertNotIn(private, data)
+
+    def test_filters(self):
+        new = self.order(user=self.other)
+        canceled = self.order(status=Order.STATUS_CANCELED)
+        there = self.order(user=self.other, site=Site.objects.create(domain='other.test', name='other'))
+        ids = [order['id'] for order in self.reader_client.get('/api/v0/orders/', {'filter': 'active'}).json()['results']]
+        self.assertEqual(ids, [there.id, new.id])
+        ids = [order['id'] for order in self.reader_client.get('/api/v0/orders/', {'filter': 'canceled'}).json()['results']]
+        self.assertEqual(ids, [canceled.id])
+        ids = [order['id'] for order in self.reader_client.get('/api/v0/orders/', {'site': there.site_id}).json()['results']]
+        self.assertEqual(ids, [there.id])
+
+    def test_reads_any_order(self):
+        order = self.full_order(user=self.other)
+        data = self.reader_client.get(f'/api/v0/orders/{order.id}/').json()
+        self.assertEqual((data['id'], data['user'], data['total']), (order.id, self.other.id, 36500))
+
+    def test_changes_none(self):
+        order = self.order(user=self.other)
+        self.assertEqual(self.reader_client.patch(f'/api/v0/orders/{order.id}/', {'comment': 'Чужое'}, format='json').status_code, 404)
+        self.assertEqual(self.reader_client.post(f'/api/v0/orders/{order.id}/pay/').status_code, 404)
+        self.assertEqual(self.reader_client.post('/api/v0/orders/last/').json(), {'id': None})
+        order.refresh_from_db()
+        self.assertEqual(order.comment, '')
+
+    def test_reader_of_users_sees_only_own_orders(self):
+        users_reader, client = api_reader('api_read_users', phone='+79160000008')
+        own, theirs = self.order(user=users_reader), self.order()
+        self.assertEqual([order['id'] for order in client.get('/api/v0/orders/').json()['results']], [own.id])
+        self.assertEqual(client.get(f'/api/v0/orders/{theirs.id}/').status_code, 404)
+
+    def test_through_a_group(self):
+        _, client = api_reader('api_read_orders', phone='+79160000008', through_group=True)
+        order = self.order(user=self.other)
+        self.assertEqual([order['id'] for order in client.get('/api/v0/orders/').json()['results']], [order.id])
+
+    def test_superuser_sees_only_own_orders(self):
+        superuser = ShopUser.objects.create(phone='+79160000001', is_superuser=True, is_staff=True)
+        own = self.order(user=superuser)
+        theirs = self.order()
+        for client in (signed_in(superuser), token_client(superuser)):
+            results = client.get('/api/v0/orders/').json()['results']
+            self.assertEqual([order['id'] for order in results], [own.id])
+            self.assertNotIn('user', results[0])
+            self.assertEqual(client.get(f'/api/v0/orders/{theirs.id}/').status_code, 404)
+
+    def test_queries_do_not_grow_with_the_orders(self):
+        def queries():
+            return count_queries(lambda: self.reader_client.get('/api/v0/orders/'),
+                                 lambda: self.reader_client.get(f'/api/v0/orders/{order.id}/'))
+
+        order = self.full_order()
+        few = queries()
+        for user in (self.user, self.other, self.other):
+            self.full_order(user=user).items.create(product=self.needles, product_price=300)
+        self.assertEqual(queries(), few)
 
 
 class CreateTests(Base):

@@ -429,6 +429,8 @@ class Order(models.Model):
         verbose_name_plural = 'заказы'
         permissions = (
             ('change_order_spb', "Может редактировать заказы СПб"),
+            # Granted to an account or its group, never implied by superuser, see sewingworld/api/common.py
+            ('api_read_orders', "Может читать все заказы через API"),
         )
 
 

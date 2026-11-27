@@ -53,6 +53,46 @@ class OrderSerializer(serializers.ModelSerializer):
         return obj.get_payment_display()
 
 
+class OrderItemFullSerializer(serializers.ModelSerializer):
+    price = NumberReadOnlyField(help_text='Sum of the item after the discount')
+    discount = NumberReadOnlyField(help_text='Discount on a unit')
+
+    class Meta:
+        model = OrderItem
+        exclude = ('order',)
+        read_only_fields = tuple(field.name for field in OrderItem._meta.concrete_fields)
+
+
+class OrderFullSerializer(serializers.ModelSerializer):
+    """
+    Any order as a whole, for the holder of the api_read_orders permission: all but the checkout's idempotency key and
+    the admin's lock. Related objects are ids.
+    """
+    items = OrderItemFullSerializer(many=True, read_only=True)
+    products_price = NumberReadOnlyField()
+    total = NumberReadOnlyField()
+    status_text = serializers.SerializerMethodField()
+    payment_text = serializers.SerializerMethodField()
+    delivery_text = serializers.SerializerMethodField()
+    # a read-only field loses allow_blank, which lets the schema have a blank address
+    email = serializers.EmailField(read_only=True, allow_blank=True)
+
+    class Meta:
+        model = Order
+        exclude = ('basket_checkout_key', 'owner', 'lock_token', 'locked_until')
+        # Read only, so all required in the schema: a customer's order (OrderList, Order) then doesn't pass for this one
+        read_only_fields = tuple(field.name for field in Order._meta.concrete_fields)
+
+    def get_status_text(self, obj) -> str:
+        return obj.get_status_display()
+
+    def get_payment_text(self, obj) -> str:
+        return obj.get_payment_display()
+
+    def get_delivery_text(self, obj) -> str:
+        return obj.get_delivery_display()
+
+
 class OrderActionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order

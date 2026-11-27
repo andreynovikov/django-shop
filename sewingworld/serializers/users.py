@@ -33,6 +33,18 @@ class UserListSerializer(serializers.ModelSerializer):
         return get_gravatar_url(obj, 90)
 
 
+class UserFullSerializer(serializers.ModelSerializer):
+    """ Any account as a whole, for the holder of the api_read_users permission: all but the password and access rights """
+    # a read-only field loses allow_blank, which lets the schema have a blank address
+    email = serializers.EmailField(read_only=True, allow_blank=True)
+
+    class Meta:
+        model = ShopUser
+        exclude = ('password', 'groups', 'user_permissions', 'first_name', 'last_name')
+        # Read only, so all required in the schema: a customer's own account (User) then doesn't pass for this one
+        read_only_fields = tuple(field.name for field in ShopUser._meta.concrete_fields)
+
+
 class PhoneValidator:
     """ Russian numbers only, +7 and ten digits: codes go by SMS, and other countries cost more and draw SMS fraud """
     message = 'Укажите мобильный номер в формате +7 (999) 111-22-33'

@@ -9,7 +9,7 @@ from django.utils.decorators import method_decorator
 from rest_framework import views, viewsets, serializers, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import MethodNotAllowed, NotAuthenticated
-from rest_framework.permissions import BasePermission, IsAuthenticated
+from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer, OpenApiParameter, \
@@ -21,12 +21,13 @@ from shop.models import Basket, ShopUser, ShopUserManager, LoginCode, PhoneCode,
 from shop.tasks.user_interaction import send_password, send_phone_code, send_email_confirmation
 
 from sewingworld.serializers.common import ErrorDetailSerializer, validation_error_serializer
-from sewingworld.serializers.users import UserListSerializer, UserSerializer, RegistrationSerializer, \
+from sewingworld.serializers.users import UserFullSerializer, UserSerializer, RegistrationSerializer, \
     AnonymousUserSerializer, LoginSerializer, PhoneValidator, UserBonusSerializer, EMAIL_TAKEN
 from sewingworld.throttles import LoginIpThrottle, CheckIpThrottle, CheckPhoneThrottle, CheckPhoneDailyThrottle, \
     RegistrationIpThrottle, EmailLinkUserThrottle, EmailLinkIpThrottle
 
-from .common import FORBIDDEN, NOT_FOUND, THROTTLED, IsSuperUser, StandardResultsSetPagination, ensure_session
+from .common import FORBIDDEN, NOT_FOUND, THROTTLED, READ_USERS, ReadsAllUsers, StandardResultsSetPagination, \
+    ensure_session, reads_all
 
 # Built once, drf-spectacular expects one serializer class per component name
 USER_ERRORS = validation_error_serializer(UserSerializer)
@@ -45,10 +46,10 @@ PHONE_CODE_SENT = OpenApiResponse(
 WRONG_CODE = 'Неверный или устаревший код'
 BAD_EMAIL_LINK = 'Ссылка недействительна или устарела'
 
-# users/current/ returns the anonymous user too
+# users/current/ returns the anonymous user too, and another's account is read whole, see UserViewSet.retrieve
 CURRENT_USER = PolymorphicProxySerializer(
     component_name='CurrentUser',
-    serializers=[UserSerializer, AnonymousUserSerializer],
+    serializers=[UserSerializer, AnonymousUserSerializer, UserFullSerializer],
     resource_type_field_name=None,
 )
 
@@ -101,23 +102,30 @@ def queue_email_confirmation(request, view, user):
 
 
 class IsSelf(BasePermission):
+    """ The caller's own account; another one only to read, with the api_read_users permission """
     def has_object_permission(self, request, view, obj):
-        if request.user:
-            if request.user.is_superuser:
-                return True
-            else:
-                return obj.pk == request.user.pk
-        else:
+        if not request.user:
             return False
+        if obj.pk == request.user.pk:
+            return True
+        return request.method in SAFE_METHODS and reads_all(request, READ_USERS)
 
 
 @extend_schema_view(
+    list=extend_schema(
+        description='Every account, for the holder of the api_read_users permission. Being a superuser is not enough.',
+        responses={200: UserFullSerializer(many=True), 403: FORBIDDEN}
+    ),
     create=extend_schema(
         description='Registration. Without `code` it checks the data and sends a code to the phone (202). '
                     'With the code it creates the account and logs the user in (201).',
         responses={201: UserSerializer, 202: PHONE_CODE_SENT, 400: REGISTRATION_ERRORS, 429: THROTTLED}
     ),
-    retrieve=extend_schema(responses={200: CURRENT_USER, 403: FORBIDDEN, 404: NOT_FOUND}),
+    retrieve=extend_schema(
+        description='The caller\'s own account, or `id: null` for an anonymous one at `current`. '
+                    'The holder of the api_read_users permission reads any other account, whole (UserFull).',
+        responses={200: CURRENT_USER, 403: FORBIDDEN, 404: NOT_FOUND}
+    ),
     update=extend_schema(
         description='A new phone needs `code`: without it, nothing is saved and a code is sent to that phone (202).',
         responses={200: UserSerializer, 202: PHONE_CODE_SENT, 400: USER_ERRORS, 403: FORBIDDEN, 404: NOT_FOUND, 429: THROTTLED}
@@ -134,7 +142,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action == 'list':
-            return UserListSerializer
+            return UserFullSerializer
         elif self.action == 'retrieve' and not self.request.user.is_authenticated:
             return AnonymousUserSerializer
         elif self.action == 'login':
@@ -153,8 +161,8 @@ class UserViewSet(viewsets.ModelViewSet):
         elif self.action in ('create', 'check', 'login', 'logout', 'form', 'confirm_email'):
             self.permission_classes = []
         else:
-            # Only superuser can destroy, list
-            self.permission_classes = [IsSuperUser]
+            # The list, and anything not named above (destroy is refused anyway), see ReadsAllUsers
+            self.permission_classes = [ReadsAllUsers]
         return super().get_permissions()
 
     def get_object(self):
@@ -169,6 +177,12 @@ class UserViewSet(viewsets.ModelViewSet):
                 self.kwargs[self.lookup_field] = instance.pk
 
         return super().get_object()
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.pk != request.user.pk:  # read by the holder of api_read_users, see IsSelf
+            return Response(UserFullSerializer(instance, context=self.get_serializer_context()).data)
+        return Response(self.get_serializer(instance).data)
 
     def get_throttles(self):
         if self.action == 'create':

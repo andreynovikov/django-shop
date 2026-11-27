@@ -15,7 +15,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer, OpenApiParameter, OpenApiResponse
+from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer, OpenApiParameter, OpenApiResponse, \
+    PolymorphicProxySerializer
 
 from yandex_kassa.views import payment as yandex_payment
 
@@ -24,9 +25,9 @@ from shop.tasks.user_interaction import notify_user_order_new_sms, notify_user_o
 
 from sewingworld.serializers.common import validation_error_serializer
 from sewingworld.serializers.orders import OrderListSerializer, OrderSerializer, OrderActionSerializer, \
-    PreorderSerializer, SerialSerializer
+    OrderFullSerializer, PreorderSerializer, SerialSerializer
 
-from .common import FORBIDDEN, NOT_FOUND, StandardResultsSetPagination, id_params
+from .common import FORBIDDEN, NOT_FOUND, READ_ORDERS, StandardResultsSetPagination, id_params, reads_all
 from .users import queue_email_confirmation
 
 logger = logging.getLogger("django")
@@ -34,6 +35,32 @@ logger = logging.getLogger("django")
 # Built once, drf-spectacular expects one serializer class per component name
 ORDER_ERRORS = validation_error_serializer(OrderActionSerializer)
 PREORDER_ERRORS = validation_error_serializer(PreorderSerializer)
+# The buyer's own orders, or any order whole for the holder of the api_read_orders permission
+ORDER_LIST_ITEM = 'OrderListItem'
+ORDER_LIST = PolymorphicProxySerializer(
+    component_name=ORDER_LIST_ITEM,
+    serializers=[OrderListSerializer, OrderFullSerializer],
+    resource_type_field_name=None,
+    many=True,
+)
+
+
+def order_list_any_of(result, generator, request, public):
+    """
+    Schema postprocessing hook, see SPECTACULAR_SETTINGS: a list item is anyOf the two, as an OrderFull has every field
+    of an OrderList and would fail oneOf, which takes exactly one
+    """
+    item = result.get('components', {}).get('schemas', {}).get(ORDER_LIST_ITEM)
+    if item and 'oneOf' in item:
+        item['anyOf'] = item.pop('oneOf')
+    return result
+
+
+ORDER = PolymorphicProxySerializer(
+    component_name='OrderDetail',
+    serializers=[OrderSerializer, OrderFullSerializer],
+    resource_type_field_name=None,
+)
 
 
 def notify_new_order(order_id):
@@ -61,13 +88,18 @@ def adopt_order_email(request, view, order):
 
 @extend_schema_view(
     list=extend_schema(
+        description='The caller\'s orders. The holder of the api_read_orders permission gets every order, whole '
+                    '(OrderFull); being a superuser is not enough.',
         parameters=[
             OpenApiParameter('filter', str, enum=['active', 'done', 'canceled'], description='Only active, done or canceled orders'),
             OpenApiParameter('site', OpenApiTypes.INT, description='Only orders made on this site'),
         ],
-        responses={200: OrderListSerializer(many=True), 403: FORBIDDEN}
+        responses={200: ORDER_LIST, 403: FORBIDDEN}
     ),
-    retrieve=extend_schema(responses={200: OrderSerializer, 403: FORBIDDEN, 404: NOT_FOUND}),
+    retrieve=extend_schema(
+        description='An order of the caller\'s, or any order, whole (OrderFull), for the holder of the api_read_orders permission.',
+        responses={200: ORDER, 403: FORBIDDEN, 404: NOT_FOUND}
+    ),
     update=extend_schema(responses={200: OrderSerializer, 400: ORDER_ERRORS, 403: FORBIDDEN, 404: NOT_FOUND}),
 )
 class OrderViewSet(viewsets.ModelViewSet):
@@ -75,8 +107,14 @@ class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.none()  # model for the API schema, get_queryset() needs a request
     pagination_class = StandardResultsSetPagination
 
+    def reads_all(self):
+        """ Every order is read, by the holder of api_read_orders; anything else is done to the caller's own orders """
+        return self.action in ('list', 'retrieve') and reads_all(self.request, READ_ORDERS)
+
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.reads_all():
+            return OrderFullSerializer
+        elif self.action == 'list':
             return OrderListSerializer
         elif self.action == 'retrieve':
             return OrderSerializer
@@ -84,9 +122,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             return OrderActionSerializer
 
     def get_queryset(self):
-        filters = {
-            'user': self.request.user
-        }
+        filters = {} if self.reads_all() else {'user': self.request.user}
         excludes = {}
         order_sites = id_params(self.request, 'site')
         if order_sites:
@@ -100,7 +136,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             excludes['status__in'] = [Order.STATUS_DONE, Order.STATUS_FINISHED, Order.STATUS_CANCELED]
         queryset = Order.objects.order_by('-id').filter(**filters).exclude(**excludes)
         # the totals and prices of items look up the order's site profile, and the prices of the products
-        if self.action == 'list':
+        if self.action == 'list' or self.reads_all():  # the full order has ids of related objects
             queryset = queryset.select_related('site__profile').prefetch_related('items')
         elif self.action == 'retrieve':
             queryset = queryset.select_related('site__profile', 'store__city__country').prefetch_related(

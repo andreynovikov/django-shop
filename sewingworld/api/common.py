@@ -1,6 +1,9 @@
+from django.contrib.auth.models import Permission
+from django.db.models import Q
+
 from rest_framework import serializers
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.response import Response
 
 from django_filters.rest_framework import DjangoFilterBackend
@@ -49,6 +52,35 @@ def ensure_session(request):
 class IsSuperUser(BasePermission):
     def has_permission(self, request, view):
         return request.user and request.user.is_superuser
+
+
+# Permissions to read every account or every order through the API, see reads_all()
+READ_USERS = 'shop.api_read_users'
+READ_ORDERS = 'shop.api_read_orders'
+
+
+def reads_all(request, perm):
+    """
+    Whether the caller may read every record of a kind: perm (READ_USERS or READ_ORDERS), given to the account or one
+    of its groups. Unlike has_perm(), it is not implied by is_superuser, so that an admin's token doesn't open the
+    customers to whoever gets hold of it.
+    """
+    user = request.user
+    if not (user and user.is_authenticated and user.is_active):
+        return False
+    if not hasattr(user, '_reads_all'):  # asked several times a request, by the permission, queryset and serializer
+        user._reads_all = {
+            f'{app_label}.{codename}' for app_label, codename in Permission.objects.filter(
+                Q(user=user) | Q(group__user=user), codename__in=('api_read_users', 'api_read_orders'),
+            ).values_list('content_type__app_label', 'codename')
+        }
+    return perm in user._reads_all
+
+
+class ReadsAllUsers(BasePermission):
+    """ Reading only, by the holder of READ_USERS, see reads_all() """
+    def has_permission(self, request, view):
+        return request.method in SAFE_METHODS and reads_all(request, READ_USERS)
 
 
 class StandardResultsSetPagination(PageNumberPagination):

@@ -71,6 +71,7 @@ python manage.py postman_spec /tmp/spec.json  # OpenAPI spec of the Postman coll
 - API phone validation accepts `+7` only; do not indiscriminately apply it to marketplace/system records. Registration and phone changes require an SMS code (`PhoneCode`). Silent checkout/preorder/warranty accounts remain unverified until SMS login; first verification resets email verification.
 - Passwords require at least eight characters without complexity rules. There is no password lockout. Reveal an occupied email only after a correct SMS code; phone/username availability remains part of initial validation.
 - Customer mail requires `email_verified`, set by the link from `shop/email_confirmation.py`; staff confirmation counts. Order mail waits for confirmation and retries for up to seven days (`confirmed_email`/`postpone_mail` in `shop/tasks/user_interaction.py`).
+- Reading every account (`/api/v0/users/`, `users/<id>/`) takes the `shop.api_read_users` permission, every order (`orders/`) `shop.api_read_orders`, given to an account or its group (analytics, by token). `reads_all()` in `sewingworld/api/common.py` checks them without `has_perm()`'s superuser shortcut: superusers reach only their own records through the API. Holders get the `UserFull`/`OrderFull` serializers; writes stay limited to the caller's own records.
 - Keep basket restore/clear and logout as POST operations. Preserve CSRF/session protections and the cookie compatibility period described below.
 
 ## Signals, tasks and stock

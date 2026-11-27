@@ -32,6 +32,10 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Sewing World API',
     'COMPONENT_SPLIT_REQUEST': True,
+    'POSTPROCESSING_HOOKS': [
+        'drf_spectacular.hooks.postprocess_schema_enums',  # the default one
+        'sewingworld.api.orders.order_list_any_of',
+    ],
     'SERVE_PERMISSIONS': [
         'rest_framework.permissions.IsAuthenticated',
     ],

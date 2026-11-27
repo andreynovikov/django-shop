@@ -134,6 +134,8 @@ class ShopUser(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = 'пользователи'
         permissions = (
             ('wholesale', "Может покупать оптом"),
+            # Granted to an account or its group, never implied by superuser, see sewingworld/api/common.py
+            ('api_read_users', "Может читать всех пользователей через API"),
         )
 
     @staticmethod
