@@ -48,3 +48,7 @@ os.environ['CELERY_BROKER_URL'] = CELERY_BROKER_URL = 'memory://'
 ADMIN_EVENTS_REDIS_URL = ''
 # Nor do posts to the staff channel: tests must not reach the bot of .env
 TELEGRAM_BOT_TOKEN = TELEGRAM_STAFF_CHAT = ''
+# Each run has a cache of its own, empty, whatever the memcached of .env: the settings force memcached even for a
+# locmem CACHE_URL, and CI has none. Constance, which takes only a cache that processes share, reads the test database.
+CACHES = {**CACHES, 'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache', 'KEY_PREFIX': 'SW'}}  # noqa F405
+CONSTANCE_DATABASE_CACHE_BACKEND = None

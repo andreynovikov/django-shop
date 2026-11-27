@@ -52,8 +52,8 @@ def add_marketplace_sites():
 
 def mock_constance(test, failures=3):
     """
-    Constance's values for shop/health.py, which the tasks of the integrations and SMS record their health
-    with: constance's cache must be a cross-process one, which tests don't have
+    Constance's values for shop/health.py, which the tasks of the integrations and SMS record their health with, set
+    by the test rather than read from the database
     """
     config = mock.Mock(sw_integration_failures=failures, sw_email_from='robot@shop.test')
     for module in ('shop.health', 'shop.tasks.admin'):
