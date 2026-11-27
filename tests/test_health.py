@@ -513,7 +513,8 @@ class AdminTests(HealthTestCase):
             self.failure(error='HTTP 401: Token expired')
         content = admin.site.index(self.request(self.superuser)).render().content.decode()
         self.assertIn('id="health_integrations" data-group="integrations" title="Ozon, получение заказов: HTTP 401: Token expired"', content)
-        self.assertIn('class="sw-level" style="color: red">&#9670;</span> Интеграции', content)
+        # The indicator's colour, and the name as a link without it, which hovering underlines
+        self.assertIn('class="sw-level" style="color: red">&#9670;</span> <a href="/admin/shop/healthcheck/?group=integrations">Интеграции</a>', content)
         self.assertIn('id="health_queues" data-group="queues" title="Очереди Celery в порядке"', content)
         self.assertIn('?group=queues', content)
 

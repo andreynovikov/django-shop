@@ -29,25 +29,37 @@
         color: oklch(from var(--c) max(l, var(--sw-min-l)) c h);
     }
 
-    /* The 1C import's label, short where the top bar is narrow */
+    /* Where the top bar is narrow, the 1C import's label is short, the greeting goes, then the name. Below 1024px
+       Django's admin stacks the top bar, with room for all. */
     .sw-narrow { display: none }
     @media (max-width: 1499.98px) {
-      .sw-wide { display: none }
+      .sw-wide, #sw-welcome { display: none }
       .sw-narrow { display: inline }
     }
-    @media (max-width: 1200px) {
-      #branding h1 { display: none }
-      #user-tools > span { display: none }
+    @media (max-width: 1279.98px) {
+      #header { padding-left: 20px; padding-right: 20px }
+    }
+    @media (max-width: 1149.98px) {
+      #sw-user { display: none }
     }
     @media (max-width: 1024px) {
-      #branding h1 { display: block }
-      #user-tools > span { display: inline }
+      #sw-welcome, #sw-user { display: inline }
     }
     #branding { order: 1 }
-    #quick-links, #order-quick-link, #stocks_status, .sw-health { order: 2 }
-    .sw-health a { color: inherit; text-decoration: none }
+    #quick-links, #order-quick-link, #sw-indicators { order: 2 }
     #quick-links { text-transform: uppercase }
     #user-tools { order: 3 }
+    /* Nothing of the top bar wraps inside: where it lacks room, the indicators stack in a column instead */
+    #branding, #order-quick-link, #quick-links, #user-tools, #sw-indicators { white-space: nowrap }
+    #sw-indicators { display: flex; gap: 0 1.2em }
+    #header { column-gap: 1.2em }
+    .sw-health a { color: inherit }
+    @media (max-width: 1599.98px) {
+      #sw-indicators { flex-direction: column; font-size: 0.85em; line-height: 1.35 }
+    }
+    @media (max-width: 1024px) {
+      #sw-indicators { align-items: center }
+    }
 
     :not(.inline-related) .collapse :not([open=""]) summary {
       border: 1px solid var(--hairline-color) !important;
@@ -89,6 +101,7 @@
 {# one failed, green when all is well; the title says more. admin-indicators.js updates it, for those who may read #}
 {# its status. #}
 {% import_status as import %}
+<div id="sw-indicators">
 <div id="stocks_status" title="{{ import.title }}"{% if perms.shop.view_product %} data-url="{% url 'admin:shop_product_import_1c_status' %}"{% endif %}>
     <span id="import1c_status" style="color: {{ import.color }}">&#9670;</span>
     <span class="sw-wide">Актуализация склада</span><span class="sw-narrow">Склад</span>: <span id="import1c_date">{{ import.last|default:"неизвестно" }}</span>
@@ -98,14 +111,15 @@
 {% health_status as health %}
 {% for status in health %}
 <div class="sw-health" id="health_{{ status.group }}" data-group="{{ status.group }}" title="{{ status.title }}" data-url="{% url 'admin:shop_healthcheck_status' %}">
-    <a href="{% url 'admin:shop_healthcheck_changelist' %}?group={{ status.group }}"><span class="sw-level" style="color: {{ status.color }}">&#9670;</span> {{ status.name }}</a>
+    <span class="sw-level" style="color: {{ status.color }}">&#9670;</span> <a href="{% url 'admin:shop_healthcheck_changelist' %}?group={{ status.group }}">{{ status.name }}</a>
 </div>
 {% endfor %}
+</div>
 {% endif %}
 {% endblock %}
 {% block welcome-msg %}
-  <span>{% translate 'Welcome,' %}</span>
-  <strong>{% firstof user.get_short_name user.get_username %}</strong>.
+  <span id="sw-welcome">{% translate 'Welcome,' %}</span>
+  <span id="sw-user"><strong>{% firstof user.get_short_name user.get_username %}</strong>.</span>
 {% endblock %}
 {% block userlinks %}
     {% if user.has_usable_password %}
