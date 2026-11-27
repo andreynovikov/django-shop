@@ -62,62 +62,8 @@
 <script src="{% static 'js/admin-events.js' %}" data-url="{% url 'admin:events' %}" defer></script>
 {% endif %}
 {% if user.is_authenticated %}
-<script>
-    function check1CImportStatus() {
-        var xmlhttp = new XMLHttpRequest();
-        xmlhttp.onreadystatechange = function() {
-            if (xmlhttp.readyState == 4) {
-                if (xmlhttp.status == 200) {
-                    try {
-                        var status = JSON.parse(xmlhttp.responseText);
-                        var color = status.copying ? 'red' : status.running ? 'gold' : 'limegreen';
-                        document.getElementById("import1c_status").style.color = color;
-                    } catch(err) {
-                        console.log(err.message + " in " + xmlhttp.responseText);
-                    }
-                }
-                setTimeout(check1CImportStatus, 20000);
-            }
-        };
-        xmlhttp.open("GET", "/admin/shop/product/import1c/status/", true);
-        xmlhttp.send();
-    }
-
-    // The health of the integrations and of Celery, see shop/health.py: each group's colour, and its problems in
-    // the title
-    function checkHealthStatus(url) {
-        var xmlhttp = new XMLHttpRequest();
-        xmlhttp.onreadystatechange = function() {
-            if (xmlhttp.readyState == 4) {
-                if (xmlhttp.status == 200) {
-                    try {
-                        var groups = JSON.parse(xmlhttp.responseText);
-                        document.querySelectorAll('.sw-health').forEach(function(indicator) {
-                            var status = groups[indicator.dataset.group];
-                            if (status) {
-                                indicator.querySelector('.sw-level').style.color = status.color;
-                                indicator.title = status.title;
-                            }
-                        });
-                    } catch(err) {
-                        console.log(err.message + " in " + xmlhttp.responseText);
-                    }
-                }
-                setTimeout(checkHealthStatus, 20000, url);
-            }
-        };
-        xmlhttp.open("GET", url, true);
-        xmlhttp.send();
-    }
-
-    document.addEventListener('DOMContentLoaded', function(){
-        setTimeout(check1CImportStatus, 20000);
-        var indicator = document.querySelector('.sw-health');
-        if (indicator) {
-            setTimeout(checkHealthStatus, 20000, indicator.dataset.url);
-        }
-    });
-</script>
+{# The top bar's indicators below, updated by the admin's events and a slow poll #}
+<script src="{% static 'js/admin-indicators.js' %}" defer></script>
 {% endif %}
 {% endblock %}
 {% block nav-global %}
@@ -135,15 +81,15 @@
     <a href="{% url 'admin:shop_shopuser_changelist' %}">Пользователи</a>
 </div>
 {# The 1C stock import (shop/tasks/stocks.py): red while it replaces the stock table, gold while it runs, #}
-{# green when idle. check1CImportStatus() above refreshes the color every 20 seconds. #}
-<div id="stocks_status">
+{# green when idle. admin-indicators.js updates it, for those who may read its status. #}
+<div id="stocks_status"{% if perms.shop.view_product %} data-url="{% url 'admin:shop_product_import_1c_status' %}"{% endif %}>
     {% flag_enabled '1C_IMPORT_RUNNING' as running_flag %}
     {% flag_enabled '1C_IMPORT_COPYING' as copying_flag %}
     <span id="import1c_status" style="color: {% if copying_flag %}red{% elif running_flag %}gold{% else %}limegreen{% endif %}">&#9670;</span>
-    Актуализация склада: {% last_1c_import %}
+    Актуализация склада: <span id="import1c_date">{% last_1c_import %}</span>
 </div>
 {# The health of the integrations and of Celery's queues (shop/health.py): red with a problem raised, gold after a #}
-{# failure, green when all is well. checkHealthStatus() above refreshes them every 20 seconds. #}
+{# failure, green when all is well. admin-indicators.js updates them. #}
 {% health_status as health %}
 {% for status in health %}
 <div class="sw-health" id="health_{{ status.group }}" data-group="{{ status.group }}" title="{{ status.title }}" data-url="{% url 'admin:shop_healthcheck_status' %}">

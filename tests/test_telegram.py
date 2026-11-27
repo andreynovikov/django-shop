@@ -189,9 +189,16 @@ class ImportCopyFailureTests(TransactionTestCase):
     def test_stock_and_flags_survive_a_failed_copy(self):
         enable_flag('1C_IMPORT_RUNNING')
         # the cursor wrapper hands copy_from() to psycopg2's cursor, whose C type can't be patched
-        with mock.patch.object(CursorWrapper, 'copy_from', create=True, side_effect=OSError('disk full')) as copy_from:
+        with mock.patch.object(CursorWrapper, 'copy_from', create=True, side_effect=OSError('disk full')) as copy_from, \
+                mock.patch('shop.tasks.stocks.publish_status') as announced:
             with self.assertRaisesMessage(OSError, 'disk full'):
                 stocks.import1c.run('stock.csv')
+        # The admin pages heard of each step at once
+        self.assertEqual([call.kwargs for call in announced.call_args_list], [
+            {'running': True, 'copying': False, 'last': None},
+            {'running': True, 'copying': True, 'last': None},
+            {'running': False, 'copying': False, 'last': None},
+        ])
         copy_from.assert_called_once()
         self.assertEqual(list(Stock.objects.values_list('pk', 'quantity')), [(self.stock.pk, 3)])
         self.assertFalse(flag_state('1C_IMPORT_RUNNING'))

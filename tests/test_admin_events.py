@@ -150,10 +150,26 @@ class ViewTests(TestCase):
     async def test_streams_of_the_page(self):
         with mock.patch('sewingworld.admin_events.stream') as fake:
             response = await events(self.request(self.staff, {'order': self.order.pk},
-                                                 headers={'Last-Event-ID': '7-0 8-1'}))
+                                                 headers={'Last-Event-ID': '7-0 8-1 9-2'}))
         self.assertEqual(response['Content-Type'], 'text/event-stream')
         self.assertEqual((response['Cache-Control'], response['X-Accel-Buffering']), ('no-cache', 'no'))
-        fake.assert_called_once_with([f'sw:admin:user:{self.staff.pk}', f'sw:admin:order:{self.order.pk}'], ['7-0', '8-1'])
+        fake.assert_called_once_with(
+            [f'sw:admin:user:{self.staff.pk}', f'sw:admin:order:{self.order.pk}', 'sw:admin:status'], ['7-0', '8-1', '9-2'])
+
+    async def test_status_stream_only_for_those_who_see_an_indicator(self):
+        for permissions, status in (((), False), (('view_order',), False), (('view_product',), True),
+                                    (('view_healthcheck',), True)):
+            user = await sync_to_async(self.staff_with)(*permissions)
+            with self.subTest(permissions=permissions), mock.patch('sewingworld.admin_events.stream') as fake:
+                self.assertEqual((await events(self.request(user))).status_code, 200)
+                self.assertEqual('sw:admin:status' in fake.call_args.args[0], status)
+
+
+class StatusTests(SimpleTestCase):
+    def test_status_goes_to_its_stream_at_once(self):
+        with mock.patch('sewingworld.notifications.publish') as publish:
+            notifications.publish_status('import', running=True, copying=False, last=None)
+        publish.assert_called_once_with('sw:admin:status', {'type': 'import', 'running': True, 'copying': False, 'last': None})
 
 
 class NoticeTests(TestCase):

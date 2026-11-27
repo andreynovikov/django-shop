@@ -30,6 +30,8 @@ from celery import shared_task
 from constance import config
 from flags.state import enable_flag, disable_flag
 
+from sewingworld.notifications import publish_status
+
 from sewingworld.tasks import single_instance_task
 
 from shop.models import Supplier, Currency, Product, Stock, Order
@@ -153,6 +155,15 @@ def stored_prices(product):
     return tuple(price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP) for price in (product.price, product.ws_price))
 
 
+def announce_import(running, copying=False, last=None):
+    """
+    Tells the open admin pages what the import does, at once rather than on commit, for the top bar's indicator
+    (staticfiles/js/admin-indicators.js); last is the date of the file just imported, as shop_tags.last_1c_import
+    shows it
+    """
+    publish_status('import', running=running, copying=copying, last=last)
+
+
 @shared_task(name='shop.tasks.import1c', time_limit=7200, retry_backoff=True)
 @single_instance_task(1200)
 def import1c(file):
@@ -166,6 +177,7 @@ def import1c(file):
     except Exception as e:
         disable_flag('1C_IMPORT_COPYING')
         disable_flag('1C_IMPORT_RUNNING')
+        announce_import(False)
         notify_staff.delay(f'Импорт 1С из {file} прерван: {type(e).__name__}: {e}')
         raise
 
@@ -186,6 +198,7 @@ def _import1c(file):
     """
     log.error('Import1C')
     enable_flag('1C_IMPORT_RUNNING')
+    announce_import(True)
 
     currencies = {}
 
@@ -367,6 +380,7 @@ def _import1c(file):
         with connection.cursor() as cursor:
             log.info('Start 1C_IMPORT_COPYING')
             enable_flag('1C_IMPORT_COPYING')
+            announce_import(True, copying=True)
             # Replace the stock snapshot atomically so readers never see an empty table between DELETE and COPY.
             # A failure rolls back to the old table and leaves the connection usable.
             cursor.execute("BEGIN")
@@ -380,6 +394,7 @@ def _import1c(file):
                 raise
             cursor.execute("COMMIT")
             disable_flag('1C_IMPORT_COPYING')
+            announce_import(True)
             log.info('Stop 1C_IMPORT_COPYING')
     table_copy.close()
     tmp_file.close()
@@ -400,6 +415,7 @@ def _import1c(file):
     log.info('Frozen orders %s' % str(orders))
 
     disable_flag('1C_IMPORT_RUNNING')
+    announce_import(False, last=date[:-3] if date else None)  # without the seconds
     count_stocks.delay(stock)
     context = {'file': file, 'date': date, 'imported': imported, 'updated': updated, 'errors': errors, 'orders': orders,
                'opts': Order._meta}

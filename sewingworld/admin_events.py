@@ -56,6 +56,11 @@ def permitted_user(request, order_id):
     return request.user.pk
 
 
+def sees_status(request):
+    """ Whether the staff member may see an indicator of the top bar, and so its stream """
+    return any(request.user.has_perm(permission) for permission in notifications.STATUS_PERMISSIONS)
+
+
 def positions(last_event_id, count):
     """ Where each stream continues: from Last-Event-ID, or None for its end """
     ids = (last_event_id or '').split()
@@ -102,6 +107,8 @@ async def events(request):
     streams = [notifications.user_stream(user_id)]
     if order_id is not None:
         streams.append(notifications.order_stream(order_id))
+    if await sync_to_async(sees_status)(request):
+        streams.append(notifications.STATUS_STREAM)
     response = StreamingHttpResponse(stream(streams, positions(request.headers.get('Last-Event-ID'), len(streams))),
                                      content_type='text/event-stream')
     response['Cache-Control'] = 'no-cache'

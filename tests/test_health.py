@@ -146,6 +146,46 @@ class FailureTests(HealthTestCase):
                                                                'title': 'Обмен с маркетплейсами и SMS в порядке', 'problems': []})
 
 
+class PublishTests(HealthTestCase):
+    """ Open admin pages hear of a group's change of level, see sewingworld/notifications.py """
+
+    def setUp(self):
+        super().setUp()
+        self.status = self.enterContext(patch('sewingworld.notifications.publish_status'))
+
+    def statuses(self):
+        return [(call.args[0], call.kwargs['group'], call.kwargs['level']) for call in self.status.call_args_list]
+
+    def test_a_change_of_level_is_published_on_commit(self):
+        with self.captureOnCommitCallbacks() as callbacks:
+            health.record_failure(self.ozon, POLL, 'HTTP 400: Invalid filter')
+            self.status.assert_not_called()
+        for callback in callbacks:
+            callback()
+        self.assertEqual(self.statuses(), [('health', health.INTEGRATIONS, health.WARNING)])
+
+        self.failure()  # still a warning
+        self.assertEqual(len(self.statuses()), 1)
+        self.failure()  # raised
+        self.success()
+        self.assertEqual(self.statuses()[1:], [('health', health.INTEGRATIONS, health.PROBLEM),
+                                               ('health', health.INTEGRATIONS, health.OK)])
+
+    def test_heartbeats_of_a_healthy_queue_publish_nothing(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            heartbeat.run('priority')
+        self.status.reset_mock()
+        HealthCheck.objects.filter(operation='celery.priority').update(last_success_at=timezone.now() - timedelta(minutes=2))
+        with self.captureOnCommitCallbacks(execute=True):
+            heartbeat.run('priority')
+        self.status.assert_not_called()
+
+    def test_command_publishes_both_groups(self):
+        with patch('sewingworld.telegram.send_message'):
+            call_command('check_health', stdout=StringIO())
+        self.assertEqual({group for _, group, _ in self.statuses()}, set(health.GROUPS))
+
+
 class MonitorTests(HealthTestCase):
     def test_records_the_outcome_and_reraises_the_original_exception(self):
         error = health.IntegrationFailure('Token expired', status=401, body='{"detail": "Token expired", "code": 401}')

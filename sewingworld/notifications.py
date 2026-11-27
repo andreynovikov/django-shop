@@ -1,8 +1,9 @@
 """
 Instant notices to the admin pages open in browsers, see sewingworld/admin_events.py for how they get there.
 
-Each notice is an entry of a Redis stream: one stream per staff member, which every admin page of theirs reads, and
-one per order, which the order's page reads. A page that reconnects gets what it missed from the stream. A stream
+Each notice is an entry of a Redis stream: one stream per staff member, which every admin page of theirs reads, one
+per order, which the order's page reads, and one of the top bar's indicators (STATUS_STREAM), which the pages of those
+who may see them read. A page that reconnects gets what it missed from the stream. A stream
 keeps its latest entries and expires a day after the last one.
 
 Notices are a convenience: they are lost when Redis is down, and nothing may depend on them. The order lock, for one,
@@ -54,6 +55,11 @@ def order_stream(order_id):
     return f'{STREAM_PREFIX}order:{order_id}'
 
 
+STATUS_STREAM = f'{STREAM_PREFIX}status'
+# Who may see the indicators of the status stream: the 1C import's and the health's
+STATUS_PERMISSIONS = ('shop.view_product', 'shop.view_healthcheck')
+
+
 def publish(stream, data):
     """ Adds the data, a dict with its 'type', to the stream at once. Returns the entry's ID, None when it failed. """
     connection = client()
@@ -86,3 +92,11 @@ def notify_user(user_id, message, level='info', link=None):
 def notify_order(order_id, event_type, **data):
     """ An event for the pages of the order, such as 'lock-lost', see shop/order_lock.py """
     publish_on_commit(order_stream(order_id), {'type': event_type, **data})
+
+
+def publish_status(event_type, **data):
+    """
+    A change of an indicator of the top bar at once, such as {type: 'import'} (shop/tasks/stocks.py) or
+    {type: 'health'} (shop/health.py), see staticfiles/js/admin-indicators.js
+    """
+    publish(STATUS_STREAM, {'type': event_type, **data})

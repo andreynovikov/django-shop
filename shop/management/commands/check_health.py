@@ -7,7 +7,7 @@ Check what the tasks can't report themselves, see shop/health.py:
 * warns before a Wildberries API token expires.
 
 Raised problems are mailed to the managers and posted to the staff channel, and so are the end of a broker, beat or
-token problem. The systemd timer health_check@<site>.timer runs it every two minutes, outside Celery, so that it works
+token problem. The open admin pages get the state of both indicators on each run. The systemd timer health_check@<site>.timer runs it every two minutes, outside Celery, so that it works
 when Celery, its broker or beat is down; for the same reason it sends the notices itself. When neither mail nor
 Telegram takes them, it fails and leaves the problems unraised for the next run.
 """
@@ -46,6 +46,9 @@ class Command(BaseCommand):
                 raise CommandError('Neither mail nor Telegram took the notice of raised problems')
         if restored:
             health.deliver(restored, raised=False)
+        # The open admin pages, which hear of nothing else when an operation goes stale with time
+        for group in health.GROUPS:
+            health.publish(group)
         self.stdout.write(f'Raised: {len(raised)}, restored: {len(restored)}')
 
     def report(self, now):

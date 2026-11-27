@@ -14,6 +14,9 @@ they stopped. The check_health command, run every two minutes by a systemd timer
 heartbeat task through each queue (QUEUES), whose success is the queue's, and checks beat and the broker. summary()
 shows stale operations as problems right away, and the command raises them and sends the notices itself, so that they
 go out while Celery is down. A command that stops running shows as a stale MONITOR.
+
+Open admin pages hear of a change of a group's level at once (publish()), and the command publishes both groups on
+each run, which covers what goes stale with time.
 """
 import base64
 import binascii
@@ -234,6 +237,18 @@ def _notice(check, since):
     }
 
 
+def publish(group_name):
+    """ Tells the open admin pages the group's state, see sewingworld/notifications.py """
+    from sewingworld.notifications import publish_status
+    publish_status('health', group=group_name, **summary(group_name))
+
+
+def _publish_change(check, before):
+    """ Publishes the check's group once the transaction commits, when its level changed """
+    if level(check, timezone.now()) != before:
+        transaction.on_commit(lambda: publish(group(check.operation)), robust=True)
+
+
 def _queue(notices, raised):
     from shop.tasks.admin import notify_health  # the tasks import this module
     transaction.on_commit(lambda: notify_health.delay(notices, raised), robust=True)
@@ -254,6 +269,7 @@ def record_success(integration, operation, *, notify=True):
         return None
     with transaction.atomic():
         check = _locked(integration, operation)
+        before = level(check, now)
         notice = None
         if check.raised_at is not None:
             notice = _notice(check, check.first_failed_at or check.last_success_at or check.raised_at)
@@ -262,6 +278,7 @@ def record_success(integration, operation, *, notify=True):
         check.first_failed_at = check.raised_at = None
         check.last_success_at = now
         check.save()
+        _publish_change(check, before)
         if notice and notify:
             _queue([notice], raised=False)
     return notice
@@ -272,6 +289,7 @@ def record_failure(integration, operation, error, *, notify=True):
     now = timezone.now()
     with transaction.atomic():
         check = _locked(integration, operation)
+        before = level(check, now)
         check.failures += 1
         check.error = truncate(error)
         check.last_failed_at = now
@@ -281,6 +299,7 @@ def record_failure(integration, operation, error, *, notify=True):
             check.raised_at = now
             notice = _notice(check, check.first_failed_at)
         check.save()
+        _publish_change(check, before)
         if notice and notify:
             _queue([notice], raised=True)
     return notice
@@ -291,6 +310,7 @@ def raise_problem(integration, operation, error, *, notify=True):
     now = timezone.now()
     with transaction.atomic():
         check = _locked(integration, operation)
+        before = level(check, now)
         check.error = truncate(error)
         check.first_failed_at = check.first_failed_at or now
         notice = None
@@ -298,6 +318,7 @@ def raise_problem(integration, operation, error, *, notify=True):
             check.raised_at = now
             notice = _notice(check, check.first_failed_at)
         check.save()
+        _publish_change(check, before)
         if notice and notify:
             _queue([notice], raised=True)
     return notice
@@ -307,10 +328,12 @@ def warn(integration, operation, error):
     """ A warning, which takes back a problem raised earlier, such as for a token replaced with a shorter one """
     with transaction.atomic():
         check = _locked(integration, operation)
+        before = level(check, timezone.now())
         check.error = truncate(error)
         check.first_failed_at = check.first_failed_at or timezone.now()
         check.raised_at = None
         check.save()
+        _publish_change(check, before)
 
 
 def _quietly(func, *args):

@@ -102,29 +102,3 @@
     state: started
     daemon_reload: true
   loop: "{{ server_celery_apps | selectattr('site', 'in', server_deployed_sites) | map(attribute='site') | unique | list }}"
-
-# Its predecessor, which checked the integrations only
-- name: Find the integration check timers
-  ansible.builtin.find:
-    paths: /etc/systemd/system/timers.target.wants
-    patterns: "integration_check@*.timer"
-    file_type: link
-  register: integration_check_timers
-
-- name: Stop the integration check timers
-  ansible.builtin.systemd_service:
-    name: "{{ item.path | basename }}"
-    enabled: false
-    state: stopped
-  loop: "{{ integration_check_timers.files }}"
-  loop_control:
-    label: "{{ item.path | basename }}"
-
-- name: Remove the integration check units
-  ansible.builtin.file:
-    path: /etc/systemd/system/{{ item }}
-    state: absent
-  loop:
-    - integration_check@.service
-    - integration_check@.timer
-  notify: Reload systemd
