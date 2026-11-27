@@ -93,7 +93,7 @@ OPERATIONS = {
     'ozon.tasks.sync_integration_posting': Operation('уведомления о заказах'),
     'ozon.tasks.notify_product_stocks': Operation('передача остатков'),
     'wb.tasks.get_integration_new_orders': Operation('получение новых заказов', timedelta(minutes=30)),
-    'wb.tasks.get_integration_detached_orders': Operation('получение заказов других складов', timedelta(hours=1)),
+    'wb.tasks.get_integration_detached_orders': Operation('получение неучтённых заказов', timedelta(hours=1)),
     'wb.tasks.get_integration_order_statuses': Operation('получение статусов заказов'),
     'wb.tasks.notify_product_stocks': Operation('передача остатков'),
     TOKEN: Operation('срок действия токена API'),
