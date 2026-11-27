@@ -77,8 +77,8 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
 
     def get_app_list(self, request, app_label=None):
         # The shop goes first, with the flat pages and the file manager, then a "Швейный Мир" group with the constance
-        # settings and sites. The OTP models join "Two Factor Authentication", and the shop's users are listed under
-        # auth too. Comments are named in Russian.
+        # settings and sites. The integrations' health is a "Мониторинг" group. The OTP models join "Two Factor
+        # Authentication", and the shop's users are listed under auth too. Comments are named in Russian.
         apps = super().get_app_list(request, app_label)
 
         shop = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'shop'), None)
@@ -131,6 +131,13 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
                     apps[shop]['models'].extend(apps[other]['models'])
                     indexes.append(other)
             apps[shop]['models'].sort(key=lambda model: model['name'])  # as Django sorts them
+
+        # The integrations' health goes to a group of its own, which the index puts in the "system" tab
+        if shop is not None and app_label is None:
+            checks = [model for model in apps[shop]['models'] if model['object_name'] == 'IntegrationCheck']
+            if checks:
+                apps[shop]['models'] = [model for model in apps[shop]['models'] if model['object_name'] != 'IntegrationCheck']
+                apps.append({'name': 'Мониторинг', 'app_label': 'monitoring', 'models': checks})
 
         if sewingworld is not None:
             if constance is not None:

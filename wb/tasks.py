@@ -23,11 +23,13 @@ import django.db
 from django.db.models import Sum, F, Q
 from django.conf import settings
 from django.contrib import auth
+from django.views.decorators.debug import sensitive_variables
 
 from celery import shared_task
 
 from sewingworld.tasks import PRIORITY_IDLE
 
+from shop.integration_health import IntegrationFailure, monitor, read_body
 from shop.models import Integration, Basket, Order, Product, ProductIntegration, ShopUser
 from shop.tasks.user_interaction import send_message
 from shop.tasks.workflow import update_order
@@ -58,55 +60,62 @@ WB_ORDER_STATUS = {
 }
 
 
-class TaskFailure(Exception):
-    pass
+class TaskFailure(IntegrationFailure):
+    """ Wildberries' error reply; reply is its JSON """
+    reply = None
 
 
-def get_warehouses(account, target_site_id=None):
-    integration = Integration.get_for_utm_source(account, target_site_id)
+class ApiUnavailable(IntegrationFailure, OSError):
+    """ An error reply that isn't Wildberries' JSON, such as a proxy's 502: an OSError, which the tasks retry """
 
-    api_key = integration.settings.get('api_key', '')
 
-    url = 'https://marketplace-api.wildberries.ru/api/v3/warehouses'
-    headers = {
-        'Authorization': api_key
-    }
-    request = Request(url, None, headers)
+WB_MARKETPLACE = 'https://marketplace-api.wildberries.ru'
+WB_CONTENT = 'https://content-api.wildberries.ru'
+
+
+@sensitive_variables()
+def _wb_request(integration, method, url, data=None):
+    """ The JSON of Wildberries' reply, None for an empty one """
+    headers = {'Authorization': integration.settings.get('api_key', '')}
+    body = None
+    if data is not None:
+        headers['Content-Type'] = 'application/json; charset=utf-8'
+        body = json.dumps(data).encode('utf-8')
+    request = Request(url, body, headers, method=method)
     logger.info('<<< ' + request.full_url)
+    if body is not None:
+        logger.info(body)
     try:
-        response = urlopen(request)
-        result = json.loads(response.read().decode('utf-8'))
-        logger.debug(result)
-        warehouses = {warehouse['id']: warehouse['name'] for warehouse in result}
-        return warehouses
+        with urlopen(request, timeout=30) as response:
+            content = response.read()
     except HTTPError as e:
-        content = e.read()
-        error = json.loads(content.decode('utf-8'))
-        logger.error(error)
+        text = read_body(e)
         try:
-            message = error.get('detail', 'Неизвестная ошибка взаимодействия с Wildberries!')
-        except:  # noqa #722
-            message = error
-        raise TaskFailure(message) from e
+            error = json.loads(text)
+        except ValueError:
+            raise ApiUnavailable(f'Ошибка взаимодействия с Wildberries (HTTP {e.code})', status=e.code, body=text) from e
+        logger.error(error)
+        message = error.get('detail') if isinstance(error, dict) else None
+        failure = TaskFailure(message or 'Неизвестная ошибка взаимодействия с Wildberries!', status=e.code, body=text)
+        failure.reply = error
+        raise failure from e
+    return json.loads(content.decode('utf-8')) if content else None
+
+
+def get_warehouses(integration):
+    result = _wb_request(integration, 'GET', f'{WB_MARKETPLACE}/api/v3/warehouses')
+    logger.debug(result)
+    return {warehouse['id']: warehouse['name'] for warehouse in result}
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def get_integration_new_orders(self, account, target_site_id=None):
     integration = Integration.get_for_utm_source(account, target_site_id)
     warehouseId = integration.settings.get('warehouse_id', '')
-    warehouses = get_warehouses(account, target_site_id)
 
-    api_key = integration.settings.get('api_key', '')
-
-    url = 'https://marketplace-api.wildberries.ru/api/v3/orders/new'
-    headers = {
-        'Authorization': api_key
-    }
-    request = Request(url, None, headers)
-    logger.info('<<< ' + request.full_url)
-    try:
-        response = urlopen(request)
-        result = json.loads(response.read().decode('utf-8'))
+    with monitor(integration, self.name):
+        warehouses = get_warehouses(integration)
+        result = _wb_request(integration, 'GET', f'{WB_MARKETPLACE}/api/v3/orders/new')
         logger.debug(result)
         num = 0
         user = ShopUser.objects.get(phone='0003')
@@ -170,15 +179,6 @@ def get_integration_new_orders(self, account, target_site_id=None):
 
             num = num + 1
         return num
-    except HTTPError as e:
-        content = e.read()
-        error = json.loads(content.decode('utf-8'))
-        logger.error(error)
-        try:
-            message = error.get('detail', 'Неизвестная ошибка взаимодействия с Wildberries!')
-        except:  # noqa E722
-            message = error
-        raise TaskFailure(message) from e
 
 
 @shared_task
@@ -194,22 +194,14 @@ def get_new_orders():
 def get_integration_detached_orders(self, account, target_site_id=None):
     integration = Integration.get_for_utm_source(account, target_site_id)
     warehouseId = integration.settings.get('warehouse_id', '')
-    warehouses = get_warehouses(account, target_site_id)
-    if len(list(filter(lambda k: k != warehouseId, warehouses.keys()))) == 0:
-        return
 
-    api_key = integration.settings.get('api_key', '')
+    with monitor(integration, self.name):
+        warehouses = get_warehouses(integration)
+        if len(list(filter(lambda k: k != warehouseId, warehouses.keys()))) == 0:
+            return
 
-    date_from = int(datetime.now().timestamp()) - 30 * 60  # last 30 minutes
-    url = 'https://marketplace-api.wildberries.ru/api/v3/orders?limit=1000&next=0&dateFrom=' + str(date_from)
-    headers = {
-        'Authorization': api_key
-    }
-    request = Request(url, None, headers)
-    logger.info('<<< ' + request.full_url)
-    try:
-        response = urlopen(request)
-        result = json.loads(response.read().decode('utf-8'))
+        date_from = int(datetime.now().timestamp()) - 30 * 60  # last 30 minutes
+        result = _wb_request(integration, 'GET', f'{WB_MARKETPLACE}/api/v3/orders?limit=1000&next=0&dateFrom={date_from}')
         logger.debug(result)
         num = 0
         user = ShopUser.objects.get(phone='0003')
@@ -268,15 +260,6 @@ def get_integration_detached_orders(self, account, target_site_id=None):
 
             num = num + 1
         return num
-    except HTTPError as e:
-        content = e.read()
-        error = json.loads(content.decode('utf-8'))
-        logger.error(error)
-        try:
-            message = error.get('detail', 'Неизвестная ошибка взаимодействия с Wildberries!')
-        except:  # noqa E722
-            message = error
-        raise TaskFailure(message) from e
 
 
 @shared_task
@@ -291,26 +274,13 @@ def get_detached_orders():
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
 def get_integration_order_statuses(self, account, target_site_id=None):
     integration = Integration.get_for_utm_source(account, target_site_id)
-    api_key = integration.settings.get('api_key', '')
-
-    url = 'https://marketplace-api.wildberries.ru/api/v3/orders/status'
-    headers = {
-        'Authorization': api_key,
-        'Content-Type': 'application/json; charset=utf-8'
-    }
 
     orders = list(map(lambda n: int(n), Order.objects.filter(integration=integration, status__lt=Order.STATUS_DONE).values_list('delivery_tracking_number', flat=True)))
     if not orders:
         return 0
 
-    data = {'orders': orders}
-    data_encoded = json.dumps(data).encode('utf-8')
-    request = Request(url, data_encoded, headers, method='POST')
-    logger.info('<<< ' + request.full_url)
-    logger.info(data_encoded)
-    try:
-        response = urlopen(request)
-        result = json.loads(response.read().decode('utf-8'))
+    with monitor(integration, self.name):
+        result = _wb_request(integration, 'POST', f'{WB_MARKETPLACE}/api/v3/orders/status', {'orders': orders})
         logger.debug(result)
         num = 0
         for wb_order in result.get('orders', []):
@@ -334,15 +304,6 @@ def get_integration_order_statuses(self, account, target_site_id=None):
                 update_order.delay(order.pk, update)
                 num = num + 1
         return num
-    except HTTPError as e:
-        content = e.read()
-        error = json.loads(content.decode('utf-8'))
-        logger.error(error)
-        try:
-            message = error.get('detail', 'Неизвестная ошибка взаимодействия с Wildberries!')
-        except:  # noqa E722
-            message = error
-        raise TaskFailure(message) from e
 
 
 @shared_task
@@ -357,19 +318,15 @@ def get_order_statuses():
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), rate_limit='1/s', retry_backoff=300, retry_jitter=False)
 def notify_product_stocks(self, products, account, zero_out=False, target_site_id=None):
     integration = Integration.get_for_utm_source(account, target_site_id)
+    with monitor(integration, self.name):
+        return _notify_product_stocks(integration, products, zero_out)
 
-    api_key = integration.settings.get('api_key', '')
 
-    headers = {
-        'Authorization': api_key,
-        'Content-Type': 'application/json; charset=utf-8'
-    }
-
+def _notify_product_stocks(integration, products, zero_out):
     products = Product.objects.filter(pk__in=products)
     product_integrations = {}
     chrtIDs = {}
 
-    url = 'https://content-api.wildberries.ru/content/v2/get/cards/list'
     for product in products:
         product_integration = ProductIntegration.objects.order_by().filter(product=product, integration=integration).first()
         product_integrations[product.pk] = product_integration
@@ -380,14 +337,9 @@ def notify_product_stocks(self, products, account, zero_out=False, target_site_i
                     send_message.s(phone, 'У товара {} отключена интеграция "{}" (отсутствует штрих-код)'.format(product.code, integration.utm_source)).apply_async(priority=PRIORITY_IDLE)
                 continue
             data = {'settings': {'filter': {'textSearch': product.gtin, 'withPhoto': -1}}}
-            data_encoded = json.dumps(data).encode('utf-8')
-            request = Request(url, data_encoded, headers, method='POST')
-            logger.info('<<< ' + request.full_url)
-            logger.info(data_encoded)
             try:
                 sleep(10)
-                response = urlopen(request)
-                result = json.loads(response.read().decode('utf-8'))
+                result = _wb_request(integration, 'POST', f'{WB_CONTENT}/content/v2/get/cards/list', data)
                 for card in result.get('cards', []):
                     for size in card.get('sizes', []):
                         if product.gtin in size.get('skus', []):
@@ -398,18 +350,14 @@ def notify_product_stocks(self, products, account, zero_out=False, target_site_i
                     for phone in integration.source_site.profile.manager_phones.split(','):
                         send_message.s(phone, 'У товара {} отключена интеграция "{}" (не найден штрих-код)'.format(product.code, integration.utm_source)).apply_async(priority=PRIORITY_IDLE)
                     continue
-            except HTTPError as e:
-                content = e.read()
-                error = json.loads(content.decode('utf-8'))
-                logger.error(error)
-                if error.get('status', 0) == 429:
+            except TaskFailure as e:
+                if e.status == 429:
                     return False  # the products keep notify_stock for the next run
                 else:
                     continue
         chrtIDs[product.gtin] = product_integration.meta.get('chrtID')
 
     warehouseId = integration.settings.get('warehouse_id', '')
-    url = 'https://marketplace-api.wildberries.ru/api/v3/stocks/{warehouseId}'.format(warehouseId=warehouseId)
 
     stocks = []
     notified_products = []
@@ -430,39 +378,27 @@ def notify_product_stocks(self, products, account, zero_out=False, target_site_i
     if len(stocks) == 0:
         return False
 
-    data = {'stocks': stocks}
-    data_encoded = json.dumps(data).encode('utf-8')
-    request = Request(url, data_encoded, headers, method='PUT')
-    logger.info('<<< ' + request.full_url)
-    logger.info(data_encoded)
     try:
-        response = urlopen(request)
-        for product in notified_products:
-            product_integration = product_integrations[product.pk]
-            product_integration.notify_stock = False
-            product_integration.save()
+        _wb_request(integration, 'PUT', f'{WB_MARKETPLACE}/api/v3/stocks/{warehouseId}', {'stocks': stocks})
+    except TaskFailure as e:
+        error = e.reply
+        if not isinstance(error, list):
+            raise
+        first_error = error[0] if error else {}
+        if 'data' in first_error:
+            for item in first_error['data']:
+                if item.get('code') == 'NotFound' and 'sku' in item:
+                    sku = item.get('sku')
+                    ProductIntegration.objects.filter(product__gtin=sku, integration=integration).delete()
+                    # {'data': [{'sku': '374318830018', 'chrtId': 0, 'amount': 4}], 'code': 'NotFound', 'message': 'Not found'}
+                    for phone in integration.source_site.profile.manager_phones.split(','):
+                        send_message.s(phone, 'У товара с штрих-кодом {} отключена интеграция WB'.format(sku)).apply_async(priority=PRIORITY_IDLE)
         return True
-    except HTTPError as e:
-        content = e.read()
-        error = json.loads(content.decode('utf-8'))
-        logger.error(error)
-        if isinstance(error, list):
-            first_error = error[0]
-            if 'data' in first_error:
-                for item in first_error['data']:
-                    if item.get('code') == 'NotFound' and 'sku' in item:
-                        sku = item.get('sku')
-                        ProductIntegration.objects.filter(product__gtin=sku, integration=integration).delete()
-                        # {'data': [{'sku': '374318830018', 'chrtId': 0, 'amount': 4}], 'code': 'NotFound', 'message': 'Not found'}
-                        for phone in integration.source_site.profile.manager_phones.split(','):
-                            send_message.s(phone, 'У товара с штрих-кодом {} отключена интеграция WB'.format(sku)).apply_async(priority=PRIORITY_IDLE)
-            return True
-        else:
-            try:
-                message = error.get('detail', 'Неизвестная ошибка взаимодействия с Wildberries!')
-            except:  # noqa E722
-                message = error
-            raise TaskFailure(message) from e
+    for product in notified_products:
+        product_integration = product_integrations[product.pk]
+        product_integration.notify_stock = False
+        product_integration.save()
+    return True
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)

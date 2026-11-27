@@ -1,6 +1,8 @@
 """
 Shop data for API tests. Products are made without Product.save(), whose signals reach the marketplaces.
 """
+from unittest import mock
+
 from django.conf import settings
 from django.contrib.sites.models import Site
 
@@ -46,3 +48,14 @@ def add_marketplace_sites():
     """ Saving a product with stock to report, as adding it to an order does, looks up the Ozon and Wildberries sites """
     for domain in ('ozon.ru', 'wildberries.ru'):
         Site.objects.get_or_create(domain=domain, defaults={'name': domain})
+
+
+def mock_constance(test, failures=3):
+    """
+    Constance's values for shop/integration_health.py, which the tasks of the integrations record their health
+    with: constance's cache must be a cross-process one, which tests don't have
+    """
+    config = mock.Mock(sw_integration_failures=failures, sw_email_from='robot@shop.test')
+    for module in ('shop.integration_health', 'shop.tasks.admin'):
+        test.enterContext(mock.patch(f'{module}.config', new=config))
+    return config

@@ -42,6 +42,5 @@ If refreshing Ozon from a mirror, pass its pinned download URL with
 `--source-url`. Review the generated diff and run `tests.test_beru`,
 `tests.test_ozon`, and `tests.test_wb` against PostgreSQL.
 
-Two expected failures track existing behavior. Ozon clears a stock notification
-after one warehouse rejects the update, and Wildberries skips the documented
+One expected failure tracks existing behavior: Wildberries skips the documented
 `ready_for_pickup` order status.

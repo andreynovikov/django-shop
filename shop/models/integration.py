@@ -4,7 +4,7 @@ from django.db import models
 from . import Product, Supplier, Contractor
 
 __all__ = [
-    'Integration', 'ProductIntegration'
+    'Integration', 'ProductIntegration', 'IntegrationCheck'
 ]
 
 
@@ -73,3 +73,31 @@ class ProductIntegration(models.Model):
 
     class Meta:
         unique_together = ('product', 'integration')
+
+
+class IntegrationCheck(models.Model):
+    """
+    The health of one operation of an integration, such as polling its orders, kept by shop/integration_health.py.
+    failures counts the failed attempts since the last success, raised_at is set when they became a problem that the
+    managers were told about. Both clear on the next success.
+    """
+    integration = models.ForeignKey(Integration, verbose_name='интеграция', related_name='checks', on_delete=models.CASCADE)
+    # A Celery task name, or a check of its own, such as integration_health.TOKEN
+    operation = models.CharField('операция', max_length=100)
+    failures = models.PositiveIntegerField('сбоев подряд', default=0)
+    error = models.TextField('ошибка', blank=True)
+    created_at = models.DateTimeField('создана', auto_now_add=True)
+    first_failed_at = models.DateTimeField('первый сбой', null=True, blank=True)
+    last_failed_at = models.DateTimeField('последний сбой', null=True, blank=True)
+    last_success_at = models.DateTimeField('последний успех', null=True, blank=True)
+    raised_at = models.DateTimeField('проблема с', null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'состояние интеграции'
+        verbose_name_plural = 'состояние интеграций'
+        ordering = ['integration__name', 'operation']
+        constraints = [models.UniqueConstraint(fields=['integration', 'operation'], name='shop_integrationcheck_unique')]
+
+    def __str__(self):
+        from shop.integration_health import label
+        return f'{self.integration}: {label(self.operation)}'

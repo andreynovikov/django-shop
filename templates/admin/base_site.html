@@ -39,7 +39,8 @@
       #user-tools > span { display: inline }
     }
     #branding { order: 1 }
-    #quick-links, #order-quick-link, #stocks_status { order: 2 }
+    #quick-links, #order-quick-link, #stocks_status, #integrations_status { order: 2 }
+    #integrations_status a { color: inherit; text-decoration: none }
     #quick-links { text-transform: uppercase }
     #user-tools { order: 3 }
 
@@ -82,8 +83,33 @@
         xmlhttp.send();
     }
 
+    // The integrations' health, see shop/integration_health.py: its colour, and the problems in the title
+    function checkIntegrationsStatus(indicator) {
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.onreadystatechange = function() {
+            if (xmlhttp.readyState == 4) {
+                if (xmlhttp.status == 200) {
+                    try {
+                        var status = JSON.parse(xmlhttp.responseText);
+                        indicator.querySelector('.sw-level').style.color = status.color;
+                        indicator.title = status.title;
+                    } catch(err) {
+                        console.log(err.message + " in " + xmlhttp.responseText);
+                    }
+                }
+                setTimeout(checkIntegrationsStatus, 20000, indicator);
+            }
+        };
+        xmlhttp.open("GET", indicator.dataset.url, true);
+        xmlhttp.send();
+    }
+
     document.addEventListener('DOMContentLoaded', function(){
         setTimeout(check1CImportStatus, 20000);
+        var integrations = document.getElementById("integrations_status");
+        if (integrations) {
+            setTimeout(checkIntegrationsStatus, 20000, integrations);
+        }
     });
 </script>
 {% endif %}
@@ -110,6 +136,14 @@
     <span id="import1c_status" style="color: {% if copying_flag %}red{% elif running_flag %}gold{% else %}limegreen{% endif %}">&#9670;</span>
     Актуализация склада: {% last_1c_import %}
 </div>
+{# The integrations' exchange (shop/integration_health.py): red with a problem raised, gold after a failure, green #}
+{# when all is well. checkIntegrationsStatus() above refreshes it every 20 seconds. #}
+{% integrations_status as integrations %}
+{% if integrations %}
+<div id="integrations_status" title="{{ integrations.title }}" data-url="{% url 'admin:shop_integrationcheck_status' %}">
+    <a href="{% url 'admin:shop_integrationcheck_changelist' %}"><span class="sw-level" style="color: {{ integrations.color }}">&#9670;</span> Интеграции</a>
+</div>
+{% endif %}
 {% endif %}
 {% endblock %}
 {% block welcome-msg %}

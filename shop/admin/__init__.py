@@ -5,7 +5,7 @@ from .contractor import ContractorAdmin, PosTerminalAdmin  # NOQA
 from .country import CountryAdmin, RegionAdmin, CityAdmin  # NOQA
 from .courier import CourierAdmin  # NOQA
 from .currency import CurrencyAdmin  # NOQA
-from .integration import IntegrationAdmin  # NOQA
+from .integration import IntegrationAdmin, IntegrationCheckAdmin  # NOQA
 from .manager import ManagerAdmin  # NOQA
 from .manufacturer import ManufacturerAdmin  # NOQA
 from .news import NewsAdmin  # NOQA

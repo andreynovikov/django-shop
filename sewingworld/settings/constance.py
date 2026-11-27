@@ -36,4 +36,6 @@ CONSTANCE_CONFIG = OrderedDict([
     # The admin's order lock, see shop/order_lock.py: the page renews its lease every 30 seconds while open
     ('sw_order_lock_lease', (180, 'Блокировка заказа без связи со страницей, секунд', int)),
     ('sw_order_lock_idle', (1800, 'Снятие блокировки заказа при бездействии на странице, секунд', int)),
+    # Failed attempts in a row of an integration's operation before the managers are told, see shop/integration_health.py
+    ('sw_integration_failures', (3, 'Сбоев обмена с маркетплейсом подряд до оповещения', int)),
 ])

@@ -27,13 +27,17 @@ from celery import shared_task
 
 from sewingworld.tasks import PRIORITY_IDLE
 
+from shop.integration_health import IntegrationFailure, monitor, read_body
 from shop.models import Integration, Basket, Order, Product, ProductIntegration, ShopUser
 
 logger = logging.getLogger('ozon')
 
 
-class TaskFailure(Exception):
+class TaskFailure(IntegrationFailure):
     pass
+
+
+OZON_API = 'https://api-seller.ozon.ru'
 
 
 FBS_IMPORT_STATUSES = (
@@ -55,27 +59,28 @@ RETRYABLE_ERRORS = (OSError, DatabaseError, json.JSONDecodeError)
 
 
 @sensitive_variables()
-def _posting_request(integration, endpoint, data):
+def _ozon_request(integration, endpoint, data):
     headers = {
         'Client-Id': integration.settings.get('client_id', ''),
         'Api-Key': integration.settings.get('api_key', ''),
         'Content-Type': 'application/json',
     }
-    request = Request(f'https://api-seller.ozon.ru{endpoint}', json.dumps(data).encode(), headers, method='POST')
+    request = Request(f'{OZON_API}{endpoint}', json.dumps(data).encode(), headers, method='POST')
     try:
         with urlopen(request, timeout=15) as response:
             return json.load(response)
     except HTTPError as error:
         # An HTTPError is an OSError, which the tasks retry; the 404 of a single posting is left to the caller.
-        # Other errors fail the task with Ozon's message.
+        # Other errors fail the task with Ozon's message, and the integration's health keeps the whole reply.
         if error.code == 429 or error.code >= 500 or (error.code == 404 and endpoint == '/v3/posting/fbs/get'):
             raise
-        logger.error('Ozon request to %s failed with HTTP %s for integration %s', endpoint, error.code, integration.pk)
+        body = read_body(error)
+        logger.error('Ozon request to %s failed with HTTP %s for integration %s: %s', endpoint, error.code, integration.pk, body)
         try:
-            message = json.load(error).get('message')
+            message = json.loads(body).get('message')
         except (ValueError, AttributeError):
             message = None
-        raise TaskFailure(message or f'Ошибка взаимодействия с Ozon (HTTP {error.code})') from error
+        raise TaskFailure(message or f'Ошибка взаимодействия с Ozon (HTTP {error.code})', status=error.code, body=body) from error
 
 
 def _order_session():
@@ -226,16 +231,17 @@ def get_integration_unfulfilled_orders(self, account, target_site_id=None):
         data['filter']['warehouse_ids'] = warehouses
 
     num = 0
-    while True:
-        result = _posting_request(integration, '/v4/posting/fbs/list', data)
-        for posting in result.get('postings', []):
-            num += _sync_posting(integration, posting, session, reconcile=reconcile)
-        if not result.get('has_next'):
-            return num
-        cursor = result.get('cursor')
-        if not cursor or cursor == data.get('cursor'):
-            raise TaskFailure('Ozon omitted the next posting cursor')
-        data['cursor'] = cursor
+    with monitor(integration, self.name):
+        while True:
+            result = _ozon_request(integration, '/v4/posting/fbs/list', data)
+            for posting in result.get('postings', []):
+                num += _sync_posting(integration, posting, session, reconcile=reconcile)
+            if not result.get('has_next'):
+                return num
+            cursor = result.get('cursor')
+            if not cursor or cursor == data.get('cursor'):
+                raise TaskFailure('Ozon omitted the next posting cursor')
+            data['cursor'] = cursor
 
 
 @shared_task(bind=True, queue='integrations', autoretry_for=RETRYABLE_ERRORS, retry_backoff=30, retry_backoff_max=300)
@@ -246,17 +252,18 @@ def sync_integration_posting(self, integration_id, posting_number):
         return False
 
     data = {'posting_number': posting_number, 'with': {'analytics_data': True, 'barcodes': True}}
-    try:
-        result = _posting_request(integration, '/v3/posting/fbs/get', data)
-    except HTTPError as error:
-        if error.code == 404:
-            logger.info('Ozon FBS posting %s is unavailable for integration %s', posting_number, integration_id)
-            return False
-        raise
-    posting = result.get('result') or {}
-    if posting.get('posting_number') != posting_number:
-        raise TaskFailure('Ozon returned an unexpected posting number')
-    return _sync_posting(integration, posting, SimpleLazyObject(_order_session), reconcile=True)
+    with monitor(integration, self.name):
+        try:
+            result = _ozon_request(integration, '/v3/posting/fbs/get', data)
+        except HTTPError as error:
+            if error.code == 404:
+                logger.info('Ozon FBS posting %s is unavailable for integration %s', posting_number, integration_id)
+                return False
+            raise
+        posting = result.get('result') or {}
+        if posting.get('posting_number') != posting_number:
+            raise TaskFailure('Ozon returned an unexpected posting number')
+        return _sync_posting(integration, posting, SimpleLazyObject(_order_session), reconcile=True)
 
 
 @shared_task
@@ -268,20 +275,12 @@ def get_unfulfilled_orders():
     return total
 
 
-@shared_task(bind=True, autoretry_for=(OSError, DatabaseError, json.decoder.JSONDecodeError), rate_limit='1/s', retry_backoff=300, retry_jitter=False)
+@shared_task(bind=True, autoretry_for=RETRYABLE_ERRORS, rate_limit='1/s', retry_backoff=300, retry_jitter=False)
 def notify_product_stocks(self, products, account, target_site_id=None):
     integration = Integration.get_for_utm_source(account, target_site_id)
-    client_id = integration.settings.get('client_id', '')
-    api_key = integration.settings.get('api_key', '')
-
-    url = 'https://api-seller.ozon.ru/v2/products/stocks'
-    headers = {
-        'Client-Id': client_id,
-        'Api-Key': api_key,
-        'Content-Type': 'application/json'
-    }
 
     stocks = []
+    sent = []
 
     products = list(Product.objects.filter(pk__in=products))
     counted = Product.get_stocks([product.pk for product in products], integration=integration)
@@ -300,40 +299,41 @@ def notify_product_stocks(self, products, account, target_site_id=None):
                 "stock": warehouse_stock,
                 "warehouse_id": warehouse.get('id', 0)
             })
+        sent.append(product)
         if len(stocks) > 99:
             break
-    products = list(products)[:len(stocks)]
 
     data = {'stocks': stocks}
-    data_encoded = json.dumps(data).encode('utf-8')
-    request = Request(url, data_encoded, headers, method='POST')
-    logger.info('<<< ' + request.full_url)
-    logger.info(data_encoded)
-    try:
-        response = urlopen(request)
-        result = json.loads(response.read().decode('utf-8'))
-
-        for product in products:
-            product_integration = ProductIntegration.objects.order_by().filter(product=product, integration=integration).first()
-            if product_integration is not None:
-                product_integration.notify_stock = False
-                product_integration.save()
-
+    logger.debug(data)
+    with monitor(integration, self.name) as outcome:
+        result = _ozon_request(integration, '/v2/products/stocks', data)
         logger.debug(result)
-        """
-        {'result': [
-            {'warehouse_id': 22936068942000, 'product_id': 0, 'offer_id': 'в92086', 'updated': False, 'errors': [
-                {'code': 'TOO_MANY_REQUESTS', 'message': 'too many requests'}
-            ]},
-            {'warehouse_id': 22933327211000, 'product_id': 297361812, 'offer_id': 'в92086', 'updated': True, 'errors': []}]}
-        """
-        return None
-    except HTTPError as e:
-        content = e.read()
-        error = json.loads(content.decode('utf-8'))
-        logger.error(error)
-        message = error.get('message', 'Неизвестная ошибка взаимодействия с Ozon!')
-        raise TaskFailure(message) from e
+        # A row per product and warehouse, such as
+        # {'warehouse_id': 22936068942000, 'product_id': 0, 'offer_id': 'в92086', 'updated': False,
+        #  'errors': [{'code': 'TOO_MANY_REQUESTS', 'message': 'too many requests'}]}
+        # A product limited by the rate keeps notify_stock for the next run. Other errors are the integration's
+        # failure, and the product waits for its stock to change again.
+        pending = set()
+        errors = []
+        for row in result.get('result', []):
+            if row.get('updated', True):
+                continue
+            row_errors = row.get('errors') or []
+            codes = {error.get('code') for error in row_errors}
+            if codes and codes <= {'TOO_MANY_REQUESTS'}:
+                pending.add(row.get('offer_id'))
+            else:
+                described = '; '.join(f"{error.get('code')}: {error.get('message')}" for error in row_errors) or 'не обновлён'
+                errors.append(f"{row.get('offer_id')}, склад {row.get('warehouse_id')}: {described}")
+
+        for product in sent:
+            if product.article not in pending:
+                ProductIntegration.objects.filter(product=product, integration=integration).update(notify_stock=False)
+
+        if errors:
+            logger.error('Ozon rejected stocks of integration %s: %s', integration.pk, errors)
+            outcome.fail('Ozon не принял остатки:\n' + '\n'.join(errors))
+    return None
 
 
 @shared_task(bind=True, autoretry_for=(OSError, DatabaseError, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)

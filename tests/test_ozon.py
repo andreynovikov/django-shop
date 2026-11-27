@@ -4,7 +4,6 @@ the bundled API schema in tests/data/marketplaces, so nothing reaches the market
 """
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from unittest import expectedFailure
 from unittest.mock import call, patch
 from urllib.error import HTTPError
 
@@ -15,9 +14,9 @@ from kombu.exceptions import OperationalError
 
 from ozon import tasks
 from sewingworld.models import SiteProfile
-from shop.models import Basket, Contractor, Integration, Order, Product, ProductIntegration, ShopUser
+from shop.models import Basket, Contractor, Integration, IntegrationCheck, Order, Product, ProductIntegration, ShopUser
 
-from .fixtures import add_marketplace_sites, add_product
+from .fixtures import add_marketplace_sites, add_product, mock_constance
 from .marketplace_api import OpenAPIMock, load_spec
 
 
@@ -66,6 +65,7 @@ class OzonTests(TestCase):
         cls.product = add_product(1, article='machine')
 
     def setUp(self):
+        mock_constance(self)
         self.market = OpenAPIMock(self, {'Client-Id': '42', 'Api-Key': 'test-ozon-key'})
         self.enterContext(patch('ozon.tasks.urlopen', side_effect=self.market))
 
@@ -142,6 +142,21 @@ class OzonTests(TestCase):
         with self.assertLogs('ozon', 'ERROR'), self.assertRaisesRegex(tasks.TaskFailure, 'Invalid filter'):
             self.poll()
         self.assertFalse(Order.objects.exists())
+
+    def test_records_the_reply_as_the_integrations_failure_until_a_success(self):
+        self.market.expect(SPEC, POSTINGS, 'POST', {'code': 7, 'message': 'Api-key is deactivated'}, body=POSTING_REQUEST, status=403)
+        with self.assertLogs('ozon', 'ERROR'), self.assertRaises(tasks.TaskFailure):
+            self.poll()
+        check = IntegrationCheck.objects.get(integration=self.integration, operation='ozon.tasks.get_integration_unfulfilled_orders')
+        self.assertEqual(check.failures, 1)
+        self.assertEqual(check.error.splitlines(), [
+            'HTTP 403: Api-key is deactivated', '{"code": 7, "message": "Api-key is deactivated"}',
+        ])
+
+        self.expect_postings([])
+        self.assertEqual(self.poll(), 0)
+        check.refresh_from_db()
+        self.assertEqual((check.failures, check.error), (0, ''))
 
     def test_integrations_of_one_account_take_only_the_postings_of_their_warehouses(self):
         # ozon and ozon_rfbs share a seller account: rFBS duplicated the orders of the other integration once.
@@ -269,14 +284,14 @@ class OzonTests(TestCase):
             call([product.pk], integration=self.integration), call([product.pk], integration=self.integration, express=True),
         ])
 
-    def expect_stock_update(self, *, updated=True):
+    def expect_stock_update(self, *, updated=True, code='TOO_MANY_REQUESTS'):
         body = {'stocks': [
             {'offer_id': 'machine', 'stock': 20, 'warehouse_id': 101},
             {'offer_id': 'machine', 'stock': 0, 'warehouse_id': 102},
         ]}
         response = {'result': [
             {'offer_id': 'machine', 'warehouse_id': 101, 'updated': updated,
-             'errors': [] if updated else [{'code': 'TOO_MANY_REQUESTS', 'message': 'Try again'}]},
+             'errors': [] if updated else [{'code': code, 'message': 'Try again' if code == 'TOO_MANY_REQUESTS' else 'Unknown warehouse'}]},
             {'offer_id': 'machine', 'warehouse_id': 102, 'updated': True, 'errors': []},
         ]}
         self.market.expect(SPEC, STOCKS, 'POST', response, body=body)
@@ -288,14 +303,26 @@ class OzonTests(TestCase):
         link.refresh_from_db()
         self.assertFalse(link.notify_stock)
 
-    @expectedFailure
-    def test_keeps_stock_pending_when_ozon_rejects_one_warehouse(self):
+    def test_keeps_stock_pending_when_ozon_limits_the_rate_for_one_warehouse(self):
         link = ProductIntegration.objects.create(product=self.product, integration=self.integration, notify_stock=True)
         self.expect_stock_update(updated=False)
         self.send_stock(self.product)
         link.refresh_from_db()
-        # The task currently clears this flag even when a result row has updated=false.
         self.assertTrue(link.notify_stock)
+        # The exchange itself works
+        check = IntegrationCheck.objects.get(integration=self.integration, operation='ozon.tasks.notify_product_stocks')
+        self.assertEqual(check.failures, 0)
+
+    def test_records_other_errors_of_a_warehouse_as_the_integrations_failure(self):
+        link = ProductIntegration.objects.create(product=self.product, integration=self.integration, notify_stock=True)
+        self.expect_stock_update(updated=False, code='WAREHOUSE_NOT_FOUND')
+        with self.assertLogs('ozon', 'ERROR'):
+            self.send_stock(self.product)
+        link.refresh_from_db()
+        self.assertFalse(link.notify_stock)  # until its stock changes again
+        check = IntegrationCheck.objects.get(integration=self.integration, operation='ozon.tasks.notify_product_stocks')
+        self.assertEqual(check.failures, 1)
+        self.assertEqual(check.error, 'Ozon не принял остатки:\nmachine, склад 101: WAREHOUSE_NOT_FOUND: Unknown warehouse')
 
 
 class OzonNotificationTests(TestCase):

@@ -11,10 +11,10 @@ from django.contrib.sites.models import Site
 from django.test import TestCase
 
 from sewingworld.models import SiteProfile
-from shop.models import Basket, Contractor, Integration, Order, Product, ProductIntegration, ShopUser
+from shop.models import Basket, Contractor, Integration, IntegrationCheck, Order, Product, ProductIntegration, ShopUser
 from wb import tasks
 
-from .fixtures import add_marketplace_sites, add_product
+from .fixtures import add_marketplace_sites, add_product, mock_constance
 from .marketplace_api import OpenAPIMock, load_spec
 
 
@@ -52,6 +52,7 @@ class WildberriesTests(TestCase):
         cls.product_link = ProductIntegration.objects.create(product=cls.product, integration=cls.integration, notify_stock=True)
 
     def setUp(self):
+        mock_constance(self)
         self.market = OpenAPIMock(self, {'Authorization': 'test-wb-key'})
         self.enterContext(patch('wb.tasks.urlopen', side_effect=self.market))
 
@@ -108,6 +109,30 @@ class WildberriesTests(TestCase):
         self.assertEqual((order.delivery_tracking_number, order.status, order.manager_comment),
                          ('556', Order.STATUS_DELIVERED_STORE, 'Другой склад'))
         self.assertEqual(order.items.get().product, self.product)
+
+    def test_records_an_expired_token_as_the_integrations_failure_until_a_success(self):
+        reply = {'title': 'unauthorized', 'detail': 'token expired', 'status': 401, 'origin': 's2s-api-auth-marketplace'}
+        self.market.expect(ITEMS, WAREHOUSES, 'GET', reply, status=401)
+        with self.assertLogs('wb', 'ERROR'), self.assertRaisesRegex(tasks.TaskFailure, 'token expired'):
+            self.run_task(tasks.get_integration_new_orders)
+        check = IntegrationCheck.objects.get(integration=self.integration, operation='wb.tasks.get_integration_new_orders')
+        self.assertEqual(check.failures, 1)
+        self.assertEqual(check.error.splitlines()[0], 'HTTP 401: token expired')
+        self.assertIn('"origin": "s2s-api-auth-marketplace"', check.error)
+
+        self.expect_warehouses()
+        self.market.expect(ORDERS, NEW_ORDERS, 'GET', {'orders': []})
+        self.assertEqual(self.run_task(tasks.get_integration_new_orders), 0)
+        check.refresh_from_db()
+        self.assertEqual(check.failures, 0)
+
+    def test_retries_an_error_reply_that_is_not_wildberries_json(self):
+        self.market.expect(ITEMS, WAREHOUSES, 'GET', b'<html>Bad gateway</html>', status=429)
+        with self.assertRaises(OSError) as raised:  # which the tasks retry
+            self.run_task(tasks.get_integration_new_orders)
+        self.assertEqual(raised.exception.status, 429)
+        check = IntegrationCheck.objects.get(integration=self.integration, operation='wb.tasks.get_integration_new_orders')
+        self.assertIn('<html>Bad gateway</html>', check.error)
 
     def test_reports_new_order_api_rate_limit(self):
         self.expect_warehouses()
