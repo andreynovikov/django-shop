@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
                 verbose_name='сайт-витрина',
             ),
         ),
-        migrations.RunPython(set_existing_target_sites, migrations.RunPython.noop),
+        migrations.RunPython(set_existing_target_sites, migrations.RunPython.noop, elidable=True),
         migrations.AlterField(
             model_name='integration',
             name='target_site',

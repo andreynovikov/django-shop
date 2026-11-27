@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(merge_duplicates, migrations.RunPython.noop),
+        migrations.RunPython(merge_duplicates, migrations.RunPython.noop, elidable=True),
         migrations.AddConstraint(
             model_name='basketitem',
             constraint=models.UniqueConstraint(fields=('basket', 'product'), name='basketitem_product'),

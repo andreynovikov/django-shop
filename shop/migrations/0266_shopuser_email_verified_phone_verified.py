@@ -30,5 +30,5 @@ class Migration(migrations.Migration):
             name='phone_verified',
             field=models.BooleanField(default=False, verbose_name='телефон подтверждён'),
         ),
-        migrations.RunPython(trust_existing, migrations.RunPython.noop),
+        migrations.RunPython(trust_existing, migrations.RunPython.noop, elidable=True),
     ]
