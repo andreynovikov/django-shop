@@ -1,0 +1,10 @@
+Импорт 1С из {{ file }} завершён
+Дата файла: {{ date|default:"не указана" }}
+Импортировано: {{ imported }}, обновлено: {{ updated }}
+{% if orders %}
+Замороженные заказы, товары которых снова в наличии:
+{% for order in orders %}{{ order }} https://admin.sewing-world.ru/admin/shop/order/{{ order.pk }}/change/
+{% endfor %}{% endif %}{% if errors %}
+Ошибки ({{ error_count }}{% if error_count > errors|length %}, первые {{ errors|length }}, все — в письме{% endif %}):
+{% for error in errors %}{{ error }}
+{% endfor %}{% endif %}

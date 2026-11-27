@@ -46,3 +46,5 @@ SILENCED_SYSTEM_CHECKS = ['models.E034']  # shop_order_item_serial_number_idx is
 os.environ['CELERY_BROKER_URL'] = CELERY_BROKER_URL = 'memory://'
 # Notices of the admin go nowhere: the Redis of .env must not get them
 ADMIN_EVENTS_REDIS_URL = ''
+# Nor do posts to the staff channel: tests must not reach the bot of .env
+TELEGRAM_BOT_TOKEN = TELEGRAM_STAFF_CHAT = ''

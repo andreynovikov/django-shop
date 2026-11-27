@@ -44,3 +44,8 @@ SBER_MARKET = {
 
 # Yandex Delivery as JSON, such as {"warehouses": [{"id": "...", "name": "..."}]}
 YANDEX_DOSTAVKA = json.loads(_get('YANDEX_DOSTAVKA') or '{}')
+
+# The bot that posts to the staff channel: its token from @BotFather, and the channel as its chat id (-100…) or @name.
+# The bot must be an administrator of the channel allowed to post. Unset, nothing is posted.
+TELEGRAM_BOT_TOKEN = _get('TELEGRAM_BOT_TOKEN')
+TELEGRAM_STAFF_CHAT = _get('TELEGRAM_STAFF_CHAT')

@@ -9,6 +9,7 @@ from constance import config
 import reviews
 
 from sewingworld.sms import send_sms
+from sewingworld.telegram import TelegramError, send_message
 
 from shop.models import Order
 
@@ -39,6 +40,37 @@ def notify_manager(order_id):
         managers.split(','),
         html_message=msg_html,
     )
+
+
+def post_to_staff(task, text):
+    """ Posts to the staff channel, retrying as late as Telegram asks when it limits the rate """
+    try:
+        return send_message(text)
+    except TelegramError as e:
+        if e.retry_after:
+            raise task.retry(exc=e, countdown=e.retry_after)
+        raise
+
+
+@shared_task(name='shop.tasks.notify_staff', bind=True, queue='priority', autoretry_for=(TelegramError,),
+             max_retries=8, retry_backoff=True)
+def notify_staff(self, text):
+    """ Posts the text to the staff channel in Telegram """
+    return post_to_staff(self, text)
+
+
+@shared_task(name='shop.tasks.notify_manager_telegram', bind=True, queue='priority', autoretry_for=(TelegramError,),
+             max_retries=8, retry_backoff=True)
+def notify_manager_telegram(self, order_id):
+    """ Posts a new order to the staff channel: its number, site (unless the main one), total and admin link """
+    order = Order.objects.select_related('site').get(id=order_id)
+    site_text = ''
+    if order.site_id != get_default_site().id:
+        site_text = f' ({order.site.domain})'
+    text = (f'Новый заказ №{order.id}{site_text}\n'
+            f'Итого: {order.total} руб.\n'
+            f'https://admin.sewing-world.ru/admin/shop/order/{order.id}/change/')
+    return post_to_staff(self, text)
 
 
 @shared_task(name='shop.tasks.notify_manager_sms', queue="priority", autoretry_for=(Exception,), default_retry_delay=60, retry_backoff=True)

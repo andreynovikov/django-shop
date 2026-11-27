@@ -761,6 +761,12 @@ sudo -u sworld .venv/bin/python manage.py collectstatic --noinput
 `.env` holds all the secrets, the credentials of the integrations (SMS gateways, marketplaces, mailing, 1C) included,
 which [settings/integrations.py](../sewingworld/settings/integrations.py) reads from it.
 
+The staff channel in Telegram gets new orders and the 1C import's start, result and failure from a bot:
+`TELEGRAM_BOT_TOKEN` is the token @BotFather gives, `TELEGRAM_STAFF_CHAT` the channel's id (`-100…`) or its `@name`
+if it is public. Add the bot to the channel as an administrator allowed to post. A private channel's id shows in the
+`getUpdates` of the bot once it is added and a message is posted, or in the channel's link in Telegram's web client.
+Without these keys nothing is posted.
+
 The service user cannot write `__pycache__` into the code either, and without compiled files Python compiles each
 module again at every start. `--compile-bytecode` above compiles the packages, and after each `git pull` compile
 the code as yourself:

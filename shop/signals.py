@@ -24,7 +24,7 @@ from shop.revalidation import CATEGORY_TREE_FIELDS, category_listing_tags, categ
     revalidate_product_pages, revalidate_products, revalidate_stock
 from shop.tasks.user_interaction import notify_user_order_collected, notify_user_order_delivered_shop, \
     notify_user_order_delivered, notify_user_review_products
-from shop.tasks.admin import notify_review_posted, notify_manager, notify_manager_sms
+from shop.tasks.admin import notify_review_posted, notify_manager, notify_manager_sms, notify_manager_telegram
 from shop.tasks.integrations import create_modulpos_order, delete_modulpos_order, ym_upload_user, ym_upload_order
 
 import logging
@@ -63,6 +63,7 @@ def order_saved(sender, **kwargs):
 
             """ wait 5 minutes to let user supply comments and other stuff """
             notify_manager.apply_async_on_commit((order.id,), countdown=300)
+            notify_manager_telegram.apply_async_on_commit((order.id,), countdown=300)
 
             if not order.integration and order.meta and 'clientID' in order.meta:
                 ym_upload_user.apply_async_on_commit((order.user.id, order.id), countdown=300)

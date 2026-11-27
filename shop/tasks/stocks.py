@@ -34,6 +34,7 @@ from sewingworld.tasks import single_instance_task
 
 from shop.models import Supplier, Currency, Product, Stock, Order
 
+from .admin import notify_staff
 from .common import get_default_site
 from shop.revalidation import revalidate_stock
 
@@ -123,6 +124,7 @@ class fragile(object):
 
 
 STOCK_BATCH = 500  # products that count_stocks() counts at once
+TELEGRAM_ERRORS = 20  # import errors posted to the staff channel; the mail lists them all
 
 
 @shared_task(name='shop.tasks.count_stocks', queue='import')
@@ -155,6 +157,21 @@ def stored_prices(product):
 @single_instance_task(1200)
 def import1c(file):
     """
+    Runs _import1c() unless another import runs, posting to the staff channel when it starts and if it fails. A failed
+    import has its 1C_IMPORT_* flags switched off, so that the admin doesn't show it running and saves products again.
+    """
+    notify_staff.delay(f'Импорт 1С из {file} начат')
+    try:
+        return _import1c(file)
+    except Exception as e:
+        disable_flag('1C_IMPORT_COPYING')
+        disable_flag('1C_IMPORT_RUNNING')
+        notify_staff.delay(f'Импорт 1С из {file} прерван: {type(e).__name__}: {e}')
+        raise
+
+
+def _import1c(file):
+    """
     Imports 1C's export of prices and stock, a file in SHOP_IMPORT_DIRECTORY, which is kept as <name>_last.csv (and
     the one before as _penult). The file has the export's date on its first line, then a skipped line,
     '//Список складов' and a 'name;1C code' line for each supplier, then '//Остатки' and a row for each product:
@@ -163,8 +180,9 @@ def import1c(file):
 
     Prices are saved and the storefronts revalidated for those that changed. The stock table is replaced as a whole,
     keeping staff's corrections, and the products' stock is reset for count_stocks(). The result goes to the main
-    site's managers by mail, with frozen orders whose products are in stock again. While it runs, the admin shows the
-    1C_IMPORT_* flags and can't save products (see ProductAdminForm.clean()), and another import does nothing.
+    site's managers by mail and to the staff channel, with frozen orders whose products are in stock again. While it
+    runs, the admin shows the 1C_IMPORT_* flags and can't save products (see ProductAdminForm.clean()), and another
+    import does nothing.
     """
     log.error('Import1C')
     enable_flag('1C_IMPORT_RUNNING')
@@ -350,11 +368,16 @@ def import1c(file):
             log.info('Start 1C_IMPORT_COPYING')
             enable_flag('1C_IMPORT_COPYING')
             # Replace the stock snapshot atomically so readers never see an empty table between DELETE and COPY.
+            # A failure rolls back to the old table and leaves the connection usable.
             cursor.execute("BEGIN")
-            cursor.execute("DELETE FROM shop_stock")
-            # cursor.execute("TRUNCATE TABLE shop_stock RESTART IDENTITY")
-            log.info('Continue 1C_IMPORT_COPYING')
-            cursor.copy_from(table_copy, 'shop_stock', columns=('quantity', 'product_id', 'supplier_id', 'correction', 'reason'))
+            try:
+                cursor.execute("DELETE FROM shop_stock")
+                # cursor.execute("TRUNCATE TABLE shop_stock RESTART IDENTITY")
+                log.info('Continue 1C_IMPORT_COPYING')
+                cursor.copy_from(table_copy, 'shop_stock', columns=('quantity', 'product_id', 'supplier_id', 'correction', 'reason'))
+            except Exception:
+                cursor.execute("ROLLBACK")
+                raise
             cursor.execute("COMMIT")
             disable_flag('1C_IMPORT_COPYING')
             log.info('Stop 1C_IMPORT_COPYING')
@@ -378,9 +401,10 @@ def import1c(file):
 
     disable_flag('1C_IMPORT_RUNNING')
     count_stocks.delay(stock)
-    msg_plain = render_to_string('mail/shop/import1c_result.txt',
-                                 {'file': file, 'date': date, 'imported': imported, 'updated': updated, 'errors': errors,
-                                  'orders': orders, 'opts': Order._meta})
+    context = {'file': file, 'date': date, 'imported': imported, 'updated': updated, 'errors': errors, 'orders': orders,
+               'opts': Order._meta}
+    notify_staff.delay(render_to_string('telegram/import1c_result.txt', {**context, 'errors': errors[:TELEGRAM_ERRORS], 'error_count': len(errors)}))
+    msg_plain = render_to_string('mail/shop/import1c_result.txt', context)
     send_mail(
         'Импорт 1С из %s' % file,
         msg_plain,
