@@ -184,7 +184,7 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_HOST_KEY: ${{ secrets.DEPLOY_HOST_KEY }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
           VERSION: ${{ needs.build.outputs.version }}
         run: |
           install -m 600 /dev/null ~/key && echo "$SSH_PRIVATE_KEY" > ~/key
@@ -217,7 +217,7 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_HOST_KEY: ${{ secrets.DEPLOY_HOST_KEY }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           install -m 600 /dev/null ~/key && echo "$SSH_PRIVATE_KEY" > ~/key
