@@ -194,6 +194,8 @@ class ImportFileTests(TransactionTestCase):
         self.enterContext(mock.patch.object(notify_staff, 'delay'))
         self.enterContext(mock.patch.object(stocks.count_stocks, 'delay'))
         self.enterContext(mock.patch('shop.tasks.stocks.send_mail'))
+        # Constance's cache, which CI doesn't have; given, so that mock doesn't look into the lazy original
+        self.enterContext(mock.patch('shop.tasks.stocks.config', new=mock.Mock(sw_email_from='robot@shop.test')))
         self.enterContext(mock.patch('shop.tasks.stocks.get_default_site'))
         self.announced = self.enterContext(mock.patch('shop.tasks.stocks.publish_status'))
 
