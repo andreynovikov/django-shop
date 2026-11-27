@@ -59,7 +59,7 @@ table thead th.sorted .sortoptions { padding: 0 }
 <td>{{ product.quantity }}</td>
 <td>{{ product.stock|safe }}</td>
 <td><a href="/admin/shop/order/{{ product.order_id }}/">№{{ product.order_id }}</a></td>
-<td><span style="color: {{product.order_status_color }}">{{ product.order_status_value }}</span></td>
+<td><span class="sw-c" style="--c: {{ product.order_status_color }}">{{ product.order_status_value }}</span></td>
 </tr>
 {% endfor %}
 </table>

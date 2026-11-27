@@ -184,7 +184,7 @@ class SupplyTests(Base):
         html = response.content.decode()
         self.assertLess(html.index('Janome'), html.index('Иглы'))  # by article
         self.assertIn('Ур:&nbsp;2<br/>С3:&nbsp;1<br/>', html)  # stock without corrections
-        self.assertIn('Ур:&nbsp;<span style="color: #c00">0</span><br/>С3:&nbsp;2<br/>', html)
+        self.assertIn('Ур:&nbsp;<span style="color: var(--error-fg)">0</span><br/>С3:&nbsp;2<br/>', html)
 
 
 class ShippingTests(Base):

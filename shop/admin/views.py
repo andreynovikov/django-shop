@@ -77,7 +77,7 @@ def product_stock_view(product, order=None):
                 correction = ''
                 if stock.correction != 0.0:
                     added = stock.correction > 0.0
-                    correction = format_html('<span style="color: {}" title="{}">{}{}</span>', '#090' if added else 'var(--error-fg)',
+                    correction = format_html('<span class="sw-c" style="--c: {}" title="{}">{}{}</span>', '#090' if added else 'var(--error-fg)',
                                              stock.reason, '+' if added else '', floatformat(stock.correction))
                 parts.append(format_html('{}:&nbsp;{}{}<br/>', supplier.code, quantity, correction))
         else:

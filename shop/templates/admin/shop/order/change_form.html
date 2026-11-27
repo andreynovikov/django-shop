@@ -67,7 +67,7 @@
         }
 
         /* Custom styling */
-        #id_alert { font-weight: bold; color: #ba2121; }
+        #id_alert { font-weight: bold; color: var(--error-fg); }
         span.sw-product-state { display: inline-block; }
         div.tabular tr.form-row:has(span.sw-product-state) { background-color: var(--sw-highlight-bg); }
 {% if original.status > original.STATUS_COLLECTED %}{% if not original.wiring_date or not original.wirehouse or not original.buyer or not original.seller %}
@@ -113,7 +113,7 @@
         var WeightStyle = '';
         var WeightTitle = '';
         if (WeightError) {
-            WeightStyle = '; color: #f00';
+            WeightStyle = '; color: var(--error-fg)';
             WeightTitle = ' title="Не все позиции имеют указанный вес!"';
         }
 

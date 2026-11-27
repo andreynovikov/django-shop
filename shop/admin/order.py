@@ -152,7 +152,7 @@ class OrderAdmin(admin.ModelAdmin):
         return format_html(
             '<span style="white-space:nowrap"{}><b{}>{}</b>{}</span><br/><span style="white-space:nowrap">{}</span>',
             mark_safe(' class="is-express"') if express else '',
-            format_html(' style="color: {}"', obj.manager.color) if obj.manager else '',
+            format_html(' class="sw-c" style="--c: {}"', obj.manager.color) if obj.manager else '',
             obj.title,
             format_html('&nbsp;<i class="ti ti-lock" title="{}" style="font-weight: bold"></i>', obj.lock_holder) if obj.lock_holder else '',
             date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
@@ -161,16 +161,16 @@ class OrderAdmin(admin.ModelAdmin):
     def combined_comments(self, obj):
         comment = []
         if obj.alert:
-            comment.append(format_html('<span style="color:#ba2121">{}</span><br/>', obj.alert))
+            comment.append(format_html('<span style="color: var(--error-fg)">{}</span><br/>', obj.alert))
         if obj.integration and obj.integration.uses_api:
-            comment.append(format_html('<span style="color:#2121ba">№{}</span> ', obj.delivery_tracking_number))
+            comment.append(format_html('<span class="sw-c" style="--c: #2121ba">№{}</span> ', obj.delivery_tracking_number))
         else:
             if obj.delivery_yd_order:
-                comment.append(format_html('<span style="color:#2121ba">{}</span> ', obj.delivery_yd_order))
+                comment.append(format_html('<span class="sw-c" style="--c: #2121ba">{}</span> ', obj.delivery_yd_order))
             if obj.delivery_tracking_number:
                 if obj.delivery_yd_order:
-                    comment.append(mark_safe('<span style="color:#2121ba">&#10095;</span> '))
-                comment.append(format_html('<span style="color:#21baba">{}</span> ', obj.delivery_tracking_number))
+                    comment.append(mark_safe('<span class="sw-c" style="--c: #2121ba">&#10095;</span> '))
+                comment.append(format_html('<span class="sw-c" style="--c: #21baba">{}</span> ', obj.delivery_tracking_number))
         comment.append(format_html('{}<br/><em>{}</em>', obj.delivery_info, obj.manager_comment))
         return join_html(comment)
 
@@ -180,11 +180,11 @@ class OrderAdmin(admin.ModelAdmin):
         if obj.delivery_dispatch_date:
             dates = date_format(obj.delivery_dispatch_date, "d.m")
         if obj.delivery_handing_date:
-            dates = format_html('{}<span style="color:#21baba">&#8594;{}</span>', dates, date_format(obj.delivery_handing_date, "d.m"))
+            dates = format_html('{}<span class="sw-c" style="--c: #21baba">&#8594;{}</span>', dates, date_format(obj.delivery_handing_date, "d.m"))
         courier = ''
         if obj.courier:
             if obj.hidden_tracking_number:
-                courier = format_html(': {} <i class="ti ti-check" style="color: blue" title="{}"></i>', obj.courier.name, obj.hidden_tracking_number)
+                courier = format_html(': {} <i class="ti ti-check sw-c" style="--c: blue" title="{}"></i>', obj.courier.name, obj.hidden_tracking_number)
             else:
                 courier = format_html(': {}', obj.courier.name)
         return format_html('{}<span style="white-space:nowrap">{}</span><br/>{}', obj.get_delivery_display(), courier, dates)
@@ -197,28 +197,28 @@ class OrderAdmin(admin.ModelAdmin):
 
     @admin.display(description='статус', ordering='status')
     def colored_status(self, obj):
-        return format_html('<span style="color: {}">{}</span>', obj.STATUS_COLORS[obj.status], obj.get_status_display())
+        return format_html('<span class="sw-c" style="--c: {}">{}</span>', obj.STATUS_COLORS[obj.status], obj.get_status_display())
 
     @admin.display(description='оплата', ordering='payment')
     def combined_payment(self, obj):
         style = ''
         checkmark = ''
         if obj.paid and obj.has_fiscal:
-            style = '; color: green'
+            style = '--c: green'
             fiscal = obj.meta['fiscalInfo']
             # receipts of the later orders are at 1-OFD, of the earlier ones at Taxcom
             if obj.id > 152982:  # TODO: move to order.seller
-                checkmark = format_html('<a href="https://consumer.1-ofd.ru/ticket?s={}&fn={}&i={}&fp={}&n=1" target="_blank" style="color: green"><i class="ti ti-receipt"></i></a>',
+                checkmark = format_html('<a href="https://consumer.1-ofd.ru/ticket?s={}&fn={}&i={}&fp={}&n=1" target="_blank" class="sw-c" style="--c: green"><i class="ti ti-receipt"></i></a>',
                                         fiscal['sum'], fiscal['fnNumber'], fiscal['fnDocNumber'], fiscal['fnDocMark'])
             else:
-                checkmark = format_html('<a href="https://receipt.taxcom.ru/v01/show?fp={}&s={}" target="_blank" style="color: green"><i class="ti ti-receipt"></i></a>',
+                checkmark = format_html('<a href="https://receipt.taxcom.ru/v01/show?fp={}&s={}" target="_blank" class="sw-c" style="--c: green"><i class="ti ti-receipt"></i></a>',
                                         fiscal['fnDocMark'], fiscal['sum'])
         elif obj.paid:
-            style = 'color: green'
-            checkmark = mark_safe('<span style="color: green"><i class="ti ti-check"></i></span>')
+            style = '--c: green'
+            checkmark = mark_safe('<span class="sw-c" style="--c: green"><i class="ti ti-check"></i></span>')
         elif obj.payment in [Order.PAYMENT_CARD, Order.PAYMENT_TRANSFER, Order.PAYMENT_CREDIT]:
-            style = 'color: red'
-        return format_html('<span style="display: grid; grid-template-columns: min-content auto; column-gap: 5px"><span style="{}">{}</span>{}</span>',
+            style = '--c: red'
+        return format_html('<span style="display: grid; grid-template-columns: min-content auto; column-gap: 5px"><span class="sw-c" style="{}">{}</span>{}</span>',
                            style, obj.get_payment_display(), checkmark)
 
     @admin.display(description='1С')
@@ -227,10 +227,10 @@ class OrderAdmin(admin.ModelAdmin):
             return ''
         # the IDs, so that the list doesn't load the contractors and the warehouse of each order
         if not (obj.seller_id and obj.buyer_id and obj.wirehouse_id and obj.wiring_date):
-            return mark_safe('<span style="color: orange" title="Нет данных для проводки"><i class="ti ti-calendar-question"></i></span>')
+            return mark_safe('<span class="sw-c" style="--c: orange" title="Нет данных для проводки"><i class="ti ti-calendar-question"></i></span>')
         if obj.wiring_date == timezone.now().date():
-            return mark_safe('<span style="color: #2121ba" title="Проводка сегодня"><i class="ti ti-calendar-bolt"></i></span>')
-        return mark_safe('<span style="color: green"><i class="ti ti-calendar-check"></i></span>')
+            return mark_safe('<span class="sw-c" style="--c: #2121ba" title="Проводка сегодня"><i class="ti ti-calendar-bolt"></i></span>')
+        return mark_safe('<span class="sw-c" style="--c: green"><i class="ti ti-calendar-check"></i></span>')
 
     @admin.display(description='всего')
     def total_cost(self, obj):
@@ -244,7 +244,7 @@ class OrderAdmin(admin.ModelAdmin):
         if obj.name != obj.user.name or obj.phone != obj.user.phone or \
            obj.email != obj.user.email or obj.postcode != obj.user.postcode or \
            obj.address != obj.user.address:
-            return mark_safe('<span style="color: red" title="Несоответствие данных!">&#10033;</span>')
+            return mark_safe('<span class="sw-c" style="--c: red" title="Несоответствие данных!">&#10033;</span>')
         return '-'
 
     @admin.display(description='заказы')
@@ -289,7 +289,7 @@ class OrderAdmin(admin.ModelAdmin):
     @admin.display(description='касса')
     def pos_status(self, obj):
         if obj.hidden_tracking_number:
-            return format_html('<span style="color: blue; font-weight: bold" title="{}">&#10003;</span>', obj.hidden_tracking_number)
+            return format_html('<span class="sw-c" style="--c: blue; font-weight: bold" title="{}">&#10003;</span>', obj.hidden_tracking_number)
         else:
             return ''
 

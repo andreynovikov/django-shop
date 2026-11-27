@@ -10,14 +10,24 @@
     html[data-theme="light"],
     :root {
         --sw-highlight-bg: #fff8dc; /* rows to notice: express orders, fields to fill */
+        --sw-min-l: 0; /* the least lightness of .sw-c text, see below */
     }
     @media (prefers-color-scheme: dark) {
         :root {
             --sw-highlight-bg: #403618;
+            --sw-min-l: 0.72;
         }
     }
     html[data-theme="dark"] {
         --sw-highlight-bg: #403618;
+        --sw-min-l: 0.72;
+    }
+    /* Text in a colour of the code or the data, such as an order status or a manager: <span class="sw-c" style="--c: blue">.
+       The dark theme lightens dark colours, keeping their hue, so that they read on its background; the light theme
+       keeps them as they are. Without --c the text has the colour around it. */
+    .sw-c,
+    a.sw-c:is(:link, :visited, :hover, :focus) {
+        color: oklch(from var(--c) max(l, var(--sw-min-l)) c h);
     }
 
     @media (max-width: 1200px) {

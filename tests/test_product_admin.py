@@ -82,7 +82,7 @@ class ProductListTests(TestCase):
     def test_stock_and_integrations_of_each_row(self):
         self.add_products(1, 1)
         html = self.changelist().content.decode()
-        self.assertIn('С1:&nbsp;1<span style="color: #090" title="&lt;b&gt;сверка&lt;/b&gt;">+1</span><br/>', html)
+        self.assertIn('С1:&nbsp;1<span class="sw-c" style="--c: #090" title="&lt;b&gt;сверка&lt;/b&gt;">+1</span><br/>', html)
         self.assertNotIn('С3:', html)  # not shown in orders
         self.assertIn('Каталог/Машины/Машины</option>', html)
         self.assertIn('&nbsp;USD', html)  # the price in its currency

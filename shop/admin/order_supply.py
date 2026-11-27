@@ -58,13 +58,13 @@ def order_products(order_ids, sort):
             for stock_item in stock_items:
                 stock = stock + ('%s:&nbsp;' % stock_item.supplier.code)
                 if stock_item.quantity == 0:
-                    stock = stock + '<span style="color: #c00">'
+                    stock = stock + '<span style="color: var(--error-fg)">'
                 stock = stock + ('%s' % floatformat(stock_item.quantity))
                 if stock_item.quantity == 0:
                     stock = stock + '</span>'
                 stock = stock + '<br/>'
         else:
-            stock = '<span style="color: #ff0000">отсутствует</span>'
+            stock = '<span style="color: var(--error-fg)">отсутствует</span>'
         product['stock'] = stock
         products.append(product)
     return products
