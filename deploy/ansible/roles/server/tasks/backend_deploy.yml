@@ -15,7 +15,7 @@
   ansible.builtin.copy:
     dest: /etc/sudoers.d/deploy-backend
     content: |
-      # {{ ansible_managed }}
+      # Installed by Ansible, the server role's backend_deploy.yml
       deploy ALL=(root) NOPASSWD: /usr/local/bin/deploy-backend
     owner: root
     group: root
