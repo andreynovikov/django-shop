@@ -68,7 +68,7 @@ def notify_manager_telegram(self, order_id):
     if order.site_id != get_default_site().id:
         site_text = f' ({order.site.domain})'
     text = (f'Новый заказ №{order.id}{site_text}\n'
-            f'Итого: {order.total} руб.\n'
+            f'Сумма: {order.total} руб.\n'
             f'https://admin.sewing-world.ru/admin/shop/order/{order.id}/change/')
     return post_to_staff(self, text)
 
