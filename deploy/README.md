@@ -1000,8 +1000,10 @@ Use the branch, deployment name, port and directory from the table.
 - Environment `backend`, limited to the branch `main` (Deployment branches and tags → Selected branches), for the
   [backend deployment](#backend-deployment). It holds the secret `BACKEND_SSH_PRIVATE_KEY`, see
   [The deploy key](#the-deploy-key). Required reviewers may be added: the workflow only deploys.
-- Repository secrets `DEPLOY_HOST`, `DEPLOY_USER`, `SSH_PRIVATE_KEY` and `DEPLOY_HOST_KEY`: the ssh login of the
-  deploy jobs, the backend's included. The `deployment` tag provisions the default `deploy` account and installs the
+- Repository secrets `DEPLOY_HOST`, `SSH_PRIVATE_KEY` and `DEPLOY_HOST_KEY`, and the repository variable
+  `DEPLOY_USER`: the ssh login of the deploy jobs, the backend's included. `DEPLOY_USER` is a variable, not a secret:
+  GitHub hides a secret's value everywhere in the logs, and `deploy` is a word they use. The `deployment` tag
+  provisions the default `deploy` account and installs the
   [restricted deployment command](ansible/roles/server/templates/deploy-frontend.j2). The key's forced command
   accepts a storefront name and an image tag. Set `DEPLOY_USER` to `deploy` when using this account. On a new server
   these keep working when `DEPLOY_HOST` is a DNS name rather than an address, the inventory has the public half of

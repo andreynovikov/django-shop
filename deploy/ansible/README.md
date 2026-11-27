@@ -140,7 +140,7 @@ hands the site's `logs`, `media`, `static`, `.cache` and `import` to the service
 into `/www`: they belong in `/var/log/nginx`, see "Nginx setup" in [deploy/README.md](../README.md#nginx-setup).
 
 sshd lets in only the users of `server_users` and `server_ssh_extra_users`. If GitHub Actions deploys as another
-user (the `DEPLOY_USER` secret), add it to `server_ssh_extra_users` before the run, or the deploys stop working.
+user (the `DEPLOY_USER` variable of the repository), add it to `server_ssh_extra_users` before the run, or the deploys stop working.
 
 The `firewall` tag turns on nftables. Keep an ssh session open on the first run of it. If something else connects
 to the server, for example over the private network, add a rule for it to `server_firewall_rules`. Where the

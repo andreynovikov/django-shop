@@ -25,8 +25,21 @@ app_user={{ server_app_user | quote }}
 {% set celery_names = server_celery_apps | selectattr('site', 'eq', server_backend_deploy_site) | map(attribute='name') | list %}
 # Restarted here. The uWSGI apps reload by touch-chain-reload, and the ASGI apps restart by their path units.
 restart_units=({% for name in celery_names %}celery@{{ name }}.service celery_beat@{{ name }}.service{{ ' ' if not loop.last }}{% endfor %})
-# Must be running, without restarts of their own, a while after the reload
-watched_units=({% for name in uwsgi_names %}uwsgi@{{ name }}.service {% endfor %}{% for name in asgi_names %}asgi@{{ name }}.service {% endfor %}"${restart_units[@]}")
+# Must be running, without restarts of their own, a while after the reload, with how the deploy restarts each
+declare -A watched_units=(
+{% for name in uwsgi_names %}
+  [uwsgi@{{ name }}.service]='workers reloaded one by one'
+{% endfor %}
+{% for name in asgi_names %}
+  [asgi@{{ name }}.service]='restarted by its path unit'
+{% endfor %}
+{% for name in celery_names %}
+  [celery@{{ name }}.service]='restarted'
+  [celery_beat@{{ name }}.service]='restarted'
+{% endfor %}
+)
+# In this order in the output
+watched_order=({% for name in uwsgi_names %}uwsgi@{{ name }}.service {% endfor %}{% for name in asgi_names %}asgi@{{ name }}.service {% endfor %}"${restart_units[@]}")
 # Seconds for the uWSGI workers to load the new code one after another
 settle={{ server_backend_deploy_settle }}
 {# The rest is bash alone, whose ${#...} would open a Jinja comment #}
@@ -206,7 +219,7 @@ manage collectstatic --noinput || failed "collectstatic failed"
 
 step "Restarting"
 declare -A restarts
-for unit in "${watched_units[@]}"; do
+for unit in "${watched_order[@]}"; do
   restarts[$unit]=$(systemctl show -P NRestarts "$unit")
 done
 # Reloads the uWSGI apps' workers one by one, and restarts the ASGI apps through their path units
@@ -214,10 +227,17 @@ touch .touch_reload
 [ ${#restart_units[@]} -eq 0 ] || systemctl restart "${restart_units[@]}"
 sleep "$settle"
 broken=()
-for unit in "${watched_units[@]}"; do
-  if ! systemctl is-active -q "$unit" || [ "$(systemctl show -P NRestarts "$unit")" != "${restarts[$unit]}" ]; then
-    broken+=("$unit")
+for unit in "${watched_order[@]}"; do
+  if ! systemctl is-active -q "$unit"; then
+    state="$(systemctl is-active "$unit" || true)"
+  elif [ "$(systemctl show -P NRestarts "$unit")" != "${restarts[$unit]}" ]; then
+    state='restarted by itself'
+  else
+    echo "$unit: ${watched_units[$unit]}, running after ${settle} s"
+    continue
   fi
+  echo "$unit: ${watched_units[$unit]}, but $state after ${settle} s"
+  broken+=("$unit")
 done
 if [ ${#broken[@]} -gt 0 ]; then
   die "deployed $(g rev-parse --short "$target"), but ${broken[*]} stopped or restarted by itself after it: see journalctl -u and the logs in $dir/logs"

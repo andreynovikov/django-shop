@@ -43,7 +43,7 @@ all:
         # server_certbot_email: admin@sewing-world.ru
         # The image tag of a storefront's first start, by deployment name, instead of the one production runs
         # server_frontend_tags: { janome: 2026.11.26-0de72de }
-        # sshd lets in only the users above and these. Add the user of the DEPLOY_USER secret if it is another one.
+        # sshd lets in only the users above and these. Add the user of the DEPLOY_USER variable if it is another one.
         # server_ssh_extra_users: [deploy]
         server_db_backup_deployments: [www.sewing-world.ru]
         # Where the hosting's firewall filters the traffic. It must allow what server_firewall_* of
