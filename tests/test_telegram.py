@@ -124,7 +124,7 @@ class OrderNoticeTests(TestCase):
     def test_notice_is_short_without_the_customer(self):
         order = self.order(self.main_site)
         self.assertEqual(order.total, Decimal('2300'))
-        self.assertEqual(self.text(order), f'Новый заказ №{order.id}\nИтого: 2300.00 руб.\n'
+        self.assertEqual(self.text(order), f'Новый заказ №{order.id}\nСумма: 2300.00 руб.\n'
                                            f'https://admin.sewing-world.ru/admin/shop/order/{order.id}/change/')
 
     def test_other_site_is_named(self):
