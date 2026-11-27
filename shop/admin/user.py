@@ -67,6 +67,13 @@ class UserChangeForm(forms.ModelForm):
             'tags': TagAutoComplete(model=ShopUser),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Permission names include their content type: fetch it with them, as Django's own UserChangeForm does
+        user_permissions = self.fields.get('user_permissions')
+        if user_permissions:
+            user_permissions.queryset = user_permissions.queryset.select_related('content_type')
+
     def clean_password(self):
         # Regardless of what the user provides, return the initial value.
         # This is done here, rather than on the field, because the
@@ -127,7 +134,7 @@ class ShopUserAdmin(ExportMixin, UserAdmin):
     )
     search_fields = ('phone', 'name', 'email', 'tags')
     ordering = ('phone', 'name')
-    filter_horizontal = ()
+    filter_horizontal = ('groups', 'user_permissions')
     # change_list_template = 'admin/change_list_filter_sidebar.html'
     # change_list_filter_template = 'admin/filter_listing.html'
     resource_class = ShopUserResource

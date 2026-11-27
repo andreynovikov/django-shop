@@ -9,13 +9,16 @@ from unittest import mock
 
 from django.apps import apps
 from django.contrib.admin.sites import site as admin_site
+from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sites.models import Site
 from django.core import mail
 from django.core.cache import cache
+from django.db import connection
 from django.forms.models import model_to_dict
 from django.test import RequestFactory, TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from shop import email_confirmation
@@ -432,6 +435,15 @@ class AdminTests(TestCase):
         user = self.change_user(name='Иван')
         self.assertFalse(user.email_verified)
         self.assertFalse(user.phone_verified)
+
+    def test_permissions_are_picked_side_by_side(self):
+        form = admin_site._registry[ShopUser].get_form(self.request(), self.user, change=True)(instance=self.user)
+        for name in ('groups', 'user_permissions'):
+            self.assertIsInstance(form.fields[name].widget.widget, FilteredSelectMultiple, name)
+        # Permission names read their content types: not one query per permission
+        with CaptureQueriesContext(connection) as queries:
+            str(form['user_permissions'])
+        self.assertLessEqual(len(queries), 2)
 
     def add_user(self, **data):
         model_admin = admin_site._registry[ShopUser]
