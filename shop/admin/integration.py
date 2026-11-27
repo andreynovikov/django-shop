@@ -4,7 +4,6 @@ from django.http import JsonResponse
 from django.urls import path
 from django.utils import timezone
 from django.utils.html import format_html
-from django.utils.text import Truncator
 
 from more_admin_filters import DropdownFilter, RelatedDropdownFilter
 
@@ -69,7 +68,7 @@ class HealthCheckAdmin(admin.ModelAdmin):
     The health of the integrations and of Celery, kept by shop/health.py: read only. "Reset" clears a check, such as
     one of an operation that no longer runs.
     """
-    list_display = ['integration', 'operation_label', 'level_display', 'failures', 'first_failed_at', 'last_success_at', 'short_error']
+    list_display = ['integration', 'operation_label', 'level_display', 'failures', 'first_failed_at', 'last_success_at']
     list_filter = [GroupFilter, LevelFilter, ('integration', RelatedDropdownFilter)]
     list_select_related = ['integration']
     fields = ['integration', 'operation_label', 'level_display', 'failures', 'first_failed_at', 'last_failed_at',
@@ -103,11 +102,6 @@ class HealthCheckAdmin(admin.ModelAdmin):
     def level_display(self, obj):
         level = health.level(obj, timezone.now())
         return format_html('<span style="color: {}">&#9670;</span> {}', COLORS[level], LEVEL_NAMES[level])
-
-    @admin.display(description='ошибка')
-    def short_error(self, obj):
-        lines = health.status_text(obj, timezone.now()).splitlines()
-        return Truncator(lines[0]).chars(120) if lines else ''
 
     @admin.display(description='ошибка')
     def full_error(self, obj):
