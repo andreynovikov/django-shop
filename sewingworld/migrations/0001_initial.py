@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('sites', '0002_alter_domain_unique'),
-        ('shop', '0152_auto_20200127_1334'),
+        ('shop', '0001_squashed_0274_integration_check'),
     ]
 
     operations = [

@@ -3,11 +3,9 @@ Email confirmation, and mail that goes only to confirmed addresses. SMS, Celery 
 mail goes to Django's test outbox. See settings.py on how to run.
 """
 from datetime import timedelta
-from importlib import import_module
 from types import SimpleNamespace
 from unittest import mock
 
-from django.apps import apps
 from django.contrib.admin.sites import site as admin_site
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.messages.storage.fallback import FallbackStorage
@@ -380,21 +378,6 @@ class OrderMailTests(TestCase):
             self.user.save()
             self.assertEqual(user_interaction.notify_abandoned_baskets(), 1)
             notify.assert_called_once_with(basket.id, EMAIL, PHONE)
-
-
-class FirstSmsProofTests(TestCase):
-    """ See also test_login_codes.SilentRegistrationTests """
-
-    def test_migration_trusts_existing_users_once(self):
-        with_email = ShopUser.objects.create(phone=PHONE, email=EMAIL)
-        without = ShopUser.objects.create(phone='+79160000000')
-        migration = import_module('shop.migrations.0266_shopuser_email_verified_phone_verified')
-        migration.trust_existing(apps, None)
-        with_email.refresh_from_db()
-        without.refresh_from_db()
-        self.assertEqual((with_email.email_verified, with_email.phone_verified), (True, True))
-        self.assertEqual((without.email_verified, without.phone_verified), (False, True))
-        self.assertFalse(ShopUser.objects.create(phone='+79161111111', email='new@example.com').email_verified)
 
 
 class AdminTests(TestCase):

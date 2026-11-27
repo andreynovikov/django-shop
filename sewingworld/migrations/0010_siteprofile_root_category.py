@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('shop', '0256_product_sites'),
+        ('shop', '0001_squashed_0274_integration_check'),
         ('sewingworld', '0009_auto_20260116_2107'),
     ]
 
