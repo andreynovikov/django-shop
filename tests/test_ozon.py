@@ -73,7 +73,7 @@ class OzonTests(TestCase):
         body = POSTING_REQUEST
         if reconcile:
             filters = POSTING_REQUEST['filter']
-            body = {**body, 'filter': {**filters, 'statuses': [*filters['statuses'], 'sent_by_seller', 'cancelled']}}
+            body = {**body, 'filter': {**filters, 'statuses': [*filters['statuses'], 'cancelled']}}
         if cursor is not None:
             body = {**body, 'cursor': cursor}
         response = {'has_next': next_cursor is not None, 'cursor': next_cursor or '', 'postings': postings}

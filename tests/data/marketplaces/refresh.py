@@ -107,6 +107,13 @@ def bundle(spec, operations):
     return result
 
 
+POSTING_FILTER_STATUSES = [
+    'acceptance_in_progress', 'arbitration', 'awaiting_approve', 'awaiting_deliver', 'awaiting_packaging',
+    'awaiting_registration', 'cancelled', 'client_arbitration', 'delivered', 'delivering', 'driver_pickup',
+    'not_accepted',
+]
+
+
 def normalize_ozon(spec):
     schemas = spec['components']['schemas']
     posting_filter = schemas.get('posting.v4.PostingFbsListRequest.Filter', {})
@@ -115,6 +122,11 @@ def normalize_ozon(spec):
         if date_field.get('format') == 'date-time' and date_field.get('pattern') == ' YYYY-MM-DDThh:mm:ssZ':
             # This literal format example cannot match any RFC 3339 timestamp.
             del date_field['pattern']
+    statuses = posting_filter.get('properties', {}).get('statuses', {})
+    if statuses.get('items') == {'type': 'string'}:
+        # The schema leaves the statuses free, while the API rejects others than these (its validation error,
+        # 2026-11-27): sent_by_seller, for one, is a status of postings but not of the filter.
+        statuses['items']['enum'] = POSTING_FILTER_STATUSES
 
     stock = schemas.get('productv2ProductsStocksRequestStock', {})
     properties = stock.get('properties', {})

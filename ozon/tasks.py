@@ -211,7 +211,8 @@ def get_integration_unfulfilled_orders(self, account, target_site_id=None):
     reconcile = bool(integration.settings.get('push_token'))
     statuses = list(FBS_IMPORT_STATUSES)
     if reconcile:
-        statuses.extend(('sent_by_seller', 'cancelled'))
+        # The list doesn't filter by sent_by_seller, an rFBS status (Ozon rejects the request); pushes bring it
+        statuses.append('cancelled')
     now = timezone.now().replace(microsecond=0)
     week_ago = now - timedelta(days=7)
     data = {

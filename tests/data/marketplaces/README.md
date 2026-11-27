@@ -20,7 +20,9 @@ snapshot records its source URL and SHA-256 or its upstream commit.
   from the [Wildberries FBS orders schema](https://dev.wildberries.ru/api/swagger/yaml/en/03-orders-fbs.yaml).
 
 The Ozon extractor keeps RFC 3339 validation for posting dates and removes
-two literal format placeholders used as regex patterns. For stock rows it
+two literal format placeholders used as regex patterns. It limits the posting
+list's status filter to the values the API accepts, which the schema leaves
+free. For stock rows it
 uses the documented choice of `offer_id` or `product_id` and omits the stale
 requirement for the undefined `quant_size` field.
 

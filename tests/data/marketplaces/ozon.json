@@ -279,6 +279,20 @@
           },
           "statuses": {
             "items": {
+              "enum": [
+                "acceptance_in_progress",
+                "arbitration",
+                "awaiting_approve",
+                "awaiting_deliver",
+                "awaiting_packaging",
+                "awaiting_registration",
+                "cancelled",
+                "client_arbitration",
+                "delivered",
+                "delivering",
+                "driver_pickup",
+                "not_accepted"
+              ],
               "type": "string"
             },
             "type": "array"
