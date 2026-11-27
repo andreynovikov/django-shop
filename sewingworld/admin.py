@@ -33,8 +33,9 @@ class SWAutocompleteJsonView(AutocompleteJsonView):
 class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
     site_header = "Швейный Мир"
     site_title = "Административный сайт Швейный Мир"
-    # Tabs of the index page (templates/admin/index.html) with the app labels they list, in get_app_list() order.
-    # The last one, without labels, takes the apps the others leave.
+    # Tabs of the index page (templates/admin/index.html) with the app labels they list, in this order. The last one,
+    # without labels, takes the apps the others leave, in get_app_list() order. The shop, with most models, spans its
+    # tab, and the tab's other apps go beside it.
     index_tabs = (
         ('shop', 'Магазин', ('shop', 'sewingworld', 'django_comments', 'blog')),
         ('access', 'Доступ', ('auth', 'phonenumber', 'otp_static', 'otp_totp', 'authtoken')),
@@ -60,17 +61,24 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
         placed = {label for _, _, labels in self.index_tabs if labels for label in labels}
         tabs = []
         for tab_id, name, labels in self.index_tabs:
-            apps = [app for app in app_list if app['app_label'] in labels] if labels else \
-                [app for app in app_list if app['app_label'] not in placed]
-            if apps:
-                tabs.append({'id': tab_id, 'name': name, 'apps': apps})
+            if labels:
+                apps = sorted((app for app in app_list if app['app_label'] in labels),
+                              key=lambda app: labels.index(app['app_label']))
+            else:
+                apps = [app for app in app_list if app['app_label'] not in placed]
+            if not apps:
+                continue
+            tab = {'id': tab_id, 'name': name, 'apps': apps}
+            if apps[0]['app_label'] == 'shop' and len(apps) > 1:
+                tab['main'], tab['side'] = apps[:1], apps[1:]
+            tabs.append(tab)
         response.context_data['tabs'] = tabs
         return response
 
     def get_app_list(self, request, app_label=None):
         # The shop goes first, with the flat pages and the file manager, then a "Швейный Мир" group with the constance
         # settings and sites. The OTP models join "Two Factor Authentication", and the shop's users are listed under
-        # auth too.
+        # auth too. Comments are named in Russian.
         apps = super().get_app_list(request, app_label)
 
         shop = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'shop'), None)
@@ -95,8 +103,12 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
         phonenumber = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'phonenumber'), None)
         otp_static = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'otp_static'), None)
         otp_totp = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'otp_totp'), None)
+        comments = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'django_comments'), None)
 
         indexes = []
+
+        if comments is not None:
+            apps[comments]['name'] = 'Комментарии'
 
         if phonenumber is not None:
             apps[phonenumber]['name'] = 'Two Factor Authentication'

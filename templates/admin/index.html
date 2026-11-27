@@ -1,6 +1,7 @@
 {% extends "admin/index.html" %}
 {% load i18n static log admin_filters %}
-{# Django's index with the apps in tabs (SWAdminSite.index_tabs) across the whole width, and recent actions in a dropdown #}
+{# Django's index with the apps in tabs (SWAdminSite.index_tabs) across the whole width, and recent actions in a dropdown. #}
+{# Pages of single apps extend it too (admin/app_index.html): they have no tabs, and list their apps in columns. #}
 
 {% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin-index.css' %}">{% endblock %}
 
@@ -8,6 +9,7 @@
 
 {% block content %}
 <div id="content-main" class="app-list">
+  {% if tabs %}
   <div class="sw-index-bar">
     {% if tabs|length > 1 %}
     <div class="sw-tabs" role="tablist" aria-label="Разделы">
@@ -51,14 +53,22 @@
     </details>
   </div>
   {% for tab in tabs %}
-  <div class="sw-tab-panel" role="tabpanel" id="panel-{{ tab.id }}"{% if tabs|length > 1 %} aria-labelledby="tab-{{ tab.id }}"{% endif %}{% if not forloop.first %} hidden{% endif %}>
+  <div class="sw-tab-panel{% if tab.side %} sw-split{% endif %}" role="tabpanel" id="panel-{{ tab.id }}"{% if tabs|length > 1 %} aria-labelledby="tab-{{ tab.id }}"{% endif %}{% if not forloop.first %} hidden{% endif %}>
+    {% if tab.side %}
+    <div class="sw-main">{% include "admin/app_list.html" with app_list=tab.main show_changelinks=True %}</div>
+    <div class="sw-side">{% include "admin/app_list.html" with app_list=tab.side show_changelinks=True %}</div>
+    {% else %}
     {% include "admin/app_list.html" with app_list=tab.apps show_changelinks=True %}
+    {% endif %}
   </div>
-  {% empty %}
-  {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
   {% endfor %}
   {# Not deferred: it opens the remembered tab before the page is shown #}
   <script src="{% static 'js/admin-index.js' %}"></script>
+  {% else %}
+  <div class="sw-tab-panel">
+    {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
 

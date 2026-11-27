@@ -123,7 +123,8 @@
     line-height: 1.2;
 }
 
-/* Apps flow into columns; the shop, with most models, spans them and puts its own rows into columns */
+/* Apps flow into columns. The shop, with most models, puts its own rows into up to four columns: beside the other
+   apps of its tab (.sw-split, see SWAdminSite.index), or across the page of its own (/admin/shop/). */
 
 .sw-tab-panel {
     columns: 20rem;
@@ -139,6 +140,22 @@
     column-span: all;
 }
 
+.sw-tab-panel.sw-split {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+    columns: auto;
+}
+
+.sw-split > .sw-main {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.sw-split > .sw-side {
+    flex: 0 0 22rem;
+}
+
 .sw-tab-panel .app-shop table,
 .sw-tab-panel .app-shop caption,
 .sw-tab-panel .app-shop tbody {
@@ -146,7 +163,7 @@
 }
 
 .sw-tab-panel .app-shop tbody {
-    columns: 20rem;
+    columns: 22rem 4;
     column-gap: 30px;
 }
 
@@ -160,9 +177,40 @@
     width: auto;
 }
 
-/* Phones: tabs share the width, the toggle keeps only its icons */
+/* Narrower screens: the shop's tab mates go below it */
+
+@media (max-width: 1199px) {
+    .sw-tab-panel.sw-split {
+        display: block;
+    }
+
+    .sw-split > .sw-side {
+        columns: 20rem;
+        column-gap: 30px;
+    }
+}
+
+/* Phones: tabs share the width, the toggle and the add, change and view links keep only their icons */
 
 @media (max-width: 767px) {
+    .dashboard .module td a.addlink,
+    .dashboard .module td a.changelink,
+    .dashboard .module td a.viewlink {
+        width: 16px;
+        height: 16px;
+        padding: 8px;
+        overflow: hidden;
+        background-position: center;
+        text-indent: 200%; /* past the padding too */
+        white-space: nowrap;
+    }
+
+    .dashboard .module td {
+        width: 32px;
+        padding: 0 4px;
+        vertical-align: middle;
+    }
+
     .sw-index-bar {
         gap: 4px;
     }

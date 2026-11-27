@@ -28,24 +28,38 @@ class AdminIndexTests(TestCase):
         names = [model['name'] for model in apps['shop']['models']]
         self.assertEqual(names, sorted(names))
         self.assertEqual([model['object_name'] for model in apps['sewingworld']['models']], ['Config', 'Site'])
+        self.assertEqual(apps['django_comments']['name'], 'Комментарии')
 
     def test_tabs(self):
         response = admin.site.index(self.request)
         tabs = {tab['id']: [app['app_label'] for app in tab['apps']] for tab in response.context_data['tabs']}
         self.assertEqual(list(tabs), ['shop', 'access', 'system'])
-        self.assertEqual(tabs['shop'][:2], ['shop', 'sewingworld'])
-        self.assertIn('blog', tabs['shop'])
-        self.assertIn('auth', tabs['access'])
+        self.assertEqual(tabs['shop'], ['shop', 'sewingworld', 'django_comments', 'blog'])  # in index_tabs order
+        self.assertEqual(tabs['access'][0], 'auth')
         self.assertIn('errors', tabs['system'])
         # Every app is in one tab only, the last one takes those the others leave
         placed = [label for labels in tabs.values() for label in labels]
         self.assertCountEqual(placed, [app['app_label'] for app in response.context_data['app_list']])
+        # The shop spans its tab, the other apps go beside it
+        shop_tab = response.context_data['tabs'][0]
+        self.assertEqual([app['app_label'] for app in shop_tab['main']], ['shop'])
+        self.assertEqual([app['app_label'] for app in shop_tab['side']], tabs['shop'][1:])
+        self.assertNotIn('side', response.context_data['tabs'][1])
 
         content = response.render().content.decode()
         self.assertEqual(content.count('role="tab"'), 3)
         self.assertIn('id="panel-access"', content)
         self.assertIn('<details class="sw-recent">', content)
         self.assertNotIn('id="content-related"', content)
+        self.assertIn('class="sw-tab-panel sw-split"', content)
+
+    def test_app_page_has_no_tabs(self):
+        # admin/app_index.html extends the index
+        content = admin.site.app_index(self.request, 'shop').render().content.decode()
+        self.assertIn('class="sw-tab-panel"', content)
+        self.assertIn('class="app-shop module', content)
+        self.assertNotIn('sw-index-bar', content)
+        self.assertNotIn('admin-index.js', content)
 
     def test_one_tab_has_no_tab_bar(self):
         staff = ShopUser.objects.create(phone='+79990000001', is_staff=True)
