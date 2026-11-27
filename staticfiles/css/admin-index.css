@@ -131,6 +131,11 @@
     column-gap: 30px;
 }
 
+/* A panel of another tab stays hidden whatever display its layout sets, such as .sw-split's flex */
+.sw-tab-panel[hidden] {
+    display: none !important;
+}
+
 .sw-tab-panel .module {
     break-inside: avoid;
     margin-bottom: 24px;
