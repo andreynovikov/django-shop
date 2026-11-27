@@ -81,7 +81,7 @@ vault doesn't get one.
 
 `export-secrets.sh` reads the secret files of a server set up by hand and writes them into an encrypted
 `group_vars/production/secrets.yml`, asking for a new vault password. It also prints two settings of the server for
-`inventory.yml`: the deploy account's public key and the aliases of the certificates.
+`inventory.yml`: the deploy account's public keys and the aliases of the certificates.
 
 ```sh
 ./export-secrets.sh -K --limit server.example.ru

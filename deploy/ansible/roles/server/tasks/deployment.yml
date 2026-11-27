@@ -4,14 +4,14 @@
     fail_msg: Set server_frontend_registry in inventory.yml, see inventory.example.yml
     quiet: true
 
-# Without server_deploy_ssh_public_key, the account gets a key of its own, whose private half goes into the
+# Without server_frontend_deploy_ssh_public_key, the account gets a key of its own, whose private half goes into the
 # SSH_PRIVATE_KEY secret of the GitHub repository. With it, a new server accepts the key GitHub already has.
 - name: Create deployment user
   ansible.builtin.user:
     name: deploy
     groups: [docker]
     shell: /bin/sh  # sshd runs the forced command of the key through the login shell
-    generate_ssh_key: "{{ server_deploy_ssh_public_key | default('') | length == 0 }}"
+    generate_ssh_key: "{{ server_frontend_deploy_ssh_public_key | default('') | length == 0 }}"
     ssh_key_type: ed25519
   register: created_user
 
@@ -24,7 +24,7 @@
     key: "{{ deploy_keys | join('\n') }}"
     exclusive: true
   vars:
-    frontend_key: "{{ server_deploy_ssh_public_key | default('', true) or created_user.ssh_public_key | default('') }}"
+    frontend_key: "{{ server_frontend_deploy_ssh_public_key | default('', true) or created_user.ssh_public_key | default('') }}"
     backend_key: "{{ server_backend_deploy_ssh_public_key | default('', true) }}"
     deploy_keys: >-
       {{ (['restrict,command="/usr/local/bin/deploy-frontend" ' ~ frontend_key.split()[:2] | join(' ') ~ ' github-deploy']

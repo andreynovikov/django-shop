@@ -1005,7 +1005,7 @@ Use the branch, deployment name, port and directory from the table.
   [restricted deployment command](ansible/roles/server/templates/deploy-frontend.j2). The key's forced command
   accepts a storefront name and an image tag. Set `DEPLOY_USER` to `deploy` when using this account. On a new server
   these keep working when `DEPLOY_HOST` is a DNS name rather than an address, the inventory has the public half of
-  `SSH_PRIVATE_KEY` in `server_deploy_ssh_public_key`, and the vault has the old server's ssh host keys, which
+  `SSH_PRIVATE_KEY` in `server_frontend_deploy_ssh_public_key`, and the vault has the old server's ssh host keys, which
   `DEPLOY_HOST_KEY` pins.
 - The storefront packages of the GitHub Container Registry are public, since the images hold no configuration. The
   server pulls them without a login.

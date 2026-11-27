@@ -87,6 +87,10 @@ server_backend_deploy_site: www.sewing-world.ru
 # Seconds deploy-backend waits after the restart for the uWSGI workers to load the new code, before it checks that
 # the services still run
 server_backend_deploy_settle: 30
+# The public key whose private half is the SSH_PRIVATE_KEY secret of the GitHub repository, set in the inventory, so
+# that GitHub deploys the storefronts to a new server too. Without it, the deploy account gets a key of its own.
+# server_deploy_ssh_public_key is its old name, which inventories made before may still have.
+server_frontend_deploy_ssh_public_key: "{{ server_deploy_ssh_public_key | default('') }}"
 # The public key whose private half is the BACKEND_SSH_PRIVATE_KEY secret of the GitHub environment "backend", set in
 # the inventory. Without it GitHub Actions can't deploy the backend.
 server_backend_deploy_ssh_public_key: ""

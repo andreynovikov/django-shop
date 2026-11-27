@@ -28,10 +28,12 @@ all:
         server_git_repository: https://github.com/andreynovikov/django-shop.git
         server_frontend_registry: ghcr.io/andreynovikov
         # The public key whose private half is the SSH_PRIVATE_KEY secret of the GitHub repository, so that GitHub
-        # deploys to a new server too. export-secrets.sh prints it. Without it, the deploy account gets a new key.
-        # server_deploy_ssh_public_key: ssh-ed25519 AAAA...
+        # deploys the storefronts to a new server too. export-secrets.sh prints it. Without it, the deploy account
+        # gets a new key.
+        # server_frontend_deploy_ssh_public_key: ssh-ed25519 AAAA...
         # The public key whose private half is the BACKEND_SSH_PRIVATE_KEY secret of the GitHub environment "backend",
-        # see "Backend deployment" in deploy/README.md. Without it GitHub Actions can't deploy the backend.
+        # see "Backend deployment" in deploy/README.md. export-secrets.sh prints it. Without it GitHub Actions can't
+        # deploy the backend.
         # server_backend_deploy_ssh_public_key: ssh-ed25519 AAAA...
         # The other names of each certificate besides its first, export-secrets.sh prints them. A name added here
         # is added to the certificate on the next run.
