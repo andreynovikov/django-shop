@@ -139,8 +139,8 @@ class Order(models.Model):
         STATUS_NEW: 'red',
         STATUS_ACCEPTED: 'orange',
         STATUS_WAITING: 'gray',
-        STATUS_COLLECTING: 'limegreen',
-        STATUS_CANCELED: 'pink',
+        STATUS_COLLECTING: 'green',
+        STATUS_CANCELED: '#d63384',  # pink that reads on white
         STATUS_FROZEN: 'lightblue',
         STATUS_OTHERSHOP: 'gray',
         STATUS_COLLECTED: 'orange',
