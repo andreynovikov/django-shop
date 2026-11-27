@@ -97,6 +97,7 @@ python manage.py postman_spec /tmp/spec.json  # OpenAPI spec of the Postman coll
 
 ## Admin HTML and independent packages
 
+- Admin icons are Tabler's: the webfont (`ti ti-…`, `staticfiles/css/tabler-icons.min.css`) for our own, and `staticfiles/admin/img/` in place of Django's files, keeping their names, sizes, colours and sprite layouts. When `tests/test_admin_icons.py` fails after a Django upgrade, rerun `manage.py admin_icons <@tabler/icons package dir>`.
 - Clean editor HTML in backend admin forms, not storefront repair code or model `save()`. Products, adverts and stores use `shop.tidy.tidy_html5` with HTML5 and empty-element preservation; news retains strict cleanup. Comment-only content may become empty.
 - Change/test `errors` (`django-server-errors`), `filemanager` (`django-admin-filemanager`), `reviews` (`django-rated-reviews`) and other independently maintained packages in their own repositories, then consume releases here. Do not patch installed packages or rely on local clones in the final change.
 - `ErrorCaptureMiddleware` (first in `MIDDLEWARE`) records 5xx responses; final Celery failures are also captured. Repeats of an exception from the same view or task and project function count into one `Error`, which keeps its latest traces with masked locals. Mark functions handling secrets with `@sensitive_variables()` to mask captured frames and their callees.

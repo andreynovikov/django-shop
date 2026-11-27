@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="32" viewBox="0 0 512 1024">
+  <!-- Tabler Icons 3.49.0 (clock), MIT License, in place of Django's icon-clock.svg -->
+  <defs>
+    <g id="icon" transform="translate(0 0) scale(21.3333)" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /> <path d="M12 7v5l3 3" /></g>
+  </defs>
+  <use xlink:href="#icon" x="0" y="0" color="#447e9b"/>
+  <use xlink:href="#icon" x="0" y="512" color="#003366"/>
+</svg>

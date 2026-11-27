@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="128" viewBox="0 0 512 4096">
+  <!-- Tabler Icons 3.49.0 (circle-arrow-down, circle-arrow-left, circle-arrow-right, circle-arrow-up), MIT License, in place of Django's selector-icons.svg -->
+  <defs>
+    <g id="up" transform="translate(0 0) scale(21.3333)" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /> <path d="M12 8l-4 4" /> <path d="M12 8v8" /> <path d="M16 12l-4 -4" /></g>
+    <g id="down" transform="translate(0 0) scale(21.3333)" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /> <path d="M8 12l4 4" /> <path d="M12 8v8" /> <path d="M16 12l-4 4" /></g>
+    <g id="left" transform="translate(0 0) scale(21.3333)" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0 0 -18a9 9 0 0 0 0 18" /> <path d="M8 12l4 4" /> <path d="M8 12h8" /> <path d="M12 8l-4 4" /></g>
+    <g id="right" transform="translate(0 0) scale(21.3333)" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0 -18" /> <path d="M16 12l-4 -4" /> <path d="M16 12h-8" /> <path d="M12 16l4 -4" /></g>
+  </defs>
+  <use xlink:href="#up" x="0" y="0" color="#666666"/>
+  <use xlink:href="#up" x="0" y="512" color="#447e9b"/>
+  <use xlink:href="#down" x="0" y="1024" color="#666666"/>
+  <use xlink:href="#down" x="0" y="1536" color="#447e9b"/>
+  <use xlink:href="#left" x="0" y="2048" color="#666666"/>
+  <use xlink:href="#left" x="0" y="2560" color="#447e9b"/>
+  <use xlink:href="#right" x="0" y="3072" color="#666666"/>
+  <use xlink:href="#right" x="0" y="3584" color="#447e9b"/>
+</svg>

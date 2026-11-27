@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="32" viewBox="0 0 448 1024">
+  <!-- Tabler Icons 3.49.0 (calendar), MIT License, in place of Django's icon-calendar.svg -->
+  <defs>
+    <g id="icon" transform="translate(0 32) scale(18.6667)" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12" /> <path d="M16 3v4" /> <path d="M8 3v4" /> <path d="M4 11h16" /> <path d="M11 15h1" /> <path d="M12 15v3" /></g>
+  </defs>
+  <use xlink:href="#icon" x="0" y="0" color="#447e9b"/>
+  <use xlink:href="#icon" x="0" y="512" color="#003366"/>
+</svg>
