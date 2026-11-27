@@ -305,6 +305,7 @@ class AdminTests(HealthTestCase):
         response = admin.site.index(self.request(self.superuser))
         tabs = {tab['id']: [app['app_label'] for app in tab['apps']] for tab in response.context_data['tabs']}
         self.assertIn('monitoring', tabs['system'])
+        self.assertEqual(tabs['system'][tabs['system'].index('errors') + 1], 'monitoring')
         shop = next(app for app in response.context_data['app_list'] if app['app_label'] == 'shop')
         self.assertNotIn('IntegrationCheck', [model['object_name'] for model in shop['models']])
 

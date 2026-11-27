@@ -77,8 +77,9 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
 
     def get_app_list(self, request, app_label=None):
         # The shop goes first, with the flat pages and the file manager, then a "Швейный Мир" group with the constance
-        # settings and sites. The integrations' health is a "Мониторинг" group. The OTP models join "Two Factor
-        # Authentication", and the shop's users are listed under auth too. Comments are named in Russian.
+        # settings and sites. The integrations' health is a "Мониторинг" group after the server errors. The OTP models
+        # join "Two Factor Authentication", and the shop's users are listed under auth too. Comments are named in
+        # Russian.
         apps = super().get_app_list(request, app_label)
 
         shop = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'shop'), None)
@@ -132,12 +133,11 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
                     indexes.append(other)
             apps[shop]['models'].sort(key=lambda model: model['name'])  # as Django sorts them
 
-        # The integrations' health goes to a group of its own, which the index puts in the "system" tab
+        # The integrations' health goes to a group of its own, placed below, which the index puts in the "system" tab
+        checks = []
         if shop is not None and app_label is None:
             checks = [model for model in apps[shop]['models'] if model['object_name'] == 'IntegrationCheck']
-            if checks:
-                apps[shop]['models'] = [model for model in apps[shop]['models'] if model['object_name'] != 'IntegrationCheck']
-                apps.append({'name': 'Мониторинг', 'app_label': 'monitoring', 'models': checks})
+            apps[shop]['models'] = [model for model in apps[shop]['models'] if model['object_name'] != 'IntegrationCheck']
 
         if sewingworld is not None:
             if constance is not None:
@@ -149,6 +149,11 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
 
         for i in sorted(indexes, reverse=True):
             del apps[i]
+
+        if checks:
+            # Right after the server errors, or last
+            errors = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'errors'), len(apps) - 1)
+            apps.insert(errors + 1, {'name': 'Мониторинг', 'app_label': 'monitoring', 'models': checks})
         return [app for app in apps if app['models']]  # "Швейный Мир" is empty for staff without its models
 
 
