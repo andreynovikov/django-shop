@@ -164,3 +164,7 @@ from .reviews import *  # noqa F401
 from .shop import *  # noqa F401
 from .integrations import *  # noqa F401
 from .logging import *  # noqa F401
+
+# A debug run, such as runserver or the dev site, exports no Prometheus metrics, see settings/prometheus.py
+if DEBUG:
+    PROMETHEUS_METRICS_EXPORT_PORT_RANGE = None

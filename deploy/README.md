@@ -289,7 +289,8 @@ the frontends do: `127.0.0.1:9324:8080`.
 The `nginx` tag installs the [bundled `nginx.conf`, site files and shared includes](ansible/roles/server/files/nginx/).
 It creates `/var/cache/nginx`, enables the sites listed in `server_nginx_sites_enabled`, and removes Debian's
 `sites-enabled/default` link in favor of the bundled `default.conf`. The dev site stays in `sites-available`.
-The role removes the stats site from both `sites-enabled` and `sites-available`.
+The stats site, which serves Grafana and Prometheus, is enabled only with [Prometheus](#prometheus)
+(`server_prometheus`).
 
 The role enables a site once the TLS certificates its server blocks name are present, and gets the missing ones, see
 [TLS certificates](#tls-certificates). It installs `/etc/nginx/htpasswd` from the [vault](ansible/README.md#secrets)
@@ -527,7 +528,7 @@ labels, and without `stats`, and it logs to `admin_uwsgi_error.log`. `dev.ini` h
 `threads = 2`. Reload it after a pull with `touch /www/dev.sigalev.ru/.touch_reload`.
 
 `PROMETHEUS_METRICS_PORTS` are the app's own ports for the Prometheus exporters of its workers, one per process:
-9110–9115 for `prod`, 9120–9121 for `admin` and 9130 for `dev`, see [Prometheus](#prometheus).
+9110–9115 for `prod` and 9120–9121 for `admin`, see [Prometheus](#prometheus). `dev` has none and exports nothing.
 
 Each application should be:
 
@@ -1217,9 +1218,10 @@ pg_dump sworld | psql sworld_dev
 ## Prometheus
 
 Prometheus and node-exporter come from Debian, the other exporters run in Docker, and all of them listen on
-127.0.0.1 only. Grafana reads Prometheus; the nginx site that served both is gone, so reach them through an ssh
-tunnel. The playbook's `prometheus` tag sets up all of this section as below, and `server_prometheus: false` in
-`inventory.yml` skips it.
+127.0.0.1 only. Grafana reads Prometheus, and the nginx site `stats.sewing-world.ru` serves both: Grafana with its
+own login, Prometheus at `/prometheus` behind basic auth. The playbook's `prometheus` tag sets up all of this section
+as below but Grafana, and `server_prometheus: false` in `inventory.yml` skips it and leaves the stats site disabled
+(its `nginx` tag enables the site).
 
 ```sh
 apt install prometheus prometheus-node-exporter
@@ -1252,8 +1254,8 @@ systemctl reload prometheus
 
 Each worker of a uWSGI app exports its metrics on a port of the app's own range (`PROMETHEUS_METRICS_PORTS` of its
 ini file, see [UWSGI setup](#uwsgi-setup)). The `django` job finds them in `/etc/prometheus/django_targets.yml`,
-which labels each app: `app="production"` for `prod`, as before, `app="admin"` and `app="dev"`. Prometheus reads it
-again when it changes:
+which labels each app: `app="production"` for `prod`, as before, and `app="admin"`. Prometheus reads it again when it
+changes:
 
 ```yaml
 - targets: [localhost:9110, localhost:9111, localhost:9112, localhost:9113, localhost:9114, localhost:9115]
@@ -1264,13 +1266,10 @@ again when it changes:
   labels:
     app: admin
     site: www.sewing-world.ru
-- targets: [localhost:9130]
-  labels:
-    app: dev
-    site: dev.sigalev.ru
 ```
 
-Celery and the [ASGI app](#asgi-setup) export nothing. A uWSGI app's range must have a port for each of its
+An app without `PROMETHEUS_METRICS_PORTS` exports nothing, nor do Celery, the [ASGI app](#asgi-setup) and runs with
+`DEBUG=True`. A uWSGI app's range must have a port for each of its
 processes, which the playbook checks.
 
 ### Docker metrics

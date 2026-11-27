@@ -1,14 +1,14 @@
-# "TLS certificates" in deploy/README.md. A site of server_nginx_sites_enabled is enabled once the certificates its file
-# names are present. The run requests a missing certificate, and expands one that lacks an alias of the inventory, but
-# only when every name of it reaches this server: before the DNS switch of a new server, its sites wait for a run
-# after it. A certificate that has all its names is never touched, and none is ever shrunk.
+# "TLS certificates" in deploy/README.md. A site of nginx_sites_enabled (nginx_sites.yml) is enabled once the
+# certificates its file names are present. The run requests a missing certificate, and expands one that lacks an alias
+# of the inventory, but only when every name of it reaches this server: before the DNS switch of a new server, its
+# sites wait for a run after it. A certificate that has all its names is never touched, and none is ever shrunk.
 - name: Find the certificates of the enabled sites
   ansible.builtin.set_fact:
     nginx_site_certificates: >-
       {{ nginx_site_certificates | default({})
          | combine({item: lookup('ansible.builtin.file', 'nginx/sites-available/' ~ item)
                           | regex_findall('/etc/letsencrypt/live/([^/]+)/') | unique}) }}
-  loop: "{{ server_nginx_sites_enabled }}"
+  loop: "{{ nginx_sites_enabled }}"
 
 - name: List the certificates
   ansible.builtin.set_fact:

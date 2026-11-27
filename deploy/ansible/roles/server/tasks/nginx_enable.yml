@@ -1,4 +1,4 @@
-# Enables the sites of server_nginx_sites_enabled whose certificates are all present, see certificates.yml
+# Enables the sites of nginx_sites_enabled (nginx_sites.yml) whose certificates are all present, see certificates.yml
 - name: Find the present certificates
   ansible.builtin.stat:
     path: /etc/letsencrypt/live/{{ item }}/fullchain.pem
@@ -18,6 +18,6 @@
     force: "{{ ansible_check_mode }}"
     owner: root
     group: root
-  loop: "{{ server_nginx_sites_enabled }}"
+  loop: "{{ nginx_sites_enabled }}"
   when: nginx_site_certificates[item] | difference(nginx_present_certificates) | length == 0
   notify: Reload nginx

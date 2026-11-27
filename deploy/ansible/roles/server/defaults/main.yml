@@ -114,7 +114,9 @@ server_nginx_sites_enabled:
   - stage.sewing-world.ru.conf
   - www.sewing-world.ru.conf
 server_nginx_sites_disabled: [default, dev.sigalev.ru.conf]
-server_nginx_sites_removed: [stats.sewing-world.ru.conf]
+server_nginx_sites_removed: []
+# Enabled with the "Prometheus" section (server_prometheus), disabled without it: Grafana and Prometheus' web interface
+server_nginx_monitoring_sites: [stats.sewing-world.ru.conf]
 
 # Owner of /www, where the sites live
 server_www_owner: andrey
@@ -125,7 +127,7 @@ server_www_owner: andrey
 # more threads. Keep harakiri a little shorter than nginx's uwsgi_read_timeout for the app.
 # metrics_ports are the app's own ports for the Prometheus exporters of its workers, one per process, which
 # /etc/prometheus/django_targets.yml lists for Prometheus with the app's name (see "Django metrics" in
-# deploy/README.md).
+# deploy/README.md). An app without them, such as dev, exports nothing.
 server_uwsgi_apps:
   - name: prod
     site: www.sewing-world.ru
@@ -144,7 +146,6 @@ server_uwsgi_apps:
     site: dev.sigalev.ru
     processes: 1
     threads: 2
-    metrics_ports: "9130"
 
 # false skips the "Prometheus" section: the metrics server, node-exporter, the scrape jobs and the alert rules
 server_prometheus: true
@@ -223,6 +224,7 @@ server_certificates:
   dor-tak.ru: /www/dor-tak.ru
   familysew.ru: /www/familysew.ru
   dev.sigalev.ru: /www/dev.sigalev.ru
+  stats.sewing-world.ru: /www/www.sewing-world.ru
 server_certificate_aliases: {}
 # Let's Encrypt's account email, optional
 server_certbot_email: ""

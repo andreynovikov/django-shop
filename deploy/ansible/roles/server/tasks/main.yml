@@ -52,7 +52,7 @@
 # Needs the deployed sites of sites.yml
 - name: Prometheus
   ansible.builtin.import_tasks: prometheus.yml
-  when: server_prometheus
+  when: server_prometheus | bool
   tags: prometheus
 
 - name: Deployment setup

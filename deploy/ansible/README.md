@@ -118,7 +118,8 @@ the production sites, their custom includes, and `/etc/nginx/htpasswd` from the 
 files and the Brotli module. The role enables the sites in `server_nginx_sites_enabled` whose certificates are present,
 and gets the missing ones, see "TLS certificates" in [deploy/README.md](../README.md#tls-certificates). Move a site to
 `server_nginx_sites_disabled` to remove only its `sites-enabled` entry. To also delete its installed config, remove the
-bundled file and move the site to `server_nginx_sites_removed`. The dev site is disabled and the stats site is removed.
+bundled file and move the site to `server_nginx_sites_removed`. The dev site is disabled. The stats site (Grafana and
+Prometheus) is in `server_nginx_monitoring_sites`, enabled with the `prometheus` section and disabled without it.
 
 Review and apply from this directory:
 

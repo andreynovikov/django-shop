@@ -1,12 +1,18 @@
+# The monitoring sites go with the "Prometheus" section: enabled with it, disabled without it
+- name: Add the monitoring sites
+  ansible.builtin.set_fact:
+    nginx_sites_enabled: "{{ server_nginx_sites_enabled + (server_nginx_monitoring_sites if server_prometheus | bool else []) }}"
+    nginx_sites_disabled: "{{ server_nginx_sites_disabled + ([] if server_prometheus | bool else server_nginx_monitoring_sites) }}"
+
 - name: Check nginx site names
   ansible.builtin.assert:
     that:
       - item is match('^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')
       - "'..' not in item"
-      - item not in server_nginx_sites_enabled or item not in server_nginx_sites_disabled
-      - item not in server_nginx_sites_enabled or item not in server_nginx_sites_removed
+      - item not in nginx_sites_enabled or item not in nginx_sites_disabled
+      - item not in nginx_sites_enabled or item not in server_nginx_sites_removed
     quiet: true
-  loop: "{{ server_nginx_sites_enabled + server_nginx_sites_disabled + server_nginx_sites_removed }}"
+  loop: "{{ nginx_sites_enabled + nginx_sites_disabled + server_nginx_sites_removed }}"
 
 - name: Install the bundled nginx configuration
   ansible.builtin.copy:
@@ -36,7 +42,7 @@
   ansible.builtin.file:
     path: "{{ server_nginx_directory }}/sites-enabled/{{ item }}"
     state: absent
-  loop: "{{ server_nginx_sites_disabled + server_nginx_sites_removed }}"
+  loop: "{{ nginx_sites_disabled + server_nginx_sites_removed }}"
   notify: Reload nginx
 
 - name: Remove retired nginx site configurations

@@ -60,10 +60,8 @@
   notify: Restart Prometheus
 
 - name: Configure node-exporter
-  ansible.builtin.copy:
-    content: |
-      # {{ ansible_managed }}
-      ARGS="--web.listen-address=127.0.0.1:9100"
+  ansible.builtin.template:
+    src: prometheus-node-exporter.default.j2
     dest: /etc/default/prometheus-node-exporter
     mode: "0644"
   notify: Restart node-exporter
