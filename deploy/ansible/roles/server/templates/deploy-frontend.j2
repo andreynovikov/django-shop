@@ -32,3 +32,14 @@ recreate=
 NAME=$name PORT=$port IMAGE=$ref STOREFRONT_BRANCH=$branch \
   docker compose --env-file /dev/null -f /etc/sworld/storefront-compose.yaml --project-directory "$dir" \
   up -d --no-build --pull never $recreate
+
+# Every deploy pulls a new image, and the sworld one, with every product page in it, takes gigabytes once unpacked. Of
+# the branch's other images, the two newest stay for a quick rollback (an older one is pulled again). Docker refuses to
+# remove an image a container uses, such as production's while stage runs the same branch. A failure here never fails
+# the deploy; docker-prune.timer removes what is left after a week.
+keep=2
+docker image ls --format '{% raw %}{{.CreatedAt}}|{{.Repository}}:{{.Tag}}{% endraw %}' "${ref%:*}" \
+  | sort -r | cut -d '|' -f 2 | grep -v -x -F "$ref" | grep -v ':<none>$' | tail -n +$((keep + 1)) \
+  | while read -r old; do
+      docker image rm "$old" >/dev/null 2>&1 && echo "Removed $old" || true
+    done

@@ -1086,6 +1086,12 @@ those files monthly and keeping 12 rotations. The default application rules are:
 
 ## Docker cleanup
 
+Each frontend deployment removes the older images of the storefront's branch itself, after the new container has
+started: it keeps the deployed image and the two newest before it, and Docker refuses to remove an image that a
+container uses (production's while stage runs the same branch). A rollback to an older image pulls it again. The sworld
+image holds every pre-rendered product page and takes gigabytes once unpacked, so a week of stage deploys used to fill
+the disk.
+
 The `docker` tag enables `docker-prune.timer`. It runs daily at midnight server time and removes unused Docker
 images and build cache older than seven days. Keep any image you might need to roll back available in the registry.
 
