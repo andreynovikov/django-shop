@@ -1,6 +1,7 @@
 """
 Status changes of SberMegaMarket orders reported to its API, see signals.py. A call that the API refuses puts
-the order into the problem status with the error in delivery_info, and is retried every 10 minutes.
+the order into the problem status with the error added to delivery_info (through update_order(), which waits for
+the admin's lock on the order), and is retried every 10 minutes.
 """
 import json
 import logging
@@ -16,6 +17,7 @@ from django.utils import timezone
 from celery import shared_task
 
 from shop.models import Order
+from shop.tasks.workflow import update_order
 
 
 logger = logging.getLogger('sber')
@@ -71,12 +73,7 @@ def confirm_sber_order(self, order_id):
         content = e.read()
         error = content.decode('utf-8')
         logger.error(error)
-        order.status = Order.STATUS_PROBLEM
-        if order.delivery_info:
-            order.delivery_info = '\n'.join([order.delivery_info, error])
-        else:
-            order.delivery_info = error
-        order.save()
+        update_order.delay(order.pk, {'status': Order.STATUS_PROBLEM}, append={'delivery_info': error})
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
 
 
@@ -127,12 +124,7 @@ def reject_sber_order(self, order_id):
         content = e.read()
         error = content.decode('utf-8')
         logger.error(error)
-        order.status = Order.STATUS_PROBLEM
-        if order.delivery_info:
-            order.delivery_info = '\n'.join([order.delivery_info, error])
-        else:
-            order.delivery_info = error
-        order.save()
+        update_order.delay(order.pk, {'status': Order.STATUS_PROBLEM}, append={'delivery_info': error})
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
 
 
@@ -186,12 +178,7 @@ def notify_sber_order_packed(self, order_id):
         content = e.read()
         error = content.decode('utf-8')
         logger.error(error)
-        order.status = Order.STATUS_PROBLEM
-        if order.delivery_info:
-            order.delivery_info = '\n'.join([order.delivery_info, error])
-        else:
-            order.delivery_info = error
-        order.save()
+        update_order.delay(order.pk, {'status': Order.STATUS_PROBLEM}, append={'delivery_info': error})
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
 
 
@@ -243,12 +230,7 @@ def notify_sber_order_shipped(self, order_id):
         content = e.read()
         error = content.decode('utf-8')
         logger.error(error)
-        order.status = Order.STATUS_PROBLEM
-        if order.delivery_info:
-            order.delivery_info = '\n'.join([order.delivery_info, error])
-        else:
-            order.delivery_info = error
-        order.save()
+        update_order.delay(order.pk, {'status': Order.STATUS_PROBLEM}, append={'delivery_info': error})
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
 
 
@@ -288,7 +270,7 @@ def get_sber_order_details(self, order_id):
             order.delivery_handing_date = datetime.strptime(delivery_date.split('T')[0], '%Y-%m-%d')
         else:
             raise self.retry(countdown=60 * 15, max_retries=6)  # 15 minutes
-        order.save()
+        order.save(update_fields=['delivery_handing_date'])
         status = result.get('success', None)
         return '{}: {}'.format(order_id, status)
     except HTTPError as e:

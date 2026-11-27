@@ -1,0 +1,11 @@
+[Unit]
+Description=Socket for ASGI app %i
+
+[Socket]
+ListenStream=/run/asgi/%i.socket
+SocketUser={{ server_app_user }}
+SocketGroup=www-data
+SocketMode=0660
+
+[Install]
+WantedBy=sockets.target

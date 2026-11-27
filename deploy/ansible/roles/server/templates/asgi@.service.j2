@@ -1,0 +1,16 @@
+[Unit]
+Description=%i ASGI app
+Requires=asgi@%i.socket
+After=network.target redis-server.service
+
+[Service]
+User={{ server_app_user }}
+# Not www-data: the app must not write what people share through that group
+Group={{ server_app_user }}
+EnvironmentFile=/etc/asgi/%i
+# The socket unit passes the socket as descriptor 3. Open event streams don't hold a restart up for long.
+ExecStart=/bin/sh -c 'cd "$$SITE_DIR" && exec "$$SITE_DIR/.venv/bin/uvicorn" "$$APP" --fd 3 --log-level warning --no-access-log --timeout-graceful-shutdown 5'
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

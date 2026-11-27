@@ -11,6 +11,7 @@ from mptt.forms import TreeNodeChoiceField
 from filemanager.widgets import HTMLTextarea
 
 from shop.models import Category
+from . import admin_events
 from .models import SiteProfile
 
 
@@ -40,7 +41,9 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
         import shop.admin.views  # prevent circular import
         urls = super().get_urls()
         urls = [
-            path('goto_order/', self.admin_view(shop.admin.views.goto_order), name='goto_order')
+            path('goto_order/', self.admin_view(shop.admin.views.goto_order), name='goto_order'),
+            # async, it checks the user itself, see sewingworld/admin_events.py
+            path('events/', admin_events.events, name='events'),
         ] + urls
         return urls
 

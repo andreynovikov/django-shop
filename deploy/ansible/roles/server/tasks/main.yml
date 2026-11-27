@@ -27,10 +27,10 @@
   ansible.builtin.import_tasks: backend.yml
   tags: backend
 
-# uwsgi.yml and celery.yml need to know which sites are deployed
+# uwsgi.yml, celery.yml and asgi.yml need to know which sites are deployed
 - name: Environment setup
   ansible.builtin.import_tasks: sites.yml
-  tags: [sites, uwsgi, celery, backend]
+  tags: [sites, uwsgi, celery, asgi, backend]
 
 # Needs the directories of sites.yml
 - name: Backend first start
@@ -44,6 +44,10 @@
 - name: Celery setup
   ansible.builtin.import_tasks: celery.yml
   tags: celery
+
+- name: ASGI setup
+  ansible.builtin.import_tasks: asgi.yml
+  tags: [uwsgi, asgi]
 
 - name: Deployment setup
   ansible.builtin.import_tasks: deployment.yml

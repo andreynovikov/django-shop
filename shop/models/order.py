@@ -223,11 +223,21 @@ class Order(models.Model):
     status = models.PositiveIntegerField('статус', choices=STATUS_CHOICES, default=STATUS_NEW, db_index=True)
     # Id of the order's sale document on the courier's ModulPOS terminal, see create_modulpos_order()
     hidden_tracking_number = models.CharField(max_length=50, blank=True, db_index=True)
-    # The staff member who has the order open in the admin, or the system user while update_order() saves it: a lock
-    # that update_order() waits for
+    # The admin's lock, see shop/order_lock.py: the staff member who has the order open, the page (browser tab) that
+    # holds the lock, and the end of the lease that the page renews while it is open. A lease that has ended no longer
+    # locks the order, but its page may still save while nobody else has taken the lock or written the order.
     owner = models.ForeignKey(ShopUser, verbose_name='владелец', blank=True, null=True, related_name='owned_orders', on_delete=models.SET_NULL)
+    lock_token = models.UUIDField(null=True, blank=True, editable=False)
+    locked_until = models.DateTimeField(null=True, blank=True, editable=False)
 
     tracker = FieldTracker(fields=['status'])
+
+    @property
+    def lock_holder(self):
+        """ The staff member whose lock on the order is in force, or None """
+        if self.owner_id is not None and self.locked_until is not None and self.locked_until > timezone.now():
+            return self.owner
+        return None
 
     @property
     def title(self):

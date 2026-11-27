@@ -32,6 +32,10 @@
 {% endblock %}
 {% block extrahead %}
 {{ block.super }}
+{% if user.is_authenticated and user.is_staff %}
+{# Instant notices, see sewingworld/notifications.py #}
+<script src="{% static 'js/admin-events.js' %}" data-url="{% url 'admin:events' %}" defer></script>
+{% endif %}
 {% if user.is_authenticated %}
 <script>
     function check1CImportStatus() {

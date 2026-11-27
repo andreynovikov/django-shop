@@ -139,6 +139,13 @@ server_uwsgi_apps:
     processes: 1
     threads: 2
 
+# ASGI apps (uvicorn), /etc/asgi/<name> each, for what keeps a connection open: the admin's instant notices, which
+# nginx passes to the socket /run/asgi/<name>.socket. The site must be one of the uWSGI apps'.
+server_asgi_apps:
+  - name: admin_events
+    site: www.sewing-world.ru
+    admin: true
+
 # Celery workers and beat, /etc/celery/<name>_worker and <name>_beat each. Their units start once
 # /www/<site>/.venv exists. nodes maps each node of celery multi to its queues.
 server_celery_apps:

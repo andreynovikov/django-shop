@@ -126,7 +126,7 @@ def new_order(request):
             order.delivery_dispatch_date = datetime.strptime(date.split('T')[0], '%Y-%m-%d')
 
         order.status = Order.STATUS_ACCEPTED  # The status-change signal initiates confirmation.
-        order.save()
+        order.save(update_fields=['city', 'address', 'name', 'delivery_dispatch_date', 'status'])
 
     return JsonResponse({"data": {}, "meta": {"id": str(order.id)}, "success": 1})
 
@@ -159,7 +159,7 @@ def cancel_order(request):
             else:
                 codes = ', '.join([item.product.code for item in deleted_items])
                 order.alert = 'Удалены некоторые позиции заказа: {}'.format(codes)
-            order.save()
+            order.save(update_fields=['alert'])
         except Exception as e:
             logger.exception(e)
             return JsonResponse({"success": 0, "meta": {}, "error": {"message": str(e)}})

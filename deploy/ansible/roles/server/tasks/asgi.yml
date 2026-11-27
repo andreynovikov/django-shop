@@ -1,0 +1,90 @@
+# "ASGI setup": processes that run Django under ASGI for what keeps a connection open, which would hold the few
+# workers of a uWSGI app. Only the admin's instant notices do so far (sewingworld/admin_events.py). The units of an
+# app start once its site is deployed, see sites.yml: its site must be one of the uWSGI apps'. The socket unit owns
+# the socket, so that nginx (www-data) may connect, and a path unit restarts the app when the site's .touch_reload
+# changes, as the uWSGI apps reload.
+- name: Install ASGI units
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: /etc/systemd/system/{{ item }}
+    mode: "0644"
+  loop:
+    - asgi@.socket
+    - asgi@.service
+    - asgi-reload@.service
+  register: asgi_units
+  notify: Reload systemd
+
+- name: Create /run/asgi on boot
+  ansible.builtin.template:
+    src: asgi.tmpfiles.j2
+    dest: /etc/tmpfiles.d/asgi.conf
+    mode: "0644"
+
+- name: Create /run/asgi
+  ansible.builtin.file:
+    path: /run/asgi
+    state: directory
+    owner: "{{ server_app_user }}"
+    group: www-data
+    mode: "0755"
+
+- name: Create /etc/asgi
+  ansible.builtin.file:
+    path: /etc/asgi
+    state: directory
+    mode: "0755"
+
+- name: Configure ASGI apps
+  ansible.builtin.template:
+    src: asgi.j2
+    dest: /etc/asgi/{{ item.name }}
+    mode: "0644"
+  loop: "{{ server_asgi_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: asgi_configs
+
+- name: Watch the deploys of ASGI apps
+  ansible.builtin.template:
+    src: asgi-reload.path.j2
+    dest: /etc/systemd/system/asgi-reload-{{ item.name }}.path
+    mode: "0644"
+  loop: "{{ server_asgi_apps }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: asgi_watchers
+
+- name: Enable ASGI sockets
+  ansible.builtin.systemd_service:
+    name: asgi@{{ item.name }}.socket
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: "{{ server_asgi_apps | selectattr('site', 'in', server_deployed_sites) | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Start ASGI apps
+  ansible.builtin.systemd_service:
+    name: asgi@{{ item.name }}.service
+    enabled: true
+    state: >-
+      {{ 'restarted' if asgi_units is changed or item.name in changed_configs
+         or item.site in backend_changed_sites | default([]) else 'started' }}
+    daemon_reload: true
+  loop: "{{ server_asgi_apps | selectattr('site', 'in', server_deployed_sites) | list }}"
+  loop_control:
+    label: "{{ item.name }}"
+  vars:
+    changed_configs: "{{ asgi_configs.results | select('changed') | map(attribute='item.name') | list }}"
+
+- name: Start the deploy watchers of ASGI apps
+  ansible.builtin.systemd_service:
+    name: asgi-reload-{{ item.item.name }}.path
+    enabled: true
+    state: "{{ 'restarted' if item is changed else 'started' }}"
+    daemon_reload: true
+  loop: "{{ asgi_watchers.results | selectattr('item.site', 'in', server_deployed_sites) | list }}"
+  loop_control:
+    label: "{{ item.item.name }}"

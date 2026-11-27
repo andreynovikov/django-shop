@@ -1,5 +1,5 @@
-# "Environment setup": which sites of the uWSGI and Celery apps are deployed, what the service user may write in them
-# and who may read their secrets. The sites themselves are cloned into /www by hand.
+# "Environment setup": which sites of the uWSGI, Celery and ASGI apps are deployed, what the service user may write
+# in them and who may read their secrets. The sites themselves are cloned into /www by hand.
 - name: Check which sites are deployed
   ansible.builtin.stat:
     path: /www/{{ item }}/.venv

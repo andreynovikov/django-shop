@@ -1,9 +1,12 @@
 """
-What staff do with orders in the admin besides the form: supplier spreadsheets, delivery, acts, 1C export,
+What staff do with orders in the admin: the form and its lock, supplier spreadsheets, delivery, acts, 1C export,
 combining orders and discounts. The views are called directly, see settings.py on how to run.
 """
 import datetime
 import io
+import json
+from datetime import timedelta
+from html.parser import HTMLParser
 from types import SimpleNamespace
 from unittest import mock
 
@@ -17,9 +20,11 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.db import SessionStore
 from django.contrib.sites.models import Site
 from django.core.exceptions import PermissionDenied
+from django.db.models.signals import post_save
 from django.http import Http404
 from django.test import RequestFactory, TestCase, override_settings
 from django.urls import path, resolve, reverse
+from django.utils import timezone
 
 from shop.admin.forms import YandexDeliveryForm
 from shop.models import Act, ActOrder, Box, Contractor, Courier, Integration, Manager, Order, OrderItem, ShopUser, \
@@ -63,6 +68,8 @@ class Base(TestCase):
         for target, new in (
             # Constance refuses the local-memory cache of the tests
             ('shop.models.order.config', SimpleNamespace(sw_default_seller=self.seller.pk)),
+            ('shop.admin.forms.config', SimpleNamespace(sw_yd_campaign='')),
+            ('shop.order_lock.config', SimpleNamespace(sw_order_lock_lease=180, sw_order_lock_idle=1800)),
             ('shop.signals.logger', mock.Mock()),  # logs every product put in an order
         ):
             patcher = mock.patch(target, new=new)
@@ -82,6 +89,7 @@ class Base(TestCase):
         request = RequestFactory().post('/', data) if data is not None else RequestFactory().get('/', query)
         request.user = user or self.staff
         request.user.is_verified = lambda: True  # passed the second factor, as OTPMiddleware tells the admin site
+        request._dont_enforce_csrf_checks = True  # as the test client does
         request.session = SessionStore()
         request._messages = FallbackStorage(request)
         return request
@@ -504,7 +512,9 @@ class PermissionTests(Base):
         with self.assertRaises(PermissionDenied):
             self.admin.combine_form(self.request({'order_number': self.order().pk}, user=viewer), order.pk)
         self.assertEqual(order.items.get().pct_discount, 0)
-        self.assertEqual(self.admin.unlock(self.request(query={}, user=viewer), order.pk).status_code, 200)
+        self.assertEqual(self.admin.unlock(self.request({'_lock_token': 'x'}, user=viewer), order.pk).status_code, 204)
+        with self.assertRaises(PermissionDenied):
+            self.admin.take_over(self.request({}, user=viewer), order.pk)
         with self.assertRaises(PermissionDenied):
             self.admin.document(self.request(query={}, user=self.staff_with()), order.pk, 'bill')
 
@@ -540,7 +550,9 @@ class UrlTests(Base):
             ('shop_order_yandex_delivery', [5], {'id': 5}),
             ('shop_order_yandex_delivery_estimate', [5], {'id': 5}),
             ('shop_order_beru_labels', [5], {'arg': 5}),
+            ('shop_order_lock', [5], {'id': 5}),
             ('shop_order_unlock', [5], {'id': 5}),
+            ('shop_order_take_over', [5], {'id': 5}),
             ('shop_order_send_sms', ['+79161234567'], {'phone': '+79161234567'}),
             ('shop_act_print', [5], {'id': 5}),
             ('shop_product_stock', [5], {'id': 5}),
@@ -556,3 +568,205 @@ class UrlTests(Base):
     def test_document_names_are_words(self):
         with self.assertRaises(Exception):
             reverse('admin:shop_order_document', args=[5, '../bill'])
+
+
+class FormData(HTMLParser):
+    """ What a browser posts of a form as the page shows it, {name: [values]} """
+    def __init__(self, form_id):
+        super().__init__()
+        self.form_id = form_id
+        self.data = {}
+        self.in_form = False
+        self.select = None
+        self.textarea = None
+
+    def add(self, name, value):
+        self.data.setdefault(name, []).append(value)
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == 'form':
+            self.in_form = attrs.get('id') == self.form_id
+        if not self.in_form or 'disabled' in attrs:
+            return
+        if tag == 'input' and attrs.get('name'):
+            kind = attrs.get('type', 'text')
+            if kind in ('submit', 'button', 'image', 'file'):
+                return
+            if kind in ('checkbox', 'radio'):
+                if 'checked' in attrs:
+                    self.add(attrs['name'], attrs.get('value', 'on'))
+                return
+            self.add(attrs['name'], attrs.get('value', ''))
+        elif tag == 'select':
+            self.select = {'name': attrs.get('name'), 'first': None, 'chosen': False}
+        elif tag == 'option' and self.select is not None:
+            if self.select['first'] is None:
+                self.select['first'] = attrs.get('value', '')
+            if 'selected' in attrs:
+                self.add(self.select['name'], attrs.get('value', ''))
+                self.select['chosen'] = True
+        elif tag == 'textarea':
+            self.textarea = {'name': attrs.get('name'), 'text': []}
+
+    def handle_endtag(self, tag):
+        if tag == 'form':
+            self.in_form = False
+        elif tag == 'select' and self.select is not None:
+            if self.in_form and not self.select['chosen'] and self.select['first'] is not None:
+                self.add(self.select['name'], self.select['first'])
+            self.select = None
+        elif tag == 'textarea' and self.textarea is not None:
+            text = ''.join(self.textarea['text'])
+            self.add(self.textarea['name'], text[1:] if text.startswith('\n') else text)  # as browsers drop it
+            self.textarea = None
+
+    def handle_data(self, data):
+        if self.textarea is not None:
+            self.textarea['text'].append(data)
+
+
+class LockTests(Base):
+    """
+    The lock of the order's page (shop/order_lock.py), and saves that write only what the staff member changed on it.
+    A page is rendered and its form posted back as a browser would.
+    """
+
+    def setUp(self):
+        super().setUp()
+        SiteProfile.objects.update_or_create(site=self.site, defaults={'order_prefix': 'SW'})  # the list's titles
+        Contractor.objects.filter(pk=self.seller.pk).update(is_seller=True)  # else the form can't show it
+        self.other = ShopUser.objects.create(phone='+79990000001', name='Борис', is_staff=True, is_superuser=True)
+        self.publish = mock.patch('sewingworld.notifications.publish').start()
+        self.addCleanup(mock.patch.stopall)
+        self.order_ = self.order((self.machine, 1), (self.needles, 2), manager_comment='Позвонить')
+
+    def open(self, user=None):
+        """ The order's page as the user's browser gets it, and what its form posts """
+        response = self.admin.change_view(self.request(query={}, user=user), str(self.order_.pk)).render()
+        form = FormData('order_form')
+        form.feed(response.content.decode())
+        return response, form.data
+
+    def post(self, data, button='_continue', user=None, **changes):
+        data = {**data, button: 'yes', **{name: [value] for name, value in changes.items()}}
+        return self.admin.change_view(self.request(data, user=user), str(self.order_.pk))
+
+    def saves(self):
+        """ The orders saved while the block runs """
+        saved = []
+
+        def receiver(sender, instance, **kwargs):
+            saved.append(instance.pk)
+        post_save.connect(receiver, sender=Order, weak=False, dispatch_uid='lock_tests')
+        self.addCleanup(post_save.disconnect, sender=Order, dispatch_uid='lock_tests')
+        return saved
+
+    def lock_config(self, response):
+        start = response.content.decode().index('<script id="order-lock-config" type="application/json">')
+        text = response.content.decode()[start:].split('>', 1)[1].split('</script>', 1)[0]
+        return json.loads(text)
+
+    def test_opening_takes_the_lock_without_saving_the_order(self):
+        saved = self.saves()
+        response, data = self.open()
+        self.order_.refresh_from_db()
+        self.assertEqual(self.order_.lock_holder, self.staff)
+        self.assertEqual(data['_lock_token'], [str(self.order_.lock_token)])
+        self.assertEqual(self.lock_config(response)['token'], str(self.order_.lock_token))
+        self.assertIn('initial-manager_comment', data)
+        self.assertEqual(saved, [])
+
+    def test_page_of_another_staff_member_waits(self):
+        self.open()
+        response, data = self.open(user=self.other)
+        html = response.content.decode()
+        self.assertIn('Заказ редактирует: ', html)
+        self.assertIn('id="order-take-over"', html)
+        self.assertNotIn('order-lock-config', html)
+        self.assertNotIn('_lock_token', data)
+        self.order_.refresh_from_db()
+        self.assertEqual(self.order_.owner, self.staff)
+
+    def test_untouched_page_overwrites_nothing(self):
+        _, data = self.open()
+        # an integration writes the order and an item while the page is open
+        Order.objects.filter(pk=self.order_.pk).update(delivery_info='Трек 123', status=Order.STATUS_ACCEPTED)
+        OrderItem.objects.filter(order=self.order_, product=self.needles).update(product_price=777)
+        saved = self.saves()
+        self.assertEqual(self.post(data).status_code, 302)
+        self.order_.refresh_from_db()
+        self.assertEqual((self.order_.delivery_info, self.order_.status), ('Трек 123', Order.STATUS_ACCEPTED))
+        self.assertEqual(self.order_.items.get(product=self.needles).product_price, 777)
+        self.assertEqual(saved, [])
+        self.assertEqual(self.order_.owner, self.staff)  # the main button keeps the lock
+
+    def test_only_what_was_changed_is_written(self):
+        _, data = self.open()
+        Order.objects.filter(pk=self.order_.pk).update(delivery_info='Трек 123')
+        OrderItem.objects.filter(order=self.order_, product=self.needles).update(product_price=777)
+        needles = next(name[:-len('-product')] for name, value in data.items()
+                       if name.endswith('-product') and value == [str(self.needles.pk)])
+        self.assertEqual(self.post(data, manager_comment='Перезвонить', **{needles + '-quantity': '5'}).status_code, 302)
+        self.order_.refresh_from_db()
+        self.assertEqual((self.order_.manager_comment, self.order_.delivery_info), ('Перезвонить', 'Трек 123'))
+        item = self.order_.items.get(product=self.needles)
+        self.assertEqual((item.quantity, item.product_price), (5, 777))
+
+    def test_save_and_release(self):
+        _, data = self.open()
+        self.assertEqual(self.post(data, button='_save').status_code, 302)
+        self.order_.refresh_from_db()
+        self.assertEqual((self.order_.owner, self.order_.lock_token, self.order_.locked_until), (None, None, None))
+
+    def test_page_that_lost_the_lock_does_not_save(self):
+        _, data = self.open()
+        old_token = data['_lock_token'][0]
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.admin.take_over(self.request({}, user=self.other), self.order_.pk)
+        self.assertEqual(response.url, reverse('admin:shop_order_change', args=[self.order_.pk]))
+        stream, notice = self.publish.call_args.args
+        self.assertEqual(stream, f'sw:admin:order:{self.order_.pk}')
+        self.assertEqual((notice['type'], notice['token']), ('lock-lost', old_token))
+        self.assertIn('Борис', notice['message'])
+        self.open(user=self.other)  # the page of the one who unlocked it opens with the lock
+
+        response = self.post(data, manager_comment='Перезвонить')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Заказ редактирует Борис', response.render().content.decode())
+        self.order_.refresh_from_db()
+        self.assertEqual(self.order_.manager_comment, 'Позвонить')
+        self.assertEqual(self.order_.owner, self.other)
+
+    def test_heartbeat(self):
+        _, data = self.open()
+        token = data['_lock_token'][0]
+        Order.objects.filter(pk=self.order_.pk).update(locked_until=timezone.now() - timedelta(seconds=1))
+        response = self.admin.lock(self.request({'_lock_token': token}), self.order_.pk)
+        self.assertEqual(json.loads(response.content), {'held': True})
+        self.order_.refresh_from_db()
+        self.assertGreater(self.order_.locked_until, timezone.now() + timedelta(seconds=170))
+        response = self.admin.lock(self.request({'_lock_token': token}, user=self.other), self.order_.pk)
+        self.assertEqual(json.loads(response.content), {'held': False, 'message': f'Заказ редактирует {self.staff}.'})
+
+    def test_leaving_the_page_releases_only_its_own_lock(self):
+        _, data = self.open()
+        self.assertEqual(self.admin.unlock(self.request({'_lock_token': 'not a token'}), self.order_.pk).status_code, 204)
+        self.admin.unlock(self.request({'_lock_token': '6a2f41a3-c54d-4d58-9a7b-7bd06c7f1a1e'}), self.order_.pk)
+        self.order_.refresh_from_db()
+        self.assertEqual(self.order_.owner, self.staff)
+        self.admin.unlock(self.request({'_lock_token': data['_lock_token'][0]}), self.order_.pk)
+        self.order_.refresh_from_db()
+        self.assertIsNone(self.order_.owner)
+
+    def test_lock_views_take_post_only(self):
+        for view in (self.admin.lock, self.admin.unlock, self.admin.take_over):
+            with self.subTest(view.__name__):
+                self.assertEqual(view(self.request(query={}), self.order_.pk).status_code, 405)
+
+    def test_list_shows_locks_in_force(self):
+        self.open()
+        other = self.order(owner=self.other, locked_until=timezone.now() - timedelta(seconds=1))
+        self.assertIsNone(other.lock_holder)
+        html = self.admin.changelist_view(self.request(query={})).render().content.decode()
+        self.assertEqual(html.count('ti-lock'), 1)

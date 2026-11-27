@@ -1,0 +1,6 @@
+[Unit]
+Description=Restart ASGI app %i after a deploy
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl try-restart asgi@%i.service

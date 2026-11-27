@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+# Restarts the ASGI app {{ item.name }} when the site's .touch_reload changes, as its uWSGI apps reload
+[Unit]
+Description=Watch the deploys of ASGI app {{ item.name }}
+
+[Path]
+PathChanged=/www/{{ item.site }}/.touch_reload
+Unit=asgi-reload@{{ item.name }}.service
+
+[Install]
+WantedBy=multi-user.target

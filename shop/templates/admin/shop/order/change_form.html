@@ -1,5 +1,11 @@
 {% extends "admin/change_form.html" %}
-{% load i18n l10n admin_urls admin_modify site %}
+{% load i18n l10n admin_urls admin_modify site static %}
+
+{% block extrahead %}{{ block.super }}
+{% if original.pk %}<meta name="sw-events-order" content="{{ original.pk|unlocalize }}">{% endif %}
+{% if order_lock.held %}{{ order_lock.config|json_script:"order-lock-config" }}
+<script src="{% static 'js/order-lock.js' %}" defer></script>{% endif %}
+{% endblock %}
 
 {% block extrastyle %}{{ block.super }}
     <style>
@@ -79,8 +85,8 @@
 <script>
 (function($) {
     $(document).ready(function() {
-{% if not original.pk or original.owner == request.user %}
-{# Opening an order locks it for the user (Order.owner), and _save releases the lock in OrderAdmin.save_model(). #}
+{% if not original.pk or order_lock.held %}
+{# Opening an order locks it for the page (shop/order_lock.py), and every save but _continue releases the lock. #}
 {# The buttons swap names: the main one saves and keeps the lock, the relabelled one saves and releases it. #}
         var $SaveButton = $("input[name='_save']");
         var $ContinueButton = $("input[name='_continue']");
@@ -138,25 +144,6 @@
         });
     });
 
-{% if not original.pk or original.owner == request.user %}
-    var submitting = false;
-    var form = document.getElementById("order_form");
-    form.addEventListener("submit", function(e) {
-        submitting = true;
-    });
-
-{# Leaving the page without saving releases the lock #}
-    window.addEventListener("pagehide", function(e) {
-        if (!submitting) {
-            {% url opts|admin_urlname:'unlock' original.pk|admin_urlquote as unlock_url %}
-            var csrftoken = $("[name=csrfmiddlewaretoken]").val();
-            var params = new FormData();
-            params.append('csrfmiddlewaretoken', csrftoken);
-            navigator.sendBeacon('{{ unlock_url }}', params);
-       }
-    }, false);
-{% endif %}
-
     var documentBoxLink = document.getElementById("documentboxlink");
     documentBoxLink.addEventListener('click', function(e) {
         e.preventDefault();
@@ -200,6 +187,10 @@
 
 {% block content %}
     {{ block.super }}
+{% if original.pk and has_change_permission and not order_lock.held %}
+{# «Разблокировать» posts nothing of the order form, see OrderAdmin.take_over() #}
+<form id="order-take-over" method="post" action="{% url opts|admin_urlname:'take_over' original.pk|admin_urlquote %}">{% csrf_token %}</form>
+{% endif %}
 <div id="documentbox" class="documentbox module" style="display: none; position: absolute">
     <ul class="documentlist">
     {% url opts|admin_urlname:'document' original.pk 'stock'|admin_urlquote as stock_url %}
@@ -243,15 +234,17 @@
     <p class="documentlist-cancel"><a href="#">{% trans "Cancel" %}</a></p>
 </div>
 {% endblock %}
-{% block submit_buttons_top %}
-{% if original.owner != request.user %}<div class="submit-row" style="display: flex; align-items: center; text-align: left; background: #ffdfdf">
-    <div style="color: #ba2121; font-weight: bold">Заказ редактирует: {{ original.owner }}</div>
-    <input type="hidden" name="_continue" value="yes">
-    <input type="submit" value="Разблокировать" style="margin-left: auto; text-transform: uppercase; background: #ba2121" name="_unlock">
-    </div>{% endif %}
-{% if not original.pk or original.owner == request.user %}{% submit_row %}{% endif %}
+{% block form_top %}{{ block.super }}
+{% if order_lock.held %}<input type="hidden" name="{{ order_lock.config.field }}" value="{{ order_lock.token }}">{% endif %}
 {% endblock %}
-{% block submit_buttons_bottom %}{% if not original.pk or original.owner == request.user %}{% submit_row %}{% endif %}{% endblock %}
+{% block submit_buttons_top %}
+{% if original.pk and not order_lock.held %}{% with holder=original.lock_holder %}{% if holder or has_change_permission %}<div class="submit-row" style="display: flex; align-items: center; text-align: left; background: #ffdfdf">
+    <div style="color: #ba2121; font-weight: bold">{% if holder %}Заказ редактирует: {{ holder }}{% else %}Заказ не заблокирован этой страницей, обновите её для редактирования{% endif %}</div>
+    {% if has_change_permission %}<button type="submit" form="order-take-over" style="margin-left: auto; text-transform: uppercase; background: #ba2121" onclick="return confirm('Снять блокировку заказа? Несохранённые изменения на странице, где его редактируют, будут потеряны.')">Разблокировать</button>{% endif %}
+    </div>{% endif %}{% endwith %}{% endif %}
+{% if not original.pk or order_lock.held %}{% submit_row %}{% endif %}
+{% endblock %}
+{% block submit_buttons_bottom %}{% if not original.pk or order_lock.held %}{% submit_row %}{% endif %}{% endblock %}
 
 {% block object-tools-items %}
     {% if original.integration and original.integration.settings and original.integration.settings.ym_campaign and original.status == original.STATUS_COLLECTED %}
@@ -260,7 +253,7 @@
             <span>{% trans "Наклейки Беру!" %}</span></a></li>
     {% endif %}
     <li><a id="documentboxlink" href="#" class="related-widget-wrapper-link" data-popup="yes">Документы</a></li>
-    {% if original.owner == request.user %}
+    {% if order_lock.held %}
     {% if not original.integration or not original.integration.uses_api %}
     {% url opts|admin_urlname:'combine' original.pk|admin_urlquote as combine_url %}
     <li><a href="{{ combine_url }}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">

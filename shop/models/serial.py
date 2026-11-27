@@ -67,14 +67,9 @@ class Serial(models.Model):
                     serial_number=sn,
                     quantity=1
                 )
-                update = {}
-                message = 'Товар с серийным номером {} перенесён в заказ №{}'.format(sn, order.pk)
-                if item.order.manager_comment:
-                    update['manager_comment'] = '\n'.join([item.order.manager_comment, message])
-                else:
-                    update['manager_comment'] = message
+                message = f'Товар с серийным номером {sn} перенесён в заказ №{order.pk}'
                 # call task by name to prevent circular model import
-                current_app.send_task('shop.tasks.update_order', (item.order.pk, update))
+                current_app.send_task('shop.tasks.update_order', (item.order.pk, {}), {'append': {'manager_comment': message}})
 
                 serial = Serial(
                     number=sn,

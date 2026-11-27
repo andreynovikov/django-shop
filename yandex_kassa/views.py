@@ -167,8 +167,9 @@ def callback(request):
         update_order.delay(order.pk, update)
         get_receipt.delay(order.pk, payment.id)
         if change_message:
+            # the notice comes from YooKassa: the history has it under the system user, as update_order() does
             LogEntry.objects.log_actions(
-                user_id=order.user.id,
+                user_id=ShopUser.objects.system_user().pk,
                 queryset=Order.objects.filter(id=order.id),
                 action_flag=CHANGE,
                 change_message=change_message

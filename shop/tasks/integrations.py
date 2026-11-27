@@ -268,11 +268,7 @@ def create_modulpos_order(self, order_id):
         update = {}
         if message != 'object-already-exists':
             update['status'] = Order.STATUS_PROBLEM
-        if order.manager_comment:
-            update['manager_comment'] = '\n'.join([order.manager_comment, message])
-        else:
-            update['manager_comment'] = message
-        update_order.delay(order.pk, update)
+        update_order.delay(order.pk, update, append={'manager_comment': message})
         if message == 'object-already-exists':
             return message
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
@@ -313,13 +309,7 @@ def delete_modulpos_order(self, order_id):
         content = e.read()
         error = json.loads(content.decode('utf-8'))
         message = error.get('message', 'Неизвестная ошибка взаимодействия с МодульКасса')
-        update = {}
-        update['status'] = Order.STATUS_PROBLEM
-        if order.manager_comment:
-            update['manager_comment'] = '\n'.join([order.manager_comment, message])
-        else:
-            update['manager_comment'] = message
-        update_order.delay(order.pk, update)
+        update_order.delay(order.pk, {'status': Order.STATUS_PROBLEM}, append={'manager_comment': message})
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
 
     # delete order from pos terminal
@@ -333,13 +323,7 @@ def delete_modulpos_order(self, order_id):
         content = e.read()
         error = json.loads(content.decode('utf-8'))
         message = error.get('message', 'Неизвестная ошибка взаимодействия с МодульКасса')
-        update = {}
-        update['status'] = Order.STATUS_PROBLEM
-        if order.manager_comment:
-            update['manager_comment'] = '\n'.join([order.manager_comment, message])
-        else:
-            update['manager_comment'] = message
-        update_order.delay(order.pk, update)
+        update_order.delay(order.pk, {'status': Order.STATUS_PROBLEM}, append={'manager_comment': message})
         raise self.retry(countdown=60 * 10, max_retries=12, exc=e)  # 10 minutes
 
 

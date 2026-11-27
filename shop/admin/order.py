@@ -3,9 +3,10 @@ import datetime
 from urllib.parse import quote
 
 from django import forms
+from django.db import transaction
 from django.db.models import TextField, PositiveSmallIntegerField, PositiveIntegerField, DecimalField
 from django.contrib import admin, messages
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseNotAllowed, HttpResponseRedirect, JsonResponse
 from django.template.loader import get_template
 from django.template.response import TemplateResponse
 from django.conf import settings
@@ -26,12 +27,13 @@ from constance import config
 
 from yandex_delivery.tasks import create_delivery_draft_order, get_delivery_options
 
+from shop import order_lock
 from shop.models import ShopUserManager, ShopUser, Supplier, Order, OrderItem, Box, Contractor
 from shop.tasks.user_interaction import send_message
 
 from .forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
     OrderDiscountForm, SendSmsForm, SelectTagForm, SelectSupplierForm, \
-    OrderItemInlineAdminForm, BoxInlineAdminForm, YandexDeliveryForm
+    OrderItemInlineAdminForm, BoxInlineAdminForm, YandexDeliveryForm, ChangedFieldsInlineFormSet
 from .order_editing import apply_discount, combine_orders, confirm_buyer_email
 from .order_filters import OrderStatusListFilter, OrderDeliveryListFilter, BooleanDropdownFilter, OrderOwnerFilter, \
     OrderIntegrationFilter
@@ -63,6 +65,12 @@ def parse_ids(values):
     return ids
 
 
+def order_pk(object_id):
+    """ The order's ID from the admin's URL, or None when it is not a number """
+    object_id = str(object_id)
+    return int(object_id) if object_id.isascii() and object_id.isdigit() else None
+
+
 def close_popup(script='opener.dismissPopupAndReload(window);'):
     """ Response that closes the popup with the script, by default the page that opened it reloads """
     return HttpResponse('<!DOCTYPE html><html><head><title></title></head><body>'
@@ -90,6 +98,7 @@ class OrderItemInline(admin.TabularInline):
 
     model = OrderItem
     form = OrderItemInlineAdminForm
+    formset = ChangedFieldsInlineFormSet
     extra = 0
     autocomplete_fields = ('product',)
     readonly_fields = ['product_codes', 'product_stock', 'item_cost']
@@ -145,7 +154,7 @@ class OrderAdmin(admin.ModelAdmin):
             mark_safe(' class="is-express"') if express else '',
             format_html(' style="color: {}"', obj.manager.color) if obj.manager else '',
             obj.title,
-            format_html('&nbsp;<i class="ti ti-lock" title="{}" style="font-weight: bold"></i>', obj.owner) if obj.owner else '',
+            format_html('&nbsp;<i class="ti ti-lock" title="{}" style="font-weight: bold"></i>', obj.lock_holder) if obj.lock_holder else '',
             date_format(timezone.localtime(obj.created), "DATETIME_FORMAT"))
 
     @admin.display(description='Комментарии', ordering='manager_comment')
@@ -394,23 +403,64 @@ class OrderAdmin(admin.ModelAdmin):
         return super().changelist_view(request, extra_context)
 
     def change_view(self, request, object_id, form_url='', extra_context=None):
-        # Opening an order locks it (owner) for whoever opened it first, and update_order() waits for the lock. A save
-        # with _save (a relabelled button, see the order's change_form.html) or _unlock releases it, as does the unlock
-        # URL, which the page calls when it is left unsaved.
+        # The page that opens an order takes the lock on it unless another staff member's page holds it, see
+        # shop/order_lock.py. Only the page with the lock saves. Every save but the main button, which is _continue
+        # (the order's change_form.html swaps the buttons), gives the lock up.
+        pk = order_pk(object_id)
+        if pk is None:
+            return super().change_view(request, object_id, form_url, extra_context)
+        if request.method == 'POST':
+            token = order_lock.parse_token(request.POST.get(order_lock.TOKEN_FIELD))
+            # The order's row stays locked until the save commits, so that nobody takes the lock in between
+            with transaction.atomic():
+                lock_error = None if '_saveasnew' in request.POST else order_lock.save_error(pk, request.user, token)
+                request.order_lock_error = lock_error
+                lock = self.lock_context(pk, token if lock_error is None else None)
+                response = super().change_view(request, object_id, form_url, {**(extra_context or {}), 'order_lock': lock})
+                if response.status_code == 302 and '_continue' not in request.POST:
+                    order_lock.release(pk, token)
+            return response
+        token = None
         order = self.get_object(request, object_id)
-        if order is not None and not order.owner and self.has_change_permission(request, order):
-            order.owner = request.user
-            order.save()
-        return super().change_view(request, object_id, form_url, extra_context)
+        # taken before the admin reads the order for the form, so that the form shows what the lock protects
+        if order is not None and self.has_change_permission(request, order):
+            token = order_lock.new_token()
+            if not order_lock.acquire(pk, request.user, token):
+                token = None
+        return super().change_view(request, object_id, form_url, {**(extra_context or {}), 'order_lock': self.lock_context(pk, token)})
+
+    def lock_context(self, pk, token):
+        """ What the order's page needs to know of its lock, held when it has the token """
+        if token is None:
+            return {'held': False}
+        return {
+            'held': True,
+            'token': str(token),
+            'config': {
+                'token': str(token),
+                'field': order_lock.TOKEN_FIELD,
+                'lock_url': reverse('admin:shop_order_lock', args=[pk]),
+                'unlock_url': reverse('admin:shop_order_unlock', args=[pk]),
+                **order_lock.page_config(),
+            },
+        }
+
+    def get_form(self, request, obj=None, change=False, **kwargs):
+        form = super().get_form(request, obj, change=change, **kwargs)
+        lock_error = getattr(request, 'order_lock_error', None)
+        if lock_error:  # change_view() found that the page has lost the lock: the form is not to be saved
+            form = type(form.__name__, (form,), {'lock_error': lock_error})
+        return form
 
     def save_model(self, request, obj, form, change):
-        if "_unlock" in request.POST:
-            obj.owner = None
-            obj.save()
-            return
-        if "_save" in request.POST:
-            obj.owner = None
-        super().save_model(request, obj, form, change)
+        # A change saves only what the staff member changed on the page (ChangedFieldsFormMixin): what integrations
+        # wrote in the meantime stays, and the lock is not the form's to save
+        if change:
+            fields = form.changed_model_fields()
+            if fields:
+                obj.save(update_fields=fields)
+        else:
+            super().save_model(request, obj, form, change)
         if 'email' in form.changed_data and obj.email:
             self.confirm_user_email(request, obj)
 
@@ -450,7 +500,9 @@ class OrderAdmin(admin.ModelAdmin):
             path('<int:id>/yandex_delivery/', self.admin_site.admin_view(self.yandex_delivery_form), name='shop_order_yandex_delivery'),
             path('<int:id>/yandex_delivery_estimate/', self.admin_site.admin_view(self.yandex_delivery_estimate), name='shop_order_yandex_delivery_estimate'),
             path('<int:arg>/beru_labels/', self.admin_site.admin_view(self.beru_labels), name='shop_order_beru_labels'),
+            path('<int:id>/lock/', self.admin_site.admin_view(self.lock), name='shop_order_lock'),
             path('<int:id>/unlock/', self.admin_site.admin_view(self.unlock), name='shop_order_unlock'),
+            path('<int:id>/take_over/', self.admin_site.admin_view(self.take_over), name='shop_order_take_over'),
             # the phone keeps its pattern: the SMS widget reverses the URL with '+0' and puts the number in its place
             re_path(r'^sms/(?P<phone>\+\d+)/$', self.admin_site.admin_view(self.send_sms_form), name='shop_order_send_sms'),
         ]
@@ -657,12 +709,28 @@ class OrderAdmin(admin.ModelAdmin):
 
         return self.popup_form(request, SendSmsForm, send, "Укажите текст сообщения для %s" % str(phone), "Отправить")
 
-    def unlock(self, request, id):
+    def lock(self, request, id):
+        """ The heartbeat of the order's page, which renews its lease, see shop/order_lock.py """
+        if request.method != 'POST':
+            return HttpResponseNotAllowed(['POST'])
         order = permitted_object(self, request, id)
-        if order.owner == request.user:
-            order.owner = None
-            order.save()
-        return HttpResponse('<!DOCTYPE html><html/>')
+        return JsonResponse(order_lock.renew(order.pk, request.user, request.POST.get(order_lock.TOKEN_FIELD)))
+
+    def unlock(self, request, id):
+        """ The order's page gives its lock up: it is left unsaved, or idle """
+        if request.method != 'POST':
+            return HttpResponseNotAllowed(['POST'])
+        order = permitted_object(self, request, id)
+        order_lock.release(order.pk, request.POST.get(order_lock.TOKEN_FIELD))
+        return HttpResponse(status=204)
+
+    def take_over(self, request, id):
+        """ «Разблокировать»: releases the lock whoever holds it, and the page opens again with the lock """
+        if request.method != 'POST':
+            return HttpResponseNotAllowed(['POST'])
+        order = permitted_object(self, request, id, change=True)
+        order_lock.force_release(order.pk, request.user)
+        return HttpResponseRedirect(reverse('admin:shop_order_change', args=[order.pk]))
 
     @admin.action(description="Выгрузка в 1С", permissions=['view'])
     def order_1c_action(self, request, queryset):

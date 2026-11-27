@@ -139,6 +139,9 @@ SESSION_COOKIE_NAME = env('SESSION_COOKIE_NAME', default='sessionid')
 CSRF_COOKIE_NAME = env('CSRF_COOKIE_NAME', default='csrftoken')
 
 CELERY_BROKER_URL = env('CELERY_BROKER_URL')
+# Redis of the admin's instant notices (sewingworld/notifications.py), the broker's by default. Another URL turns
+# them off, and the pages then learn of a lost lock from its heartbeat only.
+ADMIN_EVENTS_REDIS_URL = env('ADMIN_EVENTS_REDIS_URL', default=CELERY_BROKER_URL)
 
 MPTT_ROOT = 'sewing.world'
 

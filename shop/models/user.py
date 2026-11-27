@@ -37,6 +37,10 @@ class ShopUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
+    def system_user(self):
+        """ The account of the shop's own background work, such as order updates from integrations """
+        return self.get(phone='000')
+
     @staticmethod
     def normalize_phone(phone):
         phone = re.sub(r"[^0-9\+]", "", phone)

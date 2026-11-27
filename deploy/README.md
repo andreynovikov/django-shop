@@ -514,9 +514,9 @@ stats = 127.0.0.1:9191
 stats-http = true
 ```
 
-`touch .touch_reload` in the site directory reloads the workers one by one, which needs `lazy-apps`. With
-`need-app`, uWSGI stops when Django cannot be loaded, also on such a reload, and systemd starts it again until the
-code loads. The API runs mostly Python, which a process runs on one core at a time, so `prod` has 6 processes of 4
+`touch .touch_reload` in the site directory reloads the workers one by one, which needs `lazy-apps`, and restarts
+the [ASGI app](#asgi-setup). With `need-app`, uWSGI stops when Django cannot be loaded, also on such a reload, and
+systemd starts it again until the code loads. The API runs mostly Python, which a process runs on one core at a time, so `prod` has 6 processes of 4
 threads rather than 3 of 8. uWSGI logs only failed requests and those slower than 2 seconds, nginx logs them all.
 Keep `harakiri` a little shorter than nginx's `uwsgi_read_timeout`. The bundled nginx configuration waits 65 s for
 `prod` and `dev`, which have a 60 s worker limit. The admin vhost waits 310 s for `admin`, which has a 300 s limit.
@@ -619,6 +619,101 @@ Once the site is deployed, see [Environment setup](#environment-setup):
 ```sh
 systemctl enable --now celery@prod celery_beat@prod
 ```
+
+# ASGI setup
+
+The admin's instant notices, such as "someone took the lock of this order", reach open admin pages over event streams
+that stay open (see [sewingworld/admin_events.py](../sewingworld/admin_events.py)). Each open page would hold one of
+the few workers of the admin's uWSGI app, so nginx passes `/admin/events/` to `admin_events`, an app that runs
+Django under ASGI with uvicorn. Until it runs, uWSGI answers that path with 204, and the pages learn of a lost lock
+within 30 seconds instead.
+
+`/etc/systemd/system/asgi@.socket`:
+
+```ini
+[Unit]
+Description=Socket for ASGI app %i
+
+[Socket]
+ListenStream=/run/asgi/%i.socket
+SocketUser=sworld
+SocketGroup=www-data
+SocketMode=0660
+
+[Install]
+WantedBy=sockets.target
+```
+
+`/etc/systemd/system/asgi@.service`:
+
+```ini
+[Unit]
+Description=%i ASGI app
+Requires=asgi@%i.socket
+After=network.target redis-server.service
+
+[Service]
+User=sworld
+Group=sworld
+EnvironmentFile=/etc/asgi/%i
+ExecStart=/bin/sh -c 'cd "$$SITE_DIR" && exec "$$SITE_DIR/.venv/bin/uvicorn" "$$APP" --fd 3 --log-level warning --no-access-log --timeout-graceful-shutdown 5'
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+`/etc/asgi/admin_events`:
+
+```
+SITE_DIR=/www/www.sewing-world.ru
+APP=sewingworld.asgi:application
+PYTHONIOENCODING=UTF-8
+ADMIN=True
+```
+
+uvicorn doesn't reload by itself. `touch .touch_reload` after a pull restarts it too, through a path unit that
+watches the file, `/etc/systemd/system/asgi-reload-admin_events.path`:
+
+```ini
+[Unit]
+Description=Watch the deploys of ASGI app admin_events
+
+[Path]
+PathChanged=/www/www.sewing-world.ru/.touch_reload
+Unit=asgi-reload@admin_events.service
+
+[Install]
+WantedBy=multi-user.target
+```
+
+and `/etc/systemd/system/asgi-reload@.service`:
+
+```ini
+[Unit]
+Description=Restart ASGI app %i after a deploy
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl try-restart asgi@%i.service
+```
+
+`/etc/tmpfiles.d/asgi.conf`:
+
+```
+d /run/asgi 0755 sworld www-data -
+```
+
+Once the site is deployed, see [Environment setup](#environment-setup):
+
+```sh
+mkdir /run/asgi
+chown sworld:www-data /run/asgi
+systemctl enable --now asgi@admin_events.socket asgi@admin_events asgi-reload-admin_events.path
+```
+
+The notices go through the Redis of the Celery broker, `ADMIN_EVENTS_REDIS_URL` in `.env` names another one. The
+playbook's tags `uwsgi` and `asgi` set the app up, `nginx` its location.
 
 # Environment setup
 

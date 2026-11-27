@@ -47,6 +47,7 @@ dependencies = [
     "qrcode>=8.2",
     "redis>=8.1.0",  # the Celery broker, the extra of celery wants <6.5
     "requests>=2.34.2",
+    "uvicorn>=0.54.0",  # serves the admin's instant notices, sewingworld/admin_events.py
     "xlsxwriter>=3.2.9",
     "yookassa>=3.12.1",
 ]

@@ -1,0 +1,7 @@
+# {{ ansible_managed }}
+SITE_DIR=/www/{{ item.site }}
+APP={{ item.app | default('sewingworld.asgi:application') }}
+PYTHONIOENCODING=UTF-8
+{% if item.admin | default(false) %}
+ADMIN=True
+{% endif %}
