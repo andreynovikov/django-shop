@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from more_admin_filters import RelatedDropdownFilter
+from more_admin_filters import DropdownFilter, RelatedDropdownFilter
 
 from shop.models import Integration
 from .forms import IntegrationAdminForm
@@ -10,7 +10,7 @@ from .forms import IntegrationAdminForm
 class IntegrationAdmin(admin.ModelAdmin):
     form = IntegrationAdminForm
     list_display = ['name', 'enabled', 'uses_api', 'utm_source', 'source_site', 'target_site', 'output_template', 'seller', 'supplier_list']
-    list_filter = [('source_site', RelatedDropdownFilter), ('target_site', RelatedDropdownFilter), ('output_template', RelatedDropdownFilter), ('seller', RelatedDropdownFilter), 'enabled']
+    list_filter = [('source_site', RelatedDropdownFilter), ('target_site', RelatedDropdownFilter), ('output_template', DropdownFilter), ('seller', RelatedDropdownFilter), 'enabled']
     list_select_related = ('source_site', 'target_site', 'seller')
     exclude = ['products']
     filter_horizontal = ('suppliers',)
