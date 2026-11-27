@@ -37,6 +37,9 @@
          + (['Backups are not set up: the backup host ' ~ server_backup_password_host ~ ' did not answer, and'
              ~ ' vault_restic_password of secrets.yml has no repository password.']
             if rollout_backup_password_missing | default(false) else [])
+         + (['GitHub Actions cannot deploy the backend: set server_backend_deploy_ssh_public_key in inventory.yml,'
+             ~ ' see "Backend deployment" in deploy/README.md, and run the deployment tag.']
+            if rollout_backend_deploy_key_missing | default(false) else [])
          + (['New backend sites ' ~ backend_new_sites | join(', ')
              ~ ' have no uploaded files yet: copy media/ from the old server, see "Quick setup with Ansible"'
              ~ ' in deploy/README.md.']

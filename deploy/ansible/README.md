@@ -18,8 +18,8 @@ A run sets up what the server lacks, so the same command sets up a new server an
 is no switch between the two, each part looks at what is there:
 
 - A backend site of the vault without a commit is cloned from `server_git_repository`, gets its venv, its database
-  migrated and its static files collected. Later runs leave its code and venv alone: updating them stays manual, see
-  "Environment setup" in [deploy/README.md](../README.md#environment-setup).
+  migrated and its static files collected. Later runs leave its code and venv alone: `deploy-backend` updates them,
+  from GitHub Actions or by hand, see "Backend deployment" in [deploy/README.md](../README.md#backend-deployment).
 - A storefront without a container is started, see "Storefront service user" in
   [deploy/README.md](../README.md#storefront-service-user). Later deploys come from GitHub Actions.
 - A storefront with XML feeds whose directory has no feed templates gets those of its branch.

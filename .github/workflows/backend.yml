@@ -1,0 +1,81 @@
+name: Backend deploy
+
+# "Run workflow" deploys a commit of main to production, the head of main unless another commit is given, which also
+# rolls back. The commit must have passed the Tests workflow. The server's deploy-backend (the Ansible role's
+# templates/deploy-backend.j2) checks it out, keeping the emergency amendments made on the server, installs the
+# packages, migrates, collects the static files and restarts the services. See "Backend deployment" in
+# deploy/README.md.
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Commit of main to deploy or roll back to; empty for the head of main
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # Its BACKEND_SSH_PRIVATE_KEY is limited to main, which the storefront branches' workflows can't read
+    environment: backend
+    # A second deploy waits for the first, which must not stop halfway
+    concurrency:
+      group: deploy-backend
+      cancel-in-progress: false
+
+    steps:
+      - name: Choose the commit
+        id: commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT: ${{ inputs.commit }}
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "::error::Run this workflow on main"
+            exit 1
+          fi
+          case $COMMIT in
+            *[!0-9a-f]*) echo "::error::Not a commit hash: $COMMIT"; exit 1 ;;
+          esac
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/${COMMIT:-$GITHUB_SHA}" --jq .sha)
+          # main is the same as the commit, or ahead of it
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$sha...main" --jq .status)
+          case $status in
+            identical | ahead) ;;
+            *) echo "::error::$sha is not a commit of main"; exit 1 ;;
+          esac
+          passed=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/tests.yml/runs?head_sha=$sha&status=success&per_page=1" \
+            --jq .total_count)
+          if [ "$passed" -eq 0 ]; then
+            echo "::error::Tests haven't passed for $sha, see the Tests workflow"
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      # The key may only run the server's forced command deploy-backend, which takes the commit as the command. The
+      # host key is pinned by DEPLOY_HOST_KEY. A dropped connection doesn't stop the deploy: journalctl -t deploy-backend
+      # on the server has its result.
+      - name: Deploy
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.BACKEND_SSH_PRIVATE_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_HOST_KEY: ${{ secrets.DEPLOY_HOST_KEY }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          if [ -z "$SSH_PRIVATE_KEY" ]; then
+            echo "::error::The backend environment has no BACKEND_SSH_PRIVATE_KEY secret"
+            exit 1
+          fi
+          install -m 600 /dev/null ~/key && echo "$SSH_PRIVATE_KEY" > ~/key
+          echo "$DEPLOY_HOST $DEPLOY_HOST_KEY" > ~/known_hosts
+          ssh -i ~/key -o IdentitiesOnly=yes -o UserKnownHostsFile=~/known_hosts -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=60 -o ServerAliveInterval=30 -o ServerAliveCountMax=20 \
+            "$DEPLOY_USER@$DEPLOY_HOST" "$SHA"
+          echo "Deployed [${SHA::7}]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$SHA)" >> "$GITHUB_STEP_SUMMARY"

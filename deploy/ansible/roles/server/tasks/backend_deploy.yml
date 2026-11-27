@@ -1,0 +1,27 @@
+# "Backend deployment": the script that deploys a commit of the backend, which GitHub Actions runs through the deploy
+# account's backend key, and people with sudo
+- name: Install the backend deployment script
+  ansible.builtin.template:
+    src: deploy-backend.j2
+    dest: /usr/local/bin/deploy-backend
+    owner: root
+    group: root
+    mode: "0755"
+    validate: bash -n %s
+
+# The forced command of the backend key runs the script as the deploy account, which runs it again as root. The
+# script takes nothing but a commit of the branch.
+- name: Let the deploy account run the backend deployment as root
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/deploy-backend
+    content: |
+      # {{ ansible_managed }}
+      deploy ALL=(root) NOPASSWD: /usr/local/bin/deploy-backend
+    owner: root
+    group: root
+    mode: "0440"
+    validate: visudo -cf %s
+
+- name: Remember whether GitHub can deploy the backend
+  ansible.builtin.set_fact:
+    rollout_backend_deploy_key_missing: "{{ server_backend_deploy_ssh_public_key | default('', true) | length == 0 }}"

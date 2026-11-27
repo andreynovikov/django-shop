@@ -15,16 +15,23 @@
     ssh_key_type: ed25519
   register: created_user
 
-# exclusive drops any other key of the account, and the forced command lets the key run only deploy-frontend.
-- name: Add deployment user public key to authorized_keys
+# exclusive drops any other key of the account. Each key may run only its forced command: the storefronts' key
+# deploy-frontend, the backend's deploy-backend (backend_deploy.yml), which only main's workflow can read.
+- name: Add the deployment keys to authorized_keys
   ansible.posix.authorized_key:
     user: deploy
     state: present
-    key: "{{ server_deploy_ssh_public_key | default('', true) or created_user.ssh_public_key }}"
-    key_options: 'restrict,command="/usr/local/bin/deploy-frontend"'
-    comment: github-deploy
+    key: "{{ deploy_keys | join('\n') }}"
     exclusive: true
-  when: server_deploy_ssh_public_key | default('') | length > 0 or created_user.ssh_public_key is defined
+  vars:
+    frontend_key: "{{ server_deploy_ssh_public_key | default('', true) or created_user.ssh_public_key | default('') }}"
+    backend_key: "{{ server_backend_deploy_ssh_public_key | default('', true) }}"
+    deploy_keys: >-
+      {{ (['restrict,command="/usr/local/bin/deploy-frontend" ' ~ frontend_key.split()[:2] | join(' ') ~ ' github-deploy']
+          if frontend_key else [])
+         + (['restrict,command="/usr/local/bin/deploy-backend" ' ~ backend_key.split()[:2] | join(' ')
+             ~ ' github-backend-deploy'] if backend_key else []) }}
+  when: deploy_keys | length > 0
 
 - name: Create missing storefront directories
   ansible.builtin.command:

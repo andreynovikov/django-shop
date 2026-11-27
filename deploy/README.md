@@ -724,7 +724,8 @@ playbook's tags `uwsgi` and `asgi` set the app up, `nginx` its location.
 
 All sites are located in `/www` folder. The following description is included for general reference.
 
-The backend is on the `main` branch only, and is deployed by hand. Its production checkout is
+The backend is on the `main` branch only, and is deployed from GitHub Actions or on the server with `deploy-backend`,
+see [Backend deployment](#backend-deployment). Its production checkout is
 `/www/www.sewing-world.ru`, which runs the API, the admin site and Celery for all the sites (see
 [UWSGI setup](#uwsgi-setup) and [Celery setup](#celery-setup)), and `/www/dev.sigalev.ru` is the development one.
 Every other branch of this repository is a storefront, never a copy of the backend: see
@@ -768,12 +769,77 @@ if it is public. Add the bot to the channel as an administrator allowed to post.
 Without these keys nothing is posted.
 
 The service user cannot write `__pycache__` into the code either, and without compiled files Python compiles each
-module again at every start. `--compile-bytecode` above compiles the packages, and after each `git pull` compile
-the code as yourself:
+module again at every start. `--compile-bytecode` above compiles the packages, and after each `git pull` by hand
+compile the code as yourself (`deploy-backend` does it itself):
 
 ```sh
 .venv/bin/python -m compileall -q -x '/\.venv/' .
 ```
+
+# Backend deployment
+
+`/usr/local/bin/deploy-backend` deploys a commit of `main` to the production checkout `/www/www.sewing-world.ru`
+(`server_backend_deploy_site`). The `deployment` and `backend` Ansible tags install it from
+[its template](ansible/roles/server/templates/deploy-backend.j2). It:
+
+1. fetches `main` and checks the commit out with `git reset --keep`, as the owner of the checkout, keeping the
+   [emergency amendments](#emergency-amendments);
+2. runs `uv sync --locked --no-dev --compile-bytecode` and compiles the code, as that owner;
+3. runs `manage.py check` for the API and for the admin (`ADMIN=True`), then `migrate` and `collectstatic`, as the
+   [service user](#service-user);
+4. touches `.touch_reload`, which reloads the workers of the uWSGI apps one by one and restarts the ASGI app, and
+   restarts Celery and its beat;
+5. waits 30 seconds (`server_backend_deploy_settle`), then checks that these services run and have not restarted by
+   themselves.
+
+When a step before the restart fails, it puts the previous commit back with its packages and restarts nothing.
+Migrations applied before a failed `migrate` stay. A service that fails after the restart is reported, not undone:
+see `journalctl -u uwsgi@prod` and the logs in `logs/`.
+
+To deploy from GitHub, open Actions → Backend deploy → Run workflow on `main`. It deploys the head of `main`, or the
+commit given, which must be on `main` and must have passed the Tests workflow. An earlier commit rolls back to it. A
+rollback leaves the database migrated: when the commits it leaves out have migrations, the run warns, and if the
+older code can't work with them, deploy the newer commit again, unapply them with `manage.py migrate <app>
+<migration>`, then roll back.
+
+On the server, `sudo deploy-backend` deploys the head of `main`, and `sudo deploy-backend <commit>` another commit.
+The deploy runs as the unit `deploy-backend.service`: a dropped connection or Ctrl-C stops only its output, and a
+second deploy can't start meanwhile. Its output is in `/run/deploy-backend.*` while it runs. `journalctl -t
+deploy-backend` lists each deploy with its result.
+
+## Emergency amendments
+
+A fix can still be made right in the checkout on the server and applied with `touch .touch_reload`, plus
+`sudo systemctl restart celery@prod celery_beat@prod` when Celery runs the code. Commit the same fix to `main`
+afterwards. A deploy treats such changes this way:
+
+- A changed or new file that the deployed commit has with the same content, because the fix reached `main`, is taken
+  over by the commit.
+- A changed file that the deploy doesn't touch stays changed. The run warns about it, so that it isn't forgotten.
+- A changed file that the deploy changes otherwise, or an untracked file where the commit adds one, stops the deploy
+  before anything changes. Commit the amendment to `main`, or undo it on the server (`git diff`, then
+  `git checkout -- <file>`), and deploy again.
+- A commit made on the server that `main` lacks stops it too: push it to `main`, or move it to a branch of its own.
+
+Deploying by hand still works: `git pull`, then the steps of [Environment setup](#environment-setup) (`uv sync`,
+`migrate`, `collectstatic`, compiling), `touch .touch_reload` and restarting Celery. For `deploy-backend`, the checkout
+must stay on `main`, with no merge or rebase in progress.
+
+## The deploy key
+
+GitHub logs in as the `deploy` account, as the storefront deploys do, but with a key of its own whose forced command
+is `deploy-backend`, so the key can only deploy a commit of `main`. The account may run that script as root
+(`/etc/sudoers.d/deploy-backend`), and the script runs git and uv as the owner of the checkout and `manage.py` as the
+service user. The key's private half is the secret `BACKEND_SSH_PRIVATE_KEY` of the GitHub environment `backend`,
+which only `main` may use, see [GitHub settings](#github-settings). To make one:
+
+```sh
+ssh-keygen -t ed25519 -N '' -C github-backend-deploy -f backend-deploy
+gh secret set BACKEND_SSH_PRIVATE_KEY --env backend < backend-deploy
+```
+
+Put the contents of `backend-deploy.pub` into `server_backend_deploy_ssh_public_key` of `inventory.yml`, run the
+`deployment` tag, and delete both files. A new server gets the same key from the inventory.
 
 # Frontend deployment
 
@@ -931,8 +997,11 @@ Use the branch, deployment name, port and directory from the table.
   up the build job, which reads the environment without deploying to it.
 - No repository secret `ENV_FILE`: a job falls back to it when its environment has none, and would build a frontend
   with another one's `.env`.
+- Environment `backend`, limited to the branch `main` (Deployment branches and tags → Selected branches), for the
+  [backend deployment](#backend-deployment). It holds the secret `BACKEND_SSH_PRIVATE_KEY`, see
+  [The deploy key](#the-deploy-key). Required reviewers may be added: the workflow only deploys.
 - Repository secrets `DEPLOY_HOST`, `DEPLOY_USER`, `SSH_PRIVATE_KEY` and `DEPLOY_HOST_KEY`: the ssh login of the
-  deploy jobs. The `deployment` tag provisions the default `deploy` account and installs the
+  deploy jobs, the backend's included. The `deployment` tag provisions the default `deploy` account and installs the
   [restricted deployment command](ansible/roles/server/templates/deploy-frontend.j2). The key's forced command
   accepts a storefront name and an image tag. Set `DEPLOY_USER` to `deploy` when using this account. On a new server
   these keep working when `DEPLOY_HOST` is a DNS name rather than an address, the inventory has the public half of

@@ -81,6 +81,15 @@ server_github_repository: >-
      if 'github.com' in server_git_repository else '' }}
 # The branch the backend sites are cloned from
 server_backend_branch: main
+# The backend site that deploy-backend deploys, from GitHub Actions or by hand, see "Backend deployment" in
+# deploy/README.md. Its uWSGI, ASGI and Celery apps are the ones restarted.
+server_backend_deploy_site: www.sewing-world.ru
+# Seconds deploy-backend waits after the restart for the uWSGI workers to load the new code, before it checks that
+# the services still run
+server_backend_deploy_settle: 30
+# The public key whose private half is the BACKEND_SSH_PRIVATE_KEY secret of the GitHub environment "backend", set in
+# the inventory. Without it GitHub Actions can't deploy the backend.
+server_backend_deploy_ssh_public_key: ""
 
 # AllowUsers of sshd lists server_users and these. Add the user GitHub Actions deploys with if it is not one of them.
 server_ssh_extra_users: [deploy]

@@ -1,0 +1,232 @@
+#!/bin/bash
+# {{ ansible_managed }}
+# Deploys a commit of {{ server_backend_branch }} to /www/{{ server_backend_deploy_site }}, see "Backend deployment" in
+# deploy/README.md. On the server:
+#
+#   sudo deploy-backend [<commit>]    # the head of origin/{{ server_backend_branch }} without one
+#
+# It is also the forced command of GitHub's backend deploy key, whose command line is the commit. The deploy runs as the
+# unit deploy-backend.service, which a dropped connection doesn't stop, and the caller follows its output. It runs git
+# and uv as the owner of the checkout, manage.py as the service user, and restarts the services as root.
+#
+# Changes made on the server by hand, the emergency amendments, stay where the deployed commit doesn't touch their
+# files, and are dropped where the commit has them already. Any other overlap, or a commit made on the server that
+# origin lacks, stops the deploy before anything changes.
+set -euo pipefail
+
+self=/usr/local/bin/deploy-backend
+site={{ server_backend_deploy_site | quote }}
+dir=/www/$site
+branch={{ server_backend_branch | quote }}
+upstream=origin/$branch
+app_user={{ server_app_user | quote }}
+{% set uwsgi_names = server_uwsgi_apps | selectattr('site', 'eq', server_backend_deploy_site) | map(attribute='name') | list %}
+{% set asgi_names = server_asgi_apps | selectattr('site', 'eq', server_backend_deploy_site) | map(attribute='name') | list %}
+{% set celery_names = server_celery_apps | selectattr('site', 'eq', server_backend_deploy_site) | map(attribute='name') | list %}
+# Restarted here. The uWSGI apps reload by touch-chain-reload, and the ASGI apps restart by their path units.
+restart_units=({% for name in celery_names %}celery@{{ name }}.service celery_beat@{{ name }}.service{{ ' ' if not loop.last }}{% endfor %})
+# Must be running, without restarts of their own, a while after the reload
+watched_units=({% for name in uwsgi_names %}uwsgi@{{ name }}.service {% endfor %}{% for name in asgi_names %}asgi@{{ name }}.service {% endfor %}"${restart_units[@]}")
+# Seconds for the uWSGI workers to load the new code one after another
+settle={{ server_backend_deploy_settle }}
+{# The rest is bash alone, whose ${#...} would open a Jinja comment #}
+{% raw %}
+
+# Workflow commands of GitHub Actions, which reads the output of the ssh session. DEPLOY_TTY tells the unit, whose
+# output is a file, that the caller's is a terminal.
+if [ -t 1 ] || [ -n "${DEPLOY_TTY-}" ]; then
+  warn() { echo "warning: $*" >&2; }
+  error() { echo "error: $*" >&2; }
+else
+  warn() { echo "::warning::$*"; }
+  error() { echo "::error::$*"; }
+fi
+# The journal keeps the result of each deploy: journalctl -t deploy-backend
+die() {
+  error "$*"
+  logger -t deploy-backend "deploy by ${DEPLOY_BY:-${SUDO_USER:-root}} stopped: $*"
+  exit 1
+}
+step() { echo "== $*"; }
+
+# ssh hands the forced command the client's command line, split here into words without globbing
+if [ $# -eq 0 ] && [ -n "${SSH_ORIGINAL_COMMAND-}" ]; then
+  set -f
+  # shellcheck disable=SC2086
+  set -- $SSH_ORIGINAL_COMMAND
+  set +f
+fi
+[ $# -le 1 ] || { echo "usage: deploy-backend [<commit>]" >&2; exit 2; }
+commit=${1-}
+case $commit in
+  '') ;;
+  *[!0-9a-f]*) echo "bad commit $commit: a hash of 7 to 40 hex digits" >&2; exit 2 ;;
+  *) [ ${#commit} -ge 7 ] && [ ${#commit} -le 40 ] || { echo "bad commit $commit: a hash of 7 to 40 hex digits" >&2; exit 2; } ;;
+esac
+
+# The deploy account may run only this script as root, see the sudoers rule of the deployment tag
+if [ "$(id -u)" -ne 0 ]; then
+  exec sudo -n "$self" "$@"
+fi
+
+# Neither a dropped ssh connection nor a closed terminal may stop a deploy halfway, during a migration say. So the
+# deploy runs as a unit of its own, whose name also keeps a second deploy from starting meanwhile, and this session
+# shows its output until it ends. Background jobs of a script ignore Ctrl-C, so that stops only the output.
+if [ -z "${DEPLOY_BACKEND_UNIT-}" ]; then
+  if systemctl is-active -q deploy-backend.service; then
+    die "another deploy is running, its output is in $(ls /run/deploy-backend.* 2>/dev/null | head -n 1)"
+  fi
+  out=$(mktemp /run/deploy-backend.XXXXXX)
+  tty=
+  [ ! -t 1 ] || tty=1
+  systemd-run --unit=deploy-backend --collect --wait --quiet --service-type=exec \
+    -p StandardOutput=append:"$out" -p StandardError=inherit \
+    --setenv=DEPLOY_BACKEND_UNIT=1 --setenv=DEPLOY_BY="${SUDO_USER:-root}" --setenv=DEPLOY_TTY="$tty" \
+    --setenv=LANG=C.UTF-8 "$self" "$@" &
+  run=$!
+  tail -n +1 -f --pid=$run "$out" || true
+  status=0
+  wait $run || status=$?
+  rm -f "$out"
+  exit $status
+fi
+
+by=${DEPLOY_BY:-root}
+cd "$dir"
+[ -d .git ] || die "$dir is not a git checkout"
+[ ! -e .git/ansible-first-rollout ] || die "$site hasn't had its first start yet: run the playbook's backend tag"
+
+# The code belongs to whoever deploys it, and is read-only for the service user
+owner=$(stat -c %U .git)
+as_owner() { sudo -u "$owner" -H -- "$@"; }
+as_app() { sudo -u "$app_user" -- "$@"; }
+g() { as_owner git "$@"; }
+manage() { as_app .venv/bin/python manage.py "$@"; }
+
+head_branch=$(g symbolic-ref -q --short HEAD) || head_branch=
+[ "$head_branch" = "$branch" ] || die "the checkout is on ${head_branch:-a detached HEAD}, not on $branch"
+for state in MERGE_HEAD CHERRY_PICK_HEAD REVERT_HEAD rebase-merge rebase-apply; do
+  [ ! -e ".git/$state" ] || die "a git merge, rebase or cherry-pick is in progress in $dir"
+done
+
+step "Fetching $branch"
+g fetch -q origin "$branch"
+target=$(g rev-parse -q --verify "${commit:-$upstream}^{commit}") || die "no commit $commit in $branch"
+g merge-base --is-ancestor "$target" "$upstream" || die "$commit is not a commit of $branch"
+old=$(g rev-parse HEAD)
+if ! g merge-base --is-ancestor "$old" "$upstream"; then
+  error "the checkout has commits that $branch lacks, made on the server: push them to $branch, or move them away"
+  g log --oneline "$upstream..$old"
+  exit 1
+fi
+
+if [ "$target" = "$old" ]; then
+  echo "$(g log -1 --format='%h %s' "$target") is in place already: installing and restarting it again"
+elif g merge-base --is-ancestor "$target" "$old"; then
+  echo "Rolling back from $(g log -1 --format='%h %s' "$old") to $(g log -1 --format='%h %s' "$target"), leaving out:"
+  g log --oneline "$target..$old"
+else
+  echo "Deploying over $(g log -1 --format='%h %s' "$old"):"
+  g log --oneline "$old..$target"
+fi
+migrations=$(g diff --name-only "$old" "$target" -- '*/migrations/*.py')
+[ -z "$migrations" ] || printf 'Migrations that change:\n%s\n' "$migrations"
+if [ -n "$migrations" ] && [ "$target" != "$old" ] && g merge-base --is-ancestor "$target" "$old"; then
+  warn "the rollback leaves these migrations applied. Where the older code can't work with them, deploy the newer commit again, unapply them with manage.py migrate <app> <migration>, then roll back"
+fi
+
+# Emergency amendments the commit has already, changed files or new ones it adds: staged, so that git reset --keep
+# takes them over. Only these untracked files count: the directory also holds the storefront's .docker/ tree.
+taken=()
+while IFS= read -r -d '' f; do
+  if [ -e "$f" ] || [ -L "$f" ]; then
+    want=$(g rev-parse -q --verify "$target:$f") || continue
+    [ "$(g hash-object -- "$f")" = "$want" ] || continue
+  else
+    ! g cat-file -e "$target:$f" 2>/dev/null || continue
+  fi
+  taken+=("$f")
+done < <(g diff -z --name-only HEAD; g diff -z --name-only --diff-filter=A "$old" "$target")
+literal() { printf ':(literal)%s\0' "$@"; }
+
+if [ ${#taken[@]} -gt 0 ]; then
+  echo "Local changes the commit has the same, taken over by it:"
+  printf '  %s\n' "${taken[@]}"
+  literal "${taken[@]}" | g add -A --pathspec-from-file=- --pathspec-file-nul
+fi
+
+if [ "$target" != "$old" ]; then
+  step "Checking out $(g rev-parse --short "$target")"
+  if ! g reset -q --keep "$target"; then
+    [ ${#taken[@]} -eq 0 ] || literal "${taken[@]}" | g reset -q --pathspec-from-file=- --pathspec-file-nul
+    die "local changes on the server touch files that this deploy changes, see git's message above: commit them to $branch, or undo them on the server, then deploy again"
+  fi
+fi
+
+# What failed after the checkout puts the previous commit back, with the amendments it took over and its packages, so
+# that a uWSGI worker that starts anew doesn't load half a deploy
+migrated=
+failed() {
+  error "$1"
+  if [ "$target" != "$old" ]; then
+    step "Putting $(g rev-parse --short "$old") back"
+    if g reset -q --keep "$old" \
+        && { [ ${#taken[@]} -eq 0 ] || { literal "${taken[@]}" | g checkout -q "$target" --pathspec-from-file=- --pathspec-file-nul \
+                                          && literal "${taken[@]}" | g reset -q --pathspec-from-file=- --pathspec-file-nul; }; } \
+        && sync_packages && compile_code; then
+      echo "$(g log -1 --format='%h %s' "$old") is back in place, nothing was restarted."
+      [ -z "$migrated" ] || echo "Migrations applied before the failure stay."
+    else
+      error "putting $old back failed as well: repair $dir by hand"
+    fi
+  fi
+  logger -t deploy-backend "deploy of $target by $by failed: $1"
+  exit 1
+}
+
+# uWSGI's python3 plugin runs Debian's Python, so the venv must have the same one, not a Python that uv downloads
+sync_packages() {
+  as_owner env UV_PYTHON_DOWNLOADS=never uv sync -q --locked --no-dev --compile-bytecode --python /usr/bin/python3
+}
+# The service user can't write __pycache__ into the code
+compile_code() { as_owner .venv/bin/python -m compileall -q -x '/\.venv/' .; }
+
+step "Installing Python packages"
+sync_packages || failed "uv sync failed"
+step "Compiling"
+compile_code || failed "compileall failed"
+step "Checking"
+manage check || failed "manage.py check failed"
+as_app env ADMIN=True .venv/bin/python manage.py check || failed "manage.py check of the admin failed"
+step "Migrating"
+migrated=1
+manage migrate --noinput || failed "migrate failed"
+step "Collecting static files"
+manage collectstatic --noinput || failed "collectstatic failed"
+
+step "Restarting"
+declare -A restarts
+for unit in "${watched_units[@]}"; do
+  restarts[$unit]=$(systemctl show -P NRestarts "$unit")
+done
+# Reloads the uWSGI apps' workers one by one, and restarts the ASGI apps through their path units
+touch .touch_reload
+[ ${#restart_units[@]} -eq 0 ] || systemctl restart "${restart_units[@]}"
+sleep "$settle"
+broken=()
+for unit in "${watched_units[@]}"; do
+  if ! systemctl is-active -q "$unit" || [ "$(systemctl show -P NRestarts "$unit")" != "${restarts[$unit]}" ]; then
+    broken+=("$unit")
+  fi
+done
+if [ ${#broken[@]} -gt 0 ]; then
+  die "deployed $(g rev-parse --short "$target"), but ${broken[*]} stopped or restarted by itself after it: see journalctl -u and the logs in $dir/logs"
+fi
+
+amended=$(g diff --name-only HEAD)
+if [ -n "$amended" ]; then
+  warn "local changes on the server that $branch lacks stay in place: ${amended//$'\n'/, }"
+fi
+logger -t deploy-backend "deployed $target over $old by $by"
+echo "Deployed $(g log -1 --format='%h %s' "$target")"
+{% endraw %}
