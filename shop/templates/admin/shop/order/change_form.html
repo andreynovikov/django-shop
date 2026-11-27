@@ -69,14 +69,17 @@
         /* Custom styling */
         #id_alert { font-weight: bold; color: #ba2121; }
         span.sw-product-state { display: inline-block; }
-        div.tabular tr.form-row:has(span.sw-product-state) { background-color: #fff8dc; }
-
+        div.tabular tr.form-row:has(span.sw-product-state) { background-color: var(--sw-highlight-bg); }
+{% if original.status > original.STATUS_COLLECTED %}{% if not original.wiring_date or not original.wirehouse or not original.buyer or not original.seller %}
+        /* Wiring data to fill in */
+        .form-row.field-buyer, .form-row.field-wirehouse { background-color: var(--sw-highlight-bg); }
+{% endif %}{% endif %}
         /* Document list box */
-        .documentlist a:focus, .documentlist a:hover { background: #79aec8; color: white; }
-        .documentlist a { display: block; font-weight: 400; padding: 2px 6px; text-decoration: none; color: #444; }
+        .documentlist a:focus, .documentlist a:hover { background: var(--primary); color: var(--primary-fg); }
+        .documentlist a { display: block; font-weight: 400; padding: 2px 6px; text-decoration: none; color: var(--body-fg); }
         ul.documentlist, .documentlist li { list-style-type: none; margin: 0; padding: 0; }
-        .documentbox { margin: 5px auto; font-size: 12px; width: 19em; background: white; border: 1px solid #ddd; border-radius: 4px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); overflow: hidden; position: relative; }
-        .documentlist-cancel { margin: 0; padding: 4px 0; font-size: 12px; text-align: center; background: #eee; border-top: 1px solid #ddd; color: #333; }
+        .documentbox { margin: 5px auto; font-size: 12px; width: 19em; background: var(--body-bg); border: 1px solid var(--border-color); border-radius: 4px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); overflow: hidden; position: relative; }
+        .documentlist-cancel { margin: 0; padding: 4px 0; font-size: 12px; text-align: center; background: var(--darkened-bg); border-top: 1px solid var(--hairline-color); color: var(--body-quiet-color); }
     </style>
 {% endblock %}
 
@@ -129,13 +132,6 @@
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0\" class=\"lead\">Всего: " + Products_Price + "</div>");
         $("#items-group").after("<div style=\"text-align:right; margin-bottom:0"+ WeightStyle + "\" class=\"lead\"" + WeightTitle + ">Общий вес: " + Weight.toFixed(3) + "</div>");
         $("#content h1").append(' <b>' + Number + '</b> ' + DateTime);
-
-{% if original.status > original.STATUS_COLLECTED %}
-{% if not original.wiring_date or not original.wirehouse or not original.buyer or not original.seller %}
-        $(".form-row.field-buyer").css('background-color', '#fff8dc');
-        $(".form-row.field-wirehouse").css('background-color', '#fff8dc');
-{% endif %}
-{% endif %}
 
         $("select#id_status").on('change', function() {
             if (this.value == 1) {
@@ -238,8 +234,8 @@
 {% if order_lock.held %}<input type="hidden" name="{{ order_lock.config.field }}" value="{{ order_lock.token }}">{% endif %}
 {% endblock %}
 {% block submit_buttons_top %}
-{% if original.pk and not order_lock.held %}{% with holder=original.lock_holder %}{% if holder or has_change_permission %}<div class="submit-row" style="display: flex; align-items: center; text-align: left; background: #ffdfdf">
-    <div style="color: #ba2121; font-weight: bold">{% if holder %}Заказ редактирует: {{ holder }}{% else %}Заказ не заблокирован этой страницей, обновите её для редактирования{% endif %}</div>
+{% if original.pk and not order_lock.held %}{% with holder=original.lock_holder %}{% if holder or has_change_permission %}<div class="submit-row" style="display: flex; align-items: center; text-align: left; background: var(--message-error-bg)">
+    <div style="color: var(--error-fg); font-weight: bold">{% if holder %}Заказ редактирует: {{ holder }}{% else %}Заказ не заблокирован этой страницей, обновите её для редактирования{% endif %}</div>
     {% if has_change_permission %}<input type="submit" form="order-take-over" value="Разблокировать" style="margin-left: auto; text-transform: uppercase; background: #ba2121" onclick="return confirm('Снять блокировку заказа? Несохранённые изменения на странице, где его редактируют, будут потеряны.')">{% endif %}
     </div>{% endif %}{% endwith %}{% endif %}
 {% if not original.pk or order_lock.held %}{% submit_row %}{% endif %}

@@ -6,6 +6,20 @@
 {% block extrastyle %}
 <link rel="stylesheet" href="{% static 'css/tabler-icons.min.css' %}"/>
 <style>
+    /* Our colours by theme, the way Django's dark_mode.css switches its own */
+    html[data-theme="light"],
+    :root {
+        --sw-highlight-bg: #fff8dc; /* rows to notice: express orders, fields to fill */
+    }
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --sw-highlight-bg: #403618;
+        }
+    }
+    html[data-theme="dark"] {
+        --sw-highlight-bg: #403618;
+    }
+
     @media (max-width: 1200px) {
       #branding h1 { display: none }
       #user-tools > span { display: none }

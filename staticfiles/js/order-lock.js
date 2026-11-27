@@ -58,7 +58,7 @@
     function showWarning() {
         if (!warning) {
             warning = banner('Блокировка заказа будет снята через ' + Math.ceil(config.idle_warning / 60) +
-                ' мин. из-за бездействия.', '#fff3cd', '#664d03', 'Продолжить', active);
+                ' мин. из-за бездействия.', 'var(--message-warning-bg)', 'var(--body-fg)', 'Продолжить', active);
         }
     }
 
