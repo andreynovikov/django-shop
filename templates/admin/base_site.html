@@ -30,6 +30,12 @@
         color: oklch(from var(--c) max(l, var(--sw-min-l)) c h);
     }
 
+    /* The 1C import's label, short where the top bar is narrow */
+    .sw-narrow { display: none }
+    @media (max-width: 1499.98px) {
+      .sw-wide { display: none }
+      .sw-narrow { display: inline }
+    }
     @media (max-width: 1200px) {
       #branding h1 { display: none }
       #user-tools > span { display: none }
@@ -86,7 +92,7 @@
     {% flag_enabled '1C_IMPORT_RUNNING' as running_flag %}
     {% flag_enabled '1C_IMPORT_COPYING' as copying_flag %}
     <span id="import1c_status" style="color: {% if copying_flag %}red{% elif running_flag %}gold{% else %}limegreen{% endif %}">&#9670;</span>
-    Актуализация склада: <span id="import1c_date">{% last_1c_import %}</span>
+    <span class="sw-wide">Актуализация склада</span><span class="sw-narrow">Склад</span>: <span id="import1c_date">{% last_1c_import %}</span>
 </div>
 {# The health of the integrations and of Celery's queues (shop/health.py): red with a problem raised, gold after a #}
 {# failure, green when all is well. admin-indicators.js updates them. #}
