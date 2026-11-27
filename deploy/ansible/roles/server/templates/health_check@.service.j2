@@ -1,13 +1,13 @@
 [Unit]
-Description=Integration health check for %I
+Description=Health check for %I
 Wants=network-online.target
 After=network-online.target
 
 [Service]
-# manage.py check_integrations, see shop/integration_health.py: outside Celery, so that it notices when Celery stops
+# manage.py check_health, see shop/health.py: outside Celery, so that it notices when Celery stops
 Type=oneshot
 User={{ server_app_user }}
 # Not www-data: the app must not write what people share through that group
 Group={{ server_app_user }}
 WorkingDirectory=/www/%I
-ExecStart=/www/%I/.venv/bin/python manage.py check_integrations
+ExecStart=/www/%I/.venv/bin/python manage.py check_health

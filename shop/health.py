@@ -1,16 +1,19 @@
 """
-Health of the integrations' exchange with the marketplaces' APIs: an IntegrationCheck per integration and operation.
+Health of what the shop depends on, a HealthCheck per operation: the integrations' exchange with the marketplaces'
+APIs and the SMS provider ("Интеграции" in the admin's top bar), and Celery's queues, broker and beat ("Очереди").
 
-A task wraps its exchange in monitor(integration, self.name). An exception counts a failure, with a description such
-as the body of the API's 4xx reply, and finishing without one clears them. The first failure is a warning, gold in the
-admin's top bar. config.sw_integration_failures failures in a row raise a problem: red, and the managers get a notice
-by Telegram and mail, once. The next success clears it and tells them that the operation is restored. Operations
-count apart, so that stocks sent every two minutes don't hide orders that fail to come.
+A task wraps its exchange in monitor(integration, self.name), or monitor(None, operation) for one without an
+integration, such as sending an SMS. An exception counts a failure, with a description such as the body of the API's
+4xx reply, and finishing without one clears them. The first failure is a warning, gold in the top bar.
+config.sw_integration_failures failures in a row raise a problem: red, and the managers get a notice by Telegram and
+mail, once. The next success clears it and tells them that the operation is restored. Operations count apart, so that
+stocks sent every two minutes don't hide orders that fail to come.
 
-Operations with a max_age in OPERATIONS run on schedule whatever happens, so not succeeding for longer means that they
-stopped: Celery, its broker or beat is down, or requests hang until the worker kills them. summary() shows them as
-problems right away, and the check_integrations command, run by a systemd timer rather than by Celery, raises them and
-sends the notices itself. It also warns before a Wildberries API token expires.
+Operations with a max_age in OPERATIONS succeed on schedule whatever happens, so not succeeding for longer means that
+they stopped. The check_health command, run every two minutes by a systemd timer rather than by Celery, sends a
+heartbeat task through each queue (QUEUES), whose success is the queue's, and checks beat and the broker. summary()
+shows stale operations as problems right away, and the command raises them and sends the notices itself, so that they
+go out while Celery is down. A command that stops running shows as a stale MONITOR.
 """
 import base64
 import binascii
@@ -24,6 +27,7 @@ from urllib.error import HTTPError, URLError
 from django.contrib.sites.models import Site
 from django.core.mail import send_mail
 from django.db import transaction
+from django.db.models import Q
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.formats import date_format
@@ -32,7 +36,7 @@ from django.views.decorators.debug import sensitive_variables
 from celery.exceptions import Ignore, Retry
 from constance import config
 
-from shop.models import Integration, IntegrationCheck
+from shop.models import HealthCheck, Integration
 
 logger = logging.getLogger('shop')
 
@@ -40,18 +44,38 @@ OK, WARNING, PROBLEM = 'ok', 'warning', 'problem'
 LEVELS = (OK, WARNING, PROBLEM)  # by severity
 # The colours of the admin's top bar, as its 1C import indicator's, see templates/admin/base_site.html
 COLORS = {OK: 'limegreen', WARNING: 'gold', PROBLEM: 'red'}
-TOKEN = 'token'
+INTEGRATIONS, QUEUES_GROUP = 'integrations', 'queues'
+GROUPS = {INTEGRATIONS: 'Интеграции', QUEUES_GROUP: 'Очереди'}
+ALL_WELL = {INTEGRATIONS: 'Обмен с маркетплейсами и SMS в порядке', QUEUES_GROUP: 'Очереди Celery в порядке'}
 MAX_ERROR = 4000
 # While all is well, a success refreshes last_success_at at most this often
 SUCCESS_THROTTLE = timedelta(minutes=1)
+
+TOKEN = 'token'
 TOKEN_WARNING = timedelta(days=14)
 TOKEN_PROBLEM = timedelta(days=3)
+SMS = 'sms'
+BROKER = 'celery.broker'
+BEAT = 'celery.beat'
+BEAT_MAX_AGE = timedelta(minutes=15)
+MONITOR = 'monitor'
+# Celery's queues and how long each may go without taking a heartbeat: import runs one 1C import at a time, for up
+# to two hours
+QUEUES = {
+    'priority': timedelta(minutes=5),
+    'default': timedelta(minutes=30),
+    'integrations': timedelta(minutes=30),
+    'revalidation': timedelta(minutes=30),
+    'import': timedelta(hours=3),
+}
+QUEUES_OPERATIONS = {f'celery.{queue}' for queue in QUEUES}
 
 
 class Operation(NamedTuple):
     label: str
-    # How long an operation that runs on schedule may go without a success
+    # How long an operation that succeeds on schedule may go without a success
     max_age: timedelta | None = None
+    group: str = INTEGRATIONS
 
 
 OPERATIONS = {
@@ -63,12 +87,32 @@ OPERATIONS = {
     'wb.tasks.get_integration_order_statuses': Operation('получение статусов заказов'),
     'wb.tasks.notify_product_stocks': Operation('передача остатков'),
     TOKEN: Operation('срок действия токена API'),
+    SMS: Operation('отправка SMS'),
+    BROKER: Operation('брокер Celery (Redis)', group=QUEUES_GROUP),
+    BEAT: Operation('запуск задач по расписанию (beat)', group=QUEUES_GROUP),
+    MONITOR: Operation('проверка состояния (check_health)', timedelta(minutes=10), QUEUES_GROUP),
+    **{f'celery.{queue}': Operation(f'очередь {queue}', max_age, QUEUES_GROUP) for queue, max_age in QUEUES.items()},
 }
 
 
 def label(operation):
     known = OPERATIONS.get(operation)
     return known.label if known else operation
+
+
+def group(operation):
+    known = OPERATIONS.get(operation)
+    return known.group if known else INTEGRATIONS
+
+
+def operations(group_name):
+    return [operation for operation, known in OPERATIONS.items() if known.group == group_name]
+
+
+def name(check):
+    """ What the check is about, for people """
+    operation = label(check.operation)
+    return f'{check.integration}, {operation}' if check.integration_id else operation
 
 
 class IntegrationFailure(Exception):
@@ -113,6 +157,11 @@ def truncate(text):
     return text if len(text) <= MAX_ERROR else text[:MAX_ERROR - 1] + '…'
 
 
+def watched():
+    """ The checks that count: those of enabled integrations, and those without one """
+    return HealthCheck.objects.filter(Q(integration__isnull=True) | Q(integration__enabled=True))
+
+
 def stale_since(check, now):
     """ The last success of a scheduled operation that has gone without one for too long, otherwise None """
     known = OPERATIONS.get(check.operation)
@@ -122,8 +171,13 @@ def stale_since(check, now):
     return since if now - since > known.max_age else None
 
 
-def stale_message(since):
-    return f'Нет успешного обмена с {date_format(timezone.localtime(since), "d.m.Y H:i")}'
+def stale_message(check, since):
+    when = date_format(timezone.localtime(since), 'd.m.Y H:i')
+    if check.operation == MONITOR:
+        return f'Проверка состояния не запускалась с {when}: таймер health_check не работает, оповещений не будет'
+    if check.operation in QUEUES_OPERATIONS:
+        return f'Очередь не обработала проверочную задачу с {when}: обработчики Celery остановлены или заняты'
+    return f'Нет успешного обмена с {when}'
 
 
 def level(check, now):
@@ -138,39 +192,34 @@ def status_text(check, now):
     """ The check's error, or that it went stale while the command hasn't raised it yet """
     since = stale_since(check, now)
     if since and check.raised_at is None:
-        return stale_message(since) + (f'\n{check.error}' if check.error else '')
+        return stale_message(check, since) + (f'\n{check.error}' if check.error else '')
     return check.error
 
 
-def summary(now=None):
+def summary(group_name, now=None):
     """
-    The worst level of the enabled integrations' checks with its colour, and those that aren't ok, worst first, also
-    as the indicator's title
+    The worst level of the group's checks with its colour, and those that aren't ok, worst first, also as the
+    indicator's title
     """
     now = now or timezone.now()
     worst, items = OK, []
-    for check in IntegrationCheck.objects.filter(integration__enabled=True).select_related('integration'):
+    for check in watched().filter(operation__in=operations(group_name)).select_related('integration'):
         check_level = level(check, now)
         if check_level == OK:
             continue
         lines = status_text(check, now).splitlines()
-        items.append({
-            'integration': str(check.integration),
-            'operation': label(check.operation),
-            'level': check_level,
-            'error': lines[0][:200] if lines else '',
-        })
+        items.append({'name': name(check), 'level': check_level, 'error': lines[0][:200] if lines else ''})
         worst = max(worst, check_level, key=LEVELS.index)
     items.sort(key=lambda item: -LEVELS.index(item['level']))
-    title = '\n'.join(f"{item['integration']}, {item['operation']}: {item['error']}" for item in items)
-    return {'level': worst, 'color': COLORS[worst], 'title': title or 'Обмен с маркетплейсами в порядке', 'problems': items}
+    title = '\n'.join(f"{item['name']}: {item['error']}" for item in items)
+    return {'level': worst, 'color': COLORS[worst], 'title': title or ALL_WELL[group_name], 'problems': items}
 
 
 def _locked(integration, operation):
-    check, created = IntegrationCheck.objects.get_or_create(integration_id=_pk(integration), operation=operation)
+    check, created = HealthCheck.objects.get_or_create(integration_id=_pk(integration), operation=operation)
     if created:
         return check
-    return IntegrationCheck.objects.select_for_update().get(pk=check.pk)
+    return HealthCheck.objects.select_for_update().get(pk=check.pk)
 
 
 def _pk(integration):
@@ -186,14 +235,19 @@ def _notice(check, since):
 
 
 def _queue(notices, raised):
-    from shop.tasks.admin import notify_integration_health  # the tasks import this module
-    transaction.on_commit(lambda: notify_integration_health.delay(notices, raised), robust=True)
+    from shop.tasks.admin import notify_health  # the tasks import this module
+    transaction.on_commit(lambda: notify_health.delay(notices, raised), robust=True)
+
+
+def expect(integration, operation):
+    """ Starts watching a scheduled operation, so that it goes stale even if it never succeeds """
+    HealthCheck.objects.get_or_create(integration_id=_pk(integration), operation=operation)
 
 
 def record_success(integration, operation, *, notify=True):
     """ Clears the check's failures. Returns the notice that a raised problem is gone, queued unless notify is off. """
     now = timezone.now()
-    current = IntegrationCheck.objects.filter(integration_id=_pk(integration), operation=operation) \
+    current = HealthCheck.objects.filter(integration_id=_pk(integration), operation=operation) \
         .values('failures', 'error', 'raised_at', 'last_success_at').first()
     if current and not current['failures'] and not current['error'] and current['raised_at'] is None \
             and current['last_success_at'] and now - current['last_success_at'] < SUCCESS_THROTTLE:
@@ -264,7 +318,7 @@ def _quietly(func, *args):
     try:
         func(*args)
     except Exception:
-        logger.exception('Could not record the health of an integration')
+        logger.exception('Could not record the health of %s', args[1] if len(args) > 1 else 'an operation')
 
 
 def _record_exception(integration, operation, exc):
@@ -281,7 +335,7 @@ class Outcome:
 
 @contextmanager
 def monitor(integration, operation):
-    """ Records the outcome of an exchange with the integration's API, see the module's description """
+    """ Records the outcome of an exchange with an outside service, see the module's description """
     outcome = Outcome()
     try:
         yield outcome
@@ -302,20 +356,55 @@ def raise_stale(now=None):
     now = now or timezone.now()
     scheduled = [operation for operation, known in OPERATIONS.items() if known.max_age]
     notices = []
-    candidates = IntegrationCheck.objects.filter(integration__enabled=True, raised_at__isnull=True, operation__in=scheduled)
-    for candidate in candidates:
+    for candidate in watched().filter(raised_at__isnull=True, operation__in=scheduled):
         if stale_since(candidate, now) is None:
             continue
         with transaction.atomic():
-            check = IntegrationCheck.objects.select_for_update().get(pk=candidate.pk)
+            check = HealthCheck.objects.select_for_update().get(pk=candidate.pk)
             since = stale_since(check, now)
             if check.raised_at is not None or since is None:
                 continue
             check.raised_at = now
-            check.error = truncate(stale_message(since) + (f'\nПоследняя ошибка: {check.error}' if check.error else ''))
+            error = stale_message(check, since)
+            check.error = truncate(error + (f'\nПоследняя ошибка: {check.error}' if check.error else ''))
             check.save()
             notices.append(_notice(check, since))
     return notices
+
+
+def send_heartbeats():
+    """
+    Sends a heartbeat through each queue, see QUEUES, without retrying when the broker doesn't take it. Returns the
+    notice of a broker problem raised, or of one gone, as (raised, restored).
+    """
+    from shop.tasks.monitoring import heartbeat  # the tasks import this module
+
+    try:
+        for queue, max_age in QUEUES.items():
+            # One that waits longer than the queue may doesn't tell anything any more
+            heartbeat.apply_async((queue,), queue=queue, expires=max_age.total_seconds(), retry=False)
+    except Exception as exc:
+        notice = raise_problem(None, BROKER, f'Брокер не принимает задачи: {describe(exc)}', notify=False)
+        return [notice] if notice else [], []
+    notice = record_success(None, BROKER, notify=False)
+    return [], [notice] if notice else []
+
+
+def check_beat(now=None):
+    """ Raises a problem when no periodic task has run for BEAT_MAX_AGE; returns (raised, restored) as above """
+    from django_celery_beat.models import PeriodicTask
+
+    now = now or timezone.now()
+    last = PeriodicTask.objects.filter(enabled=True, last_run_at__isnull=False).order_by('-last_run_at') \
+        .values_list('last_run_at', flat=True).first()
+    if last is None:
+        return [], []
+    if now - last > BEAT_MAX_AGE:
+        when = date_format(timezone.localtime(last), 'd.m.Y H:i')
+        notice = raise_problem(None, BEAT, f'Задачи по расписанию не запускались с {when}: celery_beat остановлен', notify=False)
+        return [notice] if notice else [], []
+    notice = record_success(None, BEAT, notify=False)
+    return [], [notice] if notice else []
 
 
 @sensitive_variables()
@@ -373,16 +462,21 @@ class Notice(NamedTuple):
 
 
 def render_notice(notices, raised):
-    """ The texts of a notice about raised problems, or about their end, and who gets its mail """
+    """
+    The texts of a notice about raised problems, or about their end, and who gets its mail: the managers of the
+    integrations' channels, and of the main site for those without a channel or an integration
+    """
     from shop.tasks.common import get_default_site  # the tasks import this module
 
     integrations = Integration.objects.select_related('source_site__profile', 'target_site').in_bulk(
-        {notice['integration'] for notice in notices})
+        {notice['integration'] for notice in notices if notice['integration'] is not None})
     items = []
     for notice in notices:
-        integration = integrations.get(notice['integration'])
-        if integration is None:
-            continue
+        integration = None
+        if notice['integration'] is not None:
+            integration = integrations.get(notice['integration'])
+            if integration is None:
+                continue
         since = datetime.fromisoformat(notice['since']) if notice.get('since') else None
         items.append({
             'integration': integration,
@@ -394,7 +488,7 @@ def render_notice(notices, raised):
 
     recipients = set()
     for item in items:
-        emails = _manager_emails(item['integration'].source_site)
+        emails = _manager_emails(item['integration'].source_site) if item['integration'] else ''
         if not emails:
             try:
                 emails = _manager_emails(get_default_site())
@@ -403,23 +497,24 @@ def render_notice(notices, raised):
         recipients.update(email.strip() for email in emails.split(',') if email.strip())
 
     if len(items) == 1:
-        subject = f'{items[0]["integration"]}: {items[0]["label"]}'
-        subject = f'Сбой интеграции {subject}' if raised else f'Интеграция восстановлена: {subject}'
+        item = items[0]
+        subject = f'{item["integration"]}, {item["label"]}' if item['integration'] else item['label']
+        subject = f'Сбой: {subject}' if raised else f'Восстановлено: {subject}'
     else:
-        subject = f'Сбой интеграций ({len(items)})' if raised else f'Интеграции восстановлены ({len(items)})'
+        subject = f'Сбои ({len(items)})' if raised else f'Восстановлено ({len(items)})'
     context = {'items': items, 'raised': raised, 'now': timezone.now()}
     return Notice(
         subject,
-        render_to_string('telegram/integration_health.txt', context),
-        render_to_string('mail/shop/integration_health.txt', context),
+        render_to_string('telegram/health.txt', context),
+        render_to_string('mail/shop/health.txt', context),
         sorted(recipients),
     )
 
 
 def deliver(notices, raised):
     """
-    Sends a notice right away, without Celery, for the check_integrations command. Returns whether at least one of
-    the channels took it.
+    Sends a notice right away, without Celery, for the check_health command. Returns whether at least one of the
+    channels took it.
     """
     from sewingworld.telegram import send_message
 
@@ -432,10 +527,10 @@ def deliver(notices, raised):
             send_mail(notice.subject, notice.mail, config.sw_email_from, notice.recipients)
             delivered = True
         except Exception:
-            logger.exception('Could not mail an integration health notice')
+            logger.exception('Could not mail a health notice')
     try:
         send_message(notice.telegram)
         delivered = True
     except Exception:
-        logger.exception('Could not post an integration health notice')
+        logger.exception('Could not post a health notice')
     return delivered

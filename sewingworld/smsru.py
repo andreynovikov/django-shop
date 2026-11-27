@@ -53,7 +53,7 @@ class Client(object):
         args['from'] = 'SEWINGWORLD'
 
         url = "http://sms.ru/%s?%s" % (method, urlencode(args))
-        res = urlopen(url).read().decode('utf-8')
+        res = urlopen(url, timeout=30).read().decode('utf-8')  # not to hold up the priority queue
         return res.strip().split('\n')
 
     def send(self, to, message, express=False, test=False):

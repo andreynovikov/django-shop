@@ -27,7 +27,7 @@ from celery import shared_task
 
 from sewingworld.tasks import PRIORITY_IDLE
 
-from shop.integration_health import IntegrationFailure, monitor, read_body
+from shop.health import IntegrationFailure, monitor, read_body
 from shop.models import Integration, Basket, Order, Product, ProductIntegration, ShopUser
 
 logger = logging.getLogger('ozon')

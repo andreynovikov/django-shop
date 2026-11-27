@@ -11,7 +11,7 @@ from django.contrib.sites.models import Site
 from django.test import TestCase
 
 from sewingworld.models import SiteProfile
-from shop.models import Basket, Contractor, Integration, IntegrationCheck, Order, Product, ProductIntegration, ShopUser
+from shop.models import Basket, Contractor, Integration, HealthCheck, Order, Product, ProductIntegration, ShopUser
 from wb import tasks
 
 from .fixtures import add_marketplace_sites, add_product, mock_constance
@@ -115,7 +115,7 @@ class WildberriesTests(TestCase):
         self.market.expect(ITEMS, WAREHOUSES, 'GET', reply, status=401)
         with self.assertLogs('wb', 'ERROR'), self.assertRaisesRegex(tasks.TaskFailure, 'token expired'):
             self.run_task(tasks.get_integration_new_orders)
-        check = IntegrationCheck.objects.get(integration=self.integration, operation='wb.tasks.get_integration_new_orders')
+        check = HealthCheck.objects.get(integration=self.integration, operation='wb.tasks.get_integration_new_orders')
         self.assertEqual(check.failures, 1)
         self.assertEqual(check.error.splitlines()[0], 'HTTP 401: token expired')
         self.assertIn('"origin": "s2s-api-auth-marketplace"', check.error)
@@ -131,7 +131,7 @@ class WildberriesTests(TestCase):
         with self.assertRaises(OSError) as raised:  # which the tasks retry
             self.run_task(tasks.get_integration_new_orders)
         self.assertEqual(raised.exception.status, 429)
-        check = IntegrationCheck.objects.get(integration=self.integration, operation='wb.tasks.get_integration_new_orders')
+        check = HealthCheck.objects.get(integration=self.integration, operation='wb.tasks.get_integration_new_orders')
         self.assertIn('<html>Bad gateway</html>', check.error)
 
     def test_reports_new_order_api_rate_limit(self):

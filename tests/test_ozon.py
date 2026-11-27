@@ -14,7 +14,7 @@ from kombu.exceptions import OperationalError
 
 from ozon import tasks
 from sewingworld.models import SiteProfile
-from shop.models import Basket, Contractor, Integration, IntegrationCheck, Order, Product, ProductIntegration, ShopUser
+from shop.models import Basket, Contractor, Integration, HealthCheck, Order, Product, ProductIntegration, ShopUser
 
 from .fixtures import add_marketplace_sites, add_product, mock_constance
 from .marketplace_api import OpenAPIMock, load_spec
@@ -147,7 +147,7 @@ class OzonTests(TestCase):
         self.market.expect(SPEC, POSTINGS, 'POST', {'code': 7, 'message': 'Api-key is deactivated'}, body=POSTING_REQUEST, status=403)
         with self.assertLogs('ozon', 'ERROR'), self.assertRaises(tasks.TaskFailure):
             self.poll()
-        check = IntegrationCheck.objects.get(integration=self.integration, operation='ozon.tasks.get_integration_unfulfilled_orders')
+        check = HealthCheck.objects.get(integration=self.integration, operation='ozon.tasks.get_integration_unfulfilled_orders')
         self.assertEqual(check.failures, 1)
         self.assertEqual(check.error.splitlines(), [
             'HTTP 403: Api-key is deactivated', '{"code": 7, "message": "Api-key is deactivated"}',
@@ -310,7 +310,7 @@ class OzonTests(TestCase):
         link.refresh_from_db()
         self.assertTrue(link.notify_stock)
         # The exchange itself works
-        check = IntegrationCheck.objects.get(integration=self.integration, operation='ozon.tasks.notify_product_stocks')
+        check = HealthCheck.objects.get(integration=self.integration, operation='ozon.tasks.notify_product_stocks')
         self.assertEqual(check.failures, 0)
 
     def test_records_other_errors_of_a_warehouse_as_the_integrations_failure(self):
@@ -320,7 +320,7 @@ class OzonTests(TestCase):
             self.send_stock(self.product)
         link.refresh_from_db()
         self.assertFalse(link.notify_stock)  # until its stock changes again
-        check = IntegrationCheck.objects.get(integration=self.integration, operation='ozon.tasks.notify_product_stocks')
+        check = HealthCheck.objects.get(integration=self.integration, operation='ozon.tasks.notify_product_stocks')
         self.assertEqual(check.failures, 1)
         self.assertEqual(check.error, 'Ozon не принял остатки:\nmachine, склад 101: WAREHOUSE_NOT_FOUND: Unknown warehouse')
 

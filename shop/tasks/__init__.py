@@ -6,8 +6,9 @@ Celery tasks of the shop, in bundles:
 - workflow: what keeps orders, products and baskets going, and the storefronts' caches up to date with them
 - stocks: stock and prices from 1C, through Yandex Disk
 - integrations: exchange with other outside systems: bonuses from 1C, the Central Bank, ModulKassa, Yandex Metrika
+- monitoring: the heartbeat that manage.py check_health sends through each queue, see shop/health.py
 
 Each task is named shop.tasks.<function>, as it was when they all were in shop/tasks.py: Celery finds a task by its
 name, which beat schedules in the database, stored results and tasks waiting in the broker keep.
 """
-from . import admin, integrations, stocks, user_interaction, workflow  # noqa: F401 (registers the tasks)
+from . import admin, integrations, monitoring, stocks, user_interaction, workflow  # noqa: F401 (registers the tasks)

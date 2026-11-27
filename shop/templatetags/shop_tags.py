@@ -7,7 +7,7 @@ from django.utils.safestring import mark_safe
 from celery import states
 from django_celery_results.models import TaskResult
 
-from shop import integration_health
+from shop import health
 from shop.models import Order, Favorites
 
 
@@ -66,10 +66,13 @@ def last_1c_import():
 
 
 @register.simple_tag(takes_context=True)
-def integrations_status(context):
-    """ The integrations' health for the admin's top bar, see integration_health.summary(); None for those who may not see it """
+def health_status(context):
+    """
+    The indicators of the admin's top bar by group, with their names, see health.summary(); None for those who may
+    not see them
+    """
     request = context.get('request')
     user = getattr(request, 'user', None)
-    if user is None or not user.has_perm('shop.view_integrationcheck'):
+    if user is None or not user.has_perm('shop.view_healthcheck'):
         return None
-    return integration_health.summary()
+    return [{'group': group, 'name': name, **health.summary(group)} for group, name in health.GROUPS.items()]

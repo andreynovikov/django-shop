@@ -1,10 +1,10 @@
-{% autoescape off %}{% if raised %}Обмен с маркетплейсами не удаётся:{% else %}Обмен с маркетплейсами восстановлен:{% endif %}
+{% autoescape off %}{% if raised %}Не работает:{% else %}Снова работает:{% endif %}
 {% for item in items %}
-{{ item.integration.name }} ({{ item.integration.utm_source }}, витрина {{ item.integration.target_site.domain }}): {{ item.label }}
+{% if item.integration %}{{ item.integration.name }} ({{ item.integration.utm_source }}, витрина {{ item.integration.target_site.domain }}): {% endif %}{{ item.label }}
 {% if raised %}{% if item.since %}Сбой с {{ item.since|date:"d.m.Y H:i" }}{% if item.failures %}, неудачных попыток подряд: {{ item.failures }}{% endif %}
 {% endif %}{% if item.error %}Ошибка:
 {{ item.error }}
 {% endif %}{% else %}{% if item.since %}Не работала с {{ item.since|date:"d.m.Y H:i" }} до {{ now|date:"d.m.Y H:i" }}
 {% endif %}{% if item.error %}Последняя ошибка: {{ item.error|truncatechars:500 }}
 {% endif %}{% endif %}{% endfor %}
-Состояние интеграций: https://admin.sewing-world.ru/admin/shop/integrationcheck/{% endautoescape %}
+Состояние: https://admin.sewing-world.ru/admin/shop/healthcheck/{% endautoescape %}

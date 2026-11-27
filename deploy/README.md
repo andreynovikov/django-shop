@@ -625,19 +625,27 @@ Once the site is deployed, see [Environment setup](#environment-setup):
 systemctl enable --now celery@prod celery_beat@prod
 ```
 
-## Integration health check
+## Health check
 
-The marketplace tasks record the health of their exchange themselves (see
-[shop/integration_health.py](../shop/integration_health.py)). They can't report that they stopped running. A timer
-outside Celery runs `manage.py check_integrations` every 10 minutes. The command raises the scheduled operations that
-have gone without a success for too long, and Wildberries tokens about to expire. It mails the managers and posts to the
-staff channel directly, so it still works when Celery, Redis or beat is down. `--dry-run` only reports.
+The marketplace tasks and SMS sending record their health themselves (see [shop/health.py](../shop/health.py)), but
+nothing inside Celery can report that Celery stopped. A timer outside Celery runs `manage.py check_health` every two
+minutes. The command:
 
-`/etc/systemd/system/integration_check@.service`:
+- sends a heartbeat task through each queue; a queue that leaves it waiting too long (`priority` 5 minutes, `import`
+  3 hours, the others 30) is a problem, and so is a broker that doesn't take it;
+- raises beat when no periodic task has run for 15 minutes;
+- raises the scheduled marketplace operations that have gone without a success for too long, and Wildberries tokens
+  about to expire.
+
+It mails the managers and posts to the staff channel directly, so it still works when Celery, Redis or beat is down.
+The admin's top bar shows the integrations and the queues apart, and shows when this check itself stops running.
+`--dry-run` only reports.
+
+`/etc/systemd/system/health_check@.service`:
 
 ```ini
 [Unit]
-Description=Integration health check for %I
+Description=Health check for %I
 Wants=network-online.target
 After=network-online.target
 
@@ -646,17 +654,17 @@ Type=oneshot
 User=sworld
 Group=sworld
 WorkingDirectory=/www/%I
-ExecStart=/www/%I/.venv/bin/python manage.py check_integrations
+ExecStart=/www/%I/.venv/bin/python manage.py check_health
 ```
 
-`/etc/systemd/system/integration_check@.timer`:
+`/etc/systemd/system/health_check@.timer`:
 
 ```ini
 [Unit]
-Description=Integration health check for %I every 10 minutes
+Description=Health check for %I every 2 minutes
 
 [Timer]
-OnCalendar=*:0/10
+OnCalendar=*:0/2
 Persistent=true
 
 [Install]
@@ -664,7 +672,7 @@ WantedBy=timers.target
 ```
 
 ```sh
-systemctl enable --now integration_check@www.sewing-world.ru.timer
+systemctl enable --now health_check@www.sewing-world.ru.timer
 ```
 
 # ASGI setup
@@ -804,8 +812,8 @@ sudo -u sworld .venv/bin/python manage.py collectstatic --noinput
 `.env` holds all the secrets, the credentials of the integrations (SMS gateways, marketplaces, mailing, 1C) included,
 which [settings/integrations.py](../sewingworld/settings/integrations.py) reads from it.
 
-The staff channel in Telegram gets new orders, the 1C import's start, result and failure, and the integrations'
-problems and their end from a bot:
+The staff channel in Telegram gets new orders, the 1C import's start, result and failure, and the problems of the
+integrations, SMS and Celery and their end from a bot:
 `TELEGRAM_BOT_TOKEN` is the token @BotFather gives, `TELEGRAM_STAFF_CHAT` the channel's id (`-100…`) or its `@name`
 if it is public. Add the bot to the channel as an administrator allowed to post. A private channel's id shows in the
 `getUpdates` of the bot once it is added and a message is posted, or in the channel's link in Telegram's web client.

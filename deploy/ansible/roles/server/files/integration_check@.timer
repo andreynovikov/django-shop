@@ -1,9 +1,0 @@
-[Unit]
-Description=Integration health check for %I every 10 minutes
-
-[Timer]
-OnCalendar=*:0/10
-Persistent=true
-
-[Install]
-WantedBy=timers.target

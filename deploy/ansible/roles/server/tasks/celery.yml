@@ -79,26 +79,52 @@
   vars:
     changed_configs: "{{ celery_beat_configs.results | select('changed') | map(attribute='item.name') | list }}"
 
-# The integrations' health check (manage.py check_integrations) runs from a systemd timer rather than from beat, so
-# that it raises the alarm when Celery, its broker or beat stops. One per site that runs beat.
-- name: Install the integration check unit
+# The health check (manage.py check_health) runs from a systemd timer rather than from beat, so that it raises the
+# alarm when Celery, its broker or beat stops. One per site that runs beat.
+- name: Install the health check unit
   ansible.builtin.template:
-    src: integration_check@.service.j2
-    dest: /etc/systemd/system/integration_check@.service
+    src: health_check@.service.j2
+    dest: /etc/systemd/system/health_check@.service
     mode: "0644"
   notify: Reload systemd
 
-- name: Install the integration check timer
+- name: Install the health check timer
   ansible.builtin.copy:
-    src: integration_check@.timer
-    dest: /etc/systemd/system/integration_check@.timer
+    src: health_check@.timer
+    dest: /etc/systemd/system/health_check@.timer
     mode: "0644"
   notify: Reload systemd
 
-- name: Enable the integration check
+- name: Enable the health check
   ansible.builtin.systemd_service:
-    name: integration_check@{{ item }}.timer
+    name: health_check@{{ item }}.timer
     enabled: true
     state: started
     daemon_reload: true
   loop: "{{ server_celery_apps | selectattr('site', 'in', server_deployed_sites) | map(attribute='site') | unique | list }}"
+
+# Its predecessor, which checked the integrations only
+- name: Find the integration check timers
+  ansible.builtin.find:
+    paths: /etc/systemd/system/timers.target.wants
+    patterns: "integration_check@*.timer"
+    file_type: link
+  register: integration_check_timers
+
+- name: Stop the integration check timers
+  ansible.builtin.systemd_service:
+    name: "{{ item.path | basename }}"
+    enabled: false
+    state: stopped
+  loop: "{{ integration_check_timers.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+
+- name: Remove the integration check units
+  ansible.builtin.file:
+    path: /etc/systemd/system/{{ item }}
+    state: absent
+  loop:
+    - integration_check@.service
+    - integration_check@.timer
+  notify: Reload systemd

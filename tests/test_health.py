@@ -1,15 +1,18 @@
 """
-The integrations' health, shop/integration_health.py: failures counted per operation and raised as problems, their
-notices, staleness, Wildberries token expiry, the check_integrations command and the admin's indicator.
+Health, shop/health.py: failures counted per operation and raised as problems, their notices, staleness, Wildberries
+token expiry, SMS sending, Celery's queues, broker and beat, the check_health command and the admin's indicators.
 """
 import base64
 import json
 from datetime import timedelta
 from io import BytesIO, StringIO
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.error import HTTPError, URLError
 
 from celery.exceptions import Retry
+from django_celery_beat.models import IntervalSchedule, PeriodicTask
+from django_celery_results.models import TaskResult
+from kombu.exceptions import OperationalError
 from django.contrib import admin
 from django.contrib.auth.models import Permission
 from django.contrib.sites.models import Site
@@ -20,10 +23,13 @@ from django.test import RequestFactory, TestCase, override_settings
 from django.urls import path
 from django.utils import timezone
 
+from sewingworld import sms
 from sewingworld.models import SiteProfile
-from shop import integration_health as health
-from shop.models import Integration, IntegrationCheck, ShopUser
-from shop.tasks.admin import notify_integration_health
+from sewingworld.signals import create_task_result_on_publish
+from shop import health
+from shop.models import HealthCheck, Integration, ShopUser
+from shop.tasks.admin import notify_health
+from shop.tasks.monitoring import heartbeat
 
 from .fixtures import add_marketplace_sites, mock_constance
 
@@ -62,7 +68,8 @@ class HealthTestCase(TestCase):
 
     def setUp(self):
         self.config = mock_constance(self)
-        self.queued = self.enterContext(patch.object(notify_integration_health, 'delay'))
+        self.queued = self.enterContext(patch.object(notify_health, 'delay'))
+        self.published = self.enterContext(patch.object(heartbeat, 'apply_async'))
 
     def failure(self, operation=POLL, error='HTTP 400: Invalid filter', integration=None):
         with self.captureOnCommitCallbacks(execute=True):
@@ -73,14 +80,14 @@ class HealthTestCase(TestCase):
             return health.record_success(integration or self.ozon, operation)
 
     def check(self, operation=POLL, integration=None):
-        return IntegrationCheck.objects.get(integration=integration or self.ozon, operation=operation)
+        return HealthCheck.objects.get(integration=integration or self.ozon, operation=operation)
 
 
 class FailureTests(HealthTestCase):
     def test_first_failure_warns_and_the_third_raises_once(self):
         self.assertIsNone(self.failure())
         self.assertEqual(health.level(self.check(), timezone.now()), health.WARNING)
-        self.assertEqual(health.summary()['level'], health.WARNING)
+        self.assertEqual(health.summary(health.INTEGRATIONS)['level'], health.WARNING)
         self.failure()
         self.queued.assert_not_called()
 
@@ -94,7 +101,7 @@ class FailureTests(HealthTestCase):
 
         self.failure()
         self.queued.assert_called_once()
-        self.assertEqual(health.summary()['level'], health.PROBLEM)
+        self.assertEqual(health.summary(health.INTEGRATIONS)['level'], health.PROBLEM)
 
     def test_threshold_is_a_setting(self):
         self.config.sw_integration_failures = 1
@@ -113,7 +120,7 @@ class FailureTests(HealthTestCase):
         notice = self.success()
         self.queued.assert_called_once_with([notice], False)
         self.assertIsNone(self.check().raised_at)
-        self.assertEqual(health.summary()['level'], health.OK)
+        self.assertEqual(health.summary(health.INTEGRATIONS)['level'], health.OK)
 
     def test_operations_count_apart(self):
         for _ in range(2):
@@ -127,7 +134,7 @@ class FailureTests(HealthTestCase):
         first = self.check().last_success_at
         self.success()
         self.assertEqual(self.check().last_success_at, first)
-        IntegrationCheck.objects.update(last_success_at=first - timedelta(minutes=2))
+        HealthCheck.objects.update(last_success_at=first - timedelta(minutes=2))
         self.success()
         self.assertGreater(self.check().last_success_at, first)
 
@@ -135,8 +142,8 @@ class FailureTests(HealthTestCase):
         for _ in range(3):
             self.failure()
         Integration.objects.filter(pk=self.ozon.pk).update(enabled=False)
-        self.assertEqual(health.summary(), {'level': health.OK, 'color': 'limegreen',
-                                            'title': 'Обмен с маркетплейсами в порядке', 'problems': []})
+        self.assertEqual(health.summary(health.INTEGRATIONS), {'level': health.OK, 'color': 'limegreen',
+                                                               'title': 'Обмен с маркетплейсами и SMS в порядке', 'problems': []})
 
 
 class MonitorTests(HealthTestCase):
@@ -161,15 +168,15 @@ class MonitorTests(HealthTestCase):
         with self.assertRaises(Retry):
             with health.monitor(self.ozon, POLL):
                 raise Retry()
-        self.assertFalse(IntegrationCheck.objects.exists())
+        self.assertFalse(HealthCheck.objects.exists())
 
     def test_a_failing_record_does_not_mask_the_task_outcome(self):
-        with patch('shop.integration_health.record_failure', side_effect=RuntimeError('database')), \
+        with patch('shop.health.record_failure', side_effect=RuntimeError('database')), \
                 self.assertLogs('shop', 'ERROR'):
             with self.assertRaises(KeyError):
                 with health.monitor(self.ozon, POLL):
                     raise KeyError('postings')
-        with patch('shop.integration_health.record_success', side_effect=RuntimeError('database')), \
+        with patch('shop.health.record_success', side_effect=RuntimeError('database')), \
                 self.assertLogs('shop', 'ERROR'):
             with health.monitor(self.ozon, POLL):
                 pass
@@ -190,16 +197,16 @@ class NoticeTests(HealthTestCase):
         for _ in range(3):
             notice = self.failure(error='HTTP 400: {"message": "invalid Statuses[6]"}')
         with patch('shop.tasks.admin.notify_staff.delay') as post:
-            notify_integration_health.run([notice], True)
+            notify_health.run([notice], True)
         message = mail.outbox[0]
         self.assertEqual(message.to, ['boss@shop.test', 'ozon@shop.test'])
-        self.assertEqual(message.subject, 'Сбой интеграции Ozon: получение заказов')
+        self.assertEqual(message.subject, 'Сбой: Ozon, получение заказов')
         self.assertIn('неудачных попыток подряд: 3', message.body)
         self.assertIn('"message": "invalid Statuses[6]"', message.body)  # not HTML-escaped
         text = post.call_args.args[0]
         self.assertIn('Ozon (ozon, example.com): получение заказов', text)
         self.assertIn('сбоев подряд: 3', text)
-        self.assertIn('https://admin.sewing-world.ru/admin/shop/integrationcheck/', text)
+        self.assertIn('https://admin.sewing-world.ru/admin/shop/healthcheck/', text)
 
     def test_recovery_and_the_main_site_managers_for_a_channel_without_its_own(self):
         main = Site.objects.get_current()
@@ -209,9 +216,9 @@ class NoticeTests(HealthTestCase):
         notice = self.success(WB_ORDERS, integration=self.wb)
         with patch('shop.tasks.common.get_default_site', return_value=main), \
                 patch('shop.tasks.admin.notify_staff.delay') as post:
-            notify_integration_health.run([notice], False)
+            notify_health.run([notice], False)
         self.assertEqual(mail.outbox[0].to, ['main@shop.test'])
-        self.assertEqual(mail.outbox[0].subject, 'Интеграция восстановлена: Wildberries: получение новых заказов')
+        self.assertEqual(mail.outbox[0].subject, 'Восстановлено: Wildberries, получение новых заказов')
         self.assertIn('Не работала с', post.call_args.args[0])
 
 
@@ -220,20 +227,20 @@ class StaleTests(HealthTestCase):
         super().setUp()
         self.success()
         self.long_ago = timezone.now() - timedelta(hours=2)
-        IntegrationCheck.objects.update(last_success_at=self.long_ago)
+        HealthCheck.objects.update(last_success_at=self.long_ago)
 
     def test_indicator_shows_stale_operations_as_problems_without_the_command(self):
-        status = health.summary()
+        status = health.summary(health.INTEGRATIONS)
         self.assertEqual(status['level'], health.PROBLEM)
         self.assertTrue(status['problems'][0]['error'].startswith('Нет успешного обмена с'))
         # Operations that don't run on schedule never go stale
-        IntegrationCheck.objects.update(operation=STOCKS)
-        self.assertEqual(health.summary()['level'], health.OK)
+        HealthCheck.objects.update(operation=STOCKS)
+        self.assertEqual(health.summary(health.INTEGRATIONS)['level'], health.OK)
 
     def test_command_raises_once_and_notifies_without_celery(self):
         with patch('sewingworld.telegram.send_message') as post:
-            call_command('check_integrations', stdout=StringIO())
-            call_command('check_integrations', stdout=StringIO())
+            call_command('check_health', stdout=StringIO())
+            call_command('check_health', stdout=StringIO())
         self.queued.assert_not_called()
         post.assert_called_once()
         self.assertIn('Нет успешного обмена с', post.call_args.args[0])
@@ -246,26 +253,26 @@ class StaleTests(HealthTestCase):
 
     def test_command_leaves_problems_unraised_when_nothing_takes_the_notice(self):
         with patch('sewingworld.telegram.send_message', side_effect=OSError('down')), \
-                patch('shop.integration_health.send_mail', side_effect=OSError('down')), \
+                patch('shop.health.send_mail', side_effect=OSError('down')), \
                 self.assertLogs('shop', 'ERROR'):
             with self.assertRaises(CommandError):
-                call_command('check_integrations', stdout=StringIO())
+                call_command('check_health', stdout=StringIO())
         self.assertIsNone(self.check().raised_at)
 
     def test_dry_run_changes_and_sends_nothing(self):
         out = StringIO()
         with patch('sewingworld.telegram.send_message') as post:
-            call_command('check_integrations', '--dry-run', stdout=out)
+            call_command('check_health', '--dry-run', stdout=out)
         post.assert_not_called()
         self.assertIsNone(self.check().raised_at)
-        self.assertIn('Level: problem', out.getvalue())
+        self.assertIn('Интеграции: problem', out.getvalue())
 
 
 class TokenTests(HealthTestCase):
     def token_level(self, days):
         Integration.objects.filter(pk=self.wb.pk).update(settings={'api_key': jwt(timezone.now() + timedelta(days=days))})
         with patch('sewingworld.telegram.send_message'):
-            call_command('check_integrations', stdout=StringIO())
+            call_command('check_health', stdout=StringIO())
         check = self.check(health.TOKEN, self.wb)
         return health.level(check, timezone.now())
 
@@ -284,8 +291,127 @@ class TokenTests(HealthTestCase):
         self.assertIsNone(health.token_expiry('not-a-jwt'))
         self.assertIsNone(health.token_expiry('a.b.c'))
         with patch('sewingworld.telegram.send_message'):
-            call_command('check_integrations', stdout=StringIO())
-        self.assertFalse(IntegrationCheck.objects.filter(operation=health.TOKEN).exists())
+            call_command('check_health', stdout=StringIO())
+        self.assertFalse(HealthCheck.objects.filter(operation=health.TOKEN).exists())
+
+
+class QueueTests(HealthTestCase):
+    def setUp(self):
+        super().setUp()
+        # Notices without an integration go to the managers of the main site
+        main = Site.objects.get_current()
+        SiteProfile.objects.create(site=main, manager_emails='main@shop.test')
+        self.enterContext(patch('shop.tasks.common.get_default_site', return_value=main))
+
+    def run_check(self):
+        with patch('sewingworld.telegram.send_message') as post:
+            call_command('check_health', stdout=StringIO())
+        return post
+
+    def test_command_sends_a_heartbeat_through_each_queue(self):
+        self.run_check()
+        sent = {call.kwargs['queue']: call for call in self.published.call_args_list}
+        self.assertEqual(set(sent), set(health.QUEUES))
+        self.assertEqual(sent['priority'].args, (('priority',),))
+        self.assertEqual(sent['priority'].kwargs['expires'], 300)
+        self.assertFalse(sent['priority'].kwargs['retry'])
+        # Watched from the start, so that a queue that never takes one goes stale
+        self.assertEqual(HealthCheck.objects.filter(integration=None, operation__startswith='celery.').count(), 6)  # and the broker
+        self.assertEqual(health.summary(health.QUEUES_GROUP)['level'], health.OK)
+
+    def test_heartbeat_is_the_queue_success(self):
+        heartbeat.run('priority')
+        self.assertIsNotNone(HealthCheck.objects.get(integration=None, operation='celery.priority').last_success_at)
+
+    def test_a_queue_that_leaves_its_heartbeat_waiting_is_raised(self):
+        self.run_check()
+        HealthCheck.objects.filter(operation='celery.priority').update(created_at=timezone.now() - timedelta(minutes=6))
+        status = health.summary(health.QUEUES_GROUP)
+        self.assertEqual(status['level'], health.PROBLEM)
+        self.assertTrue(status['title'].startswith('очередь priority: Очередь не обработала проверочную задачу с'))
+
+        post = self.run_check()
+        self.assertIn('очередь priority', post.call_args.args[0])
+        self.assertEqual((mail.outbox[0].subject, mail.outbox[0].to), ('Сбой: очередь priority', ['main@shop.test']))
+
+        # The workers come back: recovery goes through Celery
+        with self.captureOnCommitCallbacks(execute=True):
+            heartbeat.run('priority')
+        self.queued.assert_called_once()
+        self.assertEqual(self.queued.call_args.args[0][0]['operation'], 'celery.priority')
+
+    def test_broker_that_takes_no_task_is_a_problem_at_once_and_its_return_is_told(self):
+        self.published.side_effect = OperationalError('Error 111 connecting to localhost:6379. Connection refused.')
+        post = self.run_check()
+        self.assertIn('брокер Celery (Redis)', post.call_args.args[0])
+        self.assertIn('Connection refused', HealthCheck.objects.get(operation=health.BROKER).error)
+
+        self.published.side_effect = None
+        post = self.run_check()
+        self.assertTrue(post.call_args.args[0].startswith('Восстановлено'))
+        self.assertEqual(health.level(HealthCheck.objects.get(operation=health.BROKER), timezone.now()), health.OK)
+
+    def test_beat_that_runs_nothing_for_a_while_is_a_problem(self):
+        schedule = IntervalSchedule.objects.create(every=5, period=IntervalSchedule.MINUTES)
+        task = PeriodicTask.objects.create(name='poll', task='ozon.tasks.get_unfulfilled_orders', interval=schedule,
+                                           last_run_at=timezone.now() - timedelta(minutes=20))
+        post = self.run_check()
+        self.assertIn('celery_beat остановлен', post.call_args.args[0])
+        task.last_run_at = timezone.now()
+        task.save()
+        post = self.run_check()
+        self.assertIn('запуск задач по расписанию', post.call_args.args[0])
+        self.assertTrue(post.call_args.args[0].startswith('Восстановлено'))
+
+    def test_a_check_that_stops_running_shows(self):
+        self.run_check()
+        HealthCheck.objects.filter(operation=health.MONITOR).update(last_success_at=timezone.now() - timedelta(minutes=20))
+        status = health.summary(health.QUEUES_GROUP)
+        self.assertEqual(status['level'], health.PROBLEM)
+        self.assertIn('Проверка состояния не запускалась', status['title'])
+
+    def test_heartbeat_has_no_task_result_rows(self):
+        create_task_result_on_publish(headers={'task': 'shop.tasks.heartbeat', 'id': 'h1', 'argsrepr': '', 'kwargsrepr': ''})
+        create_task_result_on_publish(headers={'task': 'shop.tasks.send_message', 'id': 't1', 'argsrepr': '', 'kwargsrepr': ''})
+        self.assertEqual(list(TaskResult.objects.values_list('task_id', flat=True)), ['t1'])
+        self.assertTrue(heartbeat.ignore_result)
+
+
+class SmsTests(HealthTestCase):
+    def setUp(self):
+        super().setUp()
+        self.enterContext(patch('sewingworld.sms.config', new=Mock(sw_sms_provider='smsru')))
+        self.client = self.enterContext(patch('sewingworld.sms.smsru.Client')).return_value
+
+    def send(self, code, descr='Сообщение принято к отправке'):
+        self.client.send.return_value = {'code': code, 'descr': descr, 'msg': '201-123'}
+        return sms.send_sms('+79161234567', 'Код для доступа на сайт: 1234')
+
+    def check(self):
+        return HealthCheck.objects.get(integration=None, operation=health.SMS)
+
+    def test_provider_failures_raise_and_count(self):
+        for _ in range(3):
+            with self.assertRaisesRegex(sms.SmsFailure, 'sms.ru 201: Не хватает средств'),                     self.captureOnCommitCallbacks(execute=True):
+                self.send(201, 'Не хватает средств на лицевом счету')
+        self.assertEqual((self.check().failures, self.check().error), (3, 'SmsFailure: sms.ru 201: Не хватает средств на лицевом счету'))
+        self.queued.assert_called_once()
+        self.assertEqual(health.summary(health.INTEGRATIONS)['problems'][0]['name'], 'отправка SMS')
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self.assertEqual(self.send(100)['code'], 100)
+        self.assertEqual(self.check().failures, 0)
+        self.assertEqual(self.queued.call_count, 2)  # restored
+
+    def test_errors_about_the_recipient_are_not_the_provider(self):
+        self.assertEqual(self.send(202, 'Неправильно указан получатель')['code'], 202)
+        self.assertEqual(self.check().failures, 0)
+
+    def test_connection_errors_count(self):
+        self.client.send.side_effect = URLError('timed out')
+        with self.assertRaises(URLError):
+            sms.send_sms('+79161234567', 'Текст')
+        self.assertEqual(self.check().error, 'Нет связи: timed out')
 
 
 @override_settings(ROOT_URLCONF=__name__)
@@ -307,29 +433,32 @@ class AdminTests(HealthTestCase):
         self.assertIn('monitoring', tabs['system'])
         self.assertEqual(tabs['system'][tabs['system'].index('errors') + 1], 'monitoring')
         shop = next(app for app in response.context_data['app_list'] if app['app_label'] == 'shop')
-        self.assertNotIn('IntegrationCheck', [model['object_name'] for model in shop['models']])
+        self.assertNotIn('HealthCheck', [model['object_name'] for model in shop['models']])
 
     def test_top_bar_shows_the_level_and_the_problems(self):
         for _ in range(3):
             self.failure(error='HTTP 401: Token expired')
         content = admin.site.index(self.request(self.superuser)).render().content.decode()
-        self.assertIn('id="integrations_status" title="Ozon, получение заказов: HTTP 401: Token expired"', content)
-        self.assertIn('class="sw-level" style="color: red"', content)
+        self.assertIn('id="health_integrations" data-group="integrations" title="Ozon, получение заказов: HTTP 401: Token expired"', content)
+        self.assertIn('class="sw-level" style="color: red">&#9670;</span> Интеграции', content)
+        self.assertIn('id="health_queues" data-group="queues" title="Очереди Celery в порядке"', content)
+        self.assertIn('?group=queues', content)
 
     def test_status_view_needs_the_view_permission(self):
-        model_admin = admin.site._registry[IntegrationCheck]
+        model_admin = admin.site._registry[HealthCheck]
         self.failure()
         response = model_admin.status_view(self.request(self.superuser))
-        self.assertEqual(json.loads(response.content)['level'], health.WARNING)
+        levels = {group: status['level'] for group, status in json.loads(response.content).items()}
+        self.assertEqual(levels, {health.INTEGRATIONS: health.WARNING, health.QUEUES_GROUP: health.OK})
 
         staff = ShopUser.objects.create(phone='+79990000001', is_staff=True)
         staff.is_verified = lambda: True
         content = admin.site.index(self.request(staff)).render().content.decode()
-        self.assertNotIn('id="integrations_status"', content)
+        self.assertNotIn('class="sw-health"', content)
         with self.assertRaises(PermissionDenied):
             model_admin.status_view(self.request(staff))
 
-        staff.user_permissions.add(Permission.objects.get(codename='view_integrationcheck'))
+        staff.user_permissions.add(Permission.objects.get(codename='view_healthcheck'))
         staff = ShopUser.objects.get(pk=staff.pk)
         staff.is_verified = lambda: True
         self.assertEqual(model_admin.status_view(self.request(staff)).status_code, 200)
@@ -337,7 +466,7 @@ class AdminTests(HealthTestCase):
     def test_reset_clears_a_check(self):
         for _ in range(3):
             self.failure()
-        model_admin = admin.site._registry[IntegrationCheck]
+        model_admin = admin.site._registry[HealthCheck]
         with patch.object(model_admin, 'message_user'):
-            model_admin.reset(self.request(self.superuser), IntegrationCheck.objects.all())
+            model_admin.reset(self.request(self.superuser), HealthCheck.objects.all())
         self.assertEqual(health.level(self.check(), timezone.now()), health.OK)

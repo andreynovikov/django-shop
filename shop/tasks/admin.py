@@ -11,7 +11,7 @@ import reviews
 from sewingworld.sms import send_sms
 from sewingworld.telegram import TelegramError, send_message
 
-from shop import integration_health
+from shop import health
 from shop.models import Order
 
 from .common import get_default_site
@@ -60,15 +60,15 @@ def notify_staff(self, text):
     return post_to_staff(self, text)
 
 
-@shared_task(name='shop.tasks.notify_integration_health', queue='priority', autoretry_for=(Exception,),
+@shared_task(name='shop.tasks.notify_health', queue='priority', autoretry_for=(Exception,),
              default_retry_delay=60, retry_backoff=True)
-def notify_integration_health(notices, raised):
+def notify_health(notices, raised):
     """
-    Tells the managers about integration problems that shop/integration_health.py raised, or about their end: by
-    mail to the managers of the channels, and in the staff channel through notify_staff, so that a Telegram failure
-    never repeats the mail
+    Tells the managers about problems that shop/health.py raised, or about their end: by mail to the managers of the
+    channels (of the main site for checks without an integration), and in the staff channel through notify_staff, so
+    that a Telegram failure never repeats the mail
     """
-    notice = integration_health.render_notice(notices, raised)
+    notice = health.render_notice(notices, raised)
     if notice.recipients:
         send_mail(notice.subject, notice.mail, config.sw_email_from, notice.recipients)
     notify_staff.delay(notice.telegram)

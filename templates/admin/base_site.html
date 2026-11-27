@@ -39,8 +39,8 @@
       #user-tools > span { display: inline }
     }
     #branding { order: 1 }
-    #quick-links, #order-quick-link, #stocks_status, #integrations_status { order: 2 }
-    #integrations_status a { color: inherit; text-decoration: none }
+    #quick-links, #order-quick-link, #stocks_status, .sw-health { order: 2 }
+    .sw-health a { color: inherit; text-decoration: none }
     #quick-links { text-transform: uppercase }
     #user-tools { order: 3 }
 
@@ -83,32 +83,38 @@
         xmlhttp.send();
     }
 
-    // The integrations' health, see shop/integration_health.py: its colour, and the problems in the title
-    function checkIntegrationsStatus(indicator) {
+    // The health of the integrations and of Celery, see shop/health.py: each group's colour, and its problems in
+    // the title
+    function checkHealthStatus(url) {
         var xmlhttp = new XMLHttpRequest();
         xmlhttp.onreadystatechange = function() {
             if (xmlhttp.readyState == 4) {
                 if (xmlhttp.status == 200) {
                     try {
-                        var status = JSON.parse(xmlhttp.responseText);
-                        indicator.querySelector('.sw-level').style.color = status.color;
-                        indicator.title = status.title;
+                        var groups = JSON.parse(xmlhttp.responseText);
+                        document.querySelectorAll('.sw-health').forEach(function(indicator) {
+                            var status = groups[indicator.dataset.group];
+                            if (status) {
+                                indicator.querySelector('.sw-level').style.color = status.color;
+                                indicator.title = status.title;
+                            }
+                        });
                     } catch(err) {
                         console.log(err.message + " in " + xmlhttp.responseText);
                     }
                 }
-                setTimeout(checkIntegrationsStatus, 20000, indicator);
+                setTimeout(checkHealthStatus, 20000, url);
             }
         };
-        xmlhttp.open("GET", indicator.dataset.url, true);
+        xmlhttp.open("GET", url, true);
         xmlhttp.send();
     }
 
     document.addEventListener('DOMContentLoaded', function(){
         setTimeout(check1CImportStatus, 20000);
-        var integrations = document.getElementById("integrations_status");
-        if (integrations) {
-            setTimeout(checkIntegrationsStatus, 20000, integrations);
+        var indicator = document.querySelector('.sw-health');
+        if (indicator) {
+            setTimeout(checkHealthStatus, 20000, indicator.dataset.url);
         }
     });
 </script>
@@ -136,14 +142,14 @@
     <span id="import1c_status" style="color: {% if copying_flag %}red{% elif running_flag %}gold{% else %}limegreen{% endif %}">&#9670;</span>
     Актуализация склада: {% last_1c_import %}
 </div>
-{# The integrations' exchange (shop/integration_health.py): red with a problem raised, gold after a failure, green #}
-{# when all is well. checkIntegrationsStatus() above refreshes it every 20 seconds. #}
-{% integrations_status as integrations %}
-{% if integrations %}
-<div id="integrations_status" title="{{ integrations.title }}" data-url="{% url 'admin:shop_integrationcheck_status' %}">
-    <a href="{% url 'admin:shop_integrationcheck_changelist' %}"><span class="sw-level" style="color: {{ integrations.color }}">&#9670;</span> Интеграции</a>
+{# The health of the integrations and of Celery's queues (shop/health.py): red with a problem raised, gold after a #}
+{# failure, green when all is well. checkHealthStatus() above refreshes them every 20 seconds. #}
+{% health_status as health %}
+{% for status in health %}
+<div class="sw-health" id="health_{{ status.group }}" data-group="{{ status.group }}" title="{{ status.title }}" data-url="{% url 'admin:shop_healthcheck_status' %}">
+    <a href="{% url 'admin:shop_healthcheck_changelist' %}?group={{ status.group }}"><span class="sw-level" style="color: {{ status.color }}">&#9670;</span> {{ status.name }}</a>
 </div>
-{% endif %}
+{% endfor %}
 {% endif %}
 {% endblock %}
 {% block welcome-msg %}

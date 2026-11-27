@@ -1,8 +1,8 @@
-{% autoescape off %}{% if raised %}Сбой интеграций{% else %}Интеграции восстановлены{% endif %}
+{% autoescape off %}{% if raised %}Сбой{% else %}Восстановлено{% endif %}
 {% for item in items %}
-{{ item.integration.name }} ({{ item.integration.utm_source }}, {{ item.integration.target_site.domain }}): {{ item.label }}
+{% if item.integration %}{{ item.integration.name }} ({{ item.integration.utm_source }}, {{ item.integration.target_site.domain }}): {% endif %}{{ item.label }}
 {% if raised %}{% if item.since %}С {{ item.since|date:"d.m.Y H:i" }}{% if item.failures %}, сбоев подряд: {{ item.failures }}{% endif %}
 {% endif %}{{ item.error|truncatechars:500 }}
 {% else %}{% if item.since %}Не работала с {{ item.since|date:"d.m.Y H:i" }} до {{ now|date:"d.m.Y H:i" }}
 {% endif %}{% endif %}{% endfor %}
-https://admin.sewing-world.ru/admin/shop/integrationcheck/{% endautoescape %}
+https://admin.sewing-world.ru/admin/shop/healthcheck/{% endautoescape %}

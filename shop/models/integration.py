@@ -4,7 +4,7 @@ from django.db import models
 from . import Product, Supplier, Contractor
 
 __all__ = [
-    'Integration', 'ProductIntegration', 'IntegrationCheck'
+    'Integration', 'ProductIntegration', 'HealthCheck'
 ]
 
 
@@ -75,14 +75,16 @@ class ProductIntegration(models.Model):
         unique_together = ('product', 'integration')
 
 
-class IntegrationCheck(models.Model):
+class HealthCheck(models.Model):
     """
-    The health of one operation of an integration, such as polling its orders, kept by shop/integration_health.py.
-    failures counts the failed attempts since the last success, raised_at is set when they became a problem that the
-    managers were told about. Both clear on the next success.
+    The health of an operation that the shop depends on, kept by shop/health.py: one of an integration, such as
+    polling its orders, or one without, such as sending SMS or a Celery queue. failures counts the failed attempts
+    since the last success, raised_at is set when they became a problem that the managers were told about. Both clear
+    on the next success.
     """
-    integration = models.ForeignKey(Integration, verbose_name='интеграция', related_name='checks', on_delete=models.CASCADE)
-    # A Celery task name, or a check of its own, such as integration_health.TOKEN
+    integration = models.ForeignKey(Integration, verbose_name='интеграция', related_name='checks', null=True, blank=True,
+                                    on_delete=models.CASCADE)
+    # A Celery task name, or a check of its own, such as health.TOKEN or health.BEAT
     operation = models.CharField('операция', max_length=100)
     failures = models.PositiveIntegerField('сбоев подряд', default=0)
     error = models.TextField('ошибка', blank=True)
@@ -93,11 +95,11 @@ class IntegrationCheck(models.Model):
     raised_at = models.DateTimeField('проблема с', null=True, blank=True)
 
     class Meta:
-        verbose_name = 'состояние интеграции'
-        verbose_name_plural = 'состояние интеграций'
+        verbose_name = 'проверка состояния'
+        verbose_name_plural = 'состояние'
         ordering = ['integration__name', 'operation']
-        constraints = [models.UniqueConstraint(fields=['integration', 'operation'], name='shop_integrationcheck_unique')]
+        constraints = [models.UniqueConstraint(fields=['integration', 'operation'], nulls_distinct=False, name='shop_healthcheck_unique')]
 
     def __str__(self):
-        from shop.integration_health import label
-        return f'{self.integration}: {label(self.operation)}'
+        from shop.health import name
+        return name(self)
