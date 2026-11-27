@@ -240,7 +240,7 @@
 {% block submit_buttons_top %}
 {% if original.pk and not order_lock.held %}{% with holder=original.lock_holder %}{% if holder or has_change_permission %}<div class="submit-row" style="display: flex; align-items: center; text-align: left; background: #ffdfdf">
     <div style="color: #ba2121; font-weight: bold">{% if holder %}Заказ редактирует: {{ holder }}{% else %}Заказ не заблокирован этой страницей, обновите её для редактирования{% endif %}</div>
-    {% if has_change_permission %}<button type="submit" form="order-take-over" style="margin-left: auto; text-transform: uppercase; background: #ba2121" onclick="return confirm('Снять блокировку заказа? Несохранённые изменения на странице, где его редактируют, будут потеряны.')">Разблокировать</button>{% endif %}
+    {% if has_change_permission %}<input type="submit" form="order-take-over" value="Разблокировать" style="margin-left: auto; text-transform: uppercase; background: #ba2121" onclick="return confirm('Снять блокировку заказа? Несохранённые изменения на странице, где его редактируют, будут потеряны.')">{% endif %}
     </div>{% endif %}{% endwith %}{% endif %}
 {% if not original.pk or order_lock.held %}{% submit_row %}{% endif %}
 {% endblock %}
