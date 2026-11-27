@@ -33,6 +33,13 @@ class SWAutocompleteJsonView(AutocompleteJsonView):
 class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
     site_header = "Швейный Мир"
     site_title = "Административный сайт Швейный Мир"
+    # Tabs of the index page (templates/admin/index.html) with the app labels they list, in get_app_list() order.
+    # The last one, without labels, takes the apps the others leave.
+    index_tabs = (
+        ('shop', 'Магазин', ('shop', 'sewingworld', 'django_comments', 'blog')),
+        ('access', 'Доступ', ('auth', 'phonenumber', 'otp_static', 'otp_totp', 'authtoken')),
+        ('system', 'Служебное', None),
+    )
 
     def autocomplete_view(self, request):
         return SWAutocompleteJsonView.as_view(admin_site=self)(request)
@@ -47,9 +54,23 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
         ] + urls
         return urls
 
+    def index(self, request, extra_context=None):
+        response = super().index(request, extra_context)
+        app_list = response.context_data['app_list']
+        placed = {label for _, _, labels in self.index_tabs if labels for label in labels}
+        tabs = []
+        for tab_id, name, labels in self.index_tabs:
+            apps = [app for app in app_list if app['app_label'] in labels] if labels else \
+                [app for app in app_list if app['app_label'] not in placed]
+            if apps:
+                tabs.append({'id': tab_id, 'name': name, 'apps': apps})
+        response.context_data['tabs'] = tabs
+        return response
+
     def get_app_list(self, request, app_label=None):
-        # The shop goes first, then a "Швейный Мир" group with the constance settings, flat pages, file manager
-        # and sites. The OTP models join "Two Factor Authentication", and the shop's users are listed under auth too.
+        # The shop goes first, with the flat pages and the file manager, then a "Швейный Мир" group with the constance
+        # settings and sites. The OTP models join "Two Factor Authentication", and the shop's users are listed under
+        # auth too.
         apps = super().get_app_list(request, app_label)
 
         shop = next((index for (index, app) in enumerate(apps) if app['app_label'] == 'shop'), None)
@@ -92,23 +113,24 @@ class SWAdminSite(AdminSiteOTPRequired):  # admin.AdminSite):
             if user is not None:
                 apps[auth]['models'].append(apps[shop]['models'][user])
 
+        if shop is not None:
+            for other in (flatpages, filemanager):
+                if other is not None:
+                    apps[shop]['models'].extend(apps[other]['models'])
+                    indexes.append(other)
+            apps[shop]['models'].sort(key=lambda model: model['name'])  # as Django sorts them
+
         if sewingworld is not None:
             if constance is not None:
                 apps[sewingworld]['models'].extend(apps[constance]['models'])
                 indexes.append(constance)
-            if flatpages is not None:
-                apps[sewingworld]['models'].extend(apps[flatpages]['models'])
-                indexes.append(flatpages)
-            if filemanager is not None:
-                apps[sewingworld]['models'].extend(apps[filemanager]['models'])
-                indexes.append(filemanager)
             if sites is not None:
                 apps[sewingworld]['models'].extend(apps[sites]['models'])
                 indexes.append(sites)
 
         for i in sorted(indexes, reverse=True):
             del apps[i]
-        return apps
+        return [app for app in apps if app['models']]  # "Швейный Мир" is empty for staff without its models
 
 
 """

@@ -1,0 +1,65 @@
+{% extends "admin/index.html" %}
+{% load i18n static log admin_filters %}
+{# Django's index with the apps in tabs (SWAdminSite.index_tabs) across the whole width, and recent actions in a dropdown #}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin-index.css' %}">{% endblock %}
+
+{% block coltype %}colM{% endblock %}
+
+{% block content %}
+<div id="content-main" class="app-list">
+  <div class="sw-index-bar">
+    {% if tabs|length > 1 %}
+    <div class="sw-tabs" role="tablist" aria-label="Разделы">
+      {% for tab in tabs %}
+      <button type="button" role="tab" id="tab-{{ tab.id }}" data-tab="{{ tab.id }}" aria-controls="panel-{{ tab.id }}"
+              aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"{% if not forloop.first %} tabindex="-1"{% endif %}>{{ tab.name }}</button>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <details class="sw-recent">
+      <summary title="{% translate 'Recent actions' %}">
+        <i class="ti ti-history" aria-hidden="true"></i><span class="sw-recent-label">{% translate 'Recent actions' %}</span>
+        <i class="ti ti-chevron-down" aria-hidden="true"></i>
+      </summary>
+      <div class="sw-recent-panel" id="recent-actions-module">
+        <h3>{% translate 'My actions' %}</h3>
+        {% get_admin_log 10 as admin_log for_user user %}
+        {% if not admin_log %}
+        <p>{% translate 'None available' %}</p>
+        {% else %}
+        <ul class="actionlist">
+        {% for entry in admin_log %}
+        <li class="{% if entry.is_addition %}addlink{% endif %}{% if entry.is_change %}changelink{% endif %}{% if entry.is_deletion %}deletelink{% endif %}">
+            <span class="visually-hidden">{% if entry.is_addition %}{% translate 'Added:' %}{% elif entry.is_change %}{% translate 'Changed:' %}{% elif entry.is_deletion %}{% translate 'Deleted:' %}{% endif %}</span>
+            {% if entry.is_deletion or not entry.get_admin_url %}
+                {{ entry.object_repr|to_object_display_value }}
+            {% else %}
+                <a href="{{ entry.get_admin_url }}">{{ entry.object_repr|to_object_display_value }}</a>
+            {% endif %}
+            <br>
+            {% if entry.content_type %}
+                <span class="mini quiet">{% filter capfirst %}{{ entry.content_type.name }}{% endfilter %}</span>
+            {% else %}
+                <span class="mini quiet">{% translate 'Unknown content' %}</span>
+            {% endif %}
+        </li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+    </details>
+  </div>
+  {% for tab in tabs %}
+  <div class="sw-tab-panel" role="tabpanel" id="panel-{{ tab.id }}"{% if tabs|length > 1 %} aria-labelledby="tab-{{ tab.id }}"{% endif %}{% if not forloop.first %} hidden{% endif %}>
+    {% include "admin/app_list.html" with app_list=tab.apps show_changelinks=True %}
+  </div>
+  {% empty %}
+  {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+  {% endfor %}
+  {# Not deferred: it opens the remembered tab before the page is shown #}
+  <script src="{% static 'js/admin-index.js' %}"></script>
+</div>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}
