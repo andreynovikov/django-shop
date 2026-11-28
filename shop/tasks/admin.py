@@ -1,8 +1,12 @@
+from datetime import timedelta
+
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
+from django.utils import timezone
 
 from celery import shared_task
+from celery.utils.time import get_exponential_backoff_interval, maybe_iso8601, maybe_make_aware
 
 from constance import config
 
@@ -43,18 +47,35 @@ def notify_manager(order_id):
     )
 
 
+# Telegram is not always reachable from the server: staff notices are retried until they are two days old, then they
+# are outdated. A notice that waited in the queue as long expires unsent.
+TELEGRAM_RETRY_FOR = timedelta(days=2)
+TELEGRAM_BACKOFF = 60  # seconds before the first retry, doubled for each next one
+TELEGRAM_BACKOFF_MAX = 1800  # seconds between retries at most
+TELEGRAM_TASK = {'bind': True, 'queue': 'priority', 'max_retries': None,
+                 'expires': int(TELEGRAM_RETRY_FOR.total_seconds())}
+
+
 def post_to_staff(task, text):
-    """ Posts to the staff channel, retrying as late as Telegram asks when it limits the rate """
+    """
+    Posts to the staff channel. A failed post is retried with backoff, or as late as Telegram asks when it limits the
+    rate, while the retry comes before the task expires; after that the TelegramError fails the task.
+    """
     try:
         return send_message(text)
     except TelegramError as e:
-        if e.retry_after:
-            raise task.retry(exc=e, countdown=e.retry_after)
-        raise
+        countdown = e.retry_after or get_exponential_backoff_interval(TELEGRAM_BACKOFF, task.request.retries,
+                                                                      TELEGRAM_BACKOFF_MAX)
+        if task.request.expires:
+            expires = maybe_make_aware(maybe_iso8601(task.request.expires))
+        else:  # queued before the tasks expired, or run without a worker
+            expires = timezone.now() + TELEGRAM_RETRY_FOR
+        if timezone.now() + timedelta(seconds=countdown) >= expires:
+            raise
+        raise task.retry(exc=e, countdown=countdown, expires=expires)
 
 
-@shared_task(name='shop.tasks.notify_staff', bind=True, queue='priority', autoretry_for=(TelegramError,),
-             max_retries=8, retry_backoff=True)
+@shared_task(name='shop.tasks.notify_staff', **TELEGRAM_TASK)
 def notify_staff(self, text):
     """ Posts the text to the staff channel in Telegram """
     return post_to_staff(self, text)
@@ -74,8 +95,7 @@ def notify_health(notices, raised):
     notify_staff.delay(notice.telegram)
 
 
-@shared_task(name='shop.tasks.notify_manager_telegram', bind=True, queue='priority', autoretry_for=(TelegramError,),
-             max_retries=8, retry_backoff=True)
+@shared_task(name='shop.tasks.notify_manager_telegram', **TELEGRAM_TASK)
 def notify_manager_telegram(self, order_id):
     """ Posts a new order to the staff channel: its number, site (unless the main one), total and admin link """
     order = Order.objects.select_related('site').get(id=order_id)

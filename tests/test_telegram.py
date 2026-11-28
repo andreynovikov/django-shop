@@ -80,12 +80,51 @@ class SendMessageTests(SimpleTestCase):
 
 
 class NotifyStaffTests(SimpleTestCase):
-    def test_rate_limit_retries_as_late_as_telegram_asks(self):
-        with mock.patch('shop.tasks.admin.send_message', side_effect=TelegramError('Too Many Requests', 15)), \
+    def post(self, error, retries=0, expires=None):
+        """ Runs notify_staff as its retries'th retry with the post failing, returns the countdown of the retry """
+        notify_staff.push_request(retries=retries, expires=expires)
+        self.addCleanup(notify_staff.pop_request)
+        with mock.patch('shop.tasks.admin.send_message', side_effect=error), \
                 mock.patch.object(notify_staff, 'retry', side_effect=RuntimeError) as retry:
             with self.assertRaises(RuntimeError):
                 notify_staff.run('Импорт')
-        self.assertEqual(retry.call_args.kwargs['countdown'], 15)
+        return retry.call_args.kwargs
+
+    def test_rate_limit_retries_as_late_as_telegram_asks(self):
+        self.assertEqual(self.post(TelegramError('Too Many Requests', 15))['countdown'], 15)
+
+    def test_failures_are_retried_with_growing_intervals_up_to_half_an_hour(self):
+        error = TelegramError('Telegram: ConnectionError')
+        self.assertEqual([self.post(error, retries)['countdown'] for retries in (0, 1, 2, 3, 4, 5, 6, 100)],
+                         [60, 120, 240, 480, 960, 1800, 1800, 1800])
+
+    def test_notices_expire_in_two_days_and_are_retried_without_a_count(self):
+        for task in (notify_staff, notify_manager_telegram):
+            with self.subTest(task.name), mock.patch.object(task.app, 'send_task') as send_task:
+                task.delay(1)
+                self.assertEqual(send_task.call_args.kwargs['expires'], 2 * 24 * 3600)
+                self.assertIsNone(task.max_retries)
+
+    def test_retry_keeps_the_expiry_of_the_notice(self):
+        expires = timezone.now() + timedelta(hours=5)
+        self.assertEqual(self.post(TelegramError('Bad Gateway'), 3, expires.isoformat())['expires'], expires)
+
+    def test_notice_queued_without_an_expiry_gets_one_on_its_retry(self):
+        expires = self.post(TelegramError('Bad Gateway'))['expires']
+        self.assertAlmostEqual(expires, timezone.now() + timedelta(days=2), delta=timedelta(minutes=1))
+
+    def test_outdated_notice_fails_instead_of_a_retry_after_its_expiry(self):
+        expires = (timezone.now() + timedelta(minutes=10)).isoformat()
+        for error in (TelegramError('Bad Gateway'), TelegramError('Too Many Requests', 900)):
+            with self.subTest(error.retry_after):
+                notify_staff.push_request(retries=5, expires=expires)
+                self.addCleanup(notify_staff.pop_request)
+                with mock.patch('shop.tasks.admin.send_message', side_effect=error), \
+                        mock.patch.object(notify_staff, 'retry') as retry:
+                    with self.assertRaises(TelegramError):
+                        notify_staff.run('Импорт')
+                retry.assert_not_called()
+        self.assertEqual(self.post(TelegramError('Too Many Requests', 60), 5, expires)['countdown'], 60)
 
 
 class OrderNoticeTests(TestCase):
