@@ -186,7 +186,7 @@ def bundle_yandex_market(source, operations):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('marketplace', choices=(*SOURCES, *YANDEX_OPERATIONS))
-    parser.add_argument('source', type=Path, help='Local schema file or a checkout of the Yandex Market API repository')
+    parser.add_argument('source', type=Path, help='Local schema file or a checkout of the Yandex.Market API repository')
     parser.add_argument('--source-url', help='Actual download URL if the source came from a mirror')
     args = parser.parse_args()
     destination = Path(__file__).with_name(f'{args.marketplace}.json')

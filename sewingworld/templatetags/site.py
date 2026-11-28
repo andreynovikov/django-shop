@@ -189,7 +189,7 @@ def from_months(value):
 
 @register.filter
 def ya_days(value):
-    """ Months as an ISO 8601 duration, P1Y6M, as the Yandex Market feed takes warranty and service life """
+    """ Months as an ISO 8601 duration, P1Y6M, as the Yandex.Market feed takes warranty and service life """
     years = int(value / 12)
     months = value % 12
     result = ['P']

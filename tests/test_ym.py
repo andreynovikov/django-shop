@@ -1,5 +1,5 @@
 """
-Yandex Market (beru): orders polled and pushed by notifications, their statuses and boxes. urlopen is mocked with
+Yandex.Market (ym): orders polled and pushed by notifications, their statuses and boxes. urlopen is mocked with
 the operations of the bundled API schemas in tests/data/marketplaces, so nothing reaches the marketplace. See
 settings.py on how to run.
 """
@@ -8,12 +8,13 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.sites.models import Site
-from django.test import Client, TestCase
+from django.test import Client, SimpleTestCase, TestCase
 from django.urls import reverse
 from kombu.exceptions import OperationalError
 from openapi_schema_validator import OAS30ReadValidator, OAS30WriteValidator
 
-from beru.tasks import MarketUnavailable, TaskFailure, get_integration_orders, get_orders, notify_beru_order_status, sync_integration_order
+from ym.tasks import LEGACY_TASKS, MarketUnavailable, TaskFailure, get_integration_orders, get_orders, notify_order_status, sync_integration_order
+from sewingworld.celery import app
 from sewingworld.models import SiteProfile
 from shop.models import Basket, Box, Contractor, Integration, Order, ShopUser
 
@@ -66,13 +67,23 @@ def ready_response():
     }}
 
 
-class BeruOrderTests(TestCase):
+class LegacyTaskTests(SimpleTestCase):
+    def test_tasks_queued_under_the_beru_names_go_on_under_the_new_ones(self):
+        self.assertEqual(len(LEGACY_TASKS), 7)
+        for name, task in LEGACY_TASKS.items():
+            with self.subTest(name), patch.object(task, 'apply_async') as apply_async:
+                app.tasks[name].run(5, 'PROCESSING', target_site_id=1)
+                apply_async.assert_called_once_with((5, 'PROCESSING'), {'target_site_id': 1})
+                self.assertTrue(task.name.startswith('ym.tasks.'))
+
+
+class YandexMarketOrderTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         add_marketplace_sites()  # Saving order items may mark marketplace stock for notification.
         site = Site.objects.create(domain='market.yandex.ru', name='Яндекс Маркет')
         SiteProfile.objects.create(site=site)
-        seller = Contractor.objects.create(code='beru-seller', name='Продавец')
+        seller = Contractor.objects.create(code='ym-seller', name='Продавец')
         cls.integration = Integration.objects.create(
             name='Яндекс Маркет', utm_source='beru', source_site=site, target_site=Site.objects.get_current(),
             uses_api=True, uses_boxes=True, enabled=True, seller=seller, settings={'ym_campaign': '123', 'api_key': 'test-api-key'},
@@ -82,7 +93,7 @@ class BeruOrderTests(TestCase):
 
     def setUp(self):
         self.market = OpenAPIMock(self, {'Api-Key': 'test-api-key'})
-        self.enterContext(patch('beru.tasks.urlopen', side_effect=self.market))
+        self.enterContext(patch('ym.tasks.urlopen', side_effect=self.market))
 
     def expect(self, path, method, response, **kwargs):
         params = {'campaignId': 123, 'businessId': 456, 'orderId': 789}
@@ -112,7 +123,7 @@ class BeruOrderTests(TestCase):
         )
 
     def send_ready(self, order):
-        return notify_beru_order_status.run(order.pk, READY_TO_SHIP['status'], READY_TO_SHIP['substatus'])
+        return notify_order_status.run(order.pk, READY_TO_SHIP['status'], READY_TO_SHIP['substatus'])
 
     def pack_order(self):
         order = self.local_order(status=Order.STATUS_COLLECTED)
@@ -169,11 +180,11 @@ class BeruOrderTests(TestCase):
     def test_notification_retries_when_polling_holds_the_import_lock(self):
         self.integration.settings['push_token'] = 'test-push-token'
         self.integration.save(update_fields=['settings'])
-        with patch('beru.tasks.Lock') as lock, patch.object(sync_integration_order, 'retry', side_effect=lambda *, exc, **kw: exc) as retry:
+        with patch('ym.tasks.Lock') as lock, patch.object(sync_integration_order, 'retry', side_effect=lambda *, exc, **kw: exc) as retry:
             lock.return_value.locked = False
             with self.assertRaises(MarketUnavailable):
                 sync_integration_order.run(self.integration.pk, 123, 789)
-        lock.assert_called_once_with('beru.get_integration_orders', self.integration.pk)
+        lock.assert_called_once_with('ym.get_integration_orders', self.integration.pk)
         retry.assert_called_once()
 
     def test_paginates_and_imports_valid_lines_with_discounts_and_an_alert(self):
@@ -197,7 +208,7 @@ class BeruOrderTests(TestCase):
             market_order(792, fake=True),
             market_order(793, programType='EXPRESS'),
         ], AWAITING_PACKING, token='page/+2')
-        with self.assertLogs('beru', 'WARNING'):
+        with self.assertLogs('ym', 'WARNING'):
             self.assertEqual(self.poll(), 2)
 
         order = Order.objects.get(integration=self.integration, delivery_tracking_number='789')
@@ -229,7 +240,7 @@ class BeruOrderTests(TestCase):
                 self.expect_campaign()
                 self.expect_orders([market_order(status=status, substatus=substatus)], {'orderIds': [789]})
                 self.expect_orders([], AWAITING_PACKING)
-                with patch.object(notify_beru_order_status, 'delay') as outbound, self.captureOnCommitCallbacks(execute=True):
+                with patch.object(notify_order_status, 'delay') as outbound, self.captureOnCommitCallbacks(execute=True):
                     self.assertEqual(self.poll(), 1)
                 outbound.assert_not_called()
                 order.refresh_from_db()
@@ -342,10 +353,10 @@ class BeruOrderTests(TestCase):
         self.assertNotIn('raw details', order.delivery_info)
 
     def test_ignores_queued_shipped_calls(self):
-        self.assertIsNone(notify_beru_order_status.run(42, 'PROCESSING', 'SHIPPED'))
+        self.assertIsNone(notify_order_status.run(42, 'PROCESSING', 'SHIPPED'))
 
 
-class BeruNotificationTests(TestCase):
+class YandexMarketNotificationTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.integration = Integration.objects.create(
@@ -356,11 +367,11 @@ class BeruNotificationTests(TestCase):
 
     def setUp(self):
         self.client = Client(enforce_csrf_checks=True)
-        self.publish = self.enterContext(patch('beru.views.sync_integration_order.apply_async'))
+        self.publish = self.enterContext(patch('ym.views.sync_integration_order.apply_async'))
 
-    # The default sender is in MARKET_NETWORKS of beru/views.py, the addresses the market notifies from
+    # The default sender is in MARKET_NETWORKS of ym/views.py, the addresses the market notifies from
     def notify(self, payload, *, token='test-push-token', sender='5.45.207.42', **headers):
-        url = reverse('beru-notification', args=[self.integration.pk], query={'token': token})
+        url = reverse('ym-notification', args=[self.integration.pk], query={'token': token})
         return self.client.post(url, payload, content_type='application/json', REMOTE_ADDR=sender, **headers)
 
     def assert_contract_response(self, response, status):
@@ -375,9 +386,9 @@ class BeruNotificationTests(TestCase):
 
     def test_ping_returns_the_market_connection_check_response(self):
         now = datetime(2026, 11, 25, 12, tzinfo=UTC)
-        self.assertEqual(reverse('beru-notification', args=[self.integration.pk]),
-                         f'/integrations/beru/{self.integration.pk}/notification')
-        with patch('beru.views.timezone.now', return_value=now):
+        self.assertEqual(reverse('ym-notification', args=[self.integration.pk]),
+                         f'/integrations/ym/{self.integration.pk}/notification')
+        with patch('ym.views.timezone.now', return_value=now):
             response = self.notify_valid({'notificationType': 'PING', 'time': NOTIFICATION_TIME})
         self.assertEqual(response.json(), {'version': '1.0', 'name': 'Sewing World', 'time': NOTIFICATION_TIME})
         self.publish.assert_not_called()
@@ -417,7 +428,7 @@ class BeruNotificationTests(TestCase):
 
     def test_returns_market_error_when_broker_is_unavailable(self):
         self.publish.side_effect = OperationalError
-        with self.assertLogs('beru', 'ERROR'):
+        with self.assertLogs('ym', 'ERROR'):
             response = self.notify_valid({
                 'notificationType': 'ORDER_CANCELLED', 'campaignId': 123, 'orderId': 789,
                 'items': [], 'cancelledAt': NOTIFICATION_TIME,

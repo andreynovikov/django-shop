@@ -9,7 +9,7 @@ from django.contrib.sites.models import Site
 from django.db import transaction
 from django.test import TestCase
 
-from beru.tasks import notify_beru_order_status
+from ym.tasks import notify_order_status
 from shop.models import Box, Integration, Order, ShopUser
 from shop.tasks.user_interaction import notify_user_order_collected
 
@@ -38,7 +38,7 @@ class OrderStatusTests(TestCase):
         order = self.order(integration=integration)
         order.items.create(product=add_product(1), product_price=1000, quantity=1)
         boxes_seen = []  # of the items, when the task is queued
-        with mock.patch.object(notify_beru_order_status, 'delay',
+        with mock.patch.object(notify_order_status, 'delay',
                                side_effect=lambda *args: boxes_seen.append([item.box_id for item in order.items.all()])) as delay:
             with self.captureOnCommitCallbacks(execute=True):
                 order.status = Order.STATUS_COLLECTED

@@ -2,10 +2,10 @@
 <head>
     <style type="text/css">
         body {max-width:190mm}
-        .beru_act tr td {border:1px solid black;padding:3pt;}
-        .beru_act {width:100%;border-collapse:collapse}
-        .beru_signature tr td {padding:10pt;width:50%;vertical-align:top;}
-        .beru_signature {width:100%}
+        .ym_act tr td {border:1px solid black;padding:3pt;}
+        .ym_act {width:100%;border-collapse:collapse}
+        .ym_signature tr td {padding:10pt;width:50%;vertical-align:top;}
+        .ym_signature {width:100%}
 </style>
 </head>
 <body>
@@ -15,12 +15,12 @@
 <h1>Акт приема-передачи Отправлений {{ act.number }}</h1>
 <p>{{ act.created }}</p>
 
-<p>Заказчик: {{ owner_info.beru_seller }}</p>
+<p>Заказчик: {{ owner_info.ym_seller }}</p>
 
-<p>Исполнитель (Доставщик): {{ beru_delivery }}</p>
+<p>Исполнитель (Доставщик): {{ ym_delivery }}</p>
 
 <p>Настоящий акт составлен о том, что в указанную выше дату (дата приема Отправлений) Отправитель передал, а Исполнитель (Доставщик) принял следующие Отправления:</p>
-<table class="beru_act">
+<table class="ym_act">
 <tr style="background:#eeeeee">
 <td>№</td>
 <td>№ Отправления в системе Заказчика</td>
@@ -40,7 +40,7 @@
 </tr>
 {% endfor %}
 </table>
-<table class="beru_signature">
+<table class="ym_signature">
 <tr>
 <td>
 <p>Отправления передал (Заказчик):</p>

@@ -9,7 +9,7 @@
 - `shop/` holds the domain. Models/admins are split into `shop/models/` and `shop/admin/`; export new models through `shop/models/__init__.py` and its `__all__`. Keep order-admin logic in `order_supply.py`, `order_shipping.py` and `order_editing.py`, and list filters in `order_filters.py`. The user model is `shop.ShopUser`.
 - `DJANGO_SETTINGS_MODULE=sewingworld.settings` is a package: `__init__.py` reads the environment and star-imports the topic modules (`apps`, `celery`, `constance`, `middleware`, `shop`, `integrations`, `logging`, …); add settings to the matching topic module. `ADMIN=True` loads `.env.admin` over `.env` and selects the 2FA admin (`two_factor`, `massadmin`, `loginas`); otherwise serve the public API at `/api/v0/` and payment/document endpoints. API and admin are separate uWSGI apps sharing the code.
 - `blog` and `forum` are content apps. Forum models use legacy tables with `managed = False`; do not create migrations to manage those tables.
-- Integrations include `beru` (Yandex Market), `ozon`, `wb`, `sber`, `yandex_kassa`, `yandex_delivery` and `rarus`. `unisender` and `mptt_urls` are helpers, not installed apps. The bonus program and its 1C bonus import are retired despite remaining code/fields; the 1C stock/price import is still active.
+- Integrations include `ym` (Yandex.Market), `ozon`, `wb`, `sber`, `yandex_kassa` and `rarus`; their callbacks are served under `/integrations/<app>/`, and the former `/ozon/` and `/sber/` stay until the marketplaces have the new addresses. `unisender` and `mptt_urls` are helpers, not installed apps. The bonus program and its 1C bonus import are retired despite remaining code/fields; the 1C stock/price import is still active.
 
 ## Dependencies and setup
 

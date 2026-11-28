@@ -14,6 +14,7 @@ from django.db import connection
 from django.http import HttpResponse
 from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.test.utils import CaptureQueriesContext
+from django.urls import resolve
 
 from sber import tasks, views
 from shop.models import Order, ShopUser
@@ -44,6 +45,14 @@ class AuthRequiredTests(SimpleTestCase):
             self.assertEqual(self.call(basic('sber', 'wrong')).status_code, 403)
             self.assertEqual(self.call(basic('сбер', 'secret')).status_code, 403)
             self.assertEqual(self.call(basic('', '')).status_code, 403)
+
+
+class UrlTests(SimpleTestCase):
+    def test_both_url_prefixes_lead_to_the_views(self):
+        for prefix in ('/integrations/sber/', '/sber/'):
+            for path, view in (('order/new', views.new_order), ('order/cancel', views.cancel_order)):
+                with self.subTest(path=prefix + path):
+                    self.assertIs(resolve(prefix + path).func, view)
 
 
 class OrderTaskTests(TestCase):

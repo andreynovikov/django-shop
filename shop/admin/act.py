@@ -51,6 +51,6 @@ class ActAdmin(admin.ModelAdmin):
         context['is_popup'] = request.GET.get('_popup', 0)
         context['act'] = act
         context['owner_info'] = getattr(settings, 'SHOP_OWNER_INFO', {})
-        context['beru_delivery'] = config.sw_beru_delivery
+        context['ym_delivery'] = config.sw_ym_delivery
 
         return TemplateResponse(request, 'shop/act/document.html', context)

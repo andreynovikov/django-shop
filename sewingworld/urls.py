@@ -57,10 +57,14 @@ else:
         path('stock_avito.csv', views.stock, name='stock'),
         # /shop/*
         path('shop/', include('shop.urls')),
+        # Former addresses of the integrations' callbacks, kept until the marketplaces have the new ones. They come
+        # before the new ones, as reverse() takes the last pattern of a name.
         path('ozon/', include('ozon.urls')),
-        path('integrations/ozon/', include('ozon.urls')),
-        path('integrations/beru/', include('beru.urls')),
         path('sber/', include('sber.urls')),
+        # Callbacks of the integrations
+        path('integrations/ozon/', include('ozon.urls')),
+        path('integrations/ym/', include('ym.urls')),
+        path('integrations/sber/', include('sber.urls')),
         path('kassa/', include('yandex_kassa.urls')),
 
         path('', include('django_prometheus.urls')),

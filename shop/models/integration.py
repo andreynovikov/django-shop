@@ -30,7 +30,7 @@ class Integration(models.Model):
     output_with_images = models.BooleanField('выгражать только с картинками', default=False)
     output_stock = models.BooleanField('выгражать остатки', default=False)
     output_skip_categories = models.BooleanField('не выгражать категории', default=False)
-    # The channel places and tracks its orders through its own API (beru, ozon, wb...): staff can't add, remove or
+    # The channel places and tracks its orders through its own API (Yandex.Market, Ozon, WB...): staff can't add, remove or
     # change the quantities of their items, and the orders send nothing to customers
     uses_api = models.BooleanField('использует API', default=False)
     uses_boxes = models.BooleanField('использует коробки', default=False)

@@ -156,18 +156,6 @@ class Order(models.Model):
         STATUS_DONE: 'gray',
         STATUS_FINISHED: 'gray',
     }
-    PICKPOINT_SERVICE_STD = 'STD'
-    PICKPOINT_SERVICE_STDCOD = 'STDCOD'
-    PICKPOINT_SERVICES = (
-        (PICKPOINT_SERVICE_STD, 'предоплаченный товар'),
-        (PICKPOINT_SERVICE_STDCOD, 'наложенный платеж'),
-    )
-    PICKPOINT_RECEPTION_CUR = 'CUR'
-    PICKPOINT_RECEPTION_WIN = 'WIN'
-    PICKPOINT_RECEPTIONS = (
-        (PICKPOINT_RECEPTION_CUR, 'вызов курьера'),
-        (PICKPOINT_RECEPTION_WIN, 'самопривоз'),
-    )
     # order
     comment = models.TextField('комментарий', blank=True)
     shop_name = models.CharField('магазин', max_length=20, blank=True)
@@ -194,10 +182,6 @@ class Order(models.Model):
     delivery_size_length = models.PositiveSmallIntegerField('длина', default=0)
     delivery_size_width = models.PositiveSmallIntegerField('ширина', default=0)
     delivery_size_height = models.PositiveSmallIntegerField('высота', default=0)
-    delivery_yd_order = models.CharField('ЯД заказ', max_length=20, blank=True)
-    delivery_pickpoint_terminal = models.CharField('терминал', max_length=10, blank=True)
-    delivery_pickpoint_service = models.CharField('тип сдачи', max_length=10, choices=PICKPOINT_SERVICES, default=PICKPOINT_SERVICE_STD)
-    delivery_pickpoint_reception = models.CharField('вид приема', max_length=10, choices=PICKPOINT_RECEPTIONS, default=PICKPOINT_RECEPTION_CUR)
     buyer = models.ForeignKey(Contractor, verbose_name='покупатель 1С', related_name='покупатель', blank=True, null=True, on_delete=models.SET_NULL)
     seller = models.ForeignKey(Contractor, verbose_name='продавец 1С', related_name='продавец', blank=True, null=True, on_delete=models.SET_NULL)
     wirehouse = models.ForeignKey(Supplier, verbose_name='склад отгрузки', related_name='orders', blank=True, null=True, on_delete=models.SET_NULL, limit_choices_to={'show_in_list': True})

@@ -15,7 +15,7 @@ from shop.models import Integration
 from .tasks import _positive_id, sync_integration_order
 
 
-logger = logging.getLogger('beru')
+logger = logging.getLogger('ym')
 
 # Sender ranges published in the Market API notification setup guide.
 MARKET_NETWORKS = tuple(map(ip_network, ('5.45.207.0/25', '141.8.142.0/25', '5.255.253.0/25')))
@@ -26,7 +26,7 @@ def _error(status, error_type, message):
     return JsonResponse({'error': {'type': error_type, 'message': message}}, status=status)
 
 
-# Yandex Market notifications, accepted as Ozon's are (see ozon.views.notifications): from the Market's networks,
+# Yandex.Market notifications, accepted as Ozon's are (see ozon.views.notifications): from the Market's networks,
 # with the integration's push_token. An order event of the integration's campaign queues a sync of that order.
 @csrf_exempt
 @require_POST
@@ -63,7 +63,7 @@ def notification(request, integration_id):
             try:
                 sync_integration_order.apply_async((integration_id, campaign_id, order_id), retry=False)
             except OperationalError:
-                logger.error('Could not queue Yandex Market order sync for integration %s', integration_id)
+                logger.error('Could not queue Yandex.Market order sync for integration %s', integration_id)
                 return _error(500, 'UNKNOWN', 'Could not queue notification')
 
     return JsonResponse({'version': '1.0', 'name': 'Sewing World', 'time': received_at.isoformat().replace('+00:00', 'Z')})

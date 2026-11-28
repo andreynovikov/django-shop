@@ -4,11 +4,11 @@ These snapshots contain the operations used by the marketplace HTTP mocks
 and their referenced validation schemas. Tests load them locally. Each
 snapshot records its source URL and SHA-256 or its upstream commit.
 
-- `yandex_market.json` contains the four order operations used by Beru from the
-  [Yandex Market Partner API specification](https://github.com/yandex-market/yandex-market-partner-api).
+- `yandex_market.json` contains the four order operations used by the `ym` app from the
+  [Yandex.Market Partner API specification](https://github.com/yandex-market/yandex-market-partner-api).
   Its upstream license is in [yandex_market.LICENSE](yandex_market.LICENSE).
 - `yandex_market_notifications.json` contains the callback contract from the
-  [Yandex Market Notification API specification](https://github.com/yandex-market/yandex-market-notification-api).
+  [Yandex.Market Notification API specification](https://github.com/yandex-market/yandex-market-notification-api).
   Its upstream license is in [yandex_market_notifications.LICENSE](yandex_market_notifications.LICENSE).
 - `ozon.json` contains FBS posting listing, posting details, and stock updates. The
   [published Ozon schema](https://docs.ozon.ru/api/seller/swagger.json) returned
@@ -26,7 +26,7 @@ free. For stock rows it
 uses the documented choice of `offer_id` or `product_id` and omits the stale
 requirement for the undefined `quant_size` field.
 
-Check out the desired revisions of the Yandex Market schemas and
+Check out the desired revisions of the Yandex.Market schemas and
 download the Ozon and Wildberries schema files. Regenerate the fixtures from
 the backend checkout.
 
@@ -39,7 +39,7 @@ uv run --no-sync python tests/data/marketplaces/refresh.py wb_orders /path/to/03
 ```
 
 If refreshing Ozon from a mirror, pass its pinned download URL with
-`--source-url`. Review the generated diff and run `tests.test_beru`,
+`--source-url`. Review the generated diff and run `tests.test_ym`,
 `tests.test_ozon`, and `tests.test_wb` against PostgreSQL.
 
 One expected failure tracks existing behavior: Wildberries skips the documented

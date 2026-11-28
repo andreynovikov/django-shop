@@ -27,10 +27,7 @@ CONSTANCE_CONFIG = OrderedDict([
     ('sw_default_seller', (None, 'Продавец по-умолчанию', 'contractor_model_select')),
     ('sw_email_from', ('', 'Адрес эл.почты робота')),
     ('sw_email_unisender', ('', 'Адрес эл.почты Unisender')),
-    ('sw_beru_delivery', ('', 'Доставщик Беру')),
-    ('sw_yd_campaign', ('', 'Идентификатор кампании Яндекс.Доставка')),
-    ('sw_yd_sender', ('', 'Идентификатор магазина Яндекс.Доставка')),
-    ('sw_yd_token', ('', 'OAuth-токен магазина Яндекс.Доставка')),
+    ('sw_ym_delivery', ('', 'Доставщик Яндекс Маркета')),
     # Despite the name, the 1C stock and price import (shop/tasks/stocks.py) reads Yandex Disk with it too
     ('sw_bonuses_ydisk_token', ('', 'OAuth токен Яндекс.Диск для бонусов')),
     # The admin's order lock, see shop/order_lock.py: the page renews its lease every 30 seconds while open

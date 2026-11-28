@@ -12,7 +12,6 @@ from unittest import mock
 
 import openpyxl
 
-from django import forms
 from django.contrib.admin import helpers
 from django.contrib.auth.models import Permission
 from django.contrib.admin.sites import site as admin_site
@@ -26,7 +25,6 @@ from django.test import RequestFactory, TestCase, override_settings
 from django.urls import path, resolve, reverse
 from django.utils import timezone
 
-from shop.admin.forms import YandexDeliveryForm
 from shop.models import Act, ActOrder, Box, Contractor, Courier, Integration, Manager, Order, OrderItem, ShopUser, \
     Stock, Supplier
 from sewingworld.models import SiteProfile
@@ -38,9 +36,6 @@ from .fixtures import add_marketplace_sites, add_product
 urlpatterns = [path('admin/', admin_site.urls)]
 
 XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-
-# Warehouses of Yandex Delivery come from settings of the deployment
-WAREHOUSE = forms.ChoiceField(choices=[('w1', 'Склад')])
 
 
 def sheets(response):
@@ -68,7 +63,6 @@ class Base(TestCase):
         for target, new in (
             # Constance refuses the local-memory cache of the tests
             ('shop.models.order.config', SimpleNamespace(sw_default_seller=self.seller.pk)),
-            ('shop.admin.forms.config', SimpleNamespace(sw_yd_campaign='')),
             ('shop.order_lock.config', SimpleNamespace(sw_order_lock_lease=180, sw_order_lock_idle=1800)),
             ('shop.signals.logger', mock.Mock()),  # logs every product put in an order
         ):
@@ -244,8 +238,13 @@ class ShippingTests(Base):
         form = SimpleNamespace(instance=order, save_m2m=lambda: None)
         self.admin.save_related(self.request({}), form, [items, box_forms], True)
 
+    def marketplace_order(self):
+        integration = Integration.objects.create(name='Маркет', utm_source='market', source_site=self.site,
+                                                 target_site=self.site, uses_api=True)
+        return self.order(integration=integration)
+
     def test_boxes_get_weight_and_sizes_of_their_items(self):
-        order = self.order(delivery=Order.DELIVERY_YANDEX)
+        order = self.marketplace_order()
         single, mixed, weighed = (Box.objects.create(order=order) for _ in range(3))
         new = Box(order=order)  # added in the form, not saved
         nothing = {'weight': 0, 'length': 0, 'width': 0, 'height': 0}
@@ -266,102 +265,37 @@ class ShippingTests(Base):
             weighed.pk: (7, 10, 5, 1),  # entered weight stays
         })
 
-    def test_boxes_only_for_yandex_delivery_and_marketplaces(self):
-        order = self.order()
-        box = Box.objects.create(order=order)
-        self.save_boxes(order, [(self.machine, 1, box)], [(box, {'weight': 0, 'length': 0, 'width': 0, 'height': 0})])
-        box.refresh_from_db()
-        self.assertEqual(box.weight, 0)
+    def test_boxes_only_for_marketplaces(self):
+        for order in (self.order(), self.order(delivery=Order.DELIVERY_YANDEX)):
+            box = Box.objects.create(order=order)
+            self.save_boxes(order, [(self.machine, 1, box)], [(box, {'weight': 0, 'length': 0, 'width': 0, 'height': 0})])
+            box.refresh_from_db()
+            self.assertEqual(box.weight, 0)
 
-    @mock.patch.dict(YandexDeliveryForm.base_fields, {'warehouse': WAREHOUSE})
-    @mock.patch('shop.admin.order.create_delivery_draft_order', return_value='YD1')
-    def test_yandex_delivery_recipient_name(self, create):
-        for name, last_name_last, expected in (
-            ('Иван', False, ('Иван', '', '')),
-            ('Петров Иван', False, ('Иван', '', 'Петров')),
-            ('Иван Петров', True, ('Иван', '', 'Петров')),
-            ('Петров Иван Сергеевич', False, ('Иван', 'Сергеевич', 'Петров')),
-            ('Иван Сергеевич Петров', True, ('Иван', 'Сергеевич', 'Петров')),
-        ):
-            with self.subTest(name):
-                order = self.order(name=name)
-                data = {'fio': name, 'warehouse': 'w1', **({'fio_last': 'on'} if last_name_last else {})}
-                response = self.admin.yandex_delivery_form(self.request(data), str(order.pk))
-                self.assertIn('dismissYandexDeliveryPopup(window, "%s", "YD1")' % Order.DELIVERY_YANDEX, response.content.decode())
-                create.assert_called_with(order.pk, 'w1', *expected)
-
-    @mock.patch.dict(YandexDeliveryForm.base_fields, {'warehouse': WAREHOUSE})
-    @mock.patch('shop.admin.order.create_delivery_draft_order')
-    def test_yandex_delivery_name_of_four_words(self, create):
-        order = self.order(name='Петров Иван Сергеевич Младший')
-        response = self.admin.yandex_delivery_form(self.request({'fio': order.name, 'warehouse': 'w1'}), str(order.pk))
-        self.assertTrue(response.context_data['form'].errors['__all__'])
-        create.assert_not_called()
-
-    @mock.patch.dict(YandexDeliveryForm.base_fields, {'warehouse': WAREHOUSE})
-    @mock.patch('shop.admin.order.create_delivery_draft_order', return_value='YD1')
-    def test_yandex_delivery_needs_items_in_boxes(self, create):
-        order = self.order((self.machine, 1), (self.needles, 1), name='Иван')
-        data = {'fio': 'Иван', 'warehouse': 'w1'}
-        response = self.admin.yandex_delivery_form(self.request(data), str(order.pk))
-        self.assertEqual(response.context_data['form'].non_field_errors(), ['p1 не упакован в коробку', 'p2 не упакован в коробку'])
-        create.assert_not_called()
-        order.items.update(box=Box.objects.create(order=order))
-        self.admin.yandex_delivery_form(self.request(data), str(order.pk))
-        create.assert_called_once_with(order.pk, 'w1', 'Иван', '', '')
-
-    @override_settings(YANDEX_DOSTAVKA={'warehouses': [{'id': 'w1', 'name': 'Склад'}]})
-    @mock.patch('shop.admin.order.get_delivery_options')
-    def test_yandex_delivery_options(self, options):
-        options.return_value = [
-            {'delivery': {'type': 'PICKUP', 'pickupPoints': [
-                {'schedules': [{'from': '10:00:00', 'to': '20:00:00'}, {'from': '09:00:00', 'to': '18:00:00'}]},
-                {},
-            ]}, 'services': [{'name': 'insurance'}], 'cost': 300},
-            {'delivery': {'type': 'COURIER', 'deliveryIntervals': [{'from': '12:00:00', 'to': '15:00:00'}]},
-             'services': [], 'cost': 500},
-            {'delivery': {'type': 'PICKUP', 'pickupPoints': [{}]}, 'services': [], 'cost': 200},
-            {'delivery': {'type': 'PICKUP'}, 'services': [], 'cost': 100},
-        ]
-        order = self.order(city='Москва', postcode='101000')
-        response = self.admin.yandex_delivery_estimate(self.request(), str(order.pk))
-        self.assertNotIn('error', response.context_data)
-        deliveries = response.context_data['deliveries']
-        self.assertEqual(list(deliveries), ['PICKUP', 'COURIER'])
-        [first, second, third], [courier] = deliveries['PICKUP'], deliveries['COURIER']
-        self.assertEqual((first['color'], second['color'], third['color'], courier['color']), ('#1E98FF', '#1BAD03', '#FFFFFF', '#FFFFFF'))
-        self.assertEqual((first['cost'], first['required_services'], first['optional_services']), (300, [{'name': 'insurance'}], []))
-        self.assertEqual(first['pickupPoints'][0]['delivery_interval'], '09:00&ndash;20:00')
-        self.assertNotIn('delivery_interval', first['pickupPoints'][1])
-        self.assertEqual(first['delivery_interval'], '09:00&ndash;20:00')
-        self.assertNotIn('delivery_interval', second)
-        self.assertEqual(courier['delivery_interval'], '12:00&ndash;15:00')
-        options.assert_called_once_with(order.total, False, 'w1', '101000 Москва', 10, 40, 27, 50)
-
-    @mock.patch('beru.tasks.get_beru_labels_data')
-    def test_beru_labels(self, labels):
+    @mock.patch('ym.tasks.get_labels_data')
+    def test_ym_labels(self, labels):
         labels.return_value = {'orderId': 777, 'parcelBoxLabels': [{
             'fulfilmentId': 'F1', 'place': '1/1', 'weight': 2, 'deliveryServiceId': 5, 'supplierName': 'Магазин',
             'deliveryServiceName': 'INDIVIDUAL_ENTREPRENEURSHIP Иванов',
         }]}
         order = self.order()
         box = Box.objects.create(order=order)
-        response = self.admin.beru_labels(self.request(), str(order.pk))
+        response = self.admin.ym_labels(self.request(), str(order.pk))
         self.assertNotIn('error', response.context_data)
         [label] = response.context_data['orders']
-        self.assertEqual((label['order'], label['beru_order']), (order, labels.return_value))
+        self.assertEqual((label['order'], label['market_order']), (order, labels.return_value))
         [shipment] = label['shipments']
         self.assertEqual({key: shipment[key] for key in ('id', 'code', 'place', 'weight', 'delivery_service_name', 'delivery_service_id', 'supplier_name')}, {
             'id': 'F1', 'code': box.code, 'place': '1/1', 'weight': 2, 'delivery_service_name': 'ИП Иванов',
             'delivery_service_id': 5, 'supplier_name': 'Магазин',
         })
-        for svg in (label['barcode'], label['beru_barcode'], shipment['barcode']):
+        for svg in (label['barcode'], label['market_barcode'], shipment['barcode']):
             self.assertTrue(svg.startswith('<svg'), svg[:40])
-        self.assertNotEqual(label['barcode'], label['beru_barcode'])
+        self.assertNotEqual(label['barcode'], label['market_barcode'])
 
-    @mock.patch('beru.tasks.get_beru_labels_data', side_effect=Exception('Нет заказа'))
-    def test_beru_labels_error(self, labels):
-        response = self.admin.beru_labels(self.request(), str(self.order().pk))
+    @mock.patch('ym.tasks.get_labels_data', side_effect=Exception('Нет заказа'))
+    def test_ym_labels_error(self, labels):
+        response = self.admin.ym_labels(self.request(), str(self.order().pk))
         self.assertEqual((response.context_data['error'], response.context_data['orders']), ('Нет заказа', []))
 
 
@@ -400,17 +334,15 @@ class EditingTests(Base):
 class FormPageTests(Base):
     """ Pages with a form: of the custom views, which the order page opens in popups, and of the actions in the list """
 
-    @mock.patch.dict(YandexDeliveryForm.base_fields, {'warehouse': WAREHOUSE})
     def test_popup(self):
         order = self.order(name='Иван Петров')
-        response = self.admin.yandex_delivery_form(self.request(query={'_popup': '1'}), str(order.pk))
+        response = self.admin.discount_form(self.request(query={'_popup': '1'}), str(order.pk))
         context = response.context_data
-        self.assertEqual((context['is_popup'], context['title'], context['action_title']), ('1', 'Создать черновик заказа', 'Создать'))
+        self.assertEqual((context['is_popup'], context['title'], context['action_title']), ('1', 'Укажите скидку', 'Применить'))
         self.assertEqual((context['cl'], context['opts']), (self.admin, Order._meta))
         self.assertFalse(context['form'].is_bound)
-        self.assertEqual(context['form'].initial, {'fio': 'Иван Петров'})
         self.assertIsNone(context['messages'])  # nothing left by other pages
-        self.assertIn('Создать черновик заказа', response.render().content.decode())
+        self.assertIn('Укажите скидку', response.render().content.decode())
 
     def test_failure_is_an_error_of_the_form(self):
         order = self.order()
@@ -499,8 +431,8 @@ class PermissionTests(Base):
 
     def test_actions_of_those_who_only_view(self):
         self.assertEqual(self.actions(self.staff_with('view_order')), {
-            'order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_stock_action',
-            'order_products_action', 'order_beru_action', 'beru_labels'})
+            'order_product_list_action', 'order_1c_action', 'order_stock_action',
+            'order_products_action', 'order_ym_action', 'ym_labels'})
         self.assertEqual(self.actions(self.staff_with('change_order')), set(self.admin.actions))
         self.assertEqual(self.actions(self.staff_with()), set())
 
@@ -547,9 +479,7 @@ class UrlTests(Base):
             ('print-warranty-card', [5, 7], {'order_id': 5, 'item_id': 7}),
             ('shop_order_combine', [5], {'id': 5}),
             ('shop_order_discount', [5], {'id': 5}),
-            ('shop_order_yandex_delivery', [5], {'id': 5}),
-            ('shop_order_yandex_delivery_estimate', [5], {'id': 5}),
-            ('shop_order_beru_labels', [5], {'arg': 5}),
+            ('shop_order_ym_labels', [5], {'arg': 5}),
             ('shop_order_lock', [5], {'id': 5}),
             ('shop_order_unlock', [5], {'id': 5}),
             ('shop_order_take_over', [5], {'id': 5}),

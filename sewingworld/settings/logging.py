@@ -25,10 +25,10 @@ LOGGING = {
             'filename': 'logs/django_error.log',
             'formatter': 'verbose',
         },
-        'beru_file': {
+        'ym_file': {
             'level': 'DEBUG',
             'class': 'logging.handlers.WatchedFileHandler',
-            'filename': 'logs/beru.log',
+            'filename': 'logs/ym.log',
             'formatter': 'verbose',
         },
         'kassa_file': {
@@ -104,8 +104,8 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
-        'beru': {
-            'handlers': ['beru_file'],
+        'ym': {
+            'handlers': ['ym_file'],
             'level': 'DEBUG',
             'propagate': False,
         },

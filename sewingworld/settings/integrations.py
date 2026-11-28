@@ -2,7 +2,6 @@
 # .env like the rest of the configuration (settings/__init__.py reads it first). An unset one is empty and the
 # integration that needs it fails when used. The values are read as they are, without django-environ's "$" proxying,
 # because a password may start with "$".
-import json
 import os
 
 
@@ -41,9 +40,6 @@ SBER_MARKET = {
     'auth_user': _get('SBER_MARKET_AUTH_USER'),
     'auth_password': _get('SBER_MARKET_AUTH_PASSWORD'),
 }
-
-# Yandex Delivery as JSON, such as {"warehouses": [{"id": "...", "name": "..."}]}
-YANDEX_DOSTAVKA = json.loads(_get('YANDEX_DOSTAVKA') or '{}')
 
 # The bot that posts to the staff channel: its token from @BotFather, and the channel as its chat id (-100…) or @name.
 # The bot must be an administrator of the channel allowed to post. Unset, nothing is posted.

@@ -1,11 +1,11 @@
 # Integration deployment
 
-## Yandex Market FBS orders
+## Yandex.Market FBS orders
 
 Enabled API integrations with `ym_campaign` use their stored `api_key` to
 discover the Market business ID. Give the key order-processing access in the
 Market cabinet and enable boxes on the integration for packing in Django.
-Confirm the source site has a profile and the Beru system user (`0000`) exists.
+Confirm the source site has a profile and the Yandex.Market system user (`0000`) exists.
 
 After deploying `main`, restart uWSGI and reload the Celery workers. Run the
 order dispatcher once from the production backend checkout.
@@ -13,15 +13,15 @@ order dispatcher once from the production backend checkout.
 ```sh
 sudo systemctl restart uwsgi@prod uwsgi@admin
 sudo systemctl reload celery@prod
-uv run --no-sync celery -A sewingworld call beru.tasks.get_orders
+uv run --no-sync celery -A sewingworld call ym.tasks.get_orders
 ```
 
 Check that the per-integration tasks succeeded and compare the **New** orders
-and statuses with the Market cabinet. Then add `beru.tasks.get_orders` to
+and statuses with the Market cabinet. Then add `ym.tasks.get_orders` to
 Celery Beat in Django admin with a 15-minute interval. Use the Market cabinet
 for shipment confirmation after orders are ready to ship.
 
-### Yandex Market API notifications
+### Yandex.Market API notifications
 
 Apply the Ansible `nginx` tag after deploying to route the callback on
 `api.sewing-world.ru`. Keep the order polling schedule enabled to reconcile
@@ -38,15 +38,15 @@ Use the integration's numeric ID from its Django admin URL and keep the full
 callback URL private.
 
 ```text
-https://api.sewing-world.ru/integrations/beru/<integration-id>/notification?token=<push-token>
+https://api.sewing-world.ru/integrations/ym/<integration-id>/notification?token=<push-token>
 ```
 
 In the seller cabinet, go to **Settings → APIs and modules → API notifications**.
 Register the full URL for the store whose campaign ID is configured in
 `ym_campaign`. Select `ORDER_CREATED`, `ORDER_CANCELLED`, `ORDER_STATUS_UPDATED`,
 and `ORDER_UPDATED`. Confirm the connection check, then check the result of
-`beru.tasks.sync_integration_order` in Celery after the first order event.
-[Yandex Market notification setup](https://yandex.ru/dev/market/partner-api/doc/en/push-notifications/)
+`ym.tasks.sync_integration_order` in Celery after the first order event.
+[Yandex.Market notification setup](https://yandex.ru/dev/market/partner-api/doc/en/push-notifications/)
 
 ## Ozon FBS push notifications
 

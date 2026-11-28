@@ -169,14 +169,6 @@
     }
 
     window.dismissPopupAndReload = dismissPopupAndReload;
-
-    function dismissYandexDeliveryPopup(win, deliveryId, ydOrderId) {
-        document.getElementById("id_delivery").value = deliveryId;
-        document.getElementById("id_delivery_yd_order").value = ydOrderId;
-        win.close();
-    }
-
-    window.dismissYandexDeliveryPopup = dismissYandexDeliveryPopup;
 }(django.jQuery));
 </script>
 {% endblock %}
@@ -244,9 +236,9 @@
 
 {% block object-tools-items %}
     {% if original.integration and original.integration.settings and original.integration.settings.ym_campaign and original.status == original.STATUS_COLLECTED %}
-    {% url opts|admin_urlname:'beru_labels' original.pk|admin_urlquote as beru_labels_url %}
-    <li><a href="{{ beru_labels_url }}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
-            <span>{% trans "Наклейки Беру!" %}</span></a></li>
+    {% url opts|admin_urlname:'ym_labels' original.pk|admin_urlquote as ym_labels_url %}
+    <li><a href="{{ ym_labels_url }}?_popup=1" class="related-widget-wrapper-link" data-popup="yes">
+            <span>{% trans "Наклейки Яндекс Маркета" %}</span></a></li>
     {% endif %}
     <li><a id="documentboxlink" href="#" class="related-widget-wrapper-link" data-popup="yes">Документы</a></li>
     {% if order_lock.held %}

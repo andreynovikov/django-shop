@@ -38,7 +38,7 @@ INSTALLED_APPS = (
     'django_filters',
     'django_tagulous',
     'shop',
-    'beru',
+    'ym',
     'sber',
     'ozon',
     'wb',

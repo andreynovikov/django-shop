@@ -1,8 +1,7 @@
 """
-Shipping orders: boxes they are packed in, Yandex Delivery, labels of Beru (Yandex Market), acts that hand orders
+Shipping orders: boxes they are packed in, labels of Yandex.Market orders, acts that hand orders
 over to delivery, and what the export of shipped orders to 1C needs.
 """
-import datetime
 import re
 
 from collections import defaultdict
@@ -12,25 +11,6 @@ from django.utils.safestring import mark_safe
 import barcode
 
 from shop.models import Order, Act, ActOrder
-
-# Colors of pickup points on the map, presets of Yandex Maps
-DELIVERY_COLORS = [
-    '#1E98FF',  # blue
-    '#1BAD03',  # darkGreen
-    '#ED4543',  # red
-    '#E6761B',  # darkOrange
-    '#B51EFF',  # violet
-    '#0E4779',  # night
-    '#FFD21E',  # yellow
-    '#177BC9',  # darkBlue
-    '#56DB40',  # green
-    '#F371D1',  # pink
-    '#FF931E',  # orange
-    '#B3B3B3',  # gray
-    '#82CDFF',  # lightBlue
-    '#793D0E',  # brown
-    '#97A100',  # olive
-]
 
 
 def measure_boxes(packed):
@@ -66,115 +46,28 @@ def fill_box(box, contents, entered):
     return changed
 
 
-def split_name(name, last_name_last):
-    """
-    First, middle and last names of the recipient for Yandex Delivery. One word is the first name, two are the last
-    and first names, three the last, first and middle names; with last_name_last, the last name goes last instead.
-    More words, or none, raise ValueError.
-    """
-    fio = name.split()
-    first_name = ''
-    middle_name = ''
-    last_name = ''
-    if len(fio) == 1:  # looks like it's a name only
-        first_name = fio[0]
-    elif len(fio) == 2:  # looks like it's name with surname
-        if last_name_last:
-            fio.reverse()
-        last_name, first_name = fio
-    else:
-        if last_name_last:
-            first_name, middle_name, last_name = fio
-        else:
-            last_name, first_name, middle_name = fio
-    return first_name, middle_name, last_name
-
-
-def delivery_options(results):
-    """
-    Options of Yandex Delivery, by delivery type, for the map and the list: each with its services and cost,
-    the color of its pickup points, and the hours when they are open or the courier comes
-    """
-    deliveries = {}
-    i = 0
-    for result in results:
-        delivery = result['delivery']
-        delivery_type = deliveries.get(delivery['type'], None)
-        if delivery_type is None:
-            delivery_type = []
-            deliveries[delivery['type']] = delivery_type
-        # shop_cost = delivery['costWithRules']
-        required_services = []
-        optional_services = []
-        for service in result['services']:
-            # if service['optional']:
-            #     optional_services.append(service)
-            # else:
-            required_services.append(service)
-            # shop_cost = shop_cost + service['cost']
-        delivery['required_services'] = required_services
-        delivery['optional_services'] = optional_services
-        delivery['cost'] = result['cost']
-        pickup_points = delivery.get('pickupPoints', [])
-        if len(pickup_points):
-            delivery['color'] = DELIVERY_COLORS[i]
-            i = i + 1
-        else:
-            delivery['color'] = '#FFFFFF'
-        dmf = datetime.time.max
-        dmt = datetime.time.min
-        for point in pickup_points:
-            mf = datetime.time.max
-            mt = datetime.time.min
-            for schedule in point.get('schedules', []):
-                fr = datetime.datetime.strptime(schedule['from'], '%H:%M:%S').time()
-                tl = datetime.datetime.strptime(schedule['to'], '%H:%M:%S').time()
-                if fr < mf:
-                    mf = fr
-                if tl > mt:
-                    mt = tl
-                if fr < dmf:
-                    dmf = fr
-                if tl > dmt:
-                    dmt = tl
-            if mf != datetime.time.max and mt != datetime.time.min:
-                point['delivery_interval'] = mark_safe('{}&ndash;{}'.format(mf.strftime('%H:%M'), mt.strftime('%H:%M')))
-        if dmf == datetime.time.max or dmt == datetime.time.min:
-            for delivery_interval in delivery.get('deliveryIntervals', []):
-                fr = datetime.datetime.strptime(delivery_interval['from'], '%H:%M:%S').time()
-                tl = datetime.datetime.strptime(delivery_interval['to'], '%H:%M:%S').time()
-                if fr < dmf:
-                    dmf = fr
-                if tl > dmt:
-                    dmt = tl
-        if dmf != datetime.time.max and dmt != datetime.time.min:
-            delivery['delivery_interval'] = mark_safe('{}&ndash;{}'.format(dmf.strftime('%H:%M'), dmt.strftime('%H:%M')))
-        delivery_type.append(delivery)
-    return deliveries
-
-
 def code128_svg(code):
     """ Barcode for a label, an SVG element """
     svg = barcode.get_barcode_class('code128')(code).render(writer_options={'module_width': 0.5, 'module_height': 15, 'compress': True}).decode()
     return mark_safe(re.sub(r'^.*(?=<svg)', '', svg))
 
 
-def beru_order_labels(orders):
+def ym_order_labels(orders):
     """
-    Labels of orders of Beru (Yandex Market) for each of their boxes, as Beru knows them, with barcodes of
-    the order numbers here and at Beru, and of the boxes
+    Labels of Yandex.Market orders for each of their boxes, as the Market knows them, with barcodes of
+    the order numbers here and at the Market, and of the boxes
     """
-    from beru.tasks import get_beru_labels_data
+    from ym.tasks import get_labels_data
 
     labels = []
     for order in orders:
-        beru_order = get_beru_labels_data(order.id)
-        beru_order_id = str(beru_order.get('orderId', 0))
+        market_order = get_labels_data(order.id)
+        market_order_id = str(market_order.get('orderId', 0))
 
         boxes = order.boxes.all()
         count = 0
         shipments = []
-        for label in beru_order.get('parcelBoxLabels', []):
+        for label in market_order.get('parcelBoxLabels', []):
             box = boxes[count]
             count += 1
             code = label.get('fulfilmentId', '')
@@ -191,9 +84,9 @@ def beru_order_labels(orders):
             })
 
         labels.append({
-            'beru_order': beru_order,
+            'market_order': market_order,
             'order': order,
-            'beru_barcode': code128_svg(beru_order_id),
+            'market_barcode': code128_svg(market_order_id),
             'barcode': code128_svg(str(order.id)),
             'shipments': shipments
         })

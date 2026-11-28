@@ -12,8 +12,6 @@ from mptt.forms import TreeNodeMultipleChoiceField
 from import_export.forms import ImportForm, ConfirmImportForm, ExportForm
 from model_field_list import ModelFieldListFormField
 
-from constance import config
-
 from filemanager.widgets import HTMLTextarea
 
 from sewingworld.widgets import AutosizedTextarea, JsonAutosizedTextarea
@@ -23,7 +21,7 @@ from shop.tasks.stocks import import1c
 from shop.tidy import tidy_html5
 
 from .widgets import PhoneWidget, TagAutoComplete, ReadOnlyInput, DisablePluralText, OrderItemTotalText, \
-    OrderItemProductLink, ListTextWidget, YandexDeliveryWidget, DeliveryTrackingNumberWidget
+    OrderItemProductLink, ListTextWidget, DeliveryTrackingNumberWidget
 
 
 class CategoryAdminForm(forms.ModelForm):
@@ -112,23 +110,6 @@ class SendSmsForm(forms.Form):
         _message_list = getattr(settings, 'SHOP_SMS_MESSAGES', ())
         super(SendSmsForm, self).__init__(*args, **kwargs)
         self.fields['message'].widget = ListTextWidget(data_list=_message_list, attrs={'style': 'width: 100%'})
-
-
-class YandexDeliveryForm(forms.Form):
-    yd = getattr(settings, 'YANDEX_DOSTAVKA', {})
-    warehouses = yd.get('warehouses', [])
-    fio = forms.CharField(label='ФИО', required=True)
-    fio_last = forms.BooleanField(label='Фамилия в конце', required=False)
-    warehouse = forms.ChoiceField(label='Склад', choices=map(lambda x: (x['id'], x['name']), warehouses))
-
-    def __init__(self, *args, **kwargs):
-        super(YandexDeliveryForm, self).__init__(*args, **kwargs)
-        self.fields['fio'].widget = ReadOnlyInput(None)
-
-    class Media:
-        css = {
-            'all': ('admin/css/forms.css',)
-        }
 
 
 class SelectTagForm(forms.Form):
@@ -398,7 +379,6 @@ class OrderAdminForm(ChangedFieldsFormMixin, forms.ModelForm):
                 ym_campaign = ''
 
             self.fields['delivery_tracking_number'].widget = DeliveryTrackingNumberWidget(instance.id, utm_source, ym_campaign)
-            self.fields['delivery_yd_order'].widget = YandexDeliveryWidget(instance.id, config.sw_yd_campaign)
         except (KeyError, AttributeError):
             pass
 

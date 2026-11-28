@@ -5,18 +5,18 @@ from django.dispatch import receiver
 
 from shop.models import Product, ProductIntegration, Order
 
-from .tasks import notify_beru_order_status
+from .tasks import notify_order_status
 
-logger = logging.getLogger('beru')
+logger = logging.getLogger('ym')
 
 
-@receiver(post_save, sender=Product, dispatch_uid='product_saved_beru_receiver')
+@receiver(post_save, sender=Product, dispatch_uid='product_saved_ym_receiver')
 def product_saved(sender, **kwargs):
     product = kwargs['instance']
     if product.num >= 0:  # report new stock only if stock is reset (this disables double renew on stocks import)
         return
 
-    # Yandex Market integrations are the ones with a campaign in their settings
+    # Yandex.Market integrations are the ones with a campaign in their settings
     for integration in product.integrations.filter(settings__has_key='ym_campaign'):
         if integration.settings.get('warehouse_id', '') != '':
             logger.info('### ' + integration.settings.get('warehouse_id', '') + " " + product.article + " " + str(product.num))
@@ -28,7 +28,7 @@ def product_saved(sender, **kwargs):
                 pass
 
 
-@receiver(post_save, sender=Order, dispatch_uid='order_saved_beru_receiver')
+@receiver(post_save, sender=Order, dispatch_uid='order_saved_ym_receiver')
 def order_saved(sender, **kwargs):
     """ Tasks wait for the commit: the admin fills the boxes they send after the order, in save_related() """
     order = kwargs['instance']
@@ -37,4 +37,4 @@ def order_saved(sender, **kwargs):
     if (integration and integration.enabled and integration.uses_api
             and 'ym_campaign' in (integration.settings or {})
             and order.status == Order.STATUS_COLLECTED and order.tracker.has_changed('status')):
-        notify_beru_order_status.delay_on_commit(order.id, 'PROCESSING', 'READY_TO_SHIP')
+        notify_order_status.delay_on_commit(order.id, 'PROCESSING', 'READY_TO_SHIP')

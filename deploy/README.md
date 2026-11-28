@@ -1293,12 +1293,12 @@ those files monthly and keeping 12 rotations. The default application rules are:
 /www/*/logs/celery*.log
 /www/*/logs/django*.log
 /www/*/logs/backup.log
-/www/*/logs/beru.log
 /www/*/logs/kassa.log
 /www/*/logs/ozon.log
 /www/*/logs/rarus.log
 /www/*/logs/sber.log
 /www/*/logs/wb.log
+/www/*/logs/ym.log
 {
   su sworld www-data
   create 644 sworld www-data

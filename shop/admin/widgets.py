@@ -87,63 +87,6 @@ class PhoneWidget(TextInput):
         )
 
 
-class YandexDeliveryWidget(TextInput):
-    def __init__(self, order_id, yd_campaign, attrs=None):
-        self.order_id = order_id
-        self.yd_campaign = yd_campaign
-        super(YandexDeliveryWidget, self).__init__(attrs)
-
-    def render(self, name, value, attrs=None, renderer=None):
-        final_attrs = self.build_attrs(attrs)
-        # Use provided id or generate hex to avoid collisions in document
-        id = final_attrs.get('id', uuid.uuid4().hex)
-        if value:
-            glyphicon = 'pencil-dollar'
-            if value.find("YD") >= 0:  # Legacy Yandex Delivery.
-                yd_id = value[value.find("YD") + 2:]
-                popup = 'https://delivery.yandex.ru/order/create?id=' + quote(yd_id)
-            else:
-                yd_id = value
-                popup = 'https://partner.market.yandex.ru/delivery/{}/orders/item/{}'.format(self.yd_campaign, quote(yd_id))
-            link_class = ''
-            data = ''
-        else:
-            glyphicon = 'circle-plus'
-            popup = reverse('admin:shop_order_yandex_delivery', args=[self.order_id]) + '?_popup=1'
-            link_class = ' related-widget-wrapper-link'
-            data = mark_safe(' data-popup="yes"')
-
-        output = [super(YandexDeliveryWidget, self).render(name, value, attrs, renderer)]
-        output.append('''<a class="button%(link_class)s"%(data) style="display: inline-block; margin-left: 7px"
-                          id="%(id)s_create_link" href="%(popup)s"><i class="ti ti-%(glyphicon)s"></i></a>''' % escaped(
-                              id=id,
-                              glyphicon=glyphicon,
-                              popup=popup,
-                              link_class=link_class,
-                              data=data
-                          ))
-        if not value:
-            output.append('''<a class="button related-widget-wrapper-link" data-popup="yes" style="display: inline-block"
-                              id="%(id)s_estimate_link" href="%(popup)s?_popup=1"><i class="ti ti-report-money"></i></a>''' % escaped(
-                                  id=id,
-                                  popup=reverse('admin:shop_order_yandex_delivery_estimate', args=[self.order_id])
-                              ))
-            output.append('''
-                <script>
-                    (function($) {
-                        $("#%(id)s_estimate_link").click(function() {
-                            var city = $( "#id_city" ).val();
-                            if (!city || 0 === city.length) {
-                                alert("Укажите город доставки");
-                                return false;
-                            }
-                        });
-                    }(django.jQuery));
-                </script>''' % escaped(id=id))
-
-        return mark_safe(''.join(output))
-
-
 class DeliveryTrackingNumberWidget(TextInput):
     def __init__(self, order_id, utm_source, ym_campaign, attrs=None):
         self.order_id = order_id
@@ -326,7 +269,7 @@ class OrderItemProductLink(Widget):
 
     def render(self, name, value, attrs=None, renderer=None):
         final_attrs = self.build_attrs(attrs, extra_attrs={'name': name, 'value': value, 'type': 'hidden'})
-        if (self.object.order.integration and self.object.order.integration.uses_boxes) or self.object.order.delivery == self.object.order.DELIVERY_YANDEX:
+        if self.object.order.integration and self.object.order.integration.uses_boxes:
             dimensions = format_html(
                 "<br/>{} кг {}&times;{}&times;{} см",
                 self.num(self.object.product.prom_weight), self.num(self.object.product.length), self.num(self.object.product.width),

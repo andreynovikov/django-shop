@@ -25,20 +25,17 @@ from more_admin_filters import ChoicesDropdownFilter, RelatedDropdownFilter
 
 from constance import config
 
-from yandex_delivery.tasks import create_delivery_draft_order, get_delivery_options
-
 from shop import order_lock
 from shop.models import ShopUserManager, ShopUser, Supplier, Order, OrderItem, Box, Contractor
 from shop.tasks.user_interaction import send_message
 
 from .forms import WarrantyCardPrintForm, OrderAdminForm, OrderCombineForm, \
     OrderDiscountForm, SendSmsForm, SelectTagForm, SelectSupplierForm, \
-    OrderItemInlineAdminForm, BoxInlineAdminForm, YandexDeliveryForm, ChangedFieldsInlineFormSet
+    OrderItemInlineAdminForm, BoxInlineAdminForm, ChangedFieldsInlineFormSet
 from .order_editing import apply_discount, combine_orders, confirm_buyer_email
 from .order_filters import OrderStatusListFilter, OrderDeliveryListFilter, BooleanDropdownFilter, OrderOwnerFilter, \
     OrderIntegrationFilter
-from .order_shipping import measure_boxes, fill_box, split_name, delivery_options, beru_order_labels, act_problems, \
-    make_act, missing_1c_data
+from .order_shipping import measure_boxes, fill_box, ym_order_labels, act_problems, make_act, missing_1c_data
 from .order_supply import OWN_WAREHOUSE, DEFAULT_SUPPLIER, order_products, allocate_stock, stock_workbook, \
     products_workbook
 from .views import check_permission, join_html, permitted_object, product_stock_view
@@ -109,7 +106,7 @@ class OrderItemInline(admin.TabularInline):
             fields.extend(['val_discount', 'quantity', 'total', 'product_stock'])
         else:
             fields.extend(['product_price', 'pct_discount', 'val_discount', 'item_cost', 'quantity', 'total', 'product_stock'])
-        if obj and ((obj.integration and obj.integration.uses_boxes) or obj.delivery == Order.DELIVERY_YANDEX):
+        if obj and obj.integration and obj.integration.uses_boxes:
             fields.append('box')
         return fields
 
@@ -164,13 +161,8 @@ class OrderAdmin(admin.ModelAdmin):
             comment.append(format_html('<span style="color: var(--error-fg)">{}</span><br/>', obj.alert))
         if obj.integration and obj.integration.uses_api:
             comment.append(format_html('<span class="sw-c" style="--c: #2121ba">№{}</span> ', obj.delivery_tracking_number))
-        else:
-            if obj.delivery_yd_order:
-                comment.append(format_html('<span class="sw-c" style="--c: #2121ba">{}</span> ', obj.delivery_yd_order))
-            if obj.delivery_tracking_number:
-                if obj.delivery_yd_order:
-                    comment.append(mark_safe('<span class="sw-c" style="--c: #2121ba">&#10095;</span> '))
-                comment.append(format_html('<span class="sw-c" style="--c: #21baba">{}</span> ', obj.delivery_tracking_number))
+        elif obj.delivery_tracking_number:
+            comment.append(format_html('<span class="sw-c" style="--c: #21baba">{}</span> ', obj.delivery_tracking_number))
         comment.append(format_html('{}<br/><em>{}</em>', obj.delivery_info, obj.manager_comment))
         return join_html(comment)
 
@@ -298,14 +290,13 @@ class OrderAdmin(admin.ModelAdmin):
     # what the columns read of each order, the site's profile for its title; the items for its total are prefetched
     list_select_related = ['site__profile', 'user', 'manager', 'owner', 'integration', 'courier']
     readonly_fields = ['id', 'shop_name', 'credit_notice', 'total', 'delivery_barcode', 'products_price', 'created', 'link_to_user', 'link_to_orders', 'user_bonuses', 'pos_status',
-                       'delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception',  # these fields are disabled for massadmin
                        'delivery_size_length', 'delivery_size_width', 'delivery_size_height']  # these fields are disabled for massadmin
     list_filter = [OrderStatusListFilter, ('site', RelatedDropdownFilter), ('integration', OrderIntegrationFilter), ('created', PastDateRangeFilter),
                    ('seller', RelatedDropdownFilter), ('payment', ChoicesDropdownFilter), ('paid', BooleanDropdownFilter), OrderDeliveryListFilter,
                    ('delivery_dispatch_date', FutureDateRangeFilter), ('delivery_handing_date', FutureDateRangeFilter),
                    ('manager', RelatedDropdownFilter), ('courier', RelatedDropdownFilter), OrderOwnerFilter]  # , ('owner', RelatedDropdownFilter)]
     search_fields = ['id', 'name', 'phone', 'email', 'address', 'city', 'comment', 'manager_comment', 'delivery_tracking_number',
-                     'delivery_info', 'delivery_yd_order', 'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
+                     'delivery_info', 'user__name', 'user__phone', 'user__email', 'user__address', 'user__postcode',
                      'item__serial_number']
     inlines = [OrderItemInline, BoxInline]
     show_facets = admin.ShowFacets.NEVER
@@ -317,8 +308,8 @@ class OrderAdmin(admin.ModelAdmin):
         PositiveIntegerField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
         DecimalField: {'widget': forms.TextInput(attrs={'style': 'width: 6em'})},
     }
-    actions = ['order_product_list_action', 'order_1c_action', 'order_pickpoint_action', 'order_stock_action',
-               'order_products_action', 'order_beru_action', 'order_set_user_tag_action', 'beru_labels', 'order_act_action']
+    actions = ['order_product_list_action', 'order_1c_action', 'order_stock_action',
+               'order_products_action', 'order_ym_action', 'order_set_user_tag_action', 'ym_labels', 'order_act_action']
     save_as = True
     save_on_top = True
     list_per_page = 50
@@ -330,8 +321,6 @@ class OrderAdmin(admin.ModelAdmin):
                                ['delivery_handing_date'], 'manager_comment', 'alert',
                                'products_price', 'total', 'id']}),
             ('1С', {'fields': (('buyer', 'seller'), ('wirehouse', 'wiring_date'))}),
-            # ('PickPoint', {'fields': (('delivery_pickpoint_terminal', 'delivery_pickpoint_service', 'delivery_pickpoint_reception'),
-            #                           ('delivery_size_length', 'delivery_size_width', 'delivery_size_height'),),}),
             ('Покупатель', {'fields': []})
         )
         if obj and obj.integration and obj.integration.uses_api:
@@ -343,7 +332,6 @@ class OrderAdmin(admin.ModelAdmin):
             fieldsets[0][1]['fields'].append('store')
             fieldsets[0][1]['fields'][0].append('credit_notice')
             fieldsets[0][1]['fields'][1].append('courier')
-            fieldsets[0][1]['fields'][3].append('delivery_yd_order')
             fieldsets[0][1]['fields'][5].extend(('delivery_time_from', 'delivery_time_till'))
             fieldsets[2][1]['fields'].extend((('name', 'user', 'link_to_user', 'link_to_orders', 'user_bonuses'), ('phone', 'phone_aux', 'email'),
                                               'address', ('city', 'postcode'), 'comment', ('firm_name', 'is_firm')))
@@ -356,13 +344,8 @@ class OrderAdmin(admin.ModelAdmin):
 
     def get_formsets_with_inlines(self, request, obj=None):
         for inline in self.get_inline_instances(request, obj):
-            # Show box forms for integrations that use boxes and for Yandex Delivery.
-            # A POST that switches to Yandex Delivery may come from a page without the inline.
-            # In that case Django has no box management form to validate until the next GET.
-            is_integration_with_boxes = obj and obj.integration and obj.integration.uses_boxes
-            is_yandex_delivery = obj and obj.delivery == Order.DELIVERY_YANDEX
-            has_boxes_form = 'boxes-TOTAL_FORMS' in request.POST
-            if not inline.model == Box or is_integration_with_boxes or (is_yandex_delivery and (has_boxes_form or request.method == 'GET')):
+            # Box forms only for integrations that use boxes
+            if not inline.model == Box or (obj and obj.integration and obj.integration.uses_boxes):
                 yield inline.get_formset(request, obj), inline
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
@@ -471,9 +454,9 @@ class OrderAdmin(admin.ModelAdmin):
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
-        # Boxes of marketplace and Yandex Delivery orders: the weight, and the dimensions of a box with one item, are
-        # taken from what is packed in them where staff left zero
-        if not (form.instance.integration and form.instance.integration.uses_api) and not form.instance.delivery == Order.DELIVERY_YANDEX:
+        # Boxes of marketplace orders: the weight, and the dimensions of a box with one item, are taken from what is
+        # packed in them where staff left zero
+        if not (form.instance.integration and form.instance.integration.uses_api):
             return
         packed = []
         for formset in filter(lambda f: isinstance(f.empty_form.instance, OrderItem), formsets):
@@ -497,9 +480,7 @@ class OrderAdmin(admin.ModelAdmin):
             path('<int:order_id>/item/<int:item_id>/print_warranty_card/', self.admin_site.admin_view(self.print_warranty_card), name='print-warranty-card'),
             path('<int:id>/combine/', self.admin_site.admin_view(self.combine_form), name='shop_order_combine'),
             path('<int:id>/discount/', self.admin_site.admin_view(self.discount_form), name='shop_order_discount'),
-            path('<int:id>/yandex_delivery/', self.admin_site.admin_view(self.yandex_delivery_form), name='shop_order_yandex_delivery'),
-            path('<int:id>/yandex_delivery_estimate/', self.admin_site.admin_view(self.yandex_delivery_estimate), name='shop_order_yandex_delivery_estimate'),
-            path('<int:arg>/beru_labels/', self.admin_site.admin_view(self.beru_labels), name='shop_order_beru_labels'),
+            path('<int:arg>/ym_labels/', self.admin_site.admin_view(self.ym_labels), name='shop_order_ym_labels'),
             path('<int:id>/lock/', self.admin_site.admin_view(self.lock), name='shop_order_lock'),
             path('<int:id>/unlock/', self.admin_site.admin_view(self.unlock), name='shop_order_unlock'),
             path('<int:id>/take_over/', self.admin_site.admin_view(self.take_over), name='shop_order_take_over'),
@@ -637,49 +618,8 @@ class OrderAdmin(admin.ModelAdmin):
 
         return self.popup_form(request, OrderDiscountForm, discount, "Укажите скидку", "Применить")
 
-    def yandex_delivery_form(self, request, id):
-        order = permitted_object(self, request, id, change=True)
-
-        def create_draft(form):
-            unpacked = [item for item in order.items.all() if item.box is None]
-            for item in unpacked:
-                form.add_error(None, "{} не упакован в коробку".format(item.product.code))
-            if unpacked:
-                return None
-            first_name, middle_name, last_name = split_name(order.name, form.cleaned_data['fio_last'])
-            yd_order = create_delivery_draft_order(order.id, form.cleaned_data['warehouse'], first_name, middle_name, last_name)
-            return close_popup('opener.dismissYandexDeliveryPopup(window, "%s", "%s");' % (Order.DELIVERY_YANDEX, yd_order))
-
-        return self.popup_form(request, YandexDeliveryForm, create_draft, "Создать черновик заказа", "Создать",
-                               initial={'fio': order.name})
-
-    def yandex_delivery_estimate(self, request, id):
-        order = permitted_object(self, request, id)
-
-        context = self.admin_site.each_context(request)
-        context['opts'] = self.model._meta
-        context['is_popup'] = request.GET.get('_popup', 0)
-        context['title'] = "Варианты доставки"
-        context['order'] = order
-        context['city'] = request.GET.get('city', '{} {}'.format(order.postcode, order.city))
-        context['weight'] = request.GET.get('weight', 10)
-        context['height'] = request.GET.get('height', 27)
-        context['length'] = request.GET.get('length', 50)
-        context['width'] = request.GET.get('width', 40)
-
-        try:
-            results = get_delivery_options(order.total, order.paid, settings.YANDEX_DOSTAVKA['warehouses'][0]['id'], context['city'],
-                                           context['weight'], context['width'], context['height'], context['length'])
-            context['deliveries'] = delivery_options(results)
-            context['result'] = results
-
-        except Exception as e:
-            context['error'] = str(e)
-
-        return TemplateResponse(request, 'admin/shop/order/yandex_delivery_estimate.html', context)
-
-    @admin.action(description="Печать наклеек Беру", permissions=['view'])
-    def beru_labels(self, request, arg):
+    @admin.action(description="Печать наклеек Яндекс Маркета", permissions=['view'])
+    def ym_labels(self, request, arg):
         context = self.admin_site.each_context(request)
         context['opts'] = self.model._meta
         context['is_popup'] = request.GET.get('_popup', 0)
@@ -692,11 +632,11 @@ class OrderAdmin(admin.ModelAdmin):
 
         context['orders'] = []
         try:
-            context['orders'] = beru_order_labels(orders)
+            context['orders'] = ym_order_labels(orders)
         except Exception as e:
             context['error'] = getattr(e, 'message', str(e))
 
-        return TemplateResponse(request, 'shop/order/beru_labels.html', context)
+        return TemplateResponse(request, 'shop/order/ym_labels.html', context)
 
     def send_sms_form(self, request, phone):
         check_permission(self, request, change=True)
@@ -747,20 +687,6 @@ class OrderAdmin(admin.ModelAdmin):
             response['Content-Disposition'] = 'attachment; filename=1C-{0}.xml'.format(datetime.date.today().isoformat())
             return response
 
-    @admin.action(description="Выгрузка в ПикПоинт", permissions=['view'])
-    def order_pickpoint_action(self, request, queryset):
-        missing_terminal = False
-        for order in queryset:
-            if not order.delivery_pickpoint_terminal:
-                missing_terminal = True
-        if missing_terminal:
-            self.message_user(request, "Для одного из заказов не указан терминал", level=messages.ERROR)
-        else:
-            template = get_template('admin/shop/order/pickpoint.xml')
-            response = HttpResponse(template.render({'orders': queryset}), content_type='text/plain; charset=utf-8')
-            response['Content-Disposition'] = 'attachment; filename=PickPoint-{0}.xml'.format(datetime.date.today().isoformat())
-            return response
-
     @admin.action(description="Выгрузка поставщику", permissions=['view'])
     def order_stock_action(self, request, queryset):
         if 'show_stock' in request.POST:
@@ -795,9 +721,9 @@ class OrderAdmin(admin.ModelAdmin):
         response['Content-Disposition'] = 'attachment; filename=products-{}.xlsx'.format(datetime.date.today().isoformat())
         return response
 
-    @admin.action(description="Список заказов Беру", permissions=['view'])
-    def order_beru_action(self, request, queryset):
-        return TemplateResponse(request, 'admin/shop/order/beru.html', {'orders': queryset})
+    @admin.action(description="Список заказов Яндекс Маркета", permissions=['view'])
+    def order_ym_action(self, request, queryset):
+        return TemplateResponse(request, 'admin/shop/order/ym.html', {'orders': queryset})
 
     @admin.action(description="Добавить тег покупателю", permissions=['change'])
     def order_set_user_tag_action(self, request, queryset):

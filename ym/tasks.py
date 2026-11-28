@@ -1,10 +1,10 @@
 """
-Yandex Market (formerly Beru) FBS orders and stocks.
+Yandex.Market FBS orders and stocks.
 
 get_orders polls every Market integration that uses the API: it syncs the open orders and registers the orders
 that wait for packing (PROCESSING/STARTED). An integration with a push_token also takes Market's notifications
 (views.notification), each of which syncs one order. Both hold the integration's ORDER_SYNC_LOCK.
-When the admin marks an order collected, notify_beru_order_status sends its boxes and READY_TO_SHIP; a failure
+When the admin marks an order collected, notify_order_status sends its boxes and READY_TO_SHIP; a failure
 that a retry can't mend puts the order into the problem status with the reason in delivery_info.
 """
 import json
@@ -33,7 +33,7 @@ from sewingworld.tasks import PRIORITY_IDLE
 
 from shop.models import Basket, Integration, Order, Product, ProductIntegration, ShopUser
 
-logger = logging.getLogger('beru')
+logger = logging.getLogger('ym')
 
 
 class TaskFailure(Exception):
@@ -45,7 +45,7 @@ class MarketUnavailable(OSError):
 
 
 MARKET_URL = 'https://api.partner.market.yandex.ru'
-ORDER_SYNC_LOCK = 'beru.get_integration_orders'
+ORDER_SYNC_LOCK = 'ym.get_integration_orders'
 READY_TO_SHIP = ('PROCESSING', 'READY_TO_SHIP')
 AWAITING_PACKING = ('PROCESSING', 'STARTED')
 CLOSED_STATUSES = (Order.STATUS_CANCELED, Order.STATUS_DONE, Order.STATUS_FINISHED)
@@ -64,7 +64,7 @@ EARLY_CANCELLATIONS = {
     'USER_UNREACHABLE', 'USER_BOUGHT_CHEAPER', 'BANK_REJECT_CREDIT_OFFER', 'USER_PLACED_OTHER_ORDER',
 }
 
-BERU_ORDER_SUBSTATUS = {
+ORDER_SUBSTATUS = {
     'PROCESSING_EXPIRED': 'Магазин не обработал заказ в течение семи дней',
     'REPLACING_ORDER': 'Покупатель решил заменить товар другим по собственной инициативе',
     'RESERVATION_EXPIRED': 'Покупатель не завершил оформление зарезервированного заказа в течение 10 минут',
@@ -117,10 +117,10 @@ def _market_request(integration, method, path, data=None, params=None):
             raise MarketUnavailable(message) from None
         raise TaskFailure(message) from None
     except (json.JSONDecodeError, UnicodeDecodeError):
-        raise MarketUnavailable(f'Yandex Market {method} {path} returned invalid JSON') from None
+        raise MarketUnavailable(f'Yandex.Market {method} {path} returned invalid JSON') from None
 
     if not isinstance(result, dict):
-        raise MarketUnavailable(f'Yandex Market {method} {path} returned an invalid response')
+        raise MarketUnavailable(f'Yandex.Market {method} {path} returned an invalid response')
     if result.get('status') == 'ERROR':
         raise TaskFailure(f'Яндекс Маркет отклонил запрос {method} {path}')
     return result
@@ -137,7 +137,7 @@ def _campaign_ids(integration):
         business = campaign.get('business')
         if isinstance(business, dict) and (business_id := _positive_id(business.get('id'))) is not None:
             return campaign_id, business_id
-    raise MarketUnavailable(f'Yandex Market returned invalid campaign details for {campaign_id}')
+    raise MarketUnavailable(f'Yandex.Market returned invalid campaign details for {campaign_id}')
 
 
 def _market_orders(integration, campaign_id, business_id, filters):
@@ -150,7 +150,7 @@ def _market_orders(integration, campaign_id, business_id, filters):
         orders = result.get('orders')
         paging = result.get('paging') or {}
         if not isinstance(orders, list) or not isinstance(paging, dict):
-            raise MarketUnavailable(f'Yandex Market returned an invalid order page for campaign {campaign_id}')
+            raise MarketUnavailable(f'Yandex.Market returned an invalid order page for campaign {campaign_id}')
         for order in orders:
             if (
                 isinstance(order, dict) and order.get('campaignId') == campaign_id
@@ -163,7 +163,7 @@ def _market_orders(integration, campaign_id, business_id, filters):
         if not token:
             return
         if not isinstance(token, str) or token in seen_tokens:
-            raise MarketUnavailable(f'Yandex Market returned an invalid page token for campaign {campaign_id}')
+            raise MarketUnavailable(f'Yandex.Market returned an invalid page token for campaign {campaign_id}')
         seen_tokens.add(token)
         params['pageToken'] = token
 
@@ -282,7 +282,7 @@ def _import_order(integration, data):
         if unresolved or not lines:
             missing = ', '.join(dict.fromkeys(unresolved)) if lines else 'заказ без товаров'
             alert = f'Яндекс Маркет: не удалось добавить товары: {missing}'
-            logger.warning('Yandex Market order %s has unresolved order items: %s', order_number, missing)
+            logger.warning('Yandex.Market order %s has unresolved order items: %s', order_number, missing)
         order = Order.register(
             basket, integration=integration, delivery_tracking_number=order_number, paid=_is_prepaid(data),
             comment=data.get('notes') or '', alert=alert[:255],
@@ -298,7 +298,7 @@ def _import_order(integration, data):
 def _cancellation_fields(order, substatus):
     # A new order is cancelled for a reason in EARLY_CANCELLATIONS and becomes a problem for any other, such as
     # SHOP_FAILED. An order already in work gets an alert for the managers instead.
-    reason = BERU_ORDER_SUBSTATUS.get(substatus, 'Неизвестная причина отмены заказа')
+    reason = ORDER_SUBSTATUS.get(substatus, 'Неизвестная причина отмены заказа')
     if order.status == Order.STATUS_NEW:
         status = Order.STATUS_CANCELED if substatus in EARLY_CANCELLATIONS else Order.STATUS_PROBLEM
         info = '\n'.join(filter(None, (order.delivery_info, reason)))
@@ -315,7 +315,7 @@ def _sync_order(integration, data):
         except Order.DoesNotExist:
             return False
         except Order.MultipleObjectsReturned:
-            logger.error('Multiple local orders match Yandex Market order %s in integration %s', data['orderId'], integration.pk)
+            logger.error('Multiple local orders match Yandex.Market order %s in integration %s', data['orderId'], integration.pk)
             return False
 
         # an order that a manager is editing (the admin sets its owner meanwhile) is left to the next sync
@@ -385,7 +385,7 @@ def sync_integration_order(self, integration_id, campaign_id, order_id):
     # Polling and notifications must serialize imports and apply snapshots in fetch order.
     lock = Lock(ORDER_SYNC_LOCK, integration_id)
     if not lock.locked:
-        raise MarketUnavailable(f'Yandex Market order sync is already running for integration {integration_id}')
+        raise MarketUnavailable(f'Yandex.Market order sync is already running for integration {integration_id}')
     try:
         _, business_id = _campaign_ids(integration)
         order = _market_order_by_id(integration, campaign_id, business_id, order_id)
@@ -454,11 +454,11 @@ def _report_packing_failure(order_id, message):
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error), retry_backoff=30, retry_backoff_max=300)
 @sensitive_variables()
-def notify_beru_order_status(self, order_id, status, substatus):
+def notify_order_status(self, order_id, status, substatus):
     if (status, substatus) != READY_TO_SHIP:
         return None
 
-    lock = Lock('beru.notify_beru_order_status', order_id, wait=True)
+    lock = Lock('ym.notify_order_status', order_id, wait=True)
     try:
         order = Order.objects.select_related('integration').get(pk=order_id)
         integration = order.integration
@@ -486,10 +486,10 @@ def notify_beru_order_status(self, order_id, status, substatus):
                     raise TaskFailure('Измените комплектацию заказа с кодами маркировки в Яндекс Маркете')
                 result = _market_request(integration, 'PUT', path + '/boxes', {'boxes': boxes, 'allowRemove': False})
                 if result.get('status') != 'OK':
-                    raise MarketUnavailable(f'Yandex Market returned an invalid box layout response for order {market_id}')
+                    raise MarketUnavailable(f'Yandex.Market returned an invalid box layout response for order {market_id}')
             result = _market_request(integration, 'PUT', path + '/status', {'order': {'status': status, 'substatus': substatus}})
             if _market_order_status(result.get('order') or {}) != READY_TO_SHIP:
-                raise MarketUnavailable(f'Yandex Market did not confirm ready-for-shipment status for order {market_id}')
+                raise MarketUnavailable(f'Yandex.Market did not confirm ready-for-shipment status for order {market_id}')
             return f'{market_id}: {status} {substatus}'
         except TaskFailure as error:
             _report_packing_failure(order_id, str(error))
@@ -498,16 +498,16 @@ def notify_beru_order_status(self, order_id, status, substatus):
         lock.release()
 
 
-def get_beru_order_details(order_id):
+def get_order_details(order_id):
     order = Order.objects.get(id=order_id)
-    beru_order = order.delivery_tracking_number
-    if not beru_order:
-        raise TaskFailure('Order {} does not have beru order number'.format(order_id))
+    market_order = order.delivery_tracking_number
+    if not market_order:
+        raise TaskFailure('Order {} does not have a Yandex.Market order number'.format(order_id))
 
     campaign_id = order.integration.settings.get('ym_campaign', '')
     api_key = order.integration.settings.get('api_key', '')
 
-    url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}.json'.format(campaignId=campaign_id, orderId=beru_order)
+    url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}.json'.format(campaignId=campaign_id, orderId=market_order)
     headers = {
         'Api-Key': api_key,
     }
@@ -522,20 +522,20 @@ def get_beru_order_details(order_id):
         content = e.read()
         error = json.loads(content.decode('utf-8'))
         logger.error(error)
-        message = error.get('errors', [{}])[0].get('message', 'Неизвестная ошибка взаимодействия с Беру!')
+        message = error.get('errors', [{}])[0].get('message', 'Неизвестная ошибка взаимодействия с Яндекс Маркетом')
         raise TaskFailure(message) from e
 
 
-def get_beru_labels_data(order_id):
+def get_labels_data(order_id):
     order = Order.objects.get(id=order_id)
-    beru_order = order.delivery_tracking_number
-    if not beru_order:
-        raise TaskFailure('Order {} does not have beru order number'.format(order_id))
+    market_order = order.delivery_tracking_number
+    if not market_order:
+        raise TaskFailure('Order {} does not have a Yandex.Market order number'.format(order_id))
 
     campaign_id = order.integration.settings.get('ym_campaign', '')
     api_key = order.integration.settings.get('api_key', '')
 
-    url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}/delivery/labels/data.json'.format(campaignId=campaign_id, orderId=beru_order)
+    url = 'https://api.partner.market.yandex.ru/v2/campaigns/{campaignId}/orders/{orderId}/delivery/labels/data.json'.format(campaignId=campaign_id, orderId=market_order)
     headers = {
         'Api-Key': api_key,
     }
@@ -550,12 +550,12 @@ def get_beru_labels_data(order_id):
         content = e.read()
         error = json.loads(content.decode('utf-8'))
         logger.error(error)
-        message = error.get('errors', [{}])[0].get('message', 'Неизвестная ошибка взаимодействия с Беру!')
+        message = error.get('errors', [{}])[0].get('message', 'Неизвестная ошибка взаимодействия с Яндекс Маркетом')
         raise TaskFailure(message) from e
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error), rate_limit='1/s', retry_backoff=300, retry_jitter=False)
-def notify_beru_product_stocks(self, products, account, target_site_id=None):
+def notify_product_stocks(self, products, account, target_site_id=None):
     integration = Integration.get_for_utm_source(account, target_site_id)
 
     campaign_id = integration.settings.get('ym_campaign', '')
@@ -603,24 +603,24 @@ def notify_beru_product_stocks(self, products, account, target_site_id=None):
         content = e.read()
         error = json.loads(content.decode('utf-8'))
         logger.error(error)
-        message = error.get('errors', [{}])[0].get('message', 'Неизвестная ошибка взаимодействия с Беру!')
+        message = error.get('errors', [{}])[0].get('message', 'Неизвестная ошибка взаимодействия с Яндекс Маркетом')
         raise TaskFailure(message) from e
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
-def notify_beru_marked_stocks(self):
+def notify_marked_stocks(self):
     total = 0
     for integration in Integration.objects.filter(settings__has_key='ym_campaign', enabled=True):
         products = ProductIntegration.objects.order_by().filter(integration=integration, notify_stock=True)
         products = list(products.values_list('product_id', flat=True).distinct())
         if products:
-            notify_beru_product_stocks.s(products, integration.utm_source, target_site_id=integration.target_site_id).apply_async(priority=PRIORITY_IDLE)
+            notify_product_stocks.s(products, integration.utm_source, target_site_id=integration.target_site_id).apply_async(priority=PRIORITY_IDLE)
             total += len(products)
     return total
 
 
 @shared_task(bind=True, autoretry_for=(OSError, django.db.Error, json.decoder.JSONDecodeError), retry_backoff=300, retry_jitter=False)
-def notify_beru_integration_stocks(self):
+def notify_integration_stocks(self):
     """ Sends the stock of every product of the Market integrations, in chunks of 20 a minute apart """
     total = 0
     for integration in Integration.objects.filter(settings__has_key='ym_campaign', enabled=True):
@@ -637,8 +637,33 @@ def notify_beru_integration_stocks(self):
 
         countdown = 0
         for chunk in batched(products, 20):
-            notify_beru_product_stocks.s(chunk, integration.utm_source, target_site_id=integration.target_site_id).apply_async(countdown=countdown, priority=PRIORITY_IDLE)
+            notify_product_stocks.s(chunk, integration.utm_source, target_site_id=integration.target_site_id).apply_async(countdown=countdown, priority=PRIORITY_IDLE)
             countdown += 60
 
         total += len(products)
     return total
+
+
+# The tasks' names from before the beru package became ym. Messages queued under them before the deploy (retries,
+# stock chunks with a countdown, a beat that has not restarted yet) are passed on to the tasks under their new names.
+# TODO: remove after 2027-01-31, when nothing can be left in the queues
+LEGACY_TASKS = {
+    'beru.tasks.get_orders': get_orders,
+    'beru.tasks.get_integration_orders': get_integration_orders,
+    'beru.tasks.sync_integration_order': sync_integration_order,
+    'beru.tasks.notify_beru_order_status': notify_order_status,
+    'beru.tasks.notify_beru_product_stocks': notify_product_stocks,
+    'beru.tasks.notify_beru_marked_stocks': notify_marked_stocks,
+    'beru.tasks.notify_beru_integration_stocks': notify_integration_stocks,
+}
+
+
+def _forward(task):
+    def forward(*args, **kwargs):
+        return task.apply_async(args, kwargs).id
+    forward.__name__ = f'forward_{task.__name__}'
+    return forward
+
+
+for _name, _task in LEGACY_TASKS.items():
+    shared_task(name=_name, ignore_result=True)(_forward(_task))
